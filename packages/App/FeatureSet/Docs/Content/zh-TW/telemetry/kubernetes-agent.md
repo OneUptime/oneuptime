@@ -1,0 +1,739 @@
+# OneUptime Kubernetes Agent (Helm)
+
+## 概觀
+
+OneUptime Kubernetes Agent 是一個預先封裝好的 Helm chart，會在您的叢集上安裝以 OpenTelemetry 為基礎的 collector pipeline。它會傳送節點、Pod、容器與叢集指標；Kubernetes 事件；Pod 日誌；並且——在預設啟用 eBPF 的情況下——還會傳送應用程式追蹤、HTTP RED 指標、service-graph 資料，以及 Pod 對 Pod 的網路流量指標。在 `cost.enabled=true` 時，它還會傳送依工作負載的**成本配置**（依命名空間/工作負載/Pod 的支出、閒置容量、效率）。無需修改程式碼、無需 SDK，只要一個 `helm install`。
+
+本頁面是**安裝指南**。若要在 agent 所收集的資料之上設定 Kubernetes 監控與警示，請參閱 [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent)。關於成本可觀測性，請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。
+
+## 先決條件
+
+- 一個運作中的 Kubernetes 叢集（v1.23+）
+- 已設定可存取您叢集的 `kubectl`
+- 已安裝 `helm` v3
+- 一組 **OneUptime API key**——請從 _專案設定 → API 金鑰_ 建立
+
+## 步驟 1 — 加入 OneUptime Helm Repository
+
+```bash
+helm repo add oneuptime https://helm-chart.oneuptime.com
+helm repo update
+```
+
+## 步驟 2 — 為您的叢集挑選一個 Preset
+
+此 chart 對外提供單一的頂層選項——`preset`——用來為您的 Kubernetes 發行版挑選相容的預設值。它會控制那些您原本得手動調整的項目：是要透過 hostPath DaemonSet 還是透過 Kubernetes API 來傳送日誌，以及要套用哪一種 security context。
+
+| `preset`            | 適用對象                                                                       | 日誌收集                                                      |
+| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `standard` _(預設)_ | 自行管理的叢集、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | DaemonSet 透過 hostPath 讀取 `/var/log/pods`（負擔最低）      |
+| `gke-autopilot`     | **GKE Autopilot**                                                              | Kubernetes API 日誌追蹤 Deployment（無 hostPath、無主機存取） |
+| `eks-fargate`       | **EKS Fargate**                                                                | Kubernetes API 日誌追蹤 Deployment（無 hostPath、無主機存取） |
+
+如果您不確定，請從 `standard` 開始。如果安裝因提及 `hostPath` 的 Pod Security 錯誤而失敗，請改用 `preset=gke-autopilot`（在 Fargate 上則用 `eks-fargate`）重新執行，即可成功。
+
+## 步驟 3 — 安裝 Kubernetes Agent
+
+請將 `YOUR_ONEUPTIME_URL`、`YOUR_ONEUPTIME_API_KEY` 以及叢集名稱替換為您環境中的對應值。叢集名稱是此叢集在 OneUptime 中顯示的方式——請選一個穩定的名稱，例如 `prod-us-east-1`。
+
+### 標準叢集（自行管理、EKS on EC2、GKE Standard、AKS）
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster"
+```
+
+### GKE Autopilot
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set preset=gke-autopilot
+```
+
+### EKS Fargate
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set preset=eks-fargate
+```
+
+## 步驟 4 — 驗證安裝
+
+檢查 agent 的 Pod 是否正在執行：
+
+```bash
+kubectl get pods -n oneuptime-agent
+```
+
+在**標準**叢集上，您會看到一個 cluster-collector Deployment，外加每個節點各一個 node-collector DaemonSet Pod：
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
+```
+
+在 **GKE Autopilot** 上，節點收集器仍會執行——它不需要 hostPath 即可收集 kubelet 與 cAdvisor 指標——並且會有一個額外的 Deployment 透過 Kubernetes API 讀取 Pod 日誌：
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+在 **EKS Fargate** 上，您會看到兩個 Deployment 且沒有 DaemonSet——Fargate 為每個 Pod 配置獨立的微型虛擬機，從不排程 DaemonSet，因此該處無法取得節點層級的指標：
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+```
+
+一旦 agent 連線成功，您的叢集就會自動出現在 OneUptime 儀表板的 **Kubernetes** 區段中。
+
+## 設定選項
+
+### Namespace 篩選
+
+`namespaceFilters.rules` 將命名空間模式分別套用到四個作用域:
+
+- `podLogs`: 在 hostPath filelog 接收器或 API 日誌收集器篩選 Pod 的 stdout/stderr；不影響 Kubernetes 事件和稽核日誌。
+- `ebpfDiscovery`: 篩選 OBI 程序探索，因此同時控制 eBPF 追蹤與 eBPF 指標。
+- `metrics`: 在中繼資料補充後篩選帶有命名空間的指標序列；不帶命名空間的節點與叢集序列會保留。
+- `traces`: 在中繼資料補充後篩選 eBPF span 與應用程式推送的 OTLP span。
+
+命名空間模式會比對完整名稱，並支援使用 * 作為萬用字元，例如 team-*。如果某個作用域有任何 include 規則，該作用域只會保留相符的命名空間。exclude 規則永遠優先。預設規則只會從 podLogs 與 ebpfDiscovery 排除 kube-system。
+
+若要將 Pod 日誌與 eBPF 探索限制在指定命名空間：
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production","staging"],"scopes":["podLogs","ebpfDiscovery"]}]'
+```
+
+若要停止高雜訊命名空間的日誌，同時保留其 eBPF 追蹤、服務地圖與指標，請只將排除規則套用到 podLogs：
+
+```bash
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system"],"scopes":["podLogs","ebpfDiscovery"]},{"action":"exclude","namespaces":["noisy-*"],"scopes":["podLogs"]}]'
+```
+
+podLogs 與 ebpfDiscovery 規則會在來源端篩選：被排除的日誌檔案不會開啟，被排除的工作負載不會被插樁。metrics 與 traces 規則則在補充命名空間中繼資料後，於 collector 中稍後執行。
+
+#### 依命名空間篩選指標與追蹤
+
+如果也要篩選帶有命名空間的指標或 span，請直接將這些作用域加入規則：
+
+```bash
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system","noisy-*"],"scopes":["podLogs","ebpfDiscovery","metrics","traces"]}]'
+```
+
+> **節點與叢集層級的指標永遠保留。命名空間是 Pod 而不是節點的屬性，因此不帶命名空間的序列不會符合規則，也不會被刪除。**
+
+代理程式無法依命名空間篩選 Kubernetes 事件。事件由 k8sobjects 接收器送入，不含 k8s.namespace.name 屬性；命名空間位於事件本文。請改在伺服器端篩選。
+
+### 依日誌嚴重性篩選
+
+`filters.logs.minSeverity` 會在 agent 端、於任何資料被傳送之前，捨棄低於某個嚴重性的 **Pod 日誌**記錄：
+
+```bash
+  --set filters.logs.minSeverity=WARN
+```
+
+接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。`WARN` 會保留 WARN、ERROR 與 FATAL，並捨棄 INFO、DEBUG 與 TRACE。預設值（`""`）會保留所有內容。它在**兩種**日誌模式下都適用——在 `daemonset` 模式下透過 collector，在 `api` 模式下則在日誌追蹤器本身內部——因此 preset 無法在您不知情的情況下將它關閉。
+
+容器執行階段並不會在日誌行上記錄嚴重性，因此 agent 會自行從日誌文字中解析出嚴重性（`[ERROR]`、`WARN:`、`"level":"info"` 等）。
+
+> **Kubernetes 事件與資源規格絕不會被它篩選。** 它們來自 Kubernetes API，本身不帶任何嚴重性，因此設定門檻會刪除整個資料流，而不是將它變稀疏——包括您最想看到的 `FailedScheduling`、`BackOff` 與 `OOMKilling` 警告。它們資料量低而價值高，因此 agent 一律會傳送它們。若要精簡它們，請改用儀表板中伺服器端的 **日誌 → 設定 → 捨棄過濾器**。
+
+**一行沒有可辨識層級的日誌會有什麼結果，取決於日誌模式**，因為這兩種模式可取得的資訊並不相同：
+
+| 模式 | 未標示層級的日誌行 | 原因 |
+| ---- | --------------- | --- |
+| `daemonset` | `stderr` → 視為 ERROR（保留）、`stdout` → 視為 INFO（會被 WARN 門檻捨棄） | 容器執行階段會記錄每一行來自哪個串流。 |
+| `api` | 一律**保留** | Kubernetes `pods/log` API 會將 stdout 與 stderr 合併成單一串流，且不帶每行的標記。agent 不會去猜測，而是保留該行。 |
+
+> 因此 `api` 模式捨棄的資料嚴格少於 `daemonset` 模式。這是刻意的：Python traceback 或 `npm ERR!` 並不帶有嚴重性關鍵字，而默默刪除它，正是嚴重性門檻本應保護您免於發生的失誤。
+
+多行事件在兩種模式下都會**先**被重新組合再進行篩選，因此 Java 堆疊追蹤會依其第一行來判定，並整筆一起保留或捨棄——您絕不會拿到一行光禿禿的 `ERROR` 而它的堆疊框架卻被剝除。
+
+### 依名稱包含或排除指標
+
+`filters.metrics` 會控管哪些指標能離開叢集，範圍涵蓋管線中的每一個 receiver。
+
+**捨棄少數幾個吵雜的指標**（拒絕清單——通常這才是您想要的）：
+
+```bash
+  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+```
+
+**只傳送固定的一組指標**（允許清單——其他全部都會被捨棄）：
+
+```bash
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
+```
+
+**依模式比對**，而非精確名稱：
+
+```bash
+  --set filters.metrics.matchType=regexp \
+  --set-json 'filters.metrics.exclude=["^container_network_"]'
+```
+
+| 索引鍵 | 意義 |
+| --- | ------- |
+| `filters.metrics.exclude` | 要捨棄的指標名稱。會套用在 `include` 之上，因此 exclude 一律優先。 |
+| `filters.metrics.include` | 當它非空時，**只有**這些指標會被傳送。 |
+| `filters.metrics.matchType` | `strict`（精確名稱，預設值）或 `regexp`（RE2，**未錨定**）。 |
+
+能為您省下一場事故的注意事項：
+
+- `regexp` 是**未錨定的**——`system.cpu` 也會比對到 `system.cpu.time`。當您指的就是單一指標時，請將它錨定（`^system\.cpu$`）。
+- RE2 **沒有 lookahead**，因此 `^(?!container_)` 無法編譯。請用 `include` 來表達「除了……之外的全部」，而不是用否定的正規表示式。
+- `include` 會一次涵蓋每一個 receiver。一份漏掉某個指標的允許清單，會默默移除以該指標為基礎所建立的監控。除非您真的想要一組封閉的集合，否則請優先使用 `exclude`。
+- 清單請使用 `--set-json`（或 values 檔案）。單純的 `--set` 會取代整份清單，而不是合併它。
+
+> **在推出之前先測試您的正規表示式。** 模式是由 collector 在啟動時編譯的，而不是逐筆記錄編譯，因此無效的模式並不會安靜地出錯——collector 會拒絕啟動並進入 CrashLoopBackOff，連同該 collector 的**日誌**與它的指標一起停擺。Helm 無法編譯 RE2，因此 `helm upgrade` 會毫無怨言地接受一個錯誤的模式。
+
+### 追蹤取樣
+
+本頁上的其他每一個開關都會移除某個**類別**的遙測資料——一個 namespace、一個嚴重性、一個指標名稱。取樣則不同：它會保留每一個類別，改為將母體變稀疏。請將 `sampling.traces.percentage` 設為您想保留的追蹤比例：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+這會每十筆追蹤保留一筆，並在其餘九筆離開您的叢集之前，就在 agent 端將它們捨棄。
+
+**您拿到的是完整的追蹤，而不是片段。** 這個決定是對 trace ID 做雜湊，而不是逐個 span 擲硬幣，因此一筆追蹤的每個 span 都會被一起保留或一起捨棄——存活下來的追蹤是完整的，而且能從頭到尾讀懂。正是這個特性，讓取樣可以安心開啟。
+
+**您以指標為基礎的監控不會有任何變動。** eBPF RED 指標——請求率、錯誤率、延遲——屬於*指標*族群。OBI 會從每一個請求計算它們，而它們走的是指標管線，取樣器並不在其中。在 `percentage: 10` 之下，您會拿到十分之一的追蹤，以及 100% 準確的請求率／錯誤／延遲。以這些指標為基礎所建立的儀表板與監控不受影響。
+
+**您以 span 為基礎的監控則會變動。** 任何 OneUptime 從 span 本身推導出來的東西，都會隨著這個比率一起縮減——在您開啟它之前，請先閱讀下方的警告。
+
+| 索引鍵 | 意義 |
+| --- | ------- |
+| `sampling.traces.percentage` | 要**保留**的追蹤百分比，0-100。預設值 `100`（全部保留）。 |
+| `sampling.traces.hashSeed` | trace ID 雜湊所使用的 seed。預設值 `22`。 |
+
+能為您省下一場事故的注意事項：
+
+- **`0` 完全不會保留任何追蹤。** 它是一個比率，而不是一個關閉開關——它會刪除每一筆追蹤，而 eBPF DaemonSet 仍會繼續執行並持續消耗您的資源。如果您不想要追蹤，請使用 `ebpf.enabled=false`。如果您不想要追蹤，但**確實**想要 RED 指標與 service map，請保持 eBPF 開啟，並刻意將此值設為 `0`。
+- **只在 `ebpf.enabled` 時才適用。** 否則追蹤管線根本不存在，因此在 `ebpf.enabled=false` 之下，這個值不會有任何作用。
+- **僅適用於追蹤。** 沒有 `sampling.logs` 或 `sampling.metrics`，而這是刻意的——請見下方的說明。
+- **小數需要使用 `--set-json`，而且它們有一個下限。** `--set sampling.traces.percentage=0.5` 會失敗，因為 Helm 會把 `0.5` 讀成字串。請使用 `--set-json 'sampling.traces.percentage=0.5'` 或 values 檔案。整數用 `--set` 沒有問題。低於大約 `0.0061` 時，這個比率會被量化為零，行為完全等同於 `0`——每一筆追蹤都被捨棄，而且不會有任何錯誤。`0.01`（一萬筆保留一筆）是能如實反映其字面意義的最小值。
+- **跨叢集預設就能運作。** 只有當兩個 agent 在 `hashSeed` 與 `percentage` 上都一致時，它們才會保留同一筆追蹤。兩者在各處的預設值都相同，因此一筆橫跨兩個叢集的追蹤，無需任何額外設定就能完整存活。只有在您想刻意**去相關**兩個取樣層級時，才需要變更 `hashSeed`——因為這個決定是對同一個雜湊取門檻，所以相同的 seed 在不同比率下會呈巢狀關係，於是第二層只會重新挑出第一層已經保留的那些追蹤，而不是獨立抽取。
+- **Pod 日誌永遠不會被取樣**，因此在 `ebpf.logToTraceCorrelation: true` 之下，每一筆日誌記錄仍然會帶有 trace ID，但這些追蹤只有 `percentage`% 會被保留。大約 (100 − `percentage`)% 的日誌記錄，其顯示的追蹤連結會指向一個不存在的追蹤。追蹤 → 日誌的導覽不受影響；只有日誌 → 追蹤可能會落空。
+
+> **設定這個值時，請重新調校您以 span 為基礎的監控。** 取樣會減少抵達 OneUptime 的 span，因此任何在計數 span 的東西都會算得比較少：一個以 `Span Count` 為條件的 **追蹤** 監控，以及一個以 `Exception Count` 為條件的 **例外** 監控，看到的大約會是昨天資料量的 `percentage`%。以未取樣流量調校出來的門檻會悄悄地不再被跨越——監控不會報錯，它只是變得靜默。設定這個比率時，請將那些門檻除以相同的倍數；這個比率是叢集範圍的，因此沒有辦法讓個別服務豁免於它。錯誤**分組**的劣化則比線性更嚴重：常見的例外仍然會浮現，但罕見的一次性例外，比起「出現頻率變成十分之一」，更可能是完全消失。
+
+> **為什麼這裡沒有日誌或指標取樣。** collector 的取樣器根本無法對指標取樣。它可以對日誌取樣，但它的隨機性來源是 trace ID——而 Pod 日誌沒有 trace ID。於是每一筆沒有 trace ID 的記錄都會雜湊到同一個 bucket，因此日誌比率並不會讓資料流變稀疏：它會依 seed 而定，不是全部保留，就是全部刪除。與其推出一個會默默刪除您日誌的開關，chart 選擇不提供。若要精簡日誌，請改用[依日誌嚴重性篩選](#依日誌嚴重性篩選)與 [Namespace 篩選](#namespace-篩選)，它們對於自己移除什麼是精確的。
+
+### 停用日誌收集
+
+如果您不需要 Pod 日誌：
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set logs.enabled=false
+```
+
+你的指標不受影響：節點收集器會繼續執行以收集 kubelet、cAdvisor 與主機指標，它只是不再讀取 Pod 日誌。只有以日誌為基礎的警示會停止。
+
+### 強制使用特定的日誌收集模式
+
+進階使用者可以用 `logs.mode` 覆寫 preset 的選擇：
+
+- `logs.mode=daemonset` — hostPath DaemonSet（負擔最低，需要 hostPath）
+- `logs.mode=api` — Kubernetes API 日誌追蹤 Deployment（適用於任何叢集）
+- `logs.mode=disabled` — 不收集日誌
+
+> 日誌模式只決定 **Pod 日誌**從何而來。節點指標的收集與其無關，因此 `api` 與 `disabled` 都會保留你的 kubelet、cAdvisor 與主機指標。
+>
+> 唯一的例外來自平台而非模式：**EKS Fargate 根本無法排程 DaemonSet**，因此該處沒有節點收集器，節點/Pod/容器層級的指標無法使用。GKE Autopilot 可正常執行節點收集器，但會封鎖 `hostPath`，因此它會收集 kubelet 與 cAdvisor 指標，但不包含需要讀取主機 `/proc` 與 `/sys` 的 `hostmetrics` 指標（磁碟 I/O、inode、網卡錯誤）。
+
+
+明確指定的 `logs.mode` 一律優先於 preset 預設值。如果您比 preset 更了解自己的叢集，就使用這個選項。
+
+### 啟用 Control Plane 監控
+
+對於自行管理的叢集（非 EKS / GKE / AKS），您可以啟用 control plane 指標：
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set controlPlane.enabled=true
+```
+
+> 受管理的 Kubernetes 服務（EKS、GKE、AKS）通常不會對外公開 control plane 指標。請只為自行管理的叢集啟用此選項。
+
+### 啟用成本可觀測性
+
+在叢集的 **Costs** 頁面上查看每個命名空間、工作負載與 Pod 實際花費多少——包括閒置容量與 request 對比實際用量的效率：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+僅此一步就是一次完整的安裝：此 chart 隨附了開源的 [OpenCost](https://opencost.io) 引擎（外加它所需的一個最小化專用 Prometheus），並依據您雲端供應商的公開牌價為您的節點與 volume 定價——不需要任何憑證。只會多出兩個小 Pod；第一批資料會在第一個已結束的小時視窗之後出現。已經在執行 Kubecost 或 OpenCost？改為加上 `--set cost.engine.url=<它的服務 URL>`，就不會隨附任何東西。地端叢集可透過 `cost.opencost.customPricing` 設定一份費率表。
+
+完整指南（包括地端定價與疑難排解）：[Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。
+
+### 以專案標籤自動標記
+
+任何以 `oneuptime.label.` 為前綴的 resource attribute 都會被提升為專案 Label，並附加到由此 agent 發出的叢集、服務與主機上。模式：`oneuptime.label.<dimension>=<value>` 會變成名為 `<dimension>:<value>` 的標籤。
+
+在安裝時使用 `--set oneuptime.labels.<key>=<value>` 傳入標籤：
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="prod" \
+  --set oneuptime.labels.team=payments \
+  --set oneuptime.labels.env=production \
+  --set oneuptime.labels.region=us-east-1
+```
+
+或將它們保存在 values 檔案中：
+
+```yaml
+# values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+  labels:
+    team: payments
+    env: production
+    region: us-east-1
+clusterName: prod
+```
+
+標籤比對時不分大小寫，因此既有的、手動建立的 `Production` 標籤會被重複使用，而不是被複製出一個新的。在 OneUptime UI 中手動加入的標籤，agent 絕不會將其移除。
+
+## 升級 Agent
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values
+```
+
+`--reuse-values` 會保留您既有的設定（preset、叢集名稱、篩選條件）；在其之上傳入任何新的 `--set` 覆寫值。
+
+## 解除安裝 Agent
+
+```bash
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
+```
+
+## 會收集哪些資料
+
+| 類別                                     | 資料                                                                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **節點指標**                             | CPU 使用率、記憶體用量、檔案系統用量、網路 I/O                                                                       |
+| **Pod 指標**                             | CPU 用量、記憶體用量、網路 I/O、重新啟動次數                                                                         |
+| **容器指標**                             | 每個容器的 CPU 用量、記憶體用量                                                                                      |
+| **叢集指標**                             | 節點狀態、可配置資源、Pod 數量                                                                                       |
+| **Kubernetes 事件**                      | 警告、錯誤、排程事件                                                                                                 |
+| **Pod 日誌**                             | 所有容器的 stdout/stderr 日誌（在標準叢集上透過 hostPath DaemonSet，或在 Autopilot / Fargate 上透過 Kubernetes API） |
+| **應用程式追蹤** _(透過 eBPF，預設啟用)_ | 來自每個 Pod 的 HTTP、gRPC、SQL/Redis span——無需 SDK 或修改程式碼                                                    |
+| **HTTP RED 指標** _(透過 eBPF)_          | 每個服務的 `http.server.request.duration`、請求與回應主體大小                                                        |
+| **Service Graph** _(透過 eBPF)_          | 呼叫端 → 被呼叫端的請求率、延遲與錯誤連線——驅動 service map 檢視                                                     |
+| **網路流量指標** _(透過 eBPF)_           | 帶有 k8s 中繼資料的 Pod 對 Pod TCP/UDP 位元組與封包計數器                                                            |
+| **TCP 統計** _(透過 eBPF)_               | 節點層級的 RTT、連線失敗與重傳計數器                                                                                 |
+| **工作負載成本** _(選擇性啟用，`cost.enabled=true`)_ | 依命名空間/工作負載/Pod 預先定價的支出，含閒置與效率，外加節點/PV 每小時成本指標——請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost) |
+
+## 透過 eBPF 取得應用程式追蹤與 HTTP 指標（預設啟用）
+
+此 chart 會在每個節點上執行一個搭載 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) 的 DaemonSet。它會將 eBPF 程式載入核心，並自動擷取來自每個受支援執行階段（Go、.NET、Java、Node.js、Python、Ruby、Rust）的 HTTP/HTTPS、gRPC 與 SQL/Redis 流量——無需 SDK，也不需要 sidecar。追蹤與請求指標接著會流經叢集內的 collector 送往 OneUptime。
+
+**需求：** Linux kernel **5.8+** 並支援 BTF（在 Debian 11+、Ubuntu 20.10+、Fedora 34+、RHEL/Stream 9+ 上為預設）。eBPF DaemonSet 以**特權模式（privileged mode）**執行，因為載入 eBPF 程式必須如此。
+
+### 停用 eBPF 自動 instrumentation
+
+在以下情況下您應該停用它：
+
+- 安裝在 **GKE Autopilot** 或 **EKS Fargate** 上——這些平台會封鎖特權 Pod（請使用 `preset=gke-autopilot` / `preset=eks-fargate` 並搭配 `ebpf.enabled=false`）。
+- 節點執行的 kernel 舊於 5.8 且未回移植 BTF。
+- 您已經從應用程式透過 OpenTelemetry SDK 傳送追蹤，並且不想要重複資料。
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set ebpf.enabled=false
+```
+
+### 切換個別的訊號族群
+
+全部預設啟用。可用 `--set ebpf.features.<name>=false` 將其中任何一項關閉：
+
+| `ebpf.features.*`         | 預設 | 它新增了什麼                                         |
+| ------------------------- | ---- | ---------------------------------------------------- |
+| `httpMetrics`             | 啟用 | 每個服務的 HTTP/gRPC RED 指標（請求率、延遲、錯誤）  |
+| `spanMetrics`             | 啟用 | 每個 span 的請求/回應大小與持續時間                  |
+| `serviceGraph`            | 啟用 | 呼叫端 → 被呼叫端的連線指標；驅動 service map        |
+| `hostMetrics`             | 啟用 | 每個受 instrument 的處理程序的 CPU 與記憶體          |
+| `networkMetrics`          | 啟用 | Pod 對 Pod TCP/UDP 流量計數器                        |
+| `networkInterZoneMetrics` | 停用 | 網路指標的跨區（inter-zone）變體（cardinality 加倍） |
+| `tcpStats`                | 啟用 | 節點層級的 TCP RTT、連線失敗、重傳計數器             |
+
+跨服務的追蹤 context 傳播——即 OBI 會注入 W3C `traceparent`，使一個橫跨 pod A → pod B 的請求顯示為單一追蹤，且任何地方都不需要修改 SDK——**預設為關閉**。可用 `--set ebpf.contextPropagation=true` 啟用。它不需要超出 agent 其餘部分的核心版本——也沒有任何核心版本能讓它失效。
+
+之所以預設關閉，是因為注入這個標頭意味著改寫已經在傳輸中的流量：明文 HTTP 請求會在核心中就地擴充，而 TLS 與原始 TCP 則由 Traffic Control hook 附加一個 TCP 選項。若連線的位元組記帳未被精確修正，資料流就會失去同步——已回報的症狀是：當回應超過約 64KB 之後，經由 nginx 這類 L7 代理的傳輸會在回應主體中途停住，而小型請求仍然正常。追蹤、RED 指標與服務地圖都不依賴此功能；若需要跨服務串連，OpenTelemetry SDK 會在使用者空間傳播 `traceparent`，完全不涉及核心改寫，是更安全的選擇。
+
+## 減少收集的資料量
+
+agent 在開箱即用時是為了**涵蓋範圍**而調校的——它會傳送整個叢集的指標、Pod 日誌與 eBPF 追蹤，讓每個儀表板與監控從第一天起就能運作。在大型或繁忙的叢集上，這可能會是超出您所需的遙測資料量，並表現為更高的擷取量（在 OneUptime Cloud 上則是更高的成本）。這裡沒有任何項目是必要的，但如果某個叢集傳送的資料超過您想要的量，以下就是可供調整的開關——大致依影響程度排序。
+
+訣竅在於**停止收集您不會查看的資料**，而不是收集全部再付費儲存。下方的每個槓桿都是一個 Helm value，因此您可以在 `helm upgrade --reuse-values` 上用 `--set` 套用它，並以相同方式將其回復。
+
+### 資料量的來源
+
+| 訊號                      | 最大來源                                         | 調降方式                                                                                     |
+| ------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **Pod 日誌**              | 叢集範圍內每個容器的每一行日誌                   | `namespaceFilters`、`filters.logs.minSeverity`、`logs.enabled`、`logs.mode`                  |
+| **eBPF 追蹤與 span 指標** | 每個受 instrument 的處理程序中每個請求各一筆追蹤 | `sampling.traces.percentage`、`ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths` |
+| **指標資料點**            | 抓取頻率 × Pod/容器的數量                        | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
+| **指標 cardinality**      | 不同序列的數量（每個容器、每個 PVC……）           | `filters.metrics.exclude`、`namespaceFilters.rules` (`metrics`)、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
+| **選擇性啟用的額外項目**  | Profiling、稽核日誌、control plane、跨區指標     | 讓它們維持關閉（它們預設就是關閉的）                                                         |
+
+削減資料量有三種方式，而且值得知道您用的是哪一種：
+
+- **在 receiver 端**——資料根本不會被收集。套用在 Pod 日誌上的 `namespaceFilters`、`cadvisor.metricsAllowlist`、較長的 `collectionInterval`。執行起來不需要任何代價，並且同時節省 CPU、egress 與擷取量。只要能涵蓋您的情境，請一律優先使用這些方式。
+- **在 filter processor 端**——資料會先被收集，然後在匯出前被捨棄。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.rules` (`metrics`/`traces`)。會多耗用一些 collector CPU，但它能跨 receiver 運作，並且能表達 receiver 做不到的事情。
+- **只需要特定命名空間的日誌嗎？請使用作用域為 podLogs 的 include 規則。比對發生在日誌來源，因此被篩選的命名空間不會被讀取，而 eBPF 遙測保持獨立。**
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
+  ```
+
+  若要保留除了一組高雜訊命名空間以外的所有命名空間，請使用 namespaces: [noisy-*]、scopes: [podLogs] 的 exclude 規則。
+
+- **只在意警告與錯誤？** `filters.logs.minSeverity` 會在 agent 端捨棄其餘的日誌。在一個話很多的叢集上，這往往是可用的單一最大縮減幅度，因為 INFO 與 DEBUG 佔了大多數應用程式輸出的絕大部分：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.logs.minSeverity=WARN
+  ```
+
+  關於嚴重性如何判定，以及無法分類的日誌會有什麼結果，請參閱[依日誌嚴重性篩選](#依日誌嚴重性篩選)。
+
+- **完全不需要 OneUptime 的 Pod 日誌？** 將它們關閉：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+  > 這只會停止 Pod 日誌。節點、Pod 與容器指標會繼續流入，建構於其上的監控（OOM kill、CPU 節流、PVC 磁碟空間不足）也會繼續運作——節點收集器仍在，只是不再讀取 `/var/log/pods`。`logs.mode: api` 與 `logs.mode: disabled` 亦同。
+
+### 槓桿 2 — 精簡 eBPF 自動 instrumentation
+
+eBPF 讓您無需修改程式碼即可取得追蹤、RED 指標、service map 與網路流量指標——但它同時也是第二大的資料來源，因為它每個請求會發出一個 span，且每個服務會發出數個指標族群。您有三個層級的控制方式：
+
+- **已經從 OTel SDK 傳送追蹤，或不想要自動追蹤？** 將 eBPF 完全關閉：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **保留追蹤，捨棄較重的指標族群。** 上方的[訊號族群表格](#切換個別的訊號族群)列出了每個 `ebpf.features.*` 旗標。資料量最高的族群是網路與 span 指標——將它們關閉後，追蹤、HTTP RED 指標與 service map 仍會保持完整：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  讓 `ebpf.features.networkInterZoneMetrics` 維持關閉（其預設值）——它會使網路流量的 cardinality 加倍。
+
+- **只 instrument 您關心的執行階段。** OBI 預設會掛接到它辨識的每個處理程序（`ebpf.autoTargetExe: "*"`）。將它縮小到特定執行階段，或將二進位檔加入略過清單，以減少 agent 產生的「服務」與追蹤數量：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  如需完整的預設值，請參閱[切換個別的訊號族群](#切換個別的訊號族群)以及 chart values 中的 `excludeExePaths` 說明。
+
+### 槓桿 3 — 放慢抓取間隔
+
+指標資料量與 agent 抓取的頻率成正比。將間隔加倍大約會使該指標產生的資料點數量減半，且不會損失涵蓋範圍——只是解析度較粗。如果您不需要 30 秒的精細度，60s 或 120s 是一個幅度大又安全的縮減：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval`（預設 `30s`）驅動節點 / Pod / 容器指標（`kubeletstats`）與叢集狀態指標（`k8s_cluster`）——佔指標資料量的大宗。
+- `hostMetrics.collectionInterval` 與 `cadvisor.scrapeInterval` 涵蓋每個節點的 OS 指標以及 throttling / OOM 計數器。
+- `resourceSpecs.interval`（預設 `300s`）控制完整資源規格（labels、annotations、status）被拉取的頻率——如果您不需要規格變更被快速反映，可將它調高。
+- 如果您啟用了任何可選的抓取器，它們也各有自己的調整項：`kubeStateMetrics.scrapeInterval`、`serviceMesh.*.scrapeInterval`、`coreDns.scrapeInterval`、`csi.scrapeInterval`。
+
+### 槓桿 4 — 讓指標 cardinality 維持在可控範圍
+
+Cardinality（不同時間序列的數量）與頻率同樣重要，因為每個序列都是分開儲存與計費的。
+
+- **cAdvisor 是刻意採用允許清單的。** cAdvisor receiver（預設啟用）可能會發出數百個指標；此 chart 只會轉送用來驅動監控的少數幾個（`cadvisor.metricsAllowlist`）。請讓這份清單保持精簡——**每個項目都會依每個容器保留，因此多一個指標就會乘上叢集的容器數量。** kube-state-metrics 預設為關閉，但如果您啟用它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 會以相同方式控管 cardinality。
+- **每個 PVC 的 volume 指標**（`kubeletstats.volumeMetrics.enabled`，預設啟用）會為每個 Pod 的每個 PVC 各發出一個序列。對大多數叢集來說這沒問題，但在具有數千個 PVC 的具狀態工作負載（Kafka、資料庫）上可能會很可觀——如果您不監看 PVC 磁碟空間，請在那裡將它關閉：
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **飽和度指標**（`kubeletstats.utilizationMetrics.enabled`，預設啟用）會新增 8 個衍生的「佔 request/limit 百分比」族群。它們很便宜（不需額外抓取），但如果您不使用 CPU/記憶體對比 limit 的監控，可以用 `--set kubeletstats.utilizationMetrics.enabled=false` 將它們捨棄。
+
+- **依名稱捨棄特定指標。** 上方的允許清單是依每個 receiver 各自運作的；`filters.metrics.exclude` 則會橫跨所有 receiver，因此對於 receiver 層級的開關無法表達的任何情況，請使用它：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.metrics.matchType=regexp \
+    --set-json 'filters.metrics.exclude=["^container_network_"]'
+  ```
+
+  關於精確比對與正規表示式比對的差異，以及允許清單的形式，請參閱[依名稱包含或排除指標](#依名稱包含或排除指標)。
+
+- **要捨棄整個命名空間的指標嗎？請新增作用域為 metrics 的 exclude 規則。每個 Pod 與容器的序列會被篩選，不帶命名空間的節點與叢集序列則會保留。**
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
+  ```
+
+### 槓桿 5 — 讓較重的選擇性啟用功能維持關閉
+
+這些功能**預設為關閉**，正是因為它們會增加負載——只有在您實際使用它所驅動的功能時才啟用某一項，如果您只是試用一下，之後請將它關回去：
+
+| 設定值                                                    | 新增了什麼                                                                       |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `profiling.enabled`                                       | 持續性 CPU profiling DaemonSet——比 eBPF 追蹤更重                                 |
+| `auditLogs.enabled`                                       | 將每個 Kubernetes API 請求作為一筆日誌記錄（高資料量）                           |
+| `controlPlane.enabled`                                    | etcd / API-server / scheduler / controller-manager 指標                          |
+| `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / scheduling-reason 指標（新增一個 KSM Deployment + 抓取） |
+| `ebpf.features.networkInterZoneMetrics`                   | 使網路流量指標的 cardinality 加倍                                                |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 額外的 Prometheus 抓取工作                                                       |
+| `cost.enabled`                                            | 工作負載成本可觀測性（隨附 OpenCost + 一個小型 Prometheus；每小時成本資料列 + 一個嚴格限定允許清單的指標抓取——擷取量不大，多出兩個 Pod） |
+
+### 槓桿 6 — 對追蹤取樣，而不是捨棄它們
+
+上述每個槓桿都是靠放棄某些東西來換取資料量：一個您不再關注的 namespace、一個您不再保留的嚴重性、一個您不再收集的指標族群。取樣是例外，而在繁忙的叢集上，它往往是以最小的損失所能取得的最大幅削減：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+這是追蹤資料量 90% 的削減，而它所帶來的損失比這裡的任何其他槓桿都更窄：
+
+- 您保留下來的追蹤是**完整的**——這個決定是對 trace ID 做雜湊，因此一筆追蹤的所有 span 都共用它。您拿到的是比較少的追蹤，而不是壞掉的追蹤。
+- 您的 **RED 指標維持精確**。請求率、錯誤率與延遲是由 OBI 從每一個請求計算而來，並且走指標管線，取樣器並不在其中。以它們為基礎所建立的每個儀表板與監控，讀出來的結果都與以前相同。
+
+您所放棄的主要是範例追蹤：當監控觸發時，您能打開的追蹤只剩十分之一。在一個每秒處理數千筆相同請求的叢集上，這通常是一筆划算的交易——第一百筆相同的 `/healthz` span，並不會告訴您第一筆沒告訴過您的事。在一個安靜的叢集上，這則是一筆糟糕的交易，因為您可能會完全沒有那筆出問題的罕見請求的範例。
+
+唯一的例外，也是您在推出這項設定之前該檢查的一件事：會**計數 span** 而非計數指標的監控——以 `Span Count` 為條件的 Traces、以 `Exception Count` 為條件的 Exceptions——看到的數量會按比例變少，因此它們的門檻需要以相同的倍數重新調校。請參閱[追蹤取樣](#追蹤取樣)。
+
+當 eBPF 追蹤佔了您擷取量的一大部分，但您仍想保留完整的 service map 與 RED 指標時，就該動用這個槓桿。如果您想完全停止對某個東西進行 instrument，請優先使用槓桿 2。
+
+關於完整的行為，包括為什麼 `0` 是一個比率而不是一個關閉開關，以及為什麼沒有日誌或指標的對應項，請參閱[追蹤取樣](#追蹤取樣)。
+
+### 精簡的起始點
+
+如果您想要較小的佔用，但仍希望監控能運作，這個設定檔會保留**完整的指標涵蓋範圍**，並削減真正驅動資料量的兩件事——日誌行與 eBPF span：
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+# 將指標資料點減半。解析度較粗，但涵蓋範圍相同。
+collectionInterval: 60s
+hostMetrics:
+  collectionInterval: 60s
+cadvisor:
+  scrapeInterval: 60s
+
+# 保留 Pod 日誌，但只傳送值得警示的那些。
+#（指標不依賴於此——節點收集器無論如何都會執行。）
+logs:
+  enabled: true
+  mode: daemonset
+
+filters:
+  logs:
+    minSeverity: WARN # 在 agent 端捨棄 INFO / DEBUG / TRACE
+
+namespaceFilters:
+  rules:
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    - action: exclude
+      namespaces: [noisy-*]
+      scopes: [podLogs]
+
+ebpf:
+  enabled: true
+  features:
+    networkMetrics: false # 最重的 eBPF 族群
+    tcpStats: false
+    spanMetrics: false
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+可視需要進一步收緊：將 minSeverity 提高為 ERROR、把 metrics 加入命名空間規則的 scopes，或在已透過 OTel SDK 傳送追蹤時設定 ebpf.enabled=false。
+
+> **注意您所削減的內容。** 有些監控依賴特定的訊號：停用 `cadvisor` 會移除 OOM-kill 與 CPU-throttling 監控；停用 `kubeletstats.volumeMetrics` 會移除 PVC 低磁碟空間監控；停用日誌會移除以日誌為基礎的警示；而 `sampling.traces.percentage` 不會移除任何監控，但會使以 span 為基礎的那些監控（以 `Span Count` 為條件的 Traces、以 `Exception Count` 為條件的 Exceptions）按比例縮減，因此請將它們的門檻重新調校到相符。請削減您不會據以採取行動的訊號，而不是某個監控正在監看的訊號。
+
+### 衡量效果
+
+遙測用量是以每日為單位彙總的，因此請在 **專案設定 → 使用歷程** 下觀察一兩天的趨勢來確認下降——它不會在您套用變更的當下就立即變化。一次只調整一個槓桿，這樣您才能歸因於差異——先關閉日誌，接著調高間隔，然後精簡 eBPF——而不是一次把所有東西都調降，結果失去一個您實際依賴的監控。
+
+## 疑難排解
+
+> **最快的途徑——執行診斷指令碼。** 它會檢查 Pod 健康狀態、解碼並驗證 ingestion key、確認您的叢集能否連到 OneUptime，並向 OneUptime 詢問您的 token 是否真的被接受——然後印出單一的根本原因判定結果：
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+>   | bash -s -- -n oneuptime-agent
+> ```
+>
+> 它只會讀取叢集狀態並執行幾個探測；它不會改變任何東西。若要進行最準確的對外連線（egress）測試，請先以 `--set debug.enabled=true` 安裝（這會在 agent 的 Pod 中加入一個小型的 network-tools sidecar，讓指令碼測試 collector 的確切對外路徑），然後重新執行。
+
+### 安裝失敗並出現 "hostPath volumes are not allowed" 或 Pod Security admission 錯誤
+
+您的叢集封鎖了 `hostPath`——在 **GKE Autopilot** 與 **EKS Fargate** 上很常見。請切換到 API 模式的 preset：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set preset=gke-autopilot   # or eks-fargate
+```
+
+### Agent 顯示 "Disconnected"
+
+叢集的連線狀態完全由是否有遙測資料抵達來決定——如果沒有任何資料抵達，該叢集會在約 15 分鐘後被標記為 disconnected。因此 "disconnected" 與 "no metrics" 幾乎總是出於**相同的**原因：agent 的遙測資料沒有被接受。
+
+最常見的原因——尤其是在重新安裝之後——是**錯誤或已撤銷的 ingestion key**。OneUptime 會拒絕這樣的 key：對於缺少、未知或已過期的 key，OTLP 接收端點回傳 HTTP `401`；對於已停用的 key 或瀏覽器 key，回傳 `422`。這兩種狀態都不會重試，因此 collector 會丟棄每個批次，並為每個批次記錄一行 `Exporting failed. Dropping data.` 錯誤。Pod 仍維持 Running 與 Ready，所以這行日誌很容易被忽略。
+
+1. 檢查 agent 的 Pod 是否正在執行：`kubectl get pods -n oneuptime-agent`
+2. 檢查 metrics-collector 日誌：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`（出現帶有 `HTTP Status Code 401` 或 `422` 的 `Exporting failed` 行，表示 key 遭到拒絕——見上文）
+3. **驗證 ingestion key。** 直接向 OneUptime 詢問您的 token 是否被接受（`200` = 有效，`401` = 未知/已撤銷）：
+
+   ```bash
+   curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
+   ```
+
+   如果它回傳 `401`，表示您 release 中的 key 是錯誤的或已被撤銷。請從 _專案設定 → 遙測與 APM → 擷取金鑰_ 複製一個有效的 key 並重新部署：
+
+   ```bash
+   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+     --namespace oneuptime-agent --reuse-values \
+     --set oneuptime.apiKey=<LIVE_KEY>
+   ```
+
+4. 確認您的 OneUptime URL 正確，且您的叢集能透過網路連到它。
+5. 如果您在重新安裝時更改了 `clusterName`，該 agent 會以**新的**叢集出現——舊的項目會維持在 "Disconnected"（這是預期的；它已經過時了）。
+
+### 沒有日誌出現（僅限 API 模式）
+
+1. 確認日誌追蹤 Pod 已 Ready：`kubectl get pods -n oneuptime-agent -l component=log-collector`
+2. 檢查它的 `/healthz`——它會回報作用中的串流數量以及最後一次匯出錯誤
+3. 檢查日誌：`kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
+4. 對於超大型叢集，單一副本可能成為瓶頸；請在 namespaceFilters.rules 中使用 podLogs 作用域的 include 規則，將不同 release 分片。
+
+### 沒有指標出現
+
+1. 首先排除被拒絕的 ingestion key——這是最常見的原因，而且從 agent 端很容易被忽略。請見上文的 [Agent 顯示 "Disconnected"](#agent-顯示-disconnected)（或直接執行診斷指令碼）。
+2. 檢查叢集識別碼是否與您以 `clusterName` 傳入的值相符
+3. 驗證 RBAC 權限：`kubectl get clusterrolebinding | grep kubernetes-agent`
+4. 檢查 OTel collector 日誌是否有匯出錯誤
+
+### eBPF Pod 處於 CrashLoopBackOff 或無法啟動
+
+```bash
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
+```
+
+常見原因：
+
+- **Kernel 太舊或缺少 BTF。** OBI 需要 Linux 5.8+ 並支援 BTF。請在節點上執行 `uname -r`。如果您無法升級，請停用 eBPF：`--set ebpf.enabled=false`。
+- **特權 Pod 被封鎖。** 有些叢集會拒絕特權 Pod（GKE Autopilot、EKS Fargate，以及高度鎖定的環境）。請停用 eBPF。
+- **主機上未掛載 `debugfs` / `tracefs`。** `tcpStats` 功能會掛接到需要它們的 kernel tracepoint。此 chart 會透過 `hostPath` 掛載兩者——但如果您的主機未對外提供它們，請只停用該族群：`--set ebpf.features.tcpStats=false`。
+
+### 沒有應用程式追蹤出現
+
+1. 確認 eBPF DaemonSet 健康：`kubectl get pods -n oneuptime-agent -l component=ebpf-instrument`
+2. 開啟 debug 追蹤列印器以確認 OBI 正在擷取流量：`--set ebpf.printTraces=true --set ebpf.logLevel=debug`，然後檢查 `kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200`
+3. 如果您在 OBI 的 stdout 中看到 span，但在儀表板中卻看不到，那麼問題出在 collector → OneUptime 的匯出——請檢查 metrics-collector Pod 的日誌。
+
+## 後續步驟
+
+- 在此 agent 所收集的指標之上設定 **Kubernetes Monitors**——請參閱 [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent)。
+- 加入 **Logs Monitors** 以針對特定日誌模式發出警示（例如每個 Pod 或每個 namespace 的錯誤計數超過某個門檻）。
+- 對於非 Kubernetes 的主機（Linux / macOS / Windows VM 與裸機），請使用 [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 頁面。

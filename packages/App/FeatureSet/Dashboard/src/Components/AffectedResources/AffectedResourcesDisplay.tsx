@@ -1,0 +1,608 @@
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import React, { FunctionComponent, ReactElement, useState } from "react";
+import CephClusterElement from "../Ceph/CephClusterElement";
+import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
+import DockerHostElement from "../DockerHost/DockerHost";
+import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
+import IoTFleetElement from "../IoT/IoTFleetElement";
+import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
+import VMwareVCenterElement from "../VMware/VMwareVCenterElement";
+import PodmanHostElement from "../PodmanHost/PodmanHost";
+import HostElement from "../Host/Host";
+import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
+import MonitorElement from "../Monitor/Monitor";
+import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
+import ServiceElement from "../Service/ServiceElement";
+import SloElement from "../Slo/SloElement";
+
+export interface ComponentProps {
+  monitors?: Array<Monitor> | undefined;
+  hosts?: Array<Host> | undefined;
+  kubernetesClusters?: Array<KubernetesCluster> | undefined;
+  dockerHosts?: Array<DockerHost> | undefined;
+  podmanHosts?: Array<PodmanHost> | undefined;
+  proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  vmwareVCenters?: Array<VMwareVCenter> | undefined;
+  cephClusters?: Array<CephCluster> | undefined;
+  dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
+  iotFleets?: Array<IoTFleet> | undefined;
+  databaseServers?: Array<DatabaseServer> | undefined;
+  networkSites?: Array<NetworkSite> | undefined;
+  services?: Array<Service> | undefined;
+  /*
+   * The SLOs whose burn rate rules raised this incident or alert. The
+   * worker writes the link and it is shown read-only here: the edit picker
+   * deliberately does not offer SLOs, so editing the other resources can
+   * never drop the link that lists this record on the SLO's own tabs.
+   */
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  /*
+   * Caller can hide categories that don't apply. Hiding one whose items the
+   * page elsewhere calls affected leaves this card contradicting it: the
+   * alert page once hid its monitor and read "No resources affected" beside
+   * a feed that named the monitor.
+   */
+  hideMonitors?: boolean | undefined;
+  hideHosts?: boolean | undefined;
+  hideKubernetesClusters?: boolean | undefined;
+  hideDockerHosts?: boolean | undefined;
+  hidePodmanHosts?: boolean | undefined;
+  hideProxmoxClusters?: boolean | undefined;
+  hideVMwareVCenters?: boolean | undefined;
+  hideCephClusters?: boolean | undefined;
+  hideDockerSwarmClusters?: boolean | undefined;
+  hideIoTFleets?: boolean | undefined;
+  hideDatabaseServers?: boolean | undefined;
+  hideNetworkSites?: boolean | undefined;
+  hideServices?: boolean | undefined;
+  hideServiceLevelObjectives?: boolean | undefined;
+  emptyMessage?: string | undefined;
+  /*
+   * How many category cards sit side by side. Left out, the grid follows the
+   * viewport: one column on phones, two from md up. That is right for a
+   * full-width card but not for one in a narrow column (an overview page's
+   * sidebar), where two cards share about 300px and every name is clipped,
+   * so those callers ask for 1.
+   */
+  columns?: 1 | 2 | undefined;
+}
+
+type GetGridClassNameFunction = (columns: 1 | 2 | undefined) => string;
+
+export const getAffectedResourcesGridClassName: GetGridClassNameFunction = (
+  columns: 1 | 2 | undefined,
+): string => {
+  if (columns === 1) {
+    return "grid grid-cols-1 gap-3";
+  }
+
+  return "grid grid-cols-1 gap-3 md:grid-cols-2";
+};
+
+interface NamedResource {
+  name?: string | undefined;
+}
+
+const PREVIEW_COUNT: number = 4;
+/*
+ * Hard cap on rendered DOM nodes per category. Without this, an incident
+ * attached to thousands of resources would render every item in one go when
+ * the user clicks "Show more" — enough to lock the tab. Past this cap we
+ * still render the first MAX_RENDER_PER_CATEGORY rows and surface the
+ * remaining count in a footer note so the user knows the data isn't lost.
+ */
+const MAX_RENDER_PER_CATEGORY: number = 100;
+
+interface CategoryCardProps<T extends NamedResource> {
+  icon: IconProp;
+  label: string;
+  iconBgClass: string;
+  iconColorClass: string;
+  accentBarClass: string;
+  countTextClass: string;
+  countBgClass: string;
+  items: Array<T>;
+  renderItem: (item: T) => ReactElement;
+}
+
+function CategoryCard<T extends NamedResource>(
+  props: CategoryCardProps<T>,
+): ReactElement {
+  const [showAll, setShowAll] = useState<boolean>(false);
+  const total: number = props.items.length;
+  const expandedCap: number = Math.min(total, MAX_RENDER_PER_CATEGORY);
+  const visibleItems: Array<T> = showAll
+    ? props.items.slice(0, expandedCap)
+    : props.items.slice(0, PREVIEW_COUNT);
+  const collapsedRemaining: number = total - PREVIEW_COUNT;
+  const truncatedCount: number = total - MAX_RENDER_PER_CATEGORY;
+  const hasMore: boolean = collapsedRemaining > 0;
+  const isTruncated: boolean = showAll && truncatedCount > 0;
+
+  return (
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
+      <div className={`h-1 w-full ${props.accentBarClass}`} />
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${props.iconBgClass}`}
+          >
+            <Icon
+              icon={props.icon}
+              className={`h-[18px] w-[18px] ${props.iconColorClass}`}
+            />
+          </div>
+          <span className="truncate text-sm font-semibold text-gray-900">
+            {props.label}
+          </span>
+        </div>
+        <span
+          className={`inline-flex h-7 min-w-[1.75rem] flex-shrink-0 items-center justify-center rounded-full px-2.5 text-xs font-semibold ${props.countBgClass} ${props.countTextClass}`}
+        >
+          {total.toLocaleString()}
+        </span>
+      </div>
+      <ul className="flex flex-col gap-0.5 border-t border-gray-100 px-2 py-2">
+        {visibleItems.map((item: T, i: number) => {
+          const itemName: string = item.name?.toString() || "";
+
+          return (
+            <li
+              key={i}
+              className="group/item flex items-center justify-between rounded-md px-2.5 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              {/*
+               * The resource elements wrap their name in a flex span (or a
+               * flex row, for services), and text inside a flex container
+               * cannot be ellipsised from out here. Turning those spans into
+               * truncating blocks keeps a long name on one line with an
+               * ellipsis, and the title shows it in full on hover.
+               */}
+              <div
+                data-testid="affected-resource-item"
+                className="min-w-0 flex-1 truncate [&_span.flex]:block [&_span.flex]:truncate"
+                title={itemName || undefined}
+              >
+                {props.renderItem(item)}
+              </div>
+              <Icon
+                icon={IconProp.ChevronRight}
+                className="ml-2 h-3.5 w-3.5 shrink-0 text-gray-300 transition-colors group-hover/item:text-gray-500"
+              />
+            </li>
+          );
+        })}
+      </ul>
+      {isTruncated && (
+        <div className="flex items-start gap-2 border-t border-gray-100 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          <Icon
+            icon={IconProp.Alert}
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+          />
+          <span>
+            Showing the first {MAX_RENDER_PER_CATEGORY.toLocaleString()} of{" "}
+            {total.toLocaleString()}. {truncatedCount.toLocaleString()} more
+            attached — edit affected resources to manage the full list.
+          </span>
+        </div>
+      )}
+      {hasMore && (
+        <button
+          type="button"
+          className="flex w-full items-center justify-center gap-1.5 border-t border-gray-100 bg-gray-50/50 px-4 py-2.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+          onClick={() => {
+            return setShowAll(!showAll);
+          }}
+        >
+          {showAll ? (
+            <>
+              <Icon icon={IconProp.ChevronUp} className="h-3 w-3" />
+              <span>Show less</span>
+            </>
+          ) : (
+            <>
+              <Icon icon={IconProp.ChevronDown} className="h-3 w-3" />
+              <span>
+                Show{" "}
+                {Math.min(
+                  collapsedRemaining,
+                  MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
+                ).toLocaleString()}{" "}
+                more{" "}
+                {Math.min(
+                  collapsedRemaining,
+                  MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
+                ) === 1
+                  ? "item"
+                  : "items"}
+              </span>
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/*
+ * Single read-only display that mirrors the AffectedResourcesPicker. We group
+ * the five ManyToMany relations under one "Resources Affected" header so the
+ * edit experience (one picker) and the view experience (one section) line up.
+ * Empty buckets collapse so the section only shows what's actually attached.
+ *
+ * SLOs are the one bucket with no picker counterpart: burn rate rules link
+ * them, and nobody attaches or detaches them by hand.
+ */
+const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const monitors: Array<Monitor> = props.monitors || [];
+  const hosts: Array<Host> = props.hosts || [];
+  const kubernetesClusters: Array<KubernetesCluster> =
+    props.kubernetesClusters || [];
+  const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
+  const podmanHosts: Array<PodmanHost> = props.podmanHosts || [];
+  const proxmoxClusters: Array<ProxmoxCluster> = props.proxmoxClusters || [];
+  const vmwareVCenters: Array<VMwareVCenter> = props.vmwareVCenters || [];
+  const cephClusters: Array<CephCluster> = props.cephClusters || [];
+  const dockerSwarmClusters: Array<DockerSwarmCluster> =
+    props.dockerSwarmClusters || [];
+  const iotFleets: Array<IoTFleet> = props.iotFleets || [];
+  const databaseServers: Array<DatabaseServer> = props.databaseServers || [];
+  const networkSites: Array<NetworkSite> = props.networkSites || [];
+  const services: Array<Service> = props.services || [];
+  const serviceLevelObjectives: Array<ServiceLevelObjective> =
+    props.serviceLevelObjectives || [];
+
+  const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
+  const showHosts: boolean = !props.hideHosts && hosts.length > 0;
+  const showClusters: boolean =
+    !props.hideKubernetesClusters && kubernetesClusters.length > 0;
+  const showDocker: boolean = !props.hideDockerHosts && dockerHosts.length > 0;
+  const showPodman: boolean = !props.hidePodmanHosts && podmanHosts.length > 0;
+  const showProxmox: boolean =
+    !props.hideProxmoxClusters && proxmoxClusters.length > 0;
+  const showVMware: boolean =
+    !props.hideVMwareVCenters && vmwareVCenters.length > 0;
+  const showCeph: boolean = !props.hideCephClusters && cephClusters.length > 0;
+  const showSwarm: boolean =
+    !props.hideDockerSwarmClusters && dockerSwarmClusters.length > 0;
+  const showIoTFleets: boolean = !props.hideIoTFleets && iotFleets.length > 0;
+  const showDatabases: boolean =
+    !props.hideDatabaseServers && databaseServers.length > 0;
+  const showNetworkSites: boolean =
+    !props.hideNetworkSites && networkSites.length > 0;
+  const showServices: boolean = !props.hideServices && services.length > 0;
+  const showSlos: boolean =
+    !props.hideServiceLevelObjectives && serviceLevelObjectives.length > 0;
+
+  if (
+    !showMonitors &&
+    !showHosts &&
+    !showClusters &&
+    !showDocker &&
+    !showPodman &&
+    !showProxmox &&
+    !showVMware &&
+    !showCeph &&
+    !showSwarm &&
+    !showIoTFleets &&
+    !showDatabases &&
+    !showNetworkSites &&
+    !showServices &&
+    !showSlos
+  ) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-10 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+          <Icon icon={IconProp.Server} className="h-5 w-5 text-gray-400" />
+        </div>
+        <span className="text-sm font-medium text-gray-700">
+          {props.emptyMessage || "No resources affected."}
+        </span>
+        <span className="max-w-sm text-xs text-gray-500">
+          Attach monitors, hosts, clusters, or services to track which parts of
+          your infrastructure are impacted. SLOs are linked automatically when
+          their burn rate rules fire.
+        </span>
+      </div>
+    );
+  }
+
+  const totalCount: number =
+    (showMonitors ? monitors.length : 0) +
+    (showHosts ? hosts.length : 0) +
+    (showClusters ? kubernetesClusters.length : 0) +
+    (showDocker ? dockerHosts.length : 0) +
+    (showPodman ? podmanHosts.length : 0) +
+    (showProxmox ? proxmoxClusters.length : 0) +
+    (showVMware ? vmwareVCenters.length : 0) +
+    (showCeph ? cephClusters.length : 0) +
+    (showSwarm ? dockerSwarmClusters.length : 0) +
+    (showIoTFleets ? iotFleets.length : 0) +
+    (showDatabases ? databaseServers.length : 0) +
+    (showNetworkSites ? networkSites.length : 0) +
+    (showServices ? services.length : 0) +
+    (showSlos ? serviceLevelObjectives.length : 0);
+  const categoryCount: number =
+    (showMonitors ? 1 : 0) +
+    (showHosts ? 1 : 0) +
+    (showClusters ? 1 : 0) +
+    (showDocker ? 1 : 0) +
+    (showPodman ? 1 : 0) +
+    (showProxmox ? 1 : 0) +
+    (showVMware ? 1 : 0) +
+    (showCeph ? 1 : 0) +
+    (showSwarm ? 1 : 0) +
+    (showIoTFleets ? 1 : 0) +
+    (showDatabases ? 1 : 0) +
+    (showNetworkSites ? 1 : 0) +
+    (showServices ? 1 : 0) +
+    (showSlos ? 1 : 0);
+  const resourceWord: string = totalCount === 1 ? "resource" : "resources";
+  const categoryWord: string = categoryCount === 1 ? "category" : "categories";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+          {totalCount.toLocaleString()} {resourceWord}
+        </span>
+        {/*
+         * In a single column the summary usually wraps, and the separator
+         * would be left dangling at the end of the first line.
+         */}
+        {props.columns !== 1 && <span className="text-gray-300">·</span>}
+        <span>
+          across {categoryCount.toLocaleString()} {categoryWord}
+        </span>
+      </div>
+      <div
+        data-testid="affected-resources-grid"
+        className={getAffectedResourcesGridClassName(props.columns)}
+      >
+        {showMonitors && (
+          <CategoryCard<Monitor>
+            icon={IconProp.AltGlobe}
+            label="Monitors"
+            iconBgClass="bg-blue-50"
+            iconColorClass="text-blue-600"
+            accentBarClass="bg-blue-500"
+            countBgClass="bg-blue-50"
+            countTextClass="text-blue-700"
+            items={monitors}
+            renderItem={(monitor: Monitor) => {
+              return <MonitorElement monitor={monitor} />;
+            }}
+          />
+        )}
+        {showHosts && (
+          <CategoryCard<Host>
+            icon={IconProp.Server}
+            label="Hosts"
+            iconBgClass="bg-emerald-50"
+            iconColorClass="text-emerald-600"
+            accentBarClass="bg-emerald-500"
+            countBgClass="bg-emerald-50"
+            countTextClass="text-emerald-700"
+            items={hosts}
+            renderItem={(host: Host) => {
+              return <HostElement host={host} />;
+            }}
+          />
+        )}
+        {showClusters && (
+          <CategoryCard<KubernetesCluster>
+            icon={IconProp.Kubernetes}
+            label="Kubernetes Clusters"
+            iconBgClass="bg-indigo-50"
+            iconColorClass="text-indigo-600"
+            accentBarClass="bg-indigo-500"
+            countBgClass="bg-indigo-50"
+            countTextClass="text-indigo-700"
+            items={kubernetesClusters}
+            renderItem={(cluster: KubernetesCluster) => {
+              return <KubernetesClusterElement kubernetesCluster={cluster} />;
+            }}
+          />
+        )}
+        {showDocker && (
+          <CategoryCard<DockerHost>
+            icon={IconProp.Docker}
+            label="Docker Hosts"
+            iconBgClass="bg-sky-50"
+            iconColorClass="text-sky-600"
+            accentBarClass="bg-sky-500"
+            countBgClass="bg-sky-50"
+            countTextClass="text-sky-700"
+            items={dockerHosts}
+            renderItem={(dockerHost: DockerHost) => {
+              return <DockerHostElement dockerHost={dockerHost} />;
+            }}
+          />
+        )}
+        {showPodman && (
+          <CategoryCard<PodmanHost>
+            icon={IconProp.Podman}
+            label="Podman Hosts"
+            iconBgClass="bg-violet-50"
+            iconColorClass="text-violet-600"
+            accentBarClass="bg-violet-500"
+            countBgClass="bg-violet-50"
+            countTextClass="text-violet-700"
+            items={podmanHosts}
+            renderItem={(podmanHost: PodmanHost) => {
+              return <PodmanHostElement podmanHost={podmanHost} />;
+            }}
+          />
+        )}
+        {showProxmox && (
+          <CategoryCard<ProxmoxCluster>
+            icon={IconProp.Proxmox}
+            label="Proxmox Clusters"
+            iconBgClass="bg-orange-50"
+            iconColorClass="text-orange-600"
+            accentBarClass="bg-orange-500"
+            countBgClass="bg-orange-50"
+            countTextClass="text-orange-700"
+            items={proxmoxClusters}
+            renderItem={(cluster: ProxmoxCluster) => {
+              return <ProxmoxClusterElement proxmoxCluster={cluster} />;
+            }}
+          />
+        )}
+        {showVMware && (
+          <CategoryCard<VMwareVCenter>
+            icon={IconProp.VMware}
+            label="vCenters"
+            iconBgClass="bg-sky-50"
+            iconColorClass="text-sky-600"
+            accentBarClass="bg-sky-500"
+            countBgClass="bg-sky-50"
+            countTextClass="text-sky-700"
+            items={vmwareVCenters}
+            renderItem={(vcenter: VMwareVCenter) => {
+              return <VMwareVCenterElement vmwareVCenter={vcenter} />;
+            }}
+          />
+        )}
+        {showCeph && (
+          <CategoryCard<CephCluster>
+            icon={IconProp.Ceph}
+            label="Ceph Clusters"
+            iconBgClass="bg-rose-50"
+            iconColorClass="text-rose-600"
+            accentBarClass="bg-rose-500"
+            countBgClass="bg-rose-50"
+            countTextClass="text-rose-700"
+            items={cephClusters}
+            renderItem={(cluster: CephCluster) => {
+              return <CephClusterElement cephCluster={cluster} />;
+            }}
+          />
+        )}
+        {showSwarm && (
+          <CategoryCard<DockerSwarmCluster>
+            icon={IconProp.DockerSwarm}
+            label="Docker Swarm Clusters"
+            iconBgClass="bg-cyan-50"
+            iconColorClass="text-cyan-600"
+            accentBarClass="bg-cyan-500"
+            countBgClass="bg-cyan-50"
+            countTextClass="text-cyan-700"
+            items={dockerSwarmClusters}
+            renderItem={(cluster: DockerSwarmCluster) => {
+              return <DockerSwarmClusterElement dockerSwarmCluster={cluster} />;
+            }}
+          />
+        )}
+        {showIoTFleets && (
+          <CategoryCard<IoTFleet>
+            icon={IconProp.IoT}
+            label="IoT Fleets"
+            iconBgClass="bg-teal-50"
+            iconColorClass="text-teal-600"
+            accentBarClass="bg-teal-500"
+            countBgClass="bg-teal-50"
+            countTextClass="text-teal-700"
+            items={iotFleets}
+            renderItem={(fleet: IoTFleet) => {
+              return <IoTFleetElement iotFleet={fleet} />;
+            }}
+          />
+        )}
+        {showDatabases && (
+          <CategoryCard<DatabaseServer>
+            icon={IconProp.Database}
+            label="Databases"
+            iconBgClass="bg-purple-50"
+            iconColorClass="text-purple-600"
+            accentBarClass="bg-purple-500"
+            countBgClass="bg-purple-50"
+            countTextClass="text-purple-700"
+            items={databaseServers}
+            renderItem={(databaseServer: DatabaseServer) => {
+              return <DatabaseServerElement databaseServer={databaseServer} />;
+            }}
+          />
+        )}
+        {showNetworkSites && (
+          <CategoryCard<NetworkSite>
+            icon={IconProp.BuildingOffice}
+            label="Network Sites"
+            iconBgClass="bg-indigo-50"
+            iconColorClass="text-indigo-600"
+            accentBarClass="bg-indigo-500"
+            countBgClass="bg-indigo-50"
+            countTextClass="text-indigo-700"
+            items={networkSites}
+            renderItem={(networkSite: NetworkSite) => {
+              return <NetworkSiteElement networkSite={networkSite} />;
+            }}
+          />
+        )}
+        {showServices && (
+          <CategoryCard<Service>
+            icon={IconProp.Cube}
+            label="Services"
+            iconBgClass="bg-amber-50"
+            iconColorClass="text-amber-600"
+            accentBarClass="bg-amber-500"
+            countBgClass="bg-amber-50"
+            countTextClass="text-amber-700"
+            items={services}
+            renderItem={(service: Service) => {
+              return (
+                <ServiceElement
+                  service={service}
+                  serviceNameClassName="min-w-0 truncate"
+                />
+              );
+            }}
+          />
+        )}
+        {/*
+         * Last: an SLO is not a piece of infrastructure but the objective
+         * measured over it, so it reads best after everything it covers.
+         * Fuchsia is a hue no other category uses, and Theme.css remaps its
+         * 50 / 600 / 700 shades for dark mode.
+         */}
+        {showSlos && (
+          <CategoryCard<ServiceLevelObjective>
+            icon={IconProp.Gauge}
+            label="SLOs"
+            iconBgClass="bg-fuchsia-50"
+            iconColorClass="text-fuchsia-600"
+            accentBarClass="bg-fuchsia-500"
+            countBgClass="bg-fuchsia-50"
+            countTextClass="text-fuchsia-700"
+            items={serviceLevelObjectives}
+            renderItem={(serviceLevelObjective: ServiceLevelObjective) => {
+              return (
+                <SloElement serviceLevelObjective={serviceLevelObjective} />
+              );
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AffectedResourcesDisplay;

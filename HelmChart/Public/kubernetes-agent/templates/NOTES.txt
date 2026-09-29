@@ -1,3 +1,10 @@
+{{- /*
+The Kubernetes AI agent's settings come from the same helper
+templates/ai-agent.yaml renders from (templates/_ai-agent.tpl), so these notes
+describe exactly the RBAC and pod that were rendered, including settings
+carried over from a release's stored aiAccess values.
+*/ -}}
+{{- $aiAgent := include "kubernetes-agent.aiAgent.settings" . | fromJson -}}
 OneUptime Kubernetes Agent has been installed.
 
 Cluster Name: {{ .Values.clusterName }}
@@ -63,6 +70,9 @@ The agent is now collecting:
   - Raw cost metrics (node hourly cost, container allocation, PV and load balancer cost) for Metric Explorer and the Kubernetes Cost dashboard
 {{- end }}
 {{- end }}
+{{- if $aiAgent.enabled }}
+  - Kubernetes AI agent: lets OneUptime AI run {{ if $aiAgent.allowWrites }}kubectl to investigate AND fix incidents and alerts{{ else }}read-only kubectl while it investigates incidents and alerts{{ end }}
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
@@ -84,10 +94,84 @@ To turn eBPF auto-instrumentation off:
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes
+{{- if $aiAgent.enabled }}
+
+Kubernetes AI agent: on, {{ if $aiAgent.allowWrites }}with write access{{ else }}read-only{{ end }}.
+It connects with the same API key and cluster name; within a minute the
+cluster's AI agent page (Kubernetes → <cluster> → AI → Agent) shows it as
+Connected. If it does not, its log says why: whether a refusal clears on its
+own, or what to change (an API key with a Pinned Service Name cannot register
+it, and a self-hosted OneUptime server older than this chart has no AI agent
+API, so upgrade OneUptime first):
+  kubectl logs -n {{ .Release.Namespace }} -l component=ai-agent --tail=100
+Turn it off with --set aiAgent.enabled=false.
+{{- if $aiAgent.allowWrites }}
+
+A cluster whose agent connects for the first time with write access starts in
+"ask for approval", unless AI settings were already picked on its AI agent
+page before the install, which are kept as chosen. Otherwise pick how fixes
+run on that page.
+{{- if eq $aiAgent.writesKey "aiAccess.remediation.enabled" }}
+Write access was carried over from aiAccess.remediation.enabled; change it
+with aiAgent.remediation.* from now on.
+{{- end }}
+
+What write access amounts to: patch on workloads and pods (and create on
+jobs) in a namespace is as good as running any image as any ServiceAccount
+there and reading its Secrets. OneUptime's command policy refuses changing
+which ServiceAccount, security settings, volumes, command or Secret wiring a
+pod runs with (patches that replace the pod spec or a whole containers list
+included), and expose --overrides. It still allows changing an image (set
+image) as a riskier change a human approves unless the cluster bypasses
+approvals or its allowlist names the command. RBAC only decides where writes
+may land.
+{{- if $aiAgent.writeNamespaces }}
+Write access is bound only in: {{ join ", " $aiAgent.writeNamespaces }} ({{ $aiAgent.namespacesKey }}).
+Each listed namespace must already exist: the chart creates a RoleBinding in
+each and never creates a namespace, so a missing one fails every install or
+upgrade with 'namespaces "<name>" not found'. Take a namespace off the list
+before you delete it; --set-json 'aiAgent.remediation.namespaces=[]' goes
+back to cluster-wide. A fix outside these namespaces is refused when it is
+proposed or approved, and the agent refuses it again before it runs kubectl.
+{{- else }}
+Write access is bound cluster-wide. RBAC cannot keep it out of kube-system,
+kube-public, kube-node-lease or {{ .Release.Namespace }}: there OneUptime's policy (never
+without a human in the three system namespaces) and the agent (never its own
+namespace) hold the line. To bind it only where AI may fix things, upgrade
+with (every listed namespace must already exist):
+  --set "aiAgent.remediation.namespaces={web,api}"
+{{- end }}
+{{- if $aiAgent.allowNodeOperations }}
+Node operations (cordon, uncordon, taint, drain) are on, cluster-wide. A drain
+evicts pods in every namespace, kube-system and {{ .Release.Namespace }} included, so a drain,
+a taint or a patch of a node always waits for a human, in every mode; turn
+node operations off with --set aiAgent.remediation.nodeOperations=false.
+{{- else }}
+Node operations (cordon, uncordon, taint, drain) are off: the chart grants no
+node RBAC, and the agent refuses them before it runs kubectl. OneUptime refuses
+a node fix already when it is proposed or approved.
+{{- end }}
+{{- else }}
+
+To let OneUptime AI also fix what it finds, grant write access in the
+namespaces it may change (each must already exist), then pick how fixes run
+on the cluster's AI agent page:
+  helm repo update
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAgent.remediation.enabled=true --set "aiAgent.remediation.namespaces={web,api}" --set aiAgent.remediation.nodeOperations=false
+{{- end }}
+{{- else }}
+
+The Kubernetes AI agent is off (aiAgent.enabled=false). To let OneUptime AI
+run read-only kubectl on this cluster while it investigates, refresh your
+chart index and upgrade:
+  helm repo update
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAgent.enabled=true
+{{- end }}
 
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
-ingestion key — which is silently dropped, so the collector logs look clean),
-run the diagnostic script for a one-shot root-cause verdict:
+ingestion key: OneUptime refuses it with 401/422, and the collector only logs
+"Exporting failed. Dropping data.", which is easy to miss), run the diagnostic
+script for a one-shot root-cause verdict:
   curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
 
 Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):

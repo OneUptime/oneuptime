@@ -1,0 +1,633 @@
+import { MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS } from "./Utils/Discovery/ReverseDnsResolver";
+import { MAX_NETBIOS_MAX_HOSTS_OVERRIDE } from "./Utils/Discovery/NetbiosNameResolver";
+import URL from "Common/Types/API/URL";
+import ObjectID from "Common/Types/ObjectID";
+import logger from "Common/Server/Utils/Logger";
+import Port from "Common/Types/Port";
+import NumberUtil from "Common/Utils/Number";
+import {
+  HasRegisterProbeKey,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
+import PrivateNetworkMonitorPolicy, {
+  ResolvedPrivateNetworkMonitorPolicy,
+} from "./Utils/PrivateNetworkMonitorPolicy";
+import {
+  MAX_NODE_TIMER_DELAY_IN_MS,
+  MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS,
+} from "./Utils/Monitors/SyntheticRuntime/Limits";
+
+if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
+  logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
+  process.exit(1);
+}
+
+export const ONEUPTIME_BASE_URL: URL = URL.fromString(
+  process.env["ONEUPTIME_URL"] ||
+    process.env["PROBE_INGEST_URL"] ||
+    "https://oneuptime.com",
+);
+
+export let PROBE_INGEST_URL: URL = URL.fromString(
+  ONEUPTIME_BASE_URL.toString(),
+);
+
+// If probe api does not have the path. Add it.
+if (
+  !PROBE_INGEST_URL.toString().endsWith("probe-ingest") &&
+  !PROBE_INGEST_URL.toString().endsWith("probe-ingest/")
+) {
+  PROBE_INGEST_URL = URL.fromString(
+    PROBE_INGEST_URL.addRoute("/probe-ingest").toString(),
+  );
+}
+
+export const PROBE_NAME: string | null = process.env["PROBE_NAME"] || null;
+
+export const PROBE_DESCRIPTION: string | null =
+  process.env["PROBE_DESCRIPTION"] || null;
+
+export const PROBE_ID: ObjectID | null = process.env["PROBE_ID"]
+  ? new ObjectID(process.env["PROBE_ID"])
+  : null;
+
+if (!process.env["PROBE_KEY"]) {
+  logger.error("PROBE_KEY is not set");
+  process.exit(1);
+}
+
+export const PROBE_KEY: string = process.env["PROBE_KEY"];
+
+export const PROBE_MONITORING_WORKERS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_MONITORING_WORKERS"],
+    defaultValue: 1,
+    min: 1,
+  });
+
+export const PROBE_MONITOR_FETCH_LIMIT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_MONITOR_FETCH_LIMIT"],
+    defaultValue: 10,
+    min: 1,
+  });
+
+/*
+ * How many NetworkDevice SNMP walks this probe runs at once.
+ *
+ * This is the probe half of the fleet's poll cadence, and it has to be read
+ * against the server's NETWORK_DEVICE_POLL_FETCH_LIMIT: the server claims a
+ * batch and advances every claimed device's nextPollAt whether or not the
+ * walk happens, so a probe that cannot get through a batch inside its
+ * one-minute cycle does not poll those devices late, it skips them.
+ *
+ * The old value was 5, which put a hard ~5-walks-per-round-trip ceiling on a
+ * probe and left large fleets minutes behind their configured intervals.
+ * SNMP walks are UDP round trips that spend nearly all their time waiting,
+ * so a much wider fan-out costs little.
+ */
+export const PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_NETWORK_DEVICE_POLL_CONCURRENCY"],
+    defaultValue: 25,
+    min: 1,
+  });
+
+export const HOSTNAME: string = process.env["HOSTNAME"] || "localhost";
+
+export const PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS"],
+    defaultValue: 60000,
+    min: 1,
+    max: MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY"],
+    defaultValue: 4,
+    min: 1,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES"],
+    defaultValue: 1536 * 1024 * 1024,
+    min: 64 * 1024 * 1024,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES"],
+    defaultValue: 256 * 1024 * 1024,
+    min: 64 * 1024 * 1024,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: boolean =
+  process.env["PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED"] === "true";
+
+export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS"],
+    defaultValue: 60000,
+    min: 1,
+  });
+
+/*
+ * Whether HTTP-capable monitors on THIS probe may reach private network
+ * addresses. API and Website monitors enforce this policy at their socket
+ * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge.
+ *
+ * Probes are monitoring agents deliberately placed inside the networks they
+ * watch, so a self-managed probe often needs to check http://10.0.0.5/health.
+ * The permission is therefore owned by the probe operator, never by a monitor
+ * step or project member.
+ *
+ * Read from THIS PROCESS's environment, which is the right control surface:
+ * whoever deploys a probe controls its env, and that is the party who knows
+ * which network the probe can see. It is not inherited from the OneUptime
+ * instance - a custom probe is usually a different machine, often run by a
+ * different person, and never reads the API server's configuration.
+ *
+ * Off by default on every probe. Honored on the auto-registered global probes
+ * the Helm chart and Docker Compose bundle, too (OneUptime issue #3879): their
+ * operator is the instance's operator, and ignoring the setting there left no
+ * way to monitor an internal target from them. The exception is a global probe
+ * on an instance with BILLING_ENABLED=true, which every sign-up shares; it
+ * stays public-only and says so at startup. Utils/PrivateNetworkMonitorPolicy.ts
+ * holds the full decision and its reasoning. Turning this on still does NOT
+ * open loopback, link-local or the cloud metadata endpoint: those stay
+ * forbidden in every deployment.
+ */
+export const PROBE_PRIVATE_NETWORK_MONITOR_POLICY: ResolvedPrivateNetworkMonitorPolicy =
+  PrivateNetworkMonitorPolicy.resolve({
+    configuredValue: process.env["PROBE_ALLOW_PRIVATE_NETWORK_MONITORS"],
+    isAutoRegisteredGlobalProbe: HasRegisterProbeKey,
+    isBillingEnabled: IsBillingEnabled,
+  });
+
+export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY.allowed;
+
+/*
+ * Appended to a private-tier refusal from an API, Website, External Status
+ * Page or Custom Code monitor. The guards' default sentence names the API
+ * server's webhook settings, which are neither read by this process nor
+ * usually editable by whoever runs this probe.
+ */
+export const PROBE_PRIVATE_NETWORK_HINT: string =
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY.refusalHint;
+
+/*
+ * Whether this process is a GLOBAL probe — one registered with the
+ * server-issued REGISTER_PROBE_KEY rather than deployed by a customer inside
+ * their own network.
+ *
+ * Re-exported so other probe code can apply global-probe rules without
+ * reaching past this file into Common's environment config. Discovery uses it
+ * to refuse NetBIOS name lookups outright on a global probe (OneUptime issue
+ * #3677), whatever the scan row asks for.
+ */
+export { HasRegisterProbeKey };
+
+export const PROBE_MONITOR_RETRY_LIMIT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_MONITOR_RETRY_LIMIT"],
+    defaultValue: 3,
+    min: 0,
+  });
+
+/*
+ * Hard deadline for every control-plane request the probe sends to the
+ * OneUptime server (alive heartbeat, monitor/discovery/network-device list
+ * fetches, result ingest, registration). Axios's default timeout is 0 —
+ * infinite — so without this a server that accepts the TCP connection but
+ * never responds wedges the request forever, and because these calls run
+ * from cron ticks with no overlap guard, a new hung request piles on every
+ * minute while the probe's lastAlive quietly goes stale and the dashboard
+ * flags a perfectly healthy probe as Disconnected. A bounded failure is
+ * loud (logged, and retried on the next tick); an unbounded hang is silent.
+ */
+export const PROBE_API_REQUEST_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_API_REQUEST_TIMEOUT_IN_MS"],
+    defaultValue: 45000,
+    min: 1000,
+  });
+
+/*
+ * A control-plane request that is merely SLOW is the leading indicator of
+ * the one that eventually crosses the deadline above and gets this probe
+ * flagged Disconnected. Anything over this threshold is logged with its
+ * elapsed time so the trend is visible before the cliff.
+ */
+export const PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS"],
+    defaultValue: 10000,
+    min: 100,
+  });
+
+/*
+ * Hard ceiling on ONE monitor's full check inside the probing loop — every
+ * step, every retry, and the ingest POST that reports each step's result.
+ *
+ * The probe fires all of a batch's checks into a Promise.allSettled and
+ * waits. A monitor implementation that never settles therefore never
+ * releases the worker probing it: no ingest POST, no monitor log, nothing
+ * to grep for — and the server already advanced nextPingAt when it claimed
+ * the monitor, so the row keeps looking correctly scheduled while the check
+ * silently never happens again. The SSL monitor shipping without a timeout
+ * of any kind was one such implementation (OneUptime issue #3225); this
+ * deadline is the layer that makes the next one survivable.
+ *
+ * Deliberately generous. Every monitor type enforces its own, far tighter
+ * timeout (a step is capped at 60s and retried at most 3 times), so a check
+ * that crosses this line means the implementation is wedged rather than the
+ * target being slow. Crossing it costs that monitor exactly one cycle —
+ * the worker logs it and moves on.
+ */
+const MONITOR_CHECK_TIMEOUT_BASELINE_IN_MS: number = 15 * 60 * 1000;
+
+/*
+ * ...but never tighter than a synthetic script is allowed to legitimately
+ * run for. An operator who raises the synthetic timeout must not silently
+ * get their synthetic monitors abandoned mid-script by this deadline, so
+ * the floor tracks that setting plus the worker startup allowance and the
+ * ingest POST that follows the script. Clamped to the largest delay a Node
+ * timer can represent: above that setTimeout overflows and fires ~immediately,
+ * which would abandon every check on its first tick.
+ */
+export const PROBE_MONITOR_CHECK_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_MONITOR_CHECK_TIMEOUT_IN_MS"],
+    defaultValue: Math.min(
+      MAX_NODE_TIMER_DELAY_IN_MS,
+      Math.max(
+        MONITOR_CHECK_TIMEOUT_BASELINE_IN_MS,
+        PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS +
+          SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS +
+          PROBE_API_REQUEST_TIMEOUT_IN_MS,
+      ),
+    ),
+    min: 1000,
+    max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
+/*
+ * Hard ceiling on ONE network discovery sweep. Every HTTP call already has
+ * PROBE_API_REQUEST_TIMEOUT_IN_MS, but the sweep also needs a deadline so a
+ * wedged ICMP or SNMP operation cannot occupy a scheduler slot forever.
+ *
+ * The number is a wall-clock budget with two sides to fit between.
+ *
+ * The floor is the slowest sweep that is still legitimately working. At
+ * MAX_SCAN_HOSTS (32,768) SubnetScanner sizes its worker pool to the target
+ * (getSweepConcurrency), so the documented worst case is a full 1s-per-host
+ * ICMP pass at 128 workers (~4.5 min) followed by a full 2s-per-host SNMP
+ * pass over every address at 256 (~4.5 min) when the ICMP-filtered fallback
+ * triggers — under 10 minutes, before SNMP v3's extra engine-discovery round
+ * trip and before a multi-credential scan multiplies the SNMP half. The
+ * budget stays generous rather than being tightened to match: several
+ * credential sets, a slow link and v3 can each stretch that figure, and the
+ * cost of a deadline that is too tight is a working sweep thrown away.
+ *
+ * The ceiling is the server: it declares an In Progress scan abandoned after
+ * 2 hours (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts). The
+ * probe has to give up FIRST, or a wedged sweep is reaped server-side while
+ * the probe is still occupying its slot.
+ *
+ * 90 minutes sits between the two: comfortably above any sweep that is
+ * genuinely making progress, and comfortably below the server's window, so
+ * a scan that crosses this line is reported by the probe itself, with its
+ * own reason, and the next tick fetches again.
+ */
+export const PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS"],
+    defaultValue: 90 * 60 * 1000,
+    min: 1000,
+    max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
+/*
+ * Independent discovery scans allowed to run on this probe at once (#3597).
+ * The probe still claims one scan per minute, whenever capacity is available.
+ * This is separate from PROBE_DISCOVERY_SCAN_CONCURRENCY, which limits host
+ * probes WITHIN each sweep. Their resource costs multiply; small containers
+ * can lower either limit, and 1 restores sequential scan execution.
+ */
+export const PROBE_DISCOVERY_MAX_CONCURRENT_SCANS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_MAX_CONCURRENT_SCANS"],
+    defaultValue: 4,
+    min: 1,
+    max: 16,
+  });
+
+/*
+ * How often, at most, a running sweep uploads what it has found so far.
+ *
+ * A sweep used to be atomic: its hosts existed only in the probe's memory
+ * until the whole range was covered, so a 15,360-address scan showed
+ * "0 of 15360" for as long as it ran, an abandoned sweep lost every host it
+ * had confirmed, and auto-import — which only reads finished scans — could
+ * not touch a single one of them (OneUptime issues #3598 and #3599). The
+ * probe now posts a cumulative partial result as it goes.
+ *
+ * The interval is a trade between how fresh the Discovery page and the
+ * auto-import worker are, and how much the same host list is re-sent. Each
+ * upload carries every host found so far, so on a sweep that finds hundreds
+ * of devices it is a few hundred kilobytes; 30 seconds keeps that to a couple
+ * of megabytes an hour while still being faster than the every-minute
+ * auto-import sweep that consumes it.
+ *
+ * The floor is 5 seconds so a mis-set value cannot turn the sweep into an
+ * upload loop.
+ */
+export const PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS"],
+    defaultValue: 30 * 1000,
+    min: 5000,
+    max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
+/*
+ * Fixed number of concurrent probes per sweep pass, overriding the size-derived
+ * value SubnetScanner works out for itself.
+ *
+ * Unset (or 0) means "work it out", which is what a probe should normally do:
+ * the scanner scales the pool with the target's size, capped lower for the
+ * ICMP pass (which forks a `ping` child process per worker) than for the SNMP
+ * one (a UDP socket per worker).
+ *
+ * The knob exists for the two ends this cannot know about: a probe on a tiny
+ * container that cannot afford 128 concurrent child processes, and a probe on
+ * a big host sweeping a large range that could comfortably run more. Raising
+ * it raises the peak process count and open file descriptors in step, so
+ * raise the container's limits with it.
+ */
+export const PROBE_DISCOVERY_SCAN_CONCURRENCY: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_SCAN_CONCURRENCY"],
+    // 0 disables the override entirely; the scanner then sizes itself.
+    defaultValue: 0,
+    min: 0,
+    max: 1024,
+  });
+
+/*
+ * Fixed wall-clock budget for the reverse-DNS pass that names a finished
+ * sweep's hosts, overriding the size-derived budget the resolver works out for
+ * itself (ReverseDnsResolver.getReverseDnsTotalBudgetInMs).
+ *
+ * Unset (or 0) means "work it out": sixty seconds for a sweep of up to ~860
+ * hosts, growing with the host count to at most ten minutes. The pass asks
+ * addresses in ascending order and stops when the budget runs out, so the
+ * hosts it did not reach get no reverse DNS name — and the scan's status
+ * message now says so, naming this variable. Raise it for a large estate
+ * behind a slow resolver; lower it to make scans finish sooner at the cost of
+ * names.
+ *
+ * The ceiling is twenty minutes, and it is a ceiling for the SERVER's sake.
+ * The probe uploads nothing while it names hosts, and the server fails a scan
+ * that has been In Progress and silent for two hours
+ * (App/FeatureSet/Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts);
+ * an older server fails it two hours after it started, silent or not. Twenty
+ * minutes of naming after a sweep that used its whole 90-minute deadline, plus
+ * the NetBIOS lookup and the upload, still lands inside that window, so a
+ * sweep that has already succeeded is never reaped for its enrichment.
+ * Values outside 1 second to 20 minutes fall back to automatic sizing
+ * (ReverseDnsResolver.MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS).
+ * Tests/ConfigDiscoveryNamingBudget.test.ts pins the arithmetic.
+ */
+export const PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS"],
+    // 0 means automatic: the resolver sizes the budget to the host count.
+    defaultValue: 0,
+    min: 1000,
+    max: MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS,
+  });
+
+/*
+ * How many still-unnamed hosts one scan's NetBIOS lookup may ask, overriding
+ * the resolver's built-in cap of 2,000.
+ *
+ * Unset (or 0) keeps that cap. It exists because the cap is the commonest way
+ * the lookup stops short on a large estate - a /16 of Windows hosts with no
+ * reverse DNS leaves far more than 2,000 unnamed - and the scan's status
+ * message now reports it, so the operator needs something to do about it.
+ *
+ * The lookup's wall-clock budget is sized from this number
+ * (NetbiosNameResolver.getNetbiosTotalBudgetInMs), so raising the cap lengthens
+ * the lookup too: 4,000 hosts is about 104 seconds of paced queries and
+ * retries. That is why the ceiling is 4,000 rather than "as many as you like" -
+ * beyond it the lookup would be truncated by its clock instead of by its cap,
+ * which is the silent failure this change exists to remove.
+ *
+ * Raising it also puts more NBSTAT datagrams on the network, which is exactly
+ * what intrusion detection rules watch for; the per-scan opt-in still applies.
+ */
+export const PROBE_DISCOVERY_NETBIOS_MAX_HOSTS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_NETBIOS_MAX_HOSTS"],
+    // 0 means "use the resolver's own cap".
+    defaultValue: 0,
+    min: 1,
+    max: MAX_NETBIOS_MAX_HOSTS_OVERRIDE,
+  });
+
+export const PORT: Port = new Port(
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PORT"],
+    defaultValue: 3874,
+    min: 1,
+  }),
+);
+
+/*
+ * Optional inbound ingress for IncomingRequest (heartbeat) monitors.
+ * If set, the probe binds an HTTP listener on this port that accepts
+ * /heartbeat/:secretkey and /incoming-request/:secretkey requests and
+ * forwards them to the OneUptime instance. Lets services in private
+ * networks send heartbeats to a local probe instead of the public URL.
+ * Unset (or 0) disables the listener.
+ */
+export const PROBE_INGRESS_PORT: Port | null = process.env["PROBE_INGRESS_PORT"]
+  ? new Port(
+      NumberUtil.parseNumberWithDefault({
+        value: process.env["PROBE_INGRESS_PORT"],
+        defaultValue: 0,
+        min: 0,
+      }),
+    )
+  : null;
+
+/*
+ * SNMP trap receiver. The probe listens for SNMP traps/informs (v1 and
+ * v2c) on the configured UDP port and forwards them to the OneUptime
+ * instance, where they are matched against SNMP monitors by source IP and
+ * evaluated against trap criteria — link-down incidents in seconds instead
+ * of waiting for the next poll. Point your devices' trap destination at
+ * this probe.
+ *
+ * On by default: inside a container the port is unreachable until the
+ * operator publishes it, and a failed bind (port in use, or no privilege
+ * for ports < 1024 outside Docker) logs an error and leaves polling
+ * untouched. Set PROBE_SNMP_TRAP_RECEIVER_ENABLED=false to opt out.
+ */
+export const PROBE_SNMP_TRAP_RECEIVER_ENABLED: boolean =
+  process.env["PROBE_SNMP_TRAP_RECEIVER_ENABLED"] !== "false";
+
+export const PROBE_SNMP_TRAP_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SNMP_TRAP_RECEIVER_PORT"],
+    defaultValue: 162,
+    min: 1,
+  });
+
+// Safety valve: max traps forwarded per minute before dropping (per probe).
+export const PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE"],
+    defaultValue: 300,
+    min: 1,
+  });
+
+/*
+ * Syslog receiver. The probe listens for syslog messages (RFC 3164 and
+ * RFC 5424) on the configured UDP port, batches them, and forwards them to
+ * the OneUptime instance, where they are correlated to Network Devices by
+ * source IP and written into the telemetry Logs pipeline. Point your
+ * devices' syslog destination at this probe.
+ *
+ * Off by default: opt in with PROBE_SYSLOG_RECEIVER_ENABLED=true. The
+ * default port is 5140 rather than the standard 514 because ports < 1024
+ * need privileges outside Docker; a failed bind (port in use, or no
+ * privilege) logs an error and leaves polling untouched.
+ */
+export const PROBE_SYSLOG_RECEIVER_ENABLED: boolean =
+  process.env["PROBE_SYSLOG_RECEIVER_ENABLED"] === "true";
+
+export const PROBE_SYSLOG_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYSLOG_RECEIVER_PORT"],
+    defaultValue: 5140,
+    min: 1,
+  });
+
+// Safety valve: max syslog messages forwarded per minute before dropping (per probe).
+export const PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE"],
+    defaultValue: 600,
+    min: 1,
+  });
+
+/*
+ * NetFlow receiver. The probe listens for NetFlow v5 export datagrams on
+ * the configured UDP port, parses the flow records, batches them, and
+ * forwards them to the OneUptime instance, where they are correlated to
+ * Network Devices by the exporter's source IP and written into the
+ * ClickHouse network-flow table. Point your devices' NetFlow v5 export
+ * destination at this probe.
+ *
+ * Off by default: opt in with PROBE_NETFLOW_RECEIVER_ENABLED=true. Port
+ * 2055 is the conventional NetFlow collector port (above 1024, so no
+ * privileges needed); a failed bind (port in use) logs an error and
+ * leaves polling untouched.
+ */
+export const PROBE_NETFLOW_RECEIVER_ENABLED: boolean =
+  process.env["PROBE_NETFLOW_RECEIVER_ENABLED"] === "true";
+
+export const PROBE_NETFLOW_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_NETFLOW_RECEIVER_PORT"],
+    defaultValue: 2055,
+    min: 1,
+  });
+
+/*
+ * Safety valve: max NetFlow DATAGRAMS accepted per minute before dropping
+ * (per probe). One datagram carries up to 30 flow records.
+ */
+export const PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE"],
+    defaultValue: 300,
+    min: 1,
+  });
+
+export const PROBE_INGRESS_FORWARD_TIMEOUT_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_INGRESS_FORWARD_TIMEOUT_MS"],
+    defaultValue: 10000,
+    min: 1000,
+  });
+
+export const PROBE_INGRESS_FORWARD_RETRY_LIMIT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_INGRESS_FORWARD_RETRY_LIMIT"],
+    defaultValue: 3,
+    min: 0,
+  });
+
+/*
+ * Proxy configuration for all HTTP/HTTPS requests made by the probe
+ * HTTP_PROXY_URL: Proxy for HTTP requests
+ * Format: http://[username:password@]proxy.example.com:port
+ * Example: http://proxy.example.com:8080
+ * Example with auth: http://user:pass@proxy.example.com:8080
+ */
+export const HTTP_PROXY_URL: string | null =
+  process.env["HTTP_PROXY_URL"] ||
+  process.env["http_proxy"] ||
+  process.env["HTTP_PROXY"] ||
+  null;
+
+/*
+ * HTTPS_PROXY_URL: Proxy for HTTPS requests
+ * Format: http://[username:password@]proxy.example.com:port
+ * Example: http://proxy.example.com:8080
+ * Example with auth: http://user:pass@proxy.example.com:8080
+ */
+export const HTTPS_PROXY_URL: string | null =
+  process.env["HTTPS_PROXY_URL"] ||
+  process.env["https_proxy"] ||
+  process.env["HTTPS_PROXY"] ||
+  null;
+
+/*
+ * NO_PROXY: Comma-separated list of hosts that should bypass the configured proxy.
+ * Hosts can include optional ports (example.com:8080) or leading dots for subdomains (.example.com).
+ */
+const rawNoProxy: string | undefined =
+  process.env["NO_PROXY"] || process.env["no_proxy"] || undefined;
+
+export const NO_PROXY: Array<string> = rawNoProxy
+  ? rawNoProxy
+      .split(",")
+      .map((value: string) => {
+        return value.trim();
+      })
+      .reduce<Array<string>>((accumulator: Array<string>, current: string) => {
+        if (!current) {
+          return accumulator;
+        }
+
+        const parts: Array<string> = current
+          .split(/\s+/)
+          .map((item: string) => {
+            return item.trim();
+          })
+          .filter((item: string) => {
+            return item.length > 0;
+          });
+
+        return accumulator.concat(parts);
+      }, [])
+  : [];

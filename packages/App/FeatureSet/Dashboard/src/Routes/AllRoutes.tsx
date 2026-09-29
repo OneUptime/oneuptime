@@ -1,0 +1,52 @@
+// Observability
+export { default as LogsRoutes } from "./LogsRoutes";
+export { default as SecurityEventsRoutes } from "./SecurityEventsRoutes";
+export { default as MetricsRoutes } from "./MetricsRoutes";
+export { default as TracesRoutes } from "./TracesRoutes";
+export { default as ExceptionsRoutes } from "./ExceptionsRoutes";
+export { default as LlmRoutes } from "./LlmRoutes";
+export { default as InventoryRoutes } from "./InventoryRoutes";
+export { default as TopologyRoutes } from "./TopologyRoutes";
+export { default as ProfilesRoutes } from "./ProfilesRoutes";
+
+// Incident management
+export { default as IncidentsRoutes } from "./IncidentsRoutes";
+export { default as AlertsRoutes } from "./AlertRoutes";
+export { default as ScheduledMaintenanceEventsRoutes } from "./ScheduleMaintenanceEventsRoutes";
+export { default as OnCallDutyRoutes } from "./OnCallDutyRoutes";
+
+// Monitoring
+export { default as MonitorsRoutes } from "./MonitorsRoutes";
+export { default as MonitorGroupRoutes } from "./MonitorGroupRoutes";
+export { default as SloRoutes } from "./SloRoutes";
+
+// Platform
+export { default as WorkflowRoutes } from "./WorkflowRoutes";
+export { default as RunbookRoutes } from "./RunbookRoutes";
+export { default as StatusPagesRoutes } from "./StatusPagesRoutes";
+export { default as DashboardRoutes } from "./DashboardRoutes";
+export { default as ServiceRoutes } from "./ServiceRoutes";
+export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
+export { default as KubernetesRoutes } from "./KubernetesRoutes";
+export { default as DockerRoutes } from "./DockerRoutes";
+export { default as NetworkDeviceRoutes } from "./NetworkDeviceRoutes";
+export { default as NetworkSiteRoutes } from "./NetworkSiteRoutes";
+export { default as PodmanRoutes } from "./PodmanRoutes";
+export { default as ProxmoxRoutes } from "./ProxmoxRoutes";
+export { default as VMwareRoutes } from "./VMwareRoutes";
+export { default as IoTRoutes } from "./IoTRoutes";
+export { default as DockerSwarmRoutes } from "./DockerSwarmRoutes";
+export { default as CephRoutes } from "./CephRoutes";
+export { default as HostRoutes } from "./HostRoutes";
+export { default as ServerlessRoutes } from "./ServerlessRoutes";
+export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
+export { default as DatabaseRoutes } from "./DatabaseRoutes";
+export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
+export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
+export { default as AIInsightsRoutes } from "./AIInsightsRoutes";
+
+// Settings
+export { default as SettingsRoutes } from "./SettingsRoutes";
+export { default as UserSettingsRoutes } from "./UserSettingsRoutes";
+export { default as UsersRoutes } from "./UsersRoutes";
+export { default as TeamsRoutes } from "./TeamsRoutes";

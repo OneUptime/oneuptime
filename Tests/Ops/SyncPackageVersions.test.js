@@ -6,9 +6,10 @@
  * Two things depend on this script being right, and both fail in ways nobody
  * sees at the time:
  *
- *  - The pre-commit hook runs it on EVERY commit and re-stages whatever it
- *    rewrote. A bug that rewrites the wrong "version" string, or that walks
- *    into a directory it should not, silently dirties files nobody touched.
+ *  - The pre-commit hook (.github/hooks/pre-commit) runs it on EVERY commit
+ *    and re-stages whatever it rewrote. A bug that rewrites the wrong
+ *    "version" string, or that walks into a directory it should not, silently
+ *    dirties files nobody touched.
  *    That is not hypothetical: the .claude ignore entry exists because a
  *    version bump once rewrote the package.json of every in-flight agent
  *    worktree nested under the repo root.

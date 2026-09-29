@@ -1,0 +1,18 @@
+# OVERLAY that runs the released e2e image against a stack that is already up.
+# Always pass it after docker-compose.yml, whose folder (the repo root) every
+# path below resolves against:
+#
+#   docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e
+#
+# Remove the e2e container with `rm -sfv e2e`, never `down`: on this pair
+# `down -v` tears down the whole stack and its volumes.
+services:
+  e2e:
+    extends:
+      file: ./docker-compose.base.yml
+      service: e2e
+    image: ghcr.io/oneuptime/e2e:${APP_TAG}
+    pull_policy: always
+    volumes:
+      - ./packages/E2E/playwright-report:/usr/src/app/playwright-report
+      - ./packages/E2E/test-results:/usr/src/app/test-results

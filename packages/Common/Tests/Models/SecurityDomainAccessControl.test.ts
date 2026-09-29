@@ -1,0 +1,604 @@
+import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
+import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventConnectionRun from "../../Models/DatabaseModels/SecurityEventConnectionRun";
+import ThreatIntelFeed from "../../Models/DatabaseModels/ThreatIntelFeed";
+import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
+import ThreatIntelIndicator from "../../Models/AnalyticsModels/ThreatIntelIndicator";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import Dictionary from "../../Types/Dictionary";
+import Permission from "../../Types/Permission";
+import {
+  ConnectorField,
+  SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
+} from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import SecurityEventConnectorProvider from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { describe, expect, test } from "@jest/globals";
+
+/*
+ * What the Security tiers unlock, and - more to the point - what nothing else
+ * unlocks any more.
+ *
+ * The SIEM tables shipped with the same read list as Log: ProjectMember, the
+ * project-wide Viewer, and the three Telemetry tiers. Every principal in a
+ * project could therefore read every security event in it, and there was no
+ * grant an administrator could withhold to change that. This file is the
+ * regression guard on the split, at the declaration level: it reads the access
+ * lists off the model classes and asserts both halves - the Security tiers are
+ * present, and the broad roles are gone.
+ *
+ * The negative half is the one that matters. Adding Permission.ProjectMember
+ * back to any one of these lists would restore the old behaviour completely and
+ * break nothing else, so nothing but an assertion will catch it.
+ */
+
+/*
+ * A uniform view over the two model kinds. Database models expose their access
+ * lists as properties on the instance; analytics models expose them through
+ * getters. The sweep below does not care which is which, and every SIEM table
+ * has to be in here - a table left out is a table with no coverage at all.
+ */
+interface SecurityModel {
+  name: string;
+  read: Array<Permission>;
+  create: Array<Permission>;
+  update: Array<Permission>;
+  delete: Array<Permission>;
+  columns: Array<[string, ColumnAccessControl | null]>;
+}
+
+/*
+ * getColumnAccessControlForAllColumns is the one accessor both base classes
+ * declare - the database models build theirs from the @ColumnAccessControl
+ * decorator, the analytics models from their column definitions - so the sweep
+ * can walk a ClickHouse table and a Postgres one the same way.
+ */
+type ColumnsOfFunction = (model: {
+  getColumnAccessControlForAllColumns: () => Dictionary<ColumnAccessControl>;
+}) => Array<[string, ColumnAccessControl | null]>;
+
+const columnsOf: ColumnsOfFunction = (model: {
+  getColumnAccessControlForAllColumns: () => Dictionary<ColumnAccessControl>;
+}): Array<[string, ColumnAccessControl | null]> => {
+  const accessControlByColumn: Dictionary<ColumnAccessControl> =
+    model.getColumnAccessControlForAllColumns();
+
+  return Object.keys(accessControlByColumn).map(
+    (column: string): [string, ColumnAccessControl | null] => {
+      return [column, accessControlByColumn[column] || null];
+    },
+  );
+};
+
+type BuildSecurityModelsFunction = () => Array<SecurityModel>;
+
+const buildSecurityModels: BuildSecurityModelsFunction =
+  (): Array<SecurityModel> => {
+    const detectionRule: DetectionRule = new DetectionRule();
+    const threatIntelFeed: ThreatIntelFeed = new ThreatIntelFeed();
+    const securityEventConnection: SecurityEventConnection =
+      new SecurityEventConnection();
+    const securityEventConnectionRun: SecurityEventConnectionRun =
+      new SecurityEventConnectionRun();
+    const securityEvent: SecurityEvent = new SecurityEvent();
+    const threatIntelIndicator: ThreatIntelIndicator =
+      new ThreatIntelIndicator();
+
+    return [
+      {
+        name: "DetectionRule",
+        read: detectionRule.readRecordPermissions,
+        create: detectionRule.createRecordPermissions,
+        update: detectionRule.updateRecordPermissions,
+        delete: detectionRule.deleteRecordPermissions,
+        columns: columnsOf(detectionRule),
+      },
+      {
+        name: "ThreatIntelFeed",
+        read: threatIntelFeed.readRecordPermissions,
+        create: threatIntelFeed.createRecordPermissions,
+        update: threatIntelFeed.updateRecordPermissions,
+        delete: threatIntelFeed.deleteRecordPermissions,
+        columns: columnsOf(threatIntelFeed),
+      },
+      {
+        name: "SecurityEventConnection",
+        read: securityEventConnection.readRecordPermissions,
+        create: securityEventConnection.createRecordPermissions,
+        update: securityEventConnection.updateRecordPermissions,
+        delete: securityEventConnection.deleteRecordPermissions,
+        columns: columnsOf(securityEventConnection),
+      },
+      {
+        name: "SecurityEventConnectionRun",
+        read: securityEventConnectionRun.readRecordPermissions,
+        create: securityEventConnectionRun.createRecordPermissions,
+        update: securityEventConnectionRun.updateRecordPermissions,
+        delete: securityEventConnectionRun.deleteRecordPermissions,
+        columns: columnsOf(securityEventConnectionRun),
+      },
+      {
+        name: "SecurityEvent",
+        read: securityEvent.getReadPermissions(),
+        create: securityEvent.getCreatePermissions(),
+        update: securityEvent.getUpdatePermissions(),
+        delete: securityEvent.getDeletePermissions(),
+        columns: columnsOf(securityEvent),
+      },
+      {
+        name: "ThreatIntelIndicator",
+        read: threatIntelIndicator.getReadPermissions(),
+        create: threatIntelIndicator.getCreatePermissions(),
+        update: threatIntelIndicator.getUpdatePermissions(),
+        delete: threatIntelIndicator.getDeletePermissions(),
+        columns: columnsOf(threatIntelIndicator),
+      },
+    ];
+  };
+
+const SECURITY_MODELS: Array<SecurityModel> = buildSecurityModels();
+
+/*
+ * test.each needs the tuple type written down. Mapping to [name, model] infers
+ * Array<Array<string | SecurityModel>>, and the per-case callback signature
+ * then does not typecheck against it.
+ */
+const MODEL_CASES: Array<[string, SecurityModel]> = SECURITY_MODELS.map(
+  (model: SecurityModel): [string, SecurityModel] => {
+    return [model.name, model];
+  },
+);
+
+/*
+ * The roles that used to reach this data and must not any more.
+ *
+ * ProjectUser is in the list for the reason its own declaration gives: every
+ * principal who has accepted an invitation holds it, so it is reserved for the
+ * dashboard's shared furniture (labels, teams, saved views) and must never
+ * appear on a table one role should be able to keep from another.
+ */
+const ROLES_THAT_MUST_NOT_REACH_THE_SIEM: Array<Permission> = [
+  Permission.ProjectMember,
+  Permission.ProjectUser,
+  Permission.Viewer,
+  Permission.TelemetryAdmin,
+  Permission.TelemetryMember,
+  Permission.TelemetryViewer,
+];
+
+const SECURITY_TIERS: Array<Permission> = [
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.SecurityViewer,
+];
+
+describe("Security domain access control", () => {
+  test("the sweep actually covers every SIEM table", () => {
+    expect(
+      SECURITY_MODELS.map((model: SecurityModel) => {
+        return model.name;
+      }).sort(),
+    ).toEqual([
+      "DetectionRule",
+      "SecurityEvent",
+      "SecurityEventConnection",
+      "SecurityEventConnectionRun",
+      "ThreatIntelFeed",
+      "ThreatIntelIndicator",
+    ]);
+  });
+
+  test.each(MODEL_CASES)(
+    "%s is readable by all three Security tiers",
+    (_name: string, model: SecurityModel) => {
+      expect(model.read).toEqual(expect.arrayContaining(SECURITY_TIERS));
+    },
+  );
+
+  /*
+   * The point of the whole change. If this passes for the wrong reason - say a
+   * table's read list is empty - the positive test above catches it.
+   */
+  test.each(MODEL_CASES)(
+    "%s is not readable by any broadly-held role",
+    (name: string, model: SecurityModel) => {
+      const leaked: Array<string> = ROLES_THAT_MUST_NOT_REACH_THE_SIEM.filter(
+        (permission: Permission) => {
+          return model.read.includes(permission);
+        },
+      ).map((permission: Permission) => {
+        return `${name} is readable by ${permission}`;
+      });
+
+      expect(leaked).toEqual([]);
+    },
+  );
+
+  test.each(MODEL_CASES)(
+    "%s cannot be written by any broadly-held role either",
+    (name: string, model: SecurityModel) => {
+      const leaked: Array<string> = [];
+
+      for (const permission of ROLES_THAT_MUST_NOT_REACH_THE_SIEM) {
+        for (const [operation, list] of [
+          ["create", model.create],
+          ["update", model.update],
+          ["delete", model.delete],
+        ] as Array<[string, Array<Permission>]>) {
+          if (list.includes(permission)) {
+            leaked.push(`${name} can be ${operation}d by ${permission}`);
+          }
+        }
+      }
+
+      expect(leaked).toEqual([]);
+    },
+  );
+
+  /*
+   * A project must never be locked out of its own data. Owner and Admin are the
+   * principals who grant the Security tiers in the first place; if they could
+   * not read the tables, a project that had not yet created a security team
+   * would have no way to see what its SIEM had collected and no way to find out
+   * that it needed to.
+   */
+  test.each(MODEL_CASES)(
+    "%s stays readable by the project's own administrators",
+    (_name: string, model: SecurityModel) => {
+      expect(model.read).toContain(Permission.ProjectOwner);
+      expect(model.read).toContain(Permission.ProjectAdmin);
+    },
+  );
+
+  /*
+   * The table gate is the first of two. A list request also runs through the
+   * per-column read lists, so a table a Security Viewer may open whose columns
+   * they may not select turns into an error on whichever field the page asked
+   * for. This is the same failure that produced issue #3305 one level down.
+   */
+  test.each(MODEL_CASES)(
+    "%s columns follow the table into the Security tiers",
+    (name: string, model: SecurityModel) => {
+      const missing: Array<string> = [];
+
+      for (const [column, accessControl] of model.columns) {
+        /*
+         * `read: []` is a deliberate "nobody reads this through the API" -
+         * SecurityEventConnection.secrets, which holds every provider's
+         * credential (the Google SecOps service-account key included), is
+         * the one that matters. It must stay closed, which the credential
+         * tests below assert.
+         */
+        if (!accessControl?.read || accessControl.read.length === 0) {
+          continue;
+        }
+
+        for (const tier of SECURITY_TIERS) {
+          if (!accessControl.read.includes(tier)) {
+            missing.push(`${name}.${column} is missing ${tier}`);
+          }
+        }
+      }
+
+      expect(missing).toEqual([]);
+    },
+  );
+
+  test.each(MODEL_CASES)(
+    "%s columns are not readable by a broadly-held role",
+    (name: string, model: SecurityModel) => {
+      const leaked: Array<string> = [];
+
+      for (const [column, accessControl] of model.columns) {
+        for (const permission of ROLES_THAT_MUST_NOT_REACH_THE_SIEM) {
+          if (accessControl?.read?.includes(permission)) {
+            leaked.push(`${name}.${column} is readable by ${permission}`);
+          }
+        }
+      }
+
+      expect(leaked).toEqual([]);
+    },
+  );
+
+  /*
+   * The Google SecOps service-account key is a live Google Cloud credential.
+   * It was already closed to everyone before the Security tiers existed, and
+   * giving the SIEM its own admin role must not have quietly opened it -
+   * SecurityAdmin administers the connection, which is not the same as being
+   * able to read the key back out of it. The key used to have a column of its
+   * own; it is now the serviceAccountJson entry of SecurityEventConnection
+   * .secrets, and the move must not have opened it either: it has to be a
+   * secret field of the catalog entry, never a (readable) config field.
+   */
+  test("the Google SecOps service-account key stays unreadable by everyone", () => {
+    const definition: SecurityEventConnectorDefinition | undefined =
+      getSecurityEventConnectorDefinition(
+        SecurityEventConnectorProvider.GoogleSecOps,
+      );
+
+    expect(definition).toBeDefined();
+
+    const keysOf: (fields: Array<ConnectorField>) => Array<string> = (
+      fields: Array<ConnectorField>,
+    ): Array<string> => {
+      return fields.map((field: ConnectorField): string => {
+        return field.key;
+      });
+    };
+
+    expect(keysOf(definition!.secretFields)).toContain("serviceAccountJson");
+    expect(keysOf(definition!.configFields)).not.toContain(
+      "serviceAccountJson",
+    );
+
+    const accessControl: ColumnAccessControl | null =
+      new SecurityEventConnection().getColumnAccessControlFor("secrets");
+
+    expect(accessControl).toBeDefined();
+    expect(accessControl?.read).toEqual([]);
+  });
+
+  /*
+   * The framework connections store every provider's credential (client
+   * secrets, API tokens, AWS secret keys, the Google SecOps service-account
+   * key) as one encrypted JSON string. It is write-only: SecurityAdmin
+   * configures and rotates it, nobody reads it back through the API. The
+   * non-secret config column, by contrast, is what the edit form and the
+   * table show, so it follows the table into the Security tiers.
+   */
+  test("the framework connection secrets stay unreadable by everyone", () => {
+    const model: SecurityEventConnection = new SecurityEventConnection();
+    const secrets: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("secrets");
+    const config: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("config");
+
+    expect(secrets).toBeDefined();
+    expect(secrets?.read).toEqual([]);
+    expect(secrets?.create).toContain(Permission.SecurityAdmin);
+    expect(secrets?.update).toContain(Permission.SecurityAdmin);
+    expect(model.getTableColumnMetadata("secrets").encrypted).toBe(true);
+
+    expect(config?.read).toEqual(expect.arrayContaining(SECURITY_TIERS));
+  });
+
+  /*
+   * Tier semantics, so "Viewer" keeps meaning read-only and the three tiers
+   * stay distinguishable from each other. A family whose Viewer can delete is
+   * three names for one role.
+   */
+  test("Security Viewer is read-only everywhere", () => {
+    const writes: Array<string> = [];
+
+    for (const model of SECURITY_MODELS) {
+      for (const [operation, list] of [
+        ["create", model.create],
+        ["update", model.update],
+        ["delete", model.delete],
+      ] as Array<[string, Array<Permission>]>) {
+        if (list.includes(Permission.SecurityViewer)) {
+          writes.push(`${model.name} can be ${operation}d by SecurityViewer`);
+        }
+      }
+    }
+
+    expect(writes).toEqual([]);
+  });
+
+  /*
+   * Deleting a security event destroys the record of something that happened,
+   * which is the one thing a SIEM exists to keep. It sits on the Admin tier for
+   * the same reason retention policy does, and the same applies to purging
+   * ingested indicators.
+   */
+  test("deleting SIEM records is an Admin-tier action", () => {
+    const securityEvent: SecurityEvent = new SecurityEvent();
+    const threatIntelIndicator: ThreatIntelIndicator =
+      new ThreatIntelIndicator();
+
+    for (const deletePermissions of [
+      securityEvent.getDeletePermissions(),
+      threatIntelIndicator.getDeletePermissions(),
+    ]) {
+      expect(deletePermissions).toContain(Permission.SecurityAdmin);
+      expect(deletePermissions).not.toContain(Permission.SecurityMember);
+    }
+  });
+
+  /*
+   * Pointing the project at a security product - a Chronicle instance, a
+   * Sentinel workspace - and holding the credential that reads it, is
+   * administration of the SIEM rather than use of it.
+   */
+  test("only the Admin tier configures security event connections", () => {
+    const model: SecurityEventConnection = new SecurityEventConnection();
+
+    for (const list of [
+      model.createRecordPermissions,
+      model.updateRecordPermissions,
+      model.deleteRecordPermissions,
+    ]) {
+      expect(list).toContain(Permission.SecurityAdmin);
+      expect(list).not.toContain(Permission.SecurityMember);
+      expect(list).not.toContain(Permission.SecurityViewer);
+    }
+
+    expect(model.readRecordPermissions).toContain(Permission.SecurityMember);
+    expect(model.readRecordPermissions).toContain(Permission.SecurityViewer);
+  });
+
+  /*
+   * The Member tier is what makes the family usable without handing out admin:
+   * an analyst writes and tunes detections and subscribes to feeds. If Member
+   * lost these, every rule change would need a project administrator.
+   */
+  test("the Member tier can author detections and feeds", () => {
+    for (const model of [new DetectionRule(), new ThreatIntelFeed()]) {
+      expect(model.createRecordPermissions).toContain(
+        Permission.SecurityMember,
+      );
+      expect(model.updateRecordPermissions).toContain(
+        Permission.SecurityMember,
+      );
+      expect(model.deleteRecordPermissions).toContain(
+        Permission.SecurityMember,
+      );
+    }
+  });
+
+  /*
+   * The granular Read/Create/Edit/Delete permissions predate the tiers and are
+   * how an API key is scoped to exactly one operation. The tiers are an
+   * addition, not a replacement, and dropping one would silently break every
+   * key already issued against it.
+   */
+  test("the granular security permissions still work on their own", () => {
+    const securityEvent: SecurityEvent = new SecurityEvent();
+
+    expect(securityEvent.getReadPermissions()).toContain(
+      Permission.ReadSecurityEvent,
+    );
+    expect(securityEvent.getCreatePermissions()).toContain(
+      Permission.CreateSecurityEvent,
+    );
+    expect(securityEvent.getUpdatePermissions()).toContain(
+      Permission.EditSecurityEvent,
+    );
+    expect(securityEvent.getDeletePermissions()).toContain(
+      Permission.DeleteSecurityEvent,
+    );
+
+    const detectionRule: DetectionRule = new DetectionRule();
+
+    expect(detectionRule.readRecordPermissions).toContain(
+      Permission.ReadProjectDetectionRule,
+    );
+    expect(detectionRule.createRecordPermissions).toContain(
+      Permission.CreateProjectDetectionRule,
+    );
+    expect(detectionRule.updateRecordPermissions).toContain(
+      Permission.EditProjectDetectionRule,
+    );
+    expect(detectionRule.deleteRecordPermissions).toContain(
+      Permission.DeleteProjectDetectionRule,
+    );
+
+    const threatIntelFeed: ThreatIntelFeed = new ThreatIntelFeed();
+
+    expect(threatIntelFeed.readRecordPermissions).toContain(
+      Permission.ReadProjectThreatIntelFeed,
+    );
+    expect(threatIntelFeed.createRecordPermissions).toContain(
+      Permission.CreateProjectThreatIntelFeed,
+    );
+  });
+});
+
+/*
+ * Run history and poll bookkeeping are what the connection diagnostics read,
+ * so every Security tier can see them - and nothing but the worker may write
+ * them. A client that could create a run or set lastPollResult could forge a
+ * healthy connection, or move the cursor past records it never imported.
+ * (Carried over from the Google SecOps diagnostics model suite, which pinned
+ * the same boundaries on its own run model.)
+ */
+describe("Security event connection diagnostics access boundaries", () => {
+  test("run history is tenant scoped and cannot be created, changed or deleted through CRUD", () => {
+    const run: SecurityEventConnectionRun = new SecurityEventConnectionRun();
+
+    expect(run.getTenantColumn()).toBe("projectId");
+    expect(run.getCrudApiPath()?.toString()).toBe(
+      "/security-event-connection-run",
+    );
+    expect(run.createRecordPermissions).toEqual([]);
+    expect(run.updateRecordPermissions).toEqual([]);
+    expect(run.deleteRecordPermissions).toEqual([]);
+    expect(run.readRecordPermissions).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+    ]);
+    expect(run.readRecordPermissions).not.toContain(Permission.Public);
+  });
+
+  test.each([
+    "projectId",
+    "securityEventConnectionId",
+    "requestedByUserId",
+    "type",
+    "status",
+    "request",
+    "result",
+    "error",
+    "startedAt",
+    "completedAt",
+  ])(
+    "run field %s is readable by security viewers and writable only internally",
+    (field: string) => {
+      const control: ColumnAccessControl | null =
+        new SecurityEventConnectionRun().getColumnAccessControlFor(field);
+
+      expect(control).toBeTruthy();
+      expect(control?.create).toEqual([]);
+      expect(control?.update).toEqual([]);
+      expect(control?.read).toContain(Permission.SecurityViewer);
+    },
+  );
+
+  test.each([
+    "lastSuccessfulPollAt",
+    "lastEventIngestedAt",
+    "lastPollResult",
+    "lastPolledAt",
+    "cursor",
+    "lastError",
+  ])("clients cannot forge the connection's %s", (field: string) => {
+    const control: ColumnAccessControl | null =
+      new SecurityEventConnection().getColumnAccessControlFor(field);
+
+    expect(control).toBeTruthy();
+    expect(control?.create).toEqual([]);
+    expect(control?.update).toEqual([]);
+    expect(control?.read).toContain(Permission.SecurityMember);
+  });
+
+  /*
+   * Alerts only, or alerts and detections, decides what a connection
+   * imports. Changing it is configuring the connection.
+   */
+  test("only connector administrators can change what a connection imports", () => {
+    const control: ColumnAccessControl | null =
+      new SecurityEventConnection().getColumnAccessControlFor("alertingOnly");
+
+    expect(control?.update).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ]);
+    expect(control?.create).toEqual(control?.update);
+    expect(control?.read).toContain(Permission.SecurityViewer);
+  });
+
+  test("diagnostics do not make credentials readable or add them to run history", () => {
+    expect(
+      new SecurityEventConnection().getColumnAccessControlFor("secrets")?.read,
+    ).toEqual([]);
+
+    const runColumns: Array<string> =
+      new SecurityEventConnectionRun().getTableColumns().columns;
+
+    for (const credentialColumn of [
+      "secrets",
+      "serviceAccountJson",
+      "config",
+    ]) {
+      expect(runColumns).not.toContain(credentialColumn);
+      expect(Object.keys(new SecurityEventConnectionRun())).not.toContain(
+        credentialColumn,
+      );
+    }
+  });
+});

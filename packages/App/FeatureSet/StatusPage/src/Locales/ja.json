@@ -1,0 +1,331 @@
+{
+  "a11y": {
+    "skipToMainContent": "メインコンテンツにスキップ",
+    "loading": "読み込み中..."
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "submit": "送信",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "loading": "読み込み中...",
+    "search": "検索",
+    "edit": "編集",
+    "delete": "削除",
+    "yes": "はい",
+    "no": "いいえ",
+    "statusPage": "ステータスページ"
+  },
+  "language": {
+    "label": "言語",
+    "switchLanguage": "言語を切り替える"
+  },
+  "nav": {
+    "overview": "概要",
+    "incidents": "インシデント",
+    "announcements": "お知らせ",
+    "scheduledEvents": "予定されたイベント",
+    "subscribe": "購読する",
+    "login": "ログイン",
+    "logout": "ログアウト"
+  },
+  "overview": {
+    "uptimeSuffix": "% 稼働率",
+    "operational": "稼働中",
+    "noResourcesInGroup": "このグループにリソースが追加されていません。",
+    "activeIncidents": "進行中のインシデント",
+    "scheduledMaintenanceEvents": "予定されたメンテナンスイベント",
+    "allClearTitle": "すべて順調です",
+    "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。",
+    "allResourcesAre": "すべてのリソースは {{status}} です",
+    "someResourcesAre": "一部のリソースは {{status}} です",
+    "someResourcesAreUnder": "一部のリソースは {{status}} 中です",
+    "oneSubGroup": "1 グループ",
+    "subGroupCount": "{{total}} グループ"
+  },
+  "eventItem": {
+    "affectedResources": "影響を受けるリソース",
+    "stateChangedTo": "状態が次に変更されました:",
+    "view": "{{eventType}} を表示",
+    "updateTo": "この {{eventType}} の更新",
+    "postedOn": "投稿日:"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} 日前",
+    "today": "今日",
+    "notAvailable": "利用不可"
+  },
+  "uptimeHistory": {
+    "graphLabel": "過去 {{total}} 日間の稼働履歴",
+    "dayLabel": "{{date}}: 稼働率 {{uptime}}%",
+    "dayLabelWithIncidents": "{{date}}: 稼働率 {{uptime}}%、インシデント {{total}} 件",
+    "dayLabelNoData": "{{date}}: データなし",
+    "dayLabelNoDataWithIncidents": "{{date}}: データなし、インシデント {{total}} 件",
+    "uptime": "稼働率",
+    "noMonitoringData": "この日の監視データはありません",
+    "incidents": "インシデント",
+    "noIncidents": "インシデントなし",
+    "noIncidentsDescription": "この日に報告されたインシデントはありません。",
+    "declared": "報告日時",
+    "oneIncidentOnThisDay": "この日に 1 件のインシデントが報告されました",
+    "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました"
+  },
+  "liveStatus": {
+    "updated": "{{time}}に更新",
+    "refresh": "更新",
+    "refreshing": "更新中",
+    "refreshFailed": "更新できませんでした。最後に取得した状態を表示しています。"
+  },
+  "search": {
+    "label": "リソースを検索",
+    "placeholder": "リソースを検索",
+    "clear": "検索をクリア",
+    "resultCount": "{{total}} 件中 {{matched}} 件のリソース",
+    "noMatchesInGroup": "ここに検索条件に一致するリソースはありません。",
+    "noResultsTitle": "一致するリソースがありません",
+    "noResultsDescription": "このページに「{{query}}」に一致するものはありません。より短い語句で検索してください。"
+  },
+  "incidents": {
+    "title": "インシデント",
+    "singular": "インシデント",
+    "active": "進行中のインシデント",
+    "resolved": "解決済みのインシデント",
+    "none": "インシデントなし",
+    "noneDescription": "このステータスページに投稿されたインシデントはありません。",
+    "postmortem": "インシデント事後分析",
+    "declaredAt": "発生日時: ",
+    "report": "インシデントレポート",
+    "notFound": "このステータスページでインシデントが見つかりません。"
+  },
+  "episodes": {
+    "report": "エピソードレポート",
+    "none": "エピソードなし",
+    "notFound": "このステータスページでエピソードが見つかりません。"
+  },
+  "announcements": {
+    "title": "お知らせ",
+    "singular": "お知らせ",
+    "active": "アクティブなお知らせ",
+    "past": "過去のお知らせ",
+    "none": "お知らせなし",
+    "noneDescription": "このページにはまだお知らせが投稿されていません。",
+    "announcedAt": "告知日時: ",
+    "notFound": "このステータスページでお知らせが見つかりません。"
+  },
+  "scheduledEvents": {
+    "title": "予定されたイベント",
+    "singular": "予定されたイベント",
+    "scheduledMaintenance": "予定されたメンテナンス",
+    "ongoing": "進行中のイベント",
+    "upcoming": "予定されたイベント",
+    "completed": "完了したイベント",
+    "none": "予定されたイベントなし",
+    "noneDescription": "このステータスページに予定されたイベントは投稿されていません。",
+    "scheduledAt": "予定日時: ",
+    "report": "予定イベントレポート",
+    "notFound": "このステータスページで予定されたイベントが見つかりません。"
+  },
+  "subscribe": {
+    "title": "購読する",
+    "submit": "購読する",
+    "newSubscription": "新規購読",
+    "manageExisting": "既存の購読を管理",
+    "sendManagementLink": "管理リンクを送信",
+    "subscribedSuccessfully": "購読が正常に完了しました。",
+    "emailSentCheckSpam": "リンクを含むメールをお送りしました。メールが見当たらない場合は、スパムフォルダをご確認ください。",
+    "manageLinkSent": "入力された情報に一致する購読がある場合は、その購読を管理するためのリンクをお送りしました。",
+    "manageLinkSentEmail": "このメールアドレスで購読されている場合は、購読を管理するためのリンクをこのアドレスにお送りしました。メールが見当たらない場合は、スパムフォルダをご確認ください。",
+    "menu": {
+      "email": "メール",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "メールで購読する",
+      "description": "すべてのアップデートはこのメールアドレスに送信されます。",
+      "yourEmail": "メールアドレス",
+      "placeholder": "subscriber@company.jp",
+      "managePrompt": "購読時に使用したメールアドレスを入力してください",
+      "manageDescription": "購読管理リンクをこのメールアドレスに送信します。",
+      "managePlaceholder": "email@yourcompany.jp"
+    },
+    "sms": {
+      "title": "SMSで購読する",
+      "description": "すべてのアップデートはこの電話番号に送信されます。",
+      "yourPhoneNumber": "電話番号",
+      "placeholder": "+81901234567",
+      "managePrompt": "購読時に使用した電話番号を入力してください",
+      "manageDescription": "購読管理リンクをこの電話番号に送信します。"
+    },
+    "slack": {
+      "title": "Slackで購読する",
+      "description": "すべてのアップデートはこのSlack Webhookに送信されます。",
+      "workspaceName": "Slackワークスペース名",
+      "workspaceNameDescription": "検証のためSlackワークスペース名を入力してください。",
+      "workspaceNamePlaceholder": "私の会社のワークスペース",
+      "webhookUrl": "Slack 受信 Webhook URL",
+      "webhookUrlDescription": "ステータスページの更新はこのSlack Webhookに送信されます。",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "購読時に使用したSlackワークスペース名を入力してください",
+      "manageDescription": "購読管理リンクをこのワークスペースに送信します。"
+    },
+    "microsoftTeams": {
+      "title": "Microsoft Teamsで購読する",
+      "description": "すべてのアップデートはこのTeams Webhookに送信されます。",
+      "workspaceName": "Microsoft Teamsワークスペース名",
+      "workspaceNameDescription": "検証のためMicrosoft Teamsワークスペース名を入力してください。",
+      "workspaceNamePlaceholder": "私の会社のワークスペース",
+      "webhookUrl": "Microsoft Teams 受信 Webhook URL",
+      "webhookUrlDescription": "ステータスページの更新はこのTeams Webhookに送信されます。",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "購読時に使用したMicrosoft Teamsワークスペース名を入力してください",
+      "manageDescription": "購読管理リンクをこのワークスペースに送信します。"
+    },
+    "webhook": {
+      "title": "Webhookで購読",
+      "description": "すべての更新はJSON POSTリクエストとしてこのWebhook URLに送信されます。",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "ステータスページのイベントが発生するたびに、このURLにJSON POSTリクエストが送信されます。",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "すべてのリソースを購読する",
+      "allDescription": "すべてのリソースを購読する場合は、このオプションを選択してください。",
+      "select": "購読するリソースを選択",
+      "selectDescription": "購読したいリソースを選択してください。"
+    },
+    "eventTypes": {
+      "all": "すべてのイベントタイプを購読する",
+      "allDescription": "すべてのイベントタイプを購読する場合は、このオプションを選択してください。",
+      "select": "購読するイベントタイプを選択",
+      "selectDescription": "購読したいイベントタイプを選択してください。"
+    },
+    "update": {
+      "title": "購読を更新",
+      "description": "ここで購読設定を更新または解除できます。",
+      "saved": "変更が保存されました。",
+      "submit": "購読を更新",
+      "unsubscribe": "購読解除",
+      "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。"
+    },
+    "confirm": {
+      "title": "購読を確認",
+      "success": "購読が正常に確認されました"
+    },
+    "unsubscribe": {
+      "title": "購読解除",
+      "titleWithName": "{{statusPageName}} の購読を解除",
+      "confirmPrompt": "このステータスページからの通知の受信を停止しますか？",
+      "channelEmail": "メールアドレス",
+      "channelSms": "電話番号",
+      "channelSlack": "Slack ワークスペース",
+      "channelMicrosoftTeams": "Microsoft Teams ワークスペース",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "この購読は、このステータスページを運営するチームが追加したものです。メーリングリストなどの共有アドレスの場合、購読を解除すると、それを受け取っている全員にこれらの通知が届かなくなり、チームにも通知されます。",
+      "confirmButton": "購読を解除",
+      "manageInstead": "代わりに受け取る通知を選択する",
+      "manageSubscription": "購読を管理",
+      "success": "購読を解除しました。今後このステータスページからの通知は届きません。",
+      "alreadyUnsubscribed": "この購読はすでに解除されています。このステータスページからの通知は届きません。",
+      "outOfDateLink": "この購読解除リンクは古くなっています。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
+      "invalidLink": "この購読解除リンクは無効です。リンクが不完全であるか、購読が削除された可能性があります。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
+      "failed": "購読を解除できませんでした。もう一度お試しください。",
+      "loadFailed": "この購読解除リンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "メール",
+      "password": "パスワード",
+      "newPassword": "新しいパスワード",
+      "confirmPassword": "パスワードの確認",
+      "login": "ログイン"
+    },
+    "login": {
+      "welcomeBack": "おかえりなさい！",
+      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "forgotPassword": "パスワードをお忘れですか？",
+      "submit": "ログイン",
+      "useSSO": "代わりにシングルサインオン（SSO）を使用する"
+    },
+    "sso": {
+      "title": "SSOでログイン",
+      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "noProviders": "SSOプロバイダーが構成または有効化されていません",
+      "notAvailable": "このステータスページではシングルサインオン（SSO）を利用できません。代わりにメールアドレスとパスワードでログインしてください。",
+      "backToLogin": "ログインに戻る"
+    },
+    "forgotPassword": {
+      "title": "パスワードをお忘れですか",
+      "description": "{{statusPageName}}のパスワードをお忘れの場合は、メールアドレスを入力してください。パスワードリセットリンクをお送りします。",
+      "success": "パスワードリセットリンクをメールでお送りしました。スパムフォルダもご確認ください。",
+      "sendLink": "パスワードリセットリンクを送信",
+      "rememberPassword": "パスワードを思い出しましたか？"
+    },
+    "resetPassword": {
+      "description": "{{statusPageName}}アカウントの新しいパスワードを作成してください。",
+      "instructions": "新しいパスワードを入力すると、更新されます。",
+      "success": "パスワードが更新されました。ログインしてください。",
+      "submit": "パスワードをリセット",
+      "knowPassword": "パスワードをご存じですか？"
+    },
+    "masterPassword": {
+      "enterWithName": "{{statusPageName}}のパスワードを入力",
+      "enterGeneric": "パスワードを入力",
+      "prompt": "続行するにはパスワードを入力してください。",
+      "passwordRequired": "パスワードは必須です。",
+      "passwordLabel": "パスワード",
+      "passwordDescription": "このページをロック解除するためのパスワードを入力してください。",
+      "passwordPlaceholder": "パスワードを入力",
+      "submit": "ステータスページをロック解除"
+    },
+    "signingOut": "サインアウトしています..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "ページが見つかりません。",
+      "description": "お探しのページは存在しません。"
+    },
+    "forbidden": {
+      "title": "アクセス禁止",
+      "description": "このページへのアクセス権限がありません。"
+    },
+    "generic": "問題が発生しました。もう一度お試しください。"
+  },
+  "footer": {
+    "poweredBy": "OneUptime によって提供"
+  },
+  "statusNames": {
+    "identified": "確認済み",
+    "acknowledged": "承認済み",
+    "resolved": "解決済み",
+    "criticalIncident": "重大インシデント",
+    "majorIncident": "主要インシデント",
+    "minorIncident": "軽微なインシデント",
+    "operational": "稼働中",
+    "degraded": "性能低下",
+    "offline": "オフライン",
+    "scheduled": "予定",
+    "ongoing": "進行中",
+    "ended": "終了",
+    "completed": "完了"
+  },
+  "Subscriber ID is required": "購読者 ID は必須です",
+  "Token is required": "トークンは必須です",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}は{{minLength}}文字以上で入力してください。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}は{{maxLength}}文字以下で入力してください。",
+  "{{field}} should not have spaces.": "{{field}}にスペースを含めることはできません。",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}には英字、数字、ハイフン (-)、アンダースコア (_) のみ使用できます。",
+  "{{field}} should not have numbers.": "{{field}}に数字を含めることはできません。",
+  "{{field}} should be a future date.": "{{field}}は未来の日付を指定してください。",
+  "{{field}} should be a number.": "{{field}}は数値を入力してください。",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}は{{maxValue}}以下で入力してください。",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}は{{minValue}}以上で入力してください。",
+  "{{field}} is required.": "{{field}}は必須です。",
+  "{{field}} should match {{matchField}}": "{{field}}は{{matchField}}と一致する必要があります",
+  "Email is not valid.": "メールアドレスが無効です。"
+}

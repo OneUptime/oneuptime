@@ -1,0 +1,38 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Confirm Single Sign-On" }}
+
+{{!--
+  Sent the first time a project's own identity provider tries to sign this
+  address in to OneUptime (see ee/Server/Identity/Utils/ProjectSsoSignInConfirmation.ts).
+  The identity provider belongs to that project's admins, so the recipient may
+  never have tried to sign in at all: the wording does not assume they did, and
+  the closing note says what happens if they ignore it.
+
+  signInSummary names the project, whose name its admins choose, so it is
+  printed through plainInfo -- escaped -- and never through the raw `info`.
+--}}
+
+{{> InfoBlock plainInfo=signInSummary}}
+
+{{> InfoBlock plainInfo="Confirming lets this project's single sign-on sign you in to OneUptime from now on. You only need to do this once for each project."}}
+
+{{> ButtonBlock buttonUrl=confirmationUrl buttonText="Confirm Sign-In"}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=confirmationUrl linkLabel="Or copy and paste this link into your browser:"}}
+
+{{> VerticalSpace this}}
+
+{{> InfoBlock plainInfo=expiryNote}}
+
+{{> InfoBlock plainInfo="If you weren't expecting this, you can safely ignore this email. This project's single sign-on cannot sign in to your OneUptime account unless the button above is used."}}
+
+{{> SupportBlock this }}
+
+{{> Footer this}}
+
+{{> End this}}

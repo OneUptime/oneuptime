@@ -126,7 +126,7 @@ Every event has the same shape:
 | `occurredAt`    | string  | ISO 8601 UTC. When the conversion happened, not when it was sent.                                                             |
 | `email`         | string? | Plaintext address. Absent when OneUptime has none.                                                                            |
 | `emailHash`     | string? | SHA-256 hex of the trimmed, lowercased address.                                                                               |
-| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. UTM keys are exactly `UtmWireKeyToPropertyKey` in `Common/Types/Marketing/Attribution.ts`, in camelCase. |
+| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. UTM keys are exactly `UtmWireKeyToPropertyKey` in `packages/Common/Types/Marketing/Attribution.ts`, in camelCase. |
 | `data`          | object  | Event-specific detail — see each event below.                                                                                 |
 
 ### Two things the envelope does not give you
@@ -300,6 +300,6 @@ you need it, the seat-count change would have to become its own event.
 
 **No delivery to ad platforms.** OneUptime sends conversions to your endpoint
 and nowhere else. Note that Google Tag Manager and GA4 are still present on the
-marketing site (`Home/Views/head-basic.ejs`, consent-gated), and a GA4 property
+marketing site (`packages/Home/Views/head-basic.ejs`, consent-gated), and a GA4 property
 linked to a Google Ads account still imports its key events — that is a
 separate, browser-side pipeline which was never fed by this one.

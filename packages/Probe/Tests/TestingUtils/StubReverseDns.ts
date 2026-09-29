@@ -1,0 +1,111 @@
+import SubnetScanner from "../../Utils/Discovery/SubnetScanner";
+import {
+  DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+  ReverseDnsResolution,
+} from "../../Utils/Discovery/ReverseDnsResolver";
+import { installNetbiosStub } from "./StubNetbios";
+import { beforeEach, jest } from "@jest/globals";
+
+/*
+ * Keeps a test that drives the REAL SubnetScanner.scan() off the real
+ * resolver (OneUptime issue #3529).
+ *
+ * Since reverse DNS was added, a completed sweep ends by asking for a PTR
+ * record per discovered host. Every suite here already stubs the sweep's two
+ * other network seams — isHostAliveByPing and SnmpMonitor.probeSystemInfo —
+ * for exactly the reasons that apply again here, and more sharply:
+ *
+ *   - It would be real network I/O in a unit test. The sweeps below "find"
+ *     hosts on 10.0.0.0/29 and 192.0.2.0/24; asking a resolver about those is
+ *     a query to whatever DNS the machine running the tests happens to have.
+ *   - It would make the tests machine-dependent. A developer on a corporate
+ *     network whose resolver answers for RFC1918 space would see dnsHostname
+ *     appear on hosts that a CI runner reports without one.
+ *   - It would be slow, and slow in the worst way: the per-address budget is
+ *     two seconds, so a runner with no resolver reachable would pay it per
+ *     discovered host on every sweep in the file.
+ *
+ * The stub resolves NOTHING, which is the correct default for a suite that is
+ * not about naming: hosts come back with no `dnsHostname`, exactly as they
+ * did before the feature existed, so every pre-existing assertion in these
+ * files still describes what it always described. Suites that ARE about
+ * naming (Jobs/Discovery/DiscoveryReverseDns.test.ts) install their own spy
+ * instead.
+ *
+ * It reports no per-address status either (OneUptime issue #3916), and no
+ * failure count — deliberately, although the real resolver reports both. A
+ * status table would stamp `dnsHostnameStatus: "no-record"` on every unnamed
+ * host in every suite that installs this, and each of their host literals
+ * would stop matching the sweep they describe for a reason that has nothing
+ * to do with what they test. A resolution without the table is the shape the
+ * scanner reads as "no codes reported", so hosts keep no key at all. Suites
+ * that ARE about the codes (Jobs/Discovery/DiscoveryHostNamingStatus.test.ts,
+ * Utils/Discovery/SubnetScannerNamingStatus.test.ts) install doubles that do
+ * report them.
+ *
+ * The same sweep can end in a NetBIOS lookup too (OneUptime issue #3677), so
+ * installing this stub installs the NetBIOS one as well (StubNetbios.ts). Both
+ * seams sit at the same point after the sweep and every reason above applies
+ * to a UDP 137 datagram at least as strongly as to a PTR query; keeping them
+ * behind one call means no suite, and no mid-test re-install, can cover one
+ * and forget the other.
+ */
+
+/**
+ * Installs the stub RIGHT NOW, for the rest of the current test.
+ *
+ * Exported because a per-file `beforeEach` is not enough on its own. Two
+ * suites call `jest.restoreAllMocks()` in the MIDDLE of a test — to run a
+ * second sweep against freshly-configured spies — and that wipes every spy in
+ * the file, this one included. The second sweep then ran against the real
+ * resolver: on a machine whose DNS answers for RFC1918 space (a corporate
+ * resolver with 10.in-addr.arpa delegated, or any NXDOMAIN-hijacking ISP
+ * resolver) the sweep came back with `dnsHostname` set on hosts the first
+ * sweep had none for, and on a machine with no reachable resolver it paid the
+ * full two-second per-address budget inside a unit test.
+ *
+ * Neither failure is visible in the assertion that breaks, which is what makes
+ * it worth its own exported function rather than an inline spy: every
+ * mid-test restore in a file that stubs reverse DNS has to be followed by a
+ * call to this, and ReverseDnsStubIntegrity.test.ts fails the build if one
+ * is not.
+ */
+export function installReverseDnsStub(): void {
+  jest
+    .spyOn(SubnetScanner, "resolveReverseDnsHostnames")
+    .mockImplementation(
+      async (ipAddresses: Array<string>): Promise<ReverseDnsResolution> => {
+        return {
+          hostnameByIpAddress: new Map<string, string>(),
+          isReverseDnsAvailable: true,
+          isTimeBudgetExhausted: false,
+          // Every address asked, none named: a complete, unremarkable pass.
+          lookedUpCount: new Set<string>(ipAddresses).size,
+          notLookedUpCount: 0,
+          totalBudgetInMs: DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+          /*
+           * No statusByIpAddress and no failedAddressCount, on purpose: see
+           * the note at the top. Absent is "no codes reported", and it keeps
+           * every host this stub touches free of a `dnsHostnameStatus` key.
+           */
+        };
+      },
+    );
+
+  // And the other post-sweep network seam — see the note at the top.
+  installNetbiosStub();
+}
+
+/**
+ * Installs the stub before every test in the calling file.
+ *
+ * Root-level hooks run before the hooks of any nested describe and apply to
+ * every test in the file regardless of where this is called textually, so one
+ * call at module scope covers the whole suite — EXCEPT across a mid-test
+ * `jest.restoreAllMocks()`, which is what `installReverseDnsStub` above is for.
+ */
+export function stubReverseDnsAsResolvingNothing(): void {
+  beforeEach(() => {
+    installReverseDnsStub();
+  });
+}

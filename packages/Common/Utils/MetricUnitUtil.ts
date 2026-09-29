@@ -1,0 +1,439 @@
+/*
+ * Unit conversion utilities for metric alert thresholds. Separate from
+ * ValueFormatter (which focuses on auto-scaled display formatting) because
+ * thresholds need deterministic, user-selected units — not whatever unit
+ * happens to read best for a given magnitude.
+ */
+
+export interface UnitOption {
+  value: string;
+  label: string;
+}
+
+interface UnitDefinition {
+  value: string;
+  label: string;
+  aliases: Array<string>;
+  toCanonical: number;
+  /*
+   * A unit the family can CONVERT but that the threshold / legend unit
+   * pickers never offer. See the binary byte units below for why.
+   */
+  isConversionOnly?: boolean | undefined;
+}
+
+/*
+ * Within a family, `toCanonical` is the multiplier that converts a value
+ * expressed in this unit into the family's canonical base (bytes for data,
+ * seconds for time, % for percent).
+ */
+const byteUnits: Array<UnitDefinition> = [
+  {
+    value: "B",
+    label: "Bytes (B)",
+    aliases: ["b", "byte", "bytes", "by"],
+    toCanonical: 1,
+  },
+  {
+    value: "KB",
+    label: "Kilobytes (KB)",
+    aliases: ["kb", "kilobyte", "kilobytes", "kby"],
+    toCanonical: 1e3,
+  },
+  {
+    value: "MB",
+    label: "Megabytes (MB)",
+    aliases: ["mb", "megabyte", "megabytes", "mby"],
+    toCanonical: 1e6,
+  },
+  {
+    value: "GB",
+    label: "Gigabytes (GB)",
+    aliases: ["gb", "gigabyte", "gigabytes", "gby"],
+    toCanonical: 1e9,
+  },
+  {
+    value: "TB",
+    label: "Terabytes (TB)",
+    aliases: ["tb", "terabyte", "terabytes", "tby"],
+    toCanonical: 1e12,
+  },
+  {
+    value: "PB",
+    label: "Petabytes (PB)",
+    aliases: ["pb", "petabyte", "petabytes", "pby"],
+    toCanonical: 1e15,
+  },
+
+  /*
+   * Binary (IEC) byte units — powers of 1024, not 1000. OpenTelemetry
+   * spells them in UCUM ("KiBy", "MiBy"), and the vcenter receiver reports
+   * memory in them, so without these members a "MiBy" sample was in no
+   * family at all: it could not be converted into a "GB" threshold (the
+   * value passed through unchanged, about a thousand times off) and the
+   * notification formatter could not scale it ("1048576 MiB" instead of
+   * "1.1 TB").
+   *
+   * CONVERSION-ONLY, deliberately. The threshold and legend unit pickers
+   * (CriteriaFilter, MetricAlias) build their options from
+   * getCompatibleUnits, whose byte list is the six decimal units — a
+   * contract MetricUnitUtil.test pins. Listing five near-duplicates
+   * ("MB" next to "MiB") in every bytes dropdown would clutter it for
+   * every metric, while the conversions below are what actually fixes
+   * the numbers. So the pickers keep treating a native "MiBy" exactly as
+   * they did before (a single raw-unit option, free-text legend), and
+   * only convertToMetricUnit / getFamilyBaseUnit see these members.
+   */
+  {
+    value: "KiB",
+    label: "Kibibytes (KiB)",
+    aliases: ["kib", "kiby", "kibibyte", "kibibytes"],
+    toCanonical: 1024,
+    isConversionOnly: true,
+  },
+  {
+    value: "MiB",
+    label: "Mebibytes (MiB)",
+    aliases: ["mib", "miby", "mebibyte", "mebibytes"],
+    toCanonical: 1024 ** 2,
+    isConversionOnly: true,
+  },
+  {
+    value: "GiB",
+    label: "Gibibytes (GiB)",
+    aliases: ["gib", "giby", "gibibyte", "gibibytes"],
+    toCanonical: 1024 ** 3,
+    isConversionOnly: true,
+  },
+  {
+    value: "TiB",
+    label: "Tebibytes (TiB)",
+    aliases: ["tib", "tiby", "tebibyte", "tebibytes"],
+    toCanonical: 1024 ** 4,
+    isConversionOnly: true,
+  },
+  {
+    value: "PiB",
+    label: "Pebibytes (PiB)",
+    aliases: ["pib", "piby", "pebibyte", "pebibytes"],
+    toCanonical: 1024 ** 5,
+    isConversionOnly: true,
+  },
+];
+
+const timeUnits: Array<UnitDefinition> = [
+  {
+    value: "ns",
+    label: "Nanoseconds (ns)",
+    aliases: ["ns", "nanosecond", "nanoseconds"],
+    toCanonical: 1e-9,
+  },
+  {
+    value: "µs",
+    label: "Microseconds (µs)",
+    aliases: ["µs", "us", "microsecond", "microseconds"],
+    toCanonical: 1e-6,
+  },
+  {
+    value: "ms",
+    label: "Milliseconds (ms)",
+    aliases: ["ms", "millisecond", "milliseconds"],
+    toCanonical: 1e-3,
+  },
+  {
+    value: "sec",
+    label: "Seconds (sec)",
+    aliases: ["s", "sec", "second", "seconds"],
+    toCanonical: 1,
+  },
+  {
+    value: "min",
+    label: "Minutes (min)",
+    aliases: ["min", "minute", "minutes"],
+    toCanonical: 60,
+  },
+  {
+    value: "hours",
+    label: "Hours",
+    aliases: ["h", "hr", "hour", "hours"],
+    toCanonical: 3600,
+  },
+  {
+    value: "days",
+    label: "Days",
+    aliases: ["d", "day", "days"],
+    toCanonical: 86400,
+  },
+];
+
+const percentUnits: Array<UnitDefinition> = [
+  {
+    value: "%",
+    label: "Percent (%)",
+    aliases: ["%", "percent"],
+    toCanonical: 1,
+  },
+  /*
+   * UCUM "1" is OTel's dimensionless marker for ratio metrics — values in
+   * [0, 1] that represent a fraction (e.g. system.filesystem.utilization).
+   * Treating it as part of the percent family lets the threshold UI offer
+   * both "%" and "Fraction (0-1)" as input units. One unit of "1" equals
+   * 100% in the canonical, so a fraction threshold of 0.5 converts to a
+   * stored canonical value of 50.
+   */
+  {
+    value: "1",
+    label: "Fraction (0-1)",
+    aliases: ["1"],
+    toCanonical: 100,
+  },
+];
+
+const bitUnits: Array<UnitDefinition> = [
+  {
+    value: "bit",
+    label: "Bits (bit)",
+    aliases: ["bit", "bits"],
+    toCanonical: 1,
+  },
+  {
+    value: "kbit",
+    label: "Kilobits (kbit)",
+    aliases: ["kbit", "kilobit", "kilobits"],
+    toCanonical: 1e3,
+  },
+  {
+    value: "mbit",
+    label: "Megabits (mbit)",
+    aliases: ["mbit", "megabit", "megabits"],
+    toCanonical: 1e6,
+  },
+  {
+    value: "gbit",
+    label: "Gigabits (gbit)",
+    aliases: ["gbit", "gigabit", "gigabits"],
+    toCanonical: 1e9,
+  },
+];
+
+const allFamilies: Array<Array<UnitDefinition>> = [
+  byteUnits,
+  timeUnits,
+  percentUnits,
+  bitUnits,
+];
+
+function normalize(unit: string): string {
+  return unit.trim().toLowerCase();
+}
+
+/*
+ * Which members a lookup may match. "offered" is what the unit pickers
+ * work with — every member except the conversion-only ones — and is what
+ * the picker-facing methods use, so a conversion-only native unit still
+ * reads to them as "no known family". "all" is for arithmetic.
+ */
+type MemberScope = "offered" | "all";
+
+function isInScope(definition: UnitDefinition, scope: MemberScope): boolean {
+  return scope === "all" || !definition.isConversionOnly;
+}
+
+function findDefinitionInFamily(
+  unit: string,
+  family: Array<UnitDefinition>,
+  scope: MemberScope,
+): UnitDefinition | null {
+  const normalized: string = normalize(unit);
+  return (
+    family.find((u: UnitDefinition) => {
+      return isInScope(u, scope) && u.aliases.includes(normalized);
+    }) || null
+  );
+}
+
+function findFamily(
+  unit: string,
+  scope: MemberScope,
+): Array<UnitDefinition> | null {
+  if (!unit || !unit.trim()) {
+    return null;
+  }
+  for (const family of allFamilies) {
+    if (findDefinitionInFamily(unit, family, scope)) {
+      return family;
+    }
+  }
+  return null;
+}
+
+export default class MetricUnitUtil {
+  /*
+   * Returns the dropdown options the UI should show next to the threshold
+   * input, given the metric's native unit. If the unit isn't in any known
+   * family, returns a single option matching the raw unit so users still
+   * see what they're working with.
+   */
+  public static getCompatibleUnits(
+    metricUnit: string | undefined,
+  ): Array<UnitOption> {
+    if (!metricUnit || !metricUnit.trim()) {
+      return [];
+    }
+
+    const family: Array<UnitDefinition> | null = findFamily(
+      metricUnit,
+      "offered",
+    );
+    if (!family) {
+      return [{ value: metricUnit, label: metricUnit }];
+    }
+
+    return family
+      .filter((u: UnitDefinition) => {
+        return isInScope(u, "offered");
+      })
+      .map((u: UnitDefinition) => {
+        return { value: u.value, label: u.label };
+      });
+  }
+
+  /*
+   * Returns the canonical unit value for the metric's native unit, which
+   * is what the threshold dropdown should default to when nothing is
+   * selected yet. Returns the input unit unchanged if the family is
+   * unknown.
+   *
+   * Special case for fraction metrics (unit "1"): users think in percent,
+   * not 0-1 fractions, so the dropdown defaults to "%" rather than the
+   * raw "1" — which used to render an unlabelled "1" next to the value
+   * input and read as a typo.
+   */
+  public static getCanonicalUnitValue(
+    metricUnit: string | undefined,
+  ): string | undefined {
+    if (!metricUnit || !metricUnit.trim()) {
+      return undefined;
+    }
+
+    const family: Array<UnitDefinition> | null = findFamily(
+      metricUnit,
+      "offered",
+    );
+    if (!family) {
+      return metricUnit;
+    }
+
+    const def: UnitDefinition | null = findDefinitionInFamily(
+      metricUnit,
+      family,
+      "offered",
+    );
+
+    if (family === percentUnits && def?.value === "1") {
+      return "%";
+    }
+
+    return def?.value || metricUnit;
+  }
+
+  /*
+   * Converts a threshold value from the user-selected unit into the
+   * metric's native unit so comparisons can happen against raw samples.
+   * Returns the unchanged value when either unit is unknown or they
+   * belong to different families — the evaluator shouldn't silently
+   * produce nonsense numbers.
+   */
+  public static convertToMetricUnit(input: {
+    value: number;
+    fromUnit: string | undefined;
+    metricUnit: string | undefined;
+  }): number {
+    const { value, fromUnit, metricUnit } = input;
+
+    if (!fromUnit || !metricUnit) {
+      return value;
+    }
+
+    if (normalize(fromUnit) === normalize(metricUnit)) {
+      return value;
+    }
+
+    const family: Array<UnitDefinition> | null = findFamily(metricUnit, "all");
+    if (!family) {
+      return value;
+    }
+
+    const fromDef: UnitDefinition | null = findDefinitionInFamily(
+      fromUnit,
+      family,
+      "all",
+    );
+    const metricDef: UnitDefinition | null = findDefinitionInFamily(
+      metricUnit,
+      family,
+      "all",
+    );
+
+    if (!fromDef || !metricDef) {
+      return value;
+    }
+
+    /*
+     * value_in_canonical = value * fromDef.toCanonical
+     * value_in_metric    = value_in_canonical / metricDef.toCanonical
+     */
+    return (value * fromDef.toCanonical) / metricDef.toCanonical;
+  }
+
+  /*
+   * The canonical base of the family this unit belongs to — "B" for any
+   * data unit, "sec" for any time unit, "%" for percent, "bit" for bits.
+   * Null when the unit belongs to no known family.
+   *
+   * Distinct from getCanonicalUnitValue, which answers "what should the
+   * threshold dropdown default to for this metric" and returns the unit
+   * itself for a known family member. This answers "what is the one unit
+   * every member of this family can be converted into", which is what a
+   * formatter needs before it can pick a human-readable scale: a value
+   * carrying the unit "GB" has to become bytes before a bytes ladder can
+   * decide that 2500 of them read best as "2.5 TB".
+   */
+  public static getFamilyBaseUnit(
+    metricUnit: string | undefined,
+  ): string | null {
+    if (!metricUnit || !metricUnit.trim()) {
+      return null;
+    }
+
+    const family: Array<UnitDefinition> | null = findFamily(metricUnit, "all");
+    if (!family) {
+      return null;
+    }
+
+    const base: UnitDefinition | undefined = family.find(
+      (u: UnitDefinition) => {
+        return u.toCanonical === 1;
+      },
+    );
+
+    return base?.value || null;
+  }
+
+  /*
+   * Convenience: does the metric unit belong to a family we can offer
+   * conversions for? When false, the UI should still render a dropdown,
+   * but with just the raw unit.
+   *
+   * "Offer" is literal: a conversion-only unit ("MiBy") answers false, in
+   * step with getCompatibleUnits, which gives it no family list either.
+   */
+  public static hasCompatibleUnitFamily(
+    metricUnit: string | undefined,
+  ): boolean {
+    if (!metricUnit || !metricUnit.trim()) {
+      return false;
+    }
+    return findFamily(metricUnit, "offered") !== null;
+  }
+}

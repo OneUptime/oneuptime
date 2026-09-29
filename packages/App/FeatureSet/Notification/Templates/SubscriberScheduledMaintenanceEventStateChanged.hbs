@@ -1,0 +1,32 @@
+{{> Start this}}
+
+
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat "Scheduled Maintenance Event: " eventTitle) }}
+
+
+{{> InfoBlock info="Here are more details for this scheduled event:     "}}
+
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Event Title: " plainText=eventTitle }}
+{{> DetailBoxField title="Event State: " plainText=eventState }}
+{{#if resourcesAffected}}
+{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{/if}}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
+
+
+{{#if detailsUrl}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
+{{else}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
+{{/if}}
+
+{{> UnsubscribeBlock this}}
+{{> VerticalSpace this}}
+
+{{> End this}}

@@ -15,12 +15,14 @@
  *   both -> severity_parser(severity-parser)  text -> LogRecord severity number
  *        -> remove(remove-severity-attr)      drop the scratch attribute
  *
- * Everything in here is derived from opentelemetry-collector-contrib v0.154.0,
+ * Everything in here is derived from opentelemetry-collector-contrib v0.161.0,
  * which is the collector the three agent images are built FROM (see
- * DockerAgent/Dockerfile.tpl: `FROM otel/opentelemetry-collector-contrib:0.154.0`).
+ * DockerAgent/Dockerfile.tpl: `FROM otel/opentelemetry-collector-contrib:0.161.0`).
+ * It was first derived from v0.154.0; severity_builder.go is byte-identical
+ * between the two tags.
  */
 
-const OTEL_COLLECTOR_VERSION = "0.154.0";
+const OTEL_COLLECTOR_VERSION = "0.161.0";
 
 /**
  * The OTel severity numbers, from the logs data model.
@@ -55,7 +57,7 @@ const SEVERITY_NUMBER = {
 
 /**
  * stanza's BUILT-IN `default` severity preset, transcribed from
- * pkg/stanza/operator/helper/severity_builder.go @ v0.154.0 (`getBuiltinMapping`).
+ * pkg/stanza/operator/helper/severity_builder.go @ v0.161.0 (`getBuiltinMapping`).
  *
  * The "default" branch of that switch is `aliases` PLUS four warning aliases and
  * four err aliases:
@@ -259,7 +261,7 @@ function extractMatchesPattern(expression) {
  * alternation, anchors — behaves identically, and both engines pick the
  * leftmost match with Perl-style leftmost-first alternation. The expectations
  * in ContainerAgentLogSeverity.test.js were cross-checked against the real
- * otelcol-contrib 0.154.0 binary, so a dialect surprise would show up as a
+ * otelcol-contrib binary (0.154.0, and again 0.161.0), so a dialect surprise would show up as a
  * disagreement there rather than passing quietly.
  */
 function compileRe2AsJs(pattern) {

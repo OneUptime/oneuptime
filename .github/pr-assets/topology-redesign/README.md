@@ -5,8 +5,8 @@ synthetic inventory, service, and network data. The preview's API boundary is
 stubbed; it does not use a customer project or test account. A banner identifies
 the demo workspace.
 
-Regenerate them from `E2E` with `npm run test-topology-ui`. The reproducible
-fixture and browser workflows live in `E2E/Topology`; generated images are saved
+Regenerate them from `packages/E2E` with `npm run test-topology-ui`. The reproducible
+fixture and browser workflows live in `packages/E2E/Topology`; generated images are saved
 to `output/playwright/topology` at the repository root. Copy the reviewed
 `*-synthetic.png` files into this directory when updating the PR screenshots.
 

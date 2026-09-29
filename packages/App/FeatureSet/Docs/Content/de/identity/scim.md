@@ -1,0 +1,164 @@
+# SCIM (System for Cross-domain Identity Management)
+
+OneUptime unterstützt das SCIM v2.0-Protokoll für die automatisierte Benutzerbereitstellung und -entbereitstellung. SCIM ermöglicht Identity Providern (IdPs) wie Azure AD, Okta und anderen Enterprise-Identitätssystemen, den Benutzerzugriff auf OneUptime-Projekte und Status-Seiten automatisch zu verwalten.
+
+> **Edition:** SCIM ist Teil der OneUptime Enterprise Edition. In OneUptime Cloud ist es ab dem **Scale**-Plan verfügbar. Selbst gehostete Installationen benötigen das Enterprise-Edition-Image und eine Lizenz. Siehe [Enterprise Edition](/docs/self-hosted/enterprise). Ohne gültige Lizenz (nach der 14-tägigen Testphase oder 30 Tage nach Ablauf einer Lizenz) werden SCIM-Anfragen abgelehnt, bis eine Lizenz aktiviert wird.
+
+## Übersicht
+
+Die SCIM-Integration bietet folgende Vorteile:
+
+- **Automatische Benutzerbereitstellung**: Benutzer in OneUptime automatisch erstellen, wenn sie im IdP zugewiesen werden
+- **Automatische Benutzerentbereitstellung**: Benutzer aus OneUptime automatisch entfernen, wenn sie im IdP nicht mehr zugewiesen sind
+- **Benutzerattributsynchronisierung**: Benutzerinformationen zwischen Ihrem IdP und OneUptime synchronisieren
+- **Zentralisierte Zugriffsverwaltung**: OneUptime-Zugriff aus Ihrem vorhandenen Identitätsverwaltungssystem verwalten
+
+## SCIM für Projekte
+
+Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUptime-Projekten zu verwalten.
+
+### Projekt-SCIM einrichten
+
+1. **Zu Projekteinstellungen navigieren**
+
+   - Gehen Sie zu Ihrem OneUptime-Projekt
+   - Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SCIM**
+
+2. **SCIM-Einstellungen konfigurieren**
+
+   - Aktivieren Sie **Benutzer automatisch provisionieren**, um Benutzer automatisch hinzuzufügen, wenn sie im IdP zugewiesen werden
+   - Aktivieren Sie **Benutzer automatisch deprovisionieren**, um Benutzer automatisch zu entfernen, wenn sie im IdP nicht mehr zugewiesen sind
+   - Wählen Sie die **Standard-Teams**, denen neue Benutzer hinzugefügt werden sollen
+   - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
+
+3. **Ihren Identity Provider konfigurieren**
+   - Verwenden Sie die SCIM-Basis-URL: `https://oneuptime.com/scim/v2/{scimId}`
+   - Bearer-Token-Authentifizierung mit dem bereitgestellten Token konfigurieren
+   - Benutzerattribute zuordnen (E-Mail ist erforderlich)
+
+### Projekt-SCIM-Endpunkte
+
+- **Service Provider Config**: `GET /scim/v2/{scimId}/ServiceProviderConfig`
+- **Schemas**: `GET /scim/v2/{scimId}/Schemas`
+- **Resource Types**: `GET /scim/v2/{scimId}/ResourceTypes`
+- **Benutzer auflisten**: `GET /scim/v2/{scimId}/Users`
+- **Benutzer abrufen**: `GET /scim/v2/{scimId}/Users/{userId}`
+- **Benutzer erstellen**: `POST /scim/v2/{scimId}/Users`
+- **Benutzer aktualisieren**: `PUT /scim/v2/{scimId}/Users/{userId}` oder `PATCH /scim/v2/{scimId}/Users/{userId}`
+- **Benutzer löschen**: `DELETE /scim/v2/{scimId}/Users/{userId}`
+- **Gruppen auflisten**: `GET /scim/v2/{scimId}/Groups`
+- **Gruppe abrufen**: `GET /scim/v2/{scimId}/Groups/{groupId}`
+- **Gruppe erstellen**: `POST /scim/v2/{scimId}/Groups`
+- **Gruppe aktualisieren**: `PUT /scim/v2/{scimId}/Groups/{groupId}` oder `PATCH /scim/v2/{scimId}/Groups/{groupId}`
+- **Gruppe löschen**: `DELETE /scim/v2/{scimId}/Groups/{groupId}`
+
+## SCIM für Status-Seiten
+
+Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Seiten zu verwalten.
+
+### Status-Seiten-SCIM einrichten
+
+1. **Zu Status-Seiten-Einstellungen navigieren**
+
+   - Gehen Sie zu Ihrer OneUptime Status-Seite
+   - Navigieren Sie zu **Status-Seiten-Einstellungen** > **Sicherheit** > **SCIM**
+
+2. **SCIM-Einstellungen konfigurieren**
+
+   - Aktivieren Sie **Benutzer automatisch provisionieren** und **Benutzer automatisch deprovisionieren**
+   - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
+
+3. **Ihren Identity Provider konfigurieren**
+   - Verwenden Sie die SCIM-Basis-URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`
+
+## Identity Provider-Konfiguration
+
+### Microsoft Entra ID (ehemals Azure AD)
+
+#### Voraussetzungen
+
+- Microsoft Entra ID-Mandant mit Premium P1- oder P2-Lizenz (für automatische Bereitstellung erforderlich)
+- OneUptime-Konto mit Scale-Plan oder höher
+- Admin-Zugriff auf Microsoft Entra ID und OneUptime
+
+#### Schritt 1: SCIM-Konfiguration von OneUptime erhalten
+
+1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
+2. Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SCIM**
+3. Klicken Sie auf **SCIM-Konfiguration erstellen**
+4. Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token**
+
+#### Schritt 2: Enterprise-Anwendung in Microsoft Entra ID erstellen
+
+1. Melden Sie sich beim [Microsoft Entra Admin Center](https://entra.microsoft.com) an
+2. Navigieren Sie zu **Identität** > **Anwendungen** > **Unternehmensanwendungen**
+3. Klicken Sie auf **+ Neue Anwendung**
+4. Klicken Sie auf **+ Eigene Anwendung erstellen**
+5. Geben Sie einen Namen ein (z. B. "OneUptime")
+6. Wählen Sie **Beliebige andere Anwendung integrieren, die Sie nicht in der Galerie finden**
+7. Klicken Sie auf **Erstellen**
+
+#### Schritt 3: SCIM-Bereitstellung konfigurieren
+
+1. Gehen Sie in Ihrer OneUptime-Unternehmensanwendung zu **Bereitstellung**
+2. Setzen Sie den **Bereitstellungsmodus** auf **Automatisch**
+3. Unter **Admin-Anmeldeinformationen**:
+   - **Mandanten-URL**: SCIM-Basis-URL aus OneUptime eingeben
+   - **Geheimes Token**: Bearer-Token aus OneUptime eingeben
+4. Klicken Sie auf **Verbindung testen**
+5. Klicken Sie auf **Speichern**
+
+### Okta
+
+#### Voraussetzungen
+
+- Okta-Mandant mit Bereitstellungsfähigkeiten
+- OneUptime-Konto mit Scale-Plan oder höher
+- Admin-Zugriff auf Okta und OneUptime
+
+#### Schritt 4: SCIM-Verbindung konfigurieren
+
+1. Gehen Sie zum Tab **Bereitstellung**
+2. Klicken Sie auf **Integration** in der linken Seitenleiste
+3. Klicken Sie auf **API-Integration konfigurieren**
+4. Aktivieren Sie **API-Integration aktivieren**
+5. Konfigurieren Sie:
+   - **SCIM-Connector-Basis-URL**: SCIM-Basis-URL aus OneUptime eingeben
+   - **Eindeutiges Bezeichnerfeld für Benutzer**: `userName` eingeben
+   - **Authentifizierungsmodus**: **HTTP-Header** auswählen
+   - **Autorisierung**: `Bearer {your-bearer-token}` eingeben
+6. Klicken Sie auf **API-Anmeldeinformationen testen**
+7. Klicken Sie auf **Speichern**
+
+## Häufig gestellte Fragen
+
+### Was passiert, wenn ein Benutzer entbereitgestellt wird?
+
+Wenn ein Benutzer entbereitgestellt wird (entweder durch DELETE-Anfrage oder durch Setzen von `active: false`), wird er aus den in den SCIM-Einstellungen konfigurierten Teams entfernt. Das Benutzerkonto selbst bleibt in OneUptime erhalten, verliert aber den Zugriff auf das Projekt.
+
+### Kann ich SCIM ohne SSO verwenden?
+
+Ja, SCIM und SSO sind unabhängige Funktionen. Sie können SCIM für die Benutzerbereitstellung verwenden und gleichzeitig Benutzern erlauben, sich mit ihren OneUptime-Passwörtern oder einer anderen Authentifizierungsmethode anzumelden.
+
+### Wie gehe ich mit Benutzern um, die bereits in OneUptime existieren?
+
+Wenn SCIM versucht, einen Benutzer zu erstellen, der bereits existiert (Abgleich per E-Mail), erstellt OneUptime keinen doppelten Benutzer. Was danach passiert, hängt davon ab, wo OneUptime läuft:
+
+- **Selbst gehostet**: Der vorhandene Benutzer wird sofort den konfigurierten Standard-Teams hinzugefügt (bzw. mit Push-Gruppen dem Team der Gruppe).
+- **OneUptime Cloud**: Ein OneUptime-Konto gehört der Person, nicht einem bestimmten Projekt. Deshalb kann SCIM niemanden eigenmächtig zum Mitglied Ihres Projekts machen. Der vorhandene Benutzer wird stattdessen zu den Teams **eingeladen** und erhält die übliche Einladungs-E-Mail. Er tritt bei, sobald er die Einladungen unter **Projekteinladungen** in OneUptime annimmt oder das Single Sign-On (SSO) Ihres Projekts über die E-Mail bestätigt, die OneUptime bei seiner ersten SSO-Anmeldung sendet. Bis dahin wird er als ausstehend geführt. Dasselbe gilt, wenn eine Gruppe einen vorhandenen Benutzer hinzufügt, der noch kein Mitglied Ihres Projekts ist.
+
+Benutzer, die SCIM selbst erstellt, Benutzer, die Ihrem Projekt bereits beigetreten sind, und Benutzer, die das SSO Ihres Projekts bestätigt haben, werden in beiden Fällen sofort hinzugefügt.
+
+### Kann SCIM die E-Mail-Adresse oder den Namen eines Benutzers ändern?
+
+Mit der E-Mail-Adresse eines OneUptime-Kontos meldet sich die Person bei jedem Projekt an, dem sie angehört, und an diese Adresse gehen ihre Links zum Zurücksetzen des Passworts. Daher gilt:
+
+- **OneUptime Cloud**: SCIM ändert niemals eine E-Mail-Adresse. Eine Anfrage, die eine ändern würde, wird mit einem SCIM-Fehler `400` vom Typ `mutability` abgelehnt, und nichts aus dieser Anfrage wird übernommen; Ihr Identity Provider zeigt den Grund an. Bitten Sie den Benutzer, seine Adresse selbst in seinem OneUptime-Profil zu ändern. Eine Anfrage, die die Adresse wiederholt, die das Konto bereits hat, ist keine Änderung und ist erfolgreich.
+- **Selbst gehostet**: SCIM ändert die E-Mail-Adresse nur bei einem Benutzer, der diesem Projekt beigetreten ist, keinem anderen Projekt angehört und kein OneUptime-Administrator ist. Jede andere Änderung wird auf dieselbe Weise abgelehnt.
+
+Für Namen gilt in beiden Fällen dieselbe Regel: SCIM aktualisiert den Namen nur bei einem Benutzer, der diesem Projekt beigetreten ist, keinem anderen Projekt angehört und kein OneUptime-Administrator ist. Bei allen anderen bleibt der Name unverändert, und der Rest der Anfrage ist trotzdem erfolgreich.
+
+### Was ist der Unterschied zwischen Standard-Teams und Push-Gruppen?
+
+- **Standard-Teams**: Alle über SCIM bereitgestellten Benutzer werden denselben vordefinierten Teams hinzugefügt
+- **Push-Gruppen**: Die Teammitgliedschaft wird von Ihrem Identity Provider verwaltet, sodass verschiedene Benutzer basierend auf der IdP-Gruppenmitgliedschaft in verschiedenen Teams sein können

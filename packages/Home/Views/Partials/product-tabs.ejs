@@ -1,0 +1,1235 @@
+<div class="relative overflow-hidden bg-white pt-32 pb-32">
+    <div class="max-w-3xl1 px-6">
+        <p class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">OneUptime is 10+ products combined
+            into one.</p>
+        <p class="mt-5 text-xl text-gray-500 sm:text-center mb-12">Everything from monitoring, status pages,
+            incident management, on-call schedules, logs, metrics, traces, and more!</p>
+    </div>
+
+    <div>
+        <div class="sm:hidden px-6">
+            <label for="location" class="block text-sm font-medium leading-6 text-gray-900">Select Product</label>
+            <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-gray-600 sm:text-sm sm:leading-6">
+                <option value="status-pages" selected>Status Pages</option>
+                <option value="monitoring">Monitoring</option>
+                <option value="incidents">Incidents</option>
+                <option value="on-call">On Call</option>
+                <option value="logs">Logs</option>
+                <option value="metrics">Metrics</option>
+                <option value="traces">Traces</option>
+                <option value="exceptions">Exceptions</option>
+                <option value="workflows">Workflows</option>
+                <option value="dashboards">Dashboards</option>
+                <option value="kubernetes">Kubernetes</option>
+                <option value="profiles">Profiles</option>
+                <option value="ai-agent">AI</option>
+                <option value="scheduled-maintenance">Maintenance</option>
+            </select>
+          </div>
+
+        <div class="max-sm:hidden sm:block max-w-5xl mx-auto px-6">
+            <nav aria-label="Product feature tabs" role="tablist">
+                <!-- Reliability & Response -->
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 text-center">Reliability & Response</p>
+                    <div class="flex justify-center flex-wrap gap-x-4 gap-y-3">
+                        <!-- Status Pages -->
+                        <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages" class="tab-status-pages-button tab-1-button cursor-pointer bg-gray-100 text-gray-900 shadow-sm ring-1 ring-gray-200 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="0" aria-label="Status Pages"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-200 mr-2"><svg class="icon-tab-1 text-emerald-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><span>Status Pages</span></button>
+                        <!-- Monitoring -->
+                        <button type="button" onclick="showTab('monitoring')" id="tab-monitoring" role="tab" aria-selected="false" aria-controls="panel-monitoring" class="tab-monitoring-button tab-2-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Monitoring"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-200 mr-2"><svg class="icon-tab-2 text-blue-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg></span><span>Monitoring</span></button>
+                        <!-- Incidents -->
+                        <button type="button" onclick="showTab('incidents')" id="tab-incidents" role="tab" aria-selected="false" aria-controls="panel-incidents" class="tab-incidents-button tab-3-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Incidents"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2"><svg xmlns="http://www.w3.org/2000/svg" class="icon-tab-3 text-rose-600 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></span><span>Incidents</span></button>
+                        <!-- On-Call -->
+                        <button type="button" onclick="showTab('on-call')" id="tab-on-call" role="tab" aria-selected="false" aria-controls="panel-on-call" class="tab-on-call-button tab-4-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="On-Call"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-stone-100 ring-1 ring-stone-200 mr-2"><svg class="icon-tab-4 text-stone-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg></span><span>On-Call</span></button>
+                        <!-- Maintenance -->
+                        <button type="button" onclick="showTab('scheduled-maintenance')" id="tab-scheduled-maintenance" role="tab" aria-selected="false" aria-controls="panel-scheduled-maintenance" class="tab-scheduled-maintenance-button tab-14-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Maintenance"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-50 ring-1 ring-teal-200 mr-2"><svg class="icon-tab-14 text-teal-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg></span><span>Maintenance</span></button>
+                    </div>
+                </div>
+
+                <!-- Observability -->
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 text-center">Observability</p>
+                    <div class="flex justify-center flex-wrap gap-x-4 gap-y-3">
+                        <!-- Logs -->
+                        <button type="button" onclick="showTab('logs')" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs" class="tab-logs-button tab-5-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Logs"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 ring-1 ring-amber-200 mr-2"><svg class="icon-tab-5 text-amber-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" /></svg></span><span>Logs</span></button>
+                        <!-- Metrics -->
+                        <button type="button" onclick="showTab('metrics')" id="tab-metrics" role="tab" aria-selected="false" aria-controls="panel-metrics" class="tab-metrics-button tab-6-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Metrics"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 ring-1 ring-purple-200 mr-2"><svg class="icon-tab-6 text-purple-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7" /><path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20" /></svg></span><span>Metrics</span></button>
+                        <!-- Traces -->
+                        <button type="button" onclick="showTab('traces')" id="tab-traces" role="tab" aria-selected="false" aria-controls="panel-traces" class="tab-traces-button tab-7-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Traces"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-yellow-50 ring-1 ring-yellow-200 mr-2"><svg class="icon-tab-7 text-yellow-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><rect x="2" y="3" width="20" height="4" rx="0.5" /><rect x="2" y="10" width="10" height="4" rx="0.5" /><rect x="2" y="17" width="5" height="4" rx="0.5" /><rect x="17" y="17" width="5" height="4" rx="0.5" /></svg></span><span>Traces</span></button>
+                        <!-- Exceptions -->
+                        <button type="button" onclick="showTab('exceptions')" id="tab-exceptions" role="tab" aria-selected="false" aria-controls="panel-exceptions" class="tab-exceptions-button tab-8-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Exceptions"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-orange-50 ring-1 ring-orange-200 mr-2"><svg class="icon-tab-8 text-orange-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><ellipse cx="12" cy="14" rx="5" ry="6" /><path stroke-linecap="round" d="M9 8.5C9 6.5 10.5 5 12 5s3 1.5 3 3.5M4 11l3 1m10-1 3 1M4 17l3-1m10 1 3-1M12 8v12M9 14h6" /></svg></span><span>Exceptions</span></button>
+                        <!-- Kubernetes -->
+                        <button type="button" onclick="showTab('kubernetes')" id="tab-kubernetes" role="tab" aria-selected="false" aria-controls="panel-kubernetes" class="tab-kubernetes-button tab-11-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Kubernetes"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-cyan-50 ring-1 ring-cyan-200 mr-2"><svg class="icon-tab-11 text-cyan-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><polygon stroke-linecap="round" stroke-linejoin="round" points="12,2.5 19.43,6.08 21.26,14.11 15.95,20.64 8.05,20.56 2.74,14.27 4.57,6.22"></polygon><circle cx="12" cy="12" r="2.2" stroke-linecap="round" stroke-linejoin="round"></circle><line x1="12" y1="9.8" x2="12" y2="4" stroke-linecap="round"></line></svg></span><span>Kubernetes</span></button>
+                        <!-- Profiles -->
+                        <button type="button" onclick="showTab('profiles')" id="tab-profiles" role="tab" aria-selected="false" aria-controls="panel-profiles" class="tab-profiles-button tab-12-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Profiles"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2"><svg class="icon-tab-12 text-rose-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z"></path></svg></span><span>Profiles</span></button>
+                    </div>
+                </div>
+
+                <!-- Automation & Intelligence -->
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 text-center">Automation & Intelligence</p>
+                    <div class="flex justify-center flex-wrap gap-x-4 gap-y-3">
+                        <!-- Workflows -->
+                        <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows" class="tab-workflows-button tab-9-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Workflows"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-sky-50 ring-1 ring-sky-200 mr-2"><svg class="icon-tab-9 text-sky-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="transform: rotate(180deg)"><rect x="3" y="3" width="6" height="4" rx="1" stroke-width="1.5" /><rect x="15" y="3" width="6" height="4" rx="1" stroke-width="1.5" /><rect x="9" y="17" width="6" height="4" rx="1" stroke-width="1.5" /><path stroke-linecap="round" d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5" /></svg></span><span>Workflows</span></button>
+                        <!-- Dashboards -->
+                        <button type="button" onclick="showTab('dashboards')" id="tab-dashboards" role="tab" aria-selected="false" aria-controls="panel-dashboards" class="tab-dashboards-button tab-10-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Dashboards"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 ring-1 ring-indigo-200 mr-2"><svg class="icon-tab-10 text-indigo-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg></span><span>Dashboards</span></button>
+                        <!-- AI Agent -->
+                        <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent" class="tab-ai-agent-button tab-13-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="AI"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2"><svg class="icon-tab-13 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg></span><span>AI</span></button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto mt-10 mb-0 border-t border-gray-200"></div>
+
+    <div class="mt-10 tab-1">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Turn downtime into trust. Keep customers informed, not frustrated.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Your brand, your domain, your colors</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Automatic or manual status updates from monitors</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Private pages for internal teams</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">90-day uptime history at a glance</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Subscriber notifications via email, SMS, RSS</span>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/status-page"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-emerald-600 font-medium">Reduce support tickets by 40% during incidents</p>
+                </div>
+            </div>
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/status-pages.png" alt="OneUptime status page showing service health and incident updates">
+                    <%- include('./watch-demo.ejs', {videoId: "F6BNipy5VCk" }) -%>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mt-10 tab-2" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Be the first to know when something breaks. Not your customers.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Check every 10 seconds from 100+ global locations</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Website, API, server, database, containers and more</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Simulate real user flows with synthetic tests</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Get alerted before SSL certificates expire</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Smart alerts that reduce noise by 90%</span>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/uptime-monitoring"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-blue-600 font-medium">Detect outages in under 30 seconds, anywhere in the world</p>
+                </div>
+            </div>
+
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/monitor.png" alt="OneUptime monitoring dashboard showing website and server uptime status">
+                    <%- include('./watch-demo.ejs', {videoId: "_fQ_F4EisBQ" }) -%>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-10 tab-3" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+
+
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">From chaos to calm. Manage incidents without the panic.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Declare incidents directly from Slack or Teams</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-assign the right people based on services</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Timeline captures every action automatically</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">One-click status page updates</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Built-in postmortem templates that teams actually use</span>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/incident-management"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-rose-600 font-medium">Cut mean time to resolution (MTTR) by 50%</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/incidents.png" alt="OneUptime incident management dashboard showing active incidents and timelines">
+                    <%- include('./watch-demo.ejs', {videoId: "_fQ_F4EisBQ" }) -%>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mt-10 tab-4" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+
+
+
+
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">On-call doesn't have to mean burnout. Fair schedules, fewer interruptions.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Phone calls that actually wake you up at 3am</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Escalate to backup if no response in 5 minutes</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Weekly, daily, or custom rotation schedules</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Override schedules for vacations instantly</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">See who's on-call right now, always</span>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/on-call"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-stone-600 font-medium">Never miss a critical alert. Redundant delivery across email, SMS, voice, push, and chat, with escalation if nobody acknowledges.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/on-call-policies.png" alt="OneUptime on-call scheduling interface with escalation policies">
+                    <%- include('./watch-demo.ejs', {videoId: "HzhKmCryYdc" }) -%>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="mt-10 tab-5" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">All your logs in one place. Find the needle in the haystack, fast.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Search terabytes in milliseconds</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Tail logs in real-time as they happen</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Alert when error patterns spike</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Jump from log to trace to fix issues faster</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Ingest from Docker, Kubernetes, apps, anything</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/logs-management"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-amber-600 font-medium">10x cheaper than Splunk. Simple $0.10/GB telemetry &ndash; no surprises.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/logs.png" alt="OneUptime log management dashboard showing centralized logging">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Metrics Tab Panel -->
+    <div class="mt-10 tab-6" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">See exactly how your systems perform. Spot problems before they escalate.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">CPU, memory, disk, network - all in one view</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Track custom business metrics alongside infra</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Alert on thresholds or anomalies</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Compare performance across deployments</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with Prometheus, StatsD, OpenTelemetry</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/metrics"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-purple-600 font-medium">Keep 13 months of history. No data retention limits.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/metrics.png" alt="OneUptime metrics dashboard displaying application and infrastructure metrics">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traces Tab Panel -->
+    <div class="mt-10 tab-7" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Why is this request slow? Follow it across every service to find out.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">See every hop from frontend to database</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Pinpoint the slow service in seconds</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-discover service dependencies</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Compare traces: before vs after deploy</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Link traces to logs and errors automatically</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/traces"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-yellow-600 font-medium">Debug distributed systems like they're monoliths</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/traces.png" alt="OneUptime traces dashboard showing distributed request tracing">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exceptions Tab Panel -->
+    <div class="mt-10 tab-8" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Catch bugs before users report them. Fix them before they spread.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Stack traces with source maps and context</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Group similar errors - no duplicate noise</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">See which deploy introduced the bug</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Get notified only for new or regressed issues</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">AI suggests fixes - review and merge</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/exceptions"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-orange-600 font-medium">Ship with confidence. Know every error before users do.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/exceptions.png" alt="OneUptime exceptions dashboard showing error tracking and debugging">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflows Tab Panel -->
+    <div class="mt-10 tab-9" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+
+
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Stop doing the same thing twice. Automate your runbooks and responses.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Drag-and-drop - no code required</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Trigger on alerts, schedules, or webhooks</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-remediate common issues</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Connect Slack, Jira, GitHub, and more</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Run custom scripts when you need more power</span>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/workflows"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-sky-600 font-medium">Turn 30-minute runbooks into 30-second automations</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/workflow-builder.png" alt="OneUptime workflow automation builder for creating custom incident response workflows">
+                    <%- include('./watch-demo.ejs', {videoId: "z-b7_KQcUDY" }) -%>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Dashboards Tab Panel -->
+    <div class="mt-10 tab-10" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Your data, your way. Build dashboards that tell the story you need.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Mix logs, metrics, traces in one view</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Updates in real-time - no refresh needed</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Put it on the TV in your office</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Share with stakeholders via secure links</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Templates for common use cases</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/dashboards"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-indigo-600 font-medium">Build in minutes what used to take hours in Grafana</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/dashboards.png" alt="OneUptime dashboards showing custom data visualizations">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kubernetes Tab Panel -->
+    <div class="mt-10 tab-11" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Full visibility into your Kubernetes clusters. Know what's running and what's broken.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Monitor pods, deployments, and services</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Real-time cluster health and resource usage</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Alerts on pod crashes and restart loops</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with any Kubernetes distribution</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Integrated with logs, metrics, and traces</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 sm:mt-16 lg:mt-0 lg:col-span-2">
+                <div
+                    class="pl-4 -mr-48 sm:pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
+                    <img loading="lazy" class="w-full ring-1 ring-gray-300 rounded-xl shadow-xl lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none"
+                        src="/img/kubernetes.png"
+                        alt="Kubernetes monitoring dashboard screenshot">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profiles Tab Panel -->
+    <div class="mt-10 tab-12" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Find performance bottlenecks with CPU and memory profiling. See exactly where time is spent.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">CPU and memory flamegraphs</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Identify hot code paths and memory leaks</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Continuous profiling in production</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">OpenTelemetry native profiling support</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Compare profiles across deployments</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 sm:mt-16 lg:mt-0 lg:col-span-2">
+                <div
+                    class="pl-4 -mr-48 sm:pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
+                    <img loading="lazy" class="w-full ring-1 ring-gray-300 rounded-xl shadow-xl lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none"
+                        src="/img/profiles.png"
+                        alt="Profiles flamegraph dashboard screenshot">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Agent Tab Panel -->
+    <div class="mt-10 tab-13" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Let OneUptime AI investigate while you sleep. Wake up to root causes and one-click fix PRs, not pages.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Sees an error, reads your code, opens a PR</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Finds N+1 queries and slow spans in traces and optimizes them</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Explains root cause in plain English</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">You review and merge - always in control</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with your GitHub repos via the GitHub App</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/ai-agent"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-violet-600 font-medium">Your AI teammate that never sleeps. BYOLLM supported.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/ai-agent.png" alt="OneUptime AI dashboard showing intelligent incident resolution and automation">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-10 tab-14" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Plan downtime before it plans itself. Keep users informed, not surprised.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Schedule maintenance windows with start and end times</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-notify subscribers before maintenance begins</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Show maintenance events on your status page automatically</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Suppress alerts during planned maintenance windows</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Set up recurring maintenance for regular update windows</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/scheduled-maintenance"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-teal-600 font-medium">Planned downtime that builds trust instead of breaking it.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/scheduled-maintenance.png" alt="OneUptime Scheduled Maintenance dashboard showing maintenance windows and notifications">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+    // Semantic tab slugs in desired order
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','kubernetes','profiles','ai-agent','scheduled-maintenance'];
+    let currentActiveTab = 'status-pages';
+
+
+    function normalize(tab){
+        // allow old numeric references for backward compatibility
+        if(typeof tab === 'number' || /^\d+$/.test(tab)){ return TAB_ORDER[Number(tab)-1] || 'status-pages'; }
+        return tab;
+    }
+
+    function hideTab(tab) {
+        tab = normalize(tab);
+        const panel = document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}`) || document.querySelector(`.tab-${tab}`);
+        if (panel) { panel.style.display = 'none'; panel.setAttribute('aria-hidden','true'); }
+
+        const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}-button`);
+        if (button) {
+            button.classList.remove('bg-gray-100', 'text-gray-900', 'shadow-sm', 'ring-1', 'ring-gray-200');
+            button.classList.add('text-gray-500', 'hover:bg-gray-100', 'hover:text-gray-700');
+            button.setAttribute('aria-selected','false');
+            button.setAttribute('tabindex','-1');
+        }
+    }
+
+    function showTab(tab) {
+        tab = normalize(tab);
+        if (tab === currentActiveTab) { return; }
+        hideTab(currentActiveTab);
+
+        const numericIndex = TAB_ORDER.indexOf(tab)+1;
+        const panel = document.querySelector(`.tab-${numericIndex}`) || document.querySelector(`.tab-${tab}`);
+        if (panel) { panel.style.display = 'block'; panel.setAttribute('aria-hidden','false'); }
+
+        const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${numericIndex}-button`);
+        if (button) {
+            button.classList.remove('text-gray-500', 'hover:bg-gray-100', 'hover:text-gray-700');
+            button.classList.add('bg-gray-100', 'text-gray-900', 'shadow-sm', 'ring-1', 'ring-gray-200');
+            button.setAttribute('aria-selected','true');
+            button.setAttribute('tabindex','0');
+            button.focus();
+        }
+
+        currentActiveTab = tab;
+        if (history.replaceState) { history.replaceState(null, '', `#tab-${tab}`); }
+    }
+
+    // Initialize tabs accessibility + allow keyboard navigation (arrow keys)
+    document.addEventListener('DOMContentLoaded', () => {
+        // Mark all panels with role="tabpanel" and associate with buttons
+        TAB_ORDER.forEach((slug, idx) => {
+            const panel = document.querySelector(`.tab-${idx+1}`) || document.querySelector(`.tab-${slug}`);
+            if (panel) {
+                panel.setAttribute('role','tabpanel');
+                panel.setAttribute('id',`panel-${slug}`);
+                panel.setAttribute('aria-labelledby',`tab-${slug}`);
+                if (slug !== currentActiveTab) { panel.style.display='none'; panel.setAttribute('aria-hidden','true'); }
+                else { panel.setAttribute('aria-hidden','false'); }
+            }
+        });
+
+        // Support deep linking via hash like #tab-apm or legacy #tab-6
+        const hash = window.location.hash;
+        if (hash && /^#tab-/.test(hash)) {
+            const raw = hash.replace('#tab-','');
+            showTab(raw);
+        }
+
+        // Keyboard navigation
+    const tabButtons = Array.from(document.querySelectorAll('[role="tab"]'));
+        tabButtons.forEach(btn => {
+            btn.addEventListener('keydown', e => {
+                const idx = tabButtons.indexOf(e.currentTarget);
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    const next = tabButtons[(idx+1)%tabButtons.length];
+            const ident = next.id.replace('tab-',''); showTab(ident);
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    const prev = tabButtons[(idx-1+tabButtons.length)%tabButtons.length];
+            const ident = prev.id.replace('tab-',''); showTab(ident);
+                }
+            });
+        });
+    });
+
+</script>
+
+

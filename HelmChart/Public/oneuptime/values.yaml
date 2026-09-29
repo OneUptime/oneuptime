@@ -22,10 +22,24 @@ image:
   pullPolicy: Always
   tag: release
 
-  ## Type of OneUptime image to use.
+  ## Which edition of the OneUptime images to run.
   ## Possible values: community-edition, enterprise-edition
-  ## Enterprise edition images are hardened for more security and compliance, but you need a valid license to use them.
-  ## Please contact sales@oneuptime.com for more information.
+  ## - community-edition: the Apache-2.0 images (tags as given in image.tag).
+  ## - enterprise-edition: the Enterprise Edition images, the same tags with an
+  ##   "enterprise-" prefix. They add the enterprise features (SSO/SAML, OIDC,
+  ##   SCIM, audit logs, team compliance, instance health dashboards), licensed
+  ##   under the OneUptime Enterprise License. Production use of the Enterprise
+  ##   Edition requires a subscription under that license. An install with no
+  ##   license, or one holding a license whose expiry was never recorded, runs
+  ##   as a 14-day trial, which is for evaluation. After the trial (or 30 days
+  ##   after a license expires), until a license is activated, SSO,
+  ##   OIDC, SCIM and audit logging stop: SSO sign-in is refused and "Require
+  ##   SSO" is no longer enforced (users sign in with their password), SCIM
+  ##   requests are refused and audit logging stops recording. Enterprise
+  ##   configuration becomes read-only and the enterprise admin dashboards are
+  ##   locked too. Everything resumes, without a restart, as soon as a license
+  ##   is activated, and core monitoring is never affected.
+  ## Please contact sales@oneuptime.com for a license.
   type: community-edition
   
   restartPolicy: Always
@@ -1047,9 +1061,9 @@ captcha:
 # OneUptime refuses to send workflow requests, project webhooks, on-call user
 # webhooks and sandboxed HTTP calls to targets that resolve into private,
 # loopback or link-local ranges. Both settings below relax that for self-hosted
-# installs and both are off by default. Neither grants anything on its own:
-# each project must ALSO enable "Allow Private Network Webhooks" in
-# Settings -> Project. Status page subscriber webhooks are never covered.
+# installs and both are off by default. They are instance-wide and the only
+# gate: there is no per-project setting, so whatever they allow applies to
+# every project. Status page subscriber webhooks are never covered.
 webhooks:
   # Permit RFC-1918, CGNAT, IPv6 unique-local and site-local targets. Loopback,
   # link-local (169.254.169.254) and multicast stay blocked.
@@ -1058,6 +1072,27 @@ webhooks:
   # "mattermost.internal,*.svc.cluster.local,10.20.0.0/16". Never list
   # 169.254.169.254 or a range containing it.
   privateNetworkAllowlist: ""
+
+# Outbound connection egress policy, for everything that is not a webhook:
+# external data sources (security event connections, threat intel feeds), LLM
+# providers, SMTP servers (project settings and the workflow Email component),
+# SMTP and workflow OAuth token URLs, OIDC discovery, status page / dashboard
+# domain verification and Runbook HTTP steps.
+#
+# Loopback, link-local (169.254.169.254) and reserved ranges are refused for
+# these in every deployment. The private tier (RFC-1918, CGNAT, IPv6
+# unique-local) is allowed on a self-hosted install, because the servers these
+# connect to usually live there. Rendered as DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES.
+outboundConnections:
+  # Refuse the private tier for these connections too — for example when
+  # projects on this instance belong to people who should not reach your
+  # internal network. Always on when billing.enabled is true, whatever this
+  # says. Does not change which targets webhooks (above) or
+  # probes.<key>.allowPrivateNetworkMonitors allow. With it on, a refused host
+  # name (webhooks and workflow requests included) is reported as "... could
+  # not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG logs
+  # the reason.
+  blockPrivateNetwork: false
 
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
@@ -1206,13 +1241,16 @@ dashboard:
 # browser-worker boundaries, but not the additional per-execution UID boundary.
 #
 # Kubernetes RuntimeDefault is available without provisioning files on every
-# node, so it is the operational default. Some runtimes block the user-namespace
-# syscalls used by Chromium's OS sandbox in RuntimeDefault. To use the
-# Chromium sandbox, install a CRI/OCI-compatible profile derived from your
-# runtime default with `clone`, `setns`, and `unshare` enabled in the kubelet
-# seccomp directory on every Probe node, then override a probe with:
+# node, so it is the operational default. RuntimeDefault blocks the
+# user-namespace syscalls both browsers' OS sandboxes use; Firefox then falls
+# back to its seccomp-only sandbox and Chromium's must stay disabled. To use
+# the full sandboxes, install a CRI/OCI-compatible profile derived from your
+# runtime default with `clone`, `setns`, `unshare` AND `chroot` allowed in the
+# kubelet seccomp directory on every Probe node (both browsers chroot inside
+# the namespace they create; without `chroot` every Firefox and Chromium
+# launch crashes), then override a probe with:
 #
-# Do not install `Probe/seccomp_profile.json` verbatim in Kubernetes: that file
+# Do not install `packages/Probe/seccomp_profile.json` verbatim in Kubernetes: that file
 # uses Moby-specific `includes`/`excludes` fields for Docker Compose.
 #
 #   containerSecurityContext:
@@ -1245,6 +1283,9 @@ probes:
     enabled: true
     monitoringWorkers: 3
     monitorFetchLimit: 10
+    # Retries after the first attempt of a failed check, used when a monitor
+    # step sets no retry count of its own. 0 checks once; 3 checks up to four
+    # times. Unset uses 3.
     monitorRetryLimit: 3
     # How many NetworkDevice SNMP walks this probe runs at once. Unset uses
     # the probe's own default (25). Raise it together with the server's
@@ -1275,18 +1316,27 @@ probes:
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
-    # Private-network opt-in for API, Website, External Status Page and Custom
-    # JavaScript Code monitors on a private probe. Chart-managed probes
-    # auto-register as global probes, so they ignore this value and always
-    # enforce public-only egress. Turning this on for a separately deployed
-    # private probe still does NOT open loopback, link-local or cloud metadata.
+    # Let API, Website, External Status Page and Custom JavaScript Code monitors
+    # on this probe reach private network addresses (RFC-1918, CGNAT, IPv6
+    # unique-local), e.g. http://10.0.0.5/health. Honored on this chart probe.
+    # Chart probes auto-register as GLOBAL probes, so turning it on lets those
+    # monitors from EVERY project on this instance reach private addresses
+    # through this probe. Loopback, link-local and the cloud metadata endpoint
+    # stay blocked either way. Ignored, with a startup warning in the probe's
+    # log, when billing.enabled is true: global probes of a billing-enabled
+    # instance stay public-only, so deploy a private probe for internal targets.
     allowPrivateNetworkMonitors: false
     syntheticMonitorScriptTimeoutInMs: 60000
     # Maximum number of isolated browser worker processes started concurrently
     # by this Probe. Additional executions wait in a bounded FIFO queue.
     syntheticMonitorMaxConcurrency: 4
-    # Aggregate resident-memory ceiling for each short-lived synthetic worker
-    # and all of its browser descendants.
+    # Memory ceiling for each short-lived synthetic worker and all of its
+    # browser descendants together. A check is held to the memory its process
+    # tree actually holds, its proportional set size, which counts the pages
+    # the browser's processes share -- its code, and the buffers a renderer
+    # shares with the GPU process -- once rather than once per process. The
+    # probe can run up to syntheticMonitorMaxConcurrency checks at a time, so
+    # size the probe's memory for that many times this, plus the probe itself.
     syntheticMonitorMaxProcessTreeRssBytes: 1610612736
     # Maximum writable disk space for each short-lived synthetic execution,
     # including browser profiles, caches, downloads, IndexedDB, and OPFS.
@@ -1295,12 +1345,14 @@ probes:
     # watchdog is the primary limit; this emptyDir ceiling contains failures
     # across all concurrent executions and other temporary Probe data.
     syntheticMonitorTempStorageSizeLimit: 2Gi
-    # Size of /dev/shm, which Chromium uses for shared memory between its
-    # browser, renderer and network processes. A container gets 64Mi by
-    # default -- not enough for syntheticMonitorMaxConcurrency browsers at a
-    # 1920x1080 viewport, and running out does not produce a clean error: the
-    # browser starts, then its first navigation never completes. This is
-    # memory-backed, so it counts against the pod's memory limit.
+    # Size of the memory-backed /dev/shm mounted into the probe (a container
+    # gets 64Mi by default). The synthetic runtime's browsers do not use it:
+    # Playwright starts Chromium with --disable-dev-shm-usage, so Chromium
+    # keeps its shared memory in the per-execution run directory under /tmp,
+    # and Firefox uses memfd. Synthetic checks write their browser state to
+    # that /tmp, so it is /tmp that needs storage which acknowledges writes
+    # promptly. This is memory-backed, so it counts against the pod's memory
+    # limit.
     syntheticMonitorSharedMemorySizeLimit: 512Mi
     # RuntimeDefault is available on every conforming cluster but commonly
     # blocks the user-namespace creation Chromium's OS sandbox needs. Leave the
@@ -1392,6 +1444,7 @@ probes:
 #   key:
 #   replicaCount: 1
 #   automountServiceAccountToken: false
+#   allowPrivateNetworkMonitors: false
 #   ports:
 #     http: 3874
 #   syntheticMonitorScriptTimeoutInMs: 60000
@@ -1478,6 +1531,11 @@ openTelemetryExporter:
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
   headers:
+  # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
+  # pods group under this cluster in Topology. Pods always report their pod,
+  # namespace, node and deployment names; the cluster name is not visible from
+  # inside a pod, so it is only reported when set here.
+  kubernetesClusterName:
 
 # Browser RUM uses a separate, deliberately public credential. Only use a
 # OneUptime Browser ingestion key with an origin allowlist; never put a Server

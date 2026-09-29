@@ -1,0 +1,225 @@
+import PageMap from "../PageMap";
+import { BuildBreadcrumbLinksByTitles } from "./Helper";
+import Dictionary from "Common/Types/Dictionary";
+import Link from "Common/Types/Link";
+
+export function getScheduleMaintenanceBreadcrumbs(
+  path: string,
+): Array<Link> | undefined {
+  const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_EVENTS, [
+      "Project",
+      "Scheduled Maintenance Events",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "Ongoing Scheduled Maintenance",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      ["Project", "Scheduled Maintenance Events", "Slack Workspace Connection"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "New Scheduled Maintenance Event",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Status Timeline",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Private Notes",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+      "Public Notes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Custom Fields",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Settings",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+      "Delete",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Description",
+      ],
+    ),
+
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "Microsoft Teams Workspace Connection",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Notification Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "AI Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Runbooks",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Audit Logs",
+      ],
+    ),
+
+    // Scheduled Maintenance Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE,
+      ["Project", "Scheduled Maintenance", "Settings", "More Settings"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,
+      ["Project", "Scheduled Maintenance", "Settings", "State"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES,
+      ["Project", "Scheduled Maintenance", "Settings", "Templates"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES,
+      ["Project", "Scheduled Maintenance", "Settings", "Note Templates"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Note Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
+      ["Project", "Scheduled Maintenance", "Settings", "Custom Fields"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
+      ["Project", "Scheduled Maintenance", "Settings", "Measurements"],
+    ),
+
+    /*
+     * Rules is its own side-menu section, not a group of lines under Settings,
+     * so the trail has to name the section the page actually lives in —
+     * otherwise the header says "Settings" while the menu highlights "Rules".
+     */
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Owner Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Scheduled Maintenance", "Rules", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Runbook Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Label Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Scheduled Maintenance", "Rules", "Label Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Reminder Rules"],
+    ),
+  };
+  return breadcrumpLinksMap[path];
+}

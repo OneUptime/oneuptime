@@ -1,0 +1,538 @@
+import { isProjectOnFreePlan } from "../../Utils/PayAsYouGo";
+import {
+  ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+  PRICING_PAGE_URL,
+  SESSION_REPLAY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_PRICE_RETENTION_IN_DAYS,
+  formatPriceInUSD,
+} from "Common/Types/Billing/PayAsYouGoPricing";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
+import IconProp from "Common/Types/Icon/IconProp";
+import URL from "Common/Types/API/URL";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import PaidUsageConsent from "./PaidUsageConsent";
+import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * Pay-as-you-go signposting for Free plan projects.
+ *
+ * Telemetry ingest and active monitors are metered: nothing about them is
+ * included in the Free plan, so a user who creates an ingestion key or a
+ * non-Manual monitor requires billing setup. The server enforces payment
+ * eligibility. These components explain prices, with acknowledgement required
+ * for bulk monitor creation. Everything here renders only when
+ * billing is on AND the project is on Free (see isProjectOnFreePlan, which fails
+ * closed).
+ */
+
+export const TELEMETRY_PRICE_PER_GB_TEXT: string = formatPriceInUSD(
+  TELEMETRY_PRICE_IN_USD_PER_GB,
+);
+
+export const SESSION_REPLAY_PRICE_PER_GB_TEXT: string = formatPriceInUSD(
+  SESSION_REPLAY_PRICE_IN_USD_PER_GB,
+);
+
+export const ACTIVE_MONITOR_PRICE_TEXT: string = formatPriceInUSD(
+  ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+);
+
+export const TELEMETRY_PRICE_SENTENCE: string = `${TELEMETRY_PRICE_PER_GB_TEXT} per GB ingested, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention`;
+
+/*
+ * Session replay rides on the same ingestion key and is metered at its own,
+ * much higher rate. Quoting only the telemetry rate for "what this key costs"
+ * would understate a replay-heavy bill twentyfold, so both numbers travel
+ * together everywhere the key's price is stated.
+ */
+export const SESSION_REPLAY_PRICE_SENTENCE: string = `${SESSION_REPLAY_PRICE_PER_GB_TEXT} per GB, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention`;
+
+export const TELEMETRY_RATES_SENTENCE: string = `Logs, traces, metrics, profiles and security events are billed at ${TELEMETRY_PRICE_SENTENCE}. Session replay recordings are billed at ${SESSION_REPLAY_PRICE_SENTENCE}.`;
+
+export const ACTIVE_MONITOR_PRICE_SENTENCE: string = `${ACTIVE_MONITOR_PRICE_TEXT} per monitor per month`;
+
+export const MONITOR_CONSENT_ERROR: string = `Please confirm you understand this monitor is billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month before creating it.`;
+
+interface PayAsYouGoCardProps {
+  cardTitle: string;
+  cardDescription: string;
+  featureName: string;
+  featureIcon: IconProp;
+  priceLabel: string;
+  priceText: string;
+  priceCaption: string;
+  summary: string;
+  points: Array<string>;
+  dataTestId: string;
+}
+
+function openPricingPage(): void {
+  window.open(PRICING_PAGE_URL, "_blank");
+}
+
+/*
+ * The page level card. Card's own description is hidden on mobile
+ * (`max-md:hidden md:block`), so every fact the user needs is repeated inside the
+ * body panel rather than living in the description alone.
+ */
+const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
+  props: PayAsYouGoCardProps,
+): ReactElement => {
+  return (
+    <Card
+      title={props.cardTitle}
+      description={props.cardDescription}
+      rightElement={
+        <Button
+          title="View pricing"
+          buttonStyle={ButtonStyleType.OUTLINE}
+          icon={IconProp.Billing}
+          onClick={openPricingPage}
+        />
+      }
+    >
+      <div data-testid={props.dataTestId}>
+        <div className="flex flex-col gap-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <Icon
+                icon={props.featureIcon}
+                size={SizeProp.Large}
+                thick={ThickProp.Thick}
+                className="h-6 w-6"
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-gray-900">
+                  {props.featureName}
+                </h3>
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                  <Icon
+                    icon={IconProp.CurrencyDollar}
+                    size={SizeProp.Small}
+                    thick={ThickProp.Thick}
+                    className="h-2.5 w-2.5"
+                  />
+                  Pay as you go
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-700">{props.summary}</p>
+              <ul className="mt-3 space-y-1.5">
+                {props.points.map((point: string) => {
+                  return (
+                    <li
+                      key={point}
+                      className="flex items-start gap-2 text-sm text-gray-600"
+                    >
+                      <Icon
+                        icon={IconProp.CheckCircle}
+                        size={SizeProp.Small}
+                        thick={ThickProp.Thick}
+                        className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500"
+                      />
+                      <span>{point}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+          <div className="flex-shrink-0 rounded-lg border border-gray-200 bg-white px-5 py-4 text-center shadow-sm">
+            <p className="text-xs font-semibold text-gray-500">
+              {props.priceLabel}
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900">
+              {props.priceText}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">{props.priceCaption}</p>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+/**
+ * Shown above the telemetry ingestion keys table. Renders nothing unless the
+ * project is on the Free plan of a billed deployment.
+ */
+export const TelemetryPayAsYouGoCard: FunctionComponent = (): ReactElement => {
+  if (!isProjectOnFreePlan()) {
+    return <></>;
+  }
+
+  return (
+    <PayAsYouGoCard
+      dataTestId="telemetry-pay-as-you-go-card"
+      cardTitle="Telemetry is a pay as you go feature"
+      cardDescription={`Your project is on the Free plan. Telemetry sent with an ingestion key is billed as you use it, from ${TELEMETRY_PRICE_SENTENCE}.`}
+      featureName="Telemetry ingest"
+      featureIcon={IconProp.ChartBar}
+      priceLabel="Starting at"
+      priceText={TELEMETRY_PRICE_PER_GB_TEXT}
+      priceCaption={`per GB ingested (${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention)`}
+      summary={`Telemetry is available on the Free plan, but it is not bundled into it. Data you send with an ingestion key is billed as you use it. ${TELEMETRY_RATES_SENTENCE}`}
+      points={[
+        "A payment method is required before you can send paid telemetry.",
+        "Stop sending data, or delete the key, and the charge stops.",
+        "Longer retention costs proportionally more per GB.",
+      ]}
+    />
+  );
+};
+
+/**
+ * Shown above the create monitor form. Renders nothing unless the project is
+ * on the Free plan of a billed deployment.
+ */
+export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
+  if (!isProjectOnFreePlan()) {
+    return <></>;
+  }
+
+  return (
+    <section
+      aria-label="Monitor pricing"
+      data-testid="monitor-pay-as-you-go-card"
+      className="mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Monitor pricing
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Your project is on the Free plan. Choose the monitoring that fits
+              your needs.
+            </p>
+          </div>
+          <a
+            href={PRICING_PAGE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            View pricing
+            <div aria-hidden="true">
+              <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
+            </div>
+          </a>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div aria-hidden="true" className="mr-1 text-indigo-600">
+                <Icon icon={IconProp.Bolt} className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Active monitoring
+              </h3>
+              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                Pay as you go
+              </span>
+            </div>
+            <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-3xl font-semibold tracking-tight text-gray-900">
+                {ACTIVE_MONITOR_PRICE_TEXT}
+              </span>
+              <span className="text-sm text-gray-600">
+                per monitor per month
+              </span>
+            </p>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Every monitor type except {MonitorType.Manual} is an active
+              monitor.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              No commitment. Delete a monitor to stop its charges.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div aria-hidden="true" className="mr-1 text-gray-500">
+                <Icon icon={IconProp.CheckCircle} className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Manual monitors
+              </h3>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                Always free
+              </span>
+            </div>
+            <p className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
+              Free
+            </p>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Unlimited monitors. No monitoring charges.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Update their status manually or through the API.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2 border-t border-gray-200 bg-gray-50/50 px-5 py-4 sm:px-6">
+        <div className="flex items-start gap-2 text-sm leading-5 text-gray-700">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex-shrink-0 text-gray-400"
+          >
+            <Icon icon={IconProp.Billing} className="h-4 w-4" />
+          </div>
+          <span>Add a payment method before creating an active monitor.</span>
+        </div>
+        <div className="flex items-start gap-2 text-xs leading-5 text-gray-500">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex-shrink-0 text-gray-400"
+          >
+            <Icon icon={IconProp.Info} className="h-4 w-4" />
+          </div>
+          <span>
+            Telemetry-based monitors also incur charges for the telemetry they
+            read.
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/*
+ * The compact notice that goes inside the create ingestion key modal, where
+ * there is no room for the full card and no page card behind it.
+ */
+const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
+  return (
+    <section
+      aria-label="Telemetry pricing"
+      data-testid="telemetry-pay-as-you-go-notice"
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+    >
+      <div className="border-b border-gray-100 bg-indigo-50/50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Telemetry pricing
+          </h3>
+          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+            Pay as you go
+          </span>
+        </div>
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          Telemetry is not included in your Free plan.
+        </p>
+      </div>
+
+      <div className="divide-y divide-gray-100 px-4">
+        <div
+          role="group"
+          aria-label="Telemetry"
+          className="flex items-start justify-between gap-4 py-3"
+        >
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold text-gray-900">Telemetry</h4>
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              Logs, traces, metrics, profiles and security events
+            </p>
+          </div>
+          <p className="flex-shrink-0 text-right">
+            <span className="block text-xl font-semibold tracking-tight text-gray-900">
+              {TELEMETRY_PRICE_PER_GB_TEXT}
+            </span>{" "}
+            <span className="block text-xs leading-5 text-gray-500">
+              per GB ingested
+            </span>
+          </p>
+        </div>
+
+        <div
+          role="group"
+          aria-label="Session replay"
+          className="flex items-start justify-between gap-4 py-3"
+        >
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Session replay
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              Session replay recordings
+            </p>
+          </div>
+          <p className="flex-shrink-0 text-right">
+            <span className="block text-xl font-semibold tracking-tight text-gray-900">
+              {SESSION_REPLAY_PRICE_PER_GB_TEXT}
+            </span>{" "}
+            <span className="block text-xs leading-5 text-gray-500">
+              per GB
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3 border-t border-gray-200 bg-gray-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-xs leading-5 text-gray-500">
+            {TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention for both.
+          </p>
+          <a
+            href={PRICING_PAGE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            View pricing
+            <div aria-hidden="true">
+              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+            </div>
+          </a>
+        </div>
+        <div className="flex items-start gap-2 text-xs leading-5 text-gray-600">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex-shrink-0 text-gray-400"
+          >
+            <Icon icon={IconProp.Billing} className="h-4 w-4" />
+          </div>
+          <p>
+            Add a payment method before creating a key or sending paid
+            telemetry.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/**
+ * The pay-as-you-go notice for the create ingestion key
+ * modal, as ModelForm fields. Empty unless the project is on the Free plan, so
+ * the modal is untouched for everybody else.
+ *
+ * The field uses `overrideField` with no `overrideFieldKey`, keeping the
+ * notice out of the model payload and miscDataProps.
+ */
+export function getTelemetryPayAsYouGoFormFields(): Array<
+  ModelField<TelemetryIngestionKey>
+> {
+  if (!isProjectOnFreePlan()) {
+    return [];
+  }
+
+  return [
+    {
+      overrideField: {
+        telemetryPayAsYouGoNotice: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      doNotShowWhenEditing: true,
+      title: "",
+      hideOptionalLabel: true,
+      spanFullRow: true,
+      fieldType: FormFieldSchemaType.CustomComponent,
+      required: false,
+      getCustomElement: (): ReactElement => {
+        return <TelemetryPayAsYouGoModalNotice />;
+      },
+    },
+  ];
+}
+
+/**
+ * Whether a batch of monitors about to be created needs a pay-as-you-go
+ * acknowledgement: Free plan, and at least one of them is billed.
+ *
+ * Bulk creation (monitor recommendations) can start charges for many monitors
+ * in one click, so it keeps an explicit acknowledgement of the batch total.
+ */
+export function isMonitorBatchConsentRequired(
+  monitorTypes: Array<MonitorType>,
+): boolean {
+  if (!isProjectOnFreePlan()) {
+    return false;
+  }
+
+  return monitorTypes.some((monitorType: MonitorType) => {
+    return MonitorTypeHelper.isBilledAsActiveMonitor(monitorType);
+  });
+}
+
+export function getMonitorBatchPriceSentence(
+  monitorTypes: Array<MonitorType>,
+): string {
+  const billedCount: number = monitorTypes.filter(
+    (monitorType: MonitorType) => {
+      return MonitorTypeHelper.isBilledAsActiveMonitor(monitorType);
+    },
+  ).length;
+
+  /*
+   * "up to", because the Free plan also caps how many active monitors a
+   * project may have - a batch that runs into the cap is rejected part way
+   * rather than billed in full.
+   */
+  return `Creating ${billedCount} ${
+    billedCount === 1 ? "monitor" : "monitors"
+  } adds up to ${formatPriceInUSD(
+    billedCount * ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+  )} per month to your bill (${ACTIVE_MONITOR_PRICE_SENTENCE}).`;
+}
+
+export interface MonitorBatchConsentProps {
+  monitorTypes: Array<MonitorType>;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}
+
+/**
+ * The consent checkbox for bulk monitor creation. Renders nothing when
+ * nothing in the batch is billed, or off the Free plan; callers
+ * pair it with isMonitorBatchConsentRequired to disable their submit button.
+ */
+export const MonitorBatchPayAsYouGoConsent: FunctionComponent<
+  MonitorBatchConsentProps
+> = (props: MonitorBatchConsentProps): ReactElement => {
+  if (!isMonitorBatchConsentRequired(props.monitorTypes)) {
+    return <></>;
+  }
+
+  return (
+    <div
+      className="rounded-lg border border-amber-200 bg-amber-50 p-4"
+      data-testid="monitor-batch-pay-as-you-go-notice"
+    >
+      <PaidUsageConsent
+        title={`I understand these monitors are billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month each`}
+        description={
+          <span>
+            {getMonitorBatchPriceSentence(props.monitorTypes)}{" "}
+            <Link
+              className="underline"
+              openInNewTab={true}
+              to={URL.fromString(PRICING_PAGE_URL)}
+            >
+              See pay as you go pricing
+            </Link>
+            .
+          </span>
+        }
+        value={props.value}
+        dataTestId="monitor-batch-pay-as-you-go-consent"
+        onChange={props.onChange}
+      />
+    </div>
+  );
+};

@@ -1,0 +1,888 @@
+import InstanceHealthLog, {
+  InstanceHealthLogStatus,
+} from "Common/Models/DatabaseModels/InstanceHealthLog";
+import User from "Common/Models/DatabaseModels/User";
+import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
+import MailService from "Common/Server/Services/MailService";
+import UserService from "Common/Server/Services/UserService";
+import CreateBy from "Common/Server/Types/Database/CreateBy";
+import {
+  buildClickhousePruningPlan,
+  ClickhouseDiskSnapshot,
+  ClickhousePartitionCandidate,
+  ClickhousePruningPlan,
+  dropClickhousePartition,
+  getClickhousePartitionReclaimState,
+  getClickhousePrunablePartitions,
+} from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
+import OneUptimeDate from "Common/Types/Date";
+import Email from "Common/Types/Email";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import ObjectID from "Common/Types/ObjectID";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+
+/*
+ * Billing is pinned for the edition tests below: CI's config.env sets
+ * BILLING_ENABLED=true, and this job must run the same either way.
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
+
+jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+  return {
+    __esModule: true,
+    default: jest.fn(),
+  };
+});
+
+jest.mock("Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity", () => {
+  return {
+    __esModule: true,
+    buildClickhousePruningPlan: jest.fn(),
+    dropClickhousePartition: jest.fn(),
+    getClickhouseDiskSnapshots: jest.fn(),
+    getClickhousePartitionReclaimState: jest.fn(),
+    getClickhousePrunablePartitions: jest.fn(),
+    getMaxClickhouseDiskUtilization: jest.fn(),
+  };
+});
+
+import {
+  ClickhouseCapacitySettings,
+  evaluateClickhouseCapacity,
+  evaluateNotification,
+  evaluatePruning,
+  runEvaluateClickhouseCapacityWithLock,
+} from "../../../../FeatureSet/Workers/Jobs/InstanceHealth/EvaluateClickhouseCapacity";
+import * as InstanceHealthLock from "../../../../FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthLock";
+import { ENTERPRISE_OWNED_JOB_NAMES } from "../../../../Utils/EnterpriseLoader";
+import {
+  createLicenseSnapshotWithStatus,
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import fs from "fs";
+import nodePath from "path";
+
+const now: Date = new Date("2026-07-13T12:00:00.000Z");
+const later: Date = new Date("2026-07-13T12:10:00.000Z");
+
+const disk: ClickhouseDiskSnapshot = {
+  shardNum: 1,
+  host: "clickhouse-1",
+  diskName: "default",
+  path: "/var/lib/clickhouse/",
+  freeInBytes: 15,
+  unreservedInBytes: 15,
+  totalInBytes: 100,
+  usedInBytes: 85,
+  utilizationPercent: 85,
+};
+
+const settings: ClickhouseCapacitySettings = {
+  notificationEnabled: true,
+  notificationThresholdPercent: 80,
+  pruningEnabled: true,
+  pruningThresholdPercent: 90,
+  pruningTargetPercent: 80,
+};
+
+function makeLog(data: {
+  status: InstanceHealthLogStatus;
+  nextCheckAt?: Date | undefined;
+  metadata?: InstanceHealthLog["metadata"];
+}): InstanceHealthLog {
+  const log: InstanceHealthLog = new InstanceHealthLog();
+  log.id = new ObjectID("capacity-log");
+  log.status = data.status;
+  if (data.nextCheckAt) {
+    log.nextCheckAt = data.nextCheckAt;
+  }
+  if (data.metadata) {
+    log.metadata = data.metadata;
+  }
+  return log;
+}
+
+const getCandidatesMock: jest.MockedFunction<
+  typeof getClickhousePrunablePartitions
+> = getClickhousePrunablePartitions as jest.MockedFunction<
+  typeof getClickhousePrunablePartitions
+>;
+const buildPlanMock: jest.MockedFunction<typeof buildClickhousePruningPlan> =
+  buildClickhousePruningPlan as jest.MockedFunction<
+    typeof buildClickhousePruningPlan
+  >;
+const dropPartitionMock: jest.MockedFunction<typeof dropClickhousePartition> =
+  dropClickhousePartition as jest.MockedFunction<
+    typeof dropClickhousePartition
+  >;
+const reclaimStateMock: jest.MockedFunction<
+  typeof getClickhousePartitionReclaimState
+> = getClickhousePartitionReclaimState as jest.MockedFunction<
+  typeof getClickhousePartitionReclaimState
+>;
+
+describe("EvaluateClickhouseCapacity", () => {
+  /*
+   * getSomeMinutesAfter is stubbed to a fixed date, so the only way to assert
+   * WHICH cadence a path chose is the argument it was called with.
+   */
+  let getSomeMinutesAfterSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    getCandidatesMock.mockReset();
+    buildPlanMock.mockReset();
+    dropPartitionMock.mockReset();
+    reclaimStateMock.mockReset();
+    reclaimStateMock.mockResolvedValue({
+      inactivePartCount: 0,
+      inactiveBytes: 0,
+    });
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(now);
+    getSomeMinutesAfterSpy = jest
+      .spyOn(OneUptimeDate, "getSomeMinutesAfter")
+      .mockReturnValue(later);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("persists a crossing before emailing eligible master admins", async () => {
+    const admin: User = new User();
+    admin.id = new ObjectID("master-admin");
+    admin.email = new Email("admin@example.com");
+
+    const createSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "create")
+      .mockImplementation(
+        async (
+          createBy: CreateBy<InstanceHealthLog>,
+        ): Promise<InstanceHealthLog> => {
+          createBy.data.id = new ObjectID("notification-log");
+          return createBy.data;
+        },
+      );
+    const userSpy: jest.SpyInstance = jest
+      .spyOn(UserService, "findBy")
+      .mockResolvedValue([admin] as never);
+    const mailSpy: jest.SpyInstance = jest
+      .spyOn(MailService, "sendMail")
+      .mockResolvedValue({
+        isSuccess: (): boolean => {
+          return true;
+        },
+      } as never);
+    jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluateNotification({
+      settings,
+      latestLog: null,
+      capacityPercent: 85,
+      worstDisk: disk,
+    });
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(createSpy.mock.calls[0]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.Running,
+    );
+    expect(userSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          isMasterAdmin: true,
+          isDisabled: false,
+          isBlocked: false,
+        },
+        select: {
+          _id: true,
+          email: true,
+        },
+      }),
+    );
+    expect(mailSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateType: EmailTemplateType.ClickhouseCapacityWarning,
+        vars: expect.objectContaining({
+          capacityUsed: "85.00% used",
+          notificationThreshold: "80%",
+          clickhouseHost: "clickhouse-1",
+          shard: "1",
+          disk: "default (/var/lib/clickhouse/)",
+          badgeType: "warning",
+        }),
+      }),
+      expect.objectContaining({
+        userId: admin.id,
+      }),
+    );
+    expect(createSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      mailSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("does not send a duplicate while a notification is active", async () => {
+    const createSpy: jest.SpyInstance = jest.spyOn(
+      InstanceHealthLogService,
+      "create",
+    );
+    const userSpy: jest.SpyInstance = jest.spyOn(UserService, "findBy");
+    const mailSpy: jest.SpyInstance = jest.spyOn(MailService, "sendMail");
+
+    await evaluateNotification({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.NotificationActive,
+      }),
+      capacityPercent: 85,
+      worstDisk: disk,
+    });
+
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(userSpy).not.toHaveBeenCalled();
+    expect(mailSpy).not.toHaveBeenCalled();
+  });
+
+  test("continues pruning from the trigger down to the target", async () => {
+    const candidate: ClickhousePartitionCandidate = {
+      tableName: "LogLocal",
+      partitionId: "20260701",
+      partition: "20260701",
+      totalSizeInBytes: 10,
+      locations: [
+        {
+          shardNum: 1,
+          host: disk.host,
+          diskName: disk.diskName,
+          sizeInBytes: 10,
+        },
+      ],
+    };
+    const plan: ClickhousePruningPlan = {
+      partitions: [
+        {
+          tableName: candidate.tableName,
+          partitionId: candidate.partitionId,
+          estimatedFreedBytes: 10,
+        },
+      ],
+      estimatedFreedBytes: 10,
+      projectedMaxUtilizationPercent: 75,
+      targetReachable: true,
+    };
+    getCandidatesMock.mockResolvedValue([candidate]);
+    buildPlanMock.mockReturnValue(plan);
+    dropPartitionMock.mockResolvedValue(undefined);
+
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const createSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "create")
+      .mockImplementation(
+        async (
+          createBy: CreateBy<InstanceHealthLog>,
+        ): Promise<InstanceHealthLog> => {
+          createBy.data.id = new ObjectID("running-log");
+          return createBy.data;
+        },
+      );
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+        metadata: {
+          droppedPartitions: [
+            {
+              tableName: "LogLocal",
+              partitionId: "20260630",
+              estimatedFreedBytes: 10,
+            },
+          ],
+        },
+      }),
+      disks: [disk],
+      capacityPercent: 85,
+      worstDisk: disk,
+    });
+
+    expect(updateSpy.mock.calls[0]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.Partial,
+    );
+    expect(createSpy.mock.calls[0]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.Running,
+    );
+    expect(buildPlanMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetPercent: 80,
+        maxPartitions: 25,
+      }),
+    );
+    expect(dropPartitionMock).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[1]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.WaitingForReclaim,
+    );
+  });
+
+  test("does not advance while prior inactive parts still occupy disk", async () => {
+    reclaimStateMock.mockResolvedValue({
+      inactivePartCount: 2,
+      inactiveBytes: 40,
+    });
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+        metadata: {
+          droppedPartitions: [
+            {
+              tableName: "LogLocal",
+              partitionId: "20260630",
+              estimatedFreedBytes: 40,
+            },
+          ],
+        },
+      }),
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    expect(reclaimStateMock).toHaveBeenCalledWith([
+      {
+        tableName: "LogLocal",
+        partitionId: "20260630",
+        estimatedFreedBytes: 40,
+      },
+    ]);
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: InstanceHealthLogStatus.WaitingForReclaim,
+          nextCheckAt: later,
+          metadata: expect.objectContaining({
+            remainingInactivePartCount: 2,
+            remainingInactiveBytes: 40,
+          }),
+        }),
+      }),
+    );
+    expect(getCandidatesMock).not.toHaveBeenCalled();
+    expect(buildPlanMock).not.toHaveBeenCalled();
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+  });
+
+  test("finalizes a stale partial cycle once capacity reaches the target", async () => {
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.Partial,
+      }),
+      disks: [disk],
+      capacityPercent: 75,
+      worstDisk: disk,
+    });
+
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: InstanceHealthLogStatus.Succeeded,
+          capacityAfterPercent: 75,
+        }),
+      }),
+    );
+    expect(getCandidatesMock).not.toHaveBeenCalled();
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+  });
+
+  test("disabling cancels continuation before re-enable below the trigger", async () => {
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const createSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "create")
+      .mockImplementation(
+        async (
+          createBy: CreateBy<InstanceHealthLog>,
+        ): Promise<InstanceHealthLog> => {
+          createBy.data.id = new ObjectID("resolved-log");
+          return createBy.data;
+        },
+      );
+    const waitingLog: InstanceHealthLog = makeLog({
+      status: InstanceHealthLogStatus.WaitingForReclaim,
+      nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+      metadata: {
+        droppedPartitions: [
+          {
+            tableName: "LogLocal",
+            partitionId: "20260630",
+            estimatedFreedBytes: 10,
+          },
+        ],
+      },
+    });
+
+    await evaluatePruning({
+      settings: {
+        ...settings,
+        pruningEnabled: false,
+      },
+      latestLog: waitingLog,
+      disks: [disk],
+      capacityPercent: 85,
+      worstDisk: disk,
+    });
+
+    const resolvedLog: InstanceHealthLog = (await createSpy.mock.results[0]
+      ?.value) as InstanceHealthLog;
+    expect(createSpy.mock.calls[0]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.Resolved,
+    );
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({
+            cancelAfterReclaim: true,
+          }),
+        }),
+      }),
+    );
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+
+    getCandidatesMock.mockClear();
+    buildPlanMock.mockClear();
+    dropPartitionMock.mockClear();
+
+    await evaluatePruning({
+      settings,
+      latestLog: resolvedLog,
+      disks: [disk],
+      capacityPercent: 85,
+      worstDisk: disk,
+    });
+
+    expect(getCandidatesMock).not.toHaveBeenCalled();
+    expect(buildPlanMock).not.toHaveBeenCalled();
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+  });
+
+  test("honors the target-unreachable cooldown", async () => {
+    const createSpy: jest.SpyInstance = jest.spyOn(
+      InstanceHealthLogService,
+      "create",
+    );
+    const updateSpy: jest.SpyInstance = jest.spyOn(
+      InstanceHealthLogService,
+      "updateOneById",
+    );
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.TargetUnreachable,
+        nextCheckAt: later,
+      }),
+      disks: [disk],
+      capacityPercent: 95,
+      worstDisk: disk,
+    });
+
+    expect(getCandidatesMock).not.toHaveBeenCalled();
+    expect(buildPlanMock).not.toHaveBeenCalled();
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("waits for reclaim after a partial DDL failure", async () => {
+    const plan: ClickhousePruningPlan = {
+      partitions: [
+        {
+          tableName: "LogLocal",
+          partitionId: "20260701",
+          estimatedFreedBytes: 10,
+        },
+        {
+          tableName: "MetricLocal",
+          partitionId: "20260701",
+          estimatedFreedBytes: 20,
+        },
+      ],
+      estimatedFreedBytes: 30,
+      projectedMaxUtilizationPercent: 75,
+      targetReachable: true,
+    };
+    getCandidatesMock.mockResolvedValue([]);
+    buildPlanMock.mockReturnValue(plan);
+    dropPartitionMock
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("DDL failed"));
+
+    jest
+      .spyOn(InstanceHealthLogService, "create")
+      .mockImplementation(
+        async (
+          createBy: CreateBy<InstanceHealthLog>,
+        ): Promise<InstanceHealthLog> => {
+          createBy.data.id = new ObjectID("running-log");
+          return createBy.data;
+        },
+      );
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: null,
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]?.[0].data).toEqual(
+      expect.objectContaining({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: later,
+        metadata: expect.objectContaining({
+          droppedPartitionCount: 1,
+        }),
+      }),
+    );
+  });
+
+  /*
+   * An ON CLUSTER drop that errors client-side is already committed to Keeper
+   * and still executes, so the very first drop failing does NOT mean nothing
+   * was deleted. Reporting Failed here would claim on a data-deletion audit
+   * surface that no data was touched while ClickHouse was removing a partition.
+   */
+  test("treats a first-drop failure as unconfirmed rather than as no drop", async () => {
+    const plan: ClickhousePruningPlan = {
+      partitions: [
+        {
+          tableName: "LogLocal",
+          partitionId: "20260701",
+          estimatedFreedBytes: 10,
+        },
+        {
+          tableName: "MetricLocal",
+          partitionId: "20260701",
+          estimatedFreedBytes: 20,
+        },
+      ],
+      estimatedFreedBytes: 30,
+      projectedMaxUtilizationPercent: 75,
+      targetReachable: true,
+    };
+    getCandidatesMock.mockResolvedValue([]);
+    buildPlanMock.mockReturnValue(plan);
+    dropPartitionMock.mockRejectedValue(new Error("Timeout error."));
+
+    jest
+      .spyOn(InstanceHealthLogService, "create")
+      .mockImplementation(
+        async (
+          createBy: CreateBy<InstanceHealthLog>,
+        ): Promise<InstanceHealthLog> => {
+          createBy.data.id = new ObjectID("running-log");
+          return createBy.data;
+        },
+      );
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: null,
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    // The batch stops at the first failure rather than issuing more DDL.
+    expect(dropPartitionMock).toHaveBeenCalledTimes(1);
+
+    const updated: InstanceHealthLog = updateSpy.mock.calls[0]?.[0].data;
+    expect(updated.status).toBe(InstanceHealthLogStatus.WaitingForReclaim);
+    expect(updated.completedAt).toBeNull();
+    expect(updated.message).toContain(
+      "Issued 1 ClickHouse partition drop(s) whose outcome is unknown",
+    );
+    expect(updated.message).not.toContain(
+      "before any confirmed partition drop",
+    );
+    expect(updated.message).not.toContain("Dropped 0");
+    expect(updated.metadata).toEqual(
+      expect.objectContaining({
+        droppedPartitionCount: 0,
+        unconfirmedPartitionCount: 1,
+        unconfirmedPartitions: [
+          {
+            tableName: "LogLocal",
+            partitionId: "20260701",
+            estimatedFreedBytes: 10,
+          },
+        ],
+      }),
+    );
+
+    /*
+     * Nothing was confirmed dropped, so the error may be a pre-commit rejection
+     * that never clears. Hold the long cooldown rather than re-issuing
+     * destructive DDL on the 10-minute reclaim cadence.
+     */
+    expect(getSomeMinutesAfterSpy).toHaveBeenCalledWith(60);
+    expect(getSomeMinutesAfterSpy).not.toHaveBeenCalledWith(10);
+  });
+
+  /*
+   * A mid-batch failure produces BOTH lists, and reconciliation must cover the
+   * union: ignoring the confirmed drops would under-report reclaim and let the
+   * next batch be planned against space that is about to free itself, which is
+   * the over-pruning getClickhousePartitionReclaimState exists to prevent.
+   */
+  test("reconciles confirmed and unconfirmed partitions together", async () => {
+    reclaimStateMock.mockResolvedValue({
+      inactivePartCount: 3,
+      inactiveBytes: 40,
+    });
+    jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+        metadata: {
+          droppedPartitions: [
+            {
+              tableName: "LogItemV3Local",
+              partitionId: "20260630",
+              estimatedFreedBytes: 10,
+            },
+          ],
+          unconfirmedPartitions: [
+            {
+              tableName: "SpanItemV3Local",
+              partitionId: "20260630",
+              estimatedFreedBytes: 40,
+            },
+          ],
+        },
+      }),
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    expect(reclaimStateMock).toHaveBeenCalledWith([
+      {
+        tableName: "LogItemV3Local",
+        partitionId: "20260630",
+        estimatedFreedBytes: 10,
+      },
+      {
+        tableName: "SpanItemV3Local",
+        partitionId: "20260630",
+        estimatedFreedBytes: 40,
+      },
+    ]);
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The unconfirmed partition is the whole point of recording it: the next tick
+   * must ask ClickHouse whether its parts are still on disk.
+   */
+  test("reconciles an unconfirmed partition against ClickHouse", async () => {
+    reclaimStateMock.mockResolvedValue({
+      inactivePartCount: 3,
+      inactiveBytes: 40,
+    });
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+        metadata: {
+          droppedPartitionCount: 0,
+          unconfirmedPartitions: [
+            {
+              tableName: "SpanItemV3Local",
+              partitionId: "20260630",
+              estimatedFreedBytes: 40,
+            },
+          ],
+        },
+      }),
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    expect(reclaimStateMock).toHaveBeenCalledWith([
+      {
+        tableName: "SpanItemV3Local",
+        partitionId: "20260630",
+        estimatedFreedBytes: 40,
+      },
+    ]);
+    // Parts are still on disk, so it must not plan another destructive batch.
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+    expect(updateSpy.mock.calls[0]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.WaitingForReclaim,
+    );
+  });
+});
+
+/*
+ * ClickHouse capacity alerts and automatic pruning are Community Edition
+ * features: a full ClickHouse disk stops telemetry ingestion on every edition,
+ * so the job must run without the enterprise module and without a license.
+ * (Both halves stay opt-in through the global config toggles.)
+ */
+describe("EvaluateClickhouseCapacity on every edition", () => {
+  let leaseSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    leaseSpy = jest
+      .spyOn(InstanceHealthLock, "runWithInstanceHealthLease")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    uninstallEnterpriseModule();
+    setTestBillingEnabled(false);
+  });
+
+  const expectEvaluated: () => void = (): void => {
+    expect(leaseSpy).toHaveBeenCalledTimes(1);
+    expect(leaseSpy).toHaveBeenCalledWith({
+      jobName: "InstanceHealth:EvaluateClickhouseCapacity",
+      lockLabel: "oneuptime:instance-health:clickhouse-capacity",
+      leaseTtlInSeconds:
+        InstanceHealthLock.INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+      run: evaluateClickhouseCapacity,
+    });
+  };
+
+  test("runs on Community Edition (no ee loaded, billing off)", async () => {
+    setTestBillingEnabled(false);
+    uninstallEnterpriseModule();
+
+    await runEvaluateClickhouseCapacityWithLock();
+
+    expectEvaluated();
+  });
+
+  test.each([
+    [
+      "the Community Edition with billing on",
+      true,
+      (): void => {
+        uninstallEnterpriseModule();
+      },
+    ],
+    [
+      "the Enterprise Edition without a license",
+      false,
+      (): void => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus("missing"),
+        });
+      },
+    ],
+    [
+      "the Enterprise Edition with an expired license",
+      false,
+      (): void => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus("expired"),
+        });
+      },
+    ],
+    [
+      "the Enterprise Edition with a valid license",
+      false,
+      (): void => {
+        installFakeEnterpriseModule();
+      },
+    ],
+    [
+      "OneUptime Cloud",
+      true,
+      (): void => {
+        installFakeEnterpriseModule();
+      },
+    ],
+  ])(
+    "runs on %s too",
+    async (_label: string, billing: boolean, install: () => void) => {
+      setTestBillingEnabled(billing);
+      install();
+
+      await runEvaluateClickhouseCapacityWithLock();
+
+      expectEvaluated();
+    },
+  );
+
+  test("is a core job, never one the enterprise module owns", () => {
+    expect(ENTERPRISE_OWNED_JOB_NAMES).not.toContain(
+      "InstanceHealth:EvaluateClickhouseCapacity",
+    );
+  });
+
+  test("does not consult the edition or the license at all", () => {
+    const source: string = fs
+      .readFileSync(
+        nodePath.join(
+          __dirname,
+          "../../../../FeatureSet/Workers/Jobs/InstanceHealth/EvaluateClickhouseCapacity.ts",
+        ),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+
+    expect(source).not.toContain("IsEnterpriseEdition");
+    expect(source).not.toContain("EnterpriseEdition");
+    expect(source).not.toContain("IsBillingEnabled");
+  });
+});

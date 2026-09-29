@@ -1,0 +1,156 @@
+# OneUptime's own telemetry must say which pod, namespace, node and deployment
+# it came from. Without these variables the OpenTelemetry SDK only reports
+# host.name (the pod hostname), and Topology catalogues every pod that ever
+# ran as a separate "host".
+suite: telemetry kubernetes identity
+release:
+  name: oneuptime
+  namespace: oneuptime
+templates:
+  - templates/app.yaml
+  - templates/worker.yaml
+  - templates/home.yaml
+  - templates/telemetry-writer.yaml
+  - templates/probe.yaml
+  - templates/runner.yaml
+set:
+  worker:
+    enabled: true
+  home:
+    enabled: true
+  telemetryWriter:
+    enabled: true
+tests:
+  - it: gives the app pods their downward-API identity and deployment name
+    template: templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_DEPLOYMENT_NAME
+            value: oneuptime-app
+
+  - it: names each workload after its own deployment
+    template: templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_DEPLOYMENT_NAME
+            value: oneuptime-worker
+
+  - it: names the home deployment
+    template: templates/home.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_DEPLOYMENT_NAME
+            value: oneuptime-home
+
+  - it: names the telemetry writer deployment
+    template: templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_DEPLOYMENT_NAME
+            value: oneuptime-telemetry-writer
+
+  - it: names every probe deployment after its probe key
+    template: templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_DEPLOYMENT_NAME
+            value: oneuptime-probe-one
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+
+  - it: names the runner deployment
+    template: templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_DEPLOYMENT_NAME
+            value: oneuptime-runner
+
+  - it: omits the cluster name unless one is configured
+    template: templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_CLUSTER_NAME
+          any: true
+
+  - it: reports the configured cluster name
+    template: templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        kubernetesClusterName: production-eu
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: K8S_CLUSTER_NAME
+            value: production-eu

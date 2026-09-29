@@ -14,6 +14,6 @@ with synthetic values, blocks outbound traffic, and does not create a
 connection. Regenerate them with:
 
 ```sh
-cd E2E
+cd packages/E2E
 npm run test-google-secops-form-steps-ui
 ```

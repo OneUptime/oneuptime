@@ -25,9 +25,9 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd MobileApp && npm install
+      - run: cd packages/MobileApp && npm install
       - name: Run Expo Doctor
-        run: cd MobileApp && npx expo-doctor@latest
+        run: cd packages/MobileApp && npx expo-doctor@latest
 
   jest:
     runs-on: ubuntu-latest
@@ -42,9 +42,9 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd MobileApp && npm install
+      - run: cd packages/MobileApp && npm install
       - name: Run Jest Tests
-        run: cd MobileApp && npm test
+        run: cd packages/MobileApp && npm test
 
   expo-web-export:
     runs-on: ubuntu-latest
@@ -59,21 +59,21 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd MobileApp && npm install
+      - run: cd packages/MobileApp && npm install
       - name: Install browser for responsive UI tests
-        run: cd MobileApp && npx playwright install --with-deps chromium
+        run: cd packages/MobileApp && npx playwright install --with-deps chromium
       - name: Verify responsive screens and project switching
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd MobileApp && npm run test-ui
+          command: cd packages/MobileApp && npm run test-ui
       - name: Upload UI screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mobile-ui-report
           path: |
-            MobileApp/playwright-report
-            MobileApp/test-results
+            packages/MobileApp/playwright-report
+            packages/MobileApp/test-results
           retention-days: 7

@@ -1,0 +1,331 @@
+{
+  "a11y": {
+    "skipToMainContent": "मुख्य सामग्री पर जाएं",
+    "loading": "लोड हो रहा है..."
+  },
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "submit": "जमा करें",
+    "close": "बंद करें",
+    "back": "वापस",
+    "next": "अगला",
+    "loading": "लोड हो रहा है...",
+    "search": "खोजें",
+    "edit": "संपादित करें",
+    "delete": "हटाएँ",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "statusPage": "स्थिति पृष्ठ"
+  },
+  "language": {
+    "label": "भाषा",
+    "switchLanguage": "भाषा बदलें"
+  },
+  "nav": {
+    "overview": "अवलोकन",
+    "incidents": "घटनाएँ",
+    "announcements": "घोषणाएँ",
+    "scheduledEvents": "निर्धारित कार्यक्रम",
+    "subscribe": "सदस्यता लें",
+    "login": "लॉग इन करें",
+    "logout": "लॉग आउट करें"
+  },
+  "overview": {
+    "uptimeSuffix": "% अपटाइम",
+    "operational": "कार्यरत",
+    "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",
+    "activeIncidents": "सक्रिय घटनाएँ",
+    "scheduledMaintenanceEvents": "निर्धारित रखरखाव कार्यक्रम",
+    "allClearTitle": "सब कुछ ठीक दिख रहा है",
+    "allClearDescription": "इस स्थिति पृष्ठ में अभी तक कोई संसाधन नहीं जोड़ा गया है। कृपया डैशबोर्ड से कुछ संसाधन जोड़ें।",
+    "allResourcesAre": "सभी संसाधन {{status}} हैं",
+    "someResourcesAre": "कुछ संसाधन {{status}} हैं",
+    "someResourcesAreUnder": "कुछ संसाधन {{status}} में हैं",
+    "oneSubGroup": "1 समूह",
+    "subGroupCount": "{{total}} समूह"
+  },
+  "eventItem": {
+    "affectedResources": "प्रभावित संसाधन",
+    "stateChangedTo": "स्थिति बदलकर हुई",
+    "view": "{{eventType}} देखें",
+    "updateTo": "इस {{eventType}} पर अपडेट",
+    "postedOn": "पोस्ट किया गया"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} दिन पहले",
+    "today": "आज",
+    "notAvailable": "उपलब्ध नहीं"
+  },
+  "uptimeHistory": {
+    "graphLabel": "पिछले {{total}} दिनों का अपटाइम इतिहास",
+    "dayLabel": "{{date}}: {{uptime}}% अपटाइम",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% अपटाइम, {{total}} घटनाएँ",
+    "dayLabelNoData": "{{date}}: कोई डेटा नहीं",
+    "dayLabelNoDataWithIncidents": "{{date}}: कोई डेटा नहीं, {{total}} घटनाएँ",
+    "uptime": "अपटाइम",
+    "noMonitoringData": "इस दिन के लिए कोई निगरानी डेटा नहीं है",
+    "incidents": "घटनाएँ",
+    "noIncidents": "कोई घटना नहीं",
+    "noIncidentsDescription": "इस दिन कोई घटना दर्ज नहीं की गई।",
+    "declared": "घोषित",
+    "oneIncidentOnThisDay": "इस दिन 1 घटना दर्ज की गई",
+    "incidentsOnThisDay": "इस दिन {{total}} घटनाएँ दर्ज की गईं"
+  },
+  "liveStatus": {
+    "updated": "{{time}} अपडेट किया गया",
+    "refresh": "रीफ़्रेश करें",
+    "refreshing": "रीफ़्रेश हो रहा है",
+    "refreshFailed": "रीफ़्रेश नहीं हो सका। अंतिम ज्ञात स्थिति दिखाई जा रही है।"
+  },
+  "search": {
+    "label": "संसाधन खोजें",
+    "placeholder": "संसाधन खोजें",
+    "clear": "खोज साफ़ करें",
+    "resultCount": "{{total}} में से {{matched}} संसाधन",
+    "noMatchesInGroup": "यहाँ आपकी खोज से मेल खाने वाला कोई संसाधन नहीं है।",
+    "noResultsTitle": "कोई मेल खाने वाला संसाधन नहीं",
+    "noResultsDescription": "इस पृष्ठ पर \"{{query}}\" से मेल खाने वाला कुछ नहीं है। छोटी खोज आज़माएँ।"
+  },
+  "incidents": {
+    "title": "घटनाएँ",
+    "singular": "घटना",
+    "active": "सक्रिय घटनाएँ",
+    "resolved": "हल की गई घटनाएँ",
+    "none": "कोई घटना नहीं",
+    "noneDescription": "इस स्थिति पृष्ठ पर कोई घटना पोस्ट नहीं की गई है।",
+    "postmortem": "घटना की समीक्षा",
+    "declaredAt": "घोषित किया गया: ",
+    "report": "घटना रिपोर्ट",
+    "notFound": "इस स्थिति पृष्ठ पर घटना नहीं मिली।"
+  },
+  "episodes": {
+    "report": "एपिसोड रिपोर्ट",
+    "none": "कोई एपिसोड नहीं",
+    "notFound": "इस स्थिति पृष्ठ पर एपिसोड नहीं मिला।"
+  },
+  "announcements": {
+    "title": "घोषणाएँ",
+    "singular": "घोषणा",
+    "active": "सक्रिय घोषणाएँ",
+    "past": "पिछली घोषणाएँ",
+    "none": "कोई घोषणा नहीं",
+    "noneDescription": "इस पृष्ठ पर अभी तक कोई घोषणा पोस्ट नहीं की गई है।",
+    "announcedAt": "घोषित किया गया: ",
+    "notFound": "इस स्थिति पृष्ठ पर घोषणा नहीं मिली।"
+  },
+  "scheduledEvents": {
+    "title": "निर्धारित कार्यक्रम",
+    "singular": "निर्धारित कार्यक्रम",
+    "scheduledMaintenance": "निर्धारित रखरखाव",
+    "ongoing": "चालू कार्यक्रम",
+    "upcoming": "निर्धारित कार्यक्रम",
+    "completed": "पूर्ण हो चुके कार्यक्रम",
+    "none": "कोई निर्धारित कार्यक्रम नहीं",
+    "noneDescription": "इस स्थिति पृष्ठ के लिए कोई निर्धारित कार्यक्रम पोस्ट नहीं किया गया है।",
+    "scheduledAt": "निर्धारित समय: ",
+    "report": "निर्धारित कार्यक्रम रिपोर्ट",
+    "notFound": "इस स्थिति पृष्ठ के लिए कोई निर्धारित कार्यक्रम नहीं मिला।"
+  },
+  "subscribe": {
+    "title": "सदस्यता लें",
+    "submit": "सदस्यता लें",
+    "newSubscription": "नई सदस्यता",
+    "manageExisting": "मौजूदा सदस्यता प्रबंधित करें",
+    "sendManagementLink": "प्रबंधन लिंक भेजें",
+    "subscribedSuccessfully": "आपने सफलतापूर्वक सदस्यता ले ली है।",
+    "emailSentCheckSpam": "लिंक के साथ एक ईमेल आपके ईमेल पर भेज दिया गया है। यदि आपको ईमेल नहीं मिला है, तो कृपया अपना स्पैम फ़ोल्डर देखें।",
+    "manageLinkSent": "यदि आपके द्वारा दर्ज किए गए विवरण से कोई सदस्यता मेल खाती है, तो हमने उसे प्रबंधित करने के लिए एक लिंक भेज दिया है।",
+    "manageLinkSentEmail": "यदि इस ईमेल पते पर कोई सदस्यता है, तो हमने उसे प्रबंधित करने के लिए इस पते पर एक लिंक भेज दिया है। यदि आपको ईमेल नहीं मिला है, तो कृपया अपना स्पैम फ़ोल्डर देखें।",
+    "menu": {
+      "email": "ईमेल",
+      "sms": "एसएमएस",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "वेबहुक"
+    },
+    "email": {
+      "title": "ईमेल द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस ईमेल पते पर भेजे जाएँगे।",
+      "yourEmail": "आपका ईमेल",
+      "placeholder": "subscriber@kampani.com",
+      "managePrompt": "कृपया वह ईमेल दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम आपको इस ईमेल पर एक प्रबंधन लिंक भेजेंगे।",
+      "managePlaceholder": "email@aapkikampani.com"
+    },
+    "sms": {
+      "title": "एसएमएस द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस फ़ोन नंबर पर भेजे जाएँगे।",
+      "yourPhoneNumber": "आपका फ़ोन नंबर",
+      "placeholder": "+919876543210",
+      "managePrompt": "कृपया वह फ़ोन नंबर दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम आपको इस फ़ोन नंबर पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "slack": {
+      "title": "Slack द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
+      "workspaceName": "Slack कार्यक्षेत्र का नाम",
+      "workspaceNameDescription": "सत्यापन के लिए अपने Slack कार्यक्षेत्र का नाम दर्ज करें।",
+      "workspaceNamePlaceholder": "meri-kampani-workspace",
+      "webhookUrl": "Slack इनकमिंग वेबहुक URL",
+      "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "कृपया वह Slack कार्यक्षेत्र का नाम दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम इस कार्यक्षेत्र पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "microsoftTeams": {
+      "title": "Microsoft Teams द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
+      "workspaceName": "Microsoft Teams कार्यक्षेत्र का नाम",
+      "workspaceNameDescription": "सत्यापन के लिए अपने Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें।",
+      "workspaceNamePlaceholder": "meri-kampani-workspace",
+      "webhookUrl": "Microsoft Teams इनकमिंग वेबहुक URL",
+      "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "कृपया वह Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम इस कार्यक्षेत्र पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "webhook": {
+      "title": "वेबहुक के माध्यम से सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस वेबहुक URL पर JSON POST अनुरोधों के रूप में भेजे जाएँगे।",
+      "webhookUrl": "वेबहुक URL",
+      "webhookUrlDescription": "प्रत्येक स्थिति पृष्ठ ईवेंट पर इस URL को एक JSON POST अनुरोध भेजा जाएगा।",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "सभी संसाधनों की सदस्यता लें",
+      "allDescription": "यदि आप सभी संसाधनों की सदस्यता लेना चाहते हैं तो यह विकल्प चुनें।",
+      "select": "सदस्यता के लिए संसाधन चुनें",
+      "selectDescription": "कृपया वे संसाधन चुनें जिनकी आप सदस्यता लेना चाहते हैं।"
+    },
+    "eventTypes": {
+      "all": "सभी प्रकार के कार्यक्रमों की सदस्यता लें",
+      "allDescription": "यदि आप सभी प्रकार के कार्यक्रमों की सदस्यता लेना चाहते हैं तो यह विकल्प चुनें।",
+      "select": "सदस्यता के लिए कार्यक्रम प्रकार चुनें",
+      "selectDescription": "कृपया वे कार्यक्रम प्रकार चुनें जिनकी आप सदस्यता लेना चाहते हैं।"
+    },
+    "update": {
+      "title": "सदस्यता अपडेट करें",
+      "description": "आप यहाँ अपनी सदस्यता प्राथमिकताएँ अपडेट कर सकते हैं या सदस्यता समाप्त कर सकते हैं।",
+      "saved": "आपके परिवर्तन सहेजे गए हैं।",
+      "submit": "सदस्यता अपडेट करें",
+      "unsubscribe": "सदस्यता समाप्त करें",
+      "unsubscribeDescription": "यदि आप सभी संसाधनों से सदस्यता समाप्त करना चाहते हैं तो कृपया इसे चुनें।"
+    },
+    "confirm": {
+      "title": "सदस्यता की पुष्टि करें",
+      "success": "सदस्यता की पुष्टि सफलतापूर्वक हो गई"
+    },
+    "unsubscribe": {
+      "title": "सदस्यता समाप्त करें",
+      "titleWithName": "{{statusPageName}} की सदस्यता समाप्त करें",
+      "confirmPrompt": "क्या आप इस स्थिति पृष्ठ से सूचनाएँ पाना बंद करना चाहते हैं?",
+      "channelEmail": "ईमेल पता",
+      "channelSms": "फ़ोन नंबर",
+      "channelSlack": "Slack वर्कस्पेस",
+      "channelMicrosoftTeams": "Microsoft Teams वर्कस्पेस",
+      "channelWebhook": "वेबहुक",
+      "addedByTeamWarning": "यह सदस्यता इस स्थिति पृष्ठ को चलाने वाली टीम ने जोड़ी थी। अगर यह कोई साझा पता है, जैसे मेलिंग सूची, तो सदस्यता समाप्त करने पर इसे पाने वाले सभी लोगों को ये सूचनाएँ मिलना बंद हो जाएँगी, और टीम को इसकी जानकारी दी जाएगी।",
+      "confirmButton": "सदस्यता समाप्त करें",
+      "manageInstead": "इसके बजाय चुनें कि आपको कौन-सी सूचनाएँ मिलें",
+      "manageSubscription": "अपनी सदस्यता प्रबंधित करें",
+      "success": "आपकी सदस्यता समाप्त कर दी गई है। अब आपको इस स्थिति पृष्ठ से कोई सूचना नहीं मिलेगी।",
+      "alreadyUnsubscribed": "यह सदस्यता पहले ही समाप्त की जा चुकी है। आपको इस स्थिति पृष्ठ से सूचनाएँ नहीं मिलतीं।",
+      "outOfDateLink": "सदस्यता समाप्त करने का यह लिंक पुराना हो गया है। सदस्यता समाप्त करने के लिए इस स्थिति पृष्ठ के किसी हाल के संदेश में दिए गए लिंक का उपयोग करें।",
+      "invalidLink": "सदस्यता समाप्त करने का यह लिंक मान्य नहीं है। हो सकता है यह अधूरा हो, या सदस्यता हटा दी गई हो। सदस्यता समाप्त करने के लिए इस स्थिति पृष्ठ के किसी हाल के संदेश में दिए गए लिंक का उपयोग करें।",
+      "failed": "हम आपकी सदस्यता समाप्त नहीं कर सके। कृपया फिर से प्रयास करें।",
+      "loadFailed": "हम सदस्यता समाप्त करने का यह लिंक लोड नहीं कर सके। कृपया बाद में फिर से प्रयास करें।"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "ईमेल",
+      "password": "पासवर्ड",
+      "newPassword": "नया पासवर्ड",
+      "confirmPassword": "पासवर्ड की पुष्टि करें",
+      "login": "लॉग इन करें"
+    },
+    "login": {
+      "welcomeBack": "वापस स्वागत है!",
+      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "forgotPassword": "पासवर्ड भूल गए?",
+      "submit": "लॉग इन करें",
+      "useSSO": "इसके बजाय सिंगल साइन-ऑन (SSO) का उपयोग करें"
+    },
+    "sso": {
+      "title": "SSO से लॉग इन करें",
+      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "noProviders": "कोई SSO प्रदाता कॉन्फ़िगर या सक्षम नहीं है",
+      "notAvailable": "इस स्थिति पृष्ठ के लिए सिंगल साइन-ऑन (SSO) उपलब्ध नहीं है। इसके बजाय अपने ईमेल और पासवर्ड से लॉग इन करें।",
+      "backToLogin": "लॉग इन पर वापस जाएं"
+    },
+    "forgotPassword": {
+      "title": "पासवर्ड भूल गए",
+      "description": "यदि आप {{statusPageName}} के लिए अपना पासवर्ड भूल गए हैं, तो कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेज दिया जाएगा।",
+      "success": "हमने आपको पासवर्ड रीसेट लिंक ईमेल कर दिया है। कृपया स्पैम देखना न भूलें।",
+      "sendLink": "पासवर्ड रीसेट लिंक भेजें",
+      "rememberPassword": "अपना पासवर्ड याद है?"
+    },
+    "resetPassword": {
+      "description": "अपने {{statusPageName}} खाते के लिए एक नया पासवर्ड बनाएँ।",
+      "instructions": "कृपया अपना नया पासवर्ड दर्ज करें और हम इसे अपडेट कर देंगे।",
+      "success": "आपका पासवर्ड अपडेट हो गया है। कृपया लॉग इन करें।",
+      "submit": "पासवर्ड रीसेट करें",
+      "knowPassword": "अपना पासवर्ड जानते हैं?"
+    },
+    "masterPassword": {
+      "enterWithName": "{{statusPageName}} पासवर्ड दर्ज करें",
+      "enterGeneric": "पासवर्ड दर्ज करें",
+      "prompt": "जारी रखने के लिए कृपया पासवर्ड दर्ज करें।",
+      "passwordRequired": "पासवर्ड आवश्यक है।",
+      "passwordLabel": "पासवर्ड",
+      "passwordDescription": "इस पृष्ठ को अनलॉक करने के लिए पासवर्ड दर्ज करें।",
+      "passwordPlaceholder": "पासवर्ड दर्ज करें",
+      "submit": "स्थिति पृष्ठ अनलॉक करें"
+    },
+    "signingOut": "आपको साइन आउट किया जा रहा है..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "पृष्ठ नहीं मिला।",
+      "description": "आप जिस पृष्ठ की तलाश कर रहे हैं वह मौजूद नहीं है।"
+    },
+    "forbidden": {
+      "title": "निषिद्ध",
+      "description": "आपको इस पृष्ठ तक पहुँचने की अनुमति नहीं है।"
+    },
+    "generic": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।"
+  },
+  "footer": {
+    "poweredBy": "OneUptime द्वारा संचालित"
+  },
+  "statusNames": {
+    "identified": "पहचाना गया",
+    "acknowledged": "स्वीकार किया गया",
+    "resolved": "सुलझाया गया",
+    "criticalIncident": "गंभीर घटना",
+    "majorIncident": "प्रमुख घटना",
+    "minorIncident": "छोटी घटना",
+    "operational": "परिचालन",
+    "degraded": "घटित",
+    "offline": "ऑफ़लाइन",
+    "scheduled": "निर्धारित",
+    "ongoing": "जारी",
+    "ended": "समाप्त",
+    "completed": "पूर्ण"
+  },
+  "Subscriber ID is required": "सब्सक्राइबर ID आवश्यक है",
+  "Token is required": "टोकन आवश्यक है",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} {{minLength}} वर्णों से कम नहीं हो सकता।",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} {{maxLength}} वर्णों से अधिक नहीं हो सकता।",
+  "{{field}} should not have spaces.": "{{field}} में रिक्त स्थान नहीं होने चाहिए।",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} में केवल अक्षर, संख्याएँ, हाइफ़न (-) और अंडरस्कोर (_) हो सकते हैं।",
+  "{{field}} should not have numbers.": "{{field}} में संख्याएँ नहीं होनी चाहिए।",
+  "{{field}} should be a future date.": "{{field}} भविष्य की तारीख होनी चाहिए।",
+  "{{field}} should be a number.": "{{field}} एक संख्या होनी चाहिए।",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} {{maxValue}} से अधिक नहीं होना चाहिए।",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} {{minValue}} से कम नहीं होना चाहिए।",
+  "{{field}} is required.": "{{field}} आवश्यक है।",
+  "{{field}} should match {{matchField}}": "{{field}} को {{matchField}} से मेल खाना चाहिए",
+  "Email is not valid.": "ईमेल मान्य नहीं है।"
+}

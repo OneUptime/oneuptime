@@ -1,0 +1,85 @@
+import React from "react";
+import { View, Text } from "react-native";
+import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
+
+export type SeverityLevel = "critical" | "major" | "minor" | "warning" | "info";
+
+interface SeverityBadgeProps {
+  severity: SeverityLevel;
+  label?: string;
+}
+
+export default function SeverityBadge({
+  severity,
+  label,
+}: SeverityBadgeProps): React.JSX.Element {
+  const { theme } = useTheme();
+
+  const colorMap: Record<SeverityLevel, { text: string; bg: string }> = {
+    critical: {
+      text: theme.colors.severityCritical,
+      bg: theme.colors.severityCriticalBg,
+    },
+    major: {
+      text: theme.colors.severityMajor,
+      bg: theme.colors.severityMajorBg,
+    },
+    minor: {
+      text: theme.colors.severityMinor,
+      bg: theme.colors.severityMinorBg,
+    },
+    warning: {
+      text: theme.colors.severityWarning,
+      bg: theme.colors.severityWarningBg,
+    },
+    info: {
+      text: theme.colors.severityInfo,
+      bg: theme.colors.severityInfoBg,
+    },
+  };
+
+  /*
+   * `severity` is typed down to five literals, but the map is indexed with
+   * whatever actually arrives, and a severity that is not one of the five -
+   * a project's own severity name coming back from the API, a value that lost
+   * its type on the way through untyped JSON - yields undefined, and reading
+   * `.bg` off it throws out of render. Nothing renders this badge today, so
+   * this is hardening rather than a live crash; it is here because the cost of
+   * being wrong is a blank screen in front of a responder.
+   *
+   * The fallback is deliberately NEUTRAL rather than one of the five. Guessing
+   * "info" for an unknown severity would paint something that might be a
+   * critical page in the calmest colour on the palette; grey says "unrecognised"
+   * and leaves the label - which is still the real text - to speak for itself.
+   */
+  const colors: { text: string; bg: string } = colorMap[severity] ?? {
+    text: theme.colors.textSecondary,
+    bg: theme.colors.backgroundTertiary,
+  };
+  const displayLabel: string = label || severity;
+
+  return (
+    <View
+      style={{
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xxs,
+        borderRadius: radius.pill,
+        alignSelf: "flex-start",
+        backgroundColor: colors.bg,
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{
+          ...typography.caption,
+          fontWeight: "700",
+          letterSpacing: 0.4,
+          color: colors.text,
+        }}
+      >
+        {displayLabel.toUpperCase()}
+      </Text>
+    </View>
+  );
+}

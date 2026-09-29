@@ -35,7 +35,7 @@ conversation, so `/enterprise/self-hosted` books through the same Cal embed as
 `meeting_booked` is a **browser** event. It means: Cal's embed reported a
 successful booking on a OneUptime marketing page, and the page fired the event.
 It is emitted through `window.oneUptimeTrackMeetingBooked`, defined in
-`Home/Views/head-basic.ejs`.
+`packages/Home/Views/head-basic.ejs`.
 
 Read it for what it is. The browser can be blocked, can double-fire, and can be
 forged, and a booking made through a Cal link that is not one of the
@@ -55,7 +55,7 @@ Three pages book, and each tags the event with the conversation it books:
 All three book the same Cal event type (`oneuptimehq/demo`), so without
 `booking_kind` a free user's support call and a net-new enterprise demo are one
 undifferentiated count. The legacy per-page events are still emitted so existing
-dashboards keep their history; `Home/Tests/MeetingBookedAnalytics.test.ts`
+dashboards keep their history; `packages/Home/Tests/MeetingBookedAnalytics.test.ts`
 asserts every page stays wired up, because one page instrumented and another not
 is invisible until somebody reads the numbers months later.
 
@@ -63,7 +63,7 @@ Cal fires the booking under more than one action name — the older
 `bookingSuccessful` and the newer `bookingSuccessfulV2` — and `embed.js` is
 loaded unpinned from `app.cal.com`, so which one arrives is Cal's decision on
 any given day. Every booking page therefore subscribes through
-`window.oneUptimeOnCalBookingSuccess` (`Home/Views/head-basic.ejs`), which takes
+`window.oneUptimeOnCalBookingSuccess` (`packages/Home/Views/head-basic.ejs`), which takes
 both names and latches on the first to arrive, so one booking stays one
 `meeting_booked`.
 
@@ -94,15 +94,15 @@ thing to weigh if the consent position is ever revisited.
 
 The marketing site captures the visitor's campaign — UTM parameters, ad-platform
 click IDs and the first attributed visit — and holds it in localStorage
-(`Common/Server/Views/Partials/AnalyticsConsent.ejs`). The key lists are shared
-in `Common/Types/Marketing/Attribution.ts` so a key added for the browser cannot
+(`packages/Common/Server/Views/Partials/AnalyticsConsent.ejs`). The key lists are shared
+in `packages/Common/Types/Marketing/Attribution.ts` so a key added for the browser cannot
 be silently dropped on arrival, and `AttributionCapture.test.ts` asserts the
 browser's copy of those lists is identical to the contract's.
 
 It leaves the browser through two doors:
 
 1. **The signup form**, which posts it onto the User record
-   (`App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
+   (`packages/App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
    rather than hand-listing keys).
 2. **Cal.com booking metadata.** All three embeds call
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as

@@ -45,6 +45,7 @@ const OUTPUT_DIR = path.resolve(
   __dirname,
   "..",
   "..",
+  "packages",
   "App",
   "FeatureSet",
   "Dashboard",

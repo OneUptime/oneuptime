@@ -1,0 +1,628 @@
+import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
+import IconProp from "Common/Types/Icon/IconProp";
+import Navigation from "Common/UI/Utils/Navigation";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import Card from "Common/UI/Components/Card/Card";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import useTranslateValue from "Common/UI/Utils/Translation";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import OneUptimeDate from "Common/Types/Date";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import {
+  getCloudProviderLabel,
+  getManagedCloudPlatformLabel,
+} from "Common/Types/Cloud/CloudPlatform";
+import ResourceOverview, {
+  ResourceOverviewChip,
+  ResourceOverviewDetailRow,
+  ResourceOverviewQuickLink,
+  ResourceOverviewTile,
+} from "../../../Components/TelemetryResource/ResourceOverview";
+import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
+import {
+  fetchMetricSeries,
+  fetchSpanMetrics,
+  formatBytes,
+  formatCompact,
+  formatDurationMs,
+  formatPercent,
+  SpanMetrics,
+  TimePoint,
+} from "../../../Components/TelemetryResource/telemetryMetrics";
+import CloudResourceConnectBanner from "../../../Components/Cloud/CloudResourceConnectBanner";
+import {
+  CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+  getCloudResourceAttributeFilters,
+  isCloudInstanceLive,
+  isCloudResourceScoped,
+} from "../Utils/CloudResourceTelemetryScope";
+import { CLOUD_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
+
+const DEFAULT_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.PAST_ONE_HOUR,
+};
+
+const TOP_INSTANCES_TITLE: string = "Top instances by CPU";
+
+/*
+ * The "Top instances by CPU" card title with its (i). A Card translates a
+ * string title itself but passes an element through untouched, so the
+ * title is translated here before the tooltip is attached to it. Exported
+ * for tests.
+ */
+export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const title: string =
+    translateString(TOP_INSTANCES_TITLE) || TOP_INSTANCES_TITLE;
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{title}</span>
+      <InfoTooltip
+        label={title}
+        text={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu}
+        iconClassName="h-4 w-4"
+      />
+    </span>
+  );
+};
+
+const CloudResourceOverview: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  const [cloudResource, setCloudResource] = useState<CloudResource | null>(
+    null,
+  );
+  const [instances, setInstances] = useState<Array<CloudResourceInstance>>([]);
+  const [instancesLoaded, setInstancesLoaded] = useState<boolean>(false);
+  const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
+  const [memorySeries, setMemorySeries] = useState<Array<TimePoint>>([]);
+  const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
+  const [chartWindow, setChartWindow] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
+  const [timeRange, setTimeRange] =
+    useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the span and memory metrics reload when it changes.
+  const [metricsRefreshCount, setMetricsRefreshCount] = useState<number>(0);
+  // Set while the metrics for the current window are still loading.
+  const metricsInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const fetchModel: (showLoader: boolean) => Promise<void> = async (
+    showLoader: boolean,
+  ): Promise<void> => {
+    if (showLoader) {
+      setIsLoading(true);
+      setError("");
+    } else {
+      setIsRefreshing(true);
+    }
+    try {
+      const item: CloudResource | null = await ModelAPI.getItem({
+        modelType: CloudResource,
+        id: modelId,
+        select: {
+          name: true,
+          description: true,
+          resourceIdentifier: true,
+          otelCollectorStatus: true,
+          lastSeenAt: true,
+          cloudPlatform: true,
+          cloudProvider: true,
+          cloudRegion: true,
+          cloudAccountId: true,
+          labels: { name: true, color: true },
+        },
+      });
+
+      if (!item?.resourceIdentifier) {
+        if (showLoader) {
+          setError("Cloud environment not found.");
+        }
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+
+      setCloudResource(item);
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
+      setIsLoading(false);
+      setIsRefreshing(false);
+
+      ModelAPI.getList({
+        modelType: CloudResourceInstance,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        query: { cloudResourceId: modelId } as any,
+        select: {
+          instanceName: true,
+          latestCpuPercent: true,
+          latestMemoryBytes: true,
+          lastSeenAt: true,
+        },
+        sort: { latestCpuPercent: SortOrder.Descending },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      })
+        .then((result: { data: Array<CloudResourceInstance> }) => {
+          setInstances(result.data);
+          setInstancesLoaded(true);
+        })
+        .catch(() => {
+          setInstancesLoaded(true);
+        });
+    } catch (err) {
+      /*
+       * Keep stale data visible on a background refresh; only the initial
+       * load surfaces a page-level error.
+       */
+      if (showLoader) {
+        setError(API.getFriendlyMessage(err));
+      }
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchModel(true).catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  /*
+   * The metrics follow what the environment is scoped by, not the model
+   * object: fetchModel stores a new object on every refresh, and an effect
+   * keyed on it re-ran on every tick, cancelling a load still running for
+   * the same window. A refresh reloads them through metricsRefreshCount.
+   */
+  const metricsScope: string = cloudResource?.resourceIdentifier
+    ? JSON.stringify(getCloudResourceAttributeFilters(cloudResource))
+    : "";
+
+  useEffect(() => {
+    const item: CloudResource | null = cloudResource;
+    if (!item?.resourceIdentifier) {
+      return;
+    }
+
+    /*
+     * An environment with no cloud.platform has no attribute scope, and an
+     * unscoped span / metric query would sum the whole project into this
+     * one environment's tiles. Leave them empty until telemetry arrives.
+     */
+    if (!isCloudResourceScoped(item)) {
+      metricsInFlightRef.current = false;
+      setMetrics(null);
+      setMemorySeries([]);
+      setMetricsLoading(false);
+      return;
+    }
+
+    const attributes: Record<string, string> =
+      getCloudResourceAttributeFilters(item);
+
+    setMetricsLoading(true);
+    const range: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    const start: Date = range.startValue;
+    const end: Date = range.endValue;
+    setChartWindow({ start, end });
+
+    /*
+     * Staleness guard: a slow wide-range fetch can resolve after a
+     * subsequently selected narrower range (a zoom, its reset, the picker)
+     * or a Refresh — without the guard the older response would clobber
+     * the newer one.
+     */
+    let ignore: boolean = false;
+    metricsInFlightRef.current = true;
+    Promise.all([
+      fetchSpanMetrics({ attributes, start, end }),
+      fetchMetricSeries({
+        name: "container.memory.usage",
+        attributes,
+        aggregationType: AggregationType.Sum,
+        start,
+        end,
+      }),
+    ])
+      .then(([m, mem]: [SpanMetrics, Array<TimePoint>]) => {
+        if (ignore) {
+          return;
+        }
+        metricsInFlightRef.current = false;
+        setMetrics(m);
+        setMemorySeries(mem);
+        setMetricsLoading(false);
+      })
+      .catch(() => {
+        if (ignore) {
+          return;
+        }
+        metricsInFlightRef.current = false;
+        setMetricsLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [metricsScope, timeRange, metricsRefreshCount]);
+
+  /*
+   * A refresh reloads the model, the instances and the metrics. The
+   * auto-refresh tick lets a metrics load that is still running land
+   * instead of replacing it with one for the same window: when the
+   * aggregates outlast the interval, the Requests, Error rate and p95 tiles
+   * and both charts would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && metricsInFlightRef.current) {
+      return;
+    }
+
+    setMetricsRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
+
+  const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
+    storageKey: "cloud-overview-auto-refresh-interval",
+    onRefresh: (): void => {
+      refresh({ isAutoRefresh: true });
+    },
+  });
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!cloudResource) {
+    return <ErrorMessage message="Cloud environment not found." />;
+  }
+
+  const r: CloudResource = cloudResource;
+  const m: SpanMetrics | null = metrics;
+  const isScoped: boolean = isCloudResourceScoped(r);
+
+  /*
+   * One clock reading for the whole list so an instance cannot flip between
+   * live and stale halfway through the map.
+   */
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const liveInstances: Array<CloudResourceInstance> = instances.filter(
+    (i: CloudResourceInstance): boolean => {
+      return isCloudInstanceLive(i.lastSeenAt, now);
+    },
+  );
+
+  /*
+   * CPU, memory and the top-instances list are computed over LIVE instances
+   * only: a task that stopped reporting ten minutes ago still has its last
+   * CPU / memory values on its row until the sweeper removes it, and
+   * summing those into "total across instances" would overstate what the
+   * environment is using right now. The Instances tile counts the same set.
+   */
+  const cpuValues: Array<number> = liveInstances
+    .map((i: CloudResourceInstance): number | undefined => {
+      return i.latestCpuPercent;
+    })
+    .filter((n: number | undefined): n is number => {
+      return typeof n === "number" && Number.isFinite(n);
+    });
+  const avgCpu: number | null =
+    cpuValues.length > 0
+      ? cpuValues.reduce((a: number, b: number): number => {
+          return a + b;
+        }, 0) / cpuValues.length
+      : null;
+  const totalMem: number = liveInstances.reduce(
+    (sum: number, i: CloudResourceInstance): number => {
+      return sum + (i.latestMemoryBytes || 0);
+    },
+    0,
+  );
+
+  const platformLabel: string = getManagedCloudPlatformLabel(r.cloudPlatform);
+  const providerLabel: string = getCloudProviderLabel(r.cloudProvider);
+
+  const chips: Array<ResourceOverviewChip> = [];
+  if (providerLabel) {
+    chips.push({ icon: IconProp.Cloud, label: providerLabel });
+  }
+  if (r.cloudRegion) {
+    chips.push({ icon: IconProp.Globe, label: String(r.cloudRegion) });
+  }
+  if (r.cloudAccountId) {
+    chips.push({ icon: IconProp.Info, label: String(r.cloudAccountId) });
+  }
+
+  const populate: (page: PageMap) => Route = (page: PageMap): Route => {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
+  };
+
+  const tiles: Array<ResourceOverviewTile> = [
+    {
+      title: "CPU",
+      value: instancesLoaded ? formatPercent(avgCpu) : "—",
+      icon: IconProp.ChartBar,
+      iconColor: "blue",
+      loading: !instancesLoaded,
+      sublabel: "avg across live instances",
+      percent: avgCpu,
+      description: CLOUD_METRIC_DESCRIPTIONS.cpu,
+    },
+    {
+      title: "Memory",
+      value: instancesLoaded ? formatBytes(totalMem) : "—",
+      icon: IconProp.SquareStack,
+      iconColor: "violet",
+      loading: !instancesLoaded,
+      sublabel: "total across live instances",
+      description: CLOUD_METRIC_DESCRIPTIONS.memory,
+    },
+    {
+      title: "Instances",
+      value: instancesLoaded ? formatCompact(liveInstances.length) : "—",
+      icon: IconProp.Cube,
+      iconColor: "amber",
+      loading: !instancesLoaded,
+      sublabel: `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`,
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
+      description: CLOUD_METRIC_DESCRIPTIONS.instances,
+    },
+    {
+      title: "Requests",
+      value: m ? formatCompact(m.total) : "—",
+      icon: IconProp.Workflow,
+      iconColor: "sky",
+      loading: metricsLoading,
+      sublabel: "spans, selected range",
+      description: CLOUD_METRIC_DESCRIPTIONS.requests,
+    },
+    {
+      title: "Error rate",
+      value: m ? formatPercent(m.errorRatePercent) : "—",
+      icon: IconProp.Alert,
+      iconColor: "rose",
+      loading: metricsLoading,
+      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      percent: m ? m.errorRatePercent : null,
+      higherIsBetter: false,
+      thresholds: { warn: 1, danger: 5 },
+      description: CLOUD_METRIC_DESCRIPTIONS.errorRate,
+    },
+    {
+      title: "p95 latency",
+      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      icon: IconProp.Clock,
+      iconColor: "emerald",
+      loading: metricsLoading,
+      sublabel: "selected range",
+      description: CLOUD_METRIC_DESCRIPTIONS.p95Latency,
+    },
+  ];
+
+  const charts: ReactElement = (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <ChartCard
+        title="Requests"
+        icon={IconProp.Workflow}
+        iconColor="sky"
+        series={
+          [
+            { seriesName: "Requests", data: m?.countSeries ?? [] },
+            { seriesName: "Errors", data: m?.errorSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={`cloud-${modelId.toString()}`}
+        showLegend={true}
+        loading={metricsLoading && !m}
+        description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
+      />
+      <ChartCard
+        title="Memory"
+        icon={IconProp.SquareStack}
+        iconColor="violet"
+        series={
+          [{ seriesName: "Memory", data: memorySeries }] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={`cloud-${modelId.toString()}`}
+        yLegend="Bytes"
+        yFormatter={(n: number): string => {
+          return formatBytes(n);
+        }}
+        loading={metricsLoading && memorySeries.length === 0}
+        description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
+      />
+    </div>
+  );
+
+  const quickLinks: Array<ResourceOverviewQuickLink> = [
+    {
+      title: "Traces",
+      description: "Distributed traces across this environment",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_TRACES),
+      icon: IconProp.Workflow,
+    },
+    {
+      title: "Logs",
+      description: "Logs from workloads on this environment",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_LOGS),
+      icon: IconProp.Terminal,
+    },
+    {
+      title: "Metrics",
+      description: "Metrics from this environment",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_METRICS),
+      icon: IconProp.ChartBar,
+    },
+    {
+      title: "Instances",
+      description: "Running tasks and replicas, with live CPU and memory",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
+      icon: IconProp.Cube,
+    },
+    {
+      title: "Owners",
+      description: "Who is responsible for this environment",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_OWNERS),
+      icon: IconProp.Team,
+    },
+  ];
+
+  const detailRows: Array<ResourceOverviewDetailRow> = [
+    { label: "Cloud Platform (cloud.platform)", value: r.cloudPlatform },
+    { label: "Cloud Provider", value: r.cloudProvider },
+    { label: "Cloud Region", value: r.cloudRegion },
+    { label: "Cloud Account ID", value: r.cloudAccountId },
+    { label: "Environment Key", value: r.resourceIdentifier, mono: true },
+  ];
+
+  const topInstances: Array<CloudResourceInstance> = liveInstances.slice(0, 5);
+
+  /*
+   * Issue #4105: a drag on either chart sets the page's range to the window
+   * dragged out (the charts and the Requests / Error rate / p95 tiles
+   * refetch for it); a double-click on either chart, or Reset zoom beside
+   * the picker in the hero, puts the range from before the zoom back. The
+   * CPU / Memory / Instances tiles and Top instances are live values.
+   */
+  return (
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
+      {!isScoped ? (
+        <CloudResourceConnectBanner
+          modelId={modelId}
+          environmentKey={r.resourceIdentifier}
+        />
+      ) : (
+        <></>
+      )}
+
+      <ResourceOverview
+        icon={IconProp.Cloud}
+        title={(r.name as string) || "Cloud Environment"}
+        identifier={platformLabel}
+        identifierLabel="platform"
+        status={r.otelCollectorStatus}
+        lastSeenAt={r.lastSeenAt}
+        description={r.description as string}
+        chips={chips}
+        tiles={tiles}
+        charts={charts}
+        controls={
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              refresh({ isAutoRefresh: false });
+            }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
+          />
+        }
+        quickLinks={quickLinks}
+        detailRows={detailRows}
+        labels={r.labels}
+      />
+
+      {instancesLoaded && topInstances.length > 0 ? (
+        <div className="mt-6">
+          <Card
+            title={<TopInstancesByCpuTitle />}
+            description="Live CPU and memory per running task / instance."
+          >
+            <div className="-m-6 -mt-2 border-t border-gray-200 divide-y divide-gray-100">
+              {topInstances.map(
+                (i: CloudResourceInstance, idx: number): ReactElement => {
+                  return (
+                    <div
+                      key={`inst-${idx}`}
+                      className="flex items-center gap-4 px-4 py-3"
+                    >
+                      <div className="min-w-0 flex-1 truncate font-mono text-sm text-gray-900">
+                        {(i.instanceName as string) || "—"}
+                      </div>
+                      <div className="w-20 text-right text-sm text-gray-700">
+                        {formatPercent(
+                          typeof i.latestCpuPercent === "number"
+                            ? i.latestCpuPercent
+                            : null,
+                        )}
+                      </div>
+                      <div className="w-24 text-right text-sm text-gray-500">
+                        {formatBytes(
+                          typeof i.latestMemoryBytes === "number"
+                            ? i.latestMemoryBytes
+                            : null,
+                        )}
+                      </div>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <></>
+      )}
+    </TimeRangeZoomScope>
+  );
+};
+
+export default CloudResourceOverview;

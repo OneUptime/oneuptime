@@ -43,7 +43,6 @@ nohup.out*
 *.snap
 *.enc
 Dockerfile
-CHANGELOG
 LICENSE
 
 marketing/*/*

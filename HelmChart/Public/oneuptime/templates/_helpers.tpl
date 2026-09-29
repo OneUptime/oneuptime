@@ -165,6 +165,14 @@ its userlist at startup.
   {{- $provisionSSL = default false $.Values.ssl.provision -}}
 {{- end }}
 
+{{- /*
+IS_ENTERPRISE_EDITION is deprecated and never turns anything on. It is derived
+from image.type, so it always agrees with the image (true on a Community image
+would make the App refuse to start). What the App runs is decided by the image (image.type picks the
+enterprise- tags, and the Enterprise image carries ONEUPTIME_EDITION=enterprise
+itself), so the chart must never set ONEUPTIME_EDITION: an empty or wrong value
+here would override the image's own marker.
+*/}}
 - name: IS_ENTERPRISE_EDITION
   value: {{ (ternary "true" "false" $isEnterpriseEdition) | squote }}
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID
@@ -264,13 +272,17 @@ its userlist at startup.
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY
   value: {{ default "" $.Values.captcha.siteKey | quote }}
-# Outbound webhook egress policy. Off by default; a project must also enable
-# "Allow Private Network Webhooks" in Project Settings before either grants
-# anything. See values.yaml for the full explanation.
+# Outbound webhook egress policy. Off by default and instance-wide; there is no
+# per-project setting. See values.yaml for the full explanation.
 - name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
   value: {{ ternary "true" "false" (default false (($.Values.webhooks).allowPrivateNetwork)) | quote }}
 - name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
   value: {{ default "" (($.Values.webhooks).privateNetworkAllowlist) | quote }}
+# Egress policy for everything that is not a webhook (data sources, LLM
+# providers, SMTP, OIDC, runbook HTTP steps). Off by default, so private ranges
+# stay reachable on a self-hosted install. See values.yaml.
+- name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
+  value: {{ ternary "true" "false" (default false (($.Values.outboundConnections).blockPrivateNetwork)) | quote }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT
@@ -943,6 +955,26 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   valueFrom:
     fieldRef:
       fieldPath: status.podIP
+{{- end }}
+
+{{/*
+Kubernetes identity for OneUptime's own telemetry. Without it the OpenTelemetry
+SDK only reports host.name — the pod hostname — so every pod that ever ran is
+catalogued as a separate "host". Usage:
+  include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "app"))
+*/}}
+{{- define "oneuptime.env.telemetryIdentity" }}
+{{- include "oneuptime.env.pod" . }}
+- name: POD_UID
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.uid
+- name: K8S_DEPLOYMENT_NAME
+  value: {{ .DeploymentName | quote }}
+{{- if .Values.openTelemetryExporter.kubernetesClusterName }}
+- name: K8S_CLUSTER_NAME
+  value: {{ .Values.openTelemetryExporter.kubernetesClusterName | quote }}
+{{- end }}
 {{- end }}
 
 

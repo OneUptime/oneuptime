@@ -118,6 +118,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -134,7 +139,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image nginx \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Nginx/Dockerfile \
+            --dockerfile ./packages/Nginx/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -198,6 +203,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -214,7 +224,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image e2e \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./E2E/Dockerfile \
+            --dockerfile ./packages/E2E/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -277,6 +287,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -293,7 +308,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image test-server \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./TestServer/Dockerfile \
+            --dockerfile ./packages/TestServer/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -367,6 +382,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -383,7 +403,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image home \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Home/Dockerfile \
+            --dockerfile ./packages/Home/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -445,6 +465,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -525,6 +550,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -541,7 +571,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image probe \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Probe/Dockerfile \
+            --dockerfile ./packages/Probe/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -604,6 +634,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -620,7 +655,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image runner \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Runner/Dockerfile \
+            --dockerfile ./packages/Runner/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -661,6 +696,97 @@ jobs:
             --image runner \
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
+  # The Kubernetes AI agent, tagged like the Runner above. Nothing here runs
+  # it (test-helm-chart installs the oneuptime chart, not kubernetes-agent),
+  # so no job needs this one. It is here for two things: both architectures
+  # are built on every push to master, so a wrong arm64 kubectl digest fails
+  # now rather than in the release (the Build workflow's PR job is amd64
+  # only); and a test cluster can run master's agent from the `test` tag
+  # (aiAgent.image.tag=test with aiAgent.image.pullPolicy=Always).
+  kubernetes-ai-agent-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image kubernetes-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./agents/KubernetesAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+
+  kubernetes-ai-agent-docker-image-merge:
+    needs: [kubernetes-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Merge jobs only run `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke app-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image kubernetes-ai-agent \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
   app-docker-image-build:
     needs: [read-version, generate-build-number]
     strategy:
@@ -683,6 +809,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -699,7 +830,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image app \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./App/Dockerfile \
+            --dockerfile ./packages/App/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -780,7 +911,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
-          if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
+          if [ -d "packages/Common" ]; then cd packages/Common && npm install && cd ../..; fi
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
       - name: Import GPG signing key
@@ -870,11 +1001,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
       - name: Preinstall and enable billing
         run: |
           set -euo pipefail
           npm run prerun
           bash ./Tests/Scripts/enable-billing-env-var.sh
+      # The e2e container this job runs is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim. public.ecr.aws
+      # serves anonymous pullers from one shared data quota that a busy CI
+      # window exhausts, and then that build dies on "429 Too Many Requests ...
+      # Data limit exceeded" with the whole stack already up. So seed the base
+      # image into the local image store first, from Docker Hub if ECR will not
+      # serve it, as the Build workflow does: compose builds through
+      # `docker buildx bake` on the runner's default builder (the docker driver;
+      # nothing in this job sets up another), which resolves FROM from the
+      # daemon's image store without asking any registry. Preinstall has just
+      # rendered the Dockerfile this reads. The Ops test
+      # Tests/Ops/KubernetesAiAgentRelease.test.js fails any job that builds
+      # from the dev compose file, with `docker compose -f` or `npm run dev`,
+      # without warming exactly the Dockerfiles it builds, after rendering them
+      # and before building them.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       - name: Inject billing (Stripe) config for SaaS e2e
         env:
           # Secret Stripe credentials (private key + webhook secret must not be
@@ -916,11 +1069,15 @@ jobs:
               echo "${k}=${v}" >> config.env
             fi
           done
-      - name: Pin APP_TAG to test release
+      # SaaS runs with billing on, and the App refuses to boot with billing on
+      # unless the Enterprise Edition (ee/) is loaded, so this job runs the
+      # enterprise- tags of every image. The self-hosted job below stays on the
+      # Community tags.
+      - name: Pin APP_TAG to the enterprise test release
         run: |
           set -euo pipefail
           VERSION="${{needs.read-version.outputs.major_minor}}-test"
-          SANITIZED_VERSION="${VERSION//+/-}"
+          SANITIZED_VERSION="enterprise-${VERSION//+/-}"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
               sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
@@ -948,12 +1105,24 @@ jobs:
           # so `docker compose` interpolates ${KEY} straight from the process
           # env and does not depend on the config.env round-trip.
           echo "${KEY}=true" >> "$GITHUB_ENV"
+      # The App tag this job boots is a published enterprise- image. Check it is
+      # the Enterprise Edition before booting it: ee/ in the image and in its UI
+      # bundles, and the loader actually loading it.
+      - name: Check the App image is the Enterprise Edition
+        env:
+          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test
+        run: |
+          set -euo pipefail
+          docker pull "$APP_IMAGE"
+          bash ./Scripts/GHA/check_app_image_edition.sh --image "$APP_IMAGE" --edition enterprise
       - name: Start Server with release tag
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-          docker compose -f docker-compose.billing.yml up --remove-orphans -d
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          # The e2e overlay publishes ClickHouse on the runner's loopback for the
+          # exception fixtures; see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
@@ -964,12 +1133,12 @@ jobs:
           grep -n "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E" config.env || echo "  (not in config.env)"
           echo "runner env flag: [${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"
           echo "app container flag:"
-          docker compose -f docker-compose.billing.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
+          docker compose -f docker-compose.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e; bash ./Tests/Scripts/dump-container-logs.sh docker-compose.billing.yml; exit 1)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml logs e2e; bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -982,7 +1151,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E
+            ./packages/E2E
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1016,10 +1185,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
       - name: Preinstall
         run: |
           set -euo pipefail
           npm run prerun
+      # The e2e container this job runs is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim, and public.ecr.aws
+      # runs out of anonymous data quota in busy CI windows. Seed the base image
+      # into the local image store first, from Docker Hub if ECR will not serve
+      # it; see the same step in test-e2e-test-saas for why that is enough.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       - name: Pin APP_TAG to test release
         run: |
           set -euo pipefail
@@ -1034,19 +1215,33 @@ jobs:
           else
             echo "APP_TAG=${SANITIZED_VERSION}" > config.env
           fi
+      # The App tag this job boots is a published Community image. Check it is
+      # the Community Edition before booting it: no ee/ anywhere in the image or
+      # its UI bundles, and the loader finding none.
+      - name: Check the App image is the Community Edition
+        env:
+          APP_IMAGE: oneuptime/app:${{needs.read-version.outputs.major_minor}}-test
+        run: |
+          set -euo pipefail
+          docker pull "$APP_IMAGE"
+          bash ./Scripts/GHA/check_app_image_edition.sh --image "$APP_IMAGE" --edition community
       - name: Start Server with release tag
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-          npm run start
+          # `npm run start` minus the implicit compose file, so the e2e overlay can
+          # publish ClickHouse on the runner's loopback for the exception fixtures;
+          # see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
+          npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e; bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
+          docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml logs e2e; bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -1059,7 +1254,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E
+            ./packages/E2E
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1067,6 +1262,248 @@ jobs:
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
           retention-days: 7
+
+  # The self-hosted ENTERPRISE stack: the published enterprise- App image booted
+  # from docker-compose.yml with billing OFF. Nothing else in CI covers it. The
+  # SaaS job boots the same image with billing ON, where EnterpriseEdition
+  # answers "OneUptime Cloud" to every check and the license decides nothing;
+  # the self-hosted job boots the Community image, which has no ee/ at all. Only
+  # here does the LICENSE decide whether SSO, SCIM and audit logging run.
+  #
+  # The suite runs in two phases against one stack:
+  #
+  #   A  licensed - a fresh Enterprise install is inside its 14-day unlicensed
+  #      trial, so the 44 identity routes answer through nginx, the dashboard
+  #      renders the SSO/OIDC/SCIM and audit-log screens instead of the upsell,
+  #      and the audit recorder writes a real row to ClickHouse.
+  #   B  lapsed - the trial is pushed into the past and the SAME stack is
+  #      re-probed: the license gates refuse (402/403, not 404 - the routes are
+  #      still mounted), enterprise configuration becomes read-only, and
+  #      password sign-in still works.
+  #
+  # In-process jest suites (test.ee.yaml) already cover route mounting, the gate
+  # matrix, recorder eligibility and the license classifier. What only a booted
+  # stack proves is the published image, nginx's /identity rewrite, the shipped
+  # UI bundles, and a real ClickHouse write - so this job asserts those.
+  test-e2e-test-enterprise:
+    runs-on: ubuntu-latest
+    needs: [test-helm-chart, generate-build-number, read-version]
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+      # Billing stays OFF here, deliberately: no Tests/Scripts/enable-billing-env-var.sh
+      # and no Stripe configuration. This job exists to exercise the self-hosted
+      # Enterprise path, and billing on would short-circuit every license check.
+      - name: Preinstall
+        run: |
+          set -euo pipefail
+          npm run prerun
+      # Both phases below run the e2e container, which is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim, and public.ecr.aws
+      # runs out of anonymous data quota in busy CI windows. Seed the base image
+      # into the local image store first, from Docker Hub if ECR will not serve
+      # it; see the same step in test-e2e-test-saas for why that is enough.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
+      # Billing is off, so the Enterprise Edition is requested through the image
+      # tag alone - the enterprise- tag of the App, same one the SaaS job boots.
+      - name: Pin APP_TAG to the enterprise test release
+        run: |
+          set -euo pipefail
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="enterprise-${VERSION//+/-}"
+          if [ -f config.env ]; then
+            if grep -q '^APP_TAG=' config.env; then
+              sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
+            else
+              echo "APP_TAG=${SANITIZED_VERSION}" >> config.env
+            fi
+          else
+            echo "APP_TAG=${SANITIZED_VERSION}" > config.env
+          fi
+      - name: Expose notification-channel verification codes to the e2e suite
+        run: |
+          set -euo pipefail
+          # TEST-ONLY, and the same step the SaaS e2e job runs. The e2e stack has
+          # no mailbox, so the API is told to hand back the notification-channel
+          # verification code on the create response
+          # (Common/Server/Services/UserEmailService.ts). The enterprise suites
+          # sign up their own accounts, so they need it too. This is set ONLY
+          # here, for the ephemeral CI stack; it is never in a shipped config,
+          # and production leaves it empty so the code stays emailed.
+          KEY=EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E
+          if [ -f config.env ] && grep -q "^${KEY}=" config.env; then
+            sed -i "s|^${KEY}=.*|${KEY}=true|" config.env
+          else
+            echo "${KEY}=true" >> config.env
+          fi
+          # Also surface it as a real environment variable for every later step,
+          # so `docker compose` interpolates ${KEY} straight from the process
+          # env and does not depend on the config.env round-trip.
+          echo "${KEY}=true" >> "$GITHUB_ENV"
+      # The App tag this job boots is a published enterprise- image, and the
+      # whole job is meaningless if it is not really the Enterprise Edition: a
+      # Community image would answer 404 to every identity route and phase B
+      # would "pass" for the wrong reason. Check it before booting it: ee/ in
+      # the image and in its UI bundles, and the loader actually loading it.
+      - name: Check the App image is the Enterprise Edition
+        env:
+          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test
+        run: |
+          set -euo pipefail
+          docker pull "$APP_IMAGE"
+          bash ./Scripts/GHA/check_app_image_edition.sh --image "$APP_IMAGE" --edition enterprise
+      - name: Start Server with release tag
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          # No billing overlay: BILLING_ENABLED stays false, which is the point
+          # of this job. The e2e overlay publishes ClickHouse on the runner's
+          # loopback for the fixtures; see the header of
+          # packages/E2E/docker-compose.e2e-clickhouse.yml.
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
+          npm run status-check
+      - name: Wait for server to start
+        run: bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Report the edition and license the stack booted with (non-fatal)
+        run: |
+          set +e
+          echo "GET /api/global-config/license:"
+          curl -sS --max-time 15 http://localhost/api/global-config/license
+          echo ""
+      # PHASE A. A fresh Enterprise install is inside its unlicensed 14-day
+      # trial, so the license is usable and every enterprise feature is on.
+      #
+      # `run --rm` rather than `up --exit-code-from e2e`: the e2e image's default
+      # CMD is the whole default suite (`npm test`), and there is no other way to
+      # run a subset. `run` overrides the command, streams the suite's output
+      # into this step, propagates the suite's exit code, and removes the
+      # container afterwards - so there is no e2e container left to `logs` on
+      # failure, only the stack's own containers, which is where a 500 explains
+      # itself anyway.
+      - name: Run E2E Tests (phase A, licensed enterprise stack)
+        run: |
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml run --rm e2e npm run test-enterprise-licensed || (bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
+      # PHASE B, step 1: make the license lapse.
+      #
+      # WHY psql. There is deliberately no test hook, no env var and no API for
+      # faking a license state - a switch that could say "pretend this install is
+      # licensed" is a switch an unlicensed install could flip, so it does not
+      # exist. The only way to reach the lapsed state is the way a real install
+      # reaches it: let the trial run out. The trial is counted from one column,
+      # GlobalConfig.enterpriseEditionFirstSeenAt (singleton row
+      # 00000000-0000-0000-0000-000000000000), so backdating that column past the
+      # 14-day trial is the whole lapse. It is stable because
+      # ee/Server/License/LicenseStore.ts stamps the column ONLY when it is
+      # missing - a backdated value is never overwritten, by this boot or any
+      # later one. 60 days clears the 14-day trial with room to spare.
+      - name: Expire the enterprise trial (phase B setup)
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          # Heredoc, quoted, so the shell touches none of it: the quoted
+          # identifiers and the INTERVAL literal reach psql exactly as written.
+          # RETURNING + count so the affected-row count is a value this step can
+          # test, rather than a psql status line that -q would swallow.
+          ROWS="$(docker compose -f docker-compose.yml exec -T postgres \
+            psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -qtAX <<'SQL'
+          WITH backdated AS (
+            UPDATE "GlobalConfig"
+               SET "enterpriseEditionFirstSeenAt" = NOW() - INTERVAL '60 days'
+            RETURNING 1
+          )
+          SELECT count(*) FROM backdated;
+          SQL
+          )"
+          ROWS="$(printf '%s' "$ROWS" | tr -d '[:space:]')"
+          echo "Backdated GlobalConfig rows: [${ROWS}]"
+          if [ "$ROWS" != "1" ]; then
+            echo "::error::Backdating GlobalConfig.enterpriseEditionFirstSeenAt updated ${ROWS:-0} row(s), expected 1. Either the singleton GlobalConfig row is missing, or the Enterprise App never stamped the column on boot - which would mean an unlicensed Enterprise install never starts its trial. Fail here rather than run phase B against a license that never lapsed." >&2
+            exit 1
+          fi
+      # PHASE B, step 2: wait for the app to notice. It does NOT need a restart,
+      # but it is not instant either: the license inputs are cached for
+      # LICENSE_INPUTS_CACHE_TTL_IN_MS (60s, ee/Server/License/LicenseSettings.ts)
+      # and the synchronous getCachedSnapshot() the gates use keeps serving the
+      # old inputs while it kicks off a background reload
+      # (ee/Server/License/LicenseProvider.ts). So poll the public license
+      # endpoint - it awaits the reload - until it reports the lapse. Once it
+      # does, the reload has landed on the one provider instance that backs every
+      # gate in the process, and phase B can start. curl + jq only; both are on
+      # the runner image.
+      - name: Wait for the license to lapse (phase B setup)
+        run: |
+          set -uo pipefail
+          DEADLINE=$(( $(date +%s) + 180 ))
+          ATTEMPT=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            PAYLOAD="$(curl -sS --max-time 15 http://localhost/api/global-config/license || true)"
+            echo "attempt ${ATTEMPT}: ${PAYLOAD}"
+            STATUS="$(printf '%s' "$PAYLOAD" | jq -r '.status' 2>/dev/null || true)"
+            # `.licenseValid` is read without jq's `//` default on purpose: `//`
+            # treats false as absent, which is exactly the value being waited for.
+            VALID="$(printf '%s' "$PAYLOAD" | jq -r '.licenseValid' 2>/dev/null || true)"
+            if [ "$STATUS" = "missing" ] && [ "$VALID" = "false" ]; then
+              echo "License lapsed after ${ATTEMPT} attempt(s)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The license never lapsed within 180s of backdating GlobalConfig.enterpriseEditionFirstSeenAt. Expected GET /api/global-config/license to report status=missing and licenseValid=false (the license inputs cache is 60s). The last payload is in this step's log above." >&2
+          exit 1
+      # PHASE B. Same stack, same data, lapsed license.
+      - name: Run E2E Tests (phase B, lapsed enterprise license)
+        run: |
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml run --rm e2e npm run test-enterprise-lapsed || (bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        # Run this on failure
+        if: failure()
+        with:
+          # Name of the artifact to upload.
+          # Optional. Default is 'artifact'
+          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+
+          # A file, directory or wildcard pattern that describes what to upload
+          # Required.
+          path: |
+            ./packages/E2E
+
+
+          # Duration after which artifact will expire in days. 0 means using default retention.
+          # Minimum 1 day.
+          # Maximum 90 days unless changed from the repository settings page.
+          # Optional. Defaults to repository settings.
+          retention-days: 7
+
 
   infrastructure-agent-deploy:
     needs: [read-version, generate-build-number]
@@ -1112,10 +1549,10 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
+        run: cd agents/InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
 
       - name: Release MSI Images
-        run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+        run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
 
 
       - name: Upload Release Binaries
@@ -1129,7 +1566,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./InfrastructureAgent/dist
+            ./agents/InfrastructureAgent/dist
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.

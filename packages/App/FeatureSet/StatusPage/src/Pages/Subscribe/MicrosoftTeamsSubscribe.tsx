@@ -1,0 +1,358 @@
+import Page from "../../Components/Page/Page";
+import API from "../../Utils/API";
+import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import StatusPageModelAPI from "../../Utils/ModelAPI";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import StatusPageUtil from "../../Utils/StatusPage";
+import SubscribeSideMenu from "./SideMenu";
+import { SubscribePageProps } from "./SubscribePageUtils";
+import Route from "Common/Types/API/Route";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import URL from "Common/Types/API/URL";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ObjectID from "Common/Types/ObjectID";
+import Card from "Common/UI/Components/Card/Card";
+import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+
+export type ComponentProps = SubscribePageProps;
+
+const SubscribePage: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const { t } = useTranslation();
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  /*
+   * The manage tab gets its own flag: the server answers a manage request the
+   * same way whether or not anything matched, so it must not reuse the
+   * subscribe tab's success copy.
+   */
+  const [isManageLinkRequested, setIsManageLinkRequested] =
+    useState<boolean>(false);
+  /*
+   * Start in the loading state when the effect below is actually going to
+   * fetch. Starting at false rendered the whole form, then swapped it for a
+   * loader, then rendered it again — a visible flash on a page the reader is
+   * already looking at. It must stay false when the fetch is skipped, or the
+   * loader would never clear.
+   */
+  const [isLaoding, setIsLoading] = useState<boolean>(
+    Boolean(props.allowSubscribersToChooseResources),
+  );
+
+  const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+
+  const [
+    categoryCheckboxOptionsAndCategories,
+    setCategoryCheckboxOptionsAndCategories,
+  ] = useState<CategoryCheckboxOptionsAndCategories>({
+    categories: [],
+    options: [],
+  });
+
+  const [error, setError] = useState<string | undefined>(undefined);
+
+  const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+
+        const result: CategoryCheckboxOptionsAndCategories =
+          await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(
+            id,
+            URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+              `/resources/${id.toString()}`,
+            ),
+            StatusPageModelAPI,
+          );
+
+        setCategoryCheckboxOptionsAndCategories(result);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    };
+
+  useEffect(() => {
+    if (!props.allowSubscribersToChooseResources) {
+      setIsLoading(false);
+      return;
+    }
+
+    fetchCheckboxOptionsAndCategories().catch((error: Error) => {
+      setError(error.message);
+    });
+  }, [props.allowSubscribersToChooseResources]);
+
+  if (!id) {
+    throw new BadDataException("Status Page ID is required");
+  }
+
+  StatusPageUtil.checkIfUserHasLoggedIn();
+
+  const fields: Array<ModelField<StatusPageSubscriber>> = [
+    {
+      field: {
+        microsoftTeamsWorkspaceName: true,
+      },
+      title: t("subscribe.microsoftTeams.workspaceName"),
+      description: t("subscribe.microsoftTeams.workspaceNameDescription"),
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: t("subscribe.microsoftTeams.workspaceNamePlaceholder"),
+    },
+    {
+      field: {
+        microsoftTeamsIncomingWebhookUrl: true,
+      },
+      title: t("subscribe.microsoftTeams.webhookUrl"),
+      description: t("subscribe.microsoftTeams.webhookUrlDescription"),
+      fieldType: FormFieldSchemaType.URL,
+      required: true,
+      placeholder: t("subscribe.microsoftTeams.webhookUrlPlaceholder"),
+    },
+  ];
+
+  if (props.allowSubscribersToChooseResources) {
+    fields.push({
+      field: {
+        isSubscribedToAllResources: true,
+      },
+      title: t("subscribe.resources.all"),
+      description: t("subscribe.resources.allDescription"),
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
+
+    fields.push({
+      field: {
+        statusPageResources: true,
+      },
+      title: t("subscribe.resources.select"),
+      description: t("subscribe.resources.selectDescription"),
+      fieldType: FormFieldSchemaType.CategoryCheckbox,
+      required: false,
+      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllResources;
+      },
+    });
+  }
+
+  if (props.allowSubscribersToChooseEventTypes) {
+    fields.push({
+      field: {
+        isSubscribedToAllEventTypes: true,
+      },
+      title: t("subscribe.eventTypes.all"),
+      description: t("subscribe.eventTypes.allDescription"),
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
+
+    fields.push({
+      field: {
+        statusPageEventTypes: true,
+      },
+      title: t("subscribe.eventTypes.select"),
+      description: t("subscribe.eventTypes.selectDescription"),
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      required: false,
+      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllEventTypes;
+      },
+    });
+  }
+
+  const getNewSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          modelAPI={StatusPageModelAPI}
+          id="microsoft-teams-form"
+          name="Status Page > Microsoft Teams Subscribe"
+          fields={fields}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/subscribe/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders()}
+          formType={FormType.Create}
+          submitButtonText={t("subscribe.submit")}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
+
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
+
+  const getManageExistingSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          modelAPI={StatusPageModelAPI}
+          id="microsoft-teams-manage-form"
+          name="Status Page > Manage Teams Subscription"
+          fields={[
+            {
+              field: {
+                microsoftTeamsWorkspaceName: true,
+              },
+              title: t("subscribe.microsoftTeams.managePrompt"),
+              description: t("subscribe.microsoftTeams.manageDescription"),
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: t(
+                "subscribe.microsoftTeams.workspaceNamePlaceholder",
+              ),
+            },
+          ]}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/manage-subscription/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders()}
+          formType={FormType.Create}
+          submitButtonText={t("subscribe.sendManagementLink")}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
+
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsManageLinkRequested(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
+
+  return (
+    <Page
+      title={t("subscribe.title")}
+      breadcrumbLinks={[
+        {
+          title: t("nav.overview"),
+          to: RouteUtil.populateRouteParams(
+            StatusPageUtil.isPreviewPage()
+              ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+              : (RouteMap[PageMap.OVERVIEW] as Route),
+          ),
+        },
+        {
+          title: t("subscribe.title"),
+          to: RouteUtil.populateRouteParams(
+            StatusPageUtil.isPreviewPage()
+              ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route)
+              : (RouteMap[PageMap.SUBSCRIBE_MICROSOFT_TEAMS] as Route),
+          ),
+        },
+      ]}
+      sideMenu={
+        <SubscribeSideMenu
+          isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
+          enableSlackSubscribers={props.enableSlackSubscribers}
+          enableEmailSubscribers={props.enableEmailSubscribers}
+          enableSMSSubscribers={props.enableSMSSubscribers}
+          enableMicrosoftTeamsSubscribers={
+            props.enableMicrosoftTeamsSubscribers
+          }
+          enableWebhookSubscribers={props.enableWebhookSubscribers}
+        />
+      }
+    >
+      {isLaoding ? <FormSkeleton /> : <></>}
+
+      {error ? <ErrorMessage message={error} /> : <></>}
+
+      {!isLaoding && !error ? (
+        <div className="justify-center">
+          <div>
+            {isSuccess && (
+              <p className="text-center text-gray-400 mb-20 mt-20">
+                {t("subscribe.subscribedSuccessfully")}
+              </p>
+            )}
+
+            {isManageLinkRequested && (
+              <p className="text-center text-gray-400 mb-20 mt-20">
+                {t("subscribe.manageLinkSent")}
+              </p>
+            )}
+
+            {!isSuccess && !isManageLinkRequested ? (
+              <div className="">
+                <Card
+                  title={t("subscribe.microsoftTeams.title")}
+                  description={t("subscribe.microsoftTeams.description")}
+                >
+                  <Tabs
+                    tabs={[
+                      {
+                        name: t("subscribe.newSubscription"),
+                        children: getNewSubscriptionContentElement(),
+                      },
+                      {
+                        name: t("subscribe.manageExisting"),
+                        children: getManageExistingSubscriptionContentElement(),
+                      },
+                    ]}
+                    onTabChange={() => {}}
+                  />
+                </Card>
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+    </Page>
+  );
+};
+
+export default SubscribePage;

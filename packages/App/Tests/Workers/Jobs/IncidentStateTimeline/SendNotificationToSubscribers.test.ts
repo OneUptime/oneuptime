@@ -1,0 +1,2579 @@
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import URL from "Common/Types/API/URL";
+import Email from "Common/Types/Email";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Phone from "Common/Types/Phone";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
+
+/*
+ * Incident state change subscriber notifications. These tests drive one tick
+ * of the job against fakes and check what each channel's custom template is
+ * given, that the default messages stay as they were, and which status
+ * columns are written.
+ *
+ * Each custom template gets values in the format its channel renders: HTML
+ * in the email body, plain text in SMS and the email subject, and Markdown
+ * in Slack and Teams. The resource list is formatted by the real
+ * StatusPageResourceUtil, so the grouped-resource tests see the same "<br/>"
+ * and "; " separators that production does.
+ */
+
+type CronHandler = () => Promise<void>;
+
+const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
+
+jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+  return {
+    __esModule: true,
+    default: jest.fn(
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
+        mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
+      },
+    ),
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    EXTERNAL_FAULT: {},
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/DatabaseConfig", () => {
+  return {
+    __esModule: true,
+    default: { getHost: jest.fn(), getHttpProtocol: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Services/IncidentStateTimelineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/IncidentService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      // IncidentStatusPageScope reads each incident's status page scope.
+      findBy: jest.fn(),
+      getIncidentLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/IncidentFeedService", () => {
+  return { __esModule: true, default: { createIncidentFeedItem: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/StatusPageResourceService", () => {
+  return { __esModule: true, default: { findByMonitors: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getStatusPagesToSendNotification: jest.fn(),
+      getSubscribersByStatusPage: jest.fn(),
+      shouldSendNotification: jest.fn(),
+      getUnsubscribeLink: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/StatusPageService", () => {
+  return {
+    __esModule: true,
+    default: { getStatusPageURL: jest.fn() },
+    Service: {
+      getSubscriberEmailFooterText: jest.fn(() => {
+        return "Footer text";
+      }),
+    },
+  };
+});
+
+jest.mock(
+  "Common/Server/Services/StatusPageSubscriberNotificationTemplateService",
+  () => {
+    return {
+      __esModule: true,
+      default: { getTemplateForStatusPage: jest.fn() },
+      Service: {
+        /*
+         * The real substitution, wrapped in a mock so tests can read the
+         * variables each channel handed to its template.
+         */
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
+        compileTemplate: jest.fn(
+          (template: string, variables: Record<string, string>): string => {
+            let compiled: string = template;
+            for (const [key, value] of Object.entries(variables)) {
+              compiled = compiled.replace(
+                new RegExp(`{{\\s*${key}\\s*}}`, "g"),
+                value || "",
+              );
+            }
+            return compiled;
+          },
+        ),
+      },
+    };
+  },
+);
+
+jest.mock("Common/Server/Services/MailService", () => {
+  return { __esModule: true, default: { sendMail: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/SmsService", () => {
+  return { __esModule: true, default: { sendSms: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/ProjectCallSMSConfigService", () => {
+  return {
+    __esModule: true,
+    default: { toTwilioConfig: jest.fn(() => {}) },
+  };
+});
+
+jest.mock("Common/Server/Services/ProjectSmtpConfigService", () => {
+  return {
+    __esModule: true,
+    default: { toEmailServer: jest.fn(() => {}) },
+  };
+});
+
+jest.mock("Common/Server/Types/Markdown", () => {
+  return {
+    __esModule: true,
+    MarkdownContentType: { Email: "Email" },
+    default: { convertToHTML: jest.fn(), convertToPlainText: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Utils/Workspace/Slack/Slack", () => {
+  return {
+    __esModule: true,
+    default: {
+      sendMessageToChannelViaIncomingWebhook: jest.fn(),
+      convertMarkdownToSlackRichText: jest.fn((text: string) => {
+        return text;
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams", () => {
+  return {
+    __esModule: true,
+    default: { sendMessageToChannelViaIncomingWebhook: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
+  return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
+});
+
+/*
+ * The project's incident custom fields (IncidentTemplateVariableBuilder):
+ * none unless a test gives it some (see IncidentCustomFieldFixtures), and the
+ * visibility of a Rich text field's inline images, recorded.
+ */
+jest.mock("Common/Server/Services/IncidentCustomFieldService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Utils/InlineImageAccessTokenSync", () => {
+  return { __esModule: true, syncIsPublicForMarkdownImages: jest.fn() };
+});
+
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import IncidentService from "Common/Server/Services/IncidentService";
+import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
+import MailService from "Common/Server/Services/MailService";
+import SmsService from "Common/Server/Services/SmsService";
+import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import Hostname from "Common/Types/API/Hostname";
+import Protocol from "Common/Types/API/Protocol";
+import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import Dictionary from "Common/Types/Dictionary";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  smsManageLinkFor,
+  unsubscribeLinkFor,
+  unsubscribeTokenFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  RecordedCompile,
+  expectNoHtmlEntities,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  recordedCompiles,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
+import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
+import {
+  AFFECTED_LOCATION,
+  AFFECTED_LOCATION_HTML,
+  CUSTOM_FIELD_DEFINITIONS,
+  CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+  CUSTOM_FIELD_VALUES,
+  EXPECTED_CUSTOM_FIELD_ROWS,
+  EXPECTED_INCLUDED_FIELDS_FEED,
+  EXPECTED_WEBHOOK_CUSTOM_FIELDS,
+  IMPACT_DETAILS,
+  IMPACT_DETAILS_HTML,
+  IMPACT_DETAILS_TEXT,
+  INCIDENT_LABELS,
+  INTERNAL_TICKET,
+  expectOnlyOfferedVariables,
+  incidentLabels,
+} from "../Fixtures/IncidentCustomFieldFixtures";
+import { syncIsPublicForMarkdownImages } from "Common/Server/Utils/InlineImageAccessTokenSync";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import "../../../../FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+
+const JOB: string = "IncidentStateTimeline:SendNotificationToSubscribers";
+
+const EVENT_TYPE: StatusPageSubscriberNotificationEventType =
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged;
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "22222222-2222-4222-8222-222222222222",
+);
+const INCIDENT_ID: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
+const TIMELINE_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+const SUBSCRIBER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const INCIDENT_STATE_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const MONITOR_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+const SECOND_STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "99999999-9999-4999-8999-999999999999",
+);
+const SECOND_SUBSCRIBER_ID: ObjectID = new ObjectID(
+  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+);
+const SECOND_INCIDENT_ID: ObjectID = new ObjectID(
+  "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+);
+const SECOND_TIMELINE_ID: ObjectID = new ObjectID(
+  "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+);
+
+const STATUS_PAGE_URL: string = "https://status.acme.com";
+const SECOND_STATUS_PAGE_URL: string = "https://status.beta.com";
+const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+  STATUS_PAGE_URL,
+  SUBSCRIBER_ID,
+);
+const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/incident/1";
+
+const INCIDENT_TITLE: string = "Checkout requests failing";
+const INCIDENT_STATE_NAME: string = "Identified";
+const INCIDENT_SEVERITY: string = "Critical";
+
+/*
+ * The description as written (Markdown), the email HTML the Markdown helper
+ * turns it into for a custom email body, and the plain text it turns it into
+ * for SMS and the email subject. None appears in any other fixture, so a
+ * description can only render if it came from the incident, and each format
+ * can be told apart from the others.
+ */
+const INCIDENT_DESCRIPTION: string =
+  "Card payments **fail** for customers in [Europe](https://acme.com/eu).";
+const INCIDENT_DESCRIPTION_HTML: string =
+  '<p>Card payments <strong>fail</strong> for customers in <a href="https://acme.com/eu">Europe</a>.</p>';
+const INCIDENT_DESCRIPTION_TEXT: string =
+  "Card payments fail for customers in Europe.";
+const SECOND_INCIDENT_DESCRIPTION: string =
+  "Search results are _stale_ for every tenant.";
+const SECOND_INCIDENT_DESCRIPTION_HTML: string =
+  "<p>Search results are <em>stale</em> for every tenant.</p>";
+const SECOND_INCIDENT_DESCRIPTION_TEXT: string =
+  "Search results are stale for every tenant.";
+
+const HTML_BY_MARKDOWN: Record<string, string> = {
+  [INCIDENT_DESCRIPTION]: INCIDENT_DESCRIPTION_HTML,
+  [SECOND_INCIDENT_DESCRIPTION]: SECOND_INCIDENT_DESCRIPTION_HTML,
+};
+
+const PLAIN_TEXT_BY_MARKDOWN: Record<string, string> = {
+  [INCIDENT_DESCRIPTION]: INCIDENT_DESCRIPTION_TEXT,
+  [SECOND_INCIDENT_DESCRIPTION]: SECOND_INCIDENT_DESCRIPTION_TEXT,
+};
+
+/*
+ * Two resources in two groups, as the real StatusPageResourceUtil lists them
+ * for HTML (the email body) and for everything else.
+ */
+const GROUPED_RESOURCES_HTML: string =
+  "Europe: Checkout API<br/>Americas: Payments API";
+const GROUPED_RESOURCES_TEXT: string =
+  "Europe: Checkout API; Americas: Payments API";
+
+let pendingTimelines: Array<IncidentStateTimeline> = [];
+let storedIncidents: Record<string, Incident> = {};
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
+
+function stateTimeline(overrides?: {
+  id?: ObjectID;
+  incidentId?: ObjectID;
+  stateName?: string;
+  isCreatedState?: boolean;
+}): IncidentStateTimeline {
+  const row: IncidentStateTimeline = new IncidentStateTimeline();
+  row._id = (overrides?.id || TIMELINE_ID).toString();
+  row.projectId = PROJECT_ID;
+  row.incidentId = overrides?.incidentId || INCIDENT_ID;
+  row.incidentStateId = INCIDENT_STATE_ID;
+
+  const state: IncidentState = new IncidentState();
+  state.name = overrides?.stateName || INCIDENT_STATE_NAME;
+  state.isCreatedState = Boolean(overrides?.isCreatedState);
+  row.incidentState = state;
+
+  return row;
+}
+
+function incident(overrides?: {
+  id?: ObjectID;
+  title?: string;
+  // null leaves the description unset.
+  description?: string | null;
+  withoutTitle?: boolean;
+  isVisibleOnStatusPage?: boolean;
+}): Incident {
+  const row: Incident = new Incident();
+  row._id = (overrides?.id || INCIDENT_ID).toString();
+  if (!overrides?.withoutTitle) {
+    row.title = overrides?.title || INCIDENT_TITLE;
+  }
+  if (overrides?.description !== null) {
+    row.description = overrides?.description || INCIDENT_DESCRIPTION;
+  }
+  row.projectId = PROJECT_ID;
+  row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  row.incidentNumber = 7;
+  row.incidentNumberWithPrefix = "INC-7";
+
+  const severity: IncidentSeverity = new IncidentSeverity();
+  severity.name = INCIDENT_SEVERITY;
+  row.incidentSeverity = severity;
+
+  const monitor: Monitor = new Monitor();
+  monitor._id = MONITOR_ID.toString();
+  row.monitors = [monitor];
+
+  // {{incidentLabels}} reads them alphabetically (INCIDENT_LABELS).
+  row.labels = incidentLabels();
+
+  return row;
+}
+
+function storeIncidents(rows: Array<Incident>): void {
+  storedIncidents = {};
+  for (const row of rows) {
+    storedIncidents[row._id!] = row;
+  }
+}
+
+function statusPage(overrides?: {
+  showIncidentsOnStatusPage?: boolean;
+  id?: ObjectID;
+  pageTitle?: string;
+  // Custom SMTP and Twilio, which Email and SMS need to use custom templates.
+  withCustomSmtpAndSms?: boolean;
+}): StatusPage {
+  const page: StatusPage = new StatusPage();
+  page._id = (overrides?.id || STATUS_PAGE_ID).toString();
+  page.projectId = PROJECT_ID;
+  page.name = "Acme";
+  page.pageTitle = overrides?.pageTitle || "Acme Status";
+  page.isPublicStatusPage = true;
+  page.showIncidentsOnStatusPage =
+    overrides?.showIncidentsOnStatusPage !== false;
+  page.onlyShowScopedIncidents = false;
+  if (overrides?.withCustomSmtpAndSms) {
+    (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+  }
+  return page;
+}
+
+function resource(overrides?: {
+  id?: string;
+  statusPageId?: ObjectID;
+  displayName?: string;
+  // Puts the resource in a status page group with this name.
+  groupName?: string;
+}): StatusPageResource {
+  const row: StatusPageResource = new StatusPageResource();
+  row._id = overrides?.id || "88888888-8888-4888-8888-888888888888";
+  row.statusPageId = overrides?.statusPageId || STATUS_PAGE_ID;
+  row.displayName = overrides?.displayName || "Checkout API";
+  if (overrides?.groupName) {
+    row.statusPageGroupId = ObjectID.generate();
+    const group: StatusPageGroup = new StatusPageGroup();
+    group.name = overrides.groupName;
+    row.statusPageGroup = group;
+  }
+  return row;
+}
+
+// Lists as GROUPED_RESOURCES_HTML and GROUPED_RESOURCES_TEXT.
+function groupedResources(): Array<StatusPageResource> {
+  return [
+    resource({ groupName: "Europe" }),
+    resource({
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      displayName: "Payments API",
+      groupName: "Americas",
+    }),
+  ];
+}
+
+function subscriber(id?: ObjectID): StatusPageSubscriber {
+  const row: StatusPageSubscriber = new StatusPageSubscriber();
+  row._id = (id || SUBSCRIBER_ID).toString();
+  row.subscriberEmail = new Email("customer@example.com");
+  row.subscriberPhone = new Phone("+15555550100");
+  row.slackIncomingWebhookUrl = URL.fromString(
+    "https://hooks.slack.com/services/T000/B000/XXXX",
+  );
+  row.microsoftTeamsIncomingWebhookUrl = URL.fromString(
+    "https://outlook.office.com/webhook/abc",
+  );
+  row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
+  return withUnsubscribeToken(row);
+}
+
+function mock(fn: unknown): jest.Mock {
+  return fn as unknown as jest.Mock;
+}
+
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
+function statusWrites(): Array<JSONObject> {
+  return statusWritesInOrder({
+    claim: IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentStateTimelineService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
+}
+
+function sentMail(): Array<JSONObject> {
+  return mock(MailService.sendMail).mock.calls.map(
+    (call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    },
+  );
+}
+
+function sentSms(): Array<string> {
+  return mock(SmsService.sendSms).mock.calls.map(
+    (call: Array<unknown>): string => {
+      return (call[0] as { message: string }).message;
+    },
+  );
+}
+
+function sentSlack(): Array<string> {
+  return mock(SlackUtil.sendMessageToChannelViaIncomingWebhook).mock.calls.map(
+    (call: Array<unknown>): string => {
+      return (call[0] as { text: string }).text;
+    },
+  );
+}
+
+function sentTeams(): Array<string> {
+  return mock(
+    MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+  ).mock.calls.map((call: Array<unknown>): string => {
+    return (call[0] as { text: string }).text;
+  });
+}
+
+function sentWebhooks(): Array<JSONObject> {
+  return mock(
+    StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  ).mock.calls.map((call: Array<unknown>): JSONObject => {
+    return (call[0] as { payload: JSONObject }).payload;
+  });
+}
+
+function feedItems(): Array<JSONObject> {
+  return mock(IncidentFeedService.createIncidentFeedItem).mock.calls.map(
+    (call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    },
+  );
+}
+
+function nothingSent(): void {
+  expect(MailService.sendMail).not.toHaveBeenCalled();
+  expect(SmsService.sendSms).not.toHaveBeenCalled();
+  expect(
+    SlackUtil.sendMessageToChannelViaIncomingWebhook,
+  ).not.toHaveBeenCalled();
+  expect(
+    MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+  ).not.toHaveBeenCalled();
+  expect(
+    StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  ).not.toHaveBeenCalled();
+}
+
+// The dashboard's starter template for a channel, filled from the fixtures.
+function dashboardDefault(
+  method: StatusPageSubscriberNotificationMethod,
+): string {
+  const template: string =
+    getDefaultSubscriberNotificationTemplate(EVENT_TYPE, method)?.body || "";
+  const variables: Record<string, string> = {
+    statusPageName: "Acme Status",
+    statusPageUrl: STATUS_PAGE_URL,
+    detailsUrl: DETAILS_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
+    incidentTitle: INCIDENT_TITLE,
+    incidentSeverity: INCIDENT_SEVERITY,
+    incidentState: INCIDENT_STATE_NAME,
+    resourcesAffected: "Checkout API",
+  };
+
+  expect(template).not.toBe("");
+
+  return template.replace(/{{\s*(\w+)\s*}}/g, (_match: string, key: string) => {
+    return variables[key] ?? "";
+  });
+}
+
+async function runJob(): Promise<void> {
+  expect(mockCapturedJobs[JOB]).toBeDefined();
+  await mockCapturedJobs[JOB]!();
+}
+
+interface CompileCall {
+  template: string;
+  variables: Record<string, string>;
+}
+
+// Template variables in each format a custom template's channel renders.
+interface ChannelVariables {
+  // The custom email body, sent as HTML.
+  emailBody: Record<string, string>;
+  // SMS and the custom email subject.
+  plainText: Record<string, string>;
+  // Slack and Microsoft Teams.
+  markdown: Record<string, string>;
+}
+
+function compileCalls(): Array<CompileCall> {
+  // Text and email body compiles, in order (see SubscriberTemplateCompileFixtures).
+  return recordedCompiles(
+    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).map((call: RecordedCompile): CompileCall => {
+    return {
+      template: call.template,
+      variables: call.variables,
+    };
+  });
+}
+
+// The variables the job handed to compileTemplate for this template, once.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const calls: Array<CompileCall> = compileCalls().filter(
+    (call: CompileCall): boolean => {
+      return call.template === template;
+    },
+  );
+
+  expect(calls).toHaveLength(1);
+  return calls[0]!.variables;
+}
+
+function offeredVariableNames(): Array<string> {
+  const names: Array<string> =
+    SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+      EVENT_TYPE,
+    );
+  expect(names).toContain("incidentDescription");
+  return names;
+}
+
+// Names the call does not carry as an own key with a string value.
+function missingVariables(call: CompileCall): Array<string> {
+  return offeredVariableNames().filter((name: string): boolean => {
+    return (
+      !Object.prototype.hasOwnProperty.call(call.variables, name) ||
+      typeof call.variables[name] !== "string"
+    );
+  });
+}
+
+function expectEveryCallToCarryEveryVariable(calls: Array<CompileCall>): void {
+  for (const call of calls) {
+    expect({
+      template: call.template,
+      missing: missingVariables(call),
+    }).toEqual({ template: call.template, missing: [] });
+  }
+}
+
+const EMAIL_SUBJECT_TEMPLATE: string =
+  "Subject: {{incidentTitle}} is {{incidentState}} on {{resourcesAffected}} ({{incidentDescription}})";
+
+/*
+ * A template body that prints every variable advertised for the event as
+ * name=[value], so a test can see which ones rendered and with what.
+ */
+function templateUsingEveryVariable(channel: string): string {
+  const lines: Array<string> = offeredVariableNames().map(
+    (name: string): string => {
+      return `${name}=[{{${name}}}]`;
+    },
+  );
+
+  return [`channel=${channel}`, ...lines].join("\n");
+}
+
+// What templateUsingEveryVariable(channel) renders to with these values.
+function renderedWith(channel: string, values: Record<string, string>): string {
+  const lines: Array<string> = offeredVariableNames().map(
+    (name: string): string => {
+      expect(values[name]).toBeDefined();
+      return `${name}=[${values[name]}]`;
+    },
+  );
+
+  return [`channel=${channel}`, ...lines].join("\n");
+}
+
+const CUSTOM_BODIES: Record<string, string> = {
+  [StatusPageSubscriberNotificationMethod.Email]:
+    templateUsingEveryVariable("email"),
+  [StatusPageSubscriberNotificationMethod.SMS]:
+    templateUsingEveryVariable("sms"),
+  [StatusPageSubscriberNotificationMethod.Slack]:
+    templateUsingEveryVariable("slack"),
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+    templateUsingEveryVariable("teams"),
+};
+
+type DescriptionFormat = "html" | "text" | "markdown";
+
+/*
+ * The format each custom template gets {{incidentDescription}} in: HTML for
+ * the email body, plain text for the email subject and SMS, and the Markdown
+ * as written for Slack and Teams.
+ */
+const DESCRIPTION_FORMAT_BY_TEMPLATE: Record<string, DescriptionFormat> = {
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!]: "html",
+  [EMAIL_SUBJECT_TEMPLATE]: "text",
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!]: "text",
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!]: "markdown",
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!]:
+    "markdown",
+};
+
+function descriptionFormatOf(call: CompileCall): DescriptionFormat {
+  const format: DescriptionFormat | undefined =
+    DESCRIPTION_FORMAT_BY_TEMPLATE[call.template];
+  expect(format).toBeDefined();
+  return format!;
+}
+
+/*
+ * Gives the status pages (custom SMTP and Twilio by default) a custom
+ * template for the event on Email, SMS, Slack and Teams, each printing every
+ * advertised variable. A lookup for any other event finds no template.
+ */
+function useCustomTemplatesOnEveryChannel(pages?: Array<StatusPage>): void {
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue(
+    (pages || [statusPage({ withCustomSmtpAndSms: true })]) as never,
+  );
+
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockImplementation(async (args: unknown) => {
+    const lookup: JSONObject = args as JSONObject;
+    const method: string = lookup["notificationMethod"] as string;
+
+    if (lookup["eventType"] !== EVENT_TYPE || !CUSTOM_BODIES[method]) {
+      return null;
+    }
+
+    return method === StatusPageSubscriberNotificationMethod.Email
+      ? {
+          templateBody: CUSTOM_BODIES[method],
+          emailSubject: EMAIL_SUBJECT_TEMPLATE,
+        }
+      : { templateBody: CUSTOM_BODIES[method] };
+  });
+}
+
+// Two status pages, each with its own resource, URL and two subscribers.
+function useTwoStatusPagesWithTwoSubscribers(): void {
+  useCustomTemplatesOnEveryChannel([
+    statusPage({ withCustomSmtpAndSms: true }),
+    statusPage({
+      withCustomSmtpAndSms: true,
+      id: SECOND_STATUS_PAGE_ID,
+      pageTitle: "Beta Status",
+    }),
+  ]);
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+    resource(),
+    resource({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      statusPageId: SECOND_STATUS_PAGE_ID,
+      displayName: "Search API",
+    }),
+  ] as never);
+  mock(
+    StatusPageSubscriberService.getSubscribersByStatusPage,
+  ).mockResolvedValue([
+    subscriber(),
+    subscriber(SECOND_SUBSCRIBER_ID),
+  ] as never);
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+
+  // No incident custom fields unless a test gives the project some.
+  mock(IncidentCustomFieldService.findBy).mockResolvedValue([] as never);
+  mock(syncIsPublicForMarkdownImages).mockResolvedValue(undefined as never);
+
+  pendingTimelines = [stateTimeline()];
+  storeIncidents([incident()]);
+  storedScopes = {};
+
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
+
+  mock(IncidentStateTimelineService.findBy).mockImplementation(async () => {
+    return pendingTimelines;
+  });
+  mock(IncidentStateTimelineService.updateOneById).mockResolvedValue(
+    1 as never,
+  );
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
+
+  mock(IncidentService.findOneById).mockImplementation(
+    async (args: unknown): Promise<Incident | null> => {
+      const id: ObjectID = (args as { id: ObjectID }).id;
+      return storedIncidents[id.toString()] || null;
+    },
+  );
+  mock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
+    URL.fromString(DASHBOARD_URL) as never,
+  );
+  mock(IncidentFeedService.createIncidentFeedItem).mockResolvedValue(
+    undefined as never,
+  );
+
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+    resource(),
+  ] as never);
+
+  mock(DatabaseConfig.getHost).mockResolvedValue(
+    Hostname.fromString("oneuptime.acme.com") as never,
+  );
+  mock(DatabaseConfig.getHttpProtocol).mockResolvedValue(
+    Protocol.HTTPS as never,
+  );
+
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue([statusPage()] as never);
+  mock(
+    StatusPageSubscriberService.getSubscribersByStatusPage,
+  ).mockResolvedValue([subscriber()] as never);
+  mock(StatusPageSubscriberService.shouldSendNotification).mockReturnValue(
+    true,
+  );
+  mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
+    fakeGetUnsubscribeLink,
+  );
+  mock(StatusPageService.getStatusPageURL).mockImplementation(
+    async (statusPageId: unknown): Promise<string> => {
+      return (statusPageId as ObjectID).toString() ===
+        SECOND_STATUS_PAGE_ID.toString()
+        ? SECOND_STATUS_PAGE_URL
+        : STATUS_PAGE_URL;
+    },
+  );
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockResolvedValue(null as never);
+
+  /*
+   * Only a known description has a plain-text or HTML form, so a channel can
+   * only show the right text if the worker converted the incident's own
+   * description. HTML is only produced for email content.
+   */
+  mock(Markdown.convertToPlainText).mockImplementation(
+    (markdown: unknown): string => {
+      return PLAIN_TEXT_BY_MARKDOWN[markdown as string] ?? "";
+    },
+  );
+  mock(Markdown.convertToHTML).mockImplementation(
+    async (markdown: unknown, contentType: unknown): Promise<string> => {
+      if (contentType !== MarkdownContentType.Email) {
+        return "HTML for the wrong content type";
+      }
+      return HTML_BY_MARKDOWN[markdown as string] ?? "";
+    },
+  );
+
+  mock(MailService.sendMail).mockResolvedValue(undefined as never);
+  mock(SmsService.sendSms).mockResolvedValue(undefined as never);
+  mock(SlackUtil.sendMessageToChannelViaIncomingWebhook).mockResolvedValue(
+    undefined as never,
+  );
+  mock(
+    MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+  ).mockResolvedValue(undefined as never);
+  mock(
+    StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  ).mockResolvedValue(undefined as never);
+});
+
+describe("IncidentStateTimeline custom templates receive every advertised variable", () => {
+  test("Email body and subject, SMS, Slack and Teams each get all of them", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+
+    // Email body and subject, SMS, Slack and Teams: one each.
+    expect(calls).toHaveLength(5);
+    expect(
+      calls
+        .map((call: CompileCall): string => {
+          return call.template;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!,
+        EMAIL_SUBJECT_TEMPLATE,
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!,
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!,
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ].sort(),
+    );
+
+    expectEveryCallToCarryEveryVariable(calls);
+  });
+
+  test("every page and every subscriber gets all of them, with its own page's values and its own unsubscribe link", async () => {
+    useTwoStatusPagesWithTwoSubscribers();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+
+    // Two pages, two subscribers each, five templates per subscriber.
+    expect(calls).toHaveLength(20);
+    expectEveryCallToCarryEveryVariable(calls);
+
+    const seen: Array<string> = [];
+    for (const call of calls) {
+      const page: string = call.variables["statusPageName"]!;
+      const pageUrl: string =
+        page === "Beta Status" ? SECOND_STATUS_PAGE_URL : STATUS_PAGE_URL;
+
+      expect(call.variables["statusPageUrl"]).toBe(pageUrl);
+      expect(call.variables["detailsUrl"]).toBe(
+        `${pageUrl}/incidents/${INCIDENT_ID.toString()}`,
+      );
+      expect(call.variables["resourcesAffected"]).toBe(
+        page === "Beta Status" ? "Search API" : "Checkout API",
+      );
+      expect(call.variables["incidentDescription"]).not.toBe("");
+
+      // An SMS from a public page carries the manage link instead (see smsManageLinkFor).
+      if (
+        call.template ===
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]
+      ) {
+        expect([
+          smsManageLinkFor(pageUrl, SUBSCRIBER_ID),
+          smsManageLinkFor(pageUrl, SECOND_SUBSCRIBER_ID),
+        ]).toContain(call.variables["unsubscribeUrl"]);
+        continue;
+      }
+
+      const unsubscribePrefix: string = `${pageUrl}/unsubscribe/`;
+      expect(
+        call.variables["unsubscribeUrl"]!.startsWith(unsubscribePrefix),
+      ).toBe(true);
+
+      const entry: string = `${page} -> ${call.variables["unsubscribeUrl"]!.slice(unsubscribePrefix.length)}`;
+      if (!seen.includes(entry)) {
+        seen.push(entry);
+      }
+    }
+
+    // Each link is {subscriberId}-{that subscriber's token}.
+    const credential: (id: ObjectID) => string = (id: ObjectID): string => {
+      return `${id.toString()}-${unsubscribeTokenFor(id)}`;
+    };
+
+    expect(seen.sort()).toEqual(
+      [
+        `Acme Status -> ${credential(SUBSCRIBER_ID)}`,
+        `Acme Status -> ${credential(SECOND_SUBSCRIBER_ID)}`,
+        `Beta Status -> ${credential(SUBSCRIBER_ID)}`,
+        `Beta Status -> ${credential(SECOND_SUBSCRIBER_ID)}`,
+      ].sort(),
+    );
+  });
+
+  test("Slack and Teams get all of them without custom SMTP or Twilio, while Email and SMS keep their defaults", async () => {
+    useCustomTemplatesOnEveryChannel([statusPage()]);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(
+      calls
+        .map((call: CompileCall): string => {
+          return call.template;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!,
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ].sort(),
+    );
+    expectEveryCallToCarryEveryVariable(calls);
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentStateChanged,
+    );
+    expect(sentSms()).toEqual([
+      dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
+    ]);
+  });
+});
+
+describe("IncidentStateTimeline {{incidentDescription}}", () => {
+  test("loads the incident's description", async () => {
+    await runJob();
+
+    const select: JSONObject = (
+      mock(IncidentService.findOneById).mock.calls[0]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+
+    expect(select["description"]).toBe(true);
+  });
+
+  test("the email body gets the description as HTML, the email subject and SMS as plain text, and Slack and Teams as written", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    expect(Markdown.convertToHTML).toHaveBeenCalledWith(
+      INCIDENT_DESCRIPTION,
+      MarkdownContentType.Email,
+    );
+    expect(Markdown.convertToPlainText).toHaveBeenCalledWith(
+      INCIDENT_DESCRIPTION,
+    );
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+
+    const byTemplate: Record<string, string> = {};
+    for (const call of calls) {
+      byTemplate[call.template] = call.variables["incidentDescription"]!;
+    }
+
+    expect(byTemplate).toEqual({
+      [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!]:
+        INCIDENT_DESCRIPTION_HTML,
+      [EMAIL_SUBJECT_TEMPLATE]: INCIDENT_DESCRIPTION_TEXT,
+      [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!]:
+        INCIDENT_DESCRIPTION_TEXT,
+      [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!]:
+        INCIDENT_DESCRIPTION,
+      [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!]:
+        INCIDENT_DESCRIPTION,
+    });
+
+    expect(sentSms()[0]).toContain(
+      `incidentDescription=[${INCIDENT_DESCRIPTION_TEXT}]`,
+    );
+    expect(sentSlack()[0]).toContain(
+      `incidentDescription=[${INCIDENT_DESCRIPTION}]`,
+    );
+    expect(sentTeams()[0]).toContain(
+      `incidentDescription=[${INCIDENT_DESCRIPTION}]`,
+    );
+    expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toContain(
+      `incidentDescription=[${INCIDENT_DESCRIPTION_HTML}]`,
+    );
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject: ${INCIDENT_TITLE} is ${INCIDENT_STATE_NAME} on Checkout API (${INCIDENT_DESCRIPTION_TEXT})`,
+    );
+  });
+
+  test("only the description, and an SMS's unsubscribe link, differ between channels", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+
+    /*
+     * The fixture's resource is ungrouped, so the resource list reads the
+     * same in HTML and plain text. The grouped-resource tests below cover the
+     * channels whose resource separator differs.
+     */
+    const withoutDescription: Array<Record<string, string>> = calls.map(
+      (call: CompileCall): Record<string, string> => {
+        const variables: Record<string, string> = { ...call.variables };
+        delete variables["incidentDescription"];
+
+        // An SMS from this public page carries the manage link (see smsManageLinkFor).
+        if (
+          call.template ===
+          CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]
+        ) {
+          expect(variables["unsubscribeUrl"]).toBe(SMS_UNSUBSCRIBE_URL);
+          variables["unsubscribeUrl"] = UNSUBSCRIBE_URL;
+        }
+
+        return variables;
+      },
+    );
+
+    for (const variables of withoutDescription) {
+      expect(variables).toEqual(withoutDescription[0]);
+    }
+    expect(withoutDescription[0]!["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+  });
+
+  test("converts the description once per state change, not per page or subscriber", async () => {
+    useTwoStatusPagesWithTwoSubscribers();
+
+    await runJob();
+
+    expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
+    expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
+
+    const descriptionsByFormat: Record<DescriptionFormat, Array<string>> = {
+      html: [],
+      text: [],
+      markdown: [],
+    };
+    for (const call of compileCalls()) {
+      descriptionsByFormat[descriptionFormatOf(call)].push(
+        call.variables["incidentDescription"]!,
+      );
+    }
+
+    // Two pages with two subscribers each.
+    expect(descriptionsByFormat).toEqual({
+      // Email body.
+      html: new Array<string>(4).fill(INCIDENT_DESCRIPTION_HTML),
+      // Email subject and SMS.
+      text: new Array<string>(8).fill(INCIDENT_DESCRIPTION_TEXT),
+      // Slack and Teams.
+      markdown: new Array<string>(8).fill(INCIDENT_DESCRIPTION),
+    });
+  });
+
+  test("an incident without a description renders an empty description on every channel", async () => {
+    storeIncidents([incident({ description: null })]);
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    expectEveryCallToCarryEveryVariable(calls);
+    for (const call of calls) {
+      expect(call.variables["incidentDescription"]).toBe("");
+    }
+
+    const rendered: Array<string> = [
+      (sentMail()[0]!["vars"] as JSONObject)["body"] as string,
+      sentMail()[0]!["subject"] as string,
+      sentSms()[0]!,
+      sentSlack()[0]!,
+      sentTeams()[0]!,
+    ];
+    for (const message of rendered) {
+      expect(message).not.toContain("undefined");
+      expect(message).not.toMatch(/{{|}}/);
+    }
+    expect(sentSms()[0]).toContain("incidentDescription=[]");
+    expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toContain(
+      "incidentDescription=[]",
+    );
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)["incidentDescription"],
+    ).toBe("");
+  });
+
+  test("each state change in a tick carries its own incident's description", async () => {
+    storeIncidents([
+      incident(),
+      incident({
+        id: SECOND_INCIDENT_ID,
+        title: "Search is stale",
+        description: SECOND_INCIDENT_DESCRIPTION,
+      }),
+    ]);
+    pendingTimelines = [
+      stateTimeline(),
+      stateTimeline({
+        id: SECOND_TIMELINE_ID,
+        incidentId: SECOND_INCIDENT_ID,
+        stateName: "Resolved",
+      }),
+    ];
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(10);
+    expectEveryCallToCarryEveryVariable(calls);
+
+    const descriptions: Array<string> = calls.map(
+      (call: CompileCall): string => {
+        return `${call.variables["incidentTitle"]} | ${call.variables["incidentState"]} | ${descriptionFormatOf(call)} | ${call.variables["incidentDescription"]}`;
+      },
+    );
+
+    expect(Array.from(new Set(descriptions)).sort()).toEqual(
+      [
+        `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | html | ${INCIDENT_DESCRIPTION_HTML}`,
+        `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | markdown | ${INCIDENT_DESCRIPTION}`,
+        `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | text | ${INCIDENT_DESCRIPTION_TEXT}`,
+        `Search is stale | Resolved | html | ${SECOND_INCIDENT_DESCRIPTION_HTML}`,
+        `Search is stale | Resolved | markdown | ${SECOND_INCIDENT_DESCRIPTION}`,
+        `Search is stale | Resolved | text | ${SECOND_INCIDENT_DESCRIPTION_TEXT}`,
+      ].sort(),
+    );
+
+    // Each description is converted once, for its own state change.
+    expect(mock(Markdown.convertToHTML).mock.calls).toEqual([
+      [INCIDENT_DESCRIPTION, MarkdownContentType.Email],
+      [SECOND_INCIDENT_DESCRIPTION, MarkdownContentType.Email],
+    ]);
+    expect(mock(Markdown.convertToPlainText).mock.calls).toEqual([
+      [INCIDENT_DESCRIPTION],
+      [SECOND_INCIDENT_DESCRIPTION],
+    ]);
+  });
+});
+
+describe("IncidentStateTimeline custom template rendering", () => {
+  test("a template using every advertised variable renders completely on every channel", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    // What the fixtures hold for each advertised variable.
+    const expectedValues: Record<string, string> = {
+      statusPageName: "Acme Status",
+      statusPageUrl: STATUS_PAGE_URL,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      resourcesAffected: "Checkout API",
+      incidentTitle: INCIDENT_TITLE,
+      incidentDescription: INCIDENT_DESCRIPTION,
+      incidentSeverity: INCIDENT_SEVERITY,
+      incidentState: INCIDENT_STATE_NAME,
+      detailsUrl: DETAILS_URL,
+      incidentLabels: INCIDENT_LABELS,
+      affectedStatusPages: "Acme Status",
+    };
+
+    const names: Array<string> = offeredVariableNames();
+    expect(Object.keys(expectedValues).sort()).toEqual([...names].sort());
+
+    expect(compileCalls()).toHaveLength(5);
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentSms()).toHaveLength(1);
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    const rendered: Record<string, string> = {
+      email: (sentMail()[0]!["vars"] as JSONObject)["body"] as string,
+      sms: sentSms()[0]!,
+      slack: sentSlack()[0]!,
+      teams: sentTeams()[0]!,
+    };
+
+    /*
+     * The email body gets the description as HTML and SMS as plain text;
+     * Slack and Teams get it as written. The ungrouped resource list reads
+     * the same in HTML and plain text.
+     */
+    const descriptionByChannel: Record<string, string> = {
+      email: INCIDENT_DESCRIPTION_HTML,
+      sms: INCIDENT_DESCRIPTION_TEXT,
+      slack: INCIDENT_DESCRIPTION,
+      teams: INCIDENT_DESCRIPTION,
+    };
+
+    for (const [channel, message] of Object.entries(rendered)) {
+      expect(message).toContain(`channel=${channel}`);
+      expect(message).not.toMatch(/{{|}}/);
+
+      for (const name of names) {
+        let value: string =
+          name === "incidentDescription"
+            ? descriptionByChannel[channel]!
+            : expectedValues[name]!;
+
+        // An SMS from this public page carries the manage link.
+        if (name === "unsubscribeUrl" && channel === "sms") {
+          value = SMS_UNSUBSCRIBE_URL;
+        }
+
+        expect(value).not.toBe("");
+        expect(message).toContain(`${name}=[${value}]`);
+      }
+    }
+
+    expect(sentMail()[0]!["subject"]).not.toMatch(/{{|}}/);
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject: ${INCIDENT_TITLE} is ${INCIDENT_STATE_NAME} on Checkout API (${INCIDENT_DESCRIPTION_TEXT})`,
+    );
+  });
+
+  test("incidentState is the state name as stored, while the defaults capitalise it", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "monitoring" })];
+    useCustomTemplatesOnEveryChannel([
+      statusPage({ withCustomSmtpAndSms: true }),
+      statusPage({ id: SECOND_STATUS_PAGE_ID, pageTitle: "Beta Status" }),
+    ]);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      resource(),
+      resource({
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        statusPageId: SECOND_STATUS_PAGE_ID,
+        displayName: "Search API",
+      }),
+    ] as never);
+
+    await runJob();
+
+    // Five on the page with custom SMTP and Twilio, Slack and Teams on the other.
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(7);
+    for (const call of calls) {
+      expect(call.variables["incidentState"]).toBe("monitoring");
+    }
+
+    // The second page has no custom SMTP or Twilio, so it sends the defaults.
+    expect(sentSms()).toContain(
+      `Incident ${INCIDENT_TITLE} on Beta Status is Monitoring. Details: ${SECOND_STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}. Unsub: ${smsManageLinkFor(SECOND_STATUS_PAGE_URL, SUBSCRIBER_ID)}`,
+    );
+    expect(
+      sentMail().map((mail: JSONObject): string => {
+        return mail["subject"] as string;
+      }),
+    ).toContain(`[Monitoring Incident] ${INCIDENT_TITLE}`);
+  });
+
+  test("a custom email template without a subject falls back to the state subject", async () => {
+    const page: StatusPage = statusPage();
+    (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.Email
+        ? { templateBody: "<div>{{incidentDescription}}</div>" }
+        : null;
+    });
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Incident ${INCIDENT_STATE_NAME}] ${INCIDENT_TITLE}`,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: `<div>${INCIDENT_DESCRIPTION_HTML}</div>`,
+    });
+  });
+
+  test("an untitled incident gets the bare subject fallback, not 'undefined'", async () => {
+    storeIncidents([incident({ withoutTitle: true })]);
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage({ withCustomSmtpAndSms: true })] as never);
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.Email
+        ? { templateBody: "<p>{{incidentTitle}}</p>" }
+        : null;
+    });
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Incident ${INCIDENT_STATE_NAME}] `,
+    );
+  });
+});
+
+describe("IncidentStateTimeline custom templates, with grouped resources", () => {
+  beforeEach(() => {
+    useCustomTemplatesOnEveryChannel();
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+  });
+
+  // The values each channel's template should get, in its channel's format.
+  function expectedVariables(): ChannelVariables {
+    const shared: Record<string, string> = {
+      statusPageName: "Acme Status",
+      statusPageUrl: STATUS_PAGE_URL,
+      detailsUrl: DETAILS_URL,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      incidentTitle: INCIDENT_TITLE,
+      incidentSeverity: INCIDENT_SEVERITY,
+      incidentState: INCIDENT_STATE_NAME,
+      incidentLabels: INCIDENT_LABELS,
+      affectedStatusPages: "Acme Status",
+    };
+
+    return {
+      emailBody: {
+        ...shared,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+        incidentDescription: INCIDENT_DESCRIPTION_HTML,
+      },
+      plainText: {
+        ...shared,
+        resourcesAffected: GROUPED_RESOURCES_TEXT,
+        incidentDescription: INCIDENT_DESCRIPTION_TEXT,
+      },
+      markdown: {
+        ...shared,
+        resourcesAffected: GROUPED_RESOURCES_TEXT,
+        incidentDescription: INCIDENT_DESCRIPTION,
+      },
+    };
+  }
+
+  test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+    await runJob();
+
+    const expected: ChannelVariables = expectedVariables();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: renderedWith("email", expected.emailBody),
+    });
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject: ${INCIDENT_TITLE} is ${INCIDENT_STATE_NAME} on ${GROUPED_RESOURCES_TEXT} (${INCIDENT_DESCRIPTION_TEXT})`,
+    );
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    expect(sentSms()).toEqual([
+      renderedWith("sms", {
+        ...expected.plainText,
+        unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+      }),
+    ]);
+    expect(sentSlack()).toEqual([renderedWith("slack", expected.markdown)]);
+    expect(sentTeams()).toEqual([renderedWith("teams", expected.markdown)]);
+
+    // "<br/>" only reaches the channel that renders HTML.
+    for (const message of [
+      sentMail()[0]!["subject"] as string,
+      ...sentSms(),
+      ...sentSlack(),
+      ...sentTeams(),
+    ]) {
+      expect(message).not.toContain("<br/>");
+    }
+  });
+
+  test("hands each channel's template every advertised variable, in that channel's format", async () => {
+    await runJob();
+
+    const expected: ChannelVariables = expectedVariables();
+
+    for (const variables of Object.values(expected)) {
+      expect(Object.keys(variables).sort()).toEqual(
+        [...offeredVariableNames()].sort(),
+      );
+    }
+
+    expect(
+      variablesCompiledInto(
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!,
+      ),
+    ).toEqual(expected.emailBody);
+    expect(variablesCompiledInto(EMAIL_SUBJECT_TEMPLATE)).toEqual(
+      expected.plainText,
+    );
+    expect(
+      variablesCompiledInto(
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!,
+      ),
+    ).toEqual({ ...expected.plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
+    expect(
+      variablesCompiledInto(
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!,
+      ),
+    ).toEqual(expected.markdown);
+    expect(
+      variablesCompiledInto(
+        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ),
+    ).toEqual(expected.markdown);
+  });
+
+  test("sends webhooks a plain-text resource list", async () => {
+    await runJob();
+
+    expect(sentWebhooks()).toEqual([
+      {
+        eventType: "IncidentStateChanged",
+        statusPageId: STATUS_PAGE_ID.toString(),
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        data: {
+          incidentId: INCIDENT_ID.toString(),
+          incidentNumber: "7",
+          incidentTitle: INCIDENT_TITLE,
+          incidentDescription: INCIDENT_DESCRIPTION,
+          incidentSeverity: INCIDENT_SEVERITY,
+          incidentState: INCIDENT_STATE_NAME,
+          resourcesAffected: GROUPED_RESOURCES_TEXT,
+          detailsUrl: DETAILS_URL,
+          // The project has no fields included in subscriber notifications.
+          customFields: {},
+        },
+      },
+    ]);
+  });
+});
+
+describe("IncidentStateTimeline default messages", () => {
+  /*
+   * The resource list row is raw HTML, so it gets the HTML list. The heading
+   * is escaped by the template (EmailTitle's {{title}}), so it gets the
+   * plain-text list: with the HTML one, the reader saw a literal "<br/>"
+   * between the groups, and an "&amp;" for every ampersand in a name.
+   */
+  test("the default email gets HTML for a grouped resource list, and plain text in its heading", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentStateChanged,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        emailTitle: `Incident on ${GROUPED_RESOURCES_TEXT} is ${INCIDENT_STATE_NAME}`,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      }),
+    );
+  });
+
+  test("compiles no template when the status page has no custom templates", async () => {
+    await runJob();
+
+    expect(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+    ).not.toHaveBeenCalled();
+    expect(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+    ).not.toHaveBeenCalled();
+
+    const lookups: Array<JSONObject> = mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mock.calls.map((call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    });
+    expect(lookups).toHaveLength(4);
+    for (const lookup of lookups) {
+      expect(lookup["eventType"]).toBe(EVENT_TYPE);
+    }
+  });
+
+  test("SMS, Slack and Teams are unchanged and match the dashboard defaults", async () => {
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Incident ${INCIDENT_TITLE} on Acme Status is ${INCIDENT_STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+    expect(sentSms()[0]).toBe(
+      dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
+    );
+
+    const richDefault: string = `🚨 ## Incident - ${INCIDENT_TITLE}
+
+
+**Resources Affected:** Checkout API
+**Severity:** ${INCIDENT_SEVERITY}
+**Status:** ${INCIDENT_STATE_NAME}
+
+[View Status Page](${STATUS_PAGE_URL}) | [Unsubscribe](${UNSUBSCRIBE_URL})`;
+
+    expect(sentSlack()).toEqual([richDefault]);
+    expect(sentSlack()[0]).toBe(
+      dashboardDefault(StatusPageSubscriberNotificationMethod.Slack),
+    );
+    expect(sentTeams()).toEqual([richDefault]);
+    expect(sentTeams()[0]).toBe(
+      dashboardDefault(StatusPageSubscriberNotificationMethod.MicrosoftTeams),
+    );
+
+    for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+      expect(message).not.toContain(INCIDENT_DESCRIPTION);
+      expect(message).not.toContain(INCIDENT_DESCRIPTION_TEXT);
+    }
+  });
+
+  test("the default email keeps its template, subject and variables", async () => {
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentStateChanged,
+    );
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[${INCIDENT_STATE_NAME} Incident] ${INCIDENT_TITLE}`,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual({
+      emailTitle: `Incident on Checkout API is ${INCIDENT_STATE_NAME}`,
+      statusPageName: "Acme Status",
+      statusPageUrl: STATUS_PAGE_URL,
+      detailsUrl: DETAILS_URL,
+      logoUrl: "",
+      isPublicStatusPage: "true",
+      resourcesAffected: "Checkout API",
+      incidentSeverity: INCIDENT_SEVERITY,
+      incidentTitle: INCIDENT_TITLE,
+      incidentState: INCIDENT_STATE_NAME,
+      // No incident custom field is included in subscriber notifications.
+      customFieldRows: [],
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      subscriberEmailNotificationFooterText: "Footer text",
+    });
+  });
+
+  test("the webhook payload adds the description as written and is otherwise unchanged", async () => {
+    await runJob();
+
+    expect(sentWebhooks()).toEqual([
+      {
+        eventType: "IncidentStateChanged",
+        statusPageId: STATUS_PAGE_ID.toString(),
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        data: {
+          incidentId: INCIDENT_ID.toString(),
+          incidentNumber: "7",
+          incidentTitle: INCIDENT_TITLE,
+          incidentDescription: INCIDENT_DESCRIPTION,
+          incidentSeverity: INCIDENT_SEVERITY,
+          incidentState: INCIDENT_STATE_NAME,
+          resourcesAffected: "Checkout API",
+          detailsUrl: DETAILS_URL,
+          customFields: {},
+        },
+      },
+    ]);
+  });
+
+  test("records progress, success and a feed item", async () => {
+    await runJob();
+
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Success,
+        subscriberNotificationStatusMessage:
+          // What was sent on each status page follows (see the delivery tests).
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
+      },
+    ]);
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toBe(
+      `📧 **Status Page Subscribers have been notified** about the state change of the [Incident INC-7](${DASHBOARD_URL}) to **${INCIDENT_STATE_NAME}**`,
+    );
+  });
+});
+
+interface TemplateSyntaxDescription {
+  name: string;
+  markdown: string;
+  // The plain text the Markdown helper turns it into.
+  text: string;
+}
+
+/*
+ * Descriptions quoting template syntax. The subject is finished text when the
+ * worker sends it, so the mail is marked literal: compiling it again read the
+ * braces as Handlebars, and the email either failed to render and was never
+ * sent or lost the quoted words. Tests/Notification/
+ * SubscriberEmailSubjectLiteral.test.ts follows such a subject to SMTP.
+ */
+const TEMPLATE_SYNTAX_DESCRIPTIONS: Array<TemplateSyntaxDescription> = [
+  {
+    name: "a bare expression",
+    markdown: "Deploy blocked on {{ x }}",
+    text: "Deploy blocked on {{ x }}",
+  },
+  {
+    name: "a quoted Helm value",
+    markdown: "Helm upgrade failed: `{{ .Values.image.tag }}` was empty",
+    text: "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+  },
+  {
+    name: "a lone opening pair of braces",
+    markdown: "Config parser stopped at {{ on line 3",
+    text: "Config parser stopped at {{ on line 3",
+  },
+];
+
+describe("IncidentStateTimeline email subjects are sent as written", () => {
+  test.each(TEMPLATE_SYNTAX_DESCRIPTIONS)(
+    "a description with $name reaches the custom subject as written",
+    async ({ markdown, text }: TemplateSyntaxDescription) => {
+      storeIncidents([incident({ description: markdown })]);
+      mock(Markdown.convertToPlainText).mockImplementation(
+        (value: unknown): string => {
+          return value === markdown ? text : "";
+        },
+      );
+      useCustomTemplatesOnEveryChannel();
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `Subject: ${INCIDENT_TITLE} is ${INCIDENT_STATE_NAME} on Checkout API (${text})`,
+      );
+      expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    },
+  );
+
+  test("a title with template syntax reaches the default subject as written", async () => {
+    storeIncidents([
+      incident({ title: "Rollout of {{ .Values.image.tag }} stalled" }),
+    ]);
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[${INCIDENT_STATE_NAME} Incident] Rollout of {{ .Values.image.tag }} stalled`,
+    );
+    expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+describe("IncidentStateTimeline skips", () => {
+  test("skips the created state, which the incident created job already announced", async () => {
+    pendingTimelines = [stateTimeline({ isCreatedState: true })];
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    nothingSent();
+    expect(compileCalls()).toHaveLength(0);
+    expect(IncidentService.findOneById).not.toHaveBeenCalled();
+    expect(
+      statusWrites()[statusWrites().length - 1]![
+        "subscriberNotificationStatus"
+      ],
+    ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
+  });
+
+  test("skips an incident that is not visible on the status page", async () => {
+    storeIncidents([incident({ isVisibleOnStatusPage: false })]);
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        "Incident is not visible on status page. Skipping notifications.",
+    });
+  });
+
+  test("respects a status page that hides incidents", async () => {
+    useCustomTemplatesOnEveryChannel([
+      statusPage({
+        withCustomSmtpAndSms: true,
+        showIncidentsOnStatusPage: false,
+      }),
+    ]);
+
+    await runJob();
+
+    nothingSent();
+    expect(compileCalls()).toHaveLength(0);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toContain(
+      "**No notification sent to subscribers**",
+    );
+  });
+});
+
+/*
+ * A state change is marked InProgress before anything is sent, and the cron
+ * only ever picks up Pending rows. So an error part-way through must settle
+ * the row as Failed: uncaught, it left the row "being sent" forever, and it
+ * also ended the run before the remaining state changes were looked at.
+ */
+describe("IncidentStateTimeline errors", () => {
+  function writesFor(timelineId: ObjectID): Array<JSONObject> {
+    return mock(IncidentStateTimelineService.updateOneById)
+      .mock.calls.filter((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { id: ObjectID }).id.toString() === timelineId.toString()
+        );
+      })
+      .map((call: Array<unknown>): JSONObject => {
+        return (call[0] as { data: JSONObject }).data;
+      });
+  }
+
+  test("an error while sending marks the state change Failed with the reason, not InProgress", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+
+    await expect(runJob()).resolves.toBeUndefined();
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.InProgress,
+      },
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Failed,
+        subscriberNotificationStatusMessage: "database unavailable",
+      },
+    ]);
+  });
+
+  test("records a non-Error failure as text", async () => {
+    mock(IncidentService.findOneById).mockRejectedValue(
+      "connection reset" as never,
+    );
+
+    await runJob();
+
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "connection reset",
+    });
+  });
+
+  test("one failing state change does not stop the others in the same run", async () => {
+    pendingTimelines = [
+      stateTimeline(),
+      stateTimeline({ id: SECOND_TIMELINE_ID, incidentId: SECOND_INCIDENT_ID }),
+    ];
+    storeIncidents([
+      incident(),
+      incident({
+        id: SECOND_INCIDENT_ID,
+        description: SECOND_INCIDENT_DESCRIPTION,
+      }),
+    ]);
+    mock(IncidentService.findOneById).mockImplementation(
+      async (args: unknown): Promise<Incident | null> => {
+        const id: ObjectID = (args as { id: ObjectID }).id;
+
+        if (id.toString() === INCIDENT_ID.toString()) {
+          throw new Error("first incident could not be read");
+        }
+
+        return storedIncidents[id.toString()] || null;
+      },
+    );
+
+    await runJob();
+
+    expect(writesFor(TIMELINE_ID)[writesFor(TIMELINE_ID).length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "first incident could not be read",
+    });
+    expect(
+      writesFor(SECOND_TIMELINE_ID)[writesFor(SECOND_TIMELINE_ID).length - 1],
+    ).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessage:
+        "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
+    });
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("a failure to record Failed is logged, not thrown", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockRejectedValue(new Error("database unavailable") as never);
+    mock(IncidentStateTimelineService.updateOneById).mockImplementation(
+      async (args: unknown): Promise<number> => {
+        const data: JSONObject = (args as { data: JSONObject }).data;
+
+        if (
+          data["subscriberNotificationStatus"] ===
+          StatusPageSubscriberNotificationStatus.Failed
+        ) {
+          throw new Error("write failed");
+        }
+
+        return 1;
+      },
+    );
+
+    await expect(runJob()).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * An incident limited to some status pages (Incident.statusPages). Ten site
+ * pages all list the incident's monitor; the scope decides which of them hear
+ * about a state change.
+ */
+describe("IncidentStateTimeline:SendNotificationToSubscribers, with a status page scope", () => {
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    storedScopes = { [INCIDENT_ID.toString()]: scopedTo([7, 3]) };
+  });
+
+  test("a monitor shared by ten pages, scoped to two, tells only those two", async () => {
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mock.calls.map((call: Array<unknown>): number => {
+        return siteOf(call[0]);
+      }),
+    ).toEqual([3, 7]);
+  });
+
+  test("the scope is read for the incident the state change belongs to", async () => {
+    await runJob();
+
+    const query: JSONObject = (
+      mock(IncidentService.findBy).mock.calls[0]![0] as { query: JSONObject }
+    ).query;
+    expect(JSON.stringify(query["_id"])).toContain(INCIDENT_ID.toString());
+  });
+
+  test("an unscoped incident reaches none of ten pages that only show scoped incidents", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+
+    await runJob();
+
+    nothingSent();
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 10 status pages that only show incidents limited to them:**",
+    );
+    expect(statusWrites().pop()).toEqual(
+      expect.objectContaining({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Success,
+      }),
+    );
+  });
+
+  test("someone on both selected pages gets one email and one SMS, but each page's webhook, Slack and Teams message", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+        webhook: "https://hooks.acme.com/status",
+        slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+        teams: "https://outlook.office.com/webhook/abc",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+    expect(sentSms()).toHaveLength(1);
+    expect(
+      sentWebhooks().map((payload: JSONObject): number => {
+        return siteOf(payload["statusPageId"]);
+      }),
+    ).toEqual([3, 7]);
+    expect(sentSlack()).toHaveLength(2);
+    expect(sentTeams()).toHaveLength(2);
+  });
+
+  test("an unscoped incident sends every subscription its email, as before", async () => {
+    storedScopes = {};
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+    expect(sentSms()).toHaveLength(2);
+  });
+
+  test("the feed item lists each page, the subject used and what was sent", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 3, index: 2, phone: "+15555550100" }),
+      siteSubscriber({ site: 7, index: 1, email: "a@acme.com" }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 03**: 1 email, 1 SMS sent. Subject: "\\[${INCIDENT_STATE_NAME} Incident\\] ${INCIDENT_TITLE}".`,
+        "- **Site 07**: nothing sent. Not sent again to 1 email address already sent it through another status page.",
+        "",
+        "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+        "",
+        "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+      ].join("\n"),
+    );
+  });
+
+  test("a page that hides incidents is listed as passed over", async () => {
+    pages[2] = sitePage(3, { showIncidentsOnStatusPage: false });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site7@acme.com"]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 03**: not sent, this status page does not show incidents.",
+    );
+  });
+});
+
+/*
+ * Escaping. The incident title, its state and severity, the status page's
+ * name and the names of its resources and groups are plain text a project
+ * member typed. In an email they must read as those characters; text
+ * channels (a subject, SMS, Slack, Teams, webhooks) show text as written, so
+ * they must get no HTML entities at all.
+ */
+describe("IncidentStateTimeline escapes plain values in email", () => {
+  const HOSTILE_STATE: string = "Fixing <soon> & 'fast'";
+  const HOSTILE_STATE_HTML: string = "Fixing &lt;soon&gt; &amp; &#39;fast&#39;";
+
+  const ESCAPING_EMAIL_BODY: string =
+    '<h1>{{incidentTitle}}</h1><p>{{statusPageName}} / {{incidentState}}</p><div>{{resourcesAffected}}</div><div>{{incidentDescription}}</div><a href="{{detailsUrl}}">Details</a>';
+  const ESCAPING_TEXT: string =
+    "{{incidentTitle}} on {{statusPageName}} is {{incidentState}}: {{resourcesAffected}}";
+
+  beforeEach(() => {
+    pendingTimelines = [stateTimeline({ stateName: HOSTILE_STATE })];
+    storeIncidents([incident({ title: HOSTILE_TITLE })]);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      hostileResources(STATUS_PAGE_ID) as never,
+    );
+  });
+
+  describe("with custom templates", () => {
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({
+          withCustomSmtpAndSms: true,
+          pageTitle: HOSTILE_PAGE_NAME,
+        }),
+      ] as never);
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return method === StatusPageSubscriberNotificationMethod.Email
+          ? { templateBody: ESCAPING_EMAIL_BODY, emailSubject: ESCAPING_TEXT }
+          : { templateBody: `${method}: ${ESCAPING_TEXT}` };
+      });
+    });
+
+    test("the email body escapes the title, the state, the page name and every resource and group name", async () => {
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+        `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML} / ${HOSTILE_STATE_HTML}</p><div>${HOSTILE_RESOURCES_HTML}</div><div>${INCIDENT_DESCRIPTION_HTML}</div><a href="${DETAILS_URL}">Details</a>`,
+      );
+    });
+
+    test("only the description and the resource list reach the email body as HTML", async () => {
+      await runJob();
+
+      const emailBody: Array<RecordedCompile> = recordedCompiles(
+        StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+        StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+      ).filter((call: RecordedCompile): boolean => {
+        return call.emailBody;
+      });
+
+      expect(emailBody).toHaveLength(1);
+      expect(emailBody[0]!.template).toBe(ESCAPING_EMAIL_BODY);
+      expectOnlyTheListedHtmlVariables(emailBody[0]!.rawVariables, EVENT_TYPE);
+    });
+
+    test("the subject, SMS, Slack and Teams get every value as written", async () => {
+      await runJob();
+
+      const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} is ${HOSTILE_STATE}: ${HOSTILE_RESOURCES_TEXT}`;
+
+      expect(sentMail()[0]!["subject"]).toBe(text);
+      expect(sentSms()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+      ]);
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expectNoHtmlEntities(message);
+      }
+    });
+
+    test("webhooks get the title, the state and the resource list as written", async () => {
+      await runJob();
+
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({
+          incidentTitle: HOSTILE_TITLE,
+          incidentState: HOSTILE_STATE,
+          resourcesAffected: HOSTILE_RESOURCES_TEXT,
+        }),
+      );
+    });
+  });
+
+  describe("with the default templates", () => {
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({ pageTitle: HOSTILE_PAGE_NAME }),
+      ] as never);
+    });
+
+    test("the email gets the resource list escaped, and plain text for the template to escape", async () => {
+      await runJob();
+
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          resourcesAffected: HOSTILE_RESOURCES_HTML,
+          emailTitle: `Incident on ${HOSTILE_RESOURCES_TEXT} is ${HOSTILE_STATE}`,
+          incidentTitle: HOSTILE_TITLE,
+          incidentState: HOSTILE_STATE,
+          statusPageName: HOSTILE_PAGE_NAME,
+        }),
+      );
+    });
+
+    test("SMS, Slack and Teams show the resources as written, never as HTML", async () => {
+      await runJob();
+
+      expect(sentSlack()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+      );
+      expect(sentTeams()[0]).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+      );
+      for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+        expectNoHtmlEntities(message);
+        expect(message).not.toContain("<br/>");
+      }
+    });
+  });
+});
+
+describe("IncidentStateTimeline unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});
+
+/*
+ * Incident custom fields in the state change notification. The project has
+ * four; three are marked "Include in Subscriber Notifications" (see
+ * IncidentCustomFieldFixtures). Those reach the default email, Slack, Teams
+ * and webhook messages, in their order; the default SMS stays as it was.
+ * Every field is offered to custom templates as {{customFields.<key>}}, and
+ * the feed item records the values that went out.
+ */
+describe("IncidentStateTimeline with incident custom fields", () => {
+  beforeEach(() => {
+    mock(IncidentCustomFieldService.findBy).mockResolvedValue(
+      CUSTOM_FIELD_DEFINITIONS as never,
+    );
+
+    const row: Incident = incident();
+    row.customFields = CUSTOM_FIELD_VALUES;
+    storeIncidents([row]);
+
+    mock(Markdown.convertToPlainText).mockImplementation(
+      (markdown: unknown): string => {
+        return markdown === IMPACT_DETAILS
+          ? IMPACT_DETAILS_TEXT
+          : PLAIN_TEXT_BY_MARKDOWN[markdown as string] ?? "";
+      },
+    );
+    mock(Markdown.convertToHTML).mockImplementation(
+      async (markdown: unknown): Promise<string> => {
+        return markdown === IMPACT_DETAILS
+          ? IMPACT_DETAILS_HTML
+          : HTML_BY_MARKDOWN[markdown as string] ?? "";
+      },
+    );
+  });
+
+  test("reads the incident's labels and custom fields, and its project's fields", async () => {
+    await runJob();
+
+    const select: JSONObject = (
+      mock(IncidentService.findOneById).mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+
+    expect(select).toEqual(
+      expect.objectContaining({
+        labels: { name: true },
+        customFields: true,
+      }),
+    );
+    expect(
+      (mock(IncidentCustomFieldService.findBy).mock.calls[0]![0] as JSONObject)[
+        "query"
+      ],
+    ).toEqual({ projectId: PROJECT_ID });
+  });
+
+  test("the default email lists the included fields, in their order", async () => {
+    await runJob();
+
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentStateChanged,
+    );
+    expect((sentMail()[0]!["vars"] as JSONObject)["customFieldRows"]).toEqual(
+      EXPECTED_CUSTOM_FIELD_ROWS,
+    );
+  });
+
+  test("the default Slack and Teams messages list them under the state", async () => {
+    await runJob();
+
+    const expected: string = `🚨 ## Incident - ${INCIDENT_TITLE}
+
+
+**Resources Affected:** Checkout API
+**Severity:** ${INCIDENT_SEVERITY}
+**Status:** ${INCIDENT_STATE_NAME}
+**Affected Location:** ${AFFECTED_LOCATION}
+**Acknowledgement:** No
+**Impact Details:**
+${IMPACT_DETAILS}
+
+[View Status Page](${STATUS_PAGE_URL}) | [Unsubscribe](${UNSUBSCRIBE_URL})`;
+
+    expect(sentSlack()).toEqual([expected]);
+    expect(sentTeams()).toEqual([expected]);
+  });
+
+  test("the default SMS stays short and carries no field", async () => {
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Incident ${INCIDENT_TITLE} on Acme Status is ${INCIDENT_STATE_NAME}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+  });
+
+  test("webhooks get the included fields by key", async () => {
+    await runJob();
+
+    expect((sentWebhooks()[0]!["data"] as JSONObject)["customFields"]).toEqual(
+      EXPECTED_WEBHOOK_CUSTOM_FIELDS,
+    );
+  });
+
+  test("the feed item records the values sent, after each page", async () => {
+    await runJob();
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Acme**: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent. Subject: "\\[${INCIDENT_STATE_NAME} Incident\\] ${INCIDENT_TITLE}".`,
+        "",
+        EXPECTED_INCLUDED_FIELDS_FEED,
+      ].join("\n"),
+    );
+  });
+
+  test("an included Rich text field's images are made public", async () => {
+    await runJob();
+
+    expect(
+      mock(syncIsPublicForMarkdownImages).mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return call[0];
+        },
+      ),
+    ).toEqual([IMPACT_DETAILS]);
+  });
+
+  test("custom templates place any field by its key, escaped only in the email body", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage({ withCustomSmtpAndSms: true })] as never);
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      return {
+        templateBody: `${method}\n${CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE}`,
+      };
+    });
+
+    await runJob();
+
+    expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+      [
+        StatusPageSubscriberNotificationMethod.Email,
+        `location=[${AFFECTED_LOCATION_HTML}]`,
+        "ack=[No]",
+        `impact=[${IMPACT_DETAILS_HTML}]`,
+        `ticket=[${INTERNAL_TICKET}]`,
+      ].join("\n"),
+    );
+    expect(sentSms()).toEqual([
+      [
+        StatusPageSubscriberNotificationMethod.SMS,
+        `location=[${AFFECTED_LOCATION}]`,
+        "ack=[No]",
+        `impact=[${IMPACT_DETAILS_TEXT}]`,
+        `ticket=[${INTERNAL_TICKET}]`,
+      ].join("\n"),
+    ]);
+    expect(sentSlack()[0]).toContain(`impact=[${IMPACT_DETAILS}]`);
+    expect(sentTeams()[0]).toContain(`location=[${AFFECTED_LOCATION}]`);
+
+    for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+      expectNoHtmlEntities(message);
+    }
+
+    const compiles: Array<RecordedCompile> = recordedCompiles(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+    );
+
+    for (const call of compiles) {
+      expectOnlyOfferedVariables(EVENT_TYPE, call.rawVariables);
+    }
+
+    expectOnlyTheListedHtmlVariables(
+      compiles.find((call: RecordedCompile): boolean => {
+        return call.emailBody;
+      })!.rawVariables,
+      EVENT_TYPE,
+    );
+
+    // The field left out of subscriber notifications went out: it is recorded.
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Internal Ticket:** OPS\\-4411",
+    );
+  });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+describeSubscriberDelivery({
+  title: "IncidentStateTimeline:SendNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingTimelines = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: IncidentStateTimeline = stateTimeline(
+        index > 0 ? { id: ObjectID.generate() } : undefined,
+      );
+      row.version = PENDING_ROW_VERSION;
+      pendingTimelines.push(row);
+    }
+
+    return pendingTimelines.map((row: IncidentStateTimeline): ObjectID => {
+      return row.id!;
+    });
+  },
+  statusColumn: "subscriberNotificationStatus",
+  messageColumn: "subscriberNotificationStatusMessage",
+  claim: IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentStateTimelineService.updateOneById,
+  feed: IncidentFeedService.createIncidentFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.EveryPage,
+});

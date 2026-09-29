@@ -1,0 +1,394 @@
+import Page from "../../Components/Page/Page";
+import API from "../../Utils/API";
+import getAffectedResourceLabel from "../../Utils/AffectedResourceLabel";
+import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import StatusPageUtil from "../../Utils/StatusPage";
+import PageComponentProps from "../PageComponentProps";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import { Blue500 } from "Common/Types/BrandColors";
+import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import IconProp from "Common/Types/Icon/IconProp";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import EventItem, {
+  ComponentProps as EventItemComponentProps,
+  TimelineAttachment,
+} from "Common/UI/Components/EventItem/EventItem";
+import { StatusPageApiRoute } from "Common/ServiceRoute";
+import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import FileModel from "Common/Models/DatabaseModels/File";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../Utils/i18n";
+import useAsyncEffect from "use-async-effect";
+
+type GetAnnouncementEventItemFunctionProps = {
+  announcement: StatusPageAnnouncement;
+  statusPageResources: Array<StatusPageResource>;
+  monitorsInGroup: Dictionary<Array<ObjectID>>;
+  isPreviewPage: boolean;
+  isSummary: boolean;
+  statusPageId?: ObjectID | null;
+};
+
+type GetAnnouncementEventItemFunction = (
+  data: GetAnnouncementEventItemFunctionProps,
+) => EventItemComponentProps;
+
+export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
+  data: GetAnnouncementEventItemFunctionProps,
+): EventItemComponentProps => {
+  const {
+    announcement,
+    statusPageResources,
+    monitorsInGroup,
+    isPreviewPage,
+    isSummary,
+    statusPageId,
+  } = data;
+
+  // Get affected resources based on monitors in the announcement
+  const monitorIdsInThisAnnouncement: Array<string | undefined> =
+    announcement.monitors?.map((monitor: Monitor) => {
+      return monitor._id;
+    }) || [];
+
+  let namesOfResources: Array<StatusPageResource> = statusPageResources.filter(
+    (resource: StatusPageResource) => {
+      return monitorIdsInThisAnnouncement.includes(
+        resource.monitorId?.toString(),
+      );
+    },
+  );
+
+  // add names of the groups as well.
+  namesOfResources = namesOfResources.concat(
+    statusPageResources.filter((resource: StatusPageResource) => {
+      if (!resource.monitorGroupId) {
+        return false;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      const monitorIdsInThisGroup: Array<ObjectID> =
+        monitorsInGroup[monitorGroupId]! || [];
+
+      for (const monitorId of monitorIdsInThisGroup) {
+        if (
+          monitorIdsInThisAnnouncement.find((id: string | undefined) => {
+            return id?.toString() === monitorId.toString();
+          })
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }),
+  );
+
+  const statusPageIdString: string | null = statusPageId
+    ? statusPageId.toString()
+    : null;
+  const announcementIdString: string | null = announcement.id
+    ? announcement.id.toString()
+    : announcement._id
+      ? announcement._id.toString()
+      : null;
+
+  const attachments: Array<TimelineAttachment> =
+    statusPageIdString && announcementIdString
+      ? (announcement.attachments || [])
+          .map((attachment: FileModel) => {
+            const attachmentId: string | null = attachment.id
+              ? attachment.id.toString()
+              : attachment._id
+                ? attachment._id.toString()
+                : null;
+
+            if (!attachmentId) {
+              return null;
+            }
+
+            const downloadRoute: Route = Route.fromString(
+              StatusPageApiRoute.toString(),
+            ).addRoute(
+              `/status-page-announcement/attachment/${statusPageIdString}/${announcementIdString}/${attachmentId}`,
+            );
+
+            return {
+              name: attachment.name || "Attachment",
+              downloadUrl: downloadRoute.toString(),
+            };
+          })
+          .filter(
+            (item: TimelineAttachment | null): item is TimelineAttachment => {
+              return Boolean(item);
+            },
+          )
+      : [];
+
+  return {
+    eventTitle: announcement.title || "",
+    eventDescription: announcement.description,
+    eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
+      return getAffectedResourceLabel(i);
+    }),
+    eventTimeline: [],
+    eventType: i18n.t("announcements.singular"),
+    eventViewRoute: !isSummary
+      ? undefined
+      : RouteUtil.populateRouteParams(
+          isPreviewPage
+            ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+            : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+          announcement.id!,
+        ),
+    isDetailItem: !isSummary,
+    /*
+     * A private page serves its attachments behind the reader's session,
+     * whose access cookie lapses while the page sits open, so a click
+     * refreshes the session before the file loads. Public pages keep plain
+     * links.
+     */
+    attachmentRefreshSession: StatusPageUtil.isPrivateStatusPage()
+      ? (): Promise<boolean> => {
+          return API.refreshSession();
+        }
+      : undefined,
+    eventTypeColor: Blue500,
+    eventSecondDescription: announcement.showAnnouncementAt!
+      ? i18n.t("announcements.announcedAt") +
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          announcement.showAnnouncementAt!,
+        )
+      : "",
+    ...(attachments.length > 0
+      ? {
+          eventAttachments: attachments,
+        }
+      : {}),
+  };
+};
+
+const Overview: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  const { t } = useTranslation();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] =
+    useState<StatusPageAnnouncement | null>(null);
+  const [statusPageResources, setStatusPageResources] = useState<
+    Array<StatusPageResource>
+  >([]);
+  const [monitorsInGroup, setMonitorsInGroup] = useState<
+    Dictionary<Array<ObjectID>>
+  >({});
+  const [parsedData, setParsedData] = useState<EventItemComponentProps | null>(
+    null,
+  );
+  const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
+
+  StatusPageUtil.checkIfUserHasLoggedIn();
+
+  useAsyncEffect(async () => {
+    try {
+      if (!StatusPageUtil.getStatusPageId()) {
+        return;
+      }
+
+      setIsLoading(true);
+
+      const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+      if (!id) {
+        throw new BadDataException("Status Page ID is required");
+      }
+
+      setStatusPageId(id);
+
+      const announcementId: string | undefined =
+        Navigation.getLastParamAsObjectID().toString();
+
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+        url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+          `/announcements/${id.toString()}/${announcementId}`,
+        ),
+        data: {},
+        headers: API.getDefaultHeaders(),
+      });
+
+      if (!response.isSuccess()) {
+        throw response;
+      }
+      const data: JSONObject = response.data;
+
+      const rawAnnouncements: JSONArray =
+        (data["announcements"] as JSONArray) || [];
+
+      /*
+       * An empty response means this announcement is not on this status page. Keep it
+       * null - deserializing an empty object here yields a model with no data, which
+       * renders as a blank announcement instead of the empty state below.
+       */
+      const announcement: StatusPageAnnouncement | null =
+        rawAnnouncements.length > 0
+          ? BaseModel.fromJSONObject(
+              rawAnnouncements[0] as JSONObject,
+              StatusPageAnnouncement,
+            )
+          : null;
+
+      const statusPageResources: Array<StatusPageResource> =
+        BaseModel.fromJSONArray(
+          (data["statusPageResources"] as JSONArray) || [],
+          StatusPageResource,
+        );
+
+      const monitorsInGroup: Dictionary<Array<ObjectID>> = data[
+        "monitorsInGroup"
+      ] as Dictionary<Array<ObjectID>>;
+
+      // save data. set()
+      setAnnouncement(announcement);
+      setStatusPageResources(statusPageResources);
+      setMonitorsInGroup(monitorsInGroup);
+
+      setIsLoading(false);
+      props.onLoadComplete();
+    } catch (err) {
+      if (err instanceof HTTPErrorResponse) {
+        await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
+      }
+
+      setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) {
+      // parse data;
+      setParsedData(null);
+      return;
+    }
+
+    if (!announcement) {
+      return;
+    }
+
+    setParsedData(
+      getAnnouncementEventItem({
+        announcement,
+        statusPageResources,
+        monitorsInGroup,
+        isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
+        isSummary: false,
+        statusPageId,
+      }),
+    );
+  }, [isLoading, statusPageId]);
+
+  type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
+
+  /*
+   * The page chrome — title and breadcrumbs — comes from static translations,
+   * not from the request, so render it immediately and swap only the body
+   * between the loading skeleton, an error and the real content. Returning a
+   * bare loader instead used to blank the whole page and drag the footer up
+   * into the middle of the viewport until the data arrived.
+   */
+  const renderPage: RenderPageFunction = (
+    pageContent: ReactElement,
+  ): ReactElement => {
+    return (
+      <Page
+        title={t("announcements.singular")}
+        breadcrumbLinks={[
+          {
+            title: t("nav.overview"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                : (RouteMap[PageMap.OVERVIEW] as Route),
+            ),
+          },
+          {
+            title: t("announcements.title"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
+                : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
+            ),
+          },
+          {
+            title: t("announcements.singular"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+                : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+              Navigation.getLastParamAsObjectID(),
+            ),
+          },
+        ]}
+      >
+        {pageContent}
+      </Page>
+    );
+  };
+
+  if (isLoading) {
+    return renderPage(<EventDetailSkeleton />);
+  }
+
+  if (error) {
+    return renderPage(<ErrorMessage message={error} />);
+  }
+
+  /*
+   * Only wait on parsedData when there is an announcement to parse, so that a missing
+   * announcement falls through to the empty state below instead of loading forever.
+   */
+  if (announcement && !parsedData) {
+    return renderPage(<EventDetailSkeleton />);
+  }
+
+  return renderPage(
+    <>
+      {announcement && parsedData ? <EventItem {...parsedData} /> : <></>}
+      {!announcement ? (
+        <EmptyState
+          paddingClassName="py-12 sm:py-16"
+          id="announcement-empty-state"
+          title={t("announcements.none")}
+          description={t("announcements.notFound")}
+          icon={IconProp.Announcement}
+        />
+      ) : (
+        <></>
+      )}
+    </>,
+  );
+};
+
+export default Overview;

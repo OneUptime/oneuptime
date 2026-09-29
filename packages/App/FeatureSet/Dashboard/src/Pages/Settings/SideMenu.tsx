@@ -1,0 +1,354 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
+import SideMenu, {
+  SideMenuSectionProps,
+} from "Common/UI/Components/SideMenu/SideMenu";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import React, { ReactElement } from "react";
+
+const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
+  const sections: SideMenuSectionProps[] = [
+    {
+      title: "Basic",
+      items: [
+        {
+          link: {
+            title: "Project",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Folder,
+        },
+        {
+          link: {
+            title: "Labels",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LABELS] as Route,
+            ),
+          },
+          icon: IconProp.Label,
+        },
+      ],
+    },
+    {
+      title: "Workspace",
+      items: [
+        {
+          link: {
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
+            ),
+          },
+          icon: IconProp.Slack,
+        },
+        {
+          link: {
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route,
+            ),
+          },
+          icon: IconProp.MicrosoftTeams,
+        },
+      ],
+    },
+    {
+      title: "Telemetry & APM",
+      items: [
+        {
+          link: {
+            title: "Ingestion Keys",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
+        {
+          link: {
+            title: "Data Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
+      ],
+    },
+    {
+      title: "Notifications",
+      items: [
+        {
+          link: {
+            title: "Notification Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
+        {
+          link: {
+            title: "Notification Logs",
+            to: RouteUtil.populateRouteParams(
+              // Unified Notification Logs route renders tabs
+              RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
+        {
+          link: {
+            title: "Mobile Apps",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route,
+            ),
+          },
+          icon: IconProp.DevicePhoneMobile,
+        },
+      ],
+    },
+    {
+      title: "AI",
+      items: [
+        /*
+         * First, and outside the billing-only items below: the project's AI
+         * switches must be reachable on every install.
+         */
+        {
+          link: {
+            title: "AI Features",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
+        {
+          link: {
+            title: "LLM Providers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
+            ),
+          },
+          icon: IconProp.Brain,
+        },
+        {
+          link: {
+            title: "AI Guardrails",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
+        ...(BILLING_ENABLED
+          ? [
+              {
+                link: {
+                  title: "AI Credits",
+                  to: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_AI_CREDITS] as Route,
+                  ),
+                },
+                icon: IconProp.Billing,
+              },
+            ]
+          : []),
+        {
+          link: {
+            title: "AI Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.Logs,
+        },
+        {
+          link: {
+            title: "MCP Server",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MCP_SERVER] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
+      ],
+    },
+    /*
+     * Runners execute runbook steps AND AI code fixes, so they sit on their
+     * own rather than under either — they used to live under Runbook settings,
+     * which stopped being true when the AI agent merged into them.
+     */
+    {
+      title: "Runners",
+      items: [
+        {
+          link: {
+            title: "Runners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
+        {
+          link: {
+            title: "Credentials",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route,
+            ),
+          },
+          icon: IconProp.Key,
+        },
+      ],
+    },
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Domains",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
+            ),
+          },
+          icon: IconProp.Globe,
+        },
+        {
+          link: {
+            title: "API Keys",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
+        {
+          link: {
+            title: "Feature Flags",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route,
+            ),
+          },
+          icon: IconProp.Flag,
+        },
+      ],
+    },
+    {
+      title: "Security",
+      items: [
+        {
+          link: {
+            title: "SSO",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SSO] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
+            title: "OIDC",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_OIDC] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
+            title: "SCIM",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SCIM] as Route,
+            ),
+          },
+          icon: IconProp.Refresh,
+        },
+      ],
+    },
+    {
+      title: "Audit Logs",
+      items: [
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
+        {
+          link: {
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
+      ],
+    },
+    {
+      title: "Danger Zone",
+      items: [
+        {
+          link: {
+            title: "Danger Zone",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
+            ),
+          },
+          icon: IconProp.Error,
+          className: "danger-on-hover",
+        },
+      ],
+    },
+  ];
+
+  // Conditionally add Billing section
+  if (BILLING_ENABLED) {
+    // Insert Billing section before Security (second to last)
+    sections.splice(-2, 0, {
+      title: "Billing and Invoices",
+      items: [
+        {
+          link: {
+            title: "Billing",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_BILLING] as Route,
+            ),
+          },
+          icon: IconProp.Billing,
+        },
+        {
+          link: {
+            title: "Usage History",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route,
+            ),
+          },
+          icon: IconProp.ChartBar,
+        },
+        {
+          link: {
+            title: "Invoices",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
+            ),
+          },
+          icon: IconProp.TextFile,
+        },
+      ],
+    });
+  }
+
+  return <SideMenu sections={sections} />;
+};
+
+export default DashboardSideMenu;

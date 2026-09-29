@@ -1,0 +1,612 @@
+import ProjectUtil from "Common/UI/Utils/Project";
+import ProjectUser from "../../../Utils/ProjectUser";
+import { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Service from "Common/Models/DatabaseModels/Service";
+import AffectedResourcesPicker, {
+  isAffectedResourcesPayload,
+} from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import { StatusPagePickerAccessHint } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
+import useStatusPagePickerAccess, {
+  StatusPagePickerAccess,
+} from "../../../Components/Incident/useStatusPagePickerAccess";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  buildCustomFieldModelFormFields,
+  packCustomFieldFormValues,
+  removeCustomFieldFormKeys,
+} from "Common/UI/Components/CustomFields/CustomFieldModelFormFields";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import {
+  fetchIncidentCustomFieldDefinitions,
+  IncidentCustomFieldDefinition,
+  INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+  INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
+  isAskedOnIncidentForm,
+} from "../../../Components/Incident/IncidentCustomFieldDefinitions";
+
+const IncidentTemplates: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  const [createInitialValues, setCreateInitialValues] = useState<
+    FormValues<IncidentTemplate>
+  >({});
+
+  // Picking status pages needs status page read access (see the hint).
+  const statusPagePickerAccess: StatusPagePickerAccess =
+    useStatusPagePickerAccess();
+
+  /*
+   * The project's incident custom fields, so a new template can set the
+   * values its incidents start with - every field, not only the ones the
+   * Details step asks for: a template can quietly fill in the rest.
+   */
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<
+    Array<IncidentCustomFieldDefinition>
+  >([]);
+
+  const loadCustomFieldDefinitions: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setCustomFieldDefinitions(await fetchIncidentCustomFieldDefinitions());
+      } catch {
+        // No custom fields on this plan, or no permission to read them.
+        setCustomFieldDefinitions([]);
+      }
+    };
+
+  /*
+   * Never required here: "Required on Create" is asked of the person
+   * declaring the incident, who can still fill in what the template leaves
+   * empty. A mapped field is left out while the template has a monitor to
+   * copy it from, as the template's Custom Fields card does.
+   */
+  const customFieldFormFields: Array<ModelField<IncidentTemplate>> =
+    useMemo(() => {
+      return buildCustomFieldModelFormFields<IncidentTemplate>({
+        definitions: customFieldDefinitions,
+        enforceRequiredOnCreate: false,
+        stepId: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+        isShown: isAskedOnIncidentForm,
+      });
+    }, [customFieldDefinitions]);
+
+  const customFieldSteps: Array<FormStep<IncidentTemplate>> =
+    customFieldDefinitions.length > 0
+      ? [
+          {
+            title: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
+            id: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+          },
+        ]
+      : [];
+
+  const fetchFirstIncidentState: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          return;
+        }
+
+        const incidentStates: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: {
+              projectId: projectId,
+            },
+            limit: 1,
+            skip: 0,
+            select: {
+              _id: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+          });
+
+        if (incidentStates.data.length > 0) {
+          setCreateInitialValues({
+            initialIncidentState: incidentStates.data[0]!._id?.toString(),
+          });
+        }
+      } catch {
+        // Silently fail
+      }
+    };
+
+  useEffect(() => {
+    fetchFirstIncidentState();
+    loadCustomFieldDefinitions();
+  }, []);
+
+  return (
+    <Fragment>
+      <ModelTable<IncidentTemplate>
+        modelType={IncidentTemplate}
+        enableJsonImportExport={true}
+        id="incident-templates-table"
+        userPreferencesKey="incident-templates-table"
+        name="Settings > Incident Templates"
+        saveFilterProps={{
+          tableId: "incident-templates-table",
+        }}
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={true}
+        isViewable={true}
+        createEditModalWidth={ModalWidth.Large}
+        cardProps={{
+          title: "Incident Templates",
+          description:
+            "Here is a list of all the incident templates in this project.",
+        }}
+        noItemsMessage={"No incident templates found."}
+        query={{
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        showViewIdButton={true}
+        createInitialValues={createInitialValues}
+        onBeforeCreate={async (
+          item: IncidentTemplate,
+          miscDataProps: JSONObject,
+          formValues: JSONObject,
+        ): Promise<IncidentTemplate> => {
+          /*
+           * From the values the form submitted, so a Number of 0 and a box
+           * left unticked are kept; they travel in customFields only.
+           */
+          const customFields: JSONObject | undefined =
+            packCustomFieldFormValues({
+              definitions: customFieldDefinitions,
+              formValues: formValues,
+              isShown: isAskedOnIncidentForm,
+            });
+
+          removeCustomFieldFormKeys(miscDataProps);
+
+          if (customFields) {
+            item.customFields = customFields;
+          }
+
+          return item;
+        }}
+        formSteps={[
+          {
+            title: "Template Info",
+            id: "template-info",
+          },
+          {
+            title: "Incident Details",
+            id: "incident-details",
+          },
+          {
+            title: "Resources Affected",
+            id: "resources-affected",
+          },
+          ...customFieldSteps,
+          {
+            title: "On-Call",
+            id: "on-call",
+          },
+          {
+            title: "Owners",
+            id: "owners",
+          },
+          {
+            title: "Labels",
+            id: "labels",
+          },
+        ]}
+        formFields={[
+          {
+            field: {
+              templateName: true,
+            },
+            title: "Template Name",
+            fieldType: FormFieldSchemaType.Text,
+            stepId: "template-info",
+            required: true,
+            placeholder: "Template Name",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              templateDescription: true,
+            },
+            title: "Template Description",
+            fieldType: FormFieldSchemaType.LongText,
+            stepId: "template-info",
+            required: true,
+            placeholder: "Template Description",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              title: true,
+            },
+            title: "Title",
+            fieldType: FormFieldSchemaType.Text,
+            stepId: "incident-details",
+            required: true,
+            placeholder: "Incident Title",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            stepId: "incident-details",
+            fieldType: FormFieldSchemaType.Markdown,
+            required: false,
+          },
+          {
+            field: {
+              incidentSeverity: true,
+            },
+            title: "Incident Severity",
+            stepId: "incident-details",
+            description: "What type of incident is this?",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: IncidentSeverity,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Incident Severity",
+          },
+          {
+            field: {
+              initialIncidentState: true,
+            },
+            title: "Initial Incident State",
+            stepId: "incident-details",
+            description:
+              "Select the initial state for incidents created from this template",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: IncidentState,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Initial State",
+            fetchDropdownOptions: async () => {
+              const projectId: ObjectID | null =
+                ProjectUtil.getCurrentProjectId();
+              if (!projectId) {
+                return [];
+              }
+
+              try {
+                const incidentStates: ListResult<IncidentState> =
+                  await ModelAPI.getList<IncidentState>({
+                    modelType: IncidentState,
+                    query: {
+                      projectId: projectId,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                      _id: true,
+                      name: true,
+                    },
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
+                  });
+
+                return incidentStates.data.map((state: IncidentState) => {
+                  return {
+                    label: state.name || "",
+                    value: state._id?.toString() || "",
+                  };
+                });
+              } catch {
+                // Silently fail and return empty array
+                return [];
+              }
+            },
+          },
+          {
+            field: {
+              monitors: true,
+            },
+            title: "Resources Affected",
+            stepId: "resources-affected",
+            description:
+              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<IncidentTemplate>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  monitors={values.monitors as Array<Monitor>}
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                  services={values.services as Array<Service>}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<IncidentTemplate>,
+              setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
+            ) => {
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
+                    monitors: payload.monitors,
+                    hosts: payload.hosts,
+                    kubernetesClusters: payload.kubernetesClusters,
+                    dockerHosts: payload.dockerHosts,
+                    podmanHosts: payload.podmanHosts,
+                    services: payload.services,
+                  } as FormValues<IncidentTemplate>);
+                });
+              }
+            },
+          },
+          /*
+           * The status pages incidents declared from this template are
+           * limited to - a 'Region East outage' template can carry the East
+           * site pages.
+           */
+          {
+            field: {
+              statusPages: true,
+            },
+            title: IncidentStatusPageScopeCopy.pickerTitle,
+            stepId: "resources-affected",
+            description: IncidentStatusPageScopeCopy.templatePickerDescription,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: StatusPage,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+            footerElement: (
+              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
+            ),
+          },
+          /*
+           * Hidden registrations so ModelForm.getSelectFields includes
+           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           */
+          {
+            field: { hosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { kubernetesClusters: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { dockerHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { podmanHosts: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          {
+            field: { services: true },
+            stepId: "resources-affected",
+            title: "",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            showIf: () => {
+              return false;
+            },
+          },
+          ...customFieldFormFields,
+          {
+            field: {
+              onCallDutyPolicies: true,
+            },
+            title: "On-Call Policy",
+            stepId: "on-call",
+            description:
+              "Select on-call duty policy to execute when this incident is created.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: OnCallDutyPolicy,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select on-call policies",
+          },
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to ",
+            stepId: "resources-affected",
+            description:
+              "This will change the status of all the monitors attached to this incident.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Monitor Status",
+          },
+          {
+            overrideField: {
+              ownerTeams: true,
+            },
+            showEvenIfPermissionDoesNotExist: true,
+            title: "Owner - Teams",
+            stepId: "owners",
+            description:
+              "Select which teams own this incident. They will be notified when the incident is created or updated.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Team,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Teams",
+            overrideFieldKey: "ownerTeams",
+          },
+          {
+            overrideField: {
+              ownerUsers: true,
+            },
+            showEvenIfPermissionDoesNotExist: true,
+            title: "Owner - Users",
+            stepId: "owners",
+            description:
+              "Select which users own this incident. They will be notified when the incident is created or updated.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            fetchDropdownOptions: async () => {
+              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                ProjectUtil.getCurrentProjectId()!,
+              );
+            },
+            required: false,
+            placeholder: "Select Users",
+            overrideFieldKey: "ownerUsers",
+          },
+          {
+            field: {
+              labels: true,
+            },
+
+            title: "Labels ",
+            stepId: "labels",
+            description:
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
+          },
+        ]}
+        showRefreshButton={true}
+        viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
+        filters={[
+          {
+            field: {
+              templateName: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              templateDescription: true,
+            },
+            title: "Description",
+            type: FieldType.LongText,
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              templateName: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              templateDescription: true,
+            },
+            title: "Description",
+            type: FieldType.LongText,
+          },
+        ]}
+      />
+    </Fragment>
+  );
+};
+
+export default IncidentTemplates;

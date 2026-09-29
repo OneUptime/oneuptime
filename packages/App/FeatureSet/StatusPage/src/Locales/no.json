@@ -1,0 +1,331 @@
+{
+  "a11y": {
+    "skipToMainContent": "Hopp til hovedinnhold",
+    "loading": "Laster..."
+  },
+  "common": {
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "submit": "Send inn",
+    "close": "Lukk",
+    "back": "Tilbake",
+    "next": "Neste",
+    "loading": "Laster...",
+    "search": "Søk",
+    "edit": "Rediger",
+    "delete": "Slett",
+    "yes": "Ja",
+    "no": "Nei",
+    "statusPage": "Statusside"
+  },
+  "language": {
+    "label": "Språk",
+    "switchLanguage": "Bytt språk"
+  },
+  "nav": {
+    "overview": "Oversikt",
+    "incidents": "Hendelser",
+    "announcements": "Kunngjøringer",
+    "scheduledEvents": "Planlagte hendelser",
+    "subscribe": "Abonner",
+    "login": "Logg inn",
+    "logout": "Logg ut"
+  },
+  "overview": {
+    "uptimeSuffix": "% oppetid",
+    "operational": "I drift",
+    "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",
+    "activeIncidents": "Aktive hendelser",
+    "scheduledMaintenanceEvents": "Planlagte vedlikeholdshendelser",
+    "allClearTitle": "Alt ser bra ut",
+    "allClearDescription": "Ingen ressurser er lagt til på denne statussiden ennå. Legg til noen ressurser fra kontrollpanelet.",
+    "allResourcesAre": "Alle ressurser er {{status}}",
+    "someResourcesAre": "Noen ressurser er {{status}}",
+    "someResourcesAreUnder": "Noen ressurser er under {{status}}",
+    "oneSubGroup": "1 gruppe",
+    "subGroupCount": "{{total}} grupper"
+  },
+  "eventItem": {
+    "affectedResources": "Berørte ressurser",
+    "stateChangedTo": "status endret til",
+    "view": "Vis {{eventType}}",
+    "updateTo": "Oppdatering for denne {{eventType}}",
+    "postedOn": "publisert"
+  },
+  "monitorOverview": {
+    "daysAgo": "for {{days}} dager siden",
+    "today": "I dag",
+    "notAvailable": "Ikke tilgjengelig"
+  },
+  "uptimeHistory": {
+    "graphLabel": "Oppetidshistorikk for de siste {{total}} dagene",
+    "dayLabel": "{{date}}: {{uptime}} % oppetid",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}} % oppetid, {{total}} hendelser",
+    "dayLabelNoData": "{{date}}: ingen data",
+    "dayLabelNoDataWithIncidents": "{{date}}: ingen data, {{total}} hendelser",
+    "uptime": "Oppetid",
+    "noMonitoringData": "Ingen overvåkingsdata for denne dagen",
+    "incidents": "Hendelser",
+    "noIncidents": "Ingen hendelser",
+    "noIncidentsDescription": "Ingen hendelser ble rapportert denne dagen.",
+    "declared": "Registrert",
+    "oneIncidentOnThisDay": "1 hendelse rapportert denne dagen",
+    "incidentsOnThisDay": "{{total}} hendelser rapportert denne dagen"
+  },
+  "liveStatus": {
+    "updated": "Oppdatert {{time}}",
+    "refresh": "Oppdater",
+    "refreshing": "Oppdaterer",
+    "refreshFailed": "Kunne ikke oppdatere. Viser sist kjente status."
+  },
+  "search": {
+    "label": "Søk etter ressurser",
+    "placeholder": "Søk etter ressurser",
+    "clear": "Tøm søk",
+    "resultCount": "{{matched}} av {{total}} ressurser",
+    "noMatchesInGroup": "Ingen ressurser her samsvarer med søket ditt.",
+    "noResultsTitle": "Ingen samsvarende ressurser",
+    "noResultsDescription": "Ingenting på denne siden samsvarer med «{{query}}». Prøv et kortere søk."
+  },
+  "incidents": {
+    "title": "Hendelser",
+    "singular": "Hendelse",
+    "active": "Aktive hendelser",
+    "resolved": "Løste hendelser",
+    "none": "Ingen hendelser",
+    "noneDescription": "Ingen hendelser er publisert på denne statussiden.",
+    "postmortem": "Hendelsesgjennomgang",
+    "declaredAt": "Rapportert den ",
+    "report": "Hendelsesrapport",
+    "notFound": "Hendelsen ble ikke funnet på denne statussiden."
+  },
+  "episodes": {
+    "report": "Episoderapport",
+    "none": "Ingen episode",
+    "notFound": "Episoden ble ikke funnet på denne statussiden."
+  },
+  "announcements": {
+    "title": "Kunngjøringer",
+    "singular": "Kunngjøring",
+    "active": "Aktive kunngjøringer",
+    "past": "Tidligere kunngjøringer",
+    "none": "Ingen kunngjøringer",
+    "noneDescription": "Ingen kunngjøringer er publisert på denne siden så langt.",
+    "announcedAt": "Kunngjort den ",
+    "notFound": "Kunngjøringen ble ikke funnet på denne statussiden."
+  },
+  "scheduledEvents": {
+    "title": "Planlagte hendelser",
+    "singular": "Planlagt hendelse",
+    "scheduledMaintenance": "Planlagt vedlikehold",
+    "ongoing": "Pågående hendelser",
+    "upcoming": "Planlagte hendelser",
+    "completed": "Fullførte hendelser",
+    "none": "Ingen planlagte hendelser",
+    "noneDescription": "Ingen planlagte hendelser er publisert for denne statussiden.",
+    "scheduledAt": "Planlagt til ",
+    "report": "Rapport for planlagt hendelse",
+    "notFound": "Ingen planlagt hendelse funnet for denne statussiden."
+  },
+  "subscribe": {
+    "title": "Abonner",
+    "submit": "Abonner",
+    "newSubscription": "Nytt abonnement",
+    "manageExisting": "Administrer eksisterende abonnement",
+    "sendManagementLink": "Send administrasjonslenke",
+    "subscribedSuccessfully": "Du er abonnert.",
+    "emailSentCheckSpam": "En e-post med lenken er sendt til e-postadressen din. Hvis du ikke ser e-posten, sjekk søppelpostmappen.",
+    "manageLinkSent": "Hvis et abonnement samsvarer med opplysningene du skrev inn, har vi sendt en lenke for å administrere det.",
+    "manageLinkSentEmail": "Hvis denne e-postadressen har et abonnement, har vi sendt en administrasjonslenke til adressen. Hvis du ikke ser e-posten, sjekk søppelpostmappen.",
+    "menu": {
+      "email": "E-post",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Abonner via e-post",
+      "description": "Alle oppdateringer sendes til denne e-postadressen.",
+      "yourEmail": "Din e-post",
+      "placeholder": "abonnent@firma.no",
+      "managePrompt": "Vennligst skriv inn e-postadressen du abonnerer med",
+      "manageDescription": "Vi sender deg en administrasjonslenke til denne e-postadressen.",
+      "managePlaceholder": "epost@dittfirma.no"
+    },
+    "sms": {
+      "title": "Abonner via SMS",
+      "description": "Alle oppdateringer sendes til dette telefonnummeret.",
+      "yourPhoneNumber": "Ditt telefonnummer",
+      "placeholder": "+4712345678",
+      "managePrompt": "Vennligst skriv inn telefonnummeret du abonnerer med",
+      "manageDescription": "Vi sender deg en administrasjonslenke til dette telefonnummeret."
+    },
+    "slack": {
+      "title": "Abonner via Slack",
+      "description": "Alle oppdateringer sendes til denne Slack-webhooken.",
+      "workspaceName": "Navn på Slack-arbeidsområde",
+      "workspaceNameDescription": "Skriv inn navnet på Slack-arbeidsområdet ditt for validering.",
+      "workspaceNamePlaceholder": "mitt-firma-arbeidsomrade",
+      "webhookUrl": "URL for innkommende webhook for Slack",
+      "webhookUrlDescription": "Oppdateringer fra statussiden sendes til denne Slack-webhooken.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Vennligst skriv inn navnet på Slack-arbeidsområdet du abonnerer med",
+      "manageDescription": "Vi sender deg en administrasjonslenke til dette arbeidsområdet."
+    },
+    "microsoftTeams": {
+      "title": "Abonner via Microsoft Teams",
+      "description": "Alle oppdateringer sendes til denne Teams-webhooken.",
+      "workspaceName": "Navn på Microsoft Teams-arbeidsområde",
+      "workspaceNameDescription": "Skriv inn navnet på Microsoft Teams-arbeidsområdet ditt for validering.",
+      "workspaceNamePlaceholder": "mitt-firma-arbeidsomrade",
+      "webhookUrl": "URL for innkommende webhook for Microsoft Teams",
+      "webhookUrlDescription": "Oppdateringer fra statussiden sendes til denne Teams-webhooken.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Vennligst skriv inn navnet på Microsoft Teams-arbeidsområdet du abonnerer med",
+      "manageDescription": "Vi sender deg en administrasjonslenke til dette arbeidsområdet."
+    },
+    "webhook": {
+      "title": "Abonner via webhook",
+      "description": "Alle våre oppdateringer sendes som JSON POST-forespørsler til denne webhook-URL-en.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "En JSON POST-forespørsel sendes til denne URL-en ved hver statussidehendelse.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "Abonner på alle ressurser",
+      "allDescription": "Velg dette alternativet hvis du vil abonnere på alle ressurser.",
+      "select": "Velg ressurser å abonnere på",
+      "selectDescription": "Vennligst velg ressursene du vil abonnere på."
+    },
+    "eventTypes": {
+      "all": "Abonner på alle hendelsestyper",
+      "allDescription": "Velg dette alternativet hvis du vil abonnere på alle hendelsestyper.",
+      "select": "Velg hendelsestyper å abonnere på",
+      "selectDescription": "Vennligst velg hendelsestypene du vil abonnere på."
+    },
+    "update": {
+      "title": "Oppdater abonnement",
+      "description": "Du kan oppdatere abonnementsinnstillingene dine eller avslutte abonnementet her.",
+      "saved": "Endringene dine er lagret.",
+      "submit": "Oppdater abonnement",
+      "unsubscribe": "Avslutt abonnement",
+      "unsubscribeDescription": "Velg dette hvis du vil avslutte abonnementet på alle ressurser."
+    },
+    "confirm": {
+      "title": "Bekreft abonnement",
+      "success": "Abonnement bekreftet"
+    },
+    "unsubscribe": {
+      "title": "Avslutt abonnement",
+      "titleWithName": "Avslutt abonnementet på {{statusPageName}}",
+      "confirmPrompt": "Vil du slutte å motta varsler fra denne statussiden?",
+      "channelEmail": "E-postadresse",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-arbeidsområde",
+      "channelMicrosoftTeams": "Microsoft Teams-arbeidsområde",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dette abonnementet ble lagt til av teamet som driver denne statussiden. Hvis det er en delt adresse, for eksempel en e-postliste, stopper avslutning disse varslene for alle som mottar dem, og teamet blir varslet.",
+      "confirmButton": "Avslutt abonnement",
+      "manageInstead": "Velg heller hvilke varsler du mottar",
+      "manageSubscription": "Administrer abonnementet ditt",
+      "success": "Abonnementet ditt er avsluttet. Du vil ikke motta flere varsler fra denne statussiden.",
+      "alreadyUnsubscribed": "Dette abonnementet er allerede avsluttet. Du mottar ikke varsler fra denne statussiden.",
+      "outOfDateLink": "Denne lenken for å avslutte abonnementet er utdatert. Bruk lenken i en nylig melding fra denne statussiden for å avslutte abonnementet.",
+      "invalidLink": "Denne lenken for å avslutte abonnementet er ugyldig. Den kan være ufullstendig, eller abonnementet kan være fjernet. Bruk lenken i en nylig melding fra denne statussiden for å avslutte abonnementet.",
+      "failed": "Vi kunne ikke avslutte abonnementet. Prøv igjen.",
+      "loadFailed": "Vi kunne ikke laste inn denne lenken for å avslutte abonnementet. Prøv igjen senere."
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "E-post",
+      "password": "Passord",
+      "newPassword": "Nytt passord",
+      "confirmPassword": "Bekreft passord",
+      "login": "Logg inn"
+    },
+    "login": {
+      "welcomeBack": "Velkommen tilbake!",
+      "loginPrompt": "Vennligst logg inn for å se {{statusPageName}}",
+      "forgotPassword": "Glemt passord?",
+      "submit": "Logg inn",
+      "useSSO": "Bruk single sign-on (SSO) i stedet"
+    },
+    "sso": {
+      "title": "Logg inn med SSO",
+      "loginPrompt": "Vennligst logg inn for å se {{statusPageName}}",
+      "noProviders": "Ingen SSO-leverandører er konfigurert eller aktivert",
+      "notAvailable": "Single sign-on (SSO) er ikke tilgjengelig for denne statussiden. Logg inn med e-post og passord i stedet.",
+      "backToLogin": "Tilbake til innlogging"
+    },
+    "forgotPassword": {
+      "title": "Glemt passord",
+      "description": "Hvis du har glemt passordet ditt for {{statusPageName}}, skriv inn e-posten din, så sender vi deg en lenke for å tilbakestille passordet.",
+      "success": "Vi har sendt deg lenken for tilbakestilling av passord på e-post. Husk å sjekke søppelpostmappen.",
+      "sendLink": "Send lenke for tilbakestilling av passord",
+      "rememberPassword": "Husker du passordet ditt?"
+    },
+    "resetPassword": {
+      "description": "Lag et nytt passord for {{statusPageName}}-kontoen din.",
+      "instructions": "Vennligst skriv inn det nye passordet ditt, så oppdaterer vi det.",
+      "success": "Passordet ditt er oppdatert. Vennligst logg inn.",
+      "submit": "Tilbakestill passord",
+      "knowPassword": "Kjenner du passordet ditt?"
+    },
+    "masterPassword": {
+      "enterWithName": "Skriv inn passord for {{statusPageName}}",
+      "enterGeneric": "Skriv inn passord",
+      "prompt": "Vennligst skriv inn passordet for å fortsette.",
+      "passwordRequired": "passord er påkrevd.",
+      "passwordLabel": "Passord",
+      "passwordDescription": "Skriv inn passordet for å låse opp denne siden.",
+      "passwordPlaceholder": "Skriv inn passord",
+      "submit": "Lås opp statusside"
+    },
+    "signingOut": "Logger deg ut..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "Siden ble ikke funnet.",
+      "description": "Siden du leter etter finnes ikke."
+    },
+    "forbidden": {
+      "title": "Tilgang nektet",
+      "description": "Du har ikke tillatelse til å få tilgang til denne siden."
+    },
+    "generic": "Noe gikk galt. Vennligst prøv igjen."
+  },
+  "footer": {
+    "poweredBy": "Drevet av OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identifisert",
+    "acknowledged": "Bekreftet",
+    "resolved": "Løst",
+    "criticalIncident": "Kritisk hendelse",
+    "majorIncident": "Større hendelse",
+    "minorIncident": "Mindre hendelse",
+    "operational": "Operativ",
+    "degraded": "Redusert",
+    "offline": "Frakoblet",
+    "scheduled": "Planlagt",
+    "ongoing": "Pågående",
+    "ended": "Avsluttet",
+    "completed": "Fullført"
+  },
+  "Subscriber ID is required": "Abonnent-ID er påkrevd",
+  "Token is required": "Token er påkrevd",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} kan ikke være mindre enn {{minLength}} tegn.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} kan ikke være mer enn {{maxLength}} tegn.",
+  "{{field}} should not have spaces.": "{{field}} kan ikke inneholde mellomrom.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} kan bare inneholde bokstaver, tall, bindestreker (-) og understreker (_).",
+  "{{field}} should not have numbers.": "{{field}} kan ikke inneholde tall.",
+  "{{field}} should be a future date.": "{{field}} må være en fremtidig dato.",
+  "{{field}} should be a number.": "{{field}} må være et tall.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} kan ikke være større enn {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} kan ikke være mindre enn {{minValue}}.",
+  "{{field}} is required.": "{{field}} er påkrevd.",
+  "{{field}} should match {{matchField}}": "{{field}} må samsvare med {{matchField}}",
+  "Email is not valid.": "E-posten er ugyldig."
+}

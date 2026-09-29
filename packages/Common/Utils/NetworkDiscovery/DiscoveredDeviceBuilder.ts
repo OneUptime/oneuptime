@@ -1,0 +1,505 @@
+import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
+import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "../../Types/ObjectID";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+} from "./SnmpScanConfigUtil";
+import {
+  isPingOnlyDiscoveredHost,
+  monitoringMethodForDiscoveredHost,
+} from "./DiscoveryImportEligibility";
+import { normalizeNetbiosName } from "./NetbiosNameUtil";
+import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
+import { getShortHostname } from "./ShortHostnameUtil";
+
+/*
+ * One discovered host -> one NetworkDevice, the same way everywhere.
+ *
+ * This mapping used to live inline in the Dashboard's Discovery page import
+ * loop. The server-side auto-import rule engine needs the identical recipe —
+ * a host imported by a rule and the same host imported by hand must be the
+ * same device — so the recipe lives here and both callers use it. Anything
+ * added to one path by editing this file is automatically added to the other.
+ */
+
+/*
+ * Longest device name the builder will emit.
+ *
+ * The name column is varchar(100) and the create path THROWS on overflow (no
+ * truncation), but the real ceiling is the slug: it is slugify(name) plus a
+ * dash and ten random digits into its own varchar(100), so a name over ~88
+ * characters fails the create with a slug-length error even though the name
+ * itself fits. SNMP sysName is a DisplayString of up to 255 octets, so
+ * over-long names are routine on real gear, and the collision fallback below
+ * appends up to 18 more characters (" (255.255.255.255)"). 80 leaves headroom
+ * for both.
+ */
+export const MAX_DEVICE_NAME_LENGTH: number = 80;
+
+// NetworkDevice.description is stored to 500 characters; sysDescr can be 255+.
+export const MAX_DEVICE_DESCRIPTION_LENGTH: number = 500;
+
+/*
+ * NetworkDevice.dnsName is LongText (500), but a DNS name never exceeds 253
+ * characters and normalizeReverseDnsName refuses anything longer, so this is
+ * the real ceiling — kept as a constant so the column and the builder agree.
+ */
+export const MAX_DEVICE_DNS_NAME_LENGTH: number = 253;
+
+function truncate(value: string, maxLength: number): string {
+  return value.length > maxLength ? value.substring(0, maxLength) : value;
+}
+
+/**
+ * How the scan being imported from wants its hosts named.
+ *
+ * REQUIRED on every naming function rather than optional, and that is the
+ * point of it. The Review dialog row, the device the dialog creates, the
+ * collision fallback, the Ping monitor's name and both auto-import paths all
+ * derive a name separately; an optional argument that one of them forgot
+ * would still compile, and the operator would tick a box next to
+ * "wb-0660-kds01" and get a device called "wb-0660-kds01.wbhq.com". A
+ * required one makes the compiler find every caller.
+ *
+ * The NetworkDeviceDiscoveryScan model satisfies this structurally, so a
+ * caller holding the scan passes the scan.
+ */
+export interface DiscoveredHostNaming {
+  /*
+   * Name devices by the first label of a fully qualified hostname (issue
+   * #3678). ON only when exactly `true`: the value comes out of a database
+   * row or an API payload, and "true" or 1 must not quietly rename a
+   * project's devices.
+   */
+  useShortDeviceNames?: boolean | null | undefined;
+}
+
+/**
+ * The name a discovered host has before any shortening: its sysName, its
+ * reverse-DNS name, its NetBIOS name, or its address. This is what
+ * `getDiscoveredHostDisplayName` shortens, and what the Review dialog shows
+ * beside a shortened name so the operator can see what was cut.
+ */
+export function getDiscoveredHostFullName(
+  host: DiscoveredNetworkDevice,
+): string {
+  /*
+   * The PTR name is re-normalised here rather than trusted from the column.
+   * `discoveredDevices` is jsonb stored verbatim from the probe's payload, so
+   * "the probe already checked it" holds only for the probe version that
+   * wrote the row — not for a result from an older or a modified probe, and
+   * not for a row written straight through the API. This function is the last
+   * point before the value becomes a rendered line and a slugified device
+   * name, so it is the right place to be sure. See ReverseDnsNameUtil.
+   *
+   * The NetBIOS name is re-normalised here for the same reason, and with more
+   * cause: it is not even a published record but whatever the host at that
+   * address chose to answer (issue #3677). A stored "WORKSTATION01   " — the
+   * raw, space-padded, upper-cased wire form an older or modified probe might
+   * write — is read as "workstation01", and anything that fails the rules
+   * falls through to the address. See NetbiosNameUtil.
+   */
+  /*
+   * `sysName` is read through a typeof guard rather than trusted, for the
+   * same reason `dnsHostname` is normalised: both come out of the same
+   * verbatim jsonb blob, where the declared TypeScript type is a description
+   * of what the probe SHOULD send rather than a guarantee about what is
+   * stored. `(42).trim()` is a TypeError, and since this function became the
+   * dashboard's name line that TypeError would be thrown during render —
+   * taking out the whole Review dialog rather than one row, which is
+   * precisely the failure normalizeDiscoveredHosts was written to end.
+   */
+  const sysName: string =
+    typeof host.sysName === "string" ? host.sysName.trim() : "";
+
+  return (
+    sysName ||
+    normalizeReverseDnsName(host.dnsHostname) ||
+    normalizeNetbiosName(host.netbiosName) ||
+    String(host.ipAddress ?? "")
+  );
+}
+
+/**
+ * What a discovered host is CALLED — in the Review dialog, and (clamped by
+ * `buildDeviceName`) on the device it imports as.
+ *
+ * Four sources, in this order, first non-empty wins:
+ *
+ *   1. `sysName`, the name the device gives for itself over SNMP. It stays
+ *      first because it always has been, and because it is the one name the
+ *      device itself asserts: demoting it would silently rename devices that
+ *      import correctly today, which nobody asked for.
+ *   2. `dnsHostname`, its reverse-DNS (PTR) name (OneUptime issue #3529).
+ *      This is the whole point of the addition, and it lands exactly where
+ *      the complaint was: a host with no readable SNMP has no sysName, so
+ *      before this it fell straight through to its address. On an estate that
+ *      keeps DNS records — the reporter's does — that turns a review list of
+ *      "10.18.166.51, 10.18.166.53, ..." into names an operator recognises.
+ *   3. `netbiosName`, the name the host answered a NetBIOS node status query
+ *      with (OneUptime issue #3677), for the hosts neither of the above names:
+ *      no SNMP, no PTR record — on a Windows estate, most of them. It ranks
+ *      BELOW the PTR name because it is self-reported by whatever sits at the
+ *      address rather than published by whoever runs DNS, and because a PTR
+ *      name carries the domain the short-name option and `dnsName` depend on.
+ *      In practice the two rarely meet: the probe only asks hosts that have
+ *      neither a sysName nor a PTR name. The order is for the rows where they
+ *      do anyway — a result written through the API, or by a probe of another
+ *      version — so that every reader settles them the same way.
+ *   4. The address, unchanged, when no name exists.
+ *
+ * Split out of `buildDeviceName` so the dashboard row and the device it
+ * creates cannot disagree: the operator ticks a box next to a name, and that
+ * is the name the device gets. Returned UNTRUNCATED, so a caller that wants
+ * the full name can have it; the Review dialog and the import both go through
+ * `buildDeviceName`, which clamps, so that what is shown is what is created.
+ *
+ * TWO CONSEQUENCES OF NAMING A DEVICE BY DNS, both accepted deliberately:
+ *
+ *   - Anything that matches on `NetworkDevice.name` now sees a name the
+ *     SCANNED NETWORK chose. NetworkSiteAssignmentRule and the label/owner
+ *     rule engines are the live examples: a rule written against a naming
+ *     convention will match differently for a host that used to be called
+ *     "10.18.166.51" and is now called "core-gw.corp.example.com". That is
+ *     inherent to the feature — the alternative is not naming devices by DNS —
+ *     and it is why the name is put through ReverseDnsNameUtil rather than
+ *     trusted. Rules keyed on `hostname` are unaffected: that stays the IP.
+ *   - Names stop being unique per host. Addresses were; PTR names are not, and
+ *     a wildcard reverse zone over a DHCP range gives every host in it the
+ *     same answer. `buildFallbackDeviceName` is the answer to that, and BOTH
+ *     import paths must use it — the rule engine does, and the dashboard's
+ *     Review-dialog import does since the same wildcard case made collisions
+ *     ordinary rather than rare.
+ *
+ * SHORT NAMES (issue #3678). When the scan asks for them, whichever name won
+ * above is cut to its first label if it is a fully qualified hostname —
+ * sysName included, because network gear routinely reports its FQDN there and
+ * a list where only the PTR-named hosts were shortened would read as broken.
+ * The winner is shortened or kept; shortening never changes WHICH source
+ * wins, and an address is never shortened (see ShortHostnameUtil). The full
+ * reverse-DNS name is not lost: the builder stores it on the device as
+ * `dnsName`. A NetBIOS name passes through unchanged either way: it is a
+ * single dot-free label by construction, so there is nothing to cut, and
+ * getShortHostname declines it.
+ */
+export function getDiscoveredHostDisplayName(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): string {
+  const fullName: string = getDiscoveredHostFullName(host);
+
+  if (naming.useShortDeviceNames !== true) {
+    return fullName;
+  }
+
+  return getShortHostname(fullName) || fullName;
+}
+
+/** The name a discovered host imports under, clamped to the slug's ceiling. */
+export function buildDeviceName(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): string {
+  return truncate(
+    getDiscoveredHostDisplayName(host, naming),
+    MAX_DEVICE_NAME_LENGTH,
+  );
+}
+
+/**
+ * The fallback name when `buildDeviceName`'s answer is already taken.
+ *
+ * Device names are unique per project, and two devices legitimately sharing a
+ * sysName (a factory default, a cloned config) is common on real estates. The
+ * address is what tells them apart, so it goes into the name — with the
+ * sysName cut down first so the composed string still fits under the same
+ * ceiling.
+ */
+export function buildFallbackDeviceName(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): string {
+  /*
+   * The address is read through the SAME coercion the display path uses, not
+   * straight out of the jsonb.
+   *
+   * A raw template read turned a missing address into the literal
+   * " (undefined)" and an object one into " ([object Object])" — and those
+   * tokens are IDENTICAL for every such host, so the fallback produced the
+   * same name again and the retry failed on the very duplicate it was
+   * retrying. This function exists to break a name collision; a suffix that
+   * collides is worse than useless.
+   */
+  const address: string = String(host.ipAddress ?? "").trim();
+
+  /*
+   * An address-less host gets no suffix at all rather than an empty pair of
+   * brackets. There is nothing to tell it apart BY, so the honest outcome is
+   * the base name unchanged — the caller's create then fails on the duplicate,
+   * which is the truth, instead of succeeding under a name that pretends to
+   * carry an address.
+   */
+  const suffix: string = address ? ` (${address})` : "";
+
+  const baseName: string = buildDeviceName(host, naming);
+
+  /*
+   * Clamped as a whole, not just the base. `Math.max(1, ...)` keeps a
+   * character of the base name however long the suffix is, so an absurd
+   * address — the field is never validated on this path, it is whatever the
+   * probe wrote — could compose a name past the ceiling and fail the create on
+   * the slug's own length, which is the exact overflow the ceiling exists to
+   * prevent.
+   */
+  return truncate(
+    truncate(baseName, Math.max(1, MAX_DEVICE_NAME_LENGTH - suffix.length)) +
+      suffix,
+    MAX_DEVICE_NAME_LENGTH,
+  );
+}
+
+/*
+ * The scan columns the builder copies onto a device: the probe onto every
+ * device, the credentials onto the ones that answered SNMP. The
+ * NetworkDeviceDiscoveryScan model satisfies this structurally, so both the
+ * dashboard (holding a scan model) and the rule engine (holding a scan row it
+ * selected itself) can pass their scan straight in.
+ *
+ * `snmpConfigs` is the scan's ordered list of credential sets; the flattened
+ * columns beside it are the single set a scan carried before that list existed
+ * (and are still mirrored from the list's first entry). Neither is read
+ * directly here — SnmpScanConfigUtil reconciles the two — but BOTH have to be
+ * SELECTED by every caller, or the credentials silently arrive undefined and
+ * the device is created as a ping-only one. That is what
+ * Common/Tests/Server/Services/AutoImportScanCredentialSelect.test.ts pins.
+ *
+ * `useShortDeviceNames` is the scan's naming choice (issue #3678), which is
+ * why this interface extends DiscoveredHostNaming: the device's name is part
+ * of the recipe, so a caller that selected the scan without that column
+ * would import full names from a scan that asked for short ones.
+ */
+export interface DiscoveredDeviceScanSource extends DiscoveredHostNaming {
+  probeId?: ObjectID | undefined;
+  snmpConfigs?: Array<DiscoveryScanSnmpConfig> | null | undefined;
+  snmpVersion?: string | undefined;
+  snmpCommunityString?: string | undefined;
+  snmpPort?: number | undefined;
+  snmpV3SecurityLevel?: string | undefined;
+  snmpV3Username?: string | undefined;
+  snmpV3AuthProtocol?: string | undefined;
+  snmpV3AuthKey?: string | undefined;
+  snmpV3PrivProtocol?: string | undefined;
+  snmpV3PrivKey?: string | undefined;
+}
+
+/**
+ * The NetworkDevice a discovered host imports as.
+ *
+ * Every host becomes a Probe device polled by the scan's probe — the probe
+ * that just proved the host answers, so the one that can keep asking. An
+ * SNMP-reachable host also carries the credential set that answered it, so
+ * its first poll walks it for interfaces, inventory and health. A ping-only
+ * host carries no credentials at all: the probe pings it and nothing more, it
+ * has a status from its first poll, and adding credentials later on its
+ * Settings page is what turns the walk on.
+ *
+ * (It used to import as a monitor-backed device with no probe and polling
+ * off, which left it on "Pending" until an operator hand-bound a Ping monitor
+ * — issue #3447. Reachability is a built-in capability of every probe-polled
+ * device now, so that dead end is gone.)
+ *
+ * The caller supplies the name (normally `buildDeviceName(host, scan)`) so the
+ * name-collision retry can rebuild the same device under
+ * `buildFallbackDeviceName(host, scan)` without re-deciding anything else.
+ */
+export function buildNetworkDeviceFromDiscoveredHost(data: {
+  projectId: ObjectID;
+  host: DiscoveredNetworkDevice;
+  scan: DiscoveredDeviceScanSource;
+  name?: string | undefined;
+  /*
+   * Turn on the device's vendor-health-template auto-apply. The rule
+   * engine sets this — a zero-touch import should end with health metrics,
+   * not an empty OID list waiting for a click. The manual Review dialog
+   * leaves it unset: an operator importing by hand gets the vendor banner
+   * and decides, which is the existing contract for hand-made devices.
+   */
+  autoApplyVendorHealthTemplate?: boolean | undefined;
+  /*
+   * The OID Collection Template an auto-import rule linked this device to.
+   * Set at create so the device collects its type's OIDs from its very first
+   * poll, with nobody having to touch it afterwards.
+   */
+  oidTemplateId?: ObjectID | undefined;
+}): NetworkDevice {
+  const host: DiscoveredNetworkDevice = data.host;
+
+  const device: NetworkDevice = new NetworkDevice();
+  device.projectId = data.projectId;
+  device.name = data.name || buildDeviceName(host, data.scan);
+  /*
+   * The address is the device's hostname AND the registered-host dedup key.
+   *
+   * It stays the ADDRESS even when the host resolved a PTR name, which is
+   * what issue #3529 asked for in as many words ("retain the IP address as
+   * the address/IP field"), and what the rest of the system needs: this
+   * column is what the ingest path matches a scan's results against
+   * (NetworkDeviceService.getRegisteredHostnames), what the SNMP poller
+   * dials, and what a trap's source IP is correlated to. Storing a name here
+   * would make a device stop polling the day its reverse zone changed, and
+   * would make the same host import twice — once by address, once by name.
+   * The PTR record names the device; it does not address it.
+   *
+   * COERCED, because the dedup key has to be a string. The value comes out of
+   * jsonb, and `getRegisteredHostnames` matches it with `Set.has()` against
+   * hostnames read back from the database — and `Set.has` does not coerce, so
+   * a numeric address stored raw would never match its own registered device
+   * and the host would import again on every review. The dashboard path is
+   * already covered by normalizeDiscoveredHosts; this makes the builder safe
+   * for the rule engine and for any future caller that holds a raw row.
+   */
+  device.hostname = String(host.ipAddress ?? "").trim();
+
+  /*
+   * The full reverse-DNS name, kept on the device (issue #3678).
+   *
+   * Set whatever the scan's naming choice, because it is a fact about the
+   * host rather than a presentation: with short names on it is the only place
+   * the FQDN survives, and with them off it is still what lets a device be
+   * searched for, and matched by a site rule, by the name DNS gives it once
+   * someone renames it. Normalised again at the point of use for the reasons
+   * given on getDiscoveredHostFullName.
+   *
+   * Written only when there IS a name. An empty string is still a value on a
+   * create payload, and a device with no PTR record should read as "no DNS
+   * name", not as a DNS name that happens to be blank.
+   *
+   * Never taken from sysName: that is the name the device gives itself, it
+   * is already stored as sysName by the first poll, and calling it a DNS name
+   * would be a claim nothing checked.
+   *
+   * Never taken from `netbiosName` either, for the same reason with more
+   * force (issue #3677). A NetBIOS name is whatever the host at the address
+   * answered, not a record anyone published; storing it as a DNS name would
+   * make it searchable and matchable by site-assignment hostname patterns as
+   * though DNS had vouched for it. It names the device and goes no further.
+   */
+  const dnsName: string | undefined = normalizeReverseDnsName(host.dnsHostname);
+
+  if (dnsName) {
+    device.dnsName = truncate(dnsName, MAX_DEVICE_DNS_NAME_LENGTH);
+  }
+
+  if (host.sysDescr) {
+    device.description = truncate(host.sysDescr, MAX_DEVICE_DESCRIPTION_LENGTH);
+  }
+
+  const monitoringMethod: NetworkDeviceMonitoringMethod =
+    monitoringMethodForDiscoveredHost(host);
+  device.monitoringMethod = monitoringMethod;
+
+  /*
+   * The scan's probe, on EVERY device. It is the probe that just reached this
+   * host — over ping at the very least — so it is the one that can keep
+   * polling it. Written explicitly rather than left to the column default:
+   * a Probe device with no probe is claimed by nothing and never polls, which
+   * is the "Pending forever" the whole change exists to end.
+   */
+  if (data.scan.probeId) {
+    // Re-wrapped: the scan may hold a serialized id rather than an ObjectID.
+    device.probeId = new ObjectID(data.scan.probeId.toString());
+  }
+
+  /*
+   * Polling on, for both kinds of host. The column defaults to true, but this
+   * function is the recipe both import paths share and "the probe polls this
+   * device" is the whole point of it, so the recipe says so itself rather
+   * than trusting a default that a ping-only host used to override to false.
+   */
+  device.isPollingEnabled = true;
+
+  if (isPingOnlyDiscoveredHost(host)) {
+    /*
+     * A ping-only host carries NO credentials, decided BEFORE any config is
+     * looked up: `snmpConfigId` and `snmpReachable` are two fields of the
+     * same probe-written jsonb row, and nothing enforces that a ping-only row
+     * leaves the first one unset. A device that answered nothing but a ping
+     * must not import carrying a community string it rejected — it would be
+     * walked with it on every poll and read as an SNMP failure rather than
+     * as the credential-less device it is. The probe pings it and nothing
+     * more until credentials are added on its Settings page.
+     *
+     * The OID template and the vendor-template auto-apply stay off too: both
+     * key off SNMP data — a polled sysObjectID, a walked OID list — that
+     * this host did not supply and will not until it has credentials.
+     */
+    return device;
+  }
+
+  if (data.oidTemplateId) {
+    device.oidTemplateId = data.oidTemplateId;
+  }
+
+  if (data.autoApplyVendorHealthTemplate) {
+    device.autoApplyVendorHealthTemplate = true;
+  }
+
+  /*
+   * THE credential set that answered this host, not the scan's first one.
+   *
+   * A scan can now try several, and the probe records which one worked as
+   * `host.snmpConfigId`. Copying the scan's first set regardless would create
+   * a device carrying a community string its device rejects — a device that
+   * polls red forever, with nothing on it to say the credential is simply the
+   * wrong one of several the scan holds.
+   *
+   * resolveForHost falls back to the first config when the host names none,
+   * which is every result stored before this existed and every result from an
+   * older probe; for a scan with no `snmpConfigs` that first config IS the
+   * flattened columns, so those cases import exactly as they always did.
+   */
+  const snmpConfig: DiscoveryScanSnmpConfig = SnmpScanConfigUtil.resolveForHost(
+    data.scan,
+    host.snmpConfigId,
+  );
+
+  if (snmpConfig.snmpVersion) {
+    device.snmpVersion = snmpConfig.snmpVersion;
+  }
+
+  if (snmpConfig.snmpCommunityString) {
+    device.snmpCommunityString = snmpConfig.snmpCommunityString;
+  }
+
+  if (snmpConfig.snmpPort) {
+    device.snmpPort = snmpConfig.snmpPort;
+  }
+
+  // Carry the v3 credentials so a v3 scan imports as a v3 device.
+  if (snmpConfig.snmpV3SecurityLevel) {
+    device.snmpV3SecurityLevel = snmpConfig.snmpV3SecurityLevel;
+  }
+
+  if (snmpConfig.snmpV3Username) {
+    device.snmpV3Username = snmpConfig.snmpV3Username;
+  }
+
+  if (snmpConfig.snmpV3AuthProtocol) {
+    device.snmpV3AuthProtocol = snmpConfig.snmpV3AuthProtocol;
+  }
+
+  if (snmpConfig.snmpV3AuthKey) {
+    device.snmpV3AuthKey = snmpConfig.snmpV3AuthKey;
+  }
+
+  if (snmpConfig.snmpV3PrivProtocol) {
+    device.snmpV3PrivProtocol = snmpConfig.snmpV3PrivProtocol;
+  }
+
+  if (snmpConfig.snmpV3PrivKey) {
+    device.snmpV3PrivKey = snmpConfig.snmpV3PrivKey;
+  }
+
+  return device;
+}

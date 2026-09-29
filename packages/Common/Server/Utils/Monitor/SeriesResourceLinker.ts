@@ -1,0 +1,659 @@
+import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
+import Host from "../../../Models/DatabaseModels/Host";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
+import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import Service from "../../../Models/DatabaseModels/Service";
+import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { JSONObject } from "../../../Types/JSON";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
+import CephClusterService from "../../Services/CephClusterService";
+import DatabaseServerEndpointService from "../../Services/DatabaseServerEndpointService";
+import DatabaseServerService from "../../Services/DatabaseServerService";
+import DockerHostService from "../../Services/DockerHostService";
+import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
+import HostService from "../../Services/HostService";
+import IoTFleetService from "../../Services/IoTFleetService";
+import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import PodmanHostService from "../../Services/PodmanHostService";
+import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import ServiceService from "../../Services/ServiceService";
+import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import SeriesResourceLabels, {
+  SeriesResourceRefs,
+} from "./SeriesResourceLabels";
+
+/*
+ * How a resource's NAME is matched against its identifier column.
+ * Ingest-written series labels match byte for byte; user-typed monitor
+ * step identifiers may differ from the agent-stamped name by case.
+ */
+export type NameMatchMode = "exact" | "caseInsensitive";
+
+/*
+ * A grouped monitor opens one alert/incident per breaching series, and
+ * each series carries the identity of the resource it came from in its
+ * labels. This module turns those labels into real, project-scoped
+ * resource rows and attaches them to the alert/incident, so "Affected
+ * Resources", the per-resource Activity tabs, the sidebar badge counts
+ * and the resource-owner/label inheritance rules all see the host (or
+ * cluster, or service) the event is actually about.
+ *
+ * Alerts and incidents MUST agree here. They used to disagree: the
+ * incident path resolved every resource type through the shared
+ * SeriesResourceLabels key map while the alert path read two hard-coded
+ * label spellings (`resource.host.name` / `host.name`) inline, so an
+ * alert grouped by the far more common `oneuptime.host.name` stamp
+ * linked nothing at all. Both paths now call this one module.
+ */
+
+/*
+ * Structurally satisfied by both Alert and Incident — every relation
+ * below is declared identically on the two models. Typed with
+ * `| undefined` so the models' `public hosts?: Array<Host> = undefined;`
+ * shape stays assignable under exactOptionalPropertyTypes.
+ */
+export interface SeriesLinkableModel {
+  hosts?: Array<Host> | undefined;
+  dockerHosts?: Array<DockerHost> | undefined;
+  podmanHosts?: Array<PodmanHost> | undefined;
+  kubernetesClusters?: Array<KubernetesCluster> | undefined;
+  services?: Array<Service> | undefined;
+  proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  vmwareVCenters?: Array<VMwareVCenter> | undefined;
+  cephClusters?: Array<CephCluster> | undefined;
+  dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
+  iotFleets?: Array<IoTFleet> | undefined;
+  databaseServers?: Array<DatabaseServer> | undefined;
+}
+
+/*
+ * Database ids of the resources one series points at, by type. Empty
+ * arrays for every type the series says nothing about.
+ */
+export interface SeriesResolvedResourceIds {
+  hostIds: Array<string>;
+  dockerHostIds: Array<string>;
+  podmanHostIds: Array<string>;
+  kubernetesClusterIds: Array<string>;
+  serviceIds: Array<string>;
+  proxmoxClusterIds: Array<string>;
+  vmwareVCenterIds: Array<string>;
+  cephClusterIds: Array<string>;
+  dockerSwarmClusterIds: Array<string>;
+  iotFleetIds: Array<string>;
+  databaseServerIds: Array<string>;
+}
+
+/*
+ * One resource type's lookup recipe: where its ids and names come from
+ * in the extracted refs, which column its name maps to, and which
+ * service reads the table.
+ */
+interface ResourceResolutionSpec {
+  ids: Array<string>;
+  names: Array<string>;
+  nameColumn: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  findBy: (args: any) => Promise<Array<{ _id?: string | undefined }>>;
+}
+
+export default class SeriesResourceLinker {
+  /*
+   * Resolve a series' labels to project-scoped database ids, without
+   * touching any model. Lookups are ALWAYS project-scoped: `isRoot`
+   * bypasses row-level access control, and a stale or hostile
+   * `oneuptime.*.id` stamp must never be able to pull a row in from
+   * another tenant.
+   */
+  public static async resolveResourcesFromSeriesLabels(input: {
+    seriesLabels: JSONObject;
+    projectId: ObjectID;
+    /*
+     * Optional, and only consulted to disambiguate `host.name`. Left
+     * undefined by callers that have no monitor in hand.
+     */
+    monitorType?: MonitorType | undefined;
+  }): Promise<SeriesResolvedResourceIds> {
+    const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+      input.seriesLabels,
+    );
+
+    /*
+     * On a Docker or Podman monitor, `resource.host.name` names the
+     * DockerHost / PodmanHost the containers run on — the agent stamps
+     * the container runtime's host under the generic key. The label key
+     * map hands that key to Host, which would attach an unrelated Host
+     * row and surface the event on that host's Activity tab. The
+     * step-config path links the right model instead
+     * (MonitorStepResourceIdentity), so drop the host refs here rather
+     * than linking a resource the event is not about.
+     */
+    if (
+      input.monitorType === MonitorType.Docker ||
+      input.monitorType === MonitorType.Podman
+    ) {
+      refs.hostIds = [];
+      refs.hostNames = [];
+    }
+
+    /*
+     * Series labels are ingest-written, so they match the resource
+     * rows' identifier columns byte for byte. See resolveResourceIds
+     * for why that rules out case-insensitive matching here.
+     */
+    return this.resolveResourceRefs({
+      refs: refs,
+      projectId: input.projectId,
+      nameMatch: "exact",
+    });
+  }
+
+  /*
+   * The one place that turns identifiers into database ids, shared by
+   * the series-label path and the monitor-step-config path
+   * (MonitorStepResourceIdentity). Keeping the ten-way lookup table,
+   * the project scoping and the `Includes` batching in a single
+   * function is what stops the two paths from resolving the same
+   * identifier to different rows.
+   */
+  public static async resolveResourceRefs(input: {
+    refs: SeriesResourceRefs;
+    projectId: ObjectID;
+    nameMatch: NameMatchMode;
+  }): Promise<SeriesResolvedResourceIds> {
+    const refs: SeriesResourceRefs = input.refs;
+
+    /*
+     * Proxmox / VMware / Ceph / Docker Swarm / IoT carry no
+     * `oneuptime.*.id` stamp at ingest — they are addressable by name
+     * only — so their `ids` lists are empty by construction, not by
+     * omission. Databases are the reverse: never addressable by name (see
+     * DatabaseServerIdLabelKeys), so their `names` list is empty — they
+     * resolve by the `oneuptime.database.server.id` stamp here, and by an
+     * endpoint they own through the DatabaseServerEndpoint table below
+     * (the endpoint lives on a separate table, so it cannot be a spec).
+     *
+     * The Promise.all below destructures by POSITION: a new entry goes at
+     * the end of this list AND at the end of that destructure.
+     */
+    const specs: Array<ResourceResolutionSpec> = [
+      {
+        ids: refs.hostIds,
+        names: refs.hostNames,
+        nameColumn: "hostIdentifier",
+        findBy: HostService.findBy.bind(HostService),
+      },
+      {
+        ids: refs.dockerHostIds,
+        names: refs.dockerHostNames,
+        nameColumn: "hostIdentifier",
+        findBy: DockerHostService.findBy.bind(DockerHostService),
+      },
+      {
+        ids: refs.podmanHostIds,
+        names: refs.podmanHostNames,
+        nameColumn: "hostIdentifier",
+        findBy: PodmanHostService.findBy.bind(PodmanHostService),
+      },
+      {
+        ids: refs.kubernetesClusterIds,
+        names: refs.kubernetesClusterNames,
+        nameColumn: "clusterIdentifier",
+        findBy: KubernetesClusterService.findBy.bind(KubernetesClusterService),
+      },
+      {
+        ids: refs.serviceIds,
+        names: refs.serviceNames,
+        nameColumn: "name",
+        findBy: ServiceService.findBy.bind(ServiceService),
+      },
+      {
+        ids: [],
+        names: refs.proxmoxClusterNames,
+        nameColumn: "name",
+        findBy: ProxmoxClusterService.findBy.bind(ProxmoxClusterService),
+      },
+      {
+        ids: [],
+        names: refs.vmwareVCenterNames,
+        nameColumn: "name",
+        findBy: VMwareVCenterService.findBy.bind(VMwareVCenterService),
+      },
+      {
+        ids: [],
+        names: refs.cephClusterNames,
+        nameColumn: "name",
+        findBy: CephClusterService.findBy.bind(CephClusterService),
+      },
+      {
+        ids: [],
+        names: refs.dockerSwarmClusterNames,
+        nameColumn: "name",
+        findBy: DockerSwarmClusterService.findBy.bind(
+          DockerSwarmClusterService,
+        ),
+      },
+      {
+        ids: [],
+        names: refs.iotFleetNames,
+        nameColumn: "name",
+        findBy: IoTFleetService.findBy.bind(IoTFleetService),
+      },
+      {
+        ids: refs.databaseServerIds,
+        names: [],
+        nameColumn: "name",
+        findBy: DatabaseServerService.findBy.bind(DatabaseServerService),
+      },
+    ];
+
+    const [resolvedBySpec, databaseServerIdsByEndpoint] = await Promise.all([
+      Promise.all(
+        specs.map((spec: ResourceResolutionSpec): Promise<Array<string>> => {
+          return this.resolveResourceIds({
+            ids: spec.ids,
+            names: spec.names,
+            nameColumn: spec.nameColumn,
+            projectId: input.projectId,
+            nameMatch: input.nameMatch,
+            findBy: spec.findBy,
+          });
+        }),
+      ),
+      this.resolveDatabaseServerIdsByEndpoint({
+        endpoints: refs.databaseServerEndpoints || [],
+        projectId: input.projectId,
+      }),
+    ]);
+
+    const [
+      hostIds,
+      dockerHostIds,
+      podmanHostIds,
+      kubernetesClusterIds,
+      serviceIds,
+      proxmoxClusterIds,
+      vmwareVCenterIds,
+      cephClusterIds,
+      dockerSwarmClusterIds,
+      iotFleetIds,
+      databaseServerIdsById,
+    ] = resolvedBySpec;
+
+    /*
+     * A database can be named twice — by its id stamp and by an endpoint it
+     * owns — so the two answers are unioned, not concatenated.
+     */
+    const databaseServerIds: Array<string> = Array.from(
+      new Set<string>([
+        ...(databaseServerIdsById || []),
+        ...databaseServerIdsByEndpoint,
+      ]),
+    );
+
+    return {
+      hostIds: hostIds || [],
+      dockerHostIds: dockerHostIds || [],
+      podmanHostIds: podmanHostIds || [],
+      kubernetesClusterIds: kubernetesClusterIds || [],
+      serviceIds: serviceIds || [],
+      proxmoxClusterIds: proxmoxClusterIds || [],
+      vmwareVCenterIds: vmwareVCenterIds || [],
+      cephClusterIds: cephClusterIds || [],
+      dockerSwarmClusterIds: dockerSwarmClusterIds || [],
+      iotFleetIds: iotFleetIds || [],
+      databaseServerIds: databaseServerIds,
+    };
+  }
+
+  /*
+   * The databases that own these canonical endpoints in this project.
+   *
+   * An exact match on DatabaseServerEndpoint.endpoint, which is stored in the
+   * same canonical form the refs were built in (formatDatabaseEndpoint) —
+   * the (projectId, endpoint) unique index guarantees at most one owner per
+   * endpoint, so an endpoint can never link two databases. Project-scoped
+   * like every other lookup here; costs zero round-trips when the monitor
+   * names no endpoint, which is every monitor that is not about a database.
+   */
+  private static async resolveDatabaseServerIdsByEndpoint(input: {
+    endpoints: Array<string>;
+    projectId: ObjectID;
+  }): Promise<Array<string>> {
+    const endpoints: Array<string> = Array.from(
+      new Set<string>(
+        input.endpoints.filter((endpoint: string): boolean => {
+          return typeof endpoint === "string" && endpoint.length > 0;
+        }),
+      ),
+    );
+
+    if (endpoints.length === 0) {
+      return [];
+    }
+
+    const rows: Array<DatabaseServerEndpoint> =
+      await DatabaseServerEndpointService.findBy({
+        query: {
+          projectId: input.projectId,
+          endpoint: new Includes(endpoints),
+        },
+        select: { _id: true, databaseServerId: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: { isRoot: true },
+      });
+
+    const databaseServerIds: Set<string> = new Set<string>();
+
+    for (const row of rows) {
+      if (row.databaseServerId) {
+        databaseServerIds.add(row.databaseServerId.toString());
+      }
+    }
+
+    return Array.from(databaseServerIds);
+  }
+
+  /*
+   * Resolve the series' resources and MERGE them onto the alert/incident.
+   * Merging (rather than assigning) matters because
+   * attachResolvedResources writes the same relations from the
+   * monitor's step config; whichever runs second must not erase the
+   * other's work.
+   *
+   * Relations the series says nothing about are left untouched —
+   * `undefined`, not `[]` — so an ungrouped event and an event whose
+   * resource has been deleted both stay clean rather than persisting an
+   * empty join set.
+   *
+   * The attached rows are id-only stubs. Every in-memory consumer of a
+   * freshly created alert/incident reads ids (the owner-inheritance rule
+   * engine); anything that needs a name re-reads the persisted relation.
+   */
+  public static async linkSeriesResourcesToModel(input: {
+    model: SeriesLinkableModel;
+    seriesLabels: JSONObject;
+    projectId: ObjectID;
+    /*
+     * Optional, and only consulted to disambiguate `host.name`. Left
+     * undefined by callers that have no monitor in hand.
+     */
+    monitorType?: MonitorType | undefined;
+  }): Promise<void> {
+    const resolved: SeriesResolvedResourceIds =
+      await this.resolveResourcesFromSeriesLabels({
+        seriesLabels: input.seriesLabels,
+        projectId: input.projectId,
+        monitorType: input.monitorType,
+      });
+
+    this.mergeResolvedIdsIntoModel({
+      model: input.model,
+      resolved: resolved,
+    });
+  }
+
+  /*
+   * Attach the resources resolved from the monitor's own step config
+   * (MonitorResourceContext), merging with — never overwriting —
+   * anything the series-label path already linked. Both paths can
+   * resolve the same resource, so this dedupes by id.
+   *
+   * Unlike the label path this runs for ungrouped events too, and that
+   * is the whole point: an ungrouped monitor has no series labels, so
+   * before this existed it linked nothing at all.
+   */
+  public static attachResolvedResources(input: {
+    model: SeriesLinkableModel;
+    resolved: SeriesResolvedResourceIds;
+  }): void {
+    this.mergeResolvedIdsIntoModel({
+      model: input.model,
+      resolved: input.resolved,
+    });
+  }
+
+  private static mergeResolvedIdsIntoModel(input: {
+    model: SeriesLinkableModel;
+    resolved: SeriesResolvedResourceIds;
+  }): void {
+    const model: SeriesLinkableModel = input.model;
+    const resolved: SeriesResolvedResourceIds = input.resolved;
+
+    if (resolved.hostIds.length > 0) {
+      model.hosts = this.mergeById(model.hosts, resolved.hostIds, (): Host => {
+        return new Host();
+      });
+    }
+
+    if (resolved.dockerHostIds.length > 0) {
+      model.dockerHosts = this.mergeById(
+        model.dockerHosts,
+        resolved.dockerHostIds,
+        (): DockerHost => {
+          return new DockerHost();
+        },
+      );
+    }
+
+    if (resolved.podmanHostIds.length > 0) {
+      model.podmanHosts = this.mergeById(
+        model.podmanHosts,
+        resolved.podmanHostIds,
+        (): PodmanHost => {
+          return new PodmanHost();
+        },
+      );
+    }
+
+    if (resolved.kubernetesClusterIds.length > 0) {
+      model.kubernetesClusters = this.mergeById(
+        model.kubernetesClusters,
+        resolved.kubernetesClusterIds,
+        (): KubernetesCluster => {
+          return new KubernetesCluster();
+        },
+      );
+    }
+
+    if (resolved.serviceIds.length > 0) {
+      model.services = this.mergeById(
+        model.services,
+        resolved.serviceIds,
+        (): Service => {
+          return new Service();
+        },
+      );
+    }
+
+    if (resolved.proxmoxClusterIds.length > 0) {
+      model.proxmoxClusters = this.mergeById(
+        model.proxmoxClusters,
+        resolved.proxmoxClusterIds,
+        (): ProxmoxCluster => {
+          return new ProxmoxCluster();
+        },
+      );
+    }
+
+    if (resolved.vmwareVCenterIds.length > 0) {
+      model.vmwareVCenters = this.mergeById(
+        model.vmwareVCenters,
+        resolved.vmwareVCenterIds,
+        (): VMwareVCenter => {
+          return new VMwareVCenter();
+        },
+      );
+    }
+
+    if (resolved.cephClusterIds.length > 0) {
+      model.cephClusters = this.mergeById(
+        model.cephClusters,
+        resolved.cephClusterIds,
+        (): CephCluster => {
+          return new CephCluster();
+        },
+      );
+    }
+
+    if (resolved.dockerSwarmClusterIds.length > 0) {
+      model.dockerSwarmClusters = this.mergeById(
+        model.dockerSwarmClusters,
+        resolved.dockerSwarmClusterIds,
+        (): DockerSwarmCluster => {
+          return new DockerSwarmCluster();
+        },
+      );
+    }
+
+    if (resolved.iotFleetIds.length > 0) {
+      model.iotFleets = this.mergeById(
+        model.iotFleets,
+        resolved.iotFleetIds,
+        (): IoTFleet => {
+          return new IoTFleet();
+        },
+      );
+    }
+
+    if (resolved.databaseServerIds.length > 0) {
+      model.databaseServers = this.mergeById(
+        model.databaseServers,
+        resolved.databaseServerIds,
+        (): DatabaseServer => {
+          return new DatabaseServer();
+        },
+      );
+    }
+  }
+
+  /*
+   * Append the ids that aren't attached yet, preserving whatever is
+   * already on the relation. A duplicate id in the array would violate
+   * the join table's composite primary key on save, so dedupe by the
+   * stringified `_id`.
+   */
+  private static mergeById<T extends { _id?: string | undefined }>(
+    existing: Array<T> | undefined,
+    incomingIds: Array<string>,
+    create: () => T,
+  ): Array<T> {
+    const merged: Array<T> = [...(existing || [])];
+    const seenIds: Set<string> = new Set<string>(
+      merged.map((item: T): string => {
+        return String(item._id);
+      }),
+    );
+
+    for (const id of incomingIds) {
+      if (seenIds.has(id)) {
+        continue;
+      }
+
+      seenIds.add(id);
+
+      const item: T = create();
+      item._id = id;
+      merged.push(item);
+    }
+
+    return merged;
+  }
+
+  /*
+   * Turn one resource type's ids and names into deduped database ids.
+   * Costs zero round-trips when the series carries neither, which is the
+   * common case for most of the ten types on any given series.
+   *
+   * `nameMatch: "exact"` is for series labels. Every identifier column
+   * read here is written by ingest from the same attribute the series
+   * label carries — host identifiers are canonicalized on both sides —
+   * so exact matching is what keeps a lookup from straying onto a
+   * neighbouring row.
+   *
+   * `nameMatch: "caseInsensitive"` is for monitor step configs, where
+   * the identifier was typed by a user and the row's name was stamped
+   * by an agent; the two legitimately differ by case. This mirrors what
+   * ingest discovery itself does when it keys a row by name.
+   */
+  private static async resolveResourceIds(input: {
+    ids: Array<string>;
+    names: Array<string>;
+    nameColumn: string;
+    projectId: ObjectID;
+    nameMatch: NameMatchMode;
+    /*
+     * Loosely typed because each resource service has its own
+     * `Query<TBaseModel>` shape and we deliberately abstract over
+     * them. We only need the row's `_id` back, which every model
+     * exposes via `DatabaseBaseModel`.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    findBy: (args: any) => Promise<Array<{ _id?: string | undefined }>>;
+  }): Promise<Array<string>> {
+    if (input.ids.length === 0 && input.names.length === 0) {
+      return [];
+    }
+
+    const resolved: Set<string> = new Set<string>();
+
+    const lookups: Array<Promise<Array<{ _id?: string | undefined }>>> = [];
+
+    if (input.ids.length > 0) {
+      lookups.push(
+        input.findBy({
+          query: {
+            projectId: input.projectId,
+            _id: new Includes(input.ids),
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+      );
+    }
+
+    if (input.names.length > 0) {
+      lookups.push(
+        input.findBy({
+          query: {
+            projectId: input.projectId,
+            [input.nameColumn]:
+              input.nameMatch === "caseInsensitive"
+                ? QueryHelper.findWithSameTextAnyOf(input.names)
+                : new Includes(input.names),
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+      );
+    }
+
+    const buckets: Array<Array<{ _id?: string | undefined }>> =
+      await Promise.all(lookups);
+
+    for (const bucket of buckets) {
+      for (const row of bucket) {
+        if (row._id) {
+          resolved.add(String(row._id));
+        }
+      }
+    }
+
+    return Array.from(resolved);
+  }
+}

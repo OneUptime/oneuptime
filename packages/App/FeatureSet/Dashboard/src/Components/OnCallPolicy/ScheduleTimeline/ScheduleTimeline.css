@@ -1,0 +1,115 @@
+/*
+ * Schedule timeline patterns that Tailwind utilities cannot express cleanly
+ * (repeating gradients with theme-aware colours). Everything else on the
+ * timeline is plain utilities, which the shared Theme.css already maps for
+ * dark mode.
+ */
+
+.oneuptime-schedule-timeline-grid {
+  --oneuptime-schedule-timeline-label-width: 264px;
+  /*
+   * Keyboard focus scrolls a block clear of the sticky name column and the
+   * sticky day header, instead of leaving it hidden underneath them.
+   */
+  scroll-padding-left: var(--oneuptime-schedule-timeline-label-width);
+  scroll-padding-top: 64px;
+}
+
+/*
+ * On a phone the name column gives the days most of the width. The edge is
+ * one sub-pixel below Tailwind's sm (640px) so the two never overlap.
+ */
+@media (max-width: 639.98px) {
+  .oneuptime-schedule-timeline-grid {
+    --oneuptime-schedule-timeline-label-width: 148px;
+  }
+}
+
+/* Weekend and today column tints, behind the rows. */
+.oneuptime-schedule-timeline-weekend {
+  background-color: rgba(249, 250, 251, 0.9); /* gray-50 */
+}
+
+.oneuptime-schedule-timeline-today {
+  background-color: rgba(238, 242, 255, 0.55); /* indigo-50 */
+}
+
+/* Nobody on call: hatched amber, readable on white and on slate. */
+.oneuptime-schedule-timeline-gap {
+  background-color: rgba(251, 191, 36, 0.14);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(217, 119, 6, 0.28) 0,
+    rgba(217, 119, 6, 0.28) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+  border: 1px dashed rgba(217, 119, 6, 0.55);
+}
+
+/* Legend swatch for the gap block. */
+.oneuptime-schedule-timeline-gap-swatch {
+  background-color: rgba(251, 191, 36, 0.2);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(217, 119, 6, 0.55) 0,
+    rgba(217, 119, 6, 0.55) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border: 1px dashed rgba(217, 119, 6, 0.7);
+}
+
+/* Beyond what the server computes (too far back or ahead). */
+.oneuptime-schedule-timeline-unavailable {
+  background-color: rgba(243, 244, 246, 0.7);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(156, 163, 175, 0.18) 0,
+    rgba(156, 163, 175, 0.18) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
+
+html.dark .oneuptime-schedule-timeline-weekend {
+  background-color: rgba(30, 41, 59, 0.55); /* slate-800 */
+}
+
+html.dark .oneuptime-schedule-timeline-today {
+  background-color: rgba(49, 46, 129, 0.28); /* indigo-900 */
+}
+
+html.dark .oneuptime-schedule-timeline-gap {
+  background-color: rgba(245, 158, 11, 0.1);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.3) 0,
+    rgba(251, 191, 36, 0.3) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+html.dark .oneuptime-schedule-timeline-gap .text-amber-800 {
+  color: #fcd34d; /* amber-300 */
+}
+
+html.dark .oneuptime-schedule-timeline-unavailable {
+  background-color: rgba(15, 23, 42, 0.55);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(148, 163, 184, 0.16) 0,
+    rgba(148, 163, 184, 0.16) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oneuptime-schedule-timeline-root .animate-ping,
+  .oneuptime-schedule-timeline-root .animate-pulse {
+    animation: none;
+  }
+}

@@ -28,4 +28,4 @@ jobs:
       # These are structural assertions over default.conf.template and
       # nginx.conf. They use node:test and node:assert only, so no npm install
       # is needed and the job stays a few seconds long.
-      - run: cd Nginx && npm run test
+      - run: cd packages/Nginx && npm run test

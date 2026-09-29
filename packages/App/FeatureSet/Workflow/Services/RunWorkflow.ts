@@ -1,0 +1,1598 @@
+import { loadAllComponentMetadata } from "../Utils/ComponentMetadata";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import Exception from "Common/Types/Exception/Exception";
+import TimeoutException from "Common/Types/Exception/TimeoutException";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import ComponentMetadata, {
+  Argument,
+  ComponentInputType,
+  ComponentType,
+  NodeDataProp,
+  NodeType,
+  Port,
+  ReturnValue,
+} from "Common/Types/Workflow/Component";
+import {
+  TemplateExpression,
+  TemplateExpressionKind,
+  parseTemplateExpressions,
+} from "Common/Types/Workflow/TemplateSyntax";
+import {
+  WorkflowStepStatus,
+  WorkflowStepTrace,
+  WorkflowStepTraceEntry,
+  appendTraceStep,
+  emptyTrace,
+  parseTrace,
+  truncateTraceValues,
+} from "Common/Types/Workflow/StepTrace";
+import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
+import WorkflowService from "Common/Server/Services/WorkflowService";
+import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import { OAUTH2_TOKEN_REQUEST_TIMEOUT_IN_MS } from "Common/Server/Utils/Workflow/OAuth2TokenClient";
+import WorkflowVariableOAuthToken, {
+  WorkflowVariableAccessToken,
+} from "Common/Server/Utils/Workflow/WorkflowVariableOAuthToken";
+import {
+  WorkflowVariableReference,
+  WorkflowVariableScope,
+  WorkflowVariableType,
+  getWorkflowVariableReferences,
+  isOAuth2AccessTokenUsable,
+  isOAuth2WorkflowVariable,
+  toDateOrNull,
+} from "Common/Types/Workflow/WorkflowVariableOAuth";
+import ComponentCode, {
+  ExecuteChildWorkflow,
+  MAX_WORKFLOW_CALL_DEPTH,
+  RunReturnType,
+} from "Common/Server/Types/Workflow/ComponentCode";
+import Components from "Common/Server/Types/Workflow/Components/Index";
+import QueueWorkflow from "./QueueWorkflow";
+import { RunProps } from "Common/Server/Types/Workflow/Workflow";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
+import VMAPI from "Common/Server/Utils/VM/VMAPI";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import {
+  WORKFLOW_LOG_REDACTED_VALUE,
+  getSecretWorkflowVariableValues,
+  redactSecretsFromString,
+} from "../Utils/SecretRedaction";
+
+const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
+
+export { WORKFLOW_LOG_REDACTED_VALUE };
+
+type SensitiveWorkflowField =
+  | Pick<Argument, "id" | "isSensitive">
+  | Pick<ReturnValue, "id" | "isSensitive">;
+
+/**
+ * Return a copy that is safe to persist in WorkflowLog. Component execution
+ * continues to use the original values.
+ */
+export function redactSensitiveComponentValuesForLogs(
+  values: JSONObject,
+  fields: Array<SensitiveWorkflowField>,
+): JSONObject {
+  const sensitiveFieldIds: Set<string> = new Set(
+    fields
+      .filter((field: SensitiveWorkflowField) => {
+        return field.isSensitive === true;
+      })
+      .map((field: SensitiveWorkflowField) => {
+        return field.id;
+      }),
+  );
+
+  const loggableValues: JSONObject = {};
+
+  for (const key of Object.keys(values)) {
+    loggableValues[key] = sensitiveFieldIds.has(key)
+      ? WORKFLOW_LOG_REDACTED_VALUE
+      : values[key]!;
+  }
+
+  return loggableValues;
+}
+
+type RedactSecretValuesFunction = (
+  value: JSONValue,
+  secrets: Array<string>,
+  seenObjects?: WeakSet<Record<string, unknown>>,
+) => JSONValue;
+
+/**
+ * Recursively scrub secret-variable contents from structured trace data.
+ * Both keys and values are scrubbed: workflow variables can be substituted
+ * into JSON property names (for example, an HTTP header name), so leaving keys
+ * untouched would still allow the persisted trace to disclose a secret.
+ */
+const redactSecretValues: RedactSecretValuesFunction = (
+  value: JSONValue,
+  secrets: Array<string>,
+  seenObjects: WeakSet<Record<string, unknown>> = new WeakSet<
+    Record<string, unknown>
+  >(),
+): JSONValue => {
+  if (typeof value === "string") {
+    return redactSecretsFromString(value, secrets);
+  }
+
+  if (value === null || value === undefined || typeof value !== "object") {
+    return value;
+  }
+
+  const objectValue: Record<string, unknown> = value as unknown as Record<
+    string,
+    unknown
+  >;
+
+  if (seenObjects.has(objectValue)) {
+    return "[value could not be recorded]";
+  }
+
+  seenObjects.add(objectValue);
+
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item: JSONValue) => {
+        return redactSecretValues(item, secrets, seenObjects);
+      });
+    }
+
+    /*
+     * Database-property values such as URL and ObjectID expose the JSON shape
+     * that will actually be persisted. Redact that shape rather than walking
+     * private implementation fields, and handle Date the same way.
+     */
+    const serializableValue: { toJSON?: (() => unknown) | undefined } =
+      value as unknown as { toJSON?: (() => unknown) | undefined };
+
+    if (typeof serializableValue.toJSON === "function") {
+      try {
+        const serializedValue: unknown = serializableValue.toJSON();
+
+        if (serializedValue !== value) {
+          return redactSecretValues(
+            serializedValue as JSONValue,
+            secrets,
+            seenObjects,
+          );
+        }
+      } catch {
+        // Fall through to enumerable fields.
+      }
+    }
+
+    const redactedObject: JSONObject = {};
+
+    for (const key of Object.keys(value)) {
+      const redactedKey: string = redactSecretsFromString(key, secrets);
+
+      redactedObject[redactedKey] = redactSecretValues(
+        (value as JSONObject)[key] as JSONValue,
+        secrets,
+        seenObjects,
+      );
+    }
+
+    return redactedObject;
+  } finally {
+    seenObjects.delete(objectValue);
+  }
+};
+
+type RedactWorkflowStepTraceFunction = (
+  trace: WorkflowStepTrace,
+  secrets: Array<string>,
+) => WorkflowStepTrace;
+
+/**
+ * Scrub the user-controlled payload fields without rewriting trace structure.
+ *
+ * A secret can be any string, including schema words such as `steps`,
+ * `status`, or `Success`. Recursively redacting the whole trace would rename
+ * those keys or alter bookkeeping values, making a valid persisted trace look
+ * empty or corrupt when it is read back.
+ */
+const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
+  trace: WorkflowStepTrace,
+  secrets: Array<string>,
+): WorkflowStepTrace => {
+  return {
+    ...trace,
+    steps: trace.steps.map((entry: WorkflowStepTraceEntry) => {
+      return {
+        ...entry,
+        argumentValues: redactSecretValues(
+          entry.argumentValues,
+          secrets,
+        ) as JSONObject,
+        returnValues: redactSecretValues(
+          entry.returnValues,
+          secrets,
+        ) as JSONObject,
+        errorMessage: entry.errorMessage
+          ? redactSecretsFromString(entry.errorMessage, secrets)
+          : undefined,
+      };
+    }),
+  };
+};
+
+export function getRemainingWorkflowTimeInMs(
+  deadlineAtInMs: number,
+  nowInMs: number = Date.now(),
+): number {
+  return Math.max(0, deadlineAtInMs - nowInMs);
+}
+
+/**
+ * What {{local.variables.X}} / {{global.variables.X}} resolves to. A Static
+ * variable is its content; an OAuth 2.0 variable is its current access token,
+ * which refreshOAuthVariablesUsedByComponent keeps fresh before any step that
+ * uses it runs.
+ */
+export function getWorkflowVariableValue(variable: WorkflowVariable): string {
+  if (isOAuth2WorkflowVariable(variable.variableType)) {
+    return variable.oauthAccessToken || "";
+  }
+
+  return variable.content as string;
+}
+
+/*
+ * The variable a reference resolves to. getVariables loads local variables by
+ * workflowId and global ones with a null workflowId, so workflowId is the
+ * scope. When two rows share a name, the LAST one wins, because that is the one
+ * whose value getVariables left in the storage map.
+ */
+function findVariableForReference(
+  variables: Array<WorkflowVariable>,
+  reference: WorkflowVariableReference,
+): WorkflowVariable | undefined {
+  for (let index: number = variables.length - 1; index >= 0; index--) {
+    const variable: WorkflowVariable = variables[index]!;
+    const isLocal: boolean = Boolean(variable.workflowId);
+
+    if (
+      variable.name === reference.name &&
+      isLocal === (reference.scope === WorkflowVariableScope.Local)
+    ) {
+      return variable;
+    }
+  }
+
+  return undefined;
+}
+
+export interface StorageMap {
+  local: {
+    variables: Dictionary<string>;
+    components: {
+      [x: string]: {
+        returnValues: JSONObject;
+      };
+    };
+  };
+  global: {
+    variables: Dictionary<string>;
+  };
+}
+
+export interface RunStackItem {
+  node: NodeDataProp;
+  outPorts: Dictionary<Array<string>>; // portId <-> [ComponentIds]
+}
+
+export interface RunStack {
+  stack: Dictionary<RunStackItem>;
+  startWithComponentId: string;
+}
+
+export default class RunWorkflow {
+  private logs: Array<string> = [];
+  private workflowId: ObjectID | null = null;
+  private projectId: ObjectID | null = null;
+  private workflowLogId: ObjectID | null = null;
+  private callChain: Array<string> = [];
+  private workflowDeadlineAtInMs: number = 0;
+  private stepTrace: WorkflowStepTrace = emptyTrace();
+  /*
+   * An OAuth token whose expiry is unknown is fetched once per run: a token
+   * fetched at or after this moment is reused by later steps, one fetched
+   * before it is not. A resumed run is a new RunWorkflow, so it fetches again.
+   */
+  private runStartedAt: Date = new Date();
+
+  private getRemainingExecutionTimeInMs(): number {
+    return getRemainingWorkflowTimeInMs(this.workflowDeadlineAtInMs);
+  }
+
+  private getLogAttributes(): LogAttributes {
+    return {
+      workflowId: this.workflowId?.toString(),
+      projectId: this.projectId?.toString(),
+      workflowLogId: this.workflowLogId?.toString(),
+    } as LogAttributes;
+  }
+
+  public async runWorkflow(runProps: RunProps): Promise<void> {
+    // get nodes and edges.
+
+    let variables: Array<WorkflowVariable> = [];
+
+    try {
+      this.workflowId = runProps.workflowId;
+      this.workflowLogId = runProps.workflowLogId;
+      this.callChain = runProps.callChain || [];
+      this.runStartedAt = new Date();
+
+      let didWorkflowErrorOut: boolean = false;
+      this.workflowDeadlineAtInMs = Date.now() + Math.max(runProps.timeout, 0);
+
+      const workflow: Workflow | null = await WorkflowService.findOneById({
+        id: runProps.workflowId,
+        select: {
+          graph: true,
+          projectId: true,
+          isEnabled: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!workflow) {
+        throw new BadDataException("Workflow not found");
+      }
+
+      if (!workflow.graph) {
+        throw new BadDataException("Workflow graph not found");
+      }
+
+      this.projectId = workflow.projectId || null;
+
+      /*
+       * Resume path: this run was previously suspended by a Sleep step. Load the
+       * persisted execution state and prior logs from the WorkflowLog so we can
+       * continue from where we left off instead of starting at the trigger.
+       */
+      let resumeState: {
+        pendingStack: Array<string>;
+        executedComponents: Array<string>;
+        componentReturnValues: JSONObject;
+      } | null = null;
+
+      if (runProps.isResume) {
+        if (!runProps.workflowLogId) {
+          throw new BadDataException(
+            "Cannot resume a workflow run without a workflow log id.",
+          );
+        }
+
+        const existingLog: WorkflowLog | null =
+          await WorkflowLogService.findOneById({
+            id: runProps.workflowLogId,
+            select: {
+              resumeData: true,
+              logs: true,
+              stepTrace: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!existingLog || !existingLog.resumeData) {
+          throw new BadDataException(
+            "Cannot resume workflow run: execution state not found. The run may have already completed or been cleaned up.",
+          );
+        }
+
+        // Seed in-memory logs with what was written before the run suspended.
+        if (existingLog.logs) {
+          this.logs = [existingLog.logs as string];
+        }
+
+        /*
+         * And the trace, so a run that slept reads as one continuous list of
+         * steps rather than restarting at whatever ran after it woke up.
+         */
+        this.stepTrace = parseTrace(
+          (existingLog.stepTrace as JSONValue) || null,
+        );
+
+        const persisted: JSONObject = existingLog.resumeData as JSONObject;
+
+        resumeState = {
+          pendingStack: (persisted["pendingStack"] as Array<string>) || [],
+          executedComponents:
+            (persisted["executedComponents"] as Array<string>) || [],
+          componentReturnValues:
+            (persisted["componentReturnValues"] as JSONObject) || {},
+        };
+
+        /*
+         * If the workflow was disabled while it was waiting, cancel the run.
+         *
+         * All WorkflowLog status stamps in this file use the hookless
+         * fast-path: WorkflowLog has no workflow/audit/realtime decorators
+         * and no service update hooks, so the full update pipeline is pure
+         * overhead for these per-run bookkeeping writes (the dashboard log
+         * viewer polls; it does not rely on realtime events).
+         */
+        if (!workflow.isEnabled) {
+          this.log(
+            "Workflow was disabled while it was waiting. Cancelling the run.",
+          );
+          await WorkflowLogService.updateColumnsByIdWithoutHooks({
+            id: runProps.workflowLogId,
+            data: {
+              workflowStatus: WorkflowStatus.Error,
+              logs: this.logs.join("\n"),
+              completedAt: OneUptimeDate.getCurrentDate(),
+              resumeData: null!,
+              resumeAt: null!,
+            },
+          });
+          return;
+        }
+      }
+
+      if (!runProps.workflowLogId) {
+        /*
+         * create a new workflow log here.
+         * if the workflow is to be run immediately.
+         */
+        const runLog: WorkflowLog = new WorkflowLog();
+        runLog.workflowId = runProps.workflowId;
+        runLog.projectId = workflow.projectId!;
+        runLog.workflowStatus = WorkflowStatus.Scheduled;
+        runLog.logs =
+          OneUptimeDate.getCurrentDateAsFormattedString({
+            showSeconds: true,
+          }) + `: Workflow ${runProps.workflowId.toString()} Scheduled.`;
+
+        runProps.workflowLogId = (
+          await WorkflowLogService.create({
+            data: runLog,
+            props: {
+              isRoot: true,
+            },
+          })
+        ).id!;
+      }
+
+      // update workflow log.
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
+        id: runProps.workflowLogId,
+        data: {
+          workflowStatus: WorkflowStatus.Running,
+          // Preserve the original start time across suspend/resume cycles.
+          ...(runProps.isResume
+            ? {}
+            : { startedAt: OneUptimeDate.getCurrentDate() }),
+        },
+      });
+
+      // form a run stack.
+
+      let runStack: RunStack = await this.makeRunStack(workflow.graph);
+
+      /*
+       * "Run just this step": narrow the stack to the one component and start
+       * there. Its out ports are dropped so nothing downstream follows, and
+       * because this happens after makeRunStack the component still gets its
+       * real metadata and arguments.
+       *
+       * Any {{...}} the step reads from another component resolves to nothing,
+       * since nothing else ran — the runner already logs a warning naming each
+       * reference that did not resolve, which is the honest outcome rather
+       * than a silent empty value.
+       */
+      if (runProps.runOnlyComponentId) {
+        runStack = this.narrowRunStackToSingleComponent(
+          runStack,
+          runProps.runOnlyComponentId,
+        );
+      }
+
+      /*
+       * Guard against workflows that have no executable entry point. This
+       * commonly happens when:
+       *   - The workflow graph is empty (no nodes at all).
+       *   - The graph has components but no Trigger node to start from.
+       * Without this check, the runner would push an empty-string component
+       * id onto the execution stack and fail with a confusing
+       * "Component with ID  not found" error.
+       */
+      if (
+        !runProps.isResume &&
+        (Object.keys(runStack.stack).length === 0 ||
+          !runStack.startWithComponentId)
+      ) {
+        throw new BadDataException(
+          "This workflow has no components to execute. Please open the workflow and add a Trigger (e.g. a Manual trigger) along with at least one component connected to it.",
+        );
+      }
+
+      const getVariableResult: {
+        storageMap: StorageMap;
+        variables: Array<WorkflowVariable>;
+      } = await this.getVariables(workflow.projectId!, workflow.id!);
+
+      // get storage map with variables.
+      const storageMap: StorageMap = getVariableResult.storageMap;
+      variables = getVariableResult.variables;
+
+      /*
+       * Seed the execution state. On a fresh run we start at the trigger with
+       * an empty history. On a resume we restore the accumulated component
+       * return values, the queue of components still pending, and the set of
+       * components already executed (so cycle-detection stays valid). Variables
+       * are intentionally NOT persisted — they are re-read fresh above so
+       * secrets never live in resumeData.
+       */
+      let executeComponentId: string = runStack.startWithComponentId;
+      let fifoStackOfComponentsPendingExecution: Array<string>;
+      const componentsExecuted: Array<string> = [];
+
+      if (runProps.isResume && resumeState) {
+        storageMap.local.components = resumeState.componentReturnValues as {
+          [x: string]: { returnValues: JSONObject };
+        };
+        fifoStackOfComponentsPendingExecution = [...resumeState.pendingStack];
+        componentsExecuted.push(...resumeState.executedComponents);
+      } else {
+        fifoStackOfComponentsPendingExecution = [executeComponentId];
+      }
+
+      const setDidErrorOut: VoidFunction = () => {
+        didWorkflowErrorOut = true;
+      };
+      // make variable map
+
+      while (fifoStackOfComponentsPendingExecution.length > 0) {
+        if (this.getRemainingExecutionTimeInMs() <= 0) {
+          throw new TimeoutException(
+            "Workflow execution time was more than " +
+              runProps.timeout +
+              "ms and workflow timed-out.",
+          );
+        }
+
+        /*
+         * get component.
+         * and remove that component from the stack.
+         */
+        executeComponentId = fifoStackOfComponentsPendingExecution.shift()!;
+
+        if (componentsExecuted.includes(executeComponentId)) {
+          throw new BadDataException(
+            "Cyclic Workflow Detected. Cannot execute " +
+              executeComponentId +
+              " when it has already been executed.",
+          );
+        }
+
+        componentsExecuted.push(executeComponentId);
+
+        this.log("Executing Component: " + executeComponentId);
+
+        const stackItem: RunStackItem | undefined =
+          runStack.stack[executeComponentId];
+
+        if (!stackItem) {
+          throw new BadDataException(
+            "Component with ID " + executeComponentId + " not found.",
+          );
+        }
+
+        /*
+         * Make sure every OAuth 2.0 variable this step refers to holds a
+         * token that has not expired, before its arguments are resolved. A
+         * failure is recorded as this step's failure - it is the step that
+         * could not run - rather than as an error nobody can place.
+         */
+        try {
+          await this.refreshOAuthVariablesUsedByComponent({
+            node: stackItem.node,
+            storageMap: storageMap,
+            variables: variables,
+          });
+        } catch (refreshError: unknown) {
+          this.recordStep({
+            node: stackItem.node,
+            args: {},
+            returnValues: {},
+            executedPort: null,
+            startedAt: OneUptimeDate.getCurrentDate(),
+            variables: variables,
+            errorMessage:
+              refreshError instanceof Exception
+                ? refreshError.getMessage()
+                : String(refreshError),
+          });
+
+          throw refreshError;
+        }
+
+        // now actually run this component.
+
+        let args: JSONObject = this.getComponentArguments(
+          storageMap,
+          stackItem.node,
+        );
+
+        if (stackItem.node.componentType === ComponentType.Trigger) {
+          // If this is the trigger. Then pass workflow argument to this component as args to execute.
+          args = {
+            ...args,
+            ...runProps.arguments,
+          };
+        }
+
+        this.log("Component Args:");
+        this.log(
+          redactSensitiveComponentValuesForLogs(
+            args,
+            stackItem.node.metadata.arguments,
+          ),
+        );
+        this.log("Component Logs: " + executeComponentId);
+
+        const stepStartedAt: Date = OneUptimeDate.getCurrentDate();
+        let result: RunReturnType;
+
+        try {
+          result = await this.runComponent(
+            args,
+            stackItem.node,
+            setDidErrorOut,
+          );
+        } catch (stepError: unknown) {
+          /*
+           * Record the step that broke before letting the failure travel on.
+           * Without this the trace stops at the last step that worked, which
+           * is precisely the one nobody needs to look at.
+           */
+          this.recordStep({
+            node: stackItem.node,
+            args: args,
+            returnValues: {},
+            executedPort: null,
+            startedAt: stepStartedAt,
+            variables: variables,
+            errorMessage:
+              stepError instanceof Exception
+                ? stepError.getMessage()
+                : String(stepError),
+          });
+
+          throw stepError;
+        }
+
+        /*
+         * A component can report failure by calling options.onError rather than
+         * throwing, which is how the API components signal their error port.
+         */
+        this.recordStep({
+          node: stackItem.node,
+          args: args,
+          returnValues: result.returnValues,
+          executedPort: result.executePort?.id || null,
+          startedAt: stepStartedAt,
+          variables: variables,
+          errorMessage: didWorkflowErrorOut
+            ? "The component reported an error."
+            : undefined,
+        });
+
+        /*
+         * Check immediately after awaiting the component as well as before the
+         * next iteration. This prevents a slow final component from being
+         * marked successful after the workflow deadline has elapsed.
+         */
+        if (this.getRemainingExecutionTimeInMs() <= 0) {
+          throw new TimeoutException(
+            "Workflow execution time was more than " +
+              runProps.timeout +
+              "ms and workflow timed-out.",
+          );
+        }
+
+        if (didWorkflowErrorOut) {
+          throw new BadDataException("Workflow stopped because of an error");
+        }
+
+        this.log("Completed Execution Component: " + executeComponentId);
+        this.log("Data Returned");
+        this.log(
+          redactSensitiveComponentValuesForLogs(
+            result.returnValues,
+            stackItem.node.metadata.returnValues,
+          ),
+        );
+        this.log("Executing Port: " + (result.executePort?.title || "<None>"));
+
+        storageMap.local.components[stackItem.node.id] = {
+          returnValues: result.returnValues,
+        };
+
+        const portToBeExecuted: Port | undefined = result.executePort;
+
+        if (!portToBeExecuted) {
+          break; // stop the workflow, the process has ended.
+        }
+
+        const nodesToBeExecuted: Array<string> | undefined =
+          stackItem.outPorts[portToBeExecuted.id];
+
+        if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
+          nodesToBeExecuted.forEach((item: string) => {
+            // if its not in the stack, then add it to execution stack.
+            if (!fifoStackOfComponentsPendingExecution.includes(item)) {
+              fifoStackOfComponentsPendingExecution.push(item);
+            }
+          });
+        }
+
+        /*
+         * Durable suspend: if the component asked to suspend (i.e. the Sleep
+         * component), persist the remaining execution state and re-enqueue a
+         * delayed job to resume once the duration elapses. We stop this run
+         * here — a parked run consumes no worker. Only suspend when there is
+         * actually downstream work to resume to.
+         */
+        if (
+          result.suspendForMs &&
+          result.suspendForMs > 0 &&
+          fifoStackOfComponentsPendingExecution.length > 0
+        ) {
+          await this.suspendRun({
+            runProps,
+            variables,
+            suspendForMs: result.suspendForMs,
+            pendingStack: fifoStackOfComponentsPendingExecution,
+            executedComponents: componentsExecuted,
+            componentReturnValues: storageMap.local.components,
+          });
+
+          // The run will continue later via the delayed resume job.
+          return;
+        }
+      }
+
+      // collect logs and update status.
+      this.cleanLogs(variables);
+      // update workflow log.
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
+        id: runProps.workflowLogId,
+        data: {
+          workflowStatus: WorkflowStatus.Success,
+          logs: this.logs.join("\n"),
+          stepTrace: this.stepTrace as any,
+          completedAt: OneUptimeDate.getCurrentDate(),
+          // Run finished — drop any leftover suspend state.
+          resumeData: null!,
+          resumeAt: null!,
+        },
+      });
+    } catch (err: any) {
+      logger.error(err, this.getLogAttributes());
+      this.log(err.message || err.toString());
+
+      if (!runProps.workflowLogId) {
+        return;
+      }
+
+      this.cleanLogs(variables);
+
+      if (err instanceof TimeoutException) {
+        this.log("Workflow Timed out.");
+
+        // update workflow log.
+        await WorkflowLogService.updateColumnsByIdWithoutHooks({
+          id: runProps.workflowLogId,
+          data: {
+            workflowStatus: WorkflowStatus.Timeout,
+            logs: this.logs.join("\n"),
+            stepTrace: this.stepTrace as any,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            resumeData: null!,
+            resumeAt: null!,
+          },
+        });
+      } else {
+        // update workflow log.
+        await WorkflowLogService.updateColumnsByIdWithoutHooks({
+          id: runProps.workflowLogId,
+          data: {
+            workflowStatus: WorkflowStatus.Error,
+            logs: this.logs.join("\n"),
+            stepTrace: this.stepTrace as any,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            resumeData: null!,
+            resumeAt: null!,
+          },
+        });
+      }
+    }
+  }
+
+  /**
+   * Persist the current execution state and schedule a delayed job to resume
+   * this run after `suspendForMs`. Marks the run as Waiting. The run stops
+   * after this returns and consumes no worker until the resume job fires.
+   */
+  private async suspendRun(params: {
+    runProps: RunProps;
+    variables: Array<WorkflowVariable>;
+    suspendForMs: number;
+    pendingStack: Array<string>;
+    executedComponents: Array<string>;
+    componentReturnValues: {
+      [x: string]: { returnValues: JSONObject };
+    };
+  }): Promise<void> {
+    const workflowLogId: ObjectID = params.runProps.workflowLogId!;
+
+    const resumeAt: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      Math.ceil(params.suspendForMs / 1000),
+    );
+
+    this.log(
+      "Workflow suspended for " +
+        params.suspendForMs +
+        "ms. It will resume automatically.",
+    );
+
+    // Scrub secrets from logs before persisting.
+    this.cleanLogs(params.variables);
+
+    /*
+     * Asserted through `unknown` to avoid TS structurally walking the nested
+     * component-return-values shape against the recursive JSONObject/JSONValue
+     * type (which trips the instantiation-depth limit). The shape is fully
+     * JSON-serializable, so the runtime value is a valid JSONObject.
+     */
+    const resumeData: JSONObject = {
+      pendingStack: params.pendingStack,
+      executedComponents: params.executedComponents,
+      componentReturnValues: params.componentReturnValues,
+    } as unknown as JSONObject;
+
+    await WorkflowLogService.updateColumnsByIdWithoutHooks({
+      id: workflowLogId,
+      data: {
+        workflowStatus: WorkflowStatus.Waiting,
+        logs: this.logs.join("\n"),
+        /*
+         * Written on suspend as well as on completion: a parked run should be
+         * readable while it waits, and the steps it already took are exactly
+         * what someone checking on it wants to see.
+         */
+        stepTrace: this.stepTrace as any,
+        resumeAt: resumeAt,
+        /*
+         * Cast keeps TS from deeply re-instantiating the recursive JSONObject
+         * type through updateOneById's generic (trips the depth limit). The
+         * value is a validated JSONObject built just above.
+         */
+        resumeData: resumeData as any,
+      },
+    });
+
+    await QueueWorkflow.addResumeJobToQueue({
+      workflowId: params.runProps.workflowId,
+      workflowLogId: workflowLogId,
+      delayInMs: params.suspendForMs,
+      /*
+       * executedComponents length strictly increases per suspension within a
+       * run, giving a unique resume job id that won't collide with the
+       * currently-running job (whose id is the bare workflowLogId).
+       */
+      jobIdDiscriminator: params.executedComponents.length.toString(),
+    });
+  }
+
+  public cleanLogs(variables: Array<WorkflowVariable>): void {
+    const secrets: Array<string> = getSecretWorkflowVariableValues(variables);
+
+    this.logs = this.logs.map((log: string) => {
+      return redactSecretsFromString(log, secrets);
+    });
+
+    /*
+     * This second pass protects traces restored from a suspended run and any
+     * future recording path that bypasses recordStep. It runs immediately
+     * before every normal trace persistence point.
+     */
+    this.stepTrace = redactWorkflowStepTrace(this.stepTrace, secrets);
+  }
+
+  /**
+   * Note in the run log every {{...}} reference that went in and came back out
+   * unchanged.
+   *
+   * VMAPI.replaceValueInPlace skips a reference it cannot resolve and leaves
+   * the literal text in place, so a mistyped path — {{local.componets.x}} for
+   * {{local.components.x}} — ships "{{local.componets.x}}" as the value and the
+   * run still reports Success. Whoever reads the log afterwards has no way to
+   * tell that from a value that was genuinely meant to be that text. This says
+   * so out loud.
+   *
+   * Compares against the input rather than just scanning the output, so a
+   * resolved value that happens to contain braces of its own is not reported.
+   */
+  /**
+   * Add one step to the run's trace.
+   *
+   * Redaction goes through exactly the same helper the text log uses, so a
+   * value hidden in `logs` cannot reappear here — the trace is readable by
+   * anyone who can read the log, and these are the same secrets.
+   */
+  private recordStep(params: {
+    node: NodeDataProp;
+    args: JSONObject;
+    returnValues: JSONObject;
+    executedPort: string | null;
+    startedAt: Date;
+    variables: Array<WorkflowVariable>;
+    errorMessage?: string | undefined;
+  }): void {
+    const completedAt: Date = OneUptimeDate.getCurrentDate();
+    const secrets: Array<string> = getSecretWorkflowVariableValues(
+      params.variables,
+    );
+
+    /*
+     * Leaving by the error port is a failure, whether or not anything was
+     * thrown.
+     *
+     * A component that hits a real error and wants the graph's Error branch to
+     * run catches it, logs it and returns { executePort: errorPort } without
+     * calling options.onError — every database component does this
+     * (FindOneBaseModel and friends), as does API/Get. So errorMessage was
+     * undefined for exactly the failures a builder most needs to find, and the
+     * trace recorded them green, collapsed under a check mark.
+     */
+    const failed: boolean = Boolean(
+      params.errorMessage || params.executedPort === "error",
+    );
+
+    const entry: WorkflowStepTraceEntry = {
+      componentId: params.node.id,
+      metadataId: params.node.metadataId,
+      title: params.node.metadata?.title || params.node.metadataId,
+      status: failed ? WorkflowStepStatus.Error : WorkflowStepStatus.Success,
+      startedAt: params.startedAt.toISOString(),
+      completedAt: completedAt.toISOString(),
+      durationInMs: completedAt.getTime() - params.startedAt.getTime(),
+      argumentValues: truncateTraceValues(
+        redactSecretValues(
+          redactSensitiveComponentValuesForLogs(
+            params.args,
+            params.node.metadata?.arguments || [],
+          ),
+          secrets,
+        ) as JSONObject,
+      ),
+      returnValues: truncateTraceValues(
+        redactSecretValues(
+          redactSensitiveComponentValuesForLogs(
+            params.returnValues,
+            params.node.metadata?.returnValues || [],
+          ),
+          secrets,
+        ) as JSONObject,
+      ),
+      executedPort: params.executedPort,
+      errorMessage: params.errorMessage
+        ? redactSecretsFromString(params.errorMessage, secrets)
+        : undefined,
+    };
+
+    this.stepTrace = appendTraceStep(this.stepTrace, entry);
+  }
+
+  private logUnresolvedReferences(params: {
+    argument: Argument;
+    before: JSONValue;
+    after: JSONValue;
+  }): void {
+    if (typeof params.before !== "string" || typeof params.after !== "string") {
+      return;
+    }
+
+    const unresolved: Array<string> = parseTemplateExpressions(params.before)
+      .filter((expression: TemplateExpression) => {
+        return (
+          expression.kind === TemplateExpressionKind.Reference &&
+          (params.after as string).includes(expression.raw)
+        );
+      })
+      .map((expression: TemplateExpression) => {
+        return expression.raw;
+      });
+
+    if (unresolved.length === 0) {
+      return;
+    }
+
+    const distinct: Array<string> = Array.from(new Set(unresolved));
+
+    this.log(
+      `Warning: ${distinct.join(", ")} in "${
+        params.argument.name
+      }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+    );
+  }
+
+  /**
+   * Refresh, right before a step runs, every OAuth 2.0 variable the step
+   * refers to whose access token will not do - so the token a component
+   * receives has not expired, however long the variable sat unused and however
+   * long this run has been going.
+   *
+   * Only variables the step's arguments actually name are considered. A
+   * project can have OAuth variables for a dozen systems; a run that never
+   * touches one must not fetch its token, and must not fail because that
+   * system's identity provider is down.
+   *
+   * When a refresh fails but the cached token has not actually expired yet (it
+   * is inside the refresh margin), the step goes ahead with the cached token and
+   * the log says so: failing a run that still holds a working token would be
+   * worse than the failure being reported. Otherwise the step fails with the
+   * reason, which WorkflowVariableOAuthToken has also written to the variable
+   * for the dashboard to show.
+   */
+  public async refreshOAuthVariablesUsedByComponent(data: {
+    node: NodeDataProp;
+    storageMap: StorageMap;
+    variables: Array<WorkflowVariable>;
+  }): Promise<void> {
+    const oauthVariables: Array<WorkflowVariable> = data.variables.filter(
+      (variable: WorkflowVariable) => {
+        return isOAuth2WorkflowVariable(variable.variableType) && variable.id;
+      },
+    );
+
+    if (oauthVariables.length === 0) {
+      return;
+    }
+
+    for (const reference of this.getVariableReferencesOfComponent(data.node)) {
+      const variable: WorkflowVariable | undefined = findVariableForReference(
+        oauthVariables,
+        reference,
+      );
+
+      if (!variable) {
+        continue;
+      }
+
+      if (
+        isOAuth2AccessTokenUsable({
+          state: {
+            hasAccessToken: Boolean(variable.oauthAccessToken),
+            accessTokenExpiresAt: variable.oauthAccessTokenExpiresAt,
+            lastRefreshedAt: variable.oauthLastRefreshedAt,
+          },
+          now: new Date(),
+          acceptTokenRefreshedAtOrAfter: this.runStartedAt,
+        })
+      ) {
+        continue;
+      }
+
+      const label: string = `{{${reference.scope}.variables.${reference.name}}}`;
+      const previousAccessToken: string | undefined = variable.oauthAccessToken;
+
+      let token: WorkflowVariableAccessToken;
+
+      try {
+        token = await WorkflowVariableOAuthToken.getAccessToken({
+          variableId: variable.id!,
+          acceptTokenRefreshedAtOrAfter: this.runStartedAt,
+          timeoutInMs: Math.max(
+            1000,
+            Math.min(
+              OAUTH2_TOKEN_REQUEST_TIMEOUT_IN_MS,
+              this.getRemainingExecutionTimeInMs(),
+            ),
+          ),
+        });
+      } catch (err: unknown) {
+        const reason: string =
+          err instanceof Exception
+            ? err.getMessage()
+            : err instanceof Error
+              ? err.message
+              : String(err);
+
+        const cachedExpiresAt: Date | null = toDateOrNull(
+          variable.oauthAccessTokenExpiresAt,
+        );
+
+        if (
+          variable.oauthAccessToken &&
+          cachedExpiresAt &&
+          cachedExpiresAt.getTime() > Date.now()
+        ) {
+          this.log(
+            `Could not refresh the OAuth 2.0 access token for ${label}: ${reason} Using the cached token, which expires at ${cachedExpiresAt.toISOString()}.`,
+          );
+          continue;
+        }
+
+        throw new BadDataException(
+          `Could not get an OAuth 2.0 access token for ${label}: ${reason}`,
+        );
+      }
+
+      /*
+       * Keep the token this run held before as a redaction target: an earlier
+       * step may already have logged it, and the variable is about to hold the
+       * new one instead.
+       */
+      if (previousAccessToken && previousAccessToken !== token.accessToken) {
+        const previous: WorkflowVariable = new WorkflowVariable();
+        previous.variableType = WorkflowVariableType.OAuth2;
+        previous.oauthAccessToken = previousAccessToken;
+        data.variables.push(previous);
+      }
+
+      variable.oauthAccessToken = token.accessToken;
+      variable.oauthAccessTokenExpiresAt = token.expiresAt as Date;
+      variable.oauthLastRefreshedAt = token.refreshedAt as Date;
+
+      if (reference.scope === WorkflowVariableScope.Local) {
+        data.storageMap.local.variables[reference.name] = token.accessToken;
+      } else {
+        data.storageMap.global.variables[reference.name] = token.accessToken;
+      }
+
+      if (token.didRefresh) {
+        this.log(
+          `Fetched a new OAuth 2.0 access token for ${label}${
+            token.expiresAt
+              ? `, valid until ${token.expiresAt.toISOString()}.`
+              : ". The identity provider did not say when it expires, so a new one is fetched on every run."
+          }`,
+        );
+      } else {
+        this.log(
+          `Using the OAuth 2.0 access token for ${label} that another run fetched moments ago.`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Every variable reference in the arguments this component will receive -
+   * the same arguments getComponentArguments resolves.
+   */
+  public getVariableReferencesOfComponent(
+    component: NodeDataProp,
+  ): Array<WorkflowVariableReference> {
+    const references: Array<WorkflowVariableReference> = [];
+    const seen: Set<string> = new Set();
+
+    for (const argument of component.metadata?.arguments || []) {
+      const value: JSONValue | undefined = component.arguments?.[argument.id];
+
+      for (const reference of getWorkflowVariableReferences(value)) {
+        const key: string = `${reference.scope}:${reference.name}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          references.push(reference);
+        }
+      }
+    }
+
+    return references;
+  }
+
+  public getComponentArguments(
+    storageMap: StorageMap,
+    component: NodeDataProp,
+  ): JSONObject {
+    // pick arguments from storage map.
+    const argumentObj: JSONObject = {};
+
+    for (const argument of component.metadata.arguments) {
+      if (!component.arguments) {
+        component.arguments = {};
+      }
+
+      if (!component.arguments[argument.id]) {
+        continue;
+      }
+
+      let argumentContent: JSONValue | undefined =
+        component.arguments[argument.id];
+
+      if (!argumentContent) {
+        continue;
+      }
+
+      const contentBeforeSubstitution: JSONValue = argumentContent;
+
+      argumentContent = VMAPI.replaceValueInPlace(
+        storageMap as any,
+        argumentContent as string,
+        argument.type === ComponentInputType.JSON,
+      );
+
+      this.logUnresolvedReferences({
+        argument: argument,
+        before: contentBeforeSubstitution,
+        after: argumentContent,
+      });
+
+      if (
+        typeof argumentContent === "string" &&
+        (argument.type === ComponentInputType.JSON ||
+          argument.type === ComponentInputType.Query ||
+          argument.type === ComponentInputType.Select)
+      ) {
+        try {
+          argumentContent = JSON.parse(argumentContent);
+        } catch (err: any) {
+          if (argument.isSensitive) {
+            throw new BadDataException(
+              "Invalid JSON provided for sensitive argument " +
+                argument.id +
+                ". The value has been redacted.",
+            );
+          }
+
+          throw new BadDataException(
+            "Invalid JSON provided for argument " +
+              argument.id +
+              ". JSON parse error: " +
+              err.message +
+              ". JSON: " +
+              argumentContent,
+          );
+        }
+      }
+
+      argumentObj[argument.id] = argumentContent;
+    }
+
+    return argumentObj;
+  }
+
+  public async runComponent(
+    args: JSONObject,
+    node: NodeDataProp,
+    onError: VoidFunction,
+  ): Promise<RunReturnType> {
+    // takes in args and returns values.
+    const ComponentCode: ComponentCode | undefined =
+      Components[node.metadata.id];
+
+    if (ComponentCode) {
+      const instance: ComponentCode = ComponentCode;
+      const callingProjectId: ObjectID = this.projectId!;
+      return await instance.run(args, {
+        log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
+          this.log(data);
+        },
+        workflowId: this.workflowId!,
+        workflowLogId: this.workflowLogId!,
+        projectId: callingProjectId,
+        getRemainingExecutionTimeInMs: (): number => {
+          return this.getRemainingExecutionTimeInMs();
+        },
+        onError: (exception: Exception) => {
+          this.log(exception);
+          onError();
+          return exception;
+        },
+        executeWorkflow: async (child: ExecuteChildWorkflow): Promise<void> => {
+          const callingWorkflowIdStr: string = this.workflowId!.toString();
+          const childWorkflowIdStr: string = child.workflowId.toString();
+
+          /*
+           * Build the chain that the child run will see: everything that led
+           * to THIS run, plus this run itself.
+           */
+          const newChain: Array<string> = [
+            ...this.callChain,
+            callingWorkflowIdStr,
+          ];
+
+          /*
+           * Cycle detection across workflow boundaries.
+           * e.g. A -> B -> A, or A -> B -> C -> A.
+           */
+          if (newChain.includes(childWorkflowIdStr)) {
+            throw new BadDataException(
+              "Workflow cycle detected: " +
+                [...newChain, childWorkflowIdStr].join(" -> ") +
+                ". Refusing to enqueue to prevent infinite recursion.",
+            );
+          }
+
+          // Depth cap — catches non-cyclic but pathologically deep chains.
+          if (newChain.length >= MAX_WORKFLOW_CALL_DEPTH) {
+            throw new BadDataException(
+              "Workflow call depth exceeded (max " +
+                MAX_WORKFLOW_CALL_DEPTH +
+                "). Chain: " +
+                newChain.join(" -> "),
+            );
+          }
+
+          /*
+           * Enforce that child workflow belongs to the same project as the
+           * calling workflow. This prevents cross-project triggering.
+           */
+          const targetWorkflow: Workflow | null =
+            await WorkflowService.findOneById({
+              id: child.workflowId,
+              select: {
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!targetWorkflow) {
+            throw new BadDataException(
+              "Target workflow not found: " + child.workflowId.toString(),
+            );
+          }
+
+          if (
+            !targetWorkflow.projectId ||
+            targetWorkflow.projectId.toString() !== callingProjectId.toString()
+          ) {
+            throw new BadDataException(
+              "Target workflow does not belong to this project.",
+            );
+          }
+
+          await QueueWorkflow.addWorkflowToQueue({
+            workflowId: child.workflowId,
+            returnValues: child.returnValues,
+            callChain: newChain,
+          });
+        },
+      });
+    }
+
+    throw new BadDataException("Component " + node.metadata.id + " not found");
+  }
+
+  public async getVariables(
+    projectId: ObjectID,
+    workflowId: ObjectID,
+  ): Promise<{ storageMap: StorageMap; variables: Array<WorkflowVariable> }> {
+    /*
+     * The OAuth columns are what refreshOAuthVariablesUsedByComponent needs to
+     * decide whether a cached access token can be used as it is; workflowId is
+     * how it tells a local variable from a global one of the same name. The
+     * OAuth credentials are deliberately not read here - only
+     * WorkflowVariableOAuthToken touches them, and only when it refreshes.
+     */
+    const select: Select<WorkflowVariable> = {
+      _id: true,
+      name: true,
+      content: true,
+      isSecret: true,
+      workflowId: true,
+      variableType: true,
+      oauthAccessToken: true,
+      oauthAccessTokenExpiresAt: true,
+      oauthLastRefreshedAt: true,
+    };
+
+    /// get local and global variables.
+    const localVariables: Array<WorkflowVariable> =
+      await WorkflowVariableService.findBy({
+        query: {
+          workflowId: workflowId,
+        },
+        select: select,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const globalVariables: Array<WorkflowVariable> =
+      await WorkflowVariableService.findBy({
+        query: {
+          workflowId: QueryHelper.isNull(),
+          projectId: projectId,
+        },
+        select: select,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const newStorageMap: StorageMap = {
+      local: {
+        variables: {},
+        components: {},
+      },
+      global: {
+        variables: {},
+      },
+    };
+
+    for (const variable of localVariables) {
+      newStorageMap.local.variables[variable.name as string] =
+        getWorkflowVariableValue(variable);
+    }
+
+    for (const variable of globalVariables) {
+      newStorageMap.global.variables[variable.name as string] =
+        getWorkflowVariableValue(variable);
+    }
+
+    return {
+      storageMap: newStorageMap,
+      variables: [...localVariables, ...globalVariables],
+    };
+  }
+
+  public log(data: string | JSONObject | JSONArray | Error | JSONValue): void {
+    if (!this.logs) {
+      this.logs = [];
+    }
+
+    if (data instanceof Exception) {
+      data = data.getMessage();
+    }
+
+    if (typeof data === "string") {
+      this.logs.push(
+        OneUptimeDate.getCurrentDateAsFormattedString({
+          showSeconds: true,
+        }) +
+          ": " +
+          data,
+      );
+    } else {
+      this.logs.push(
+        OneUptimeDate.getCurrentDateAsFormattedString({
+          showSeconds: true,
+        }) +
+          ": " +
+          JSON.stringify(data),
+      );
+    }
+  }
+
+  /**
+   * Reduce a run stack to the single component the caller asked for.
+   *
+   * Throws when that component is not in the graph, rather than falling back to
+   * a full run — a request to run one step must never turn into a request to
+   * run the whole workflow.
+   */
+  public narrowRunStackToSingleComponent(
+    runStack: RunStack,
+    componentId: string,
+  ): RunStack {
+    const item: RunStackItem | undefined = runStack.stack[componentId];
+
+    if (!item) {
+      throw new BadDataException(
+        "Cannot run step " +
+          componentId +
+          ": there is no step with that id in this workflow.",
+      );
+    }
+
+    return {
+      startWithComponentId: componentId,
+      stack: {
+        [componentId]: {
+          node: item.node,
+          // No out ports: nothing downstream of this step should follow.
+          outPorts: {},
+        },
+      },
+    };
+  }
+
+  public async makeRunStack(graph: JSONObject): Promise<RunStack> {
+    const nodes: Array<any> = graph["nodes"] as Array<any>;
+
+    const edges: Array<any> = graph["edges"] as Array<any>;
+
+    if (nodes.length === 0) {
+      return {
+        startWithComponentId: "",
+        stack: {},
+      };
+    }
+
+    const runStackItems: Dictionary<RunStackItem> = {};
+
+    for (const node of nodes) {
+      if ((node.data as NodeDataProp).nodeType === NodeType.PlaceholderNode) {
+        continue;
+      }
+
+      const item: RunStackItem = {
+        outPorts: {},
+        node: node.data as NodeDataProp,
+      };
+
+      if (!AllComponents[item.node.metadataId]) {
+        // metadata not found.
+        throw new BadDataException(
+          "Metadata not found for " + item.node.metadataId,
+        );
+      }
+
+      item.node.metadata = AllComponents[
+        item.node.metadataId
+      ] as ComponentMetadata;
+
+      // check other components connected to this component.
+
+      const thisComponentId: string = node.id;
+
+      for (const edge of edges) {
+        if (edge.source !== thisComponentId) {
+          // this edge does not connect to this component.
+          continue;
+        }
+
+        if (!item.outPorts[edge["sourceHandle"]]) {
+          item.outPorts[edge["sourceHandle"]] = [];
+        }
+
+        const connectedNode: any = nodes.find((n: any) => {
+          return n.id === edge.target;
+        });
+
+        if (connectedNode) {
+          item.outPorts[edge["sourceHandle"]]?.push(
+            (connectedNode.data as NodeDataProp).id,
+          );
+        }
+      }
+
+      runStackItems[node.data.id] = item;
+    }
+
+    const trigger: any | undefined = nodes.find((n: any) => {
+      return (
+        (n.data as NodeDataProp).componentType === ComponentType.Trigger &&
+        (n.data as NodeDataProp).nodeType === NodeType.Node
+      );
+    });
+
+    return {
+      stack: runStackItems,
+      startWithComponentId: trigger ? (trigger.data as NodeDataProp).id : "",
+    };
+  }
+}

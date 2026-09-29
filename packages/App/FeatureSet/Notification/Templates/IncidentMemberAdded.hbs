@@ -1,0 +1,33 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Incident " incidentNumber ": " incidentTitle) }}
+
+{{> InfoBlock info=(concat "You have been assigned as " incidentRole " to this incident.")}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title:" text=incidentTitle }}
+{{> DetailBoxField title="Your Role: " text=incidentRole  }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Description: " blockText=incidentDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this incident by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=incidentViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=incidentViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock info="You will be notified when the status of this incident changes."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

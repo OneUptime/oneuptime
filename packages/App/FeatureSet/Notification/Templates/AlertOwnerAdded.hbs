@@ -1,0 +1,32 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}
+
+{{> InfoBlock info="You have been added as the owner of this alert."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Alert Title:" text=alertTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " text=alertSeverity  }}
+{{> DetailBoxField title="Description: " blockText=alertDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this alert by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=alertViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock info="You will be notified when the status of this alert changes."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

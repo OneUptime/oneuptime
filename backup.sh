@@ -3,6 +3,7 @@
 # Before the backup, please make sure DATABASE_BACKUP_* ENV vars in config.env is set properly. 
 
 export $(grep -v '^#' config.env | xargs)
+mkdir -p "$(pwd)$DATABASE_BACKUP_DIRECTORY"
 
 echo "Starting backup...."
 

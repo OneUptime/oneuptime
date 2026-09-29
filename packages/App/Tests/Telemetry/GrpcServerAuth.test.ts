@@ -1,0 +1,439 @@
+import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import * as grpc from "@grpc/grpc-js";
+import ObjectID from "Common/Types/ObjectID";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import logger from "Common/Server/Utils/Logger";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+  TelemetryIngestionKeyRefusalReason,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
+import {
+  GrpcAuthenticationResult,
+  INVALID_INGESTION_TOKEN_MESSAGE,
+  MISSING_INGESTION_TOKEN_MESSAGE,
+  authenticateGrpcRequest,
+  authenticateRequest,
+  buildTelemetryRequest,
+} from "../../FeatureSet/Telemetry/GrpcServer";
+
+/*
+ * The Queue module (pulled in transitively through the per-signal queue
+ * services GrpcServer imports) loads BullMQ / bull-board at import time;
+ * nothing queue-side is under test here, so it is replaced with an inert
+ * stub.
+ */
+jest.mock("Common/Server/Infrastructure/Queue", () => {
+  return {
+    __esModule: true,
+    default: {
+      addJob: jest.fn(),
+    },
+    QueueName: {
+      Workflow: "Workflow",
+      Worker: "Worker",
+      Telemetry: "Telemetry",
+      Runbook: "Runbook",
+    },
+  };
+});
+
+/*
+ * The auth contract under test is "the gRPC path resolves tokens through
+ * the CACHED resolver and never issues its own findOneBy". Both methods
+ * are mocked so the test can count exactly which one the production code
+ * reaches for.
+ */
+jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getPolicyFromSecretKey: jest.fn(),
+      getProjectIdFromSecretKey: jest.fn(),
+      findOneBy: jest.fn(),
+    },
+  };
+});
+
+/*
+ * Minimal structural view of a jest spy — the @jest/globals and
+ * @types/jest spy types disagree in this repo, so annotate with just the
+ * surface this test reads.
+ */
+type SpyLike = {
+  mock: { calls: Array<Array<unknown>> };
+  mockImplementation: (fn: (...args: Array<unknown>) => unknown) => SpyLike;
+  mockRestore: () => void;
+};
+
+type MockedFn = jest.Mock;
+
+const getCachedResolverMock: () => MockedFn = (): MockedFn => {
+  return TelemetryIngestionKeyService.getPolicyFromSecretKey as unknown as MockedFn;
+};
+
+/*
+ * The cached resolver now hands back the whole key policy rather than a bare
+ * projectId, because a project id alone cannot answer "may this key still
+ * write, and may it write over gRPC?". This helper builds the shape a healthy
+ * Server key resolves to, so each test below can keep asserting on the one
+ * thing it cares about.
+ */
+type MakePolicyFunction = (projectId: ObjectID) => TelemetryIngestionKeyPolicy;
+
+const makeServerKeyPolicy: MakePolicyFunction = (
+  projectId: ObjectID,
+): TelemetryIngestionKeyPolicy => {
+  return {
+    ingestionKeyId: ObjectID.generate(),
+    projectId: projectId,
+    keyType: TelemetryIngestionKeyType.Server,
+    allowedOrigins: [],
+    pinnedServiceName: null,
+    isEnabled: true,
+    expiresAt: null,
+    requestsPerMinuteLimit: null,
+  };
+};
+
+const getFindOneByMock: () => MockedFn = (): MockedFn => {
+  return TelemetryIngestionKeyService.findOneBy as unknown as MockedFn;
+};
+
+const makeMetadata: (entries: Record<string, string>) => grpc.Metadata = (
+  entries: Record<string, string>,
+): grpc.Metadata => {
+  const metadata: grpc.Metadata = new grpc.Metadata();
+  for (const key in entries) {
+    metadata.set(key, entries[key]!);
+  }
+  return metadata;
+};
+
+describe("GrpcServer authenticateRequest", () => {
+  let loggerErrorSpy: SpyLike;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Silence and capture — auth failures log, and we assert on content.
+    loggerErrorSpy = (
+      jest.spyOn(logger, "error") as unknown as SpyLike
+    ).mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    loggerErrorSpy.mockRestore();
+  });
+
+  test("valid token resolves projectId through the cached resolver — never through a direct findOneBy", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const token: string = ObjectID.generate().toString();
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
+
+    const result: ObjectID | null = await authenticateRequest(
+      makeMetadata({ "x-oneuptime-token": token }),
+    );
+
+    expect(result).toBe(projectId);
+    expect(getCachedResolverMock()).toHaveBeenCalledTimes(1);
+    expect(getCachedResolverMock()).toHaveBeenCalledWith(token);
+    // The whole point of the change: no per-RPC Postgres query.
+    expect(getFindOneByMock()).not.toHaveBeenCalled();
+  });
+
+  test("falls back to x-oneuptime-service-token and x-oneuptime-ingestion-key, in that order", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
+
+    await authenticateRequest(
+      makeMetadata({ "x-oneuptime-service-token": "service-token-value" }),
+    );
+    expect(getCachedResolverMock()).toHaveBeenLastCalledWith(
+      "service-token-value",
+    );
+
+    await authenticateRequest(
+      makeMetadata({ "x-oneuptime-ingestion-key": "ingestion-key-value" }),
+    );
+    expect(getCachedResolverMock()).toHaveBeenLastCalledWith(
+      "ingestion-key-value",
+    );
+
+    // Primary header wins over the fallbacks when both are present.
+    await authenticateRequest(
+      makeMetadata({
+        "x-oneuptime-token": "primary-token-value",
+        "x-oneuptime-service-token": "service-token-value",
+      }),
+    );
+    expect(getCachedResolverMock()).toHaveBeenLastCalledWith(
+      "primary-token-value",
+    );
+
+    expect(getFindOneByMock()).not.toHaveBeenCalled();
+  });
+
+  test("missing token returns null without touching the resolver at all", async () => {
+    const result: ObjectID | null = await authenticateRequest(makeMetadata({}));
+
+    expect(result).toBeNull();
+    expect(getCachedResolverMock()).not.toHaveBeenCalled();
+    expect(getFindOneByMock()).not.toHaveBeenCalled();
+  });
+
+  test("invalid token returns null and the failure log contains no token substring", async () => {
+    const secretToken: string = `secret-${ObjectID.generate().toString()}`;
+    getCachedResolverMock().mockResolvedValue(null);
+
+    const result: ObjectID | null = await authenticateRequest(
+      makeMetadata({ "x-oneuptime-token": secretToken }),
+    );
+
+    expect(result).toBeNull();
+
+    /*
+     * The failure must be logged — but the token is a secret and log
+     * lines routinely land in third-party sinks, so no logged argument
+     * may contain it (previously the log line was
+     * "gRPC: Invalid service token: <token>").
+     */
+    expect(loggerErrorSpy.mock.calls.length).toBeGreaterThan(0);
+    for (const call of loggerErrorSpy.mock.calls) {
+      for (const argument of call) {
+        expect(JSON.stringify(argument) ?? "").not.toContain(secretToken);
+      }
+    }
+  });
+
+  test("repeated authentications keep going through the cached resolver, never the DB accessor", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const token: string = ObjectID.generate().toString();
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
+
+    for (let i: number = 0; i < 5; i++) {
+      const result: ObjectID | null = await authenticateRequest(
+        makeMetadata({ "x-oneuptime-token": token }),
+      );
+      expect(result).toBe(projectId);
+    }
+
+    /*
+     * The resolver owns the TTL cache internally (see
+     * GrpcServerAuthCache.test.ts for the proof that repeated calls
+     * reach Postgres only once) — the gRPC path's contract is that it
+     * NEVER bypasses it with a direct query.
+     */
+    expect(getCachedResolverMock()).toHaveBeenCalledTimes(5);
+    expect(getFindOneByMock()).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * authenticateGrpcRequest is what handleExport acts on: the project, or the
+ * exact status and sentence to refuse with (GH#3978). The status for each
+ * guard reason is restated here as the contract - 401-class reasons
+ * UNAUTHENTICATED, 422-class ones PERMISSION_DENIED, as the HTTP middleware
+ * answers them - and GrpcServerAuthStatusLive.test.ts checks the same
+ * contract against the HTTP middleware itself.
+ */
+describe("GrpcServer authenticateGrpcRequest", () => {
+  let loggerErrorSpy: SpyLike;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    loggerErrorSpy = (
+      jest.spyOn(logger, "error") as unknown as SpyLike
+    ).mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    loggerErrorSpy.mockRestore();
+  });
+
+  /*
+   * Total Records, so a reason added to the guard fails to compile here
+   * until someone decides what gRPC answers for it.
+   */
+  const policyOverridesForReason: Record<
+    TelemetryIngestionKeyRefusalReason,
+    Partial<TelemetryIngestionKeyPolicy>
+  > = {
+    [TelemetryIngestionKeyRefusalReason.Disabled]: { isEnabled: false },
+    [TelemetryIngestionKeyRefusalReason.Expired]: {
+      expiresAt: new Date(Date.now() - 60 * 1000),
+    },
+    [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]: {
+      keyType: TelemetryIngestionKeyType.Browser,
+      allowedOrigins: ["https://shop.example.com"],
+    },
+  };
+
+  const expectedCodeForReason: Record<
+    TelemetryIngestionKeyRefusalReason,
+    grpc.status
+  > = {
+    [TelemetryIngestionKeyRefusalReason.Disabled]:
+      grpc.status.PERMISSION_DENIED,
+    [TelemetryIngestionKeyRefusalReason.Expired]: grpc.status.UNAUTHENTICATED,
+    [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
+      grpc.status.PERMISSION_DENIED,
+  };
+
+  const GUARD_REASONS: Array<TelemetryIngestionKeyRefusalReason> =
+    Object.values(TelemetryIngestionKeyRefusalReason);
+
+  test("an admitted key yields its projectId and no refusal", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    getCachedResolverMock().mockResolvedValue(makeServerKeyPolicy(projectId));
+
+    const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+      makeMetadata({ "x-oneuptime-ingestion-key": "ingestion-key-value" }),
+    );
+
+    expect(result).toEqual({ projectId });
+  });
+
+  test("a missing token is UNAUTHENTICATED with the missing-token sentence, without a lookup", async () => {
+    const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+      makeMetadata({}),
+    );
+
+    expect(result).toEqual({
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: MISSING_INGESTION_TOKEN_MESSAGE,
+      },
+    });
+    expect(getCachedResolverMock()).not.toHaveBeenCalled();
+  });
+
+  test("an unknown token is UNAUTHENTICATED with the invalid-token sentence", async () => {
+    getCachedResolverMock().mockResolvedValue(null);
+
+    const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+      makeMetadata({ "x-oneuptime-service-token": "unknown-token-value" }),
+    );
+
+    expect(result).toEqual({
+      refusal: {
+        code: grpc.status.UNAUTHENTICATED,
+        message: INVALID_INGESTION_TOKEN_MESSAGE,
+      },
+    });
+    expect(getCachedResolverMock()).toHaveBeenCalledWith("unknown-token-value");
+  });
+
+  test.each(GUARD_REASONS)(
+    "a guard refusal (%s) carries the guard's own sentence under its agreed status",
+    async (reason: TelemetryIngestionKeyRefusalReason) => {
+      const secretToken: string = `secret-${ObjectID.generate().toString()}`;
+      const policy: TelemetryIngestionKeyPolicy = {
+        ...makeServerKeyPolicy(ObjectID.generate()),
+        ...policyOverridesForReason[reason],
+      };
+      getCachedResolverMock().mockResolvedValue(policy);
+
+      // What the shared guard says about this key on the gRPC surface.
+      const guardRefusal: TelemetryIngestionKeyRefusal | null =
+        TelemetryIngestionKeyGuard.getRefusal({
+          policy,
+          surface: TelemetryIngestSurface.Grpc,
+        });
+      expect(guardRefusal?.reason).toBe(reason);
+
+      const result: GrpcAuthenticationResult = await authenticateGrpcRequest(
+        makeMetadata({ "x-oneuptime-token": secretToken }),
+      );
+
+      expect(result).toEqual({
+        refusal: {
+          code: expectedCodeForReason[reason],
+          message: guardRefusal!.message,
+        },
+      });
+
+      /*
+       * What the caller is told names neither the token nor the key; the
+       * key id and reason code go to the server log only.
+       */
+      const message: string = (result as { refusal: { message: string } })
+        .refusal.message;
+      expect(message).not.toContain(secretToken);
+      expect(message).not.toContain(policy.ingestionKeyId.toString());
+      expect(message).not.toContain(policy.projectId.toString());
+      expect(message).not.toContain("shop.example.com");
+      expect(loggerErrorSpy.mock.calls).toContainEqual([
+        `gRPC: Ingestion key ${policy.ingestionKeyId.toString()} refused: ${reason}.`,
+        { service: "telemetry" },
+      ]);
+      for (const call of loggerErrorSpy.mock.calls) {
+        expect(JSON.stringify(call)).not.toContain(secretToken);
+      }
+
+      // The yes/no wrapper still reports every refusal as null.
+      expect(
+        await authenticateRequest(
+          makeMetadata({ "x-oneuptime-token": secretToken }),
+        ),
+      ).toBeNull();
+    },
+  );
+});
+
+describe("GrpcServer buildTelemetryRequest", () => {
+  test("projects gRPC metadata down to worker-consumed headers — the token never reaches req.headers", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const secretToken: string = `secret-${ObjectID.generate().toString()}`;
+
+    const metadata: grpc.Metadata = makeMetadata({
+      "x-oneuptime-token": secretToken,
+      "x-oneuptime-service-name": "checkout-service",
+      "user-agent": "grpc-node-js/1.12.5",
+      "grpc-accept-encoding": "identity,deflate,gzip",
+    });
+
+    const body: Record<string, unknown> = { resourceSpans: [] };
+
+    const req: TelemetryRequest = buildTelemetryRequest(
+      body,
+      metadata,
+      projectId,
+      ProductType.Traces,
+    );
+
+    /*
+     * Everything on req.headers is copied into the BullMQ job payload
+     * by TelemetryQueueService and JSON-serialized into Redis per job —
+     * only the whitelisted worker-consumed headers may survive.
+     */
+    expect(req.headers).toEqual({
+      "x-oneuptime-service-name": "checkout-service",
+    });
+    expect(JSON.stringify(req.headers)).not.toContain(secretToken);
+
+    expect(req.body).toBe(body);
+    expect(req.projectId).toBe(projectId);
+    expect(req.productType).toBe(ProductType.Traces);
+    expect(req.path).toBe(`/otlp/v1/${ProductType.Traces}`);
+    expect(req.url).toBe(`/otlp/v1/${ProductType.Traces}`);
+  });
+
+  test("metadata without a service name yields empty headers, not undefined", () => {
+    const req: TelemetryRequest = buildTelemetryRequest(
+      {},
+      makeMetadata({ "x-oneuptime-token": "secret" }),
+      ObjectID.generate(),
+      ProductType.Logs,
+    );
+
+    expect(req.headers).toEqual({});
+  });
+});

@@ -1,5 +1,5 @@
 // This app will log all the logs to the docker-container fluentd that's running in development.
-// You can find the details of the docker container in this file: /docker-compose.dev.yml
+// You can find the details of the docker container in this file: /Scripts/Dev/docker-compose.dev.yml
 // This docker container is not run in production because there is no need to, customers will run fluentd on their own side in production.
 
 const express = require("express");

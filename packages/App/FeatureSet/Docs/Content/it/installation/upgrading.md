@@ -1,0 +1,717 @@
+# Aggiornamento di OneUptime
+
+Questa guida descrive come aggiornare in modo sicuro la tua installazione self-hosted di OneUptime.
+
+## Indicazioni Generali
+
+- Aggiorna passo dopo passo tra le versioni principali (ad esempio, da 6 → 7 → 8). Non saltare le versioni principali.
+- Puoi saltare le versioni minori/patch (ad esempio, da 8.1 → 8.4) purché tu segua le note di rilascio.
+- Esegui sempre dei backup prima di aggiornare e verifica di poterli ripristinare.
+
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the Community/Enterprise image split). -->
+
+## Community and Enterprise Edition images
+
+OneUptime now ships the app as two images. The **Community Edition** is open
+source under the Apache License 2.0. The **Enterprise Edition** adds the
+enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM,
+team compliance, audit logs and the enterprise Health dashboards in the Admin
+Dashboard. Before this change both editions ran the same code, and
+`IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
+decides, and the Community image does not contain the `ee/` directory.
+
+The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
+feature comparison, licensing details and what happens when you switch
+editions.
+
+### What to do before you upgrade
+
+- **Community Edition without SSO, OIDC or SCIM:** nothing. Upgrade as usual.
+- **Helm with `image.type: enterprise-edition`:** nothing. The chart already
+  pulls the `enterprise-` images, which now contain the enterprise modules.
+- **Docker Compose with `IS_ENTERPRISE_EDITION=true`:** switch to the
+  Enterprise image when you upgrade by setting `APP_TAG=enterprise-release`
+  (or `enterprise-<version>`) in `config.env`. `APP_TAG=release` is the
+  Community image, and `IS_ENTERPRISE_EDITION=true` no longer switches anything
+  on. `npm run update` makes this change for you while
+  `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
+  pinned `13.0.7` becomes `enterprise-13.0.7`) and prints what it changed.
+  The App now **refuses to start** when `IS_ENTERPRISE_EDITION=true` is set on
+  the Community image, instead of silently no longer enforcing "Require SSO",
+  SSO, SCIM and audit logging. The error says what to set:
+  `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+  `IS_ENTERPRISE_EDITION=false` to run the Community Edition.
+- **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
+  and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
+  no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
+  read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
+  before you upgrade. It explains how users sign in afterwards and who to
+  remove first. To run the Community Edition, also set
+  `IS_ENTERPRISE_EDITION=false`.
+
+Your configuration is never deleted, and no migration is needed to switch
+editions in either direction.
+
+### Licensing after the upgrade
+
+The Enterprise Edition now checks its license:
+
+- **An install with a license key** keeps working. It checks the license with
+  OneUptime when it starts and once a day. If the license expires, everything
+  keeps working for a 30-day grace period, and after that the same happens as
+  for an install with no license.
+- **An install with no license**, for example one that ran the Enterprise
+  Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the
+  first start of this release. **If you use SSO, OIDC, SCIM or audit logging,
+  activate a license before the trial ends.** After the trial, SSO and OIDC
+  sign-in stop, "Require SSO for login" is no longer enforced (users sign in
+  with their password), SCIM provisioning stops and audit logging stops
+  recording. Enterprise configuration also becomes read-only and the
+  enterprise Health dashboards are locked. Everything resumes, without a
+  restart, as soon as you activate a license. The trial is for evaluation:
+  production use of the Enterprise Edition requires a OneUptime Enterprise
+  subscription. See
+  [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
+- **Air-gapped installs** can activate with a signed license token instead of
+  a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).
+
+### OneUptime Cloud customers
+
+Nothing changes for you. OneUptime Cloud runs the Enterprise Edition, and your
+plan still decides which features you get: SSO, OIDC, SCIM and team
+compliance on the Scale plan and above, and audit logs on the Enterprise plan.
+Projects on the Scale plan now see the SSO, OIDC, SCIM and team compliance
+settings that used to show an upgrade prompt.
+
+### API and endpoint changes
+
+- `GET /api/global-config/license` returns the license key, the license token,
+  the instance list, the instance ID and version details only to master
+  admins. Other callers get the edition and the license status.
+- Self-hosted installs no longer serve the license-server endpoints under
+  `/api/enterprise-license/`. Only oneuptime.com uses them.
+- The SSO, OIDC and SCIM endpoints keep their exact paths on the Enterprise
+  Edition, so identity provider configuration does not change. On the
+  Community Edition they return `404`. On the Enterprise Edition they refuse
+  requests while the license is lapsed (after the trial or grace period), and
+  answer again as soon as a license is activated.
+
+## Aggiornamento da OneUptime 13 → 14
+
+OneUptime 14 divide l'applicazione in due edizioni, e l'immagine che scaricate decide quale viene eseguita. La **Community Edition** (Apache-2.0, i tag `release` e `<version>`) non contiene la directory `ee/` del repository: SAML SSO, OpenID Connect, il provisioning SCIM, le impostazioni di conformità dei team, i log di audit, le dashboard **Health** dell'area amministrativa e la **Query Console** non sono affatto presenti in quell'immagine. La **Enterprise Edition** (i tag `enterprise-release` e `enterprise-<version>`) le contiene e verifica una licenza Enterprise durante l'esecuzione, cosa che OneUptime 13 non ha mai fatto.
+
+[Community and Enterprise Edition images](#community-and-enterprise-edition-images), qui sopra, è il riferimento per questa modifica: cosa contiene ogni edizione, cosa impostare per ciascun tipo di deployment e cosa fa la licenza. Questa sezione è l'aggiornamento in sé. Aggiornate partendo dalla 13 — se siete ancora sulla 12, fate prima 12 → 13.
+
+Nulla viene eliminato, in nessuna delle due edizioni. La vostra configurazione SSO, OIDC e SCIM, le impostazioni «Require SSO for login» e i log di audit già registrati restano nel database. La Community Edition semplicemente non li serve e non li impone, e cambiare edizione non richiede alcuna migrazione in nessuna direzione.
+
+### Cosa dovete fare
+
+1. **Decidete quale edizione esegue questa installazione.** Se usate SAML SSO, OpenID Connect, il provisioning SCIM, le impostazioni di conformità dei team o i log di audit, oppure volete le dashboard **Health** dell'area amministrativa, quella è la Enterprise Edition. Altrimenti non c'è nulla da decidere: la Community Edition è ciò che avete già.
+2. **Con Helm, indicate l'edizione nel vostro file dei valori:** `image.type: enterprise-edition` (il valore predefinito è `community-edition`). Non toccate `image.tag` — il chart aggiunge da sé il prefisso `enterprise-`, quindi `image.tag: release` scarica `oneuptime/app:enterprise-release`. Questo valore non è nuovo: se usate già `enterprise-edition` non c'è nulla da cambiare, perché il tag che già scaricate ora contiene `ee/`.
+3. **Con Docker Compose, impostate `APP_TAG=enterprise-release`** (oppure `enterprise-<version>` per fissare una versione) in `config.env`. `APP_TAG=release` è l'immagine Community. È questo il punto che blocca un'installazione sulla 13: nella 13 un'installazione Enterprise con Compose era `APP_TAG=release` più `IS_ENTERPRISE_EDITION=true`, e quella combinazione ora **rifiuta di avviarsi** invece di partire come Community Edition senza più imporre la vostra configurazione SSO. `npm run update` riscrive `APP_TAG` al vostro posto finché `IS_ENTERPRISE_EDITION=true` (`release` diventa `enterprise-release`, un `13.0.8` fissato diventa `enterprise-13.0.8`) e stampa cosa ha cambiato. Se scaricate le immagini a mano, impostate prima `APP_TAG` voi stessi.
+4. **Sulla Enterprise Edition, attivate una licenza.** Un'installazione senza licenza ottiene una prova di 14 giorni, contati dal suo primo avvio della Enterprise Edition — in un aggiornamento è il giorno in cui aggiornate, non quello in cui avete installato OneUptime. Un amministratore master la attiva dall'etichetta dell'edizione nell'intestazione dell'area amministrativa; le installazioni isolate dalla rete attivano con un token firmato. Vedi [Licensing](/docs/self-hosted/enterprise#licensing).
+5. **Se questa installazione eseguirà la Community Edition mentre l'obbligo di SSO è configurato, verificate prima chi ha accesso.** «Require SSO for login» non viene più imposto, quindi l'accesso con password torna accettato, e chiunque abbia ancora un account e la sua casella di posta può impostarsi una password con «Password dimenticata» — comprese le persone rimosse nel vostro identity provider, perché anche il deprovisioning SCIM si ferma. Rimuovete prima quegli utenti: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
+6. **Se monitorate indirizzi IPv6 con monitor Ping, Port o SSL, salvate di nuovo quei monitor dopo l'aggiornamento.** Le destinazioni salvate prima della 14 potrebbero essere state memorizzate troncate — vedi sotto.
+
+### Edizioni: cosa è cambiato e cosa no
+
+| | Fino alla 13 | Dalla 14 |
+| --- | --- | --- |
+| Codice Enterprise | in ogni immagine; `IS_ENTERPRISE_EDITION=true` lo attivava | in `ee/`, e solo nelle immagini `enterprise-` |
+| Selettore Helm | `image.type` | `image.type` — invariato, ma ora le immagini sono davvero diverse |
+| Selettore Compose | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
+| Licenza Enterprise | mai verificata in esecuzione | verificata all'avvio e una volta al giorno |
+| Endpoint SSO, OIDC e SCIM | gli stessi percorsi in entrambe le edizioni | gli stessi percorsi su Enterprise; `404` su Community |
+| La vostra configurazione Enterprise | memorizzata, imposta | memorizzata in entrambi i casi, imposta su Enterprise |
+
+Viene eseguita una migrazione: una colonna `enterpriseEditionFirstSeenAt` nullable sulla tabella `GlobalConfig`, che ha una sola riga, quindi è istantanea. Non c'è nessuna migrazione ClickHouse, nulla viene eliminato e cambiare edizione non richiede migrazioni in nessuna direzione.
+
+### La cronologia della licenza sulla Enterprise Edition
+
+- **Un'installazione senza licenza** esegue una prova di 14 giorni, contati dal primo avvio della Enterprise Edition. Durante la prova ogni funzionalità Enterprise funziona, e l'etichetta dell'edizione avvisa prima che finisca. La prova serve alla valutazione: l'uso in produzione della Enterprise Edition richiede un abbonamento ai sensi della OneUptime Enterprise License.
+- **Una licenza che scade** ottiene un periodo di tolleranza di 30 giorni dalla data di scadenza, durante il quale ogni funzionalità Enterprise funziona e l'etichetta dell'edizione avvisa.
+- **Dopo la prova, o dopo quel periodo di tolleranza**, e fino all'attivazione di una licenza: gli accessi SSO e OIDC vengono rifiutati, «Require SSO for login» non è più imposto (gli utenti entrano con la propria password), le richieste SCIM del vostro identity provider vengono rifiutate e la registrazione di audit smette di registrare. La configurazione Enterprise diventa di sola lettura — potete ancora consultarla ed eliminarla, disattivare un provider SSO o OIDC e reimpostare un bearer token SCIM, cioè esattamente ciò che serve durante un incidente — e le dashboard Health e la Query Console sono bloccate.
+- **Nulla viene eliminato e il monitoraggio principale non è mai coinvolto.** Monitor, avvisi, incident, reperibilità, pagine di stato e telemetria sono fuori dalla licenza, e l'accesso con password resta disponibile per tutti gli utenti, amministratori master compresi. Attivare una licenza ripristina l'accesso SSO, l'obbligo di SSO, il provisioning SCIM e la registrazione di audit con la configurazione che avete già, senza riavvio.
+- **Una chiave di licenza che già possedete viene accettata**, come licenza «unverified»: la sua data di scadenza e il limite di postazioni provengono da ciò che il server delle licenze ha già comunicato a questa installazione, e dopo quella scadenza vale lo stesso periodo di tolleranza di 30 giorni. Le licenze emesse da ora sono firmate e verificate dall'applicazione stessa. Per questo aggiornamento non serve una nuova chiave.
+- **Una chiave di cui questa installazione non ha mai registrato la scadenza** continua a funzionare per tutta la prova invece di fermare tutto. Il server delle licenze scrive la chiave e la data di scadenza separatamente, quindi un'installazione può possedere una chiave di cui non le è mai stata comunicata la scadenza. Quell'installazione viene trattata esattamente come una senza licenza: ogni funzionalità Enterprise funziona durante la prova di 14 giorni, contati dal primo avvio della Enterprise Edition, e dopo la prova accade lo stesso che sopra. Il limite di postazioni non viene applicato finché la licenza si trova in questo stato, perché il record della licenza che l'installazione possiede è già incompleto. Se un amministratore master riattiva la licenza dall'etichetta dell'edizione, o se la sincronizzazione giornaliera delle licenze recupera la scadenza da oneuptime.com, tutto viene ripristinato senza riavvio.
+
+La tabella completa degli stati è in [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
+
+### Docker Compose: scegliere il tag dell'immagine
+
+```
+git checkout release # Assicuratevi di essere sul branch release.
+git pull
+npm run update
+```
+
+- **`npm run update` sposta `APP_TAG` finché `IS_ENTERPRISE_EDITION=true`**, sull'immagine Enterprise della stessa versione, e stampa cosa ha cambiato. Conserva i vostri commenti e le virgolette, lascia invariato un `APP_TAG` che è già un tag `enterprise-` e non cambia nulla a una seconda esecuzione.
+- **Scaricare le immagini a mano salta questo passaggio**, e allora l'applicazione termina all'avvio con un errore che dice esattamente cosa impostare: `APP_TAG=enterprise-<version>` per mantenere la Enterprise Edition, oppure `IS_ENTERPRISE_EDITION=false` per eseguire la Community Edition.
+- **Per passare deliberatamente alla Community Edition**, impostate `APP_TAG=release` e `IS_ENTERPRISE_EDITION=false`. Leggete prima il punto 5 se questa installazione impone l'SSO.
+- Per questa release non serve cambiare nient'altro in `config.env`.
+
+### Helm: scegliere il tipo di immagine
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **Un'installazione già su `image.type: enterprise-edition` non richiede alcuna modifica ai valori.** Il chart aggiunge il prefisso al tag da tempo; la novità è che le immagini `enterprise-` contengono `ee/`. Da questa release vi si applica la licenza, secondo la cronologia sopra.
+- **`image.tag: release` è il valore predefinito**, quindi un chart rimasto su quel tag mobile passa alla 14 al prossimo aggiornamento senza alcuna modifica ai valori. Se quell'installazione ha SSO, OIDC o SCIM configurati su `community-edition`, impostate `image.type: enterprise-edition` nello stesso aggiornamento.
+- **`IS_ENTERPRISE_EDITION` è ancora emesso dal chart**, derivato da `image.type` così che i due non possano mai contraddirsi. Non controlla nulla. Forzarlo a `true` tramite `extraEnv` su un'immagine Community fa soltanto sì che l'applicazione rifiuti di avviarsi. Non impostate mai `ONEUPTIME_EDITION` tramite il chart.
+- **Le probe del chart rispettano di nuovo `probes.<key>.allowPrivateNetworkMonitors`** ([#3879](https://github.com/OneUptime/oneuptime/issues/3879)). Nulla cambia se non impostate quel valore — resta `false` — e si applica ai monitor di **tutti i progetti** dell'istanza, perché le probe del chart sono probe globali. Loopback, link-local e `169.254.169.254` restano bloccati con qualsiasi valore.
+
+### Altre modifiche nella 14
+
+- **L'ingest OTLP conferma un batch solo dopo che la coda lo ha accettato.** La 13 rispondeva prima `200` e accodava dopo, quindi un batch rifiutato dalla coda andava perso in silenzio. La 14 risponde `503` con `Telemetry queue unavailable. Please retry.`, e l'endpoint gRPC restituisce `UNAVAILABLE`; entrambi sono ritentabili, e gli exporter ritentano. Riguarda log, metriche, tracce e profili. Non serve fare nulla, ma i ritentativi degli exporter e la contropressione della coda ora sono visibili là dove i dati sparivano — utile se dimensionate la capacità di ingest.
+- **Le dashboard Health e la Query Console dell'area amministrativa richiedono la Enterprise Edition**, così come gli avvisi di salute per PostgreSQL e Valkey. Nella 13 arrivavano con il solo `IS_ENTERPRISE_EDITION=true`, quindi per un'installazione Community che le usava è una perdita visibile. La vista di capacità ClickHouse con il suo pruning, lo stato delle migrazioni, le probe globali e il support bundle ci sono in entrambe le edizioni.
+- **I monitor HTTPS che raggiungono un indirizzo IP attraverso il proxy di una probe funzionano di nuovo.** La probe inviava l'IP come nome server TLS; un IP non è un nome server valido e Node lo rifiuta del tutto, quindi un monitor su `https://<IP privato>` da una probe globale con `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` falliva l'handshake. Ora la probe omette il nome server quando la destinazione è un IP e verifica il certificato contro l'IP stesso. Le destinazioni per nome host non cambiano.
+- **La CLI `oneuptime` riporta la sua versione reale** con `--version`, invece di un segnaposto.
+- Gli endpoint spostati o ristretti, fra cui `GET /api/global-config/license` e gli endpoint del server delle licenze che le installazioni self-hosted non servono più, sono descritti sopra in [API and endpoint changes](#api-and-endpoint-changes).
+
+### Monitor IPv6: Ping, Port e SSL
+
+Una destinazione Ping o Port incollata con spazi attorno — cioè quello che si ottiene copiando un indirizzo da un looking glass o dalla configurazione di un router — veniva memorizzata troncata: `2001:518:2800:9::2 ` diventava l'host `2001` con la porta `518`. Entrambe le metà sono legittime, quindi nulla falliva e non veniva mostrato alcun errore; il monitor semplicemente osservava un host che nessuno aveva digitato. Gli indirizzi IPv4 non sono mai stati coinvolti, perché non c'è alcun due punti su cui spezzare. La 14 corregge il parsing, e con esso i monitor Ping IPv6 che fallivano istantaneamente e in modo permanente sulle probe macOS e FreeBSD (segnalati come vere interruzioni) e i monitor SSL IPv6 che fallivano con `ENOTFOUND`.
+
+Non esiste alcuna migrazione per le destinazioni già memorizzate, quindi **riaprite ogni monitor IPv6 Ping, Port e SSL dopo l'aggiornamento e salvatelo di nuovo**, controllando la destinazione mostrata. Aspettatevi che i monitor che fallivano in modo permanente sulle probe macOS o FreeBSD inizino a dire la verità, cosa che può chiudere incident o farne nascere di nuovi.
+
+### Verificare edizione e licenza
+
+- L'**etichetta dell'edizione nell'intestazione dell'area amministrativa** indica l'edizione in esecuzione e, sulla Enterprise Edition, anche lo stato della licenza.
+- **Compose:** `docker compose images` elenca i tag in esecuzione — sulla Enterprise Edition ogni immagine OneUptime porta il prefisso `enterprise-`.
+- **Helm:** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` stampa le immagini eseguite dai pod; vale la stessa regola del prefisso.
+- Gli endpoint SSO, OIDC e SCIM distinguono i due casi: `404` significa che quell'immagine non contiene `ee/` (Community Edition), mentre `402` o `403` significa che la Enterprise Edition è in esecuzione con una licenza che richiede attenzione.
+
+### Tornare alla 13
+
+- Entrambe le edizioni e entrambe le release leggono gli stessi dati, e l'unica modifica allo schema è una colonna nullable che la 13 ignora: riportare indietro le immagini non richiede alcun lavoro sul database.
+- **Docker Compose:** riportate `APP_TAG` al tag 13 che usavate (`13.0.8` oppure `enterprise-13.0.8`) ed eseguite `npm run update`. Nella 13 è `IS_ENTERPRISE_EDITION=true` ad attivare le funzionalità Enterprise, quindi rimettetelo se lo avevate.
+- **Helm:** `helm rollback my-oneuptime`, oppure fissate `image.tag` a `13.0.8`.
+- Eseguire la 14 non tocca la vostra configurazione Enterprise, quindi un ritorno indietro la ritrova com'era.
+
+> Suggerimento: sulla Enterprise Edition attivate la licenza il giorno dell'aggiornamento, non alla fine della prova. È l'attivazione a mantenere imposto il single sign-on, e la prova si conta da questo aggiornamento, non dalla data della vostra installazione originale.
+
+## Aggiornamento da OneUptime 12 → 13
+
+OneUptime 13 sostituisce Redis con [Valkey](https://valkey.io) come motore di cache e code incluso. Redis 7.4 ha abbandonato la licenza BSD e la maggior parte dei contributori storici di Redis lavora ormai a Valkey, un fork di Redis 7.2 che parla lo stesso protocollo. Nulla è cambiato al di sopra del socket, e potete comunque puntare OneUptime a un Redis vero o a un servizio gestito compatibile con Redis, se preferite.
+
+Tutto ciò che configurate ora porta quel nome: le impostazioni sono `VALKEY_*`, i valori Helm sono `valkey:` / `externalValkey:` e gli oggetti Kubernetes sono `<release>-valkey*`. **Tutti i vecchi nomi continuano a funzionare**, quindi un `config.env` o un `values.yaml` mai modificato si aggiorna e continua a funzionare. Non c'è alcuna configurazione da modificare né dati da migrare: la cache non è una fonte di verità, e Postgres e ClickHouse restano intatti.
+
+Quello che dovete fare dipende da come avete effettuato il deployment:
+
+- **Docker Compose:** aggiornate come sempre, con un'opzione che conta — vedi [Aggiornamento con Docker Compose](#aggiornamento-con-docker-compose).
+- **Helm:** nessuna modifica ai valori, ma il pod della cache viene ricreato e torna vuoto — vedi [Aggiornamento con Helm](#aggiornamento-con-helm).
+- **Puntate OneUptime a una cache che gestite voi** (Redis gestito, ElastiCache, Memorystore, il vostro Valkey): leggete [Se gestite la vostra cache](#se-gestite-la-vostra-cache). È l'unica configurazione che può smettere di raggiungere il vostro server senza segnalarlo.
+- **Avete dashboard, avvisi, network policy o script basati sui nomi degli oggetti Kubernetes:** quei nomi cambiano — vedi [Aggiornamento con Helm](#aggiornamento-con-helm).
+
+### Cosa cambia e cosa no
+
+| | Fino alla 12 | Dalla 13 |
+| --- | --- | --- |
+| Motore | `redis:7.0.12` | `valkey/valkey:9.1-alpine` |
+| Impostazioni | `REDIS_*` | `VALKEY_*` — `REDIS_*` viene ancora letto |
+| Servizio Compose | `redis` | `valkey` — risponde ancora all'hostname `redis` |
+| Valori Helm | `redis:`, `externalRedis:` | `valkey:`, `externalValkey:` — le vecchie chiavi si applicano ancora |
+| Oggetti Kubernetes | `<release>-redis`, `<release>-redis-master` | `<release>-valkey`, `<release>-valkey-master` |
+| Secret generato | `redis-password` in `<release>-redis` | `valkey-password` in `<release>-valkey` |
+| Secret della cache esterna | `<release>-external-redis` | `<release>-external-valkey` |
+
+Le dieci impostazioni rinominate sono `VALKEY_HOST`, `VALKEY_PORT`, `VALKEY_DB`, `VALKEY_USERNAME`, `VALKEY_PASSWORD`, `VALKEY_IP_FAMILY`, `VALKEY_TLS_CA`, `VALKEY_TLS_CERT`, `VALKEY_TLS_KEY` e `VALKEY_TLS_SENTINEL_MODE`. Quando un'impostazione è presente con entrambe le grafie, l'applicazione preferisce quella `VALKEY_*`. Il chart Helm risolve il conflitto nel modo opposto: una chiave legacy `redis:` prevale sul nuovo valore predefinito, così un file di valori mai toccato si comporta esattamente come prima.
+
+**La cache si riavvia una volta**, su entrambi i percorsi di deployment, perché il container viene sostituito. Non conserva nulla su disco (`appendonly no`, `save ""`), quindi torna fredda: i valori in cache spariscono e i job BullMQ in attesa, differiti o in backoff vanno persi. I job ripetibili e cron si registrano di nuovo da soli alla riconnessione. Aggiornate in un momento tranquillo se la telemetria in corso o i ritentativi dei workflow sono importanti per voi.
+
+### Aggiornamento con Docker Compose
+
+Basta l'aggiornamento abituale:
+
+```
+git checkout release # Assicuratevi di essere sul branch release.
+git pull
+npm run update
+```
+
+- **Usate `--remove-orphans` se lanciate Compose a mano.** `npm run update` e `npm run start` lo passano già, ed è ciò che rimuove il vecchio container `redis`. Se lo lasciate in esecuzione, due container rispondono all'hostname `redis` e le connessioni finiscono a caso su quello obsoleto.
+- **Il vostro `config.env` non viene riscritto.** `npm run update` di norma aggiunge ogni impostazione che trova in `config.example.env` e manca nel vostro file, ma riconosce queste dieci come rinomine e lascia i vostri valori — compresa la vostra `REDIS_PASSWORD` — esattamente dove sono. Stampa anche quali ha mantenuto.
+- Rinominare le vostre chiavi in `VALKEY_*` è facoltativo e si può fare più avanti senza rischi. Impostate una sola grafia per ciascuna impostazione.
+- **Se impostate variabili della cache in un `docker-compose.override.yml`, rinominatele in `VALKEY_*`.** Il file base ora imposta `VALKEY_HOST` a partire dal vostro `REDIS_HOST`, e l'applicazione legge prima `VALKEY_HOST`: un override che imposta solo `REDIS_HOST` non prevale più.
+
+### Aggiornamento con Helm
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **Non serve modificare i valori.** `redis:` ed `externalRedis:` funzionano ancora — quanto impostate sotto di essi viene sovrapposto ai nuovi valori predefiniti di `valkey:` / `externalValkey:` — e `helm upgrade` stampa un avviso `DEPRECATED VALUES` con le vecchie chiavi trovate. Rinominatele quando vi è comodo.
+- **Non ruota nulla.** Il chart legge la password dal vostro Secret `<release>-redis` esistente e la riporta in `<release>-valkey`, invece di generarne una nuova.
+- **Entrambi i vecchi Secret vengono mantenuti.** `<release>-redis` e, se portate la vostra cache, `<release>-external-redis` sono annotati con `helm.sh/resource-policy: keep`, quindi restano lì con copie ormai inutilizzate. Eliminateli quando l'aggiornamento si è assestato, ma leggete prima [Tornare alla 12](#tornare-alla-12).
+- **I nomi degli oggetti cambiano.** Aggiornate tutto ciò che si basa su `<release>-redis` o `<release>-redis-master`: dashboard Grafana, regole di avviso, NetworkPolicy, ServiceMonitor, job di backup.
+- Il Service viene pubblicato anche con il vecchio nome, `<release>-redis-master`, così i pod non ancora rinnovati si riconnettono da soli invece di non risolvere nulla per tutta la durata del rollout. Impostate `valkey.legacyServiceAlias: false` per rimuoverlo una volta rinnovati tutti i workload.
+- **Se avevate `persistence.enabled: true`**, il nuovo StatefulSet richiede un volume nuovo `data-<release>-valkey-0`. Il vecchio `data-<release>-redis-0` non ha mai contenuto nulla: eliminatelo per smettere di pagarlo.
+
+### Se gestite la vostra cache
+
+Puntare OneUptime a una cache che non gestisce lui resta pienamente supportato, e il server dall'altra parte può essere Valkey, Redis o un servizio gestito compatibile con Redis. Ciò che cambia è il nome del blocco che lo configura.
+
+- Rinominate `externalRedis:` in `externalValkey:` nel vostro file di valori. È facoltativo — la vecchia chiave si applica ancora — ma è ciò che il chart documenta ora.
+- Il chart rigenera il Secret con il nuovo nome, `<release>-external-valkey`. Il vecchio `<release>-external-redis` viene mantenuto e non è più aggiornato: se qualche vostro manifest lo referenzia per nome, ripuntatelo.
+- **Gli override `extraEnv` smettono di raggiungere la cache, e questo fallisce in silenzio.** Se puntate a una cache gestita con `extraEnv: [{name: REDIS_HOST, ...}]` invece che con il blocco `externalValkey:`, la vostra voce vince ancora lo slot `REDIS_HOST`, ma l'applicazione legge prima `VALKEY_HOST` — che il chart imposta sulla propria cache nel cluster. Il vostro override è presente nella specifica del pod e viene ignorato. Rinominate quelle voci in `VALKEY_*` oppure spostate le impostazioni in `externalValkey:`, che è la via supportata. `helm upgrade` avvisa per le voci `extraEnv` a livello di chart; non vede le liste `<service>.extraEnv` dei singoli servizi, quindi controllatele voi. L'equivalente in Compose è un file di override che imposta solo `REDIS_HOST`.
+
+### Verificare l'aggiornamento
+
+- **Dashboard di amministrazione → Health → Valkey** deve indicare «Connected», con un valore di memoria. È lo stesso controllo di raggiungibilità usato dalle email di avviso sullo stato.
+- **Compose:** `docker compose ps` elenca un servizio `valkey` e nessun container `redis`.
+- **Helm:** `kubectl get pods,svc -n <namespace>` mostra `<release>-valkey-0` in stato Running e il Service `<release>-valkey-master`. `helm get notes my-oneuptime` ripropone gli avvisi stampati dall'aggiornamento.
+- Per un'analisi più approfondita, `HelmChart/Public/diagnose.sh` riporta memoria della cache, evizioni e connettività, e riconosce sia i vecchi sia i nuovi nomi degli oggetti.
+
+### Tornare alla 12
+
+- **Helm:** `helm rollback` funziona, perché il chart della 12 ritrova al suo posto il Secret `<release>-redis` che aveva creato e ne riusa la password. È per questo che i vecchi Secret vengono mantenuti: non eliminateli finché non siete sicuri di restare sulla 13.
+- **Docker Compose:** mantenete la grafia `REDIS_*` in `config.env` finché non siete sicuri. OneUptime 12 legge solo `REDIS_*`, quindi tornare indietro con un `config.env` di cui avete rinominato le chiavi lascia la cache senza password configurata, aperta sulla rete di Compose e con l'applicazione incapace di autenticarsi. Mantenere entrambe le grafie con valori identici funziona altrettanto bene.
+- Tornare indietro riavvia di nuovo la cache, con lo stesso costo di avvio a freddo.
+
+### Nomi rimasti Redis di proposito
+
+Non sono dimenticanze e nessuno richiede un intervento:
+
+- **L'API mantiene la sua forma.** `components.redis` e `summary.redis` nella risposta di stato dell'istanza, la rotta `/api/admin/health/redis` e il valore di motore `redis` nella console query di amministrazione sono chiavi di protocollo, non testo visualizzato. Tutto ciò che avete scriptato su di esse continua a funzionare.
+- **Il vocabolario del protocollo Redis:** `redis-cli`, il campo `redis_version` di `INFO` e il riferimento di memoria memorizzato con cui le notifiche di stato si confrontano. Rinominare quella chiave scarterebbe lo storico di ogni istanza.
+- **L'hostname predefinito resta `redis`**, per i manifest scritti a mano e le installazioni con un semplice `docker run`. Viene usato solo quando non sono impostati né `VALKEY_HOST` né `REDIS_HOST`, cosa che nei nostri Compose e Helm non accade mai.
+- I nomi delle classi interne e delle colonne Postgres, che nessuno vede e la cui rinomina costerebbe una migrazione.
+
+## Aggiornamento da OneUptime 11 → 12
+
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v12 Runner merge). -->
+
+OneUptime 12 merges two components into one. The **Runbook Agent** (the
+container you installed on your own hosts to execute runbook steps) and the
+**AI Agent** (the service that worked on AI code fixes) are now a single
+component: the **OneUptime Runner**, shipped as the `oneuptime/runner`
+Docker image. The old `oneuptime/runbook-agent` and `oneuptime/ai-agent`
+images are no longer built or published — existing tags remain pullable,
+but they will never receive another update.
+
+A Runner is one installed container that can hold several **capabilities**,
+toggled per Runner in the dashboard: **Runs Runbooks** (on by default),
+**Runs AI Code Fixes** (off by default), and **Runs AI Remediation Commands** (off by
+default). Capability changes are adopted on the Runner's next heartbeat —
+no restart needed. See [Runners](/docs/runbooks/agents) for how the
+component works day to day.
+
+What you need to do depends on how you deployed:
+
+- **Everyone:** read [What happens automatically](#what-happens-automatically)
+  and [Dashboard pages moved](#dashboard-pages-moved).
+- **You installed Runbook Agents on your hosts:** redeploy them onto the new
+  image — see [Redeploy your Runbook Agents](#redeploy-your-runbook-agents).
+- **Docker Compose:** environment variable renames plus **one
+  security-relevant step** — see [Docker Compose deployments](#docker-compose-deployments).
+- **Helm:** a values-file rename that fails validation if skipped — see
+  [Helm deployments](#helm-deployments).
+- **API keys that were granted agent permissions directly:** re-grant them —
+  see [Permissions: teams migrate, API keys do not](#permissions-teams-migrate-api-keys-do-not).
+
+### What happens automatically
+
+No manual database work. On first boot, v12 runs a migration that:
+
+- Renames the Postgres tables and columns (`RunbookAgent` → `Runner`,
+  `RunbookAgentJob` → `RunnerJob`, plus the owner, label, and join tables to
+  match). Runner ids, keys, and job history are untouched — this is a
+  rename, not a re-registration.
+- Migrates every **team** permission grant from the old `…RunbookAgent…`
+  permission names to the new `…Runner…` names, so team roles keep working
+  without reassignment. (Direct API-key grants are the exception — see below.)
+
+The API stays compatible too:
+
+- Requests to `/api/runbook-agent`, `/api/runbook-agent-job`,
+  `/api/runbook-agent-owner-team`, and `/api/runbook-agent-owner-user` are
+  rewritten server-side onto their `/runner…` equivalents, so existing
+  scripts keep working.
+- The agent-facing ingest path `/runbook-agent-ingest` is still served
+  alongside the new `/runner-ingest`, so **Runbook Agent containers you have
+  not redeployed yet keep heartbeating and executing Bash and JavaScript
+  steps** against a v12 server. Each one logs a deprecation warning on the
+  server naming the agent that should be redeployed.
+
+### Redeploy your Runbook Agents
+
+Your existing agents keep running Bash and JavaScript steps unchanged, so
+this does not block the upgrade — but do it soon after:
+
+- **SSH and Kubernetes steps (new in v12) fail on old agents.** The server
+  does not exclude old agents from claiming them: an agent still on the
+  `runbook-agent` image will claim an SSH or Kubernetes job and fail it with
+  `Unsupported step type` — typically mid-incident, when the runbook runs.
+  Redeploy the agent **before** authoring SSH or Kubernetes steps that
+  target it.
+- The old image receives no further updates of any kind.
+
+Redeploying means re-running the install command with the new image and
+variable names. The agent's id and key are **unchanged** (same database
+row) — swap the names, keep the values:
+
+```bash
+docker rm -f oneuptime-runbook-agent
+
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
+  -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
+  -d oneuptime/runner:release
+```
+
+(Or open the Runner in **Settings → Runners** and use **Show setup
+instructions** for a pre-filled command.)
+
+If you tuned the agent with environment variables, rename them — the old
+names are **silently ignored** by the new image:
+
+| Old (Runbook Agent)                     | New (Runner)                              |
+| --------------------------------------- | ----------------------------------------- |
+| `RUNBOOK_AGENT_ID`                       | `ONEUPTIME_RUNNER_ID`                     |
+| `RUNBOOK_AGENT_KEY`                      | `ONEUPTIME_RUNNER_KEY`                    |
+| `RUNBOOK_AGENT_POLL_INTERVAL_MS`         | `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`       |
+| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`    | `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`  |
+| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS`| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` |
+| `RUNBOOK_AGENT_CONCURRENCY`              | `ONEUPTIME_RUNNER_CONCURRENCY`            |
+
+### If you ran the standalone AI Agent
+
+The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
+image is no longer built. If you had installed an AI Agent container
+yourself, replace it with a Runner:
+
+1. Create a Runner under **Settings → Runners** and install it with the
+   command from **Show setup instructions**.
+2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
+   heartbeat.
+
+Old AI Agent credentials still boot the new `oneuptime/runner` image
+through a legacy fallback (code fixes only, with a logged warning telling
+you to create a real Runner) — treat that as a bridge during the migration,
+not a destination.
+
+### Docker Compose deployments
+
+The compose service `ai-agent` is now `runner`. If you upgrade with the
+standard `npm run update` flow, the new variables are appended to your
+`config.env` automatically and the stack boots — but read the key warning
+below. The renames, if you manage `config.env` or overrides by hand:
+
+| Old                              | New                                |
+| -------------------------------- | ---------------------------------- |
+| `AI_AGENT_KEY`                   | `ONEUPTIME_RUNNER_KEY`             |
+| `AI_AGENT_ONEUPTIME_URL`         | `ONEUPTIME_RUNNER_ONEUPTIME_URL`   |
+| `AI_AGENT_PORT`                  | `ONEUPTIME_RUNNER_PORT`            |
+| `DISABLE_TELEMETRY_FOR_AI_AGENT` | `DISABLE_TELEMETRY_FOR_RUNNER`     |
+| `ENABLE_PROFILING_FOR_AI_AGENT`  | `ENABLE_PROFILING_FOR_RUNNER`      |
+
+The old `AI_AGENT_*` lines can stay in `config.env`; nothing reads them
+anymore.
+
+**Important — set `ONEUPTIME_RUNNER_KEY` to a random value.** The template
+merge appends it with the literal placeholder
+`please-change-this-to-random-value`; your old `AI_AGENT_KEY` value is
+**not** carried over. This key registers the instance-wide Runner and
+authenticates the AI code-fix protocol — including minting repository
+access tokens — so leaving the publicly known placeholder in place is a
+security hole. Before starting v12, set it to a long random value (reusing
+your old `AI_AGENT_KEY` value is fine).
+
+**Remove the orphaned `ai-agent` container.** `npm start` runs compose with
+`--remove-orphans` and cleans it up. If you run `docker compose up -d` by
+hand, add `--remove-orphans` (or `docker rm -f` the old container) —
+otherwise the old AI Agent keeps running and keeps claiming code-fix work
+alongside the new Runner.
+
+### Helm deployments
+
+- Rename the `aiAgent:` block in your values overrides to `runner:`. All
+  subkeys (`enabled`, `replicaCount`, `resources`, `keda`, and so on) are
+  unchanged. This is a hard break: the chart schema rejects unknown keys,
+  so `helm upgrade` **fails validation** while an `aiAgent:` block remains.
+- Workload names change from `<release>-ai-agent` to `<release>-runner` —
+  update anything keyed on the old names (dashboards, alerts, network
+  policies).
+- The release secret key changes from `ai-agent-key` to `runner-key`. A
+  fresh key is generated on upgrade and the in-cluster Runner re-registers
+  itself automatically, so there is nothing to do unless something external
+  referenced the old secret value.
+- Deliberately unchanged: the KEDA scaling metric is still named
+  `oneuptime_ai_agent_queue_size` — do not rename it in custom scalers.
+
+### Permissions: teams migrate, API keys do not
+
+Twelve permissions were renamed (`CreateRunbookAgent` → `CreateRunner`,
+`EditRunbookAgent` → `EditRunner`, `DeleteRunbookAgent` → `DeleteRunner`,
+`ReadRunbookAgent` → `ReadRunner`, and the same four verbs for
+`…RunbookAgentOwnerTeam` → `…RunnerOwnerTeam` and
+`…RunbookAgentOwnerUser` → `…RunnerOwnerUser`). Grants held through
+**teams** are migrated automatically. Grants attached **directly to an API
+key** are not — a key that held one of these twelve permissions loses that
+access after the upgrade. Re-grant the new `…Runner…` permissions on those
+keys in the dashboard. The `RunbookSecret`, `RunbookCredential`, and
+`RunbookExecution` permission families kept their names.
+
+Separately, v12 closes a hole: starting a runbook execution now requires
+an authenticated caller with `ProjectOwner`, `ProjectAdmin`,
+`ProjectMember`, `CreateRunbookExecution`, `RunbookAdmin`, or
+`RunbookMember` — advancing or cancelling one also accepts
+`EditRunbookExecution`. Unauthenticated triggering no longer works, and
+read-only roles (for example `RunbookViewer`) can no longer start runs —
+API automation that triggers runbooks needs `CreateRunbookExecution`.
+
+### Dashboard pages moved
+
+There are no redirects from the old URLs — update bookmarks and internal
+wiki links:
+
+| Page                    | Old location                             | New location                              |
+| ----------------------- | ---------------------------------------- | ----------------------------------------- |
+| Runners (was "Agents")  | Runbooks → Settings → Agents (`…/runbooks/settings/agents`) | Settings → Runners (`…/settings/runners`) |
+| Runner Credentials      | Runbooks → Settings → Credentials (`…/runbooks/settings/credentials`) | Settings → Runner Credentials (`…/settings/runner-credentials`) |
+| AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | Removed — Runners with the **Runs AI Code Fixes** capability replace it |
+
+Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
+
+### New in 12, nothing to enable by accident
+
+v12 adds AI-composed remediation commands: the AI can propose a command
+plan and hand it to a Runner for execution. Everything about it is off by
+default and stays off until you opt in twice — the project-level **AI
+command execution** setting and the per-Runner **Runs AI Remediation Commands**
+capability must both be enabled, and only runbooks/rules you configure for
+it participate. Upgrading changes nothing here.
+
+> Tip: as with every major upgrade, back up Postgres before upgrading (a
+> rollback to v11 means restoring that backup), test in staging first, and
+> upgrade step-by-step — 11 → 12, do not skip from older majors.
+
+## Aggiornamento da OneUptime 10 → 11
+
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for v11 SSO->Enterprise change). -->
+
+### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
+
+In v11, the following authentication and access-management features moved to
+the **OneUptime Enterprise Edition** and are no longer part of the free,
+open-source (Community) build:
+
+- **SAML SSO** — both project login and status-page login
+- **OpenID Connect (OIDC)** — both project login and status-page login
+- **SCIM user provisioning** — project and status page
+- **Global (instance-wide) SSO / OIDC**
+- **Team compliance settings**
+
+**What you'll see after upgrading:** if you configured any of these on a
+Community Edition build, the settings pages show an upgrade prompt instead of
+the configuration form, and the configuration can no longer be changed. Until
+the Community and Enterprise images were split, providers you had already
+configured could keep signing users in on a Community build, because it still
+contained the sign-in code. The Community image no longer contains any SSO,
+OIDC or SCIM code, so sign-in through them stops once you upgrade to it — see
+[Community and Enterprise Edition images](#community-and-enterprise-edition-images).
+Your existing provider records are **preserved in the database** — nothing is
+deleted — and they work again as soon as the instance runs the Enterprise
+Edition.
+
+**Availability:**
+
+- **Self-hosted:** requires the **Enterprise Edition** build.
+- **OneUptime Cloud:** requires the **Scale** plan (or above).
+
+**If you rely on SSO and self-host**, email
+[support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
+license so you can restore SSO/OIDC/SCIM. Mention that you upgraded from v10 to
+v11 and we'll help you get it back online. If your team is mid-upgrade and this
+is blocking sign-in, contact us before upgrading production so we can plan it
+with you.
+
+OneUptime 11 ricostruisce lo storage di telemetria ClickHouse. Questa pagina spiega cosa cambia, chi deve agire e — per le installazioni che vogliono conservare la telemetria storica — ogni query necessaria per farlo.
+
+### Cosa cambia nella v11
+
+La telemetria (log, trace, metriche, eccezioni, profili, log dei monitor, log di audit) viene spostata in nuove tabelle ClickHouse con partizionamento temporale, codec di compressione per colonna e le nuove colonne del modello di entità:
+
+| Tabella vecchia       | Tabella nuova         |
+| --------------------- | --------------------- |
+| `LogItemV2`           | `LogItemV3`           |
+| `MetricItemV2`        | `MetricItemV3`        |
+| `SpanItemV2`          | `SpanItemV3`          |
+| `ExceptionItemV2`     | `ExceptionItemV3`     |
+| `ProfileItemV2`       | `ProfileItemV3`       |
+| `ProfileSampleItemV2` | `ProfileSampleItemV3` |
+| `MonitorLogV2`        | `MonitorLogV3`        |
+| `AuditLogV1`          | `AuditLogV2`          |
+
+Due colonne vengono rinominate in ogni tabella di telemetria: `serviceId` → `primaryEntityId` e `serviceType` → `primaryEntityType`. È una rinomina rigida — **se interrogate direttamente l'API analytics di OneUptime con filtri `serviceId`/`serviceType`, aggiornateli ai nuovi nomi.** Dashboard, monitor e alert all'interno di OneUptime vengono migrati automaticamente.
+
+Il passaggio è **solo in avanti**: le nuove tabelle partono vuote, tutta la telemetria ingerita dopo l'aggiornamento vi arriva immediatamente e lo storico si ricostituisce naturalmente col tempo. Le vecchie tabelle vengono **eliminate automaticamente** durante l'aggiornamento per recuperarne lo spazio su disco — se volete mantenere la possibilità di riportare lo storico, rinominatele **prima** dell'aggiornamento (Passo 0 qui sotto).
+
+> **Siete già su 11.0.0 o 11.0.1?** Quelle release conservavano le vecchie tabelle (si svuotavano tramite la TTL e la copia poteva essere eseguita «in qualsiasi momento dopo l'aggiornamento»). Qualsiasi aggiornamento successivo **le elimina all'avvio**. Se volete ancora eseguire la copia dello storico e non l'avete ancora fatta, eseguite il Passo 0 qui sotto prima di applicare l'aggiornamento.
+
+### Chi deve fare qualcosa
+
+- **Installazioni nuove:** niente da fare.
+- **Aggiornamenti che non hanno bisogno della telemetria precedente nell'interfaccia:** niente da fare. Le pagine di telemetria mostrano semplicemente i dati dal momento dell'aggiornamento in poi; le vecchie tabelle vengono eliminate durante l'aggiornamento.
+- **Aggiornamenti che vogliono vedere la telemetria precedente:** rinominate le vecchie tabelle **prima** dell'aggiornamento (Passo 0 qui sotto), poi eseguite la copia manuale in qualsiasi momento dopo.
+
+Come sempre: aggiornate le versioni maggiori una alla volta (10 → 11, senza saltarne) e fate backup di Postgres e ClickHouse prima di aggiornare.
+
+### Opzionale: riportare lo storico di telemetria
+
+Il Passo 0 va eseguito **prima dell'aggiornamento**; tutto il resto, dal Passo 1 in poi, va eseguito **dopo che l'aggiornamento è completamente avviato** (le nuove tabelle e le loro viste materializzate devono esistere). Collegatevi direttamente sul vostro host ClickHouse — il protocollo nativo non ha timeout HTTP, quindi statement di più ore non sono un problema:
+
+```bash
+clickhouse-client --database oneuptime
+```
+
+Da sapere prima di iniziare:
+
+- La copia può essere eseguita in sicurezza mentre OneUptime è in produzione. La nuova telemetria scrive nelle nuove tabelle in modo indipendente; lo storico copiato si riempie alle sue spalle.
+- Aspettatevi ore su larga scala (centinaia di GB).
+- Ogni statement qui sotto porta un `insert_deduplication_token`, e le nuove tabelle hanno una finestra di deduplicazione — quindi **rieseguire uno statement fallito a metà è sicuro** (i blocchi già inseriti vengono saltati, anche nei rollup delle metriche), purché lo rieseguiate in tempi ragionevoli. Sotto ingest intenso la finestra (gli ultimi 10.000 blocchi di insert per tabella) finisce per espellere i token vecchi.
+- Copiare le metriche ricostruisce anche automaticamente i rollup pre-aggregati delle dashboard (ogni riga copiata rialimenta le viste materializzate di rollup) — questo rende la copia delle metriche più lenta delle altre; eseguitela per ultima.
+
+#### Passo 0 — prima di aggiornare, rinominare le vecchie tabelle
+
+L'aggiornamento elimina le vecchie tabelle all'avvio, quindi mettete prima fuori dalla sua portata quelle da cui volete copiare. Fermate OneUptime (scalate il deployment a zero) in modo che nulla vi scriva o possa ricrearle, poi rinominate — `RENAME TABLE` è un'operazione di metadati istantanea, e `IF EXISTS` fa sì che il blocco salti le tabelle che la vostra installazione non ha mai avuto (i deployment precedenti a metà 10.0.x possono non avere `AuditLogV1` o alcune tabelle `…V2` — in quel caso non c'è storico di quel tipo da copiare):
+
+```sql
+RENAME TABLE IF EXISTS LogItemV2 TO LogItemV2_backup;
+RENAME TABLE IF EXISTS MetricItemV2 TO MetricItemV2_backup;
+RENAME TABLE IF EXISTS SpanItemV2 TO SpanItemV2_backup;
+RENAME TABLE IF EXISTS ExceptionItemV2 TO ExceptionItemV2_backup;
+RENAME TABLE IF EXISTS ProfileItemV2 TO ProfileItemV2_backup;
+RENAME TABLE IF EXISTS ProfileSampleItemV2 TO ProfileSampleItemV2_backup;
+RENAME TABLE IF EXISTS MonitorLogV2 TO MonitorLogV2_backup;
+RENAME TABLE IF EXISTS AuditLogV1 TO AuditLogV1_backup;
+RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup;
+```
+
+Poi aggiornate e lasciate che OneUptime si avvii completamente prima di continuare.
+
+> Se tornate alla v10 dopo la rinomina (la v10 ricrea all'avvio tabelle vuote con i vecchi nomi), rinominate le tabelle `_backup` riportandole ai nomi originali prima di riavviare la v10 — altrimenti la telemetria ingerita durante il rollback finisce nelle tabelle ricreate e verrà eliminata al futuro aggiornamento.
+
+#### Passo 1 — elencare le partizioni di origine
+
+Ogni vecchia tabella ha al massimo 16 partizioni. Per ogni tabella di origine:
+
+```sql
+SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
+```
+
+#### Passo 2 — generare lo statement di copia
+
+I set di colonne possono differire leggermente tra installazioni (ai deployment più vecchi possono mancare colonne aggiunte di recente), quindi generate lo statement dal vostro schema reale invece di copiarne uno fisso. Impostate `src` e `dst` nella clausola `WITH` su una delle coppie di tabelle della tabella sopra (l'origine porta il suffisso `_backup` del Passo 0) ed eseguite:
+
+```sql
+WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
+SELECT concat(
+  'INSERT INTO ', dst, ' (`', arrayStringConcat(groupArray(name), '`, `'), '`)',
+  ' SELECT ', arrayStringConcat(groupArray(selectExpr), ', '),
+  ' FROM ', src,
+  ' WHERE _partition_id = ''{PARTITION}''',
+  ' ORDER BY ', (SELECT sorting_key FROM system.tables WHERE database = currentDatabase() AND name = dst), ', _id',
+  ' SETTINGS max_execution_time = 0, max_partitions_per_insert_block = 0, insert_deduplication_token = ''v3copy:', dst, ':{PARTITION}'', deduplicate_blocks_in_dependent_materialized_views = 1'
+) AS copy_sql
+FROM (
+  SELECT name,
+    multiIf(name = 'primaryEntityId', 'serviceId', name = 'primaryEntityType', 'serviceType', name) AS srcName,
+    if(srcName = name, concat('`', name, '`'), concat('`', srcName, '` AS `', name, '`')) AS selectExpr,
+    position
+  FROM system.columns
+  WHERE database = currentDatabase() AND table = dst
+    AND srcName IN (SELECT name FROM system.columns WHERE database = currentDatabase() AND table = src)
+  ORDER BY position
+);
+```
+
+Lo statement generato copia solo le colonne che entrambe le tabelle condividono (le colonne nuove prendono i loro valori di default), rinomina `serviceId`/`serviceType` al volo, ordina le righe in modo deterministico così che una riesecuzione produca blocchi identici e deduplicabili, e rimuove i limiti di tempo di esecuzione e numero di partizioni di cui uno statement di queste dimensioni ha bisogno.
+
+#### Passo 3 — eseguirlo, una partizione alla volta
+
+Prendete lo statement generato e sostituite `{PARTITION}` (compare due volte — nel `WHERE` e nel token) con ogni id di partizione del Passo 1. Eseguite gli statement uno alla volta, poi ripetete i Passi 1–3 per ogni coppia di tabelle.
+
+> Nota: se una tabella di origine è stata saltata al Passo 0 perché non esisteva sulla vostra installazione, il Passo 1 fallisce con `UNKNOWN_TABLE` per quella coppia — saltate semplicemente la coppia; non c'è storico di quel tipo da copiare.
+
+Se uno statement fallisce a metà, rieseguite **lo stesso** statement in tempi brevi — i blocchi già committati vengono deduplicati. Se la riesecuzione avviene molto più tardi, confrontate prima i conteggi delle righe (Passo 5).
+
+#### Passo 4 (opzionale) — storico del rollup delle metriche per host
+
+Le righe di metriche grezze copiate ricostruiscono automaticamente i rollup a livello di servizio, ma non il rollup **per host** (le righe vecchie non hanno la chiave di entità host). La vecchia tabella di rollup rinominata al Passo 0 è l'unica fonte per questo storico; riportatelo calcolando la nuova chiave dal nome host:
+
+```sql
+INSERT INTO MetricItemAggMV1mByHostV2 (projectId, name, hostEntityKey, bucketTime, valueSumState, valueCountState, valueMinState, valueMaxState, retentionDate)
+SELECT
+  projectId,
+  name,
+  substring(lower(hex(SHA256(concat(projectId, '|host|host.name=', lower(trimBoth(hostIdentifier)))))), 1, 16) AS hostEntityKey,
+  bucketTime,
+  valueSumState,
+  valueCountState,
+  valueMinState,
+  valueMaxState,
+  retentionDate
+FROM MetricItemAggMV1mByHost_backup
+ORDER BY projectId, name, hostIdentifier, bucketTime, _id
+SETTINGS max_execution_time = 0, insert_deduplication_token = 'v3copy:MetricItemAggMV1mByHostV2:all';
+```
+
+L'`ORDER BY` è importante: fa sì che una riesecuzione produca blocchi di insert identici che il token di deduplicazione può riconoscere. Senza, una riesecuzione potrebbe essere saltata in silenzio o contata due volte. (Caso limite: nomi host contenenti `\`, `|` o `=` — caratteri non validi secondo la RFC 1123 — calcolerebbero una chiave diversa da quella dell'applicazione; ignoratelo a meno che non sappiate di avere host del genere.)
+
+#### Passo 5 — verificare
+
+Confrontate i totali per coppia di tabelle (la tabella nuova contiene anche righe successive all'aggiornamento, quindi dovrebbe essere maggiore o uguale alla vecchia):
+
+```sql
+SELECT
+  (SELECT count() FROM LogItemV2_backup) AS old_rows,
+  (SELECT count() FROM LogItemV3) AS new_rows;
+```
+
+#### Passo 6 — eliminare i backup
+
+Le tabelle rinominate mantengono la loro TTL di retention, quindi si svuotano e si riducono da sole — ma una volta soddisfatti della copia, eliminatele per recuperare subito il disco:
+
+```sql
+DROP TABLE IF EXISTS LogItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS SpanItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ExceptionItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS ProfileSampleItemV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MonitorLogV2_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS AuditLogV1_backup SETTINGS max_table_size_to_drop = 0;
+DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_drop = 0;
+```
+
+(`max_table_size_to_drop = 0` rimuove la protezione di eliminazione da 50 GB del server per quel singolo statement.)
+
+> Suggerimento: come per ogni aggiornamento maggiore, testate prima in un ambiente di staging e confermate che la telemetria fluisca nelle nuove tabelle prima di fare affidamento sulla copia in produzione.
+
+## Aggiornamento da OneUptime 9 → 10
+
+Nessuna modifica che richieda un intervento manuale. Segui semplicemente la procedura di aggiornamento standard.
+
+## Aggiornamento da OneUptime 8 → 9
+
+Il chart Helm non provvede più a una risorsa Kubernetes Ingress. OneUptime include un container ingress gateway che gestisce già la terminazione TLS, i domini delle pagine di stato e il routing del traffico per la piattaforma, quindi un ingress controller del cluster non è più necessario.
+
+- Rimuovi qualsiasi override di `oneuptimeIngress` dai tuoi file `values.yaml` personalizzati prima dell'aggiornamento. Quelle chiavi vengono ora ignorate e causeranno errori di validazione se lasciate.
+- Assicurati che `nginx.service.type` rispecchi come vuoi esporre l'ingress gateway incluso (ad esempio `LoadBalancer`, `NodePort`, o `ClusterIP` con un load balancer esterno).
+- Verifica che tutti i record DNS per le pagine di stato o gli host principali puntino ancora al Service o al load balancer che si trova davanti all'ingress gateway di OneUptime.
+- Dopo l'aggiornamento, conferma che i certificati TLS continuino a rinnovarsi tramite il gateway integrato e che i domini delle pagine di stato si risolvano correttamente.
+
+## Aggiornamento da OneUptime 7 → 8
+
+Se stai eseguendo su Kubernetes, ci sono importanti cambiamenti che causano interruzioni:
+
+- Non usiamo più i chart Bitnami per Postgres, Redis e ClickHouse a causa delle [Modifiche alla Licenza Bitnami](https://github.com/bitnami/charts/issues/35164)
+- Queste modifiche non sono retrocompatibili. Devi seguire la nuova struttura nel `values.yaml` del chart Helm.
+- Esegui il backup dei tuoi dati (Postgres, ClickHouse e tutti i volumi persistenti) prima dell'aggiornamento.
+
+> Suggerimento: Testa prima l'aggiornamento in un ambiente di staging. Conferma che i tuoi carichi di lavoro siano integri e i dati intatti prima di aggiornare la produzione.

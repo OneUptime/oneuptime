@@ -1,0 +1,401 @@
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DatabaseService from "./DatabaseService";
+import OneUptimeDate from "../../Types/Date";
+import Model from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
+import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
+import { Blue500, Indigo500 } from "../../Types/BrandColors";
+import ObjectID from "../../Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import IncidentEpisodeService from "./IncidentEpisodeService";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberUpdateNotification from "../../Types/StatusPage/SubscriberUpdateNotification";
+import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import Query from "../Types/Database/Query";
+import File from "../../Models/DatabaseModels/File";
+import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
+import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
+import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+
+export class Service extends DatabaseService<Model> {
+  public constructor() {
+    super(Model);
+  }
+
+  @CaptureSpan()
+  public async addNote(data: {
+    userId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    projectId: ObjectID;
+    note: string;
+    attachmentFileIds?: Array<ObjectID>;
+    postedFromSlackMessageId?: string;
+  }): Promise<Model> {
+    const publicNote: Model = new Model();
+    publicNote.createdByUserId = data.userId;
+    publicNote.incidentEpisodeId = data.incidentEpisodeId;
+    publicNote.projectId = data.projectId;
+    publicNote.note = data.note;
+    publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    if (data.postedFromSlackMessageId) {
+      publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
+    }
+
+    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
+      publicNote.attachments = data.attachmentFileIds.map(
+        (fileId: ObjectID) => {
+          const file: File = new File();
+          file.id = fileId;
+          return file;
+        },
+      );
+    }
+
+    return this.create({
+      data: publicNote,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public async hasNoteFromSlackMessage(data: {
+    incidentEpisodeId: ObjectID;
+    postedFromSlackMessageId: string;
+  }): Promise<boolean> {
+    const existingNote: Model | null = await this.findOneBy({
+      query: {
+        incidentEpisodeId: data.incidentEpisodeId,
+        postedFromSlackMessageId: data.postedFromSlackMessageId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return existingNote !== null;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.data.postedAt) {
+      createBy.data.postedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    /*
+     * A note that does not say whether to notify subscribers (Slack and
+     * Teams notes, workflows, API calls that leave the field out) follows
+     * its episode, so one created without telling subscribers stays quiet.
+     * An explicit true or false is kept as sent.
+     */
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+        undefined ||
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+    ) {
+      const notifyByDefault: boolean | null =
+        await this.getIncidentEpisodeNotifyDefault(createBy.data);
+
+      if (notifyByDefault !== null) {
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          notifyByDefault;
+      }
+    }
+
+    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === false
+    ) {
+      createBy.data.subscriberNotificationStatusOnNoteCreated =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage =
+        "Notifications skipped as subscribers are not to be notified for this episode note.";
+    } else if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === true
+    ) {
+      createBy.data.subscriberNotificationStatusOnNoteCreated =
+        StatusPageSubscriberNotificationStatus.Pending;
+    }
+
+    return {
+      createBy: createBy,
+      carryForward: null,
+    };
+  }
+
+  /*
+   * Whether a note on this episode notifies subscribers when nobody said,
+   * or null when the episode cannot be found (the column default applies).
+   * Read as root: posting a note does not require permission to read the
+   * episode, and the answer is only this one flag.
+   */
+  private async getIncidentEpisodeNotifyDefault(
+    note: Model,
+  ): Promise<boolean | null> {
+    const incidentEpisodeId: ObjectID | null | undefined =
+      note.incidentEpisodeId || note.incidentEpisode?.id;
+
+    if (!incidentEpisodeId) {
+      return null;
+    }
+
+    const query: Query<IncidentEpisode> = {
+      _id: incidentEpisodeId.toString(),
+    };
+
+    if (note.projectId) {
+      query.projectId = note.projectId;
+    }
+
+    const incidentEpisode: IncidentEpisode | null =
+      await IncidentEpisodeService.findOneBy({
+        query: query,
+        select: {
+          shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentEpisode) {
+      return null;
+    }
+
+    return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
+      incidentEpisode,
+    );
+  }
+
+  /*
+   * An edit tells subscribers nothing unless the editor asked for it on this
+   * edit (see SubscriberUpdateNotification). When they did, queue the update
+   * notification; the IncidentEpisodePublicNote worker job sends it.
+   *
+   * Sending the note's 'posted' notification again - its status written back
+   * to Pending, as the dashboard's Retry does - needs the permission to post
+   * a note that notifies subscribers, and a note whose notification can go
+   * out again (see SubscriberNotificationResendAccess). So does telling
+   * subscribers about an edit, which is also refused while that update
+   * notification is being sent.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
+      modelType: Model,
+      service: this,
+      updateBy: updateBy,
+    });
+
+    if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
+      updateBy.data.subscriberNotificationStatusOnNoteUpdated =
+        StatusPageSubscriberNotificationStatus.Pending;
+      updateBy.data.subscriberNotificationStatusMessageOnNoteUpdated =
+        SubscriberUpdateNotification.queuedMessage;
+    }
+
+    /*
+     * Telling subscribers about the edit - asked for above, or written as
+     * Pending directly (the dashboard's Retry of a failed update) - needs
+     * the permission to post a note that notifies subscribers too, and is
+     * refused while the update notification is being sent.
+     */
+    await SubscriberNotificationResendAccess.assertPublicNoteUpdateNotificationAllowed(
+      {
+        modelType: Model,
+        service: this,
+        updateBy: updateBy,
+      },
+    );
+
+    return {
+      updateBy: updateBy,
+      carryForward: null,
+    };
+  }
+
+  @CaptureSpan()
+  public override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const userId: ObjectID | null | undefined =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    /*
+     * A public note is always rendered on the status page, so any inline
+     * image the markdown editor uploaded as private must flip to public
+     * for anonymous status page viewers to be able to render it.
+     */
+    await syncIsPublicForMarkdownImages(
+      createdItem.note,
+      true,
+      `incident episode public note ${createdItem.id?.toString()}`,
+    );
+
+    const incidentEpisodeId: ObjectID = createdItem.incidentEpisodeId!;
+    const projectId: ObjectID = createdItem.projectId!;
+    const episodeNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await IncidentEpisodeService.getEpisodeNumber({
+      episodeId: incidentEpisodeId,
+    });
+
+    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+      createdItem.id!,
+      "/incident-episode-public-note/attachment",
+    );
+
+    await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+      incidentEpisodeId: createdItem.incidentEpisodeId!,
+      projectId: createdItem.projectId!,
+      incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.PublicNote,
+      displayColor: Indigo500,
+      userId: userId || undefined,
+      feedInfoInMarkdown: `📄 posted **public note** for this [Episode ${episodeNumberResult.numberWithPrefix || "#" + episodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) on status page:
+
+${(createdItem.note || "") + attachmentsMarkdown}
+          `,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: userId || undefined,
+      },
+    });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  public override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.note) {
+      const updatedItems: Array<Model> = await this.findBy({
+        query: onUpdate.updateBy.query,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          incidentEpisodeId: true,
+          projectId: true,
+          incidentEpisode: {
+            _id: true,
+            episodeNumber: true,
+            episodeNumberWithPrefix: true,
+            projectId: true,
+          },
+          note: true,
+          createdByUserId: true,
+          createdByUser: {
+            _id: true,
+          },
+        },
+      });
+
+      const userId: ObjectID | null | undefined =
+        onUpdate.updateBy.props.userId;
+
+      for (const updatedItem of updatedItems) {
+        const episode: IncidentEpisode = updatedItem.incidentEpisode!;
+
+        await syncIsPublicForMarkdownImages(
+          updatedItem.note,
+          true,
+          `incident episode public note ${updatedItem.id?.toString()}`,
+        );
+
+        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+          updatedItem.id!,
+          "/incident-episode-public-note/attachment",
+        );
+
+        await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+          incidentEpisodeId: updatedItem.incidentEpisodeId!,
+          projectId: updatedItem.projectId!,
+          incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.PublicNote,
+          displayColor: Blue500,
+          userId: userId || undefined,
+          feedInfoInMarkdown: `📄 updated **Public Note** for this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()})
+
+${(updatedItem.note || "") + attachmentsMarkdown}
+                  `,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
+          },
+        });
+      }
+    }
+    return onUpdate;
+  }
+
+  private async getAttachmentsMarkdown(
+    modelId: ObjectID,
+    attachmentApiPath: string,
+  ): Promise<string> {
+    if (!modelId) {
+      return "";
+    }
+
+    const noteWithAttachments: Model | null = await this.findOneById({
+      id: modelId,
+      select: {
+        attachments: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!noteWithAttachments || !noteWithAttachments.attachments) {
+      return "";
+    }
+
+    const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
+      .map((file: File) => {
+        if (file.id) {
+          return file.id;
+        }
+
+        if (file._id) {
+          return new ObjectID(file._id);
+        }
+
+        return null;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (!attachmentIds.length) {
+      return "";
+    }
+
+    return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      modelId,
+      attachmentIds,
+      attachmentApiPath,
+    });
+  }
+}
+
+export default new Service();

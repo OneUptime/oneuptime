@@ -1,0 +1,1017 @@
+/*
+ * The database definition's loadContext asks the analytics API (see
+ * DatabaseEngineMetricsProbe), whose real module needs a browser `window`.
+ * Nothing here calls it — its behaviour is pinned in Common/Tests/App/
+ * Dashboard/DatabaseRecommendationsEngineMetrics.test.ts — so a stand-in
+ * lets this node-environment suite import the registry.
+ */
+jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: (): Promise<never> => {
+        return Promise.reject(new Error("not available in this suite"));
+      },
+    },
+  };
+});
+
+import RecommendationResourceRegistry, {
+  RecommendationResourceDefinition,
+} from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Service from "Common/Models/DatabaseModels/Service";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import TechStack from "Common/Types/Service/TechStack";
+import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import {
+  MonitorRecommendation,
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+
+/*
+ * This registry is the only place that knows which Postgres model a resource
+ * type is, and which of that model's columns carries the identifier the
+ * telemetry is tagged with. Both `RecommendationsPage` and
+ * `RecommendationsSideMenuItem` ask it and then quietly give up when the answer
+ * is `undefined` — the page renders nothing, the badge never appears, and no
+ * error is logged anywhere. Every failure mode of this file is silent, which is
+ * why the assertions below are deliberately paranoid about things that "cannot"
+ * be wrong.
+ *
+ * These enumerate the ENUM rather than a hand-kept list, so adding a member to
+ * `MonitorRecommendationResourceType` fails here until it is wired into the
+ * table.
+ */
+
+const ALL_RESOURCE_TYPES: Array<MonitorRecommendationResourceType> =
+  Object.values(MonitorRecommendationResourceType);
+
+/*
+ * A value that is not in the enum, standing in for the two ways an unknown
+ * resource type actually reaches this code: a page still mounted from a
+ * previous deploy, and a caller that widened the parameter to `string`.
+ */
+const UNKNOWN_RESOURCE_TYPE: MonitorRecommendationResourceType =
+  "SomeResourceTypeThatDoesNotExist" as MonitorRecommendationResourceType;
+
+/*
+ * The documented per-type identifier mapping, restated here so a change to the
+ * registry has to be made twice, on purpose.
+ *
+ * This is not redundancy for its own sake: `identifierFieldName` is the value
+ * every monitor already created for that resource type was scoped to. Changing
+ * a row silently orphans all of them from the already-created diff — every
+ * recommendation the user already acted on reappears as available, and
+ * accepting it a second time creates duplicate monitors. Nothing throws.
+ *
+ * Typed as a total Record over the enum, so a new enum member is a compile
+ * error here as well as a runtime failure below.
+ */
+const EXPECTED_IDENTIFIER_FIELD: Record<
+  MonitorRecommendationResourceType,
+  string
+> = {
+  [MonitorRecommendationResourceType.Kubernetes]: "clusterIdentifier",
+  [MonitorRecommendationResourceType.Host]: "hostIdentifier",
+  [MonitorRecommendationResourceType.Docker]: "hostIdentifier",
+  [MonitorRecommendationResourceType.Podman]: "hostIdentifier",
+  [MonitorRecommendationResourceType.DockerSwarm]: "name",
+  [MonitorRecommendationResourceType.Proxmox]: "name",
+  [MonitorRecommendationResourceType.VMware]: "name",
+  [MonitorRecommendationResourceType.Ceph]: "name",
+  [MonitorRecommendationResourceType.IoTDevice]: "name",
+  [MonitorRecommendationResourceType.RumApplication]: "_id",
+  [MonitorRecommendationResourceType.Service]: "_id",
+  [MonitorRecommendationResourceType.DatabaseServer]: "_id",
+};
+
+function getDefinitionOrFail(
+  resourceType: MonitorRecommendationResourceType,
+): RecommendationResourceDefinition {
+  const definition: RecommendationResourceDefinition | undefined =
+    RecommendationResourceRegistry.getDefinition(resourceType);
+
+  if (!definition) {
+    throw new Error(`No registry definition for resource type ${resourceType}`);
+  }
+
+  return definition;
+}
+
+/* Build a model instance for a resource type with both fields populated. */
+/*
+ * A Service row carrying only the technology columns, for the context tests.
+ * Written straight onto the instance the way the API response is, so this is
+ * the exact shape `readContext` indexes into.
+ */
+function buildServiceModel(values: {
+  telemetrySdkLanguage?: string | undefined;
+  runtimeName?: string | undefined;
+  techStack?: Array<TechStack> | undefined;
+}): BaseModel {
+  const model: Service = new Service();
+
+  /*
+   * Written through an index signature rather than through the typed
+   * properties, for the same reason `buildModel` above does it: the model
+   * declares these columns as optional, and under `exactOptionalPropertyTypes`
+   * assigning an explicit `undefined` to an optional property is an error even
+   * though that is exactly the state the API leaves an unselected column in.
+   * Indexing reproduces the real shape `readContext` has to cope with —
+   * including a column that is present and undefined.
+   */
+  const record: Record<string, unknown> = model as unknown as Record<
+    string,
+    unknown
+  >;
+
+  record["telemetrySdkLanguage"] = values.telemetrySdkLanguage;
+  record["runtimeName"] = values.runtimeName;
+  record["techStack"] = values.techStack;
+
+  return model;
+}
+
+function buildModel(
+  resourceType: MonitorRecommendationResourceType,
+  values: { identifier?: unknown; displayName?: unknown },
+): BaseModel {
+  const definition: RecommendationResourceDefinition =
+    getDefinitionOrFail(resourceType);
+
+  const model: BaseModel = new definition.modelType();
+  const record: Record<string, unknown> = model as unknown as Record<
+    string,
+    unknown
+  >;
+
+  if ("identifier" in values) {
+    record[definition.identifierFieldName] = values.identifier;
+  }
+
+  if ("displayName" in values) {
+    record[definition.displayNameFieldName] = values.displayName;
+  }
+
+  return model;
+}
+
+describe("RecommendationResourceRegistry", () => {
+  describe("coverage of the resource type enum", () => {
+    test("every resource type in the enum has a definition", () => {
+      /*
+       * The load-bearing assertion of this file. A resource type present in the
+       * enum but absent from the table produces a page that renders
+       * "no recommendations" and a side menu with no badge — indistinguishable
+       * from a resource that genuinely has nothing to recommend.
+       */
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        expect(
+          RecommendationResourceRegistry.getDefinition(resourceType),
+        ).toBeDefined();
+      }
+    });
+
+    test("there is exactly one definition per resource type and no extras", () => {
+      const definitions: Array<RecommendationResourceDefinition> =
+        RecommendationResourceRegistry.getDefinitions();
+
+      const resourceTypes: Array<MonitorRecommendationResourceType> =
+        definitions.map((definition: RecommendationResourceDefinition) => {
+          return definition.resourceType;
+        });
+
+      /*
+       * `getDefinition` uses `find`, so a duplicate row is not an error — the
+       * second one is simply never reached. That makes a copy-paste mistake
+       * (duplicating Docker's row and forgetting to change `resourceType` to
+       * Podman) look like a working registry while Podman silently uses
+       * Docker's model.
+       */
+      expect(new Set<string>(resourceTypes).size).toBe(definitions.length);
+      expect(definitions.length).toBe(ALL_RESOURCE_TYPES.length);
+    });
+
+    test("no definition names a resource type that is not in the enum", () => {
+      for (const definition of RecommendationResourceRegistry.getDefinitions()) {
+        expect(ALL_RESOURCE_TYPES).toContain(definition.resourceType);
+      }
+    });
+
+    test("getDefinition returns undefined for a resource type that is not registered", () => {
+      expect(
+        RecommendationResourceRegistry.getDefinition(UNKNOWN_RESOURCE_TYPE),
+      ).toBeUndefined();
+    });
+  });
+
+  describe("getDefinitions", () => {
+    test("does not hand out the internal array", () => {
+      /*
+       * Callers iterate this to build menus and counts. If the internal array
+       * leaked, one caller doing `.sort()`, `.push()` or `.splice()` would
+       * reorder or destroy the registry for every later caller in the same
+       * browser session — a bug that only shows up after a particular
+       * navigation order.
+       */
+      const first: Array<RecommendationResourceDefinition> =
+        RecommendationResourceRegistry.getDefinitions();
+      const originalLength: number = first.length;
+      const originalFirstType: MonitorRecommendationResourceType =
+        first[0]!.resourceType;
+
+      first.push({
+        resourceType: UNKNOWN_RESOURCE_TYPE,
+        modelType: first[0]!.modelType,
+        identifierFieldName: "nope",
+        displayNameFieldName: "nope",
+      });
+
+      const afterPush: Array<RecommendationResourceDefinition> =
+        RecommendationResourceRegistry.getDefinitions();
+
+      expect(afterPush.length).toBe(originalLength);
+      expect(
+        RecommendationResourceRegistry.getDefinition(UNKNOWN_RESOURCE_TYPE),
+      ).toBeUndefined();
+
+      afterPush.reverse();
+
+      expect(
+        RecommendationResourceRegistry.getDefinitions()[0]!.resourceType,
+      ).toBe(originalFirstType);
+    });
+
+    test("returns a distinct array object on each call", () => {
+      expect(RecommendationResourceRegistry.getDefinitions()).not.toBe(
+        RecommendationResourceRegistry.getDefinitions(),
+      );
+    });
+  });
+
+  describe("declared fields exist on the declared model", () => {
+    test("every modelType constructs", () => {
+      for (const definition of RecommendationResourceRegistry.getDefinitions()) {
+        expect(new definition.modelType()).toBeInstanceOf(BaseModel);
+      }
+    });
+
+    test("every declared field is a real column on the model", () => {
+      /*
+       * Checked against the model itself rather than a hardcoded list of column
+       * names, so this keeps working when a model gains columns and still fails
+       * when one is renamed.
+       *
+       * A renamed or mistyped column here is the worst failure mode in the
+       * file: `readResourceFields` reads `undefined` off the instance and
+       * returns "", `getSelect` asks the API for a column that does not exist,
+       * and the monitors that do get created are scoped to an empty identifier
+       * — they match every resource, or none, depending on the template.
+       */
+      for (const definition of RecommendationResourceRegistry.getDefinitions()) {
+        const model: BaseModel = new definition.modelType();
+
+        /*
+         * Context columns are held to exactly the same bar as the two
+         * mandatory ones. They fail more quietly than either: a mistyped
+         * context column does not blank the page, it silently narrows a Java
+         * service's recommendations down to the language-agnostic subset,
+         * which looks like a correct page with fewer cards on it.
+         */
+        const declaredFields: Array<string> = [
+          definition.identifierFieldName,
+          definition.displayNameFieldName,
+          ...(definition.contextFieldNames || []),
+        ];
+
+        for (const fieldName of declaredFields) {
+          expect(model.hasColumn(fieldName)).toBe(true);
+
+          /*
+           * These models declare their columns as optional public properties
+           * initialised to `undefined`, so the property is a real own property
+           * of a fresh instance. `readResourceFields` indexes the instance
+           * directly, so this is the exact lookup it performs.
+           */
+          expect(fieldName in model).toBe(true);
+        }
+      }
+    });
+
+    test("every declared field is listed in the model's own table columns", () => {
+      for (const definition of RecommendationResourceRegistry.getDefinitions()) {
+        const columns: Array<string> = new definition.modelType()
+          .getTableColumns()
+          .columns.map((column: string) => {
+            return column;
+          });
+
+        expect(columns).toContain(definition.identifierFieldName);
+        expect(columns).toContain(definition.displayNameFieldName);
+
+        for (const contextFieldName of definition.contextFieldNames || []) {
+          expect(columns).toContain(contextFieldName);
+        }
+      }
+    });
+  });
+
+  describe("identifier and display name field mapping", () => {
+    test.each(ALL_RESOURCE_TYPES)(
+      "%s scopes its monitors by the documented column",
+      (resourceType: MonitorRecommendationResourceType) => {
+        expect(getDefinitionOrFail(resourceType).identifierFieldName).toBe(
+          EXPECTED_IDENTIFIER_FIELD[resourceType],
+        );
+      },
+    );
+
+    test("every resource type names its monitors from the name column", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        expect(getDefinitionOrFail(resourceType).displayNameFieldName).toBe(
+          "name",
+        );
+      }
+    });
+
+    test("no two resource types share a model", () => {
+      /*
+       * Two rows pointing at the same model means one of them fetches the wrong
+       * record entirely: the id in the URL belongs to a different table, so the
+       * API returns nothing and the page reads a null model — again, silently.
+       */
+      const modelTypes: Array<unknown> =
+        RecommendationResourceRegistry.getDefinitions().map(
+          (definition: RecommendationResourceDefinition) => {
+            return definition.modelType;
+          },
+        );
+
+      expect(new Set<unknown>(modelTypes).size).toBe(modelTypes.length);
+    });
+  });
+
+  describe("getSelect", () => {
+    test("selects both declared fields for every resource type", () => {
+      /*
+       * A field missing from the select comes back `undefined` from the API,
+       * which `readResourceFields` turns into "" — the page then behaves as if
+       * the resource has no telemetry yet rather than reporting an error.
+       */
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        const select: Record<string, boolean> =
+          RecommendationResourceRegistry.getSelect(resourceType);
+
+        expect(select[definition.identifierFieldName]).toBe(true);
+        expect(select[definition.displayNameFieldName]).toBe(true);
+      }
+    });
+
+    test("selects nothing beyond the declared fields", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        const allowed: Set<string> = new Set<string>([
+          definition.identifierFieldName,
+          definition.displayNameFieldName,
+          ...(definition.contextFieldNames || []),
+        ]);
+
+        for (const key of Object.keys(
+          RecommendationResourceRegistry.getSelect(resourceType),
+        )) {
+          expect(allowed.has(key)).toBe(true);
+        }
+      }
+    });
+
+    test("returns an empty select for an unregistered resource type", () => {
+      /*
+       * Must be `{}` and not `undefined`: callers spread this straight into a
+       * `ModelAPI.getItem` request, and `undefined` there would fetch every
+       * column of the table instead of failing loudly.
+       */
+      expect(
+        RecommendationResourceRegistry.getSelect(UNKNOWN_RESOURCE_TYPE),
+      ).toEqual({});
+    });
+
+    test("returns a fresh select object each call", () => {
+      const select: Record<string, boolean> =
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.Kubernetes,
+        );
+
+      select["injected"] = true;
+
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.Kubernetes,
+        )["injected"],
+      ).toBeUndefined();
+    });
+  });
+
+  describe("readResourceFields", () => {
+    test("reads both fields off a model for every resource type", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        const model: BaseModel = buildModel(resourceType, {
+          identifier: "resource-identifier-value",
+          displayName: "Resource Display Name",
+        });
+
+        const fields: {
+          resourceIdentifier: string;
+          resourceDisplayName: string;
+        } = RecommendationResourceRegistry.readResourceFields({
+          resourceType: resourceType,
+          model: model,
+        });
+
+        /*
+         * The four `name`-identified types write both values into the same
+         * column, so the second write wins for them. Asserting per definition
+         * rather than per literal keeps this test honest for both shapes.
+         */
+        const isSameColumn: boolean =
+          definition.identifierFieldName === definition.displayNameFieldName;
+
+        expect(fields.resourceIdentifier).toBe(
+          isSameColumn ? "Resource Display Name" : "resource-identifier-value",
+        );
+        expect(fields.resourceDisplayName).toBe("Resource Display Name");
+      }
+    });
+
+    test("falls back to the identifier when the display name is blank", () => {
+      /*
+       * Without the fallback, a cluster saved with an empty name produces
+       * monitors literally called " - Node Not Ready" — a list of monitors that
+       * all sort together and none of which say what they watch.
+       */
+      const fields: {
+        resourceIdentifier: string;
+        resourceDisplayName: string;
+      } = RecommendationResourceRegistry.readResourceFields({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        model: buildModel(MonitorRecommendationResourceType.Kubernetes, {
+          identifier: "prod-cluster-01",
+          displayName: "",
+        }),
+      });
+
+      expect(fields.resourceIdentifier).toBe("prod-cluster-01");
+      expect(fields.resourceDisplayName).toBe("prod-cluster-01");
+    });
+
+    test("falls back to the identifier when the display name column was not selected", () => {
+      const fields: {
+        resourceIdentifier: string;
+        resourceDisplayName: string;
+      } = RecommendationResourceRegistry.readResourceFields({
+        resourceType: MonitorRecommendationResourceType.Host,
+        model: buildModel(MonitorRecommendationResourceType.Host, {
+          identifier: "host-abc",
+        }),
+      });
+
+      expect(fields.resourceIdentifier).toBe("host-abc");
+      expect(fields.resourceDisplayName).toBe("host-abc");
+    });
+
+    test("keeps the display name when it is set and differs from the identifier", () => {
+      const fields: {
+        resourceIdentifier: string;
+        resourceDisplayName: string;
+      } = RecommendationResourceRegistry.readResourceFields({
+        resourceType: MonitorRecommendationResourceType.Docker,
+        model: buildModel(MonitorRecommendationResourceType.Docker, {
+          identifier: "docker-host-7",
+          displayName: "Build Runner",
+        }),
+      });
+
+      expect(fields.resourceIdentifier).toBe("docker-host-7");
+      expect(fields.resourceDisplayName).toBe("Build Runner");
+    });
+
+    test("returns empty strings for a null model", () => {
+      /*
+       * The real path: the API call is still in flight, or returned nothing.
+       * Both callers render before the fetch resolves, so this runs on the
+       * first paint of every recommendations page.
+       */
+      expect(
+        RecommendationResourceRegistry.readResourceFields({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          model: null,
+        }),
+      ).toEqual({ resourceIdentifier: "", resourceDisplayName: "" });
+    });
+
+    test("returns empty strings for an unregistered resource type", () => {
+      expect(
+        RecommendationResourceRegistry.readResourceFields({
+          resourceType: UNKNOWN_RESOURCE_TYPE,
+          model: buildModel(MonitorRecommendationResourceType.Kubernetes, {
+            identifier: "prod-cluster-01",
+            displayName: "Prod Cluster",
+          }),
+        }),
+      ).toEqual({ resourceIdentifier: "", resourceDisplayName: "" });
+    });
+
+    test("returns empty strings, not undefined, when neither field is set", () => {
+      /*
+       * A resource created before the agent ever reported in has a null
+       * identifier column. These values are concatenated into monitor names and
+       * interpolated into monitor steps, so `undefined` leaking out would
+       * surface as the literal text "undefined" in incident titles.
+       */
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const fields: {
+          resourceIdentifier: string;
+          resourceDisplayName: string;
+        } = RecommendationResourceRegistry.readResourceFields({
+          resourceType: resourceType,
+          model: buildModel(resourceType, {}),
+        });
+
+        expect(fields).toEqual({
+          resourceIdentifier: "",
+          resourceDisplayName: "",
+        });
+      }
+    });
+
+    test("returns empty strings when a field holds a non-string value", () => {
+      /*
+       * JSON off the wire is not type checked. A column that comes back as a
+       * number or an object must not be handed on as-is, or it reaches
+       * `MonitorStep` where it is compared against telemetry attributes and
+       * never matches.
+       */
+      const fields: {
+        resourceIdentifier: string;
+        resourceDisplayName: string;
+      } = RecommendationResourceRegistry.readResourceFields({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        model: buildModel(MonitorRecommendationResourceType.Kubernetes, {
+          identifier: 42,
+          displayName: { toString: "not a string" },
+        }),
+      });
+
+      expect(fields.resourceIdentifier).toBe("");
+      expect(fields.resourceDisplayName).toBe("");
+    });
+  });
+
+  describe("agreement with the Common catalog", () => {
+    test("every registered resource type also has a catalog definition", () => {
+      /*
+       * The two registries are edited in different packages by different
+       * changes. If they drift, the symptom depends on which side is missing:
+       * a registry row with no catalog entry renders a page with zero cards but
+       * a working header, and the reverse renders nothing at all. Neither
+       * throws.
+       */
+      for (const definition of RecommendationResourceRegistry.getDefinitions()) {
+        expect(
+          MonitorRecommendationCatalog.getResourceTypeDefinition(
+            definition.resourceType,
+          ),
+        ).toBeDefined();
+        /*
+         * Every recommendation the type can ever produce: a database's
+         * context-free set is empty by design (no engine, nothing applies).
+         */
+        expect(
+          MonitorRecommendationCatalog.getAllPossibleRecommendations(
+            definition.resourceType,
+          ).length,
+        ).toBeGreaterThan(0);
+      }
+    });
+
+    test("every catalog resource type also has a registry definition", () => {
+      for (const catalogDefinition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
+        expect(
+          RecommendationResourceRegistry.getDefinition(
+            catalogDefinition.resourceType,
+          ),
+        ).toBeDefined();
+      }
+    });
+
+    test("the two registries cover exactly the same set of resource types", () => {
+      const registryTypes: Array<MonitorRecommendationResourceType> =
+        RecommendationResourceRegistry.getDefinitions().map(
+          (definition: RecommendationResourceDefinition) => {
+            return definition.resourceType;
+          },
+        );
+
+      const catalogTypes: Array<MonitorRecommendationResourceType> =
+        MonitorRecommendationCatalog.getResourceTypeDefinitions().map(
+          (definition: { resourceType: MonitorRecommendationResourceType }) => {
+            return definition.resourceType;
+          },
+        );
+
+      expect([...registryTypes].sort()).toEqual([...catalogTypes].sort());
+    });
+  });
+
+  /*
+   * The context reader — the half of this registry that decides WHICH
+   * recommendations a resource is offered, rather than which resource they are
+   * scoped to.
+   *
+   * Every failure here is quiet in a new way. The identifier reader failing
+   * produces a visible "No telemetry yet" empty state; the context reader
+   * failing produces a page that looks completely normal with six fewer cards
+   * on it, and nobody can tell by looking whether that is correct.
+   */
+  describe("readContext", () => {
+    test("reads a service's runtime from the SDK language attribute", () => {
+      const model: BaseModel = buildServiceModel({
+        telemetrySdkLanguage: "java",
+      });
+
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: model,
+        }),
+      ).toEqual({ serviceLanguage: "java" });
+    });
+
+    test("falls back to the runtime name, then to the tech stack", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({ runtimeName: "OpenJDK Runtime" }),
+        }),
+      ).toEqual({ serviceLanguage: "java" });
+
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({ techStack: [TechStack.Go] }),
+        }),
+      ).toEqual({ serviceLanguage: "go" });
+    });
+
+    test("reports an unknown runtime as null, never as a guess", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({}),
+        }),
+      ).toEqual({ serviceLanguage: null });
+    });
+
+    /*
+     * `techStack` is a JSON column, so what comes back is whatever was stored.
+     * A string would be iterated character by character by the detector, and
+     * a single stray character matching a tech stack value would assign a
+     * language from nothing at all.
+     */
+    test("ignores a techStack that is not an array", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({
+            techStack: "Java" as unknown as Array<TechStack>,
+          }),
+        }),
+      ).toEqual({ serviceLanguage: null });
+    });
+
+    test("returns an empty context for a null model", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: null,
+        }),
+      ).toEqual({});
+    });
+
+    test("returns an empty context for an unregistered resource type", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: UNKNOWN_RESOURCE_TYPE,
+          model: new Service(),
+        }),
+      ).toEqual({});
+    });
+
+    test("returns an empty context for every resource type without a reader", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        if (definition.readContext) {
+          continue;
+        }
+
+        expect(
+          RecommendationResourceRegistry.readContext({
+            resourceType: resourceType,
+            model: new definition.modelType(),
+          }),
+        ).toEqual({});
+      }
+    });
+
+    /*
+     * The load-bearing one. `readContext` indexes the fetched model directly,
+     * so a column it reads but `getSelect` does not request comes back
+     * undefined — and undefined here does not throw, it silently narrows a
+     * Java service down to the language-agnostic recommendations.
+     */
+    test("every column the reader reads is a column the fetch requests", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        const select: Record<string, boolean> =
+          RecommendationResourceRegistry.getSelect(resourceType);
+
+        for (const contextFieldName of definition.contextFieldNames || []) {
+          expect(select[contextFieldName]).toBe(true);
+        }
+      }
+    });
+
+    test("explains the runtime it detected, and what it means when it did not", () => {
+      const known: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          context: { serviceLanguage: "dotnet" },
+        });
+
+      expect(known).toContain(".NET");
+
+      const unknown: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          context: { serviceLanguage: null },
+        });
+
+      /*
+       * The unknown case is the one worth pinning. Without a note the page is
+       * eight cards with no explanation, and the user cannot tell whether that
+       * is everything OneUptime has or a gap they can close. The note has to
+       * name what to do about it.
+       */
+      expect(unknown).toBeTruthy();
+      expect(unknown).toContain("telemetry.sdk.language");
+      expect(unknown).not.toBe(known);
+    });
+
+    test("says nothing for resource types whose list is a constant", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        if (getDefinitionOrFail(resourceType).describeContext) {
+          continue;
+        }
+
+        expect(
+          RecommendationResourceRegistry.describeContext({
+            resourceType: resourceType,
+            context: {},
+          }),
+        ).toBeUndefined();
+      }
+
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: UNKNOWN_RESOURCE_TYPE,
+          context: {},
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a reader and its column list are declared together, or not at all", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        expect(Boolean(definition.readContext)).toBe(
+          Boolean(definition.contextFieldNames?.length),
+        );
+
+        /*
+         * And a describer only makes sense where there is a context to
+         * describe — a note on a resource type whose list never varies would
+         * be a permanent, meaningless banner.
+         */
+        expect(Boolean(definition.describeContext)).toBe(
+          Boolean(definition.readContext),
+        );
+
+        // Telemetry only ever completes a context the row started.
+        if (definition.loadContext) {
+          expect(definition.readContext).toBeDefined();
+        }
+      }
+    });
+  });
+
+  /*
+   * A database's recommendations depend on its engine AND on whether its
+   * engine metrics ever arrived. Both are read off the fetched row; a slip in
+   * either reads as a normal page with the wrong cards on it — PostgreSQL
+   * monitors on a Redis server, or a batch of monitors over metrics a
+   * span-discovered database will never send.
+   */
+  describe("database context", () => {
+    function buildDatabaseModel(values: {
+      dbSystem?: unknown;
+      collectorLastSeenAt?: unknown;
+    }): BaseModel {
+      const model: DatabaseServer = new DatabaseServer();
+      const record: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      record["dbSystem"] = values.dbSystem;
+      record["collectorLastSeenAt"] = values.collectorLastSeenAt;
+
+      return model;
+    }
+
+    function readDatabaseContext(values: {
+      dbSystem?: unknown;
+      collectorLastSeenAt?: unknown;
+    }): MonitorRecommendationContext {
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.DatabaseServer,
+        model: buildDatabaseModel(values),
+      });
+    }
+
+    test("selects the engine, the collector heartbeat and the project along with the id and name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.DatabaseServer,
+        ),
+      ).toEqual({
+        _id: true,
+        name: true,
+        dbSystem: true,
+        collectorLastSeenAt: true,
+        // The engine-metrics probe (loadContext) is scoped by it.
+        projectId: true,
+      });
+    });
+
+    /*
+     * The heartbeat is stamped by ANY batch attributed to the database, so
+     * the row alone cannot say whether the monitors' own metrics arrived:
+     * the database is the one resource type whose context is completed from
+     * telemetry. (Behaviour: Common/Tests/App/Dashboard/
+     * DatabaseRecommendationsEngineMetrics.test.ts.)
+     */
+    test("completes its context from telemetry, on top of what the row says", () => {
+      const definition: RecommendationResourceDefinition = getDefinitionOrFail(
+        MonitorRecommendationResourceType.DatabaseServer,
+      );
+      expect(definition.loadContext).toBeDefined();
+      expect(definition.readContext).toBeDefined();
+    });
+
+    test("reads the engine and whether engine metrics were ever seen", () => {
+      expect(
+        readDatabaseContext({
+          dbSystem: "postgresql",
+          collectorLastSeenAt: new Date(),
+        }),
+      ).toEqual({
+        databaseEngine: "postgresql",
+        databaseEngineMetricsReported: true,
+      });
+    });
+
+    test("accepts the heartbeat as the JSON string the API may hand back", () => {
+      expect(
+        readDatabaseContext({
+          dbSystem: "redis",
+          collectorLastSeenAt: "2026-09-01T10:00:00.000Z",
+        }).databaseEngineMetricsReported,
+      ).toBe(true);
+    });
+
+    test("reports a database that never had engine metrics as such", () => {
+      for (const collectorLastSeenAt of [undefined, null, "", "   ", 0, {}]) {
+        expect(
+          readDatabaseContext({
+            dbSystem: "postgresql",
+            collectorLastSeenAt: collectorLastSeenAt,
+          }).databaseEngineMetricsReported,
+        ).toBe(false);
+      }
+    });
+
+    test("reports a missing or non-string engine as null, never as a guess", () => {
+      for (const dbSystem of [undefined, null, "", "  ", 42, ["postgresql"]]) {
+        expect(readDatabaseContext({ dbSystem: dbSystem }).databaseEngine).toBe(
+          null,
+        );
+      }
+    });
+
+    test("the context narrows the catalog to the engine's recommendations", () => {
+      const forPostgres: Array<string> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+          readDatabaseContext({
+            dbSystem: "postgresql",
+            collectorLastSeenAt: new Date(),
+          }),
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.templateId;
+        });
+
+      expect(forPostgres.length).toBeGreaterThan(0);
+      for (const templateId of forPostgres) {
+        expect(templateId.startsWith("database-postgresql-")).toBe(true);
+      }
+
+      // Same engine, no engine metrics yet: nothing.
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+          readDatabaseContext({ dbSystem: "postgresql" }),
+        ),
+      ).toEqual([]);
+    });
+
+    test("explains each of the three states the page can be in", () => {
+      const connected: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: {
+            databaseEngine: "postgresql",
+            databaseEngineMetricsReported: true,
+          },
+        });
+
+      const notConnected: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: {
+            databaseEngine: "postgresql",
+            databaseEngineMetricsReported: false,
+          },
+        });
+
+      const noLibrary: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: {
+            databaseEngine: "cassandra",
+            databaseEngineMetricsReported: true,
+          },
+        });
+
+      const noEngine: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: { databaseEngine: null },
+        });
+
+      // Every state gets a note, and no two states share one.
+      for (const note of [connected, notConnected, noLibrary, noEngine]) {
+        expect(note).toBeTruthy();
+      }
+      expect(
+        new Set<string | undefined>([
+          connected,
+          notConnected,
+          noLibrary,
+          noEngine,
+        ]).size,
+      ).toBe(4);
+
+      // Each names the engine and what the user can do about it.
+      expect(connected).toContain("PostgreSQL");
+      expect(connected).toContain("oneuptime.database.server.id");
+      expect(notConnected).toContain("PostgreSQL");
+      expect(notConnected).toContain("Database Agent");
+      expect(noLibrary).toContain("Cassandra");
+      expect(noLibrary).toContain("oneuptime.database.server.id");
+    });
+  });
+});

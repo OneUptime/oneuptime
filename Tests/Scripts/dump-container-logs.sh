@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Dump the containers that serve /api/* into ./E2E, so a failing e2e run
+# Dump the containers that serve /api/* into ./packages/E2E, so a failing e2e run
 # carries the reason with it.
 #
 # The express error handler answers a 500 with a fixed {"error":"Server Error"}
@@ -16,7 +16,7 @@
 set +e
 
 COMPOSE_FILE="${1:-docker-compose.yml}"
-OUT_DIR="${2:-./E2E/container-logs}"
+OUT_DIR="${2:-./packages/E2E/container-logs}"
 TAIL="${3:-20000}"
 
 # app serves /api/*; ingress fronts it; probe/postgres/clickhouse/valkey are

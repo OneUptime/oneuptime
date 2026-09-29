@@ -1,0 +1,959 @@
+import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import {
+  DiscoveredHostNetbiosStatus,
+  DiscoveredHostReverseDnsStatus,
+} from "../../../Types/NetworkDevice/DiscoveredHostNamingStatus";
+import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
+import {
+  DiscoveredHostNaming,
+  getDiscoveredHostDisplayName,
+} from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import { describe, expect, test } from "@jest/globals";
+
+/*
+ * normalizeDiscoveredHosts is the one reading of a scan's `discoveredDevices`
+ * jsonb that both the dashboard's Review dialog and the server-side
+ * auto-import rule engine share. The column is written verbatim from the
+ * probe's payload and the only guard on it is "the value is an array", so the
+ * three payload shapes documented on the function - a null row, a non-string
+ * address, and the same address carrying two different isAlreadyRegistered
+ * values - are shapes nothing upstream stops. These tests pin that each is
+ * neutralised here, once, so no downstream reader can be handed a different
+ * reading of the same payload.
+ *
+ * A cast through `unknown` is used wherever a test feeds a shape the type
+ * forbids on purpose: the whole point of the function is that the runtime
+ * value does not honour the type, so the tests have to be able to say so.
+ */
+
+/*
+ * Full names, as every scan named its devices before issue #3678's short-name
+ * setting. Normalisation is independent of the naming choice; this only says
+ * which name the display assertions below expect.
+ */
+const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
+
+function host(
+  overrides: Partial<DiscoveredNetworkDevice>,
+): DiscoveredNetworkDevice {
+  return { ipAddress: "10.0.0.1", ...overrides };
+}
+
+describe("normalizeDiscoveredHosts", () => {
+  describe("rows that are not hosts at all", () => {
+    test("an empty scan normalises to an empty list", () => {
+      expect(normalizeDiscoveredHosts([])).toEqual([]);
+    });
+
+    test.each([
+      ["null", null],
+      ["undefined", undefined],
+      ["a number", 10],
+      ["a string", "10.0.0.1"],
+      ["a boolean", true],
+    ])(
+      "%s is dropped rather than dereferenced",
+      (_label: string, value: unknown) => {
+        expect(
+          normalizeDiscoveredHosts([
+            value,
+          ] as unknown as Array<DiscoveredNetworkDevice>),
+        ).toEqual([]);
+      },
+    );
+
+    test("the real hosts around a null row survive it", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: "10.0.0.1" }),
+        null as unknown as DiscoveredNetworkDevice,
+        host({ ipAddress: "10.0.0.2" }),
+      ]);
+
+      expect(
+        result.map((entry: DiscoveredNetworkDevice) => {
+          return entry.ipAddress;
+        }),
+      ).toEqual(["10.0.0.1", "10.0.0.2"]);
+    });
+  });
+
+  describe("the address is made a trimmed string", () => {
+    test("a numeric address becomes its string spelling, so Set.has can find it", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        { ipAddress: 10 } as unknown as DiscoveredNetworkDevice,
+      ]);
+
+      expect(result[0]!.ipAddress).toBe("10");
+    });
+
+    test.each([
+      ["a leading and trailing space", "  10.0.0.1  ", "10.0.0.1"],
+      ["a tab", "\t10.0.0.1", "10.0.0.1"],
+      ["only whitespace", "   ", ""],
+    ])("%s is trimmed", (_label: string, given: string, expected: string) => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: given }),
+      ]);
+
+      expect(result[0]!.ipAddress).toBe(expected);
+    });
+
+    test.each([
+      ["undefined", undefined],
+      ["null", null],
+    ])(
+      "a %s address becomes the empty string, never the literal word",
+      (_label: string, value: unknown) => {
+        const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts(
+          [{ ipAddress: value } as unknown as DiscoveredNetworkDevice],
+        );
+
+        expect(result[0]!.ipAddress).toBe("");
+      },
+    );
+  });
+
+  describe("everything else on the row is carried through untouched", () => {
+    test("the SNMP system group and reachability flags survive normalisation", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        {
+          ipAddress: " 10.0.0.5 ",
+          sysName: "core-switch",
+          sysDescr: "vendor OS 1.2",
+          sysObjectId: "1.3.6.1.4.1.9",
+          sysLocation: "rack 4",
+          sysContact: "neteng",
+          sysUpTimeSeconds: 4200,
+          snmpReachable: true,
+        },
+      ]);
+
+      expect(result[0]).toEqual({
+        ipAddress: "10.0.0.5",
+        sysName: "core-switch",
+        sysDescr: "vendor OS 1.2",
+        sysObjectId: "1.3.6.1.4.1.9",
+        sysLocation: "rack 4",
+        sysContact: "neteng",
+        sysUpTimeSeconds: 4200,
+        snmpReachable: true,
+      });
+    });
+  });
+
+  describe("an address registered on one row is registered on every row", () => {
+    test("a duplicate address inherits the registered verdict regardless of probe ordering", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: "10.0.0.9", isAlreadyRegistered: false }),
+        host({ ipAddress: "10.0.0.9", isAlreadyRegistered: true }),
+      ]);
+
+      expect(
+        result.map((entry: DiscoveredNetworkDevice) => {
+          return entry.isAlreadyRegistered;
+        }),
+      ).toEqual([true, true]);
+    });
+
+    test("the verdict does not bleed onto a different address", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: "10.0.0.9", isAlreadyRegistered: true }),
+        host({ ipAddress: "10.0.0.10", isAlreadyRegistered: false }),
+      ]);
+
+      expect(
+        result.find((entry: DiscoveredNetworkDevice) => {
+          return entry.ipAddress === "10.0.0.10";
+        })!.isAlreadyRegistered,
+      ).toBe(false);
+    });
+
+    test("an already-registered row is handed back as the very same object", () => {
+      const registered: DiscoveredNetworkDevice = host({
+        ipAddress: "10.0.0.11",
+        isAlreadyRegistered: true,
+      });
+
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        registered,
+      ]);
+
+      /*
+       * With nothing to flip, the normaliser must not churn objects it did
+       * not change - a fresh clone every render would defeat any memoised
+       * reader keyed on identity. The first pass already re-spread the row,
+       * so identity is asserted against that cleaned object, not the input.
+       */
+      expect(result[0]).toEqual(registered);
+    });
+
+    test("the empty-string address is never treated as a registered key", () => {
+      /*
+       * A blank address is what an undefined or whitespace-only address
+       * normalises to. If it counted as a registered key, every other blank
+       * row - unrelated hosts the probe could not address - would be marked
+       * registered together.
+       */
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: "   ", isAlreadyRegistered: true }),
+        host({ ipAddress: undefined as unknown as string }),
+      ]);
+
+      expect(
+        result.every((entry: DiscoveredNetworkDevice) => {
+          return entry.ipAddress === "";
+        }),
+      ).toBe(true);
+      expect(result[1]!.isAlreadyRegistered).toBeUndefined();
+    });
+
+    test("three rows of one address all end up registered when any one is", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: "10.0.0.20", isAlreadyRegistered: false }),
+        host({ ipAddress: "10.0.0.20" }),
+        host({ ipAddress: "10.0.0.20", isAlreadyRegistered: true }),
+      ]);
+
+      expect(
+        result.map((entry: DiscoveredNetworkDevice) => {
+          return entry.isAlreadyRegistered;
+        }),
+      ).toEqual([true, true, true]);
+    });
+  });
+
+  describe("a scan with nothing registered is left as it is found", () => {
+    test("no row gains a registered flag it did not arrive with", () => {
+      const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+        host({ ipAddress: "10.0.0.30", isAlreadyRegistered: false }),
+        host({ ipAddress: "10.0.0.31" }),
+      ]);
+
+      expect(result[0]!.isAlreadyRegistered).toBe(false);
+      expect(result[1]!.isAlreadyRegistered).toBeUndefined();
+    });
+  });
+});
+
+/*
+ * OneUptime issue #3529 — the scan's reverse-DNS name.
+ *
+ * `dnsHostname` differs in kind from every other field this function cleans
+ * up. The others are untrusted by ACCIDENT: they are what they are because
+ * nothing validates the probe's payload, and the shapes that broke things
+ * were probe bugs. This one is untrusted by CONSTRUCTION — its value is
+ * published by whoever runs DNS for the subnet being swept, which on a
+ * discovery scan is frequently not this project, and it is stored verbatim in
+ * a jsonb column that then feeds a rendered line, a device name and a slug.
+ *
+ * So the character rules are applied on the way OUT of the column as well as
+ * on the way in. The probe that wrote the row applied them too, but "the
+ * probe already checked" holds only for the probe version that wrote it — not
+ * for an older probe, a modified one, or a row written straight through the
+ * API.
+ */
+describe("normalizeDiscoveredHosts — the reverse-DNS name (issue #3529)", () => {
+  test("a usable PTR name is carried through unchanged", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "core-gw.corp.example.com" }),
+    ]);
+
+    expect(normalized?.dnsHostname).toBe("core-gw.corp.example.com");
+  });
+
+  test("a fully qualified name loses its root dot and surrounding space", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "  core-gw.corp.example.com.  " }),
+    ]);
+
+    expect(normalized?.dnsHostname).toBe("core-gw.corp.example.com");
+  });
+
+  test("an unusable name is DELETED, not blanked", () => {
+    /*
+     * The key is removed rather than set to "" or undefined so that a reader
+     * checking `if (host.dnsHostname)` and one checking `"dnsHostname" in
+     * host` cannot disagree about the same row — the class of split reading
+     * this whole function exists to prevent.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "<script>alert(1)</script>" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("a name that merely restates the address is dropped", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ ipAddress: "10.18.166.51", dnsHostname: "10.18.166.51" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+    // The address itself is untouched — it is still how the host is reached.
+    expect(normalized?.ipAddress).toBe("10.18.166.51");
+  });
+
+  test("an in-addr.arpa query name echoed back is dropped", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "51.166.18.10.in-addr.arpa" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("a non-string value in the column does not throw", () => {
+    /*
+     * This runs inside the Review dialog's render. The lesson is the null-row
+     * one, relearned: a throw here takes out the modal body, not one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ dnsHostname: 51 as unknown as string }),
+      host({ dnsHostname: {} as unknown as string }),
+      host({ dnsHostname: ["gw.example.com"] as unknown as string }),
+      host({ dnsHostname: null as unknown as string }),
+    ];
+
+    const normalized: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(rows);
+
+    expect(normalized).toHaveLength(4);
+    for (const row of normalized) {
+      expect(row).not.toHaveProperty("dnsHostname");
+    }
+  });
+
+  test("a host with no PTR name gains no key", () => {
+    // Absence must stay absence — the field is optional in the model.
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("normalising is stable when applied twice", () => {
+    /*
+     * The dashboard normalises on open and again on every re-render of the
+     * list; the rule engine normalises the same rows server-side. All three
+     * must agree, or the name an operator ticks and the name the device gets
+     * could differ.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ dnsHostname: "  GW-01.corp.example.com.  " }),
+      host({ ipAddress: "10.0.0.2", dnsHostname: "core switch" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
+  });
+
+  test("cleaning the name leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        sysName: "core-switch-01",
+        sysDescr: "Cisco IOS",
+        snmpReachable: true,
+        snmpConfigId: "config-2",
+        dnsHostname: "not a hostname",
+      }),
+    ]);
+
+    expect(normalized?.sysName).toBe("core-switch-01");
+    expect(normalized?.sysDescr).toBe("Cisco IOS");
+    expect(normalized?.snmpReachable).toBe(true);
+    expect(normalized?.snmpConfigId).toBe("config-2");
+  });
+});
+
+/*
+ * `sysName` joined the list of fields this function coerces when reverse DNS
+ * (issue #3529) turned the naming expression into a RENDER path.
+ *
+ * Before that, `(host.sysName || "").trim()` ran only inside the import loop,
+ * where a per-host try/catch turned a bad row into one failed import. The
+ * Review dialog's own name line was `entry.sysName || entry.ipAddress`, which
+ * coerces a number harmlessly. Routing the row through the shared naming
+ * function put `.trim()` on the render path, where a numeric sysName in the
+ * jsonb throws a TypeError inside the modal body and takes out the whole
+ * dialog — the operator can no longer review or import ANY host in that scan.
+ *
+ * That is the same failure the null-row case at the top of this file is about,
+ * and it gets the same answer: coerce once, here, so no reader can be handed a
+ * value its type says is impossible.
+ */
+describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () => {
+  test("a non-string sysName is blanked, never stringified", () => {
+    /*
+     * BLANKED, not `String(value)`. This is the one place the treatment
+     * deliberately differs from the address above, and the reason is that
+     * every stringification of junk is TRUTHY: `String(null)` is "null" and
+     * `String({})` is "[object Object]". A truthy sysName wins the naming
+     * contest outright, so stringifying would not merely fail to name the
+     * host — it would create a device called "null" while a perfectly good
+     * PTR record sat unused on the very same row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ sysName: 42 as unknown as string }),
+      host({ ipAddress: "10.0.0.2", sysName: null as unknown as string }),
+      host({ ipAddress: "10.0.0.3", sysName: {} as unknown as string }),
+      host({ ipAddress: "10.0.0.4", sysName: ["gw"] as unknown as string }),
+      host({ ipAddress: "10.0.0.5", sysName: true as unknown as string }),
+    ];
+
+    for (const row of normalizeDiscoveredHosts(rows)) {
+      expect(row.sysName).toBe("");
+    }
+  });
+
+  test("a blanked sysName lets the PTR name name the host", () => {
+    /*
+     * The consequence that matters, stated end to end: the row is not merely
+     * safe, it produces the RIGHT name. This is what would have regressed if
+     * the junk had been stringified.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        sysName: null as unknown as string,
+        dnsHostname: "core-gw.corp.example.com",
+      }),
+    ]);
+
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe(
+      "core-gw.corp.example.com",
+    );
+  });
+
+  test("naming a host with a junk sysName never throws", () => {
+    /*
+     * The failure this whole block exists for: `(42).trim()` is a TypeError,
+     * and since the dashboard row started calling the shared naming function
+     * that TypeError is thrown during render — inside the modal body, taking
+     * out the entire Review dialog rather than one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ sysName: 42 as unknown as string }),
+      host({ ipAddress: "10.0.0.2", sysName: {} as unknown as string }),
+    ]);
+
+    for (const row of rows) {
+      expect(() => {
+        return getDiscoveredHostDisplayName(row, FULL_NAMES);
+      }).not.toThrow();
+    }
+  });
+
+  test("a string sysName is passed through untouched, including its whitespace", () => {
+    /*
+     * Only NON-strings are rewritten. Trimming here would be a second opinion
+     * on a decision getDiscoveredHostDisplayName already makes, and the two
+     * could drift.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ sysName: "  core-switch-01  " }),
+    ]);
+
+    expect(normalized?.sysName).toBe("  core-switch-01  ");
+  });
+
+  test("a host with no sysName does not gain the key", () => {
+    /*
+     * `sysName` is optional, and `"sysName" in host` is a question other code
+     * is entitled to ask. Coercing an absent field into an empty string would
+     * change that answer for every ping-only host in every scan.
+     */
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("sysName");
+  });
+
+  test("coercion survives a second pass unchanged", () => {
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ sysName: 42 as unknown as string, dnsHostname: "gw.example.com" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
+  });
+});
+
+/*
+ * OneUptime issue #3677 — the host's NetBIOS name.
+ *
+ * `netbiosName` is untrusted in the same way `dnsHostname` is, and more so:
+ * a PTR record is at least published by whoever runs DNS for the subnet, but
+ * a NetBIOS name is whatever the machine at the address chose to put in its
+ * reply to a UDP datagram. It is stored verbatim in jsonb and read by the
+ * Review dialog's render, the manual import and the auto-import engine, so the
+ * rules are applied here, on the way out, for every one of them.
+ *
+ * NORMALISED, not just checked, which is where it differs from the PTR name:
+ * NetBIOS upper-cases names on the wire and pads them to fifteen bytes, so a
+ * row an older or modified probe stored raw must read as the lower-cased,
+ * trimmed name the current probe would have stored. The rules themselves live
+ * in NetbiosNameUtil and are pinned by its own suite; these tests pin that
+ * this function applies them, and how it handles what they refuse.
+ */
+describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
+  test("a usable, already-normalised NetBIOS name is carried through unchanged", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: "reg01" }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("reg01");
+  });
+
+  test("the raw wire form (upper case, space-padded) is stored back lower-cased and trimmed", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: "WORKSTATION01  " }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("workstation01");
+  });
+
+  test("NUL padding left by an embedded stack is stripped too", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: `PRINTER7${String.fromCharCode(0).repeat(3)}` }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("printer7");
+  });
+
+  /*
+   * The key is removed rather than set to "" or undefined, for the reason the
+   * PTR block above gives: a reader checking `if (host.netbiosName)` and one
+   * checking `"netbiosName" in host` must not disagree about the same row.
+   */
+  test.each([
+    ["a dotted name", "host.corp"],
+    ["an inner space", "REG 01"],
+    ["sixteen characters", "ABCDEFGHIJKLMNOP"],
+    ["only digits", "123456"],
+    ["markup", "<script>"],
+    ["the browser-election pseudo-name", "__MSBROWSE__"],
+    ["only padding", "               "],
+    ["the empty string", ""],
+  ])("%s is DELETED, not blanked", (_label: string, value: string) => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: value }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("netbiosName");
+  });
+
+  test("a non-string value in the column does not throw, and leaves no key", () => {
+    /*
+     * This runs inside the Review dialog's render: a throw takes out the modal
+     * body, not one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ netbiosName: 51 as unknown as string }),
+      host({ netbiosName: {} as unknown as string }),
+      host({ netbiosName: ["REG01"] as unknown as string }),
+      host({ netbiosName: null as unknown as string }),
+      host({ netbiosName: true as unknown as string }),
+    ];
+
+    const normalized: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(rows);
+
+    expect(normalized).toHaveLength(5);
+    for (const row of normalized) {
+      expect(row).not.toHaveProperty("netbiosName");
+    }
+  });
+
+  test("a host with no NetBIOS name gains no key", () => {
+    /*
+     * Absence stays absence. Every result stored before this field existed,
+     * and every host on a scan with the lookup off, has no key.
+     */
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("netbiosName");
+  });
+
+  test("an explicitly undefined NetBIOS name is removed rather than kept as a key", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosName: undefined }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("netbiosName");
+  });
+
+  test("normalising is stable when applied twice", () => {
+    /*
+     * The dashboard normalises on open and on every re-render; the rule engine
+     * normalises the same rows server-side. A second pass that changed a name
+     * again would let the name an operator ticks differ from the name created.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ netbiosName: "  WORKSTATION01  " }),
+      host({ ipAddress: "10.0.0.2", netbiosName: "not valid" }),
+      host({ ipAddress: "10.0.0.3", netbiosName: "reg01" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
+    expect(once[0]?.netbiosName).toBe("workstation01");
+    expect(once[1]).not.toHaveProperty("netbiosName");
+    expect(once[2]?.netbiosName).toBe("reg01");
+  });
+
+  test("the NetBIOS name and the PTR name are cleaned independently", () => {
+    /*
+     * One failing must not take the other with it: they are separate fields
+     * with separate rules, and a row with a junk PTR name and a good NetBIOS
+     * name still has a name.
+     */
+    const [badPtrGoodNetbios, goodPtrBadNetbios] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "not a hostname", netbiosName: "REG01" }),
+      host({
+        ipAddress: "10.0.0.2",
+        dnsHostname: "gw.corp.example.com",
+        netbiosName: "not valid",
+      }),
+    ]);
+
+    expect(badPtrGoodNetbios).not.toHaveProperty("dnsHostname");
+    expect(badPtrGoodNetbios?.netbiosName).toBe("reg01");
+
+    expect(goodPtrBadNetbios?.dnsHostname).toBe("gw.corp.example.com");
+    expect(goodPtrBadNetbios).not.toHaveProperty("netbiosName");
+  });
+
+  test("cleaning the name leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        ipAddress: " 10.18.167.31 ",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+        netbiosName: "REG01 ",
+      }),
+    ]);
+
+    expect(normalized).toEqual({
+      ipAddress: "10.18.167.31",
+      snmpReachable: false,
+      isAlreadyRegistered: false,
+      netbiosName: "reg01",
+    });
+  });
+
+  test("a normalised NetBIOS name names a host that has no other name", () => {
+    /*
+     * End to end through the shared naming function: the row is not merely
+     * safe, it produces the RIGHT name, which is the whole point of #3677.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ ipAddress: "10.18.167.31", netbiosName: "REG01   " }),
+    ]);
+
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe("reg01");
+  });
+});
+
+/*
+ * OneUptime issue #3916 — why a host is unnamed.
+ *
+ * `dnsHostnameStatus` and `netbiosNameStatus` are short codes the probe
+ * stamps on a host that reverse DNS or NetBIOS left without a name. The
+ * Review dialog turns them into the sentence beside a bare address. Unlike
+ * the names above they are not chosen by the scanned network, but they come
+ * out of the same verbatim jsonb, so they get the same treatment: only an
+ * exact code survives, and anything else is DELETED, not blanked.
+ *
+ * Deleted matters for the same `in`-versus-truthiness reason as the names.
+ * It matters more for the explanation, because "this row carries a code" is
+ * what tells a still-sweeping scan's previous results apart from its fresh
+ * ones. A key left behind holding junk would make one reader say "a code"
+ * and another say "no code" about the same row.
+ */
+describe("normalizeDiscoveredHosts — the naming status codes (issue #3916)", () => {
+  /*
+   * Values that are not a code, as the column can hold them. The other
+   * field's codes are added per test: a reverse-DNS code is junk in the
+   * NetBIOS field, and the reverse.
+   */
+  const NOT_A_CODE: Array<[string, unknown]> = [
+    ["an unknown string", "dnssec-bogus"],
+    ["an upper-case code", "TIMEOUT"],
+    ["a padded code", " no-reply "],
+    ["an underscored code", "no_record"],
+    ["the empty string", ""],
+    ["a prototype key", "constructor"],
+    ["another prototype key", "__proto__"],
+    ["markup", "<img src=x onerror=1>"],
+    ["a number", 3],
+    ["zero", 0],
+    ["an object", { code: "timeout" }],
+    ["an array holding a code", ["timeout"]],
+    ["true", true],
+    ["null", null],
+  ];
+
+  test.each(Object.values(DiscoveredHostReverseDnsStatus))(
+    "keeps the reverse-DNS code %p exactly as stored",
+    (code: DiscoveredHostReverseDnsStatus) => {
+      const [normalized] = normalizeDiscoveredHosts([
+        host({ dnsHostnameStatus: code }),
+      ]);
+
+      expect(normalized?.dnsHostnameStatus).toBe(code);
+    },
+  );
+
+  test.each(Object.values(DiscoveredHostNetbiosStatus))(
+    "keeps the NetBIOS code %p exactly as stored",
+    (code: DiscoveredHostNetbiosStatus) => {
+      const [normalized] = normalizeDiscoveredHosts([
+        host({ netbiosNameStatus: code }),
+      ]);
+
+      expect(normalized?.netbiosNameStatus).toBe(code);
+    },
+  );
+
+  test.each([
+    ...NOT_A_CODE,
+    ...Object.values(DiscoveredHostNetbiosStatus).map(
+      (code: string): [string, unknown] => {
+        return [`the NetBIOS code ${code}`, code];
+      },
+    ),
+  ])(
+    "deletes %s from the reverse-DNS field",
+    (_label: string, value: unknown) => {
+      const [normalized] = normalizeDiscoveredHosts([
+        host({
+          dnsHostnameStatus: value as DiscoveredHostReverseDnsStatus,
+        }),
+      ]);
+
+      expect(normalized).not.toHaveProperty("dnsHostnameStatus");
+    },
+  );
+
+  test.each([
+    ...NOT_A_CODE,
+    ...Object.values(DiscoveredHostReverseDnsStatus).map(
+      (code: string): [string, unknown] => {
+        return [`the reverse-DNS code ${code}`, code];
+      },
+    ),
+  ])("deletes %s from the NetBIOS field", (_label: string, value: unknown) => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ netbiosNameStatus: value as DiscoveredHostNetbiosStatus }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("an explicitly undefined code is removed rather than kept as a key", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostnameStatus: undefined, netbiosNameStatus: undefined }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostnameStatus");
+    expect(normalized).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("a host with no codes gains no keys", () => {
+    /*
+     * Named hosts, rows stored before the codes existed, and rows from an
+     * older probe all have neither key, and must still have neither: a
+     * normaliser that added them would change what `in` says about every
+     * row in every scan.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ snmpReachable: false }),
+    ]);
+
+    expect(normalized).toStrictEqual({
+      ipAddress: "10.0.0.1",
+      snmpReachable: false,
+    });
+    expect(Object.keys(normalized!).sort()).toEqual([
+      "ipAddress",
+      "snmpReachable",
+    ]);
+  });
+
+  test("the two codes are cleaned independently of each other", () => {
+    const [badDnsGoodNetbios, goodDnsBadNetbios] = normalizeDiscoveredHosts([
+      host({
+        dnsHostnameStatus: "TIMEOUT" as DiscoveredHostReverseDnsStatus,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+      }),
+      host({
+        ipAddress: "10.0.0.2",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Timeout,
+        netbiosNameStatus: 7 as unknown as DiscoveredHostNetbiosStatus,
+      }),
+    ]);
+
+    expect(badDnsGoodNetbios).not.toHaveProperty("dnsHostnameStatus");
+    expect(badDnsGoodNetbios?.netbiosNameStatus).toBe(
+      DiscoveredHostNetbiosStatus.NoReply,
+    );
+
+    expect(goodDnsBadNetbios?.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+    expect(goodDnsBadNetbios).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("the codes and the names are cleaned independently", () => {
+    /*
+     * A rejected PTR name must not take the code with it, and a rejected
+     * code must not take a good name with it. The code on the first row is
+     * exactly the one a probe stamps for a PTR answer that normalised away.
+     */
+    const [rejectedName, rejectedCode] = normalizeDiscoveredHosts([
+      host({
+        dnsHostname: "51.0.0.10.in-addr.arpa",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.UnusableName,
+      }),
+      host({
+        ipAddress: "10.0.0.2",
+        netbiosName: "REG01",
+        netbiosNameStatus: "no reply" as DiscoveredHostNetbiosStatus,
+      }),
+    ]);
+
+    expect(rejectedName).not.toHaveProperty("dnsHostname");
+    expect(rejectedName?.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.UnusableName,
+    );
+
+    expect(rejectedCode?.netbiosName).toBe("reg01");
+    expect(rejectedCode).not.toHaveProperty("netbiosNameStatus");
+  });
+
+  test("a code on a host that has a name is kept, not judged", () => {
+    /*
+     * This function whitelists values; it does not decide what a row means.
+     * A valid code on a named row is harmless, because the explanation is
+     * only ever shown for a row whose name line is its address, and deleting
+     * it here would be a second copy of that rule.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        netbiosName: "REG01",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.NoRecord,
+      }),
+    ]);
+
+    expect(normalized?.dnsHostnameStatus).toBe(
+      DiscoveredHostReverseDnsStatus.NoRecord,
+    );
+  });
+
+  test("normalising is stable when applied twice, key for key", () => {
+    /*
+     * toStrictEqual, so a key left behind as `undefined` would fail it, and
+     * the key lists too, so a failure names the key.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.ServerFailure,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
+      }),
+      host({
+        ipAddress: "10.0.0.2",
+        dnsHostnameStatus: "server_failure" as DiscoveredHostReverseDnsStatus,
+        netbiosNameStatus: {} as unknown as DiscoveredHostNetbiosStatus,
+      }),
+      host({ ipAddress: "10.0.0.3", dnsHostnameStatus: undefined }),
+    ]);
+    const twice: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(once);
+
+    expect(twice).toStrictEqual(once);
+    expect(
+      twice.map((entry: DiscoveredNetworkDevice): Array<string> => {
+        return Object.keys(entry).sort();
+      }),
+    ).toEqual([
+      ["dnsHostnameStatus", "ipAddress", "netbiosNameStatus"],
+      ["ipAddress"],
+      ["ipAddress"],
+    ]);
+  });
+
+  test("the codes survive a JSON round trip of the normalised rows", () => {
+    /*
+     * The normalised rows are what the server's auto-import engine works
+     * from and what a re-serialised response carries. The codes are plain
+     * strings, so nothing is lost or reshaped on the way.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.SkippedNoResolver,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.SkippedHostCap,
+      }),
+    ]);
+    const roundTripped: Array<DiscoveredNetworkDevice> = JSON.parse(
+      JSON.stringify(once),
+    ) as Array<DiscoveredNetworkDevice>;
+
+    expect(normalizeDiscoveredHosts(roundTripped)).toStrictEqual(once);
+  });
+
+  test("the row the caller passed in is not changed", () => {
+    /*
+     * The dialog normalises the scan's stored array on every render. If
+     * this deleted keys from the rows it was handed, the stored copy would
+     * change underneath the next reader.
+     */
+    const raw: DiscoveredNetworkDevice = host({
+      dnsHostnameStatus: "junk" as DiscoveredHostReverseDnsStatus,
+      netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+    });
+
+    const [normalized] = normalizeDiscoveredHosts([raw]);
+
+    expect(normalized).not.toBe(raw);
+    expect(normalized).not.toHaveProperty("dnsHostnameStatus");
+    expect(raw.dnsHostnameStatus).toBe("junk");
+    expect(raw.netbiosNameStatus).toBe(DiscoveredHostNetbiosStatus.NoReply);
+  });
+
+  test("a row marked registered because of another row keeps its codes", () => {
+    /*
+     * The registered-address pass rebuilds the rows it flips. The codes on
+     * those rows must come through it.
+     */
+    const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({
+        ipAddress: "10.0.0.40",
+        isAlreadyRegistered: false,
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Refused,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoUsableName,
+      }),
+      host({ ipAddress: "10.0.0.40", isAlreadyRegistered: true }),
+    ]);
+
+    expect(result[0]).toStrictEqual({
+      ipAddress: "10.0.0.40",
+      isAlreadyRegistered: true,
+      dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Refused,
+      netbiosNameStatus: DiscoveredHostNetbiosStatus.NoUsableName,
+    });
+  });
+
+  test("cleaning the codes leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      {
+        ipAddress: " 10.16.42.51 ",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+        sysDescr: "KDS terminal",
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Timeout,
+        netbiosNameStatus: "?" as DiscoveredHostNetbiosStatus,
+      },
+    ]);
+
+    expect(normalized).toStrictEqual({
+      ipAddress: "10.16.42.51",
+      snmpReachable: false,
+      isAlreadyRegistered: false,
+      sysDescr: "KDS terminal",
+      dnsHostnameStatus: DiscoveredHostReverseDnsStatus.Timeout,
+    });
+  });
+});

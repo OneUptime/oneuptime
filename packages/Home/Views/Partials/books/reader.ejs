@@ -1,0 +1,95 @@
+<%#
+  The in-page reader for one book. Hidden until book-reader.js opens it; with
+  JavaScript off it never shows, and every "read" link on the page goes to the
+  book's own website instead.
+%>
+<div id="book-reader" class="bk-reader" role="dialog" aria-modal="true"
+    aria-labelledby="bk-reader-title" aria-describedby="bk-reader-help" hidden
+    data-content-url="<%= book.contentPath %>"
+    data-book-slug="<%= book.slug %>"
+    data-book-title="<%= book.title %>"
+    data-book-author="<%= book.author %>"
+    data-cover-url="<%= book.coverPath %>"
+    data-site-url="<%= book.siteUrl %>"
+    data-theme="paper">
+    <div class="bk-reader-backdrop" data-reader-action="dismiss"></div>
+    <div class="bk-reader-panel">
+        <header class="bk-reader-bar">
+            <button type="button" class="bk-reader-icon" data-reader-action="close" aria-label="Close the book">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+            <div class="bk-reader-heading">
+                <h2 id="bk-reader-title" class="bk-reader-title"><%= book.title %></h2>
+                <p class="bk-reader-location"><%= book.author %></p>
+            </div>
+            <div class="bk-reader-tools">
+                <button type="button" class="bk-reader-tool" data-reader-action="contents" aria-expanded="false" aria-controls="bk-reader-contents">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+                    <span class="bk-reader-tool-label">Contents</span>
+                </button>
+                <button type="button" class="bk-reader-tool" data-reader-action="settings" aria-expanded="false" aria-controls="bk-reader-settings" aria-label="Reading settings">
+                    <span class="bk-reader-tool-glyph" aria-hidden="true">Aa</span>
+                </button>
+                <button type="button" class="bk-reader-tool" data-reader-action="fullscreen" aria-label="Full screen">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="bk-reader-stage">
+            <button type="button" class="bk-reader-turn bk-reader-turn--prev" data-reader-action="prev" aria-label="Previous page">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+            </button>
+            <div class="bk-book-wrap">
+                <div class="bk-book" data-mode="spread" data-state="closed"></div>
+            </div>
+            <button type="button" class="bk-reader-turn bk-reader-turn--next" data-reader-action="next" aria-label="Next page">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+            <div class="bk-reader-status" hidden>
+                <span class="bk-reader-spinner" aria-hidden="true"></span>
+                <div class="bk-reader-message"></div>
+            </div>
+        </div>
+
+        <footer class="bk-reader-foot">
+            <div class="bk-reader-progress" aria-hidden="true"><span class="bk-reader-progress-bar"></span></div>
+            <div class="bk-reader-foot-row">
+                <label class="bk-reader-scrubber-label">
+                    <span class="sr-only">Go to page</span>
+                    <input type="range" class="bk-reader-scrubber" min="0" max="0" value="0" step="1">
+                </label>
+                <p class="bk-reader-pages" aria-hidden="true"></p>
+            </div>
+            <p id="bk-reader-help" class="bk-reader-help">Turn pages with the arrow keys, by swiping, or by dragging a page corner.</p>
+        </footer>
+
+        <nav id="bk-reader-contents" class="bk-drawer" aria-label="Contents of <%= book.title %>" hidden>
+            <div class="bk-drawer-head">
+                <p class="bk-drawer-title">Contents</p>
+                <button type="button" class="bk-reader-icon" data-reader-action="contents" aria-label="Close the contents">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
+            </div>
+            <ol class="bk-drawer-list"></ol>
+        </nav>
+
+        <div id="bk-reader-settings" class="bk-settings" role="group" aria-label="Reading settings" hidden>
+            <p class="bk-settings-label">Text size</p>
+            <div class="bk-settings-row">
+                <button type="button" class="bk-settings-button" data-reader-action="font-smaller" aria-label="Smaller text"><span aria-hidden="true" class="bk-settings-a-small">A</span></button>
+                <button type="button" class="bk-settings-button" data-reader-action="font-larger" aria-label="Larger text"><span aria-hidden="true" class="bk-settings-a-large">A</span></button>
+            </div>
+            <p class="bk-settings-label" id="bk-reader-theme-label">Page colour</p>
+            <div class="bk-settings-row" role="radiogroup" aria-labelledby="bk-reader-theme-label">
+                <button type="button" class="bk-theme-swatch bk-theme-swatch--paper" role="radio" aria-checked="true" data-reader-theme="paper">Paper</button>
+                <button type="button" class="bk-theme-swatch bk-theme-swatch--sepia" role="radio" aria-checked="false" data-reader-theme="sepia">Sepia</button>
+                <button type="button" class="bk-theme-swatch bk-theme-swatch--night" role="radio" aria-checked="false" data-reader-theme="night">Night</button>
+            </div>
+        </div>
+
+        <div class="bk-reader-live sr-only" role="status" aria-live="polite"></div>
+        <div class="bk-reader-text sr-only" role="document" aria-label="Text of the current chapter"></div>
+    </div>
+    <div class="bk-measure" aria-hidden="true"></div>
+</div>

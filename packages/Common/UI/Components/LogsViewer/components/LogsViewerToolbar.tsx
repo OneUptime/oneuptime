@@ -1,0 +1,370 @@
+import React, { FunctionComponent, ReactElement } from "react";
+import LiveLogsToggle from "./LiveLogsToggle";
+import LogTimeRangePicker from "./LogTimeRangePicker";
+import ColumnSelector from "./ColumnSelector";
+import SavedViewsDropdown from "./SavedViewsDropdown";
+import KeyboardShortcutsHelp from "./KeyboardShortcutsHelp";
+import Icon from "../../Icon/Icon";
+import IconProp from "../../../../Types/Icon/IconProp";
+import Tooltip from "../../Tooltip/Tooltip";
+import {
+  LiveLogsOptions,
+  LogsSavedViewOption,
+  LogsSignalPivotAction,
+  LogsTableColumnOption,
+  LogsViewMode,
+} from "../types";
+import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
+import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+
+export interface LogsViewerToolbarProps {
+  resultCount: number;
+  currentPage?: number;
+  totalPages?: number;
+  className?: string;
+  liveOptions?: LiveLogsOptions;
+  timeRange?: RangeStartAndEndDateTime;
+  onTimeRangeChange?: (value: RangeStartAndEndDateTime) => void;
+  // Whether the picker offers "Reset zoom"; see LogTimeRangePicker.
+  showResetZoom?: boolean | undefined;
+  onCreateSavedView?: (() => void) | undefined;
+  savedViews?: Array<LogsSavedViewOption> | undefined;
+  selectedSavedViewId?: string | null | undefined;
+  onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  onClearSavedView?: (() => void) | undefined;
+  onEditSavedView?: ((viewId: string) => void) | undefined;
+  onDeleteSavedView?: ((viewId: string) => void) | undefined;
+  onUpdateCurrentSavedView?: (() => void) | undefined;
+  availableColumns?: Array<LogsTableColumnOption> | undefined;
+  selectedColumns?: Array<string> | undefined;
+  onSelectedColumnsChange?: ((columns: Array<string>) => void) | undefined;
+  viewMode?: LogsViewMode | undefined;
+  onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
+  onExportCSV?: (() => void) | undefined;
+  onExportJSON?: (() => void) | undefined;
+  showKeyboardShortcuts?: boolean | undefined;
+  onToggleKeyboardShortcuts?: (() => void) | undefined;
+  onShowDocumentation?: (() => void) | undefined;
+  signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
+  /*
+   * The phone-only "Filters" toggle for the facet sidebar. Below md the
+   * sidebar stacks above the list, folded until this opens it; from md up it
+   * always shows beside the list and the toggle is hidden. `facetPanelId` is
+   * the sidebar's id, for aria-controls.
+   */
+  facetPanelId?: string | undefined;
+  isFacetPanelOpen?: boolean | undefined;
+  onToggleFacetPanel?: (() => void) | undefined;
+}
+
+export const LOGS_VIEWER_TOOLBAR_TEST_ID: string = "logs-viewer-toolbar";
+export const LOGS_VIEWER_FILTERS_TOGGLE_TEST_ID: string =
+  "logs-viewer-filters-toggle";
+export const LOGS_VIEWER_EXPORT_MENU_TEST_ID: string =
+  "logs-viewer-export-menu";
+
+const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
+  props: LogsViewerToolbarProps,
+): ReactElement => {
+  const { currentPage, totalPages } = props;
+  const hasPaginationSummary: boolean = Boolean(
+    currentPage && totalPages && totalPages > 0,
+  );
+
+  const {
+    ref: exportDropdownRef,
+    isComponentVisible: isExportOpen,
+    setIsComponentVisible: setIsExportOpen,
+  } = useComponentOutsideClick(false);
+
+  const showExport: boolean = Boolean(props.onExportCSV || props.onExportJSON);
+
+  return (
+    /*
+     * Below md the two groups wrap onto their own rows instead of sharing
+     * one: side by side they squeezed each other on a phone. Wrapping moves
+     * the triggers, so there every popover in the row spans the row (its
+     * positioning context) rather than hanging off its trigger. From md up it
+     * is the single unwrapped row it always was, popovers included.
+     */
+    <div
+      className={`relative flex flex-wrap items-center justify-between gap-3 md:flex-nowrap ${props.className || ""}`}
+      data-testid={LOGS_VIEWER_TOOLBAR_TEST_ID}
+    >
+      {/* Left group: View management + stats */}
+      <div className="flex flex-wrap items-center gap-3">
+        {props.facetPanelId && props.onToggleFacetPanel && (
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors md:hidden ${
+              props.isFacetPanelOpen
+                ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+            aria-expanded={Boolean(props.isFacetPanelOpen)}
+            aria-controls={props.facetPanelId}
+            data-testid={LOGS_VIEWER_FILTERS_TOGGLE_TEST_ID}
+            onClick={props.onToggleFacetPanel}
+          >
+            <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+            <span>Filters</span>
+          </button>
+        )}
+
+        {props.viewMode && props.onViewModeChange && (
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-l-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                props.viewMode === "list"
+                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+              onClick={() => {
+                props.onViewModeChange!("list");
+              }}
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
+                />
+              </svg>
+              List
+            </button>
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-r-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                props.viewMode === "analytics"
+                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+              onClick={() => {
+                props.onViewModeChange!("analytics");
+              }}
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                />
+              </svg>
+              Analytics
+            </button>
+          </div>
+        )}
+
+        {props.signalPivotActions && props.signalPivotActions.length > 0 && (
+          <div
+            className="inline-flex items-center gap-0.5 rounded-md border border-gray-200 bg-white p-0.5 shadow-sm"
+            aria-label="Related telemetry signals"
+          >
+            {props.signalPivotActions.map((action: LogsSignalPivotAction) => {
+              return (
+                <Tooltip key={action.id} text={action.tooltip}>
+                  <button
+                    type="button"
+                    aria-label={action.tooltip}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    onClick={action.onClick}
+                  >
+                    {action.icon && (
+                      <Icon icon={action.icon} className="h-3.5 w-3.5" />
+                    )}
+                    <span>{action.label}</span>
+                  </button>
+                </Tooltip>
+              );
+            })}
+          </div>
+        )}
+
+        {props.savedViews && props.onSavedViewSelect && (
+          <SavedViewsDropdown
+            savedViews={props.savedViews}
+            selectedSavedViewId={props.selectedSavedViewId}
+            onSelect={props.onSavedViewSelect}
+            onClear={props.onClearSavedView}
+            onCreate={props.onCreateSavedView}
+            onEdit={props.onEditSavedView}
+            onDelete={props.onDeleteSavedView}
+            onUpdateCurrent={props.onUpdateCurrentSavedView}
+          />
+        )}
+
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span className="font-medium text-gray-700">
+            {props.resultCount.toLocaleString()} result
+            {props.resultCount === 1 ? "" : "s"}
+          </span>
+          {hasPaginationSummary && (
+            <span className="text-gray-400">
+              Page {currentPage} of {totalPages}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/*
+       * Right group: Display controls. Start-aligned below md, where it sits
+       * on its own row under the left group.
+       */}
+      <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
+        {props.availableColumns &&
+          props.selectedColumns &&
+          props.onSelectedColumnsChange && (
+            <ColumnSelector
+              availableColumns={props.availableColumns}
+              selectedColumns={props.selectedColumns}
+              onChange={props.onSelectedColumnsChange}
+            />
+          )}
+
+        {props.onShowDocumentation && (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+            onClick={props.onShowDocumentation}
+            title="Setup Documentation"
+          >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+              />
+            </svg>
+            Docs
+          </button>
+        )}
+
+        {props.onToggleKeyboardShortcuts && (
+          <div className="md:relative">
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
+                props.showKeyboardShortcuts
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+              onClick={props.onToggleKeyboardShortcuts}
+              title="Keyboard shortcuts (?)"
+            >
+              <kbd className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded border border-current px-0.5 font-mono text-[10px] font-semibold leading-none">
+                ?
+              </kbd>
+            </button>
+            {props.showKeyboardShortcuts && (
+              <KeyboardShortcutsHelp
+                onClose={props.onToggleKeyboardShortcuts}
+              />
+            )}
+          </div>
+        )}
+
+        {showExport && (
+          <div className="md:relative" ref={exportDropdownRef}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              onClick={() => {
+                setIsExportOpen(!isExportOpen);
+              }}
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                />
+              </svg>
+              Export
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                />
+              </svg>
+            </button>
+            {isExportOpen && (
+              <div
+                className="absolute left-0 right-0 z-20 mt-1 rounded-md border border-gray-200 bg-white py-1 shadow-lg md:left-auto md:w-40"
+                data-testid={LOGS_VIEWER_EXPORT_MENU_TEST_ID}
+              >
+                {props.onExportCSV && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+                    onClick={() => {
+                      setIsExportOpen(false);
+                      props.onExportCSV!();
+                    }}
+                  >
+                    Export as CSV
+                  </button>
+                )}
+                {props.onExportJSON && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+                    onClick={() => {
+                      setIsExportOpen(false);
+                      props.onExportJSON!();
+                    }}
+                  >
+                    Export as JSON
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {props.timeRange && props.onTimeRangeChange && (
+          <LogTimeRangePicker
+            value={props.timeRange}
+            onChange={props.onTimeRangeChange}
+            showResetZoom={props.showResetZoom}
+          />
+        )}
+
+        {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
+      </div>
+    </div>
+  );
+};
+
+export default LogsViewerToolbar;

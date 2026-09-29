@@ -1,0 +1,1753 @@
+import DatabaseConfig from "../DatabaseConfig";
+import { IsBillingEnabled } from "../EnvironmentConfig";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Select from "../Types/Database/Select";
+import UpdateBy from "../Types/Database/UpdateBy";
+import EditionEnforcement from "../Utils/EditionEnforcement";
+import Errors from "../Utils/Errors";
+import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
+import UserRegistrationToken from "../Utils/UserRegistrationToken";
+import AccessTokenService from "./AccessTokenService";
+import BillingService from "./BillingService";
+import DatabaseService from "./DatabaseService";
+import MailService from "./MailService";
+import ProjectService from "./ProjectService";
+import TeamPermissionService from "./TeamPermissionService";
+import TeamService from "./TeamService";
+import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationSettingService from "./UserNotificationSettingService";
+import UserService from "./UserService";
+import { AccountsRoute } from "../../ServiceRoute";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import URL from "../../Types/API/URL";
+import Route from "../../Types/API/Route";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Email from "../../Types/Email";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import Name from "../../Types/Name";
+import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Project from "../../Models/DatabaseModels/Project";
+import Team from "../../Models/DatabaseModels/Team";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import User from "../../Models/DatabaseModels/User";
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OneUptimeDate from "../../Types/Date";
+import ProjectSCIMService from "./ProjectSCIMService";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
+import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalationRuleUserService";
+import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
+import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
+import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
+import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
+import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
+import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import ProjectLeaveResourceCleanup, {
+  ProjectLeaveResourceCleanupResult,
+} from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+
+/*
+ * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
+ * for the tests. Every count is "as far as we got": a step that failed is
+ * logged and the remaining steps still run.
+ */
+export interface OnCallLeaveCleanupResult {
+  removedLayerUserCount: number;
+  removedEscalationRuleUserCount: number;
+  removedUserOverrideCount: number;
+  refreshedScheduleIds: Array<string>;
+  personalFeedDisabled: boolean;
+  removedReminderCount: number;
+  rotatedScheduleFeedIds: Array<string>;
+  rotatedProjectFeedIds: Array<string>;
+}
+
+export class TeamMemberService extends DatabaseService<TeamMember> {
+  /*
+   * Caches the user's accepted team memberships per project. Auth middleware
+   * calls this on every authenticated request to evaluate the `Owned`
+   * permission scope; without the cache it's a Postgres findBy per request.
+   * 60s of staleness on team membership changes is acceptable; we also
+   * invalidate proactively when team membership writes happen.
+   */
+  private teamIdsForUserCache: InMemoryTTLCache<Array<string>> =
+    new InMemoryTTLCache(10_000);
+
+  public constructor() {
+    super(TeamMember);
+  }
+
+  /*
+   * Whether SCIM Push Groups owns this project's team membership, which locks
+   * member invites and removals made from OneUptime and lifts the one-member
+   * guard. Never on the Community Edition: it serves no SCIM endpoint, so a
+   * leftover Push Groups setting there would leave teams nobody can manage.
+   */
+  @CaptureSpan()
+  private async isSCIMPushGroupsEnabled(projectId: ObjectID): Promise<boolean> {
+    if (!EditionEnforcement.areScimTeamLocksEnforced()) {
+      return false;
+    }
+
+    const count: PositiveNumber = await ProjectSCIMService.countBy({
+      query: {
+        projectId: projectId,
+        enablePushGroups: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    return count.toNumber() > 0;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<TeamMember>,
+  ): Promise<OnCreate<TeamMember>> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+    const teamId: ObjectID | null =
+      createBy.data.teamId || createBy.data.team?.id || null;
+
+    if (!projectId) {
+      throw new BadDataException("Project Id is required to invite a member");
+    }
+
+    if (!teamId) {
+      throw new BadDataException("Team Id is required to invite a member");
+    }
+
+    createBy.data.projectId = projectId;
+    createBy.data.teamId = teamId;
+
+    if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
+      if (
+        !createBy.props.tenantId ||
+        createBy.props.tenantId.toString() !== projectId.toString()
+      ) {
+        throw new NotAuthorizedException(
+          "Team members can only be managed inside the current project.",
+        );
+      }
+
+      const team: Team | null = await TeamService.findOneBy({
+        query: {
+          _id: teamId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!team) {
+        throw new BadDataException("Invalid Team ID");
+      }
+
+      await TeamPermissionService.assertCanGrantTeamPermissions({
+        teamId: teamId,
+        projectId: projectId,
+        props: createBy.props,
+      });
+    }
+
+    // Check if SCIM is enabled for the project
+    if (
+      !createBy.props.isRoot &&
+      (await this.isSCIMPushGroupsEnabled(
+        createBy.data.projectId! || createBy.props.tenantId,
+      ))
+    ) {
+      throw new BadDataException(
+        "Cannot invite team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
+      );
+    }
+
+    // check if this project can have more members.
+    if (IsBillingEnabled && createBy.data.projectId) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: createBy.data.projectId!,
+        select: {
+          seatLimit: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      /*
+       * Billing can lag after a provider outage. Admission limits must use
+       * persisted memberships, including pending invitations.
+       */
+      const numberOfMembers: number =
+        project &&
+        (project.seatLimit || createBy.props.currentPlan === PlanType.Free)
+          ? await this.getUniqueTeamMemberCountInProject(projectId)
+          : 0;
+
+      if (
+        project &&
+        project.seatLimit &&
+        numberOfMembers >= project.seatLimit
+      ) {
+        throw new BadDataException(Errors.TeamMemberService.LIMIT_REACHED);
+      }
+
+      if (
+        createBy.props.currentPlan === PlanType.Free &&
+        project &&
+        numberOfMembers >= 1
+      ) {
+        throw new BadDataException(
+          Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+        );
+      }
+    }
+
+    /*
+     * Only internal writes (isRoot) and a master admin acting from the Admin
+     * Dashboard may create a membership that is already accepted - that is the
+     * "accept the invitation automatically" checkbox on the admin invite forms.
+     *
+     * Everyone else invites, and the invited person accepts for themselves. A
+     * project admin who could accept on someone's behalf would be able to pull
+     * an account into their project - and into whatever the team's permissions
+     * grant - without that person ever agreeing to it.
+     */
+    const canCreateAcceptedInvitation: boolean = Boolean(
+      createBy.props.isRoot || createBy.props.isMasterAdmin,
+    );
+
+    if (!canCreateAcceptedInvitation) {
+      createBy.data.hasAcceptedInvitation = false;
+    }
+
+    const isInvitationAcceptedOnCreate: boolean = Boolean(
+      createBy.data.hasAcceptedInvitation,
+    );
+
+    /*
+     * The acceptance timestamp is stamped here rather than taken from the
+     * request, so it can never disagree with hasAcceptedInvitation - a row that
+     * says "Member" with no accepted-at date, or an accepted-at date on a row
+     * that is still only invited.
+     */
+    if (isInvitationAcceptedOnCreate) {
+      createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createBy.data.invitationAcceptedAt;
+    }
+
+    if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
+      const email: Email = new Email(createBy.miscDataProps["email"] as string);
+
+      /*
+       * Optional name supplied on the invite form. Used only to set the name on
+       * a brand-new user, or to backfill an existing user who has no name yet —
+       * we never overwrite a name the user has already set.
+       */
+      const nameValue: string | undefined = createBy.miscDataProps["name"]
+        ? (createBy.miscDataProps["name"] as string).trim()
+        : undefined;
+
+      /*
+       * `password` comes back too, because whether this person has finished
+       * registering decides both which link the invitation carries and whether
+       * that link needs a registration token. UserService.findByEmail selects
+       * only the id, so it cannot answer that.
+       */
+      let user: User | null = await UserService.findOneBy({
+        query: {
+          email: email,
+        },
+        select: {
+          _id: true,
+          password: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      let isNewUser: boolean = false;
+
+      if (!user) {
+        isNewUser = true;
+
+        user = await UserService.createByEmail({
+          email,
+          name: nameValue ? new Name(nameValue) : undefined,
+          // Record who invited this brand-new user, so it can be surfaced later.
+          createdByUserId: createBy.props.userId,
+          props: {
+            isRoot: true,
+          },
+        });
+      } else if (nameValue) {
+        /*
+         * User already exists. Backfill their name only if they don't have one
+         * yet; if they already have a name, leave it untouched.
+         */
+        const existingUser: User | null = await UserService.findOneById({
+          id: user.id!,
+          select: {
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (existingUser && !existingUser.name?.toString()) {
+          await UserService.updateOneById({
+            id: user.id!,
+            data: {
+              name: new Name(nameValue),
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      }
+
+      createBy.data.userId = user.id!;
+
+      const project: Project | null = await ProjectService.findOneById({
+        id: createBy.data.projectId!,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (project) {
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        /*
+         * "Still has to register", not "we just created the row". Someone
+         * invited to a second project before they ever signed up already has a
+         * user row and still has no password, and used to be sent the sign-in
+         * link — which they could not use, having no password to sign in with.
+         */
+        const needsRegistration: boolean = isNewUser || !user.password;
+
+        /*
+         * The token is what lets the recipient claim this account, so it exists
+         * only on the link inside this email and only for someone who has not
+         * registered yet. An already-registered invitee gets the plain link;
+         * they sign in instead, and minting a claim token for an account that
+         * cannot be claimed would just be a spare key lying around.
+         */
+        const registerLink: string = needsRegistration
+          ? (
+              await UserRegistrationToken.generateRegistrationLink({
+                userId: user.id!,
+                email: email,
+              })
+            ).toString()
+          : URL.fromString(
+              new URL(
+                httpProtocol,
+                host,
+                new Route(AccountsRoute.toString()),
+              ).toString(),
+            )
+              .addRoute("/register")
+              .addQueryParam("email", email.toString(), true)
+              .toString();
+
+        MailService.sendMail(
+          {
+            toEmail: email,
+            templateType: EmailTemplateType.InviteMember,
+            vars: {
+              signInLink: URL.fromString(
+                new URL(
+                  httpProtocol,
+                  host,
+                  new Route(AccountsRoute.toString()),
+                ).toString(),
+              ).toString(),
+              registerLink: registerLink,
+              isNewUser: needsRegistration.toString(),
+              /*
+               * An auto-accepted member has nothing left to accept, so the
+               * template drops the "sign in to accept your invitation" framing
+               * and tells them they are already in.
+               */
+              isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
+              projectName: project.name!,
+              homeUrl: new URL(httpProtocol, host).toString(),
+            },
+            subject: isInvitationAcceptedOnCreate
+              ? "You have been added to " + project.name
+              : "You have been invited to " + project.name,
+            isSubjectLiteral: true,
+          },
+          {
+            projectId: createBy.data.projectId!,
+            userId: user.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: createBy.data.projectId?.toString(),
+            userId: user?.id?.toString(),
+          } as LogAttributes);
+        });
+      }
+    }
+
+    //check if this user is already invited.
+
+    const member: TeamMember | null = await this.findOneBy({
+      query: {
+        userId: createBy.data.userId!,
+        teamId: createBy.data.teamId || new ObjectID(createBy.data.team!._id!),
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
+
+    if (member) {
+      throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<TeamMember>,
+  ): Promise<OnUpdate<TeamMember>> {
+    /*
+     * CurrentUser may set this column so an invitee can accept a pending
+     * invitation. The inverse transition is not a safe way to leave: merely
+     * flipping the flag bypasses the delete hook that removes notification
+     * settings, on-call assignments, calendar feeds, and cached permissions.
+     * Force ordinary users through the established delete/leave path instead.
+     */
+    if (
+      updateBy.data.hasAcceptedInvitation === false &&
+      !updateBy.props.isRoot &&
+      !updateBy.props.isMasterAdmin
+    ) {
+      throw new NotAuthorizedException(
+        "An accepted team membership must be removed through the leave flow.",
+      );
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public async refreshTokens(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    /*
+     * Invalidate the in-process cache of this user's team memberships in
+     * this project — membership just changed.
+     */
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+
+    /// Refresh tokens.
+    await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+
+    await AccessTokenService.refreshUserTenantAccessPermission(
+      userId,
+      projectId,
+    );
+  }
+
+  /*
+   * The per-project notification defaults a member gets the moment their
+   * membership becomes accepted, whether that happened by them accepting the
+   * invitation or by a master admin accepting it for them on create. Without
+   * these, an auto-accepted member is a member who is never notified about
+   * anything.
+   *
+   * Skipped for an unverified email: UserService adds the defaults for every
+   * accepted membership once the address is verified.
+   *
+   * Best effort. Both helpers below are idempotent, and by the time either
+   * caller runs, the membership row is already committed - failing the write
+   * that created it would report "invite failed" for a member who exists.
+   */
+  @CaptureSpan()
+  private async addDefaultNotificationSettingsAndRules(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    user?: User | undefined;
+  }): Promise<void> {
+    try {
+      const user: User | null =
+        data.user ||
+        (await UserService.findOneById({
+          id: data.userId,
+          select: {
+            email: true,
+            isEmailVerified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        }));
+
+      if (!user || !user.isEmailVerified || !user.email) {
+        return;
+      }
+
+      await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+        data.userId,
+        data.projectId,
+      );
+
+      await UserNotificationRuleService.addDefaultNotificationRuleForUser(
+        data.projectId,
+        data.userId,
+        user.email,
+      );
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<TeamMember>,
+    createdItem: TeamMember,
+  ): Promise<TeamMember> {
+    await this.refreshTokens(
+      onCreate.createBy.data.userId!,
+      onCreate.createBy.data.projectId!,
+    );
+
+    await this.syncSubscriptionSeatsAfterMembershipChange(
+      onCreate.createBy.data.projectId!,
+    );
+
+    /*
+     * A membership created already accepted never goes through the
+     * accept-invitation update, so it would otherwise miss the defaults that
+     * hook adds.
+     */
+    if (createdItem.hasAcceptedInvitation) {
+      await this.addDefaultNotificationSettingsAndRules({
+        userId: onCreate.createBy.data.userId!,
+        projectId: onCreate.createBy.data.projectId!,
+      });
+    }
+
+    // Activation event for marketing funnels, attributed to the inviter.
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId,
+      event: "server/team_member_invited",
+      properties: {
+        project_id: onCreate.createBy.data.projectId?.toString() || "",
+        has_accepted_invitation: Boolean(createdItem.hasAcceptedInvitation),
+      },
+    });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<TeamMember>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<TeamMember>> {
+    const updateBy: UpdateBy<TeamMember> = onUpdate.updateBy;
+    const items: Array<TeamMember> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(updatedItemIds),
+      },
+      select: {
+        userId: true,
+        user: {
+          email: true,
+          isEmailVerified: true,
+        } as Select<User>,
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const item of items) {
+      await this.refreshTokens(item.userId!, item.projectId!);
+
+      if (updateBy.data.hasAcceptedInvitation) {
+        await this.addDefaultNotificationSettingsAndRules({
+          userId: item.userId!,
+          projectId: item.projectId!,
+          user: item.user,
+        });
+      }
+    }
+
+    return { updateBy, carryForward: onUpdate.carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<TeamMember>,
+  ): Promise<OnDelete<TeamMember>> {
+    const members: Array<TeamMember> = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        userId: true,
+        projectId: true,
+        teamId: true,
+        hasAcceptedInvitation: true,
+        team: {
+          _id: true,
+          shouldHaveAtLeastOneMember: true,
+        } as Select<TeamMember>,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Check if SCIM is enabled for the project
+    if (
+      // check if not root.
+      !deleteBy.props.isRoot &&
+      members.length > 0 &&
+      members[0]?.projectId &&
+      (await this.isSCIMPushGroupsEnabled(members[0].projectId))
+    ) {
+      throw new BadDataException(
+        "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
+      );
+    }
+
+    // check if there's one member in the team.
+    for (const member of members) {
+      OnCallDutyPolicyTimeLogService.endTimeForUser({
+        projectId: member.projectId!,
+        userId: member.userId!,
+        /*
+         * scope to the team being left so the user's still-active logs from
+         * other teams, direct escalation assignments, and schedule rosters stay
+         * open (audit F17).
+         */
+        teamId: member.teamId!,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: member.projectId?.toString(),
+          userId: member.userId?.toString(),
+        } as LogAttributes);
+      });
+
+      if (member.team?.shouldHaveAtLeastOneMember) {
+        if (!member.hasAcceptedInvitation) {
+          continue;
+        }
+
+        const membersInTeam: PositiveNumber = await this.countBy({
+          query: {
+            teamId: member.teamId!,
+            hasAcceptedInvitation: true,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        // Skip the one-member guard when SCIM manages membership for the project.
+        const isPushGroupsManaged: boolean = await this.isSCIMPushGroupsEnabled(
+          member.projectId!,
+        );
+
+        if (!isPushGroupsManaged && membersInTeam.toNumber() <= 1) {
+          throw new BadDataException(
+            Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
+          );
+        }
+      }
+    }
+
+    return {
+      deleteBy: deleteBy,
+      carryForward: members,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<TeamMember>,
+  ): Promise<OnDelete<TeamMember>> {
+    /*
+     * remove-user-from-project deletes every membership of one user in one
+     * deleteBy, so the same (user, project) can appear several times here;
+     * the leave cleanups are idempotent but not free, so run them once.
+     */
+    const leaveCleanupDone: Set<string> = new Set<string>();
+
+    /*
+     * Whether ANY of the deleted rows for a (user, project) was an ACCEPTED
+     * membership. Revoking a pending invitation also brings the accepted
+     * count to zero, but someone who never accepted never had feed access —
+     * rotating every opted-in shared feed for that would clear each
+     * teammate's subscribed calendar for nothing (see
+     * cleanupOnCallAssignmentsIfUserLeftProject).
+     */
+    const acceptedMembershipKeys: Set<string> = new Set<string>();
+    for (const item of onDelete.carryForward as Array<TeamMember>) {
+      if (item.hasAcceptedInvitation && item.userId && item.projectId) {
+        acceptedMembershipKeys.add(
+          `${item.userId.toString()}:${item.projectId.toString()}`,
+        );
+      }
+    }
+
+    /*
+     * Revoke first, once per (user, project), each on its own. A delete can
+     * cover several users - a team, a SCIM group - and a failure in one
+     * user's cleanup below must not leave a later one with the permissions of
+     * the membership that was just removed: their cached entries would still
+     * list the project, and nothing would refresh them again. A failure is
+     * reported once everything else has run.
+     */
+    const refreshedKeys: Set<string> = new Set<string>();
+    let refreshError: Error | null = null;
+
+    for (const item of onDelete.carryForward as Array<TeamMember>) {
+      if (!item.userId || !item.projectId) {
+        continue;
+      }
+
+      const refreshKey: string = `${item.userId.toString()}:${item.projectId.toString()}`;
+
+      if (refreshedKeys.has(refreshKey)) {
+        continue;
+      }
+
+      refreshedKeys.add(refreshKey);
+
+      try {
+        await this.refreshTokens(item.userId, item.projectId);
+      } catch (err) {
+        refreshError = refreshError || (err as Error);
+
+        logger.error(
+          err as Error,
+          {
+            projectId: item.projectId.toString(),
+            userId: item.userId.toString(),
+          } as LogAttributes,
+        );
+
+        // Fall back to dropping the cached entries: a missing entry is rebuilt from the memberships.
+        await AccessTokenService.clearCachedPermissions(
+          item.userId,
+          item.projectId,
+        ).catch((clearError: Error) => {
+          logger.error(clearError, {
+            projectId: item.projectId?.toString(),
+            userId: item.userId?.toString(),
+          } as LogAttributes);
+        });
+      }
+    }
+
+    for (const item of onDelete.carryForward as Array<TeamMember>) {
+      await this.syncSubscriptionSeatsAfterMembershipChange(item.projectId!);
+
+      /*
+       * Before the notification settings go: the "removed from on-call
+       * policy" notices the cleanup triggers should still reach the person,
+       * exactly as they would for a manual removal. Then their roles on open
+       * incidents and their owner rows (see
+       * cleanupResourceAssignmentsIfUserLeftProject).
+       */
+      const cleanupKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
+      if (!leaveCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
+        leaveCleanupDone.add(cleanupKey);
+        await this.cleanupOnCallAssignmentsIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+          hadAcceptedMembership: acceptedMembershipKeys.has(cleanupKey),
+        });
+        await this.cleanupResourceAssignmentsIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
+        /*
+         * After the resource cleanup: its "removed as owner / role" workspace
+         * posts can still mention the person through their chat account link.
+         */
+        await this.removeWorkspaceAccountLinksIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
+      }
+
+      await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
+        item.userId!,
+        item.projectId!,
+      );
+    }
+
+    if (refreshError) {
+      throw refreshError;
+    }
+
+    return onDelete;
+  }
+
+  /**
+   * Run the on-call cleanup when — and only when — the user no longer holds
+   * an accepted membership in ANY team of the project: the same rule
+   * removeDefaultNotificationSettingsForUser applies. A user who merely left
+   * one of several teams keeps every on-call assignment. Best-effort: never
+   * throws into the delete path.
+   *
+   * hadAcceptedMembership (default true): whether the membership rows that
+   * were just deleted included an ACCEPTED one. Revoking a never-accepted
+   * invitation passes false — the row cleanup still runs, but the opted-in
+   * shared feeds are NOT rotated: the invitee never had the links or any
+   * access, and rotation would silently clear every teammate's subscribed
+   * calendar.
+   */
+  @CaptureSpan()
+  public async cleanupOnCallAssignmentsIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    hadAcceptedMembership?: boolean | undefined;
+  }): Promise<OnCallLeaveCleanupResult | null> {
+    try {
+      const remaining: PositiveNumber = await this.countBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+          hasAcceptedInvitation: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (remaining.toNumber() > 0) {
+        return null;
+      }
+
+      return await this.cleanupOnCallAssignmentsForUserLeavingProject({
+        projectId: data.projectId,
+        userId: data.userId,
+        rotateSharedFeeds: data.hadAcceptedMembership !== false,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Take a departed user off the project's open incidents and episodes (their
+   * roles) and off everything they own, under the same rule as
+   * cleanupOnCallAssignmentsIfUserLeftProject: only once they hold no
+   * accepted membership in any team of the project. A revoked invitation runs
+   * it too — a pending invitee has no business owning anything either.
+   * Best-effort: never throws into the delete path. See
+   * ProjectLeaveResourceCleanup.cleanupForUserLeavingProject for what goes.
+   */
+  @CaptureSpan()
+  public async cleanupResourceAssignmentsIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveResourceCleanupResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveResourceCleanup.cleanupForUserLeavingProject({
+        projectId: data.projectId,
+        userId: data.userId,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * A user who has left the project must stop acting in it from Slack or
+   * Microsoft Teams. Their WorkspaceUserAuthToken rows for the project are
+   * what map a chat account to them, and nothing removed those rows on leave:
+   * only uninstalling the app or disconnecting the workspace did. So once the
+   * user holds no accepted membership in ANY team of the project, delete them.
+   * Deleting through the service also removes the Slack / Teams notification
+   * methods that point at them (see WorkspaceUserAuthTokenService).
+   *
+   * The chat handlers check membership on every action as well; this keeps
+   * the table from holding links for people who are gone. Best-effort: never
+   * throws into the delete path. Returns how many links were removed.
+   */
+  @CaptureSpan()
+  public async removeWorkspaceAccountLinksIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<number> {
+    try {
+      const remaining: PositiveNumber = await this.countBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+          hasAcceptedInvitation: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (remaining.toNumber() > 0) {
+        return 0;
+      }
+
+      return await WorkspaceUserAuthTokenService.deleteBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        "Error removing the Slack / Microsoft Teams account links of a user who left the project (best-effort).",
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return 0;
+    }
+  }
+
+  /**
+   * A user who has left the project must stop being paged and must stop
+   * seeing the project's shifts. Nothing used to do this: their layer-user
+   * and escalation-rule-user rows survived, so schedules kept rotating onto
+   * an ex-member and policies kept escalating to them. In order:
+   *
+   *   1. delete the user's OnCallDutyPolicyScheduleLayerUser rows in the
+   *      project (root; the layers' 1-based order is re-sequenced),
+   *   2. delete the user's OnCallDutyPolicyEscalationRuleUser rows through
+   *      the service, so its hooks close the time logs, write the policy feed
+   *      items and notify as a manual removal would,
+   *   3. delete the project's not-yet-ended OnCallDutyPolicyUserOverride rows
+   *      that name the user on EITHER side (as the overridden user or as the
+   *      substitute), through the service — an override "route my alerts to
+   *      Bob" would keep paging a departed Bob, and "route Alice's alerts to
+   *      me" would keep the departed user's covering shifts in the feeds and
+   *      in /my-shifts; the service's hooks write the policy feed items,
+   *      refresh the overridden colleagues' rosters and propagate,
+   *   4. re-resolve the roster of every affected schedule (this pages the
+   *      person who is now on call — intended: who gets paged changed),
+   *   5. bump those schedules' shiftConfigVersion, purge the feed caches and
+   *      notify the shift-change listeners (reminders re-plan),
+   *   6. disable — not delete — the user's personal calendar feed for the
+   *      project, so their subscribed calendar clears itself,
+   *   7. delete the user's shift reminders in the project,
+   *   8. rotate every enabled schedule / project feed that opted into
+   *      rotateWhenMemberLeaves, and purge the project's feed bodies —
+   *      skipped when rotateSharedFeeds is false (a revoked never-accepted
+   *      invitation: the invitee never had the links).
+   *
+   * Each step is isolated: a failure is logged and the next step still runs.
+   * Unconditional — callers decide whether the user really left (see
+   * cleanupOnCallAssignmentsIfUserLeftProject).
+   */
+  @CaptureSpan()
+  public async cleanupOnCallAssignmentsForUserLeavingProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    rotateSharedFeeds?: boolean | undefined;
+  }): Promise<OnCallLeaveCleanupResult> {
+    const { projectId, userId } = data;
+
+    const logAttributes: LogAttributes = {
+      projectId: projectId.toString(),
+      userId: userId.toString(),
+    } as LogAttributes;
+
+    const result: OnCallLeaveCleanupResult = {
+      removedLayerUserCount: 0,
+      removedEscalationRuleUserCount: 0,
+      removedUserOverrideCount: 0,
+      refreshedScheduleIds: [],
+      personalFeedDisabled: false,
+      removedReminderCount: 0,
+      rotatedScheduleFeedIds: [],
+      rotatedProjectFeedIds: [],
+    };
+
+    const affectedScheduleIds: Array<ObjectID> = [];
+    const affectedLayerIds: Array<ObjectID> = [];
+
+    // 1. Layer-user rows.
+    try {
+      const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+        await OnCallDutyPolicyScheduleLayerUserService.findBy({
+          query: {
+            projectId,
+            userId,
+          },
+          select: {
+            _id: true,
+            onCallDutyPolicyScheduleId: true,
+            onCallDutyPolicyScheduleLayerId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const seenSchedules: Set<string> = new Set<string>();
+      const seenLayers: Set<string> = new Set<string>();
+
+      for (const row of layerUsers) {
+        const scheduleId: string | undefined =
+          row.onCallDutyPolicyScheduleId?.toString();
+        if (scheduleId && !seenSchedules.has(scheduleId)) {
+          seenSchedules.add(scheduleId);
+          affectedScheduleIds.push(row.onCallDutyPolicyScheduleId!);
+        }
+
+        const layerId: string | undefined =
+          row.onCallDutyPolicyScheduleLayerId?.toString();
+        if (layerId && !seenLayers.has(layerId)) {
+          seenLayers.add(layerId);
+          affectedLayerIds.push(row.onCallDutyPolicyScheduleLayerId!);
+        }
+      }
+
+      if (layerUsers.length > 0) {
+        result.removedLayerUserCount =
+          await OnCallDutyPolicyScheduleLayerUserService.deleteBy({
+            query: {
+              projectId,
+              userId,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        for (const layerId of affectedLayerIds) {
+          try {
+            await OnCallDutyPolicyScheduleLayerUserService.resequenceOrderInLayer(
+              layerId,
+            );
+          } catch (err) {
+            logger.error(err as Error, logAttributes);
+          }
+        }
+      }
+    } catch (err) {
+      logger.error(
+        "Error removing on-call schedule layer users for a user who left the project (best-effort).",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
+    // 2. Escalation-rule user rows (through the service so its hooks run).
+    try {
+      const ruleUserCount: PositiveNumber =
+        await OnCallDutyPolicyEscalationRuleUserService.countBy({
+          query: {
+            projectId,
+            userId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (ruleUserCount.toNumber() > 0) {
+        result.removedEscalationRuleUserCount =
+          await OnCallDutyPolicyEscalationRuleUserService.deleteBy({
+            query: {
+              projectId,
+              userId,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+      }
+    } catch (err) {
+      logger.error(
+        "Error removing escalation-rule users for a user who left the project (best-effort).",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
+    /*
+     * 3. Not-yet-ended user overrides that name the user on either side.
+     *    Deleted THROUGH the service so its hooks write the policy feed
+     *    items, refresh the overridden colleagues' rosters and propagate
+     *    (version bump, cache purge, reminder re-plan). Ended overrides are
+     *    history and stay. overrideUserId and routeAlertsToUserId can never
+     *    be the same user (enforced on create), so the two deletes are
+     *    disjoint.
+     */
+    try {
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      result.removedUserOverrideCount +=
+        await OnCallDutyPolicyUserOverrideService.deleteBy({
+          query: {
+            projectId,
+            overrideUserId: userId,
+            endsAt: QueryHelper.greaterThan(now),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      result.removedUserOverrideCount +=
+        await OnCallDutyPolicyUserOverrideService.deleteBy({
+          query: {
+            projectId,
+            routeAlertsToUserId: userId,
+            endsAt: QueryHelper.greaterThan(now),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+    } catch (err) {
+      logger.error(
+        "Error removing user overrides for a user who left the project (best-effort).",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
+    // 4. Rosters of the affected schedules.
+    for (const scheduleId of affectedScheduleIds) {
+      try {
+        await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          scheduleId,
+        );
+        result.refreshedScheduleIds.push(scheduleId.toString());
+      } catch (err) {
+        logger.error(
+          `Error refreshing the roster of schedule ${scheduleId.toString()} after a member left the project (best-effort).`,
+          logAttributes,
+        );
+        logger.error(err as Error, logAttributes);
+      }
+    }
+
+    // 5. Version bump, cache purge, listeners (never throws).
+    await OnCallDutyPolicyScheduleService.propagateShiftConfigChange({
+      scheduleIds: affectedScheduleIds,
+      projectId,
+      userIds: [userId],
+      reason: OnCallShiftChangeReason.MemberLeftProject,
+    });
+
+    // 6. Personal calendar feed: disabled, not deleted.
+    try {
+      const feeds: PositiveNumber = await UserOnCallCalendarFeedService.countBy(
+        {
+          query: {
+            projectId,
+            userId,
+          },
+          props: {
+            isRoot: true,
+          },
+        },
+      );
+
+      if (feeds.toNumber() > 0) {
+        await UserOnCallCalendarFeedService.updateOneBy({
+          query: {
+            projectId,
+            userId,
+          },
+          data: {
+            isEnabled: false,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        result.personalFeedDisabled = true;
+      }
+
+      await OnCallCalendarFeedCache.purgeForUser(
+        projectId.toString(),
+        userId.toString(),
+      );
+    } catch (err) {
+      logger.error(
+        "Error disabling the personal calendar feed of a user who left the project (best-effort).",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
+    // 7. Shift reminders.
+    try {
+      result.removedReminderCount =
+        await UserOnCallShiftReminderService.deleteBy({
+          query: {
+            projectId,
+            userId,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+    } catch (err) {
+      logger.error(
+        "Error removing shift reminders of a user who left the project (best-effort).",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
+    /*
+     * 8. Shared feeds that opted into rotation on member leave. Skipped when
+     *    the caller says no ACCEPTED membership went away (a revoked pending
+     *    invitation): the invitee never had the links, and rotating would
+     *    clear every subscribed teammate's calendar for nothing.
+     */
+    if (data.rotateSharedFeeds !== false) {
+      try {
+        const rotatedScheduleFeedIds: Array<ObjectID> =
+          await OnCallDutyPolicyScheduleCalendarFeedService.rotateFeedsForMemberLeave(
+            { projectId },
+          );
+
+        result.rotatedScheduleFeedIds = rotatedScheduleFeedIds.map(
+          (id: ObjectID) => {
+            return id.toString();
+          },
+        );
+      } catch (err) {
+        logger.error(
+          "Error rotating schedule calendar feeds after a member left the project (best-effort).",
+          logAttributes,
+        );
+        logger.error(err as Error, logAttributes);
+      }
+
+      try {
+        const rotatedProjectFeedIds: Array<ObjectID> =
+          await ProjectOnCallCalendarFeedService.rotateFeedsForMemberLeave({
+            projectId,
+          });
+
+        result.rotatedProjectFeedIds = rotatedProjectFeedIds.map(
+          (id: ObjectID) => {
+            return id.toString();
+          },
+        );
+      } catch (err) {
+        logger.error(
+          "Error rotating the project calendar feed after a member left the project (best-effort).",
+          logAttributes,
+        );
+        logger.error(err as Error, logAttributes);
+      }
+
+      if (
+        result.rotatedScheduleFeedIds.length > 0 ||
+        result.rotatedProjectFeedIds.length > 0
+      ) {
+        try {
+          await OnCallCalendarFeedCache.purgeForProject(projectId.toString());
+        } catch (err) {
+          logger.error(err as Error, logAttributes);
+        }
+      }
+    }
+
+    logger.debug(
+      `On-call cleanup for a user leaving the project: ${JSON.stringify(result)}`,
+      logAttributes,
+    );
+
+    return result;
+  }
+
+  @CaptureSpan()
+  public async getUniqueTeamMemberCountInProject(
+    projectId: ObjectID,
+  ): Promise<number> {
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        projectId: projectId!,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        userId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    const memberIds: Array<string | undefined> = members
+      .map((member: TeamMember) => {
+        return member.userId?.toString();
+      })
+      .filter((memberId: string | undefined) => {
+        return Boolean(memberId);
+      });
+
+    return [...new Set(memberIds)].length; //get unique member ids.
+  }
+
+  /**
+   * Every member row of the teams, pending invitations included. Pass
+   * acceptedOnly for the accepted rows alone - the only ones that grant the
+   * team's permissions and come with notification settings.
+   */
+  @CaptureSpan()
+  public async getUsersInTeams(
+    teamIds: Array<ObjectID>,
+    options?: { acceptedOnly?: boolean | undefined } | undefined,
+  ): Promise<Array<User>> {
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        teamId: QueryHelper.any(teamIds),
+        ...(options?.acceptedOnly ? { hasAcceptedInvitation: true } : {}),
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        user: {
+          _id: true,
+          email: true,
+          name: true,
+          timezone: true,
+        } as Select<User>,
+      },
+
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    const uniqueUserIds: Set<string> = new Set<string>();
+    const uniqueMembers: TeamMember[] = members.filter((member: TeamMember) => {
+      const userId: string | undefined = member.user?._id?.toString();
+      if (userId && !uniqueUserIds.has(userId)) {
+        uniqueUserIds.add(userId);
+        return true;
+      }
+      return false;
+    });
+
+    return uniqueMembers.map((member: TeamMember) => {
+      return member.user!;
+    });
+  }
+
+  @CaptureSpan()
+  public async getUsersInTeam(teamId: ObjectID): Promise<Array<User>> {
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        teamId: teamId,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        user: {
+          _id: true,
+          email: true,
+          name: true,
+        } as Select<User>,
+      },
+
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    return members.map((member: TeamMember) => {
+      return member.user!;
+    });
+  }
+
+  /**
+   * The membership write has already committed. A payment-provider outage
+   * must not report a failed invite or prevent removal cleanup. The scheduled
+   * seat reconciliation retries projects whose acknowledged count is stale.
+   */
+  @CaptureSpan()
+  private async syncSubscriptionSeatsAfterMembershipChange(
+    projectId: ObjectID,
+  ): Promise<void> {
+    try {
+      await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(projectId);
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: projectId.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  @CaptureSpan()
+  public async updateSubscriptionSeatsByUniqueTeamMembersInProject(
+    projectId: ObjectID,
+  ): Promise<void> {
+    if (!IsBillingEnabled) {
+      return;
+    }
+
+    /*
+     * Serialize the request and worker paths, then read the latest count so
+     * an older synchronization cannot overwrite a newer seat quantity.
+     */
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "team-member-subscription-seats",
+      lockTimeout: 60000,
+      acquireTimeout: 5000,
+    });
+
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          paymentProviderSubscriptionId: true,
+          paymentProviderPlanId: true,
+          paymentProviderSubscriptionSeats: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        !project?.paymentProviderSubscriptionId ||
+        !project.paymentProviderPlanId
+      ) {
+        return;
+      }
+
+      const plan: SubscriptionPlan | undefined =
+        SubscriptionPlan.getSubscriptionPlanById(project.paymentProviderPlanId);
+
+      if (!plan) {
+        return;
+      }
+
+      const numberOfMembers: number =
+        await this.getUniqueTeamMemberCountInProject(projectId);
+
+      if (project.paymentProviderSubscriptionSeats === numberOfMembers) {
+        return;
+      }
+
+      /*
+       * The provider may apply the quantity and then time out. Persist that
+       * uncertainty before calling it, so even a later return to the previous
+       * member count cannot make reconciliation mistake the seats for synced.
+       */
+      const invalidated: number = await ProjectService.updateSubscriptionSeats({
+        projectId: projectId,
+        subscriptionId: project.paymentProviderSubscriptionId,
+        planId: project.paymentProviderPlanId,
+        seats: null,
+      });
+
+      if (invalidated === 0) {
+        return;
+      }
+
+      await BillingService.changeQuantity(
+        project.paymentProviderSubscriptionId,
+        numberOfMembers,
+      );
+
+      await ProjectService.updateSubscriptionSeats({
+        projectId: projectId,
+        subscriptionId: project.paymentProviderSubscriptionId,
+        planId: project.paymentProviderPlanId,
+        seats: numberOfMembers,
+      });
+    } finally {
+      await Semaphore.release(mutex);
+    }
+  }
+
+  /*
+   * Returns the IDs of teams the given user has accepted membership in,
+   * scoped to a single project. Used by the `Owned` permission scope to
+   * resolve "any of the user's teams owns this resource."
+   */
+  @CaptureSpan()
+  public async getTeamIdsForUser(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    const cacheKey: string = `${userId.toString()}:${projectId.toString()}`;
+    const cached: Array<string> | undefined =
+      this.teamIdsForUserCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached.map((id: string) => {
+        return new ObjectID(id);
+      });
+    }
+
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        userId: userId,
+        projectId: projectId,
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        teamId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    const teamIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+    for (const member of members) {
+      const id: ObjectID | undefined = member.teamId;
+      if (id && !seen.has(id.toString())) {
+        seen.add(id.toString());
+        teamIds.push(id);
+      }
+    }
+
+    this.teamIdsForUserCache.set(
+      cacheKey,
+      teamIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+      60_000,
+    );
+    return teamIds;
+  }
+
+  /*
+   * Whether the user holds an accepted membership in any team of the project.
+   * A pending invitee is not a member yet, and someone removed from every
+   * team is not one any more — their notification settings are gone, so
+   * nothing addressed to them from this project reaches them.
+   */
+  @CaptureSpan()
+  public async isUserMemberOfProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        projectId: data.projectId,
+        userId: data.userId,
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return count.toNumber() > 0;
+  }
+
+  /*
+   * The ids among `userIds` that belong to members of the project (see
+   * isUserMemberOfProject), in their input order, each once. Ids stored in
+   * saved configuration can arrive as plain strings; they come back as ids.
+   */
+  @CaptureSpan()
+  public async getProjectMemberUserIds(data: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID | string>;
+  }): Promise<Array<ObjectID>> {
+    const requested: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const userId of data.userIds) {
+      const value: string = userId?.toString() || "";
+
+      if (value && !requested.has(value.toLowerCase())) {
+        requested.set(value.toLowerCase(), new ObjectID(value));
+      }
+    }
+
+    if (requested.size === 0) {
+      return [];
+    }
+
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        userId: QueryHelper.any(Array.from(requested.values())),
+        hasAcceptedInvitation: true,
+      },
+      select: {
+        userId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const memberIds: Set<string> = new Set<string>(
+      members.map((member: TeamMember): string => {
+        return member.userId?.toString().toLowerCase() || "";
+      }),
+    );
+
+    return Array.from(requested.entries())
+      .filter(([key]: [string, ObjectID]): boolean => {
+        return memberIds.has(key);
+      })
+      .map(([, userId]: [string, ObjectID]): ObjectID => {
+        return userId;
+      });
+  }
+
+  /*
+   * `users` without the ones who are not members of the project. Owner lists
+   * use it so an owner who left is neither notified nor reported as
+   * notified, and a resource whose owners have all left falls back to the
+   * project owners.
+   */
+  @CaptureSpan()
+  public async filterUsersToProjectMembers(data: {
+    projectId: ObjectID;
+    users: Array<User>;
+  }): Promise<Array<User>> {
+    if (data.users.length === 0) {
+      return [];
+    }
+
+    const memberIds: Set<string> = new Set<string>(
+      (
+        await this.getProjectMemberUserIds({
+          projectId: data.projectId,
+          userIds: data.users
+            .map((user: User): string => {
+              return user?.id?.toString() || "";
+            })
+            .filter(Boolean),
+        })
+      ).map((userId: ObjectID): string => {
+        return userId.toString().toLowerCase();
+      }),
+    );
+
+    return data.users.filter((user: User): boolean => {
+      return Boolean(
+        user?.id && memberIds.has(user.id.toString().toLowerCase()),
+      );
+    });
+  }
+}
+
+export default new TeamMemberService();

@@ -1,0 +1,1655 @@
+import RunCron from "../../Utils/Cron";
+import { getActiveSessionsKey, getEndedSessionsKey } from "./FinalizeSessions";
+import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
+import {
+  ERASURE_TOMBSTONE_TTL_SECONDS,
+  getErasedSessionsKey,
+  writeErasureTombstones,
+} from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
+import RumSessionErasureRequest, {
+  RumSessionErasureRequestStatus,
+  RumSessionErasureRequestType,
+} from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import RumSessionErasureRequestService from "Common/Server/Services/RumSessionErasureRequestService";
+import RumSessionPinService from "Common/Server/Services/RumSessionPinService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import LogService from "Common/Server/Services/LogService";
+import SpanService from "Common/Server/Services/SpanService";
+import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
+import RumSessionService from "Common/Server/Services/RumSessionService";
+import AnalyticsDatabaseService, {
+  ClickhouseExecuteOptions,
+  MigrationExecuteOptions,
+} from "Common/Server/Services/AnalyticsDatabaseService";
+import {
+  getStorageTableName,
+  onClusterClause,
+} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
+import {
+  SQL,
+  Statement,
+  StatementParameter,
+} from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
+import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
+import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
+
+/*
+ * ------------------------------------------------------------------
+ * Rum:ProcessSessionErasureRequests
+ *
+ * Executes GDPR / CCPA style erasure of session recordings. This is the
+ * first erasure primitive in the codebase, so a few properties are worth
+ * stating explicitly because nothing else here establishes them:
+ *
+ *  - Erasure removes the LOGS AND SPANS too. An erasure that deletes the
+ *    recording and leaves the correlated log lines, spans and exception
+ *    instances carrying the same session id is not erasure, it is a
+ *    partial delete that still identifies the subject.
+ *
+ *    That includes the rows joined to a session by TRACE id rather than
+ *    by session id. The browser recorder puts the session id in the
+ *    tracestate of the page's own requests, so span ingest stamps the
+ *    backend spans of those traces; but backend log lines (OTLP logs
+ *    carry no trace state), the exceptions derived from them, and spans
+ *    of the same traces that were never stamped carry no session id, and
+ *    the Dashboard's replay rail still shows them as part of the
+ *    recording by joining on trace id. So each batch also erases every
+ *    Log, ExceptionInstance and Span row of the traces that belong to the
+ *    batch ALONE: every stamped span in the trace carries one of the
+ *    batch's session ids, and nothing in it started well before the
+ *    first of them or well after the last. A trace that other sessions
+ *    also stamped, that predates the session, or that went on without it
+ *    keeps its rows apart from the spans stamped with an erased id (the
+ *    session-id delete takes those) - see
+ *    buildErasedSessionTraceIdStatement for why a stamp alone does not
+ *    make a trace the subject's. Ownership is judged per batch of
+ *    MAX_SESSION_IDS_PER_MUTATION sessions, so a trace shared by erased
+ *    sessions that land in different batches can look shared to each
+ *    batch and keep its unstamped rows.
+ *
+ *  - A tombstone is written BEFORE anything is deleted. Chunks live in
+ *    Redis staging for hours and the queue retries, so without a
+ *    tombstone an in-flight chunk that lands after the mutation would
+ *    resurrect part of an erased recording.
+ *
+ *    Consumers of the tombstone today: Rum:FinalizeSessions refuses to
+ *    write a session header for a tombstoned session; the chunk ingest
+ *    worker (App/FeatureSet/Telemetry/Services/SessionReplayIngestService)
+ *    checks isSessionErased() per frame at INSERT time and drops the chunk
+ *    on a hit, which is what closes the "staged before the erasure,
+ *    drained afterwards" window; Rum:MaterializePinnedSessions refuses to
+ *    copy a tombstoned session and deletes its pin; and this job takes
+ *    the erased sessions off the finalizer's activity queue outright. The
+ *    HTTP accept path still stages a chunk into Redis without consulting
+ *    the tombstone — that is fine, because the staged body is only ever
+ *    written to ClickHouse by the worker that does check.
+ *
+ *  - Deletes route through the MIGRATION connection pool. The app pool's
+ *    ClickHouse client enforces request_timeout as a socket-IDLE timer at
+ *    58 seconds, and a mutation submission on a busy cluster streams no
+ *    bytes at all — so the app pool would destroy the request and the
+ *    erasure would look like a failure while possibly having been applied.
+ *
+ *  - Runs every 15 minutes, capped per mutation and per run, one project
+ *    at a time. ALTER ... DELETE creates a ClickHouse mutation per
+ *    statement and mutations are bounded by number_of_mutations_to_throw
+ *    (default 1000); an unthrottled erasure over a large date range would
+ *    exhaust that queue and start failing ordinary telemetry ALTERs. The
+ *    cadence sets how long a subject waits for anything to happen; the
+ *    caps set how much lands per run — and because a run skips sessions
+ *    that are already tombstoned, a large erasure cannot submit new
+ *    mutations faster than ClickHouse finishes the previous ones.
+ *
+ *    The trace-id deletes are the one part not capped per run: a batch
+ *    adds one mutation per table for every MAX_TRACE_IDS_PER_MUTATION
+ *    traces it owns, which is one for a typical batch. Capping them would
+ *    mean leaving rows behind with nothing left to find them by (see
+ *    readErasedSessionTraceIds).
+ *
+ *  - Erasure removes the PIN too. A pinned recording keeps a Postgres
+ *    RumSessionPin row that the Dashboard renders as "Pinned"; leaving it
+ *    behind would show a protected badge over a recording that no longer
+ *    exists and keep the pin's reason and incident link as a record of
+ *    the erased subject.
+ * ------------------------------------------------------------------
+ */
+
+const JOB_NAME: string = "Rum:ProcessSessionErasureRequests";
+
+/*
+ * Session ids per ALTER ... DELETE. One mutation per 1000 ids keeps each
+ * statement's IN list small enough to plan cheaply while keeping the
+ * number of queued mutations far below ClickHouse's ceiling.
+ */
+export const MAX_SESSION_IDS_PER_MUTATION: number = 1000;
+
+/*
+ * Ids one request may erase in a single run. A request that hits this cap
+ * is returned to Pending with its counters accumulated, so an
+ * application-wide erasure drains over consecutive runs instead of
+ * queueing thousands of mutations in one burst. The remaining sessions
+ * are found again next run because the erased ones no longer match —
+ * and while the mutation is still rewriting parts and they DO still
+ * match, the tombstone filter in resolveTargetSessionIds keeps them from
+ * being submitted twice.
+ */
+export const MAX_SESSION_IDS_PER_REQUEST_PER_RUN: number = 10000;
+
+/*
+ * How often pending requests are picked up. Daily was the original
+ * cadence, which meant a subject's right-to-erasure request sat visibly
+ * "Pending" for up to a day with the recording still playable, and a
+ * 50k-session application erasure took five days. The throttles that
+ * actually protect ClickHouse are the per-mutation and per-run caps above
+ * plus the tombstone filter, none of which depend on the cadence, so it
+ * can be short. Runs overlap safely: markInProgress claims a request
+ * before any work, and the stale reclaim below is longer than the job
+ * timeout.
+ */
+export const ERASURE_JOB_SCHEDULE: string = EVERY_FIFTEEN_MINUTE;
+
+/*
+ * Appended as raw SQL rather than bound as a parameter: a template
+ * substitution in the SQL tag is compiled to an Identifier placeholder,
+ * which would render LIMIT as a quoted identifier. The value is a
+ * compile-time constant, so there is nothing to inject.
+ */
+const PER_RUN_LIMIT_CLAUSE: string = ` LIMIT ${MAX_SESSION_IDS_PER_REQUEST_PER_RUN}`;
+
+/*
+ * Trace ids per ALTER ... DELETE when erasing the telemetry joined to a
+ * batch of sessions by trace id. Ten thousand, so that a typical batch
+ * (fewer than ten thousand traces for its thousand sessions) adds exactly
+ * one mutation to each of Log, ExceptionInstance and Span - the
+ * same as its session-id deletes - rather than one per thousand ids.
+ *
+ * What bounds it is how the ids travel, not planning cost (an IN set is a
+ * hash set either way). They are bound as Array(String) parameters, and
+ * @clickhouse/client sends query parameters in the request URL, not the
+ * body. Three ClickHouse limits apply, each measured on 24.8 and 26.7:
+ *  - http_max_field_value_size, 128 KiB per parameter, counted on the
+ *    URL-ENCODED value. A 32-hex id costs 41 bytes there with its quotes
+ *    and comma (%27 ... %27 %2C), so one parameter takes at most ~3,190
+ *    of them and ten thousand fail with "HTML Form Exception: Field value
+ *    too long". MAX_TRACE_ID_BYTES_PER_PARAMETER splits a mutation's ids
+ *    over several parameters, OR-ed together (buildTraceDeleteStatement).
+ *  - http_max_uri_size, 1 MiB for the whole URL, which ~25,000 such ids
+ *    already fill. MAX_TRACE_ID_BYTES_PER_MUTATION stays at half of it;
+ *    ten thousand 32-hex ids take about 410 KB.
+ *  - max_query_size, 256 KiB by default. ON CLUSTER DDL is queued with the
+ *    parameters substituted as literals, and 26.7's DDL worker parses that
+ *    text under max_query_size (24.8's does not check): past ~7,000 ids
+ *    it fails with "Max query size exceeded". TRACE_DELETE_EXECUTE_OPTIONS
+ *    raises it for these statements; the queued task carries the setting
+ *    to every host.
+ */
+export const MAX_TRACE_IDS_PER_MUTATION: number = 10000;
+
+/* See MAX_TRACE_IDS_PER_MUTATION: under 128 KiB with room to spare. */
+export const MAX_TRACE_ID_BYTES_PER_PARAMETER: number = 100 * 1024;
+
+/*
+ * See MAX_TRACE_IDS_PER_MUTATION: half of the 1 MiB URI limit. It also
+ * bounds the literal text of the queued DDL, which is never longer than
+ * the URL-encoded ids.
+ */
+export const MAX_TRACE_ID_BYTES_PER_MUTATION: number = 512 * 1024;
+
+/*
+ * The trace-id deletes' max_query_size: twice the most query text
+ * MAX_TRACE_ID_BYTES_PER_MUTATION lets them produce.
+ */
+export const TRACE_DELETE_MAX_QUERY_SIZE: number = 1024 * 1024;
+
+/*
+ * MigrationExecuteOptions (see eraseSessionRowsFromTable for why) plus the
+ * larger max_query_size the trace-id deletes need.
+ */
+export const TRACE_DELETE_EXECUTE_OPTIONS: ClickhouseExecuteOptions = {
+  ...MigrationExecuteOptions,
+  clickhouseSettings: {
+    ...MigrationExecuteOptions.clickhouseSettings,
+    max_query_size: String(TRACE_DELETE_MAX_QUERY_SIZE),
+  },
+};
+
+/*
+ * How long before a trace's earliest stamped span, or after its latest
+ * one, its other spans may start and the trace still count as the batch's
+ * own: clock skew between the page's backend services, not a trace that
+ * was running before the session joined it (a server-rendered page's own
+ * trace) or one that other, unrecorded visitors went on extending after
+ * it (a page traceparent reused for everyone who loads the cached page).
+ */
+export const TRACE_OWNERSHIP_SKEW_MINUTES: number = 10;
+
+/* Requests processed per run, to bound the job's wall clock. */
+const MAX_REQUESTS_PER_RUN: number = 200;
+
+/*
+ * A request left InProgress for longer than this is presumed abandoned by
+ * a crashed or evicted worker and is re-processed. Every step of the work
+ * is idempotent (the tombstone SADD, the ALTER ... DELETE mutations and
+ * the activity-set purge all converge), so re-running costs nothing but a
+ * repeated mutation submission, whereas NOT re-running leaves the request
+ * stuck in a non-terminal state forever with the subject's data possibly
+ * only half deleted.
+ *
+ * The reclaim does not finish a half-erased batch, though. It runs the
+ * request with its attempts unchanged, i.e. as a first attempt, which
+ * skips the sessions the dead run had already tombstoned; it erases what
+ * that run never started and brings the request to a terminal state (see
+ * "Chunks first, header LAST" in eraseSessionBatch).
+ *
+ * Comfortably longer than the job's own 60 minute timeout, so a run that
+ * is merely slow is never treated as dead by the next run.
+ */
+export const STALE_IN_PROGRESS_RECLAIM_MS: number = 2 * 60 * 60 * 1000;
+
+/*
+ * Sorted-set members scanned per erased batch, per set, when purging the
+ * finalizers' work queues. Bounded so a pathological project cannot turn
+ * one erasure batch into an unbounded Redis walk.
+ */
+const MAX_ACTIVITY_PURGE_SCAN_ITERATIONS: number = 200;
+const ACTIVITY_PURGE_SCAN_COUNT: number = 500;
+
+/*
+ * Shared by the Pending query and the stale-InProgress reclaim query, so
+ * the two can never drift into selecting different columns and giving
+ * resolveTargetSessionIds a differently-shaped request.
+ */
+const ERASURE_REQUEST_SELECT: Select<RumSessionErasureRequest> = {
+  _id: true,
+  projectId: true,
+  rumApplicationId: true,
+  requestType: true,
+  targetValue: true,
+  startDate: true,
+  endDate: true,
+  requestedAt: true,
+  sessionsDeleted: true,
+  chunksDeleted: true,
+  attempts: true,
+};
+
+/*
+ * How many failed runs an erasure request survives before it is marked
+ * Failed for good and the project owners are told. Every step of the
+ * erasure is idempotent by design (the job's own header comment insists
+ * on it), so retrying is always safe — what is NOT safe is one transient
+ * ClickHouse blip terminally killing a legal erasure obligation with
+ * nothing but a log line to show for it.
+ */
+export const MAX_ERASURE_ATTEMPTS: number = 5;
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/*
+ * The tombstone key helper and writer live in
+ * Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone so the
+ * INGEST path can consult them: the ingest service runs in the API
+ * process, and importing this cron module there would register a cron in
+ * the wrong process. They are re-exported here because this job is where
+ * the tombstone is written and callers (and tests) look for them here.
+ */
+export {
+  ERASURE_TOMBSTONE_TTL_SECONDS,
+  getErasedSessionsKey,
+  writeErasureTombstones,
+};
+
+/*
+ * The @clickhouse/client types live in Common's node_modules and are not
+ * resolvable from App, so result sets are typed structurally here — the
+ * same shape App/FeatureSet/BaseAPI/API/NetworkDeviceFlow.ts uses.
+ */
+interface ClickhouseJsonResultSet {
+  json: () => Promise<{ data: Array<JSONObject> }>;
+}
+
+async function readSessionIds(statement: Statement): Promise<Array<string>> {
+  const resultSet: ClickhouseJsonResultSet =
+    (await RumSessionService.executeQuery(
+      statement,
+    )) as unknown as ClickhouseJsonResultSet;
+
+  const parsed: { data: Array<JSONObject> } = await resultSet.json();
+  const rows: Array<JSONObject> = parsed.data || [];
+
+  const sessionIds: Array<string> = [];
+
+  for (const row of rows) {
+    const sessionId: unknown = row["sessionId"];
+
+    if (typeof sessionId === "string" && sessionId.length > 0) {
+      sessionIds.push(sessionId);
+    }
+  }
+
+  return sessionIds;
+}
+
+/*
+ * The optional application scope of a request, as a SQL fragment.
+ *
+ * RumSessionErasureRequest.rumApplicationId documents itself as "the
+ * application this erasure request is scoped to, if any. Null for a
+ * project-wide request", and the UI presents it as a scope selector. A
+ * scoped request that ignored it would destroy every OTHER application's
+ * recordings in the project (and their correlated logs, spans and
+ * exception instances) — irreversible over-deletion driven by a field the
+ * requester used to NARROW the blast radius.
+ *
+ * Returns an empty statement for an unscoped request, so a project-wide
+ * erasure still matches everything.
+ */
+export function buildRumApplicationScopeClause(
+  request: RumSessionErasureRequest,
+): Statement {
+  const rumApplicationId: string = request.rumApplicationId
+    ? request.rumApplicationId.toString()
+    : "";
+
+  if (!rumApplicationId) {
+    return SQL``;
+  }
+
+  return SQL` AND rumApplicationId = ${{
+    type: TableColumnType.Text,
+    value: rumApplicationId,
+  }}`;
+}
+
+export interface ResolvedErasureTargets {
+  /* Sessions this run should erase: matched, and not already tombstoned. */
+  sessionIds: Array<string>;
+  /*
+   * True when the subject may still have sessions beyond this run's cap
+   * (the lookup hit the cap, or an explicit list was longer than it), so
+   * the request must go back to Pending rather than be marked complete.
+   */
+  moreMayRemain: boolean;
+  /* Matched sessions skipped because an earlier run already erased them. */
+  alreadyErased: number;
+}
+
+/*
+ * The project's tombstoned session ids. Read once per resolution rather
+ * than one SISMEMBER per candidate: a run considers up to ten thousand
+ * ids, while the tombstone set only holds what was erased in the last
+ * seven days.
+ *
+ * Fails closed like writeErasureTombstones: without Redis the batch could
+ * not tombstone anything anyway, so the request is requeued as a
+ * transient failure instead of guessing.
+ */
+async function readErasedSessionIds(projectId: string): Promise<Set<string>> {
+  const client: ClientType | null = Redis.getClient();
+
+  if (!client || !Redis.isConnected()) {
+    throw new Error(
+      "Redis is not connected; cannot read the session replay erasure tombstones",
+    );
+  }
+
+  return new Set<string>(
+    await client.smembers(getErasedSessionsKey(projectId)),
+  );
+}
+
+/*
+ * Resolve the erasure subject to a concrete set of session ids.
+ *
+ * DISTINCT rather than argMax: ReplacingMergeTree keeps several versions
+ * of a header visible until merge, and all we need from the header table
+ * is the id set — so collapsing duplicates is enough and no version
+ * arithmetic is required.
+ *
+ * Sessions that already carry a tombstone are dropped from the result on
+ * a FIRST attempt: the mutation that erases them was submitted by an
+ * earlier run and merely has not finished rewriting parts, so
+ * re-submitting it would double the mutation load and double-count the
+ * subject's sessions. On a RETRY (attempts > 0) nothing is dropped: the
+ * failed attempt may have written its tombstones and died before the
+ * mutations, and those sessions still owe the subject a delete — the
+ * job's own guarantee is that every step is idempotent, so re-doing them
+ * costs one duplicate mutation at most.
+ */
+export async function resolveTargetSessionIds(data: {
+  databaseName: string;
+  request: RumSessionErasureRequest;
+}): Promise<ResolvedErasureTargets> {
+  const request: RumSessionErasureRequest = data.request;
+  const projectId: ObjectID | undefined = request.projectId;
+
+  if (!projectId) {
+    throw new Error("Erasure request has no projectId");
+  }
+
+  const requestType: RumSessionErasureRequestType | undefined =
+    request.requestType;
+  const targetValue: string = (request.targetValue || "").trim();
+  const applicationScope: Statement = buildRumApplicationScopeClause(request);
+
+  const isRetry: boolean = (request.attempts || 0) > 0;
+  const erased: Set<string> = isRetry
+    ? new Set<string>()
+    : await readErasedSessionIds(projectId.toString());
+
+  if (requestType === RumSessionErasureRequestType.BySessionId) {
+    /*
+     * An explicit id list needs no lookup at all, and must NOT be looked
+     * up: the header row may already have expired by TTL while the chunk
+     * rows (or correlated logs) live on under a longer retention, and the
+     * subject is still entitled to have those removed.
+     *
+     * The cap is applied AFTER the tombstone filter, so a list longer
+     * than one run's worth advances through the list run by run instead
+     * of erasing the same first slice forever.
+     */
+    const explicitIds: Array<string> = Array.from(
+      new Set<string>(
+        targetValue
+          .split(",")
+          .map((value: string): string => {
+            return value.trim();
+          })
+          .filter((value: string): boolean => {
+            return value.length > 0;
+          }),
+      ),
+    );
+
+    const remaining: Array<string> = explicitIds.filter(
+      (id: string): boolean => {
+        return !erased.has(id);
+      },
+    );
+
+    return {
+      sessionIds: remaining.slice(0, MAX_SESSION_IDS_PER_REQUEST_PER_RUN),
+      moreMayRemain: remaining.length > MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+      alreadyErased: explicitIds.length - remaining.length,
+    };
+  }
+
+  const matched: Array<string> = await resolveMatchedSessionIds({
+    databaseName: data.databaseName,
+    request: request,
+    projectId: projectId,
+    requestType: requestType,
+    targetValue: targetValue,
+    applicationScope: applicationScope,
+  });
+
+  const sessionIds: Array<string> = matched.filter((id: string): boolean => {
+    return !erased.has(id);
+  });
+
+  return {
+    sessionIds: sessionIds,
+    /*
+     * A full page means the lookup was cut off by its LIMIT, so the
+     * subject may have more — including rows an in-flight mutation has
+     * not removed yet, which is why the filtered count is not the test.
+     */
+    moreMayRemain: matched.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+    alreadyErased: matched.length - sessionIds.length,
+  };
+}
+
+/* The ClickHouse lookup behind every request type that is not an id list. */
+async function resolveMatchedSessionIds(data: {
+  databaseName: string;
+  request: RumSessionErasureRequest;
+  projectId: ObjectID;
+  requestType: RumSessionErasureRequestType | undefined;
+  targetValue: string;
+  applicationScope: Statement;
+}): Promise<Array<string>> {
+  const request: RumSessionErasureRequest = data.request;
+  const projectId: ObjectID = data.projectId;
+  const requestType: RumSessionErasureRequestType | undefined =
+    data.requestType;
+  const targetValue: string = data.targetValue;
+  const applicationScope: Statement = data.applicationScope;
+
+  if (requestType === RumSessionErasureRequestType.ByIdentifiedUserKey) {
+    return await readSessionIds(
+      SQL`
+        SELECT DISTINCT sessionId AS sessionId
+        FROM ${data.databaseName}.${AnalyticsTableName.RumSession}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: projectId,
+        }} AND identifiedUserKey = ${{
+          type: TableColumnType.Text,
+          value: targetValue,
+        }}`
+        .append(applicationScope)
+        .append(PER_RUN_LIMIT_CLAUSE),
+    );
+  }
+
+  if (requestType === RumSessionErasureRequestType.ByRumApplication) {
+    /*
+     * targetValue carries the application id rather than reading it from
+     * the nullable rumApplicationId relation: the relation is set to NULL
+     * when the application is deleted, and deleting the application is
+     * precisely when this request has to still know what to erase.
+     */
+    const rumApplicationId: string =
+      targetValue || request.rumApplicationId?.toString() || "";
+
+    if (!rumApplicationId) {
+      throw new Error(
+        "ByRumApplication erasure request carries no application id",
+      );
+    }
+
+    return await readSessionIds(
+      SQL`
+        SELECT DISTINCT sessionId AS sessionId
+        FROM ${data.databaseName}.${AnalyticsTableName.RumSession}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: projectId,
+        }} AND rumApplicationId = ${{
+          type: TableColumnType.Text,
+          value: rumApplicationId,
+        }}`.append(PER_RUN_LIMIT_CLAUSE),
+    );
+  }
+
+  if (requestType === RumSessionErasureRequestType.ByDateRange) {
+    if (!request.startDate || !request.endDate) {
+      throw new Error("ByDateRange erasure request has no start or end date");
+    }
+
+    return await readSessionIds(
+      SQL`
+        SELECT DISTINCT sessionId AS sessionId
+        FROM ${data.databaseName}.${AnalyticsTableName.RumSession}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: projectId,
+        }} AND startTime >= ${{
+          type: TableColumnType.DateTime64,
+          value: request.startDate,
+        }} AND startTime <= ${{
+          type: TableColumnType.DateTime64,
+          value: request.endDate,
+        }}`
+        .append(applicationScope)
+        .append(PER_RUN_LIMIT_CLAUSE),
+    );
+  }
+
+  throw new Error(`Unsupported erasure request type "${String(requestType)}"`);
+}
+
+/*
+ * `pinnedCopiesOnly` narrows the delete to the rows the pin materializer
+ * wrote (isPinnedCopy = true), so unpinning a recording removes its
+ * far-future copies with the very same mutation shape erasure uses, while
+ * the ordinary rows keep their ordinary retention.
+ */
+export function buildSessionDeleteStatement(data: {
+  databaseName: string;
+  tableName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+  pinnedCopiesOnly?: boolean | undefined;
+}): Statement {
+  /*
+   * Lightweight DELETE cannot target a Distributed table and does not
+   * accept ON CLUSTER, so this is an ALTER on the LOCAL storage table
+   * dispatched to every shard (and replicated inside each shard through
+   * Keeper) — the same shape AnalyticsDatabaseService.toDeleteStatement
+   * uses.
+   */
+  const localTableName: string = getStorageTableName(data.tableName);
+
+  const statement: Statement = SQL`
+      ALTER TABLE ${data.databaseName}.${localTableName}`
+    .append(onClusterClause())
+    .append(
+      SQL`
+      DELETE WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND sessionId IN ${{
+        type: TableColumnType.Text,
+        value: new Includes(data.sessionIds),
+      }}`,
+    );
+
+  if (data.pinnedCopiesOnly) {
+    statement.append(" AND isPinnedCopy = true");
+  }
+
+  return statement;
+}
+
+const URL_SAFE_ID: RegExp = /^[0-9A-Za-z]*$/;
+
+/*
+ * What one trace id costs in the request URL once @clickhouse/client has
+ * quoted it into an Array(String) parameter and URL-encoded it. Exact for
+ * the hex ids ingest stores (the id, two %27 and a %2C); for anything else
+ * an upper bound (every byte backslash-escaped, then percent-encoded).
+ */
+export function traceIdUrlBytes(traceId: string): number {
+  if (URL_SAFE_ID.test(traceId)) {
+    return traceId.length + 9;
+  }
+
+  return 6 * Buffer.byteLength(traceId, "utf8") + 9;
+}
+
+/* Consecutive groups of at most maxCount ids and maxBytes URL bytes. */
+function groupTraceIds(
+  traceIds: Array<string>,
+  maxCount: number,
+  maxBytes: number,
+): Array<Array<string>> {
+  const groups: Array<Array<string>> = [];
+  let current: Array<string> = [];
+  let currentBytes: number = 0;
+
+  for (const traceId of traceIds) {
+    const bytes: number = traceIdUrlBytes(traceId);
+
+    if (
+      current.length > 0 &&
+      (current.length >= maxCount || currentBytes + bytes > maxBytes)
+    ) {
+      groups.push(current);
+      current = [];
+      currentBytes = 0;
+    }
+
+    current.push(traceId);
+    currentBytes += bytes;
+  }
+
+  if (current.length > 0) {
+    groups.push(current);
+  }
+
+  return groups;
+}
+
+/*
+ * One mutation's worth of trace ids per chunk: at most
+ * MAX_TRACE_IDS_PER_MUTATION ids and MAX_TRACE_ID_BYTES_PER_MUTATION URL
+ * bytes, in their original order.
+ */
+export function chunkTraceIds(traceIds: Array<string>): Array<Array<string>> {
+  return groupTraceIds(
+    traceIds,
+    MAX_TRACE_IDS_PER_MUTATION,
+    MAX_TRACE_ID_BYTES_PER_MUTATION,
+  );
+}
+
+/* One bound parameter's worth: at most MAX_TRACE_ID_BYTES_PER_PARAMETER. */
+export function splitTraceIdParameters(
+  traceIds: Array<string>,
+): Array<Array<string>> {
+  return groupTraceIds(
+    traceIds,
+    Number.POSITIVE_INFINITY,
+    MAX_TRACE_ID_BYTES_PER_PARAMETER,
+  );
+}
+
+/*
+ * The trace-id counterpart of buildSessionDeleteStatement: the same
+ * mutation on the LOCAL storage table, constrained by project and by a
+ * materialised list of trace ids. The ids are bound as Array(String)
+ * parameters like the session ids are, never a subquery - see
+ * readErasedSessionTraceIds for why a subquery would erase nothing - and
+ * split over as many parameters as ClickHouse's per-parameter size limit
+ * needs (see MAX_TRACE_IDS_PER_MUTATION), OR-ed together. An empty list
+ * matches nothing.
+ */
+export function buildTraceDeleteStatement(data: {
+  databaseName: string;
+  tableName: string;
+  projectId: ObjectID;
+  traceIds: Array<string>;
+}): Statement {
+  const localTableName: string = getStorageTableName(data.tableName);
+
+  const statement: Statement = SQL`
+      ALTER TABLE ${data.databaseName}.${localTableName}`
+    .append(onClusterClause())
+    .append(
+      SQL`
+      DELETE WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND (`,
+    );
+
+  const parameters: Array<Array<string>> = splitTraceIdParameters(
+    data.traceIds,
+  );
+
+  if (parameters.length === 0) {
+    statement.append("0");
+  }
+
+  parameters.forEach((traceIds: Array<string>, index: number): void => {
+    if (index > 0) {
+      statement.append(" OR ");
+    }
+
+    statement.append(
+      SQL`traceId IN ${{
+        type: TableColumnType.Text,
+        value: new Includes(traceIds),
+      }}`,
+    );
+  });
+
+  return statement.append(")");
+}
+
+/*
+ * Erase a batch from one table. Returns false when the table does not
+ * carry a sessionId column yet.
+ *
+ * The guard is not defensive dressing: sessionId is added to the log /
+ * span / exception tables by a separate reconcile, and issuing an ALTER
+ * against a column that does not exist would fail the whole erasure and
+ * leave the recording deleted with the correlated telemetry intact — the
+ * worst of both outcomes. Skipping it loudly is strictly better.
+ */
+async function eraseSessionRowsFromTable(data: {
+  service: AnalyticsDatabaseService<AnalyticsBaseModel>;
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Promise<boolean> {
+  const tableName: string = data.service.model.tableName;
+
+  if (!data.service.model.getTableColumn("sessionId")) {
+    logger.warn(
+      `${JOB_NAME}: ${tableName} declares no sessionId column; correlated rows for this erasure were NOT removed.`,
+    );
+    return false;
+  }
+
+  const statement: Statement = buildSessionDeleteStatement({
+    databaseName: data.databaseName,
+    tableName: tableName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * mutations_sync is deliberately left at its default, so this returns
+   * once the mutation is QUEUED rather than once every part is rewritten.
+   * Waiting would hold the connection for hours on a large SpanItemV3 and
+   * gains nothing: the mutation is durable in Keeper the moment it is
+   * accepted.
+   */
+  await data.service.execute(statement, MigrationExecuteOptions);
+
+  return true;
+}
+
+/*
+ * The services whose rows are erased by trace id, in submission order.
+ * Span is last: its rows are where readErasedSessionTraceIds finds the
+ * ids, so a run that fails after deleting a chunk's logs and exceptions
+ * but before its spans still finds those ids again on the retry.
+ */
+const TRACE_JOINED_TELEMETRY_SERVICES: Array<
+  AnalyticsDatabaseService<AnalyticsBaseModel>
+> = [LogService, ExceptionInstanceService, SpanService];
+
+/*
+ * Erase every Log, ExceptionInstance and Span row carrying one of these
+ * trace ids, one chunkTraceIds chunk per mutation. Chunks run one after
+ * another for the same reason session batches do: parallel mutations on
+ * one table multiply merge pressure without finishing sooner.
+ */
+async function eraseTraceRows(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  traceIds: Array<string>;
+}): Promise<void> {
+  for (const traceIds of chunkTraceIds(data.traceIds)) {
+    for (const service of TRACE_JOINED_TELEMETRY_SERVICES) {
+      await service.execute(
+        buildTraceDeleteStatement({
+          databaseName: data.databaseName,
+          tableName: service.model.tableName,
+          projectId: data.projectId,
+          traceIds: traceIds,
+        }),
+        TRACE_DELETE_EXECUTE_OPTIONS,
+      );
+    }
+  }
+}
+
+async function countChunksForSessions(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Promise<number> {
+  const statement: Statement = SQL`
+    SELECT count() AS chunkCount
+    FROM ${data.databaseName}.${AnalyticsTableName.RumSessionChunk}
+    WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND sessionId IN ${{
+      type: TableColumnType.Text,
+      value: new Includes(data.sessionIds),
+    }}`;
+
+  const resultSet: ClickhouseJsonResultSet =
+    (await RumSessionChunkService.executeQuery(
+      statement,
+    )) as unknown as ClickhouseJsonResultSet;
+
+  const parsed: { data: Array<JSONObject> } = await resultSet.json();
+  const row: JSONObject | undefined = (parsed.data || [])[0];
+
+  return row ? Number(row["chunkCount"]) || 0 : 0;
+}
+
+/*
+ * Every trace that spans stamped with the batch's session ids belong to,
+ * each flagged with whether it belongs to the batch ALONE and may
+ * therefore be erased by trace id.
+ *
+ * A stamp shows that a session took part in a trace, not that the trace
+ * is the session's. The recorder adds its tracestate member to any
+ * same-origin request that has none, including one whose traceparent the
+ * PAGE set - a hard-coded or server-rendered id that a cached page hands
+ * to every visitor - so one trace can carry many visitors' sessions. And
+ * any HTTP client can send a traceparent naming a known trace next to a
+ * tracestate naming its own session. Erasing every stamped trace whole
+ * would take other visitors' telemetry with it, or let a visitor have a
+ * trace of their choosing erased.
+ *
+ * So ownedByBatch holds only when:
+ *  - every stamped span of the trace carries one of the batch's session
+ *    ids, and there is at least one. Once that holds, "stamped" and
+ *    "stamped by the batch" are the same spans, which is why the time test
+ *    can say sessionId != '' instead of binding the batch a third time;
+ *  - none of its spans started more than TRACE_OWNERSHIP_SKEW_MINUTES
+ *    before its earliest stamped span or after its latest one. A trace
+ *    that was running before the session joined it (a server-rendered
+ *    page's own trace) is not the session's; nor is one that went on
+ *    after it, like a page traceparent a cached page hands to every
+ *    visitor: the visitors the recorder is not uploading for (sampled
+ *    out, no consent yet, the script blocked) send it with no tracestate,
+ *    so their spans and logs in it carry no stamp at all and only the
+ *    time can tell them apart from the session's own.
+ * The other candidates keep their rows, except the spans stamped with an
+ * erased id, which the session-id delete removes like any other.
+ *
+ * "Other sessions" means sessions outside THIS batch: ownership is judged
+ * per batch of MAX_SESSION_IDS_PER_MUTATION sessions. A trace stamped by
+ * erased sessions that land in different batches looks shared to every
+ * batch whose lookup still sees another batch's stamps (the session-id
+ * delete is asynchronous, so the next batch usually does), and then keeps
+ * its unstamped rows until retention removes them. Their stamped spans
+ * still go with each batch's session-id delete.
+ *
+ * Only span-derived ids, never RumSession.traceIds: the header also holds
+ * the trace ids the recording merely observed (page-set ids, and ids of
+ * requests to other origins listed in Trace propagation origins, which
+ * carry no session stamp at all), and none of them says whose a trace is.
+ *
+ * Every candidate comes back with its flag, rather than being filtered out
+ * with HAVING, so the caller can report how many it skipped. One statement
+ * per batch, with no LIMIT: the candidate subquery and the GROUP BY have
+ * to see every candidate before the first row can be flagged, so paging
+ * this statement would re-run both scans of the project's span history
+ * for every page. The response is one small row per candidate trace;
+ * ORDER BY traceId sorts just those rows, so a retry chunks its deletes
+ * the same way. `traceId != ''` leaves out spans with no trace id.
+ *
+ * GLOBAL IN, not IN: both sides read the Distributed Span table, and a
+ * plain IN over a Distributed subquery is rejected on a multi-shard
+ * cluster (Code 288, distributed_product_mode = 'deny'). GLOBAL builds the
+ * candidate set once on the initiator and ships it to every shard; on a
+ * single shard it is a semantic no-op. The grouping runs over the
+ * Distributed table as well, so the flag sees every shard's spans of a
+ * trace whatever the sharding key.
+ *
+ * No time bound, because none of this job's deletes have one either.
+ */
+export function buildErasedSessionTraceIdStatement(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Statement {
+  const projectId: StatementParameter = {
+    type: TableColumnType.ObjectID,
+    value: data.projectId,
+  };
+  const batchSessionIds: StatementParameter = {
+    type: TableColumnType.Text,
+    value: new Includes(data.sessionIds),
+  };
+
+  /*
+   * The skew is a compile-time constant appended as raw SQL: a template
+   * substitution in the SQL tag would become an Identifier placeholder.
+   */
+  return SQL`
+    SELECT
+      traceId,
+      countIf(sessionId != '' AND sessionId NOT IN ${batchSessionIds}) = 0
+        AND countIf(sessionId != '') > 0
+        AND min(startTime) >= minIf(startTime, sessionId != '')`
+    .append(
+      ` - INTERVAL ${TRACE_OWNERSHIP_SKEW_MINUTES} MINUTE
+        AND max(startTime) <= maxIf(startTime, sessionId != '') + INTERVAL ${TRACE_OWNERSHIP_SKEW_MINUTES} MINUTE AS ownedByBatch`,
+    )
+    .append(
+      SQL`
+    FROM ${data.databaseName}.${AnalyticsTableName.Span}
+    WHERE projectId = ${projectId}
+      AND traceId != ''
+      AND traceId GLOBAL IN (
+        SELECT DISTINCT traceId
+        FROM ${data.databaseName}.${AnalyticsTableName.Span}
+        WHERE projectId = ${projectId}
+          AND sessionId IN ${batchSessionIds}
+          AND traceId != ''
+      )
+    GROUP BY traceId
+    ORDER BY traceId`,
+    );
+}
+
+/*
+ * An id of nothing but zeros is W3C's "invalid" trace id, and a log line
+ * with no trace context can carry it. A stamped span carrying it (a
+ * broken SDK) must not turn one erasure into a delete of every
+ * uncorrelated log line in the project.
+ */
+const ALL_ZEROS_TRACE_ID: RegExp = /^0+$/;
+
+function isErasableTraceId(traceId: unknown): traceId is string {
+  return (
+    typeof traceId === "string" &&
+    traceId.length > 0 &&
+    !ALL_ZEROS_TRACE_ID.test(traceId)
+  );
+}
+
+/*
+ * ClickHouse renders the boolean as UInt8, which JSON carries as a number.
+ * Anything else is read as "not owned": skipping a trace leaves its rows to
+ * retention, deleting a wrong one cannot be undone.
+ */
+function isOwnedByBatch(value: unknown): boolean {
+  return value === 1 || value === "1" || value === true;
+}
+
+/*
+ * Materialise the batch's trace ids BEFORE any delete is submitted, as a
+ * literal list. ALTER ... DELETE is asynchronous, so a mutation carrying
+ * `traceId IN (SELECT traceId FROM Span WHERE sessionId IN ...)` could be
+ * evaluated after the session-id delete on Span had already rewritten
+ * the parts it reads, match nothing, and leave the joined rows behind.
+ *
+ * The whole list is read before the first delete, and there is no cap.
+ * The session-id delete on Span removes the stamped spans a later read
+ * would find the rest by, and on a first attempt the next run skips these
+ * sessions altogether because they are tombstoned by then - so a cap
+ * could not be picked up again later; it could only leave rows behind
+ * while the request reported Completed.
+ *
+ * One lookup per batch, read whole: executeQuery answers in ClickHouse's
+ * JSON format, which @clickhouse/client can only buffer, and the rows are
+ * small (a trace id and a flag), so even a batch naming a hundred thousand
+ * traces is a few megabytes. See buildErasedSessionTraceIdStatement for
+ * why it is not paged.
+ *
+ * Through the migration pool, with its progress headers: with no time
+ * bound this reads the project's whole span history through the sessionId
+ * bloom filter, which on a large project can outlast the App pool's 58
+ * second socket-idle timer before the first result byte, and a read
+ * killed there would fail the batch.
+ */
+async function readErasedSessionTraceIds(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Promise<Array<string>> {
+  const traceIds: Set<string> = new Set<string>();
+  let candidates: number = 0;
+  let skipped: number = 0;
+
+  const resultSet: ClickhouseJsonResultSet = (await SpanService.executeQuery(
+    buildErasedSessionTraceIdStatement({
+      databaseName: data.databaseName,
+      projectId: data.projectId,
+      sessionIds: data.sessionIds,
+    }),
+    MigrationExecuteOptions,
+  )) as unknown as ClickhouseJsonResultSet;
+
+  const parsed: { data: Array<JSONObject> } = await resultSet.json();
+
+  for (const row of parsed.data || []) {
+    const traceId: unknown = row["traceId"];
+
+    if (!isErasableTraceId(traceId)) {
+      continue;
+    }
+
+    candidates++;
+
+    if (isOwnedByBatch(row["ownedByBatch"])) {
+      traceIds.add(traceId);
+    } else {
+      skipped++;
+    }
+  }
+
+  if (skipped > 0) {
+    logger.info(
+      `${JOB_NAME}: ${skipped} of ${candidates} trace(s) stamped with erased sessions in project ${data.projectId.toString()} are shared with other sessions, or have spans that started more than ${TRACE_OWNERSHIP_SKEW_MINUTES} minutes before or after theirs; they are not erased by trace id, only their spans stamped with the erased ids are`,
+    );
+  }
+
+  return Array.from(traceIds);
+}
+
+/*
+ * Take the erased sessions off the finalizer's work queues.
+ *
+ * The finalizer derives a session header from the chunk rows and writes it
+ * with `version = Date.now()`, and ClickHouse mutations only rewrite the
+ * parts that existed when they were submitted. So a session that is still
+ * sitting in `replay:active:<projectId>` when the erasure is submitted gets
+ * a BRAND NEW header row written by the next finalizer run, carrying
+ * identifiedUserKey, entryUrl, routes and countryCode for the subject who
+ * asked to be erased — and nothing ever deletes that row again.
+ *
+ * `replay:ended:<projectId>` is purged the same way. It is the candidate
+ * list of Rum:FinalizeEndedSessions, which runs every minute and checks each
+ * candidate against the chunk rows - still visible until the mutation
+ * lands - so an erased session left in it would be looked at again and again,
+ * with the tombstone as the only thing between it and a fresh header.
+ *
+ * The finalizer also checks the tombstone (twice: before it reads anything,
+ * and again right before it inserts), so this is the second of two
+ * independent guards rather than the only one. It matters on its own
+ * because it stops the session being PICKED UP at all, which is cheaper and
+ * survives a Redis restart differently to the tombstone check.
+ *
+ * Members of both sets are "<sessionId>:<tabId>", so the match is on the
+ * sessionId prefix rather than on the whole member: one session can have
+ * several tabs and every one of them has to go.
+ *
+ * Returns how many entries were removed across both sets.
+ */
+export async function purgeErasedSessionsFromActivitySet(data: {
+  projectId: string;
+  sessionIds: Array<string>;
+}): Promise<number> {
+  const client: ClientType | null = Redis.getClient();
+
+  if (!client || !Redis.isConnected()) {
+    return 0;
+  }
+
+  if (data.sessionIds.length === 0) {
+    return 0;
+  }
+
+  const erased: Set<string> = new Set<string>(data.sessionIds);
+
+  let removed: number = 0;
+
+  for (const key of [
+    getActiveSessionsKey(data.projectId),
+    getEndedSessionsKey(data.projectId),
+  ]) {
+    removed += await purgeErasedSessionsFromSortedSet({
+      client: client,
+      key: key,
+      erased: erased,
+    });
+  }
+
+  return removed;
+}
+
+async function purgeErasedSessionsFromSortedSet(data: {
+  client: ClientType;
+  key: string;
+  erased: Set<string>;
+}): Promise<number> {
+  let removed: number = 0;
+  let cursor: string = "0";
+  let iterations: number = 0;
+
+  do {
+    /*
+     * ZSCAN returns a flat [member, score, member, score, ...] array, so
+     * the stride is 2. Scanning once over the whole set is cheaper than one
+     * MATCH per erased session id: a batch carries up to
+     * MAX_SESSION_IDS_PER_MUTATION ids while either set only ever holds the
+     * sessions seen in the last few hours.
+     */
+    const [nextCursor, entries]: [string, Array<string>] =
+      await data.client.zscan(
+        data.key,
+        cursor,
+        "COUNT",
+        ACTIVITY_PURGE_SCAN_COUNT,
+      );
+
+    cursor = nextCursor;
+    iterations++;
+
+    const doomed: Array<string> = [];
+
+    for (let index: number = 0; index < entries.length; index += 2) {
+      const member: string | undefined = entries[index];
+
+      if (!member) {
+        continue;
+      }
+
+      const separatorIndex: number = member.indexOf(":");
+      const sessionId: string =
+        separatorIndex > 0 ? member.substring(0, separatorIndex) : member;
+
+      if (data.erased.has(sessionId)) {
+        doomed.push(member);
+      }
+    }
+
+    if (doomed.length > 0) {
+      removed += await data.client.zrem(data.key, doomed);
+    }
+  } while (cursor !== "0" && iterations < MAX_ACTIVITY_PURGE_SCAN_ITERATIONS);
+
+  return removed;
+}
+
+export async function eraseSessionBatch(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Promise<number> {
+  await writeErasureTombstones({
+    projectId: data.projectId.toString(),
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * Immediately after the tombstone and before any DELETE: the finalizers
+   * (every 5 minutes for idle sessions, every minute for ended ones) must
+   * not be holding a queue entry that would write a fresh header for one
+   * of these sessions while the mutations are still draining.
+   */
+  const activityEntriesRemoved: number =
+    await purgeErasedSessionsFromActivitySet({
+      projectId: data.projectId.toString(),
+      sessionIds: data.sessionIds,
+    });
+
+  if (activityEntriesRemoved > 0) {
+    logger.info(
+      `${JOB_NAME}: removed ${activityEntriesRemoved} pending finalizer queue entr(ies) for erased sessions in project ${data.projectId.toString()}`,
+    );
+  }
+
+  const chunksDeleted: number = await countChunksForSessions({
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * Read, all of it, before ANY delete of this batch is submitted: the
+   * deletes on Span below remove the very rows this list comes from.
+   */
+  const traceIds: Array<string> = await readErasedSessionTraceIds({
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * Chunks first, header LAST. The header is how three of the four request
+   * types find a session at all, so every row that is only reachable
+   * through it has to be queued for deletion before it goes. Deleting the
+   * header earlier would leave orphaned payload rows (or correlated
+   * telemetry) that nothing would ever find again.
+   *
+   * What becomes of a batch that stops part-way depends on how it stops.
+   * A statement that THROWS sends the request back to Pending with its
+   * attempts counted (up to MAX_ERASURE_ATTEMPTS), and a retry does not
+   * skip tombstoned sessions, so it finds this batch again - through the
+   * header, which is still there, or the request's own id list - and
+   * submits every delete again. A worker that DIES instead (a crash,
+   * an OOM kill, a pod eviction or restart) leaves the request InProgress
+   * with its attempts unchanged, and the stale reclaim then runs it as a
+   * FIRST attempt, which skips tombstoned sessions: whatever this batch
+   * had not submitted yet (trace-id deletes, session-id deletes, the
+   * header) stays behind until retention removes it, and the session can
+   * stay listed but unplayable. This order keeps what a dead worker leaves
+   * behind small; it does not make that case recoverable.
+   */
+  await eraseSessionRowsFromTable({
+    service: RumSessionChunkService,
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * The telemetry joined to the sessions by trace id. Before the
+   * session-id delete on Span, so that a run which fails part-way through
+   * leaves the stamped spans that name the remaining trace ids in place,
+   * and the retry materialises the same list again rather than an empty
+   * one.
+   */
+  if (traceIds.length > 0) {
+    logger.info(
+      `${JOB_NAME}: erasing the logs, exceptions and spans of ${traceIds.length} trace(s) that belong to erased sessions alone in project ${data.projectId.toString()}`,
+    );
+
+    await eraseTraceRows({
+      databaseName: data.databaseName,
+      projectId: data.projectId,
+      traceIds: traceIds,
+    });
+  }
+
+  /* The correlated telemetry. Erasure that stops at the video is not erasure. */
+  const correlatedTelemetryServices: Array<
+    AnalyticsDatabaseService<AnalyticsBaseModel>
+  > = [LogService, SpanService, ExceptionInstanceService];
+
+  for (const service of correlatedTelemetryServices) {
+    await eraseSessionRowsFromTable({
+      service: service,
+      databaseName: data.databaseName,
+      projectId: data.projectId,
+      sessionIds: data.sessionIds,
+    });
+  }
+
+  /* The header, last of the ClickHouse deletes (see "Chunks first" above). */
+  await eraseSessionRowsFromTable({
+    service: RumSessionService,
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * Last, once every mutation is queued: the pin row is the Dashboard's
+   * "Pinned" badge and the materializer's queue entry, and it must not
+   * outlive the recording. Deleting it earlier would let the pin
+   * reconcile see far-future copies with no pin and try to "revert" a
+   * session whose erasure is in flight (it checks the tombstone and
+   * stands down, but there is no reason to race it).
+   */
+  const pinsRemoved: number = await RumSessionPinService.deleteBy({
+    query: {
+      projectId: data.projectId,
+      sessionId: QueryHelper.any(data.sessionIds),
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  if (pinsRemoved > 0) {
+    logger.info(
+      `${JOB_NAME}: removed ${pinsRemoved} pin(s) for erased sessions in project ${data.projectId.toString()}`,
+    );
+  }
+
+  return chunksDeleted;
+}
+
+export function chunkSessionIds(
+  sessionIds: Array<string>,
+  batchSize: number,
+): Array<Array<string>> {
+  const batches: Array<Array<string>> = [];
+
+  for (let index: number = 0; index < sessionIds.length; index += batchSize) {
+    batches.push(sessionIds.slice(index, index + batchSize));
+  }
+
+  return batches;
+}
+
+export async function processErasureRequest(data: {
+  databaseName: string;
+  request: RumSessionErasureRequest;
+}): Promise<void> {
+  const request: RumSessionErasureRequest = data.request;
+  const requestId: ObjectID | null = request.id;
+  const projectId: ObjectID | undefined = request.projectId;
+
+  if (!requestId || !projectId) {
+    return;
+  }
+
+  /*
+   * Claim the request before doing any work. The cron is single-flighted by
+   * the queue, but a manual re-run or a duplicated repeatable job must not
+   * double-submit mutations for the same subject.
+   */
+  await RumSessionErasureRequestService.markInProgress({
+    requestId: requestId,
+  });
+
+  try {
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
+      databaseName: data.databaseName,
+      request: request,
+    });
+    const sessionIds: Array<string> = targets.sessionIds;
+
+    if (targets.alreadyErased > 0) {
+      logger.info(
+        `${JOB_NAME}: request ${requestId.toString()} matched ${targets.alreadyErased} session(s) an earlier run already erased; their mutations are still in flight and were not re-submitted`,
+      );
+    }
+
+    let chunksDeleted: number = 0;
+
+    /*
+     * Batches run one after another, never in parallel: one concurrent
+     * erasure per project is the whole point of the throttle. Parallel
+     * mutations on the same table multiply merge pressure without
+     * finishing any sooner.
+     */
+    for (const batch of chunkSessionIds(
+      sessionIds,
+      MAX_SESSION_IDS_PER_MUTATION,
+    )) {
+      chunksDeleted += await eraseSessionBatch({
+        databaseName: data.databaseName,
+        projectId: projectId,
+        sessionIds: batch,
+      });
+    }
+
+    const sessionsDeleted: number =
+      (request.sessionsDeleted || 0) + sessionIds.length;
+    const totalChunksDeleted: number =
+      (request.chunksDeleted || 0) + chunksDeleted;
+
+    /*
+     * Hitting the per-run cap means more of this subject may remain, so
+     * the request goes back to Pending with its progress accumulated
+     * rather than reporting a completion it has not achieved. The next
+     * run finds the remainder because the erased sessions no longer
+     * match (and skips the ones whose mutation is still running).
+     *
+     * This is the one status transition the service exposes no helper for -
+     * markCompleted / markFailed are both terminal - so it is written
+     * directly. completedAt stays unset: a requeued request must not look
+     * finished to the UI or to a compliance export.
+     */
+    if (targets.moreMayRemain) {
+      await RumSessionErasureRequestService.updateOneById({
+        id: requestId,
+        data: {
+          status: RumSessionErasureRequestStatus.Pending,
+          sessionsDeleted: sessionsDeleted,
+          chunksDeleted: totalChunksDeleted,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.info(
+        `${JOB_NAME}: erased ${sessionIds.length} session(s) and ${chunksDeleted} chunk row(s) for request ${requestId.toString()}; more remains, requeued for the next run`,
+      );
+
+      return;
+    }
+
+    await RumSessionErasureRequestService.markCompleted({
+      requestId: requestId,
+      sessionsDeleted: sessionsDeleted,
+      chunksDeleted: totalChunksDeleted,
+    });
+
+    logger.info(
+      `${JOB_NAME}: erased ${sessionIds.length} session(s) and ${chunksDeleted} chunk row(s) for request ${requestId.toString()}`,
+    );
+  } catch (error) {
+    const failureReason: string = getErrorMessage(error);
+    const attempts: number = (request.attempts || 0) + 1;
+
+    logger.error(
+      `${JOB_NAME}: erasure request ${requestId.toString()} failed (attempt ${attempts} of ${MAX_ERASURE_ATTEMPTS}): ${failureReason}`,
+    );
+
+    /*
+     * Requeue while attempts remain. Every mutation this job submits is
+     * idempotent, so re-running a half-done request is safe — and the
+     * alternative was terminal: markFailed rows were never re-examined,
+     * so an erasure could die half-done (tombstone written, chunk table
+     * deleted, logs and spans intact) on one transient error.
+     */
+    if (attempts < MAX_ERASURE_ATTEMPTS) {
+      await RumSessionErasureRequestService.updateOneById({
+        id: requestId,
+        data: {
+          status: RumSessionErasureRequestStatus.Pending,
+          attempts: attempts,
+          failureReason: failureReason,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
+
+    await RumSessionErasureRequestService.updateOneById({
+      id: requestId,
+      data: {
+        attempts: attempts,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    await RumSessionErasureRequestService.markFailed({
+      requestId: requestId,
+      failureReason: failureReason,
+    });
+
+    /*
+     * Terminal failure of a right-to-erasure request is a legal problem,
+     * not an ops nicety, so it must reach a human — a logger.error line
+     * nobody greps is not notice. Best effort: a mail failure must not
+     * throw back into the job.
+     */
+    if (request.projectId) {
+      try {
+        await ProjectService.sendEmailToProjectOwners(
+          request.projectId,
+          "A session replay erasure request could not be completed",
+          `A session replay erasure request (id ${requestId.toString()}) failed ${MAX_ERASURE_ATTEMPTS} times and has been marked as failed. Last error: ${failureReason}. ` +
+            `Parts of the requested erasure may be incomplete. Please review it under RUM > Session Replay, or re-create the request to retry — erasure requests carry a compliance deadline.`,
+        );
+      } catch (mailError) {
+        logger.error(
+          `${JOB_NAME}: could not notify project owners about failed erasure request ${requestId.toString()}: ${getErrorMessage(mailError)}`,
+        );
+      }
+    }
+  }
+}
+
+export async function processPendingErasureRequests(): Promise<void> {
+  const databaseName: string | undefined =
+    RumSessionService.database.getDatasourceOptions().database;
+
+  if (!databaseName) {
+    throw new Error("ClickHouse database name is not configured");
+  }
+
+  /*
+   * Deliberately not RumSessionErasureRequestService.getPendingRequests():
+   * a requeued request has to ACCUMULATE its counters across runs, and that
+   * helper does not select sessionsDeleted / chunksDeleted. Everything else
+   * about the query is identical.
+   */
+  const pendingRequests: Array<RumSessionErasureRequest> =
+    await RumSessionErasureRequestService.findBy({
+      query: {
+        status: RumSessionErasureRequestStatus.Pending,
+      },
+      select: ERASURE_REQUEST_SELECT,
+      /* Oldest first, so a request cannot be starved by newer ones. */
+      sort: {
+        requestedAt: SortOrder.Ascending,
+      },
+      limit: MAX_REQUESTS_PER_RUN,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  /*
+   * Requests abandoned mid-flight. markInProgress is written before any
+   * work happens, so a worker crash, a pod eviction or the job's own 60
+   * minute timeout firing leaves a request InProgress with the tombstone
+   * written and possibly only the chunk table deleted. Nothing else in the
+   * system would ever look at it again, and the erasure SLA would be
+   * missed silently.
+   *
+   * `updatedAt` is the claim timestamp: markInProgress is an update, so it
+   * is stamped by the base service on every claim.
+   */
+  const staleRequests: Array<RumSessionErasureRequest> =
+    await RumSessionErasureRequestService.findBy({
+      query: {
+        status: RumSessionErasureRequestStatus.InProgress,
+        updatedAt: QueryHelper.lessThan(
+          new Date(
+            OneUptimeDate.getCurrentDate().getTime() -
+              STALE_IN_PROGRESS_RECLAIM_MS,
+          ),
+        ),
+      },
+      select: ERASURE_REQUEST_SELECT,
+      sort: {
+        requestedAt: SortOrder.Ascending,
+      },
+      limit: MAX_REQUESTS_PER_RUN,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (staleRequests.length > 0) {
+    logger.warn(
+      `${JOB_NAME}: reclaiming ${staleRequests.length} erasure request(s) left InProgress by an interrupted run`,
+    );
+  }
+
+  const requestsToProcess: Array<RumSessionErasureRequest> = [
+    ...pendingRequests,
+    ...staleRequests,
+  ];
+
+  if (requestsToProcess.length === 0) {
+    return;
+  }
+
+  /*
+   * Group by project and walk the groups in order, so a project with a
+   * hundred queued requests cannot interleave a hundred concurrent
+   * mutation submissions with another project's.
+   */
+  const requestsByProject: Map<
+    string,
+    Array<RumSessionErasureRequest>
+  > = new Map<string, Array<RumSessionErasureRequest>>();
+
+  for (const request of requestsToProcess) {
+    const projectKey: string = request.projectId
+      ? request.projectId.toString()
+      : "";
+
+    if (!projectKey) {
+      continue;
+    }
+
+    const existing: Array<RumSessionErasureRequest> | undefined =
+      requestsByProject.get(projectKey);
+
+    if (existing) {
+      existing.push(request);
+    } else {
+      requestsByProject.set(projectKey, [request]);
+    }
+  }
+
+  for (const requests of requestsByProject.values()) {
+    for (const request of requests) {
+      await processErasureRequest({
+        databaseName: databaseName,
+        request: request,
+      });
+    }
+  }
+}
+
+RunCron(
+  JOB_NAME,
+  {
+    schedule: ERASURE_JOB_SCHEDULE,
+    runOnStartup: false,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(60),
+  },
+  async (): Promise<void> => {
+    try {
+      await processPendingErasureRequests();
+    } catch (error) {
+      logger.error(`${JOB_NAME}: ${getErrorMessage(error)}`);
+    }
+  },
+);

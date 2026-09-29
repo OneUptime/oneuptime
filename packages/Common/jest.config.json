@@ -1,0 +1,68 @@
+{
+  "preset": "ts-jest",
+  "testPathIgnorePatterns": ["node_modules", "dist"],
+  "verbose": true,
+  "globals": {
+    "ts-jest": {
+      "tsconfig": "tsconfig.json",
+      "babelConfig": false,
+      "isolatedModules": true
+    }
+  },
+  "modulePathIgnorePatterns": ["<rootDir>/build/dist"],
+  "moduleNameMapper": {
+    "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/Tests/__mocks__/styleMock.js",
+    "Common/(.*)": "<rootDir>/$1",
+    "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
+    "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
+    "^bullmq$": "<rootDir>/Tests/__mocks__/bullmq.js",
+    "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
+    "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
+    "^otpauth$": "<rootDir>/node_modules/otpauth/dist/otpauth.node.cjs",
+    "^@simplewebauthn/server$": "<rootDir>/Tests/__mocks__/simplewebauthn.js",
+    "^botbuilder$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+    "^botbuilder-core$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+    "^botbuilder-stdlib$": "<rootDir>/Tests/__mocks__/botbuilder-stdlib.js",
+    "^botframework-connector$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+    "^@azure/(.*)$": "<rootDir>/Tests/__mocks__/azure.js",
+    "^react$": "<rootDir>/node_modules/react",
+    "^react-dom$": "<rootDir>/node_modules/react-dom",
+    "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
+    "^react-router-dom$": "<rootDir>/node_modules/react-router-dom",
+    "^react-i18next$": "<rootDir>/node_modules/react-i18next",
+    "^i18next$": "<rootDir>/node_modules/i18next",
+    "^use-async-effect$": "<rootDir>/node_modules/use-async-effect",
+    "^reactflow$": "<rootDir>/node_modules/reactflow",
+    "^react-beautiful-dnd$": "<rootDir>/node_modules/react-beautiful-dnd",
+    "^recharts$": "<rootDir>/node_modules/recharts",
+    "^recharts/(.*)$": "<rootDir>/node_modules/recharts/$1",
+    "^i18next-browser-languagedetector$": "<rootDir>/Tests/__mocks__/i18next-browser-languagedetector.js",
+    "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
+    "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
+    "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
+    "^react-syntax-highlighter/dist/esm/.*$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
+    "^mermaid$": "<rootDir>/Tests/__mocks__/mermaid.js",
+    "^@oneuptime/ee-dashboard$": "<rootDir>/../App/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins.ts",
+    "^@oneuptime/ee-admin-dashboard$": "<rootDir>/../App/FeatureSet/AdminDashboard/src/Enterprise/CommunityPlugins.ts"
+  },
+  "moduleFileExtensions": ["ts", "tsx", "js", "json"],
+  "transform": {
+    ".(ts|tsx)": "ts-jest"
+  },
+  "transformIgnorePatterns": ["node_modules/(?!(uuid|locter|yaml|@azure)/)"],
+  "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
+  "setupFilesAfterEnv": ["<rootDir>/Tests/jest.setup.ts"],
+  "collectCoverage": false,
+  "testTimeout": 60000,
+  "coverageReporters": ["text", "lcov"],
+  "testRegex": "./Tests/(.*)\\.test\\.(ts|tsx)$",
+  "collectCoverageFrom": ["./**/*.{ts,tsx}"],
+  "coverageThreshold": {
+    "global": {
+      "lines": 0,
+      "functions": 0,
+      "branches": 0,
+      "statements": 0
+    }
+  }
+}

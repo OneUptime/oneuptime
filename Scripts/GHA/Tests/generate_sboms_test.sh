@@ -15,7 +15,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GENERATE_SBOMS="${SCRIPT_DIR}/../generate_sboms.sh"
 
-# The scan loop is 24 registry reads; with real delays the failure cases below
+# The scan loop is 26 registry reads; with real delays the failure cases below
 # would sleep for minutes without testing anything extra.
 export RETRY_REGISTRY_READ_DELAYS="0 0 0"
 
@@ -138,7 +138,7 @@ FAKE_EOF
 
 	# Stands in for the docker CLI the fallback shells out to. Records every
 	# pull so the tests can assert the fallback ran (and that it cleaned up
-	# after itself, which is what keeps 24 scans from filling the runner).
+	# after itself, which is what keeps 26 scans from filling the runner).
 	cat > "${bin_dir}/docker" <<'FAKE_EOF'
 #!/usr/bin/env bash
 set -uo pipefail
@@ -208,10 +208,14 @@ GHCR_429_STDERR="[0019] ERROR could not determine source: errors occurred attemp
 MANIFEST_UNKNOWN_STDERR="[0002] ERROR could not determine source: errors occurred attempting to resolve 'ghcr.io/oneuptime/home:12.0.27':
   - oci-registry: GET https://ghcr.io/v2/oneuptime/home/manifests/12.0.27: MANIFEST_UNKNOWN: manifest unknown"
 
-# generate_sboms.sh scans 12 images across the platforms it is given. Both are
-# passed on every run below so the assertions state real numbers.
-# generate_sboms.sh scans 11 images and deliberately skips home.
-EXPECTED_IMAGES=11
+# generate_sboms.sh scans the community tag of 12 images and deliberately skips
+# home. It also scans the app's enterprise tag, because that image is a
+# different build (the App Dockerfile's `enterprise` target adds ee/), while
+# every other enterprise tag is the same layers with different metadata. The
+# platforms are passed on every run below so the assertions state real numbers.
+EXPECTED_IMAGES=12
+EXPECTED_ENTERPRISE_TAGS=1
+EXPECTED_SBOMS_PER_PLATFORM=$(( EXPECTED_IMAGES + EXPECTED_ENTERPRISE_TAGS ))
 SKIPPED_IMAGE="home"
 REGISTRY_PREFIX="ghcr.io/oneuptime"
 
@@ -220,7 +224,7 @@ REGISTRY_PREFIX="ghcr.io/oneuptime"
 # is left and so the most realistic stand-in.
 THROTTLED_IMAGE="e2e"
 
-# Each run is 12 scans per platform, and every scan shells out to syft and then
+# Each run is 13 scans per platform, and every scan shells out to syft and then
 # to python3, so scenarios that do not actually assert anything per-platform
 # pass a single platform to keep the suite quick.
 run_generate() {
@@ -241,11 +245,27 @@ OUT_DIR="${WORK_DIR}/out-ok"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64,linux/arm64")" || status=$?
 assert_eq 0 "$status" "succeeds when every scan succeeds"
-assert_eq $(( EXPECTED_IMAGES * 2 )) "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes one SBOM per image per platform"
+assert_eq $(( EXPECTED_SBOMS_PER_PLATFORM * 2 )) "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes one SBOM per scanned image tag per platform"
 assert_contains "$output" "Image list matches release.yml" "still checks image list drift against release.yml"
-assert_contains "$output" "11 scanned, 1 skipped: home" "reports what it skipped rather than skipping silently"
+assert_contains "$output" "12 scanned, 1 skipped: home" "reports what it skipped rather than skipping silently"
 assert_eq 0 "$(ls "$OUT_DIR"/${SKIPPED_IMAGE}-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes no SBOM for the skipped image"
 assert_eq 0 "$(count_matches "${FAKE_SYFT_STATE_DIR}/schemes" "/${SKIPPED_IMAGE}:")" "never invokes syft for the skipped image"
+# The enterprise App image is the one whose package set differs from its
+# community twin, so it gets SBOMs of its own, on both platforms.
+assert_contains "$output" "Also scanning the enterprise tag of: app" "says which enterprise tags it scans"
+assert_eq 1 "$(ls "$OUT_DIR"/app-enterprise-12.0.27-linux-amd64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes the enterprise App SBOM for amd64"
+assert_eq 1 "$(ls "$OUT_DIR"/app-enterprise-12.0.27-linux-arm64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes the enterprise App SBOM for arm64"
+assert_eq 1 "$(ls "$OUT_DIR"/app-12.0.27-linux-amd64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "still writes the community App SBOM under its old name"
+assert_eq 2 "$(count_matches "${FAKE_SYFT_STATE_DIR}/schemes" "^registry ${REGISTRY_PREFIX}/app:enterprise-12.0.27$")" "reads the enterprise App tag from the registry once per platform"
+assert_eq "$EXPECTED_ENTERPRISE_TAGS" "$(ls "$OUT_DIR"/*-enterprise-*-linux-amd64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "scans no other image's enterprise tag (they duplicate the community layers)"
+assert_contains "$output" "Generated 26 CycloneDX SBOMs" "counts the enterprise SBOMs in the summary"
+# The Kubernetes AI agent is what the kubernetes-agent chart now runs in every
+# customer cluster by default, so it is scanned like any other image, on both
+# platforms (its kubectl binary differs per architecture).
+assert_eq 1 "$(ls "$OUT_DIR"/kubernetes-ai-agent-12.0.27-linux-amd64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes the Kubernetes AI agent SBOM for amd64"
+assert_eq 1 "$(ls "$OUT_DIR"/kubernetes-ai-agent-12.0.27-linux-arm64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes the Kubernetes AI agent SBOM for arm64"
+assert_eq 2 "$(count_matches "${FAKE_SYFT_STATE_DIR}/schemes" "^registry ${REGISTRY_PREFIX}/kubernetes-ai-agent:12.0.27$")" "reads the Kubernetes AI agent's version tag from the registry once per platform"
+assert_eq 0 "$(ls "$OUT_DIR"/kubernetes-ai-agent-enterprise-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "scans no enterprise tag for the Kubernetes AI agent (it has no enterprise target)"
 
 # --- The regression: a transient 429 on one image must not sink the release. ---
 reset_fake_syft_state
@@ -254,7 +274,7 @@ OUT_DIR="${WORK_DIR}/out-429"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 assert_eq 0 "$status" "survives the GHCR 429 that stranded 12.0.27"
-assert_eq "$EXPECTED_IMAGES" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "still writes every SBOM after recovering"
+assert_eq "$EXPECTED_SBOMS_PER_PLATFORM" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "still writes every SBOM after recovering"
 assert_contains "$output" "hit a transient registry error" "reports the retry"
 assert_eq 2 "$(cat "${FAKE_SYFT_STATE_DIR}"/*${THROTTLED_IMAGE}*amd64* 2>/dev/null)" "retried the failing scan exactly once"
 
@@ -265,7 +285,7 @@ OUT_DIR="${WORK_DIR}/out-429-max"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 assert_eq 0 "$status" "recovers on the last permitted attempt"
-assert_eq "$EXPECTED_IMAGES" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes every SBOM after exhausting the retries"
+assert_eq "$EXPECTED_SBOMS_PER_PLATFORM" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes every SBOM after exhausting the retries"
 
 # --- 12.0.27's actual failure: the registry read never gets through, and the
 # --- docker-pull fallback is what keeps the release moving.
@@ -275,11 +295,11 @@ OUT_DIR="${WORK_DIR}/out-429-forever"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 assert_eq 0 "$status" "falls back to docker pull when the registry read never recovers"
-assert_eq "$EXPECTED_IMAGES" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes every SBOM via the fallback"
+assert_eq "$EXPECTED_SBOMS_PER_PLATFORM" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes every SBOM via the fallback"
 assert_eq 4 "$(cat "${FAKE_SYFT_STATE_DIR}"/*${THROTTLED_IMAGE}*amd64* 2>/dev/null)" "exhausts the registry retries before falling back"
 assert_contains "$output" "retrying ${REGISTRY_PREFIX}/${THROTTLED_IMAGE}:12.0.27 (linux/amd64) via docker pull" "says it is falling back"
 assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/docker-pulls" "$THROTTLED_IMAGE")" "pulls only the image that needed it"
-assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/docker-removals" "$THROTTLED_IMAGE")" "removes the pulled image so 24 scans cannot fill the runner"
+assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/docker-removals" "$THROTTLED_IMAGE")" "removes the pulled image so 26 scans cannot fill the runner"
 assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/schemes" "^docker ")" "scans exactly one image from the daemon"
 
 # --- When both paths are exhausted the job still fails, honestly. ---
@@ -333,6 +353,19 @@ export FAKE_DOCKER_PULL_FAILS=false
 assert_eq 1 "$status" "fails when a tag is missing"
 assert_eq 1 "$(cat "${FAKE_SYFT_STATE_DIR}"/*${THROTTLED_IMAGE}*amd64* 2>/dev/null)" "does not retry a missing tag on the registry path"
 assert_contains "$output" "retrying would not help" "says why it gave up immediately"
+
+# --- The enterprise App tag fails on its own, and is named as such. ---
+reset_fake_syft_state
+export FAKE_SYFT_FAIL_REF="app:enterprise-" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$MANIFEST_UNKNOWN_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_DOCKER_PULL_FAILS=true
+OUT_DIR="${WORK_DIR}/out-enterprise-missing"
+status=0
+output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
+export FAKE_DOCKER_PULL_FAILS=false
+assert_eq 1 "$status" "fails when the enterprise App tag was never pushed"
+assert_contains "$output" "SBOM generation failed for: app:enterprise/linux/amd64" "names the enterprise tag, not the community App, as the failure"
+assert_eq 1 "$(ls "$OUT_DIR"/app-12.0.27-linux-amd64.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "the community App SBOM is unaffected"
+assert_eq 0 "$(ls "$OUT_DIR"/app-enterprise-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "leaves no enterprise App SBOM behind"
 
 # --- An empty SBOM is still rejected, and still not left on disk. ---
 reset_fake_syft_state

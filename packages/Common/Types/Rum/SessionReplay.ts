@@ -1,0 +1,1013 @@
+import SessionReplayConsentMode from "./SessionReplayConsentMode";
+import SessionReplayMaskingMode from "./SessionReplayMaskingMode";
+import SessionReplayTriggerReason from "./SessionReplayTriggerReason";
+
+/*
+ * Wire contract between the browser (and later mobile) recorder and the
+ * session-replay ingest endpoint.
+ *
+ * Both sides of this file are load-bearing: the recorder is bundled and
+ * served to third-party origins, so a customer's browser may be running
+ * an older recorder than the server it posts to for as long as the
+ * pinned-artifact cache lives. Every field here is therefore additive-only,
+ * and SESSION_REPLAY_WIRE_VERSION is bumped for anything else.
+ */
+
+/* Bumped only on a breaking change to the envelope or the frame layout. */
+export const SESSION_REPLAY_WIRE_VERSION: number = 1;
+
+/*
+ * Bumped when the *payload* (the rrweb event array) changes shape in a
+ * way playback must branch on. Stored per chunk so a player can refuse
+ * gracefully instead of rendering a plausible-but-wrong DOM.
+ */
+export const SESSION_REPLAY_SCHEMA_VERSION: number = 1;
+
+/*
+ * Cap on a single POST body, post-compression. Enforced by the ingest
+ * middleware's running byte counter and mirrored by nginx's
+ * client_max_body_size on the /session-replay location. This is per
+ * REQUEST, not per frame — a catch-up post carrying several frames is
+ * bounded by this same number.
+ */
+export const MAX_SESSION_REPLAY_CHUNK_BYTES: number = 2 * 1024 * 1024;
+
+/* Frames a single catch-up request may concatenate. */
+export const MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST: number = 8;
+
+/*
+ * Largest DECOMPRESSED payload the ingest worker will inflate for one frame,
+ * and therefore the largest single indivisible rrweb event the recorder may
+ * put on the wire.
+ *
+ * The two numbers have to be the same number, which is why this lives in
+ * Common rather than in either side. A FullSnapshot is one rrweb event: it
+ * cannot be cut in half and still parse, so when it is bigger than the flush
+ * threshold the recorder posts it whole in a chunk of its own rather than
+ * cutting it. That is only safe while the recorder's ceiling is exactly the
+ * worker's — a recorder willing to send more than the worker will inflate
+ * produces a chunk that is accepted, queued, and then dropped at decode time,
+ * leaving a hole in the chunk sequence with nothing anywhere reporting it.
+ *
+ * Compression is what makes the number affordable: a snapshot this size gzips
+ * to a small fraction of MAX_SESSION_REPLAY_CHUNK_BYTES, which is the cap on
+ * the bytes actually posted.
+ */
+export const SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES: number =
+  8 * 1024 * 1024;
+
+/*
+ * Hard stop per session. At the 15s flush cadence this is ~2 hours of
+ * continuous recording, comfortably past the 4-hour session cap once
+ * idle gaps are accounted for. Prevents one pathological tab from
+ * writing unbounded rows under a single sort-key prefix.
+ */
+export const MAX_SESSION_REPLAY_CHUNKS_PER_SESSION: number = 480;
+
+/* Chunks a single playback request may ask for, and their total size. */
+export const MAX_SESSION_REPLAY_CHUNKS_PER_READ: number = 8;
+export const MAX_SESSION_REPLAY_READ_BYTES: number = 8 * 1024 * 1024;
+
+/*
+ * Default for the instance-wide per-project daily byte budget. The live
+ * value is the SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY env var; this
+ * default is shared between the ingest gate (App Telemetry Config) and the
+ * Dashboard-facing ingest-status endpoint so the number the gate enforces
+ * and the number the customer is shown cannot drift.
+ */
+export const DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: number =
+  1024 * 1024 * 1024;
+
+/*
+ * Recorder flush triggers. A chunk closes on whichever comes first.
+ * SESSION_REPLAY_CHECKOUT_INTERVAL_MS is also the worst-case seek
+ * granularity, since seeking rewinds to the nearest full snapshot.
+ */
+export const SESSION_REPLAY_FLUSH_INTERVAL_MS: number = 15 * 1000;
+export const SESSION_REPLAY_FLUSH_BYTES: number = 256 * 1024;
+export const SESSION_REPLAY_CHECKOUT_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * Recorder input-sampling cadence. These are the values handed to the
+ * recording library's `sampling` option, and they are shared with the
+ * player because the cadence is baked into every stored recording: the
+ * cursor transition the stage draws between two mouse samples has to be
+ * exactly one sample interval long, or the pointer either parks between
+ * samples (transition shorter than the gap) or lags them (longer).
+ *
+ * SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS is the library default (50ms, 20Hz).
+ * Recorders before the "mousemove-50ms" capability sampled at
+ * SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS (100ms, 10Hz); the player keeps
+ * using the legacy value for a recording that does not advertise the
+ * capability, so old footage never gets a transition shorter than its gap.
+ *
+ * Not part of the wire contract: neither SESSION_REPLAY_WIRE_VERSION nor
+ * SESSION_REPLAY_SCHEMA_VERSION changes with these.
+ */
+export const SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS: number = 50;
+export const SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS: number = 100;
+/* Scroll throttle (leading + trailing), the library default. */
+export const SESSION_REPLAY_SCROLL_SAMPLE_MS: number = 100;
+/*
+ * "all" listens to input events, so typing plays back keystroke by
+ * keystroke; "last" only listens to change events, so a typed value
+ * appeared as one snap on blur or Enter. Masked fields still collapse to a
+ * single event per typing run because the mask is constant-width and the
+ * recording library drops identical consecutive masked values.
+ */
+export const SESSION_REPLAY_INPUT_SAMPLING: "all" | "last" = "all";
+
+/*
+ * Rolling pre-roll buffer held in memory before a trigger fires, and the
+ * hard byte ceiling on it. The ceiling matters more than the duration:
+ * a heavily dynamic page can blow through 2MB in well under 60s, and a
+ * recorder that OOMs the host page is worse than no recorder.
+ */
+export const SESSION_REPLAY_ROLLING_BUFFER_MS: number = 60 * 1000;
+export const SESSION_REPLAY_ROLLING_BUFFER_BYTES: number = 2 * 1024 * 1024;
+
+/* Session identity lifetimes. */
+export const SESSION_REPLAY_IDLE_ROLLOVER_MS: number = 30 * 60 * 1000;
+export const SESSION_REPLAY_MAX_SESSION_MS: number = 4 * 60 * 60 * 1000;
+
+/*
+ * When a recording counts as over.
+ *
+ * A session is finalized - its aggregates counted and its "Recording now"
+ * badge dropped - either when no chunk has arrived for
+ * SESSION_REPLAY_IDLE_FINALIZE_MS, or, much sooner, once every tab of it
+ * has ended (see Common/Utils/Rum/SessionReplayRecordingEnded.ts: the
+ * recorder seals a tab on pagehide) and SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS
+ * has passed since the server stored the newest chunk of any of those tabs.
+ * The Dashboard applies the same grace before it calls a session "ended",
+ * so the list, the player and the finalizer agree.
+ *
+ * The idle window stays long because a live tab can be silent for minutes:
+ * the recorder only flushes when something happened. The grace is short
+ * because a final chunk says the tab is gone; it only has to cover the next
+ * page of a multi-page app registering its first chunk under the same
+ * session id (up to one flush interval after it loads), and a queue backlog
+ * between the two.
+ */
+export const SESSION_REPLAY_IDLE_FINALIZE_MS: number = 10 * 60 * 1000;
+export const SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS: number = 60 * 1000;
+
+/*
+ * How long after its final chunk's END a tab may still have started a chunk
+ * and be counted as ended.
+ *
+ * Older recorders, which stay cached on customer pages for as long as the
+ * pinned artifact lives, can post one more non-final chunk after the final
+ * one: on a visible tab the browser fires pagehide BEFORE visibilitychange,
+ * and their hidden handler flushed the visibility event it had just
+ * recorded. That trailing chunk starts at pagehide, but a chunk's end is
+ * its LAST BUFFERED EVENT, which can be up to one flush interval before
+ * pagehide when the user sat still before closing the tab. Hence one flush
+ * interval plus a margin for timer throttling.
+ *
+ * Nothing legitimate records under the same (session, tab) after a seal
+ * other than a back/forward-cache restore, and current recorders give a
+ * restored page a new tab id, so a wider bound cannot hide a live tab.
+ */
+export const SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS: number =
+  SESSION_REPLAY_FLUSH_INTERVAL_MS + 10 * 1000;
+
+/*
+ * fetch(keepalive) quota is 64KB combined per origin across all in-flight
+ * keepalive requests, so the terminal flush gets one request under this
+ * cap rather than several that would silently fail against the quota.
+ */
+export const SESSION_REPLAY_KEEPALIVE_MAX_BYTES: number = 56 * 1024;
+
+/*
+ * Consecutive transport failures before the recorder permanently
+ * self-disables and releases its buffer. A recorder that retries forever
+ * against a misconfigured origin is a battery and bandwidth bug on the
+ * customer's site.
+ */
+export const SESSION_REPLAY_MAX_FLUSH_FAILURES: number = 3;
+
+/*
+ * Offline mode: how long a recorder may hold a chunk it could not upload.
+ *
+ * A device that loses its connection keeps recording, queues what it
+ * records (in memory, and in IndexedDB or AsyncStorage so a closed tab or a
+ * killed app does not lose it) and uploads the backlog when the network
+ * returns. Past this age a queued chunk is discarded on the device instead.
+ *
+ * The server uses the same bound from the other side: a chunk's
+ * clientSendUnixMs minus its end is how long it sat in that queue, measured
+ * on the device's own clock, and ingest allows exactly that much extra
+ * lateness before it stops trusting the recording's start time (see
+ * SessionIdentity.getClientQueueDelayMs). Without it every chunk that
+ * arrived more than four hours after it was recorded was pinned to "four
+ * hours before it arrived".
+ *
+ * Three days: long enough for a flight, a weekend without signal or a
+ * device left in a drawer, and deliberately well inside the seven days an
+ * erasure tombstone lives, so a chunk of a session somebody asked to erase
+ * can never outlive the tombstone that refuses it.
+ */
+export const SESSION_REPLAY_MAX_OFFLINE_DELAY_MS: number =
+  3 * 24 * 60 * 60 * 1000;
+
+/*
+ * Content type carried on every chunk POST.
+ *
+ * application/octet-stream because customers put a web application
+ * firewall in front of OneUptime, and the OWASP Core Rule Set - and the
+ * managed rulesets built on it, Azure's DRS 2.x among them - blocks any
+ * Content-Type outside a fixed allowlist (rule 920420). Of the types on
+ * CRS 3.3's list, octet-stream is the one that honestly describes a body
+ * that is not JSON, XML, a form or text; text/plain would claim text, and
+ * Azure's older DRS 1.x inspects text/plain bodies as if they were forms.
+ * No firewall parses an octet-stream body, so the envelope's URLs and trait
+ * values are never handed to the injection rules as ARGS. See
+ * Common/Utils/Rum/SessionReplayWireEncoding for the rest of what makes a
+ * chunk pass.
+ *
+ * The body really is opaque bytes to anything in between: an envelope line
+ * and a gzip or JSON payload that only the ingest parser splits apart.
+ *
+ * The server never branches on this header - the body reader is chosen by
+ * route - so it accepts the vendor type below from every recorder that
+ * predates this change: pinned browser artifacts and shipped mobile builds.
+ */
+export const SESSION_REPLAY_CONTENT_TYPE: string = "application/octet-stream";
+
+/*
+ * What chunk POSTs carried before they switched to octet-stream. A WAF on
+ * the OWASP Core Rule Set refuses it outright (920420: "Request content
+ * type is not allowed by policy"). Kept so tests can prove the server still
+ * takes chunks from recorders that send it.
+ */
+export const SESSION_REPLAY_LEGACY_CONTENT_TYPE: string =
+  "application/vnd.oneuptime.session-replay.v1";
+
+/* Header carrying the RUM application identifier, needed pre-decode. */
+export const SESSION_REPLAY_APP_IDENTIFIER_HEADER: string =
+  "x-oneuptime-app-identifier";
+
+/*
+ * The transport surface that is asking for replay policy. This is separate
+ * from the recorderKind inside a chunk envelope because authentication runs
+ * before the request body is read. Absence deliberately means the historic
+ * DOM recorder; only the exact `rn-view-tree` value selects the mobile
+ * contract.
+ */
+export const SESSION_REPLAY_RECORDER_KIND_HEADER: string =
+  "x-oneuptime-replay-recorder-kind";
+
+/*
+ * Native applications have no browser-controlled Origin header. The mobile
+ * recorder sends its Android package name / iOS bundle identifier here and
+ * the ingest guard maps it to an exact app:// origin for allowlist matching.
+ * It is not the RUM application identifier above: several app binaries may
+ * intentionally report to one configured RUM application.
+ */
+export const SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER: string =
+  "x-oneuptime-mobile-app-identifier";
+export const SESSION_REPLAY_MAX_MOBILE_APP_IDENTIFIER_LENGTH: number = 255;
+
+/*
+ * Header carrying the host page's end-user reference on the CONFIG fetch,
+ * URI-component-encoded so a non-ASCII reference cannot make fetch() throw
+ * and take the whole recorder down with it. Only sent when the page
+ * provided a userRef, and only used server-side to answer one question:
+ * "is there a pending record-next-session target for this user?". A header
+ * rather than a query parameter so it can never land in access logs.
+ */
+export const SESSION_REPLAY_USER_REF_HEADER: string = "x-oneuptime-user-ref";
+
+/*
+ * How long a "record the next session for this user" target waits for
+ * that user to show up before expiring, and the cap on the reference
+ * length accepted from either side (dashboard or config fetch).
+ */
+export const SESSION_REPLAY_TARGET_TTL_SECONDS: number = 24 * 60 * 60;
+export const SESSION_REPLAY_MAX_USER_REF_LENGTH: number = 512;
+
+/*
+ * ---- Anonymous visitor id. ----
+ *
+ * A session id lives for one visit (it rotates after 30 minutes of idleness
+ * or four hours, whichever comes first), so two visits from the same
+ * browser share nothing a reader could group on. The recorder therefore
+ * also mints ONE random id per browser profile, keeps it in localStorage
+ * beside the session record, and repeats it on every meta-bearing chunk.
+ * It is what lets the session list say "this visitor came back three
+ * times" and the player offer "other sessions from this visitor" for an
+ * application whose pages never call identify().
+ *
+ * It is deliberately NOT an identity: it is random, minted client-side,
+ * carries no meaning outside the recordings it links, and is forgotten by
+ * the recorder the moment consent is withdrawn - the same rules as the
+ * session id. It is stored under the ordinary session ACL for the same
+ * reason identifiedUserKey is.
+ *
+ * Same shape as a session id (32 lowercase hex characters). The server
+ * refuses anything else rather than storing a caller-controlled string.
+ */
+export const SESSION_REPLAY_VISITOR_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
+export const SESSION_REPLAY_MAX_VISITOR_ID_LENGTH: number = 32;
+
+/*
+ * Retention values a session may be clamped to. Under expiry-based
+ * partitioning each distinct value creates its own partition per ingest
+ * day, so this is deliberately a short closed set rather than a free
+ * integer.
+ */
+export const SESSION_REPLAY_ALLOWED_RETENTION_DAYS: Array<number> = [
+  1, 7, 14, 30, 90,
+];
+
+/*
+ * 7 days, not the 15 the other telemetry pillars default to. Replay is
+ * the highest-sensitivity and highest-byte pillar, and a short retention
+ * is itself a privacy control.
+ */
+export const DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS: number = 7;
+
+/*
+ * ---- Caps on host-page supplied strings (identify / setTags / track). ----
+ *
+ * Every one of these is enforced twice, on the client before the bytes
+ * leave the page and again at ingest, and the two sides MUST agree: a
+ * recorder that sends more than the server keeps produces silent
+ * truncation nobody can explain from the dashboard, and a server that
+ * keeps more than the recorder sends is a cap that protects nothing. The
+ * numbers are small on purpose. These maps ride on the header row of a
+ * ReplacingMergeTree that is rewritten by the finalizer, so every byte
+ * here is merge amplification, and they are rendered in list cells that
+ * have to stay one line.
+ */
+
+/* identify(ref, traits): the traits map. */
+export const SESSION_REPLAY_MAX_TRAIT_KEYS: number = 20;
+export const SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH: number = 40;
+export const SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH: number = 200;
+
+/*
+ * setTags()/addTag(): tighter than traits because tags are indexed for the
+ * tag:key=value search and shown as pills, where a 200-character value is
+ * unreadable anyway.
+ */
+export const SESSION_REPLAY_MAX_TAG_KEYS: number = 20;
+export const SESSION_REPLAY_MAX_TAG_KEY_LENGTH: number = 32;
+export const SESSION_REPLAY_MAX_TAG_VALUE_LENGTH: number = 128;
+
+/*
+ * track(name, properties): a custom event's name is a rail row title, and
+ * its properties map shares the trait caps for key/value length.
+ */
+export const SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH: number = 64;
+export const SESSION_REPLAY_MAX_CUSTOM_EVENT_PROPERTY_KEYS: number = 20;
+
+/*
+ * Per-CHUNK caps on the two custom-event kinds the host page can fire in a
+ * loop. Per chunk rather than per session so a long session keeps
+ * recording interactions after a busy minute; the recorder emits one
+ * "-dropped { count }" event per chunk once a cap is hit, so the player
+ * can say "212 clicks not labelled" instead of showing a quiet stretch.
+ */
+export const SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK: number = 50;
+export const SESSION_REPLAY_MAX_CLICK_EVENTS_PER_CHUNK: number = 100;
+
+/*
+ * The visible text carried on a click event (aria-label, name or text
+ * content, after the active masking transform). Enough to read "Place
+ * order", short enough that a click on a paragraph cannot smuggle it.
+ */
+export const SESSION_REPLAY_MAX_CLICK_TEXT_LENGTH: number = 40;
+
+/* captureSession(reason): the reason becomes a custom event property. */
+export const SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH: number = 80;
+
+/*
+ * ---- Player-side activity model. ----
+ *
+ * A stretch with no user input for at least this long is an idle band on
+ * the timeline and a candidate for "skip idle". 5s is the smallest gap a
+ * viewer perceives as waiting rather than reading; shorter bands would
+ * turn every pause-to-read into a jump.
+ */
+export const SESSION_REPLAY_IDLE_THRESHOLD_MS: number = 5 * 1000;
+
+/*
+ * Coarse activity from the manifest alone: a chunk carrying fewer events
+ * than this is provisionally idle before it is decoded. A chunk always
+ * holds a handful of housekeeping events (meta, viewport, the flush
+ * checkout), so "3 or fewer" means nothing the user did reached it. The
+ * finalizer uses the same threshold to compute activeMs on the header, so
+ * the list's "idle 40%" and the timeline's hatched bands agree.
+ */
+export const SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS: number = 4;
+
+/*
+ * ---- List search. ----
+ *
+ * Free-text search runs as a case-insensitive substring match over several
+ * argMax'd header columns, which cannot use an index. The string cap keeps
+ * the predicate cheap; the window cap bounds how many partitions it may
+ * scan, and the handler answers "narrow the range" rather than timing out
+ * against a wider window.
+ */
+export const SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH: number = 200;
+export const SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS: number = 30;
+
+/*
+ * Everything a current recorder build can capture beyond the rrweb DOM
+ * stream. The recorder sends the subset it implements on chunk 0
+ * (SessionReplayChunkEnvelope.capabilities); the player and the setup page
+ * compare a recording against this list to explain what an older cached
+ * artifact could not have captured, e.g. "click labels: no". Additive
+ * only: a value is never removed or renamed, because stored headers quote
+ * these strings.
+ */
+export const SESSION_REPLAY_RECORDER_CAPABILITIES: ReadonlyArray<string> = [
+  "click-events",
+  "web-vitals",
+  "custom-events",
+  "traits",
+  "tags",
+  "visibility",
+  /*
+   * The recorder mints and repeats a per-browser anonymous visitor id, so
+   * this application's sessions can be grouped by visitor even when the
+   * page never calls identify().
+   */
+  "visitor-id",
+  /*
+   * Mouse movement sampled every SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS (50ms)
+   * rather than the legacy 100ms. The player derives its cursor transition
+   * from this: see ReplayStage.
+   */
+  "mousemove-50ms",
+];
+
+/*
+ * Capabilities emitted by the React Native recorder on its first chunk.
+ * Kept separate from the DOM baseline above: otherwise every perfectly
+ * healthy web recording would appear to be missing mobile-only features.
+ */
+export const SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES: ReadonlyArray<string> =
+  [
+    "mobile-view-tree",
+    "mobile-touch-events",
+    "custom-events",
+    "traits",
+    "tags",
+    "visibility",
+    "visitor-id",
+    "route-events",
+    "js-errors",
+  ];
+
+/* How the payload bytes were compressed by the recorder. */
+export type SessionReplayPayloadEncoding = "gzip" | "identity";
+
+/* Which recorder produced the frame — web DOM, or a mobile view tree. */
+export type SessionReplayRecorderKind = "dom" | "rn-view-tree";
+
+/*
+ * Strict parser for the recorder-kind REQUEST header. The wire envelope has
+ * a backwards-compatible fallback for old stored chunks, but a config fetch
+ * must never silently reinterpret a typo as web policy. Header absence is
+ * the only legacy fallback.
+ */
+export function parseSessionReplayRecorderKindHeader(
+  value: unknown,
+): SessionReplayRecorderKind | null {
+  if (value === undefined || value === null) {
+    return "dom";
+  }
+
+  if (value === "dom" || value === "rn-view-tree") {
+    return value;
+  }
+
+  return null;
+}
+
+/* State of the consent handshake at the moment the chunk was cut. */
+export type SessionReplayConsentState = "Granted" | "NotRequired" | "Unknown";
+
+/*
+ * Instruction handed back to a live recorder on every chunk response, so
+ * a project or application that is switched off stops *recording* within
+ * one flush window instead of waiting out the config cache.
+ */
+export type SessionReplayDirective = "continue" | "stop" | "throttle";
+
+/*
+ * Machine-readable disclosures of what the recorder could not capture.
+ * Surfaced on the player so a viewer sees "this region was not recorded"
+ * rather than a silent blank rectangle — in a tool that presents evidence,
+ * an unexplained gap is worse than an acknowledged one.
+ */
+export enum SessionReplayFidelityNotice {
+  CanvasNotRecorded = "canvas-not-recorded",
+  CrossOriginIframe = "cross-origin-iframe",
+  ClosedShadowRoot = "closed-shadow-root",
+  StylesheetInaccessible = "stylesheet-inaccessible",
+  AdoptedStylesheet = "adopted-stylesheet",
+  FontsOmitted = "fonts-omitted",
+  MediaNotReplayable = "media-not-replayable",
+  SnapshotTooLarge = "snapshot-too-large",
+  BufferOverflow = "buffer-overflow",
+  BfcacheRestore = "bfcache-restore",
+  /*
+   * One or more configured ignoreErrorPatterns could not be applied
+   * (invalid regex, or over the count/length caps), so error triggering
+   * may be noisier than the application's settings intend.
+   */
+  IgnorePatternsDiscarded = "ignore-patterns-discarded",
+  /*
+   * A per-session cap on recorded console lines, errors, network requests
+   * or route changes was reached, so later signals of that kind were not
+   * recorded. The footage itself is complete; only the rail is truncated
+   * past this point. The recorder emits an in-band cap marker too, so the
+   * rail can show WHERE the truncation started.
+   */
+  SignalCapReached = "signal-cap-reached",
+  /*
+   * rrweb threw inside the recorder's own emit path (its errorHandler
+   * swallowed it so the host page kept working) three or more times on
+   * this page. The recorder took a fresh checkout after the burst, so the
+   * footage recovers, but playback may skip or freeze around those points.
+   */
+  RecorderError = "recorder-error",
+  /* Native Image pixels are represented by an opaque placeholder. */
+  MobileImagesOpaque = "mobile-images-opaque",
+  /* WebView contents cannot be inspected from the React Native view tree. */
+  MobileWebViewOpaque = "mobile-webview-opaque",
+  /* Native canvas / drawing surfaces are represented as opaque regions. */
+  MobileCanvasOpaque = "mobile-canvas-opaque",
+  /* Animation state is sampled at snapshots rather than reproduced framewise. */
+  MobileAnimationSampled = "mobile-animation-sampled",
+}
+
+/* Why a session stopped accumulating chunks. */
+export enum SessionReplaySealedReason {
+  FinalChunk = "final-chunk",
+  IdleTimeout = "idle-timeout",
+  DurationCap = "duration-cap",
+  Budget = "budget",
+  Truncated = "truncated",
+  /*
+   * Sealed by the never-finalized sweep for a session whose chunks never
+   * landed or expired before finalization could run: the header survives
+   * as an honest "a recording existed but was lost" record instead of
+   * sitting provisional (and re-swept) forever.
+   */
+  RecordingLost = "recording-lost",
+}
+
+/*
+ * Per-chunk frustration and volume counters. Carried on the envelope so
+ * the ingest worker can populate the header columns WITHOUT decompressing
+ * the payload, which is what keeps the hot path cheap.
+ */
+export interface SessionReplaySignalCounts {
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  routeCount: number;
+
+  /*
+   * Engagement counters, optional because a recorder that predates them
+   * omits them and the server reads absence as 0. clickCount counts the
+   * oneuptime.click events the chunk carries (capped per chunk, see
+   * SESSION_REPLAY_MAX_CLICK_EVENTS_PER_CHUNK), customEventCount the
+   * oneuptime.custom events from the host page's track() calls. Both are
+   * summed into the session header by the finalizer like the others, and
+   * feed the list's "41 clicks" column and the player's activity lane
+   * before any chunk is decoded.
+   */
+  clickCount?: number;
+  customEventCount?: number;
+}
+
+/*
+ * Device and entry metadata. Sent only on chunk 0 and on the final chunk
+ * — repeating it on every frame would be pure waste, and the finalizer
+ * reads whichever copy arrived.
+ */
+export interface SessionReplayChunkMeta {
+  entryUrl: string;
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
+  viewportWidth: number;
+  viewportHeight: number;
+  /*
+   * Opaque reference for the identified end user, supplied by the host
+   * page. Hashed to identifiedUserKey server-side with a per-project
+   * salt; the raw value is only ever stored when the application has
+   * explicitly enabled user-identity capture.
+   */
+  identifiedUserRef?: string;
+
+  /*
+   * The recorder's per-browser anonymous visitor id (see
+   * SESSION_REPLAY_VISITOR_ID_PATTERN). Sent on every meta-bearing chunk so
+   * a lost chunk 0 does not lose the link; absent from a recorder that
+   * predates it. Not gated by the identity switch: it is a random token,
+   * not a reference the host page supplied.
+   */
+  visitorId?: string;
+
+  /*
+   * Traits the host page attached to the identified user through
+   * identify(ref, traits): plan, role, tenant - never the reference itself.
+   * Already stringified, capped (SESSION_REPLAY_MAX_TRAIT_*) and masked on
+   * the client; the server re-caps and stores them ONLY when the
+   * application has user-identity capture on, in a column under the same
+   * narrow identity ACL as identifiedUserLabel. Absent from an older
+   * recorder, and absent whenever identify() was never called.
+   */
+  identifiedUserTraits?: Record<string, string>;
+
+  /*
+   * Per-session key/value tags from setTags()/addTag(): a build id, an
+   * experiment arm, a customer tier. Unlike traits these describe the
+   * session rather than the person, so they live under the ordinary
+   * session ACL and are searchable from the list (tag:key=value). Carried
+   * on whichever chunk carries meta so a tag set after chunk 0 still
+   * reaches the header.
+   */
+  tags?: Record<string, string>;
+}
+
+/*
+ * The JSON envelope prefixed to every chunk body, separated from the
+ * compressed payload by a single newline. Kept in the body rather than
+ * spread across custom headers: extra request headers widen the CORS
+ * preflight surface, and splitting on the first 0x0A byte plus parsing a
+ * ~200 byte JSON object costs microseconds.
+ */
+export interface SessionReplayChunkEnvelope {
+  /* Wire version. Rejected outright if it exceeds what the server knows. */
+  v: number;
+
+  appIdentifier: string;
+  sessionId: string;
+
+  /*
+   * Distinguishes concurrent tabs. sessionStorage is COPIED on tab
+   * duplication, so two live tabs can share one sessionId and both mint
+   * chunkIndex from 0 — without tabId in the sort key one tab's entire
+   * stream is silently discarded by read-time dedup.
+   */
+  tabId: string;
+
+  chunkIndex: number;
+
+  /* Client clocks. Both retained; the server clamps and records the skew. */
+  sessionStartUnixMs: number;
+  clientSendUnixMs: number;
+
+  chunkStartOffsetMs: number;
+  chunkEndOffsetMs: number;
+
+  eventCount: number;
+
+  /*
+   * True when this chunk opens on a full DOM snapshot, making it a valid
+   * seek anchor. Driven by rrweb's isCheckout flag rather than inferred.
+   */
+  hasFullSnapshot: boolean;
+
+  isFinal: boolean;
+
+  /*
+   * A full snapshot is one indivisible rrweb event and can exceed the
+   * flush threshold on a large DOM. When split, hasFullSnapshot is set
+   * only on the final part, so seek anchors never point mid-snapshot.
+   */
+  snapshotPart?: {
+    index: number;
+    total: number;
+  };
+
+  recorderKind: SessionReplayRecorderKind;
+  schemaVersion: number;
+  rrwebVersion: string;
+  recorderVersion: string;
+
+  maskingMode: SessionReplayMaskingMode;
+  consentState: SessionReplayConsentState;
+  triggerReason: SessionReplayTriggerReason;
+
+  payloadEncoding: SessionReplayPayloadEncoding;
+  payloadBytes: number;
+
+  /* Already scrubbed client-side: origin + path, no query, no fragment. */
+  url: string;
+
+  /*
+   * Distinct scrubbed URLs the page was on while this chunk was open, in
+   * chronological order. Optional so an older recorder posting to a newer
+   * server is still accepted - the server then falls back to `url` alone,
+   * which is what it did before this field existed.
+   *
+   * `url` says where the chunk was FLUSHED from; this says where the user
+   * went while it was filling. The session header's routes[] column is the
+   * union of these, and the "sessions that hit /checkout" filter reads it,
+   * so without this a navigation that both starts and ends inside one flush
+   * window is invisible.
+   */
+  routes?: Array<string>;
+
+  signals: SessionReplaySignalCounts;
+
+  fidelityNotices: Array<string>;
+
+  /*
+   * Recorder self-reporting. A recorder that silently drops events is
+   * indistinguishable from a quiet user, so it tells on itself.
+   */
+  droppedEvents: number;
+  flushFailures: number;
+
+  meta?: SessionReplayChunkMeta;
+
+  /* Trace ids observed in this chunk's network events, for correlation. */
+  traceIds?: Array<string>;
+
+  /*
+   * What this recorder build can capture, as a subset of
+   * SESSION_REPLAY_RECORDER_CAPABILITIES. Sent on chunk 0 only and purely
+   * informational: the server stores it on the header so the player can
+   * say "this recording predates click labels" instead of rendering an
+   * empty Interactions tab, and the setup page can tell a customer on a
+   * stale cached artifact which features their visitors' browsers are
+   * still missing. Never used to gate ingest.
+   */
+  capabilities?: Array<string>;
+}
+
+/*
+ * WHY a config response says enabled:false.
+ *
+ * The disabled response is deliberately a complete, well-formed config
+ * rather than an error, so a recorder that cannot parse a config still
+ * refuses to record. The cost of that was one answer for five very
+ * different causes: from a browser, an instance-wide kill switch, a
+ * deployment whose recorder bundle was never built, an application
+ * somebody switched off and a Redis outage were all "enabled: false" and
+ * nothing else, and no amount of dashboard configuration fixes three of
+ * them.
+ *
+ * This is a closed vocabulary carrying no project data - it is answered
+ * only to a request already bearing a valid ingestion key for that
+ * project, and it says strictly less than the Dashboard's own ingest
+ * status endpoint already shows the same customer.
+ */
+export enum SessionReplayDisabledReason {
+  /* SESSION_REPLAY_INGEST_ENABLED=false on this deployment. */
+  IngestDisabled = "ingest-disabled",
+
+  /* SESSION_REPLAY_ENABLED_BY_DEFAULT=false on this deployment. */
+  DisabledByDefault = "disabled-by-default",
+
+  /*
+   * No published recorder artifact. The build never ran, or its output is
+   * not where the server looks for it - overwhelmingly the answer on a
+   * self-hosted install where replay has never worked at all.
+   */
+  RecorderNotBuilt = "recorder-not-built",
+
+  /* The policy lookup threw. Fail closed, and say that it failed. */
+  PolicyUnavailable = "policy-unavailable",
+
+  /*
+   * No policy for this project/application pair: the application is
+   * switched off, the project is not allowed replay, the identifier does
+   * not match one, or a kill key is set.
+   */
+  NotEnabledForApplication = "not-enabled-for-application",
+
+  /*
+   * The project's daily byte budget or the application's monthly budget
+   * is already spent, so the recorder is told at config time not to
+   * record at all. Without this every new page load would record,
+   * compress and upload a chunk only to be refused. `disabledDetail`
+   * says which budget and `budgetResetsAt` when it clears.
+   */
+  BudgetExhausted = "budget-exhausted",
+}
+
+/*
+ * Policy snapshot handed to the recorder at startup. This endpoint is
+ * what makes every server-side privacy control reachable by a live
+ * recorder - without it, flipping a masking setting would never take
+ * effect in a browser that already loaded.
+ */
+export interface SessionReplayConfigResponse {
+  enabled: boolean;
+
+  /* Pinned immutable artifact the loader stub should import. */
+  recorderVersion: string;
+
+  maskingMode: SessionReplayMaskingMode;
+  captureTrigger: string;
+  consentMode: SessionReplayConsentMode;
+
+  samplePercentage: number;
+
+  maskSelectors: Array<string>;
+  blockSelectors: Array<string>;
+
+  /* Query parameters that survive URL scrubbing. */
+  urlAllowlist: Array<string>;
+
+  recordCanvas: boolean;
+  captureUserIdentity: boolean;
+
+  /*
+   * Regex strings matched (case-insensitively) against an uncaught
+   * error's message and source URL. A matching error is still RECORDED in
+   * the session, but it no longer fires the error capture trigger — the
+   * dashboard-side remedy for a chronically-throwing third-party tag that
+   * would otherwise convert error-triggered capture into always-on
+   * upload, without waiting on a recorder release.
+   */
+  ignoreErrorPatterns: Array<string>;
+
+  /*
+   * ---- Fields below are OPTIONAL on the wire, deliberately. ----
+   *
+   * The loader stub validates this response field-by-field and lives
+   * under a hard byte budget; fields only the full recorder artifact acts
+   * on are not worth loader bytes to validate. The stub passes the raw
+   * body through (LoaderConfig.raw) and the artifact normalises these
+   * itself, treating absence as "feature off". The server always sends
+   * them (pinned by tests); older cached stubs simply don't validate
+   * them, which is the additive-only contract working as intended.
+   */
+
+  /*
+   * CROSS-origin APIs the recorder may inject a W3C traceparent header
+   * into, so a recording links to the backend trace of the request that
+   * failed — with NO OTel browser instrumentation on the customer's page.
+   * Listed origins get traceparent only, never the session id. The page's
+   * own origin needs no entry: see sameOriginTracePropagation.
+   *
+   * Empty means no cross-origin injection, and that default is the safety
+   * mechanism: adding a request header turns a simple cross-origin request
+   * into a preflighted one, and an API that does not allow traceparent in
+   * Access-Control-Allow-Headers would start failing because a RUM
+   * script was installed. Each listed origin is an explicit statement
+   * that its API accepts the header.
+   */
+  tracePropagationOrigins?: Array<string>;
+
+  /*
+   * RumApplication.sessionReplaySameOriginTracePropagation. When true, the
+   * recorder adds a traceparent (unless the request or an inner tracing
+   * instrumentation already sets one) and a tracestate member carrying the
+   * replay session id (`oneuptime=sid:<id>`, see Utils/Rum/SessionTraceState)
+   * to fetch/XHR requests to the page's OWN origin, and only while the
+   * session is uploading with consent. Span ingest reads the member back,
+   * so backend spans link to the recording with no customer code.
+   *
+   * A same-origin request is never preflighted, so this needs no origin
+   * list and defaults on; the switch turns it off per application without
+   * a customer redeploy. The server always sends an explicit boolean (false
+   * on every disabled response) and the recorder reads anything but `true`
+   * as off, so an older server or a cached stub never turns it on.
+   */
+  sameOriginTracePropagation?: boolean;
+
+  /*
+   * Performance capture budgets, milliseconds; 0 disables that trigger.
+   * Exceeding a budget fires the Performance capture trigger, so slow
+   * sessions get recordings the same way broken ones do.
+   */
+  lcpBudgetMs?: number;
+  longTaskBudgetMs?: number;
+  slowRequestBudgetMs?: number;
+
+  /*
+   * True when this recorder boot matched a "record the next session for
+   * this user" target set from the Dashboard. The recorder records from
+   * the first event, trigger reason "manual". Consent gates still apply.
+   */
+  isTargeted?: boolean;
+
+  respectDoNotTrack: boolean;
+
+  /*
+   * Bumped whenever the policy changes, so a recorder can notice its
+   * config is stale without diffing the whole object.
+   */
+  configEpoch: number;
+
+  directive: SessionReplayDirective;
+
+  /*
+   * Set only alongside enabled:false. Optional on the wire like every
+   * other field added after v1: an older recorder ignores it, a newer one
+   * logs it, and neither breaks.
+   */
+  disabledReason?: SessionReplayDisabledReason;
+
+  /*
+   * Narrows disabledReason so the customer's console and the Dashboard's
+   * installation test can name the exact switch or budget: for
+   * NotEnabledForApplication one of project-not-allowed,
+   * application-not-enabled, application-unknown, project-killed; for
+   * BudgetExhausted one of project-daily-budget-exhausted,
+   * app-monthly-budget-exhausted. Free-form on purpose - the vocabulary
+   * belongs to the server's gate cache, and an older recorder just logs
+   * whatever string it receives.
+   */
+  disabledDetail?: string;
+
+  /*
+   * ISO timestamp of when a spent budget clears, set only alongside
+   * BudgetExhausted, so the recorder's diagnostics can say "resets at
+   * 00:00 UTC" instead of "disabled".
+   */
+  budgetResetsAt?: string;
+
+  /*
+   * Ask every recorder that reads this policy to print its decisions to
+   * the browser console (SESSION_REPLAY_DEBUG on the deployment).
+   *
+   * The switch of last resort, and the only one an operator can reach
+   * without editing a page they do not own: the per-browser localStorage
+   * and query-string switches need somebody at that browser. It is off by
+   * default and must stay that way - a RUM script logging on every visitor
+   * of every customer is noise on somebody else's site.
+   */
+  debug?: boolean;
+}
+
+/* Response to a chunk POST. Deliberately tiny. */
+export interface SessionReplayChunkResponse {
+  directive: SessionReplayDirective;
+  configEpoch: number;
+  retryAfterSeconds?: number;
+  /*
+   * WHY the directive says what it says ("budget-exhausted",
+   * "not-sampled", "rate-limited", ...). A recorder told to stop without a
+   * reason leaves the customer diagnosing silence; the reason string is a
+   * closed vocabulary, carries no user data, and lets the recorder log
+   * something a support ticket can quote.
+   */
+  reason?: string;
+}
+
+/*
+ * One row of the playback manifest — everything the player needs to draw
+ * a complete timeline WITHOUT fetching a single payload byte.
+ */
+export interface SessionReplayChunkManifestEntry {
+  chunkIndex: number;
+  tabId: string;
+  chunkStartOffsetMs: number;
+  chunkEndOffsetMs: number;
+  eventCount: number;
+  hasFullSnapshot: boolean;
+  payloadBytes: number;
+
+  /*
+   * Per-chunk signal counters. These feed the player's error, frustration
+   * and route timeline lanes and the "next error" jump — a lane drawn from
+   * counters the chunk row already carries, never inferred from payloads.
+   */
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  routeCount: number;
+
+  /*
+   * Optional because a manifest from a server that predates the column
+   * simply omits it, and the player must not draw "0 clicks" for a chunk
+   * that was never counted. Feeds the coarse activity heat on the timeline
+   * before the chunk is decoded.
+   */
+  clickCount?: number;
+
+  /*
+   * Scrubbed URL the chunk was flushed from (the chunk row's url column).
+   * Lets the stage's URL bar and the timeline preview name the page for a
+   * chunk that is not loaded yet; the exact navigation events take over
+   * once it is decoded.
+   */
+  url?: string;
+}
+
+/* A hole in the chunk sequence. Never crossed silently during playback. */
+export interface SessionReplayGap {
+  fromIndex: number;
+  toIndex: number;
+  missingMs: number;
+}

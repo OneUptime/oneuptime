@@ -1,0 +1,114 @@
+name: Set up gomplate
+description: >-
+  Puts the gomplate that Scripts/Install/configure.sh pins on PATH, so that
+  `npm run prerun` (and `npm run dev`, which runs it) renders the
+  Dockerfile.tpl templates without downloading gomplate itself. Needs the
+  repository checked out.
+
+# Why this exists: configure.sh downloads gomplate from GitHub's release CDN
+# whenever it is not already on PATH, and CI runs it in every image build --
+# 6 jobs per Build run, 11 per test release, 16 per release. That CDN answers
+# 504 in bursts. On 2026-09-21 the bursts failed a Build Preinstall and, via
+# packages/Common/test-setup.sh, a Common Test shard, and nearly failed four
+# more jobs that only got through on their last retry.
+#
+# So the binary comes from the Actions cache, keyed on its pinned sha256, and
+# the CDN is only asked when that cache entry does not exist yet (a version
+# bump, or an eviction). Scripts/GHA/fetch_pinned_artifact.sh checks every copy
+# -- cached or downloaded -- against the digest pinned below before it is put
+# on PATH, and rides out a burst with exponential backoff when it does have to
+# download. configure.sh then sees gomplate on PATH and skips its download.
+#
+# Caches written by master runs are visible to pull requests and to the
+# `release` branch, so a release restores the copy master already verified.
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the pinned gomplate
+      id: pin
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The version is configure.sh's, so the two cannot drift. The digests
+        # are pinned here -- never fetched from the release they verify -- so
+        # bumping GOMPLATE_VERSION fails this step until they are updated
+        # (checksums-v<version>_sha256.txt in the gomplate release lists them).
+        version="$(sed -n 's/^GOMPLATE_VERSION="\([0-9.]*\)"$/\1/p' Scripts/Install/configure.sh)"
+        pinned_version="3.11.8"
+        if [[ -z "$version" ]]; then
+          echo "::error title=gomplate version not found::No line of the form GOMPLATE_VERSION=\"x.y.z\" in Scripts/Install/configure.sh; this action reads the version from there."
+          exit 1
+        fi
+        if [[ "$version" != "$pinned_version" ]]; then
+          echo "::error title=gomplate pin is stale::Scripts/Install/configure.sh pins gomplate '${version}' but .github/actions/setup-gomplate pins the sha256 of ${pinned_version}. Update pinned_version and both digests together."
+          exit 1
+        fi
+        case "${RUNNER_OS}/${RUNNER_ARCH}" in
+          Linux/X64)
+            platform="linux-amd64"
+            sha256="edd7e578094a08e97552d002e84cce576b4df61bb6e29724c2026dc9c9afbc38"
+            ;;
+          Linux/ARM64)
+            platform="linux-arm64"
+            sha256="d1fff4b99629fe9186c5ec2ecb1307a3370a1101343b457ef19ae947f2def480"
+            ;;
+          *)
+            echo "::error title=No pinned gomplate::.github/actions/setup-gomplate has no pinned gomplate for ${RUNNER_OS}/${RUNNER_ARCH}."
+            exit 1
+            ;;
+        esac
+        {
+          echo "version=${version}"
+          echo "platform=${platform}"
+          echo "sha256=${sha256}"
+          echo "dir=${RUNNER_TEMP}/pinned-gomplate"
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Restore gomplate from the Actions cache
+      id: cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.pin.outputs.dir }}
+        key: gomplate-${{ steps.pin.outputs.version }}-${{ steps.pin.outputs.platform }}-${{ steps.pin.outputs.sha256 }}
+
+    # Runs on a hit too: a restored copy is only used after it verifies, and
+    # one that does not is replaced from the release.
+    - name: Verify gomplate, or download it on a cache miss
+      shell: bash
+      env:
+        GOMPLATE_VERSION: ${{ steps.pin.outputs.version }}
+        GOMPLATE_PLATFORM: ${{ steps.pin.outputs.platform }}
+        GOMPLATE_SHA256: ${{ steps.pin.outputs.sha256 }}
+        GOMPLATE_DIR: ${{ steps.pin.outputs.dir }}
+      run: |
+        bash "${GITHUB_WORKSPACE}/Scripts/GHA/fetch_pinned_artifact.sh" \
+          --name gomplate \
+          --sha256 "$GOMPLATE_SHA256" \
+          --dest "$GOMPLATE_DIR" \
+          --mode 0755 \
+          --source file "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_${GOMPLATE_PLATFORM}"
+
+    # Saved straight away rather than by actions/cache's post step, which only
+    # saves when the whole job succeeds: a job that fails later (a broken image
+    # build) would otherwise never fill the cache. Two jobs missing at once
+    # both try to save; the loser only logs a warning.
+    - name: Save gomplate to the Actions cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.pin.outputs.dir }}
+        key: ${{ steps.cache.outputs.cache-primary-key }}
+
+    - name: Put gomplate on PATH
+      shell: bash
+      env:
+        GOMPLATE_VERSION: ${{ steps.pin.outputs.version }}
+        GOMPLATE_DIR: ${{ steps.pin.outputs.dir }}
+      run: |
+        set -euo pipefail
+        echo "$GOMPLATE_DIR" >>"$GITHUB_PATH"
+        # Captured first: `gomplate --version | grep -q` can SIGPIPE under pipefail.
+        installed="$("${GOMPLATE_DIR}/gomplate" --version)"
+        echo "$installed"
+        grep -qF "$GOMPLATE_VERSION" <<<"$installed"

@@ -24,7 +24,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "./InfrastructureAgent",
+            "program": "./agents/InfrastructureAgent",
             "args": ["start"],
         },
         {
@@ -37,7 +37,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/App",
+            "localRoot": "${workspaceFolder}/packages/App",
             "name": "App: Debug with Docker",
             "port": 9232,
             "remoteRoot": "/usr/src/app",
@@ -51,7 +51,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Home",
+            "localRoot": "${workspaceFolder}/packages/Home",
             "name": "Home: Debug with Docker",
             "port": 9212,
             "remoteRoot": "/usr/src/app",
@@ -107,7 +107,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/TestServer",
+            "localRoot": "${workspaceFolder}/packages/TestServer",
             "name": "Test Server: Debug with Docker",
             "port": 9141,
             "remoteRoot": "/usr/src/app",
@@ -121,7 +121,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Probe",
+            "localRoot": "${workspaceFolder}/packages/Probe",
             "name": "Probe: Debug with Docker",
             "port": 9229,
             "remoteRoot": "/usr/src/app",
@@ -237,7 +237,7 @@
             "restart": true,
             "autoAttachChildProcesses": true,
             "request": "launch",
-            "cwd": "${workspaceRoot}/Common",
+            "cwd": "${workspaceRoot}/packages/Common",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
                 "run-script",

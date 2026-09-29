@@ -1,0 +1,472 @@
+/*
+ * Offline fixture for the real SLO Burn Rate Rules and Overview pages.
+ *
+ * Only the ModelAPI/API data boundary and the synthetic user's permission
+ * snapshot are replaced. The page component, its ModelTable, its form and
+ * every cell renderer are the production ones from this branch — which is the
+ * point: the screenshots this produces are of the actual UI, not a mock of it.
+ */
+import React from "react";
+import { createRoot } from "react-dom/client";
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+import SloView from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Index";
+import SloViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Layout";
+import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import SloBurnRateRules from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import UserModel from "Common/Models/DatabaseModels/User";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Color from "Common/Types/Color";
+import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
+import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
+import User from "Common/UI/Utils/User";
+import PermissionUtil from "Common/UI/Utils/Permission";
+
+const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
+const SLO_ID = "20000000-0000-4000-8000-000000000001";
+
+/*
+ * A fixed clock. The "Last fired" cell renders a relative time, so without
+ * this the screenshot text would drift every run.
+ */
+const NOW = new Date("2026-09-11T12:00:00.000Z");
+
+function minutesBefore(minutes) {
+  return new Date(NOW.getTime() - minutes * 60 * 1000);
+}
+
+function severity(model, id, name, order) {
+  const record = new model();
+  record._id = id;
+  record.name = name;
+  record.order = order;
+  return record;
+}
+
+const alertSeverities = [
+  severity(
+    AlertSeverity,
+    "30000000-0000-4000-8000-000000000001",
+    "Critical",
+    1,
+  ),
+  severity(AlertSeverity, "30000000-0000-4000-8000-000000000002", "Warning", 2),
+];
+
+const incidentSeverities = [
+  severity(
+    IncidentSeverity,
+    "40000000-0000-4000-8000-000000000001",
+    "SEV1 - Critical",
+    1,
+  ),
+  severity(
+    IncidentSeverity,
+    "40000000-0000-4000-8000-000000000002",
+    "SEV2 - Major",
+    2,
+  ),
+];
+
+function policy(id, name) {
+  const record = new OnCallDutyPolicy();
+  record._id = id;
+  record.name = name;
+  return record;
+}
+
+const onCallPolicies = [
+  policy("50000000-0000-4000-8000-000000000001", "Checkout on-call"),
+  policy("50000000-0000-4000-8000-000000000002", "Major incident commander"),
+];
+
+function label(id, name, color) {
+  const record = new Label();
+  record._id = id;
+  record.name = name;
+  record.color = Color.fromString(color);
+  return record;
+}
+
+const labels = [
+  label("90000000-0000-4000-8000-000000000001", "checkout", "#4f46e5"),
+  label("90000000-0000-4000-8000-000000000002", "customer-impact", "#dc2626"),
+];
+
+function team(id, name) {
+  const record = new Team();
+  record._id = id;
+  record.name = name;
+  return record;
+}
+
+const teams = [
+  team("a0000000-0000-4000-8000-000000000001", "Checkout team"),
+  team("a0000000-0000-4000-8000-000000000002", "Major incident team"),
+];
+
+function person(id, name, email) {
+  const record = new UserModel();
+  record._id = id;
+  record.name = name;
+  record.email = email;
+  return record;
+}
+
+const people = [
+  person(
+    "b0000000-0000-4000-8000-000000000001",
+    "Jane Doe",
+    "jane@example.com",
+  ),
+  person("b0000000-0000-4000-8000-000000000002", "Sam Lee", "sam@example.com"),
+];
+
+/*
+ * The owner-user pickers list the project's users through its team members
+ * (User itself is not project-listable), so the fixture serves those.
+ */
+const teamMembers = people.map((member, index) => {
+  const record = new TeamMember();
+  record._id = `c0000000-0000-4000-8000-00000000000${index + 1}`;
+  record.user = member;
+  return record;
+});
+
+/*
+ * Three rules, one per shape the "Declares" column can report: alert only
+ * (the pre-incident default), both, and incident only. The middle one is
+ * mid-lifecycle so the status cell renders the live "Firing" pill. Between
+ * them they carry every option a cell reports: owners, labels, an alert that
+ * is resolved by hand, a private incident, and SLO owners added as owners.
+ */
+function rule(data) {
+  const record = new ServiceLevelObjectiveBurnRateRule();
+  record._id = data.id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.serviceLevelObjectiveId = new ObjectID(SLO_ID);
+  record.name = data.name;
+  record.isEnabled = true;
+  record.burnRateThreshold = data.burnRateThreshold;
+  record.longWindowInMinutes = data.longWindowInMinutes;
+  record.shortWindowInMinutes = data.shortWindowInMinutes;
+  record.refireSuppressionMinutes = data.refireSuppressionMinutes;
+  record.shouldCreateAlert = data.shouldCreateAlert;
+  record.shouldCreateIncident = data.shouldCreateIncident;
+  // Existing database rows have null templates when they use the backend
+  // fallback. Unlike missing create values, these must not be prefilled.
+  record.alertTitleTemplate = data.alertTitleTemplate ?? null;
+  record.alertDescriptionTemplate = data.alertDescriptionTemplate ?? null;
+  record.alertRemediationNotes = data.alertRemediationNotes ?? null;
+  record.incidentTitleTemplate = data.incidentTitleTemplate ?? null;
+  record.incidentDescriptionTemplate = data.incidentDescriptionTemplate ?? null;
+  record.incidentRemediationNotes = data.incidentRemediationNotes ?? null;
+  record.alertSeverity = data.alertSeverity;
+  record.alertSeverityId = data.alertSeverity && data.alertSeverity.id;
+  record.incidentSeverity = data.incidentSeverity;
+  record.incidentSeverityId = data.incidentSeverity && data.incidentSeverity.id;
+  record.onCallDutyPolicies = data.onCallDutyPolicies || [];
+  record.incidentOnCallDutyPolicies = data.incidentOnCallDutyPolicies || [];
+  record.alertLabels = data.alertLabels || [];
+  record.incidentLabels = data.incidentLabels || [];
+  record.alertOwnerTeams = data.alertOwnerTeams || [];
+  record.alertOwnerUsers = data.alertOwnerUsers || [];
+  record.incidentOwnerTeams = data.incidentOwnerTeams || [];
+  record.incidentOwnerUsers = data.incidentOwnerUsers || [];
+  record.isAlertPrivate = data.isAlertPrivate === true;
+  record.autoResolveAlert = data.autoResolveAlert !== false;
+  record.isIncidentPrivate = data.isIncidentPrivate === true;
+  record.autoResolveIncident = data.autoResolveIncident !== false;
+  record.addSloOwnersAsOwners = data.addSloOwnersAsOwners === true;
+  record.lastAlertCreatedAt = data.lastAlertCreatedAt;
+  record.lastAlertResolvedAt = data.lastAlertResolvedAt;
+  record.lastIncidentCreatedAt = data.lastIncidentCreatedAt;
+  record.lastIncidentResolvedAt = data.lastIncidentResolvedAt;
+  return record;
+}
+
+const rules = [
+  rule({
+    id: "60000000-0000-4000-8000-000000000001",
+    name: "Fast burn",
+    burnRateThreshold: 14.4,
+    longWindowInMinutes: 60,
+    shortWindowInMinutes: 5,
+    shouldCreateAlert: true,
+    shouldCreateIncident: true,
+    alertSeverity: alertSeverities[0],
+    incidentSeverity: incidentSeverities[0],
+    onCallDutyPolicies: [onCallPolicies[0]],
+    incidentOnCallDutyPolicies: [onCallPolicies[1]],
+    alertOwnerTeams: [teams[0]],
+    incidentOwnerUsers: [people[0]],
+    alertLabels: [labels[0]],
+    incidentLabels: [labels[0], labels[1]],
+    addSloOwnersAsOwners: true,
+    // Fired 12 minutes ago and still open: the live "Firing" pill.
+    lastAlertCreatedAt: minutesBefore(12),
+    lastIncidentCreatedAt: minutesBefore(12),
+  }),
+  rule({
+    id: "60000000-0000-4000-8000-000000000002",
+    name: "Slow burn",
+    burnRateThreshold: 6,
+    longWindowInMinutes: 360,
+    shortWindowInMinutes: 30,
+    shouldCreateAlert: true,
+    shouldCreateIncident: false,
+    alertSeverity: alertSeverities[1],
+    onCallDutyPolicies: [onCallPolicies[0]],
+    // Stays open until someone resolves it.
+    autoResolveAlert: false,
+    lastAlertCreatedAt: minutesBefore(2880),
+    lastAlertResolvedAt: minutesBefore(2760),
+  }),
+  rule({
+    id: "60000000-0000-4000-8000-000000000003",
+    name: "Budget emergency",
+    burnRateThreshold: 30,
+    longWindowInMinutes: 120,
+    shortWindowInMinutes: 10,
+    refireSuppressionMinutes: 240,
+    shouldCreateAlert: false,
+    shouldCreateIncident: true,
+    incidentSeverity: incidentSeverities[0],
+    incidentOnCallDutyPolicies: [onCallPolicies[1]],
+    incidentOwnerTeams: [teams[1]],
+    isIncidentPrivate: true,
+  }),
+];
+
+const slo = new ServiceLevelObjective();
+slo._id = SLO_ID;
+slo.projectId = new ObjectID(PROJECT_ID);
+slo.name = "Checkout availability";
+slo.description = "Availability of the checkout API for customer purchases.";
+slo.labels = labels;
+if (new URLSearchParams(window.location.search).get("details") === "empty") {
+  slo.description = "";
+  slo.labels = [];
+}
+slo.isEnabled = true;
+slo.sloStatus = SloStatus.AtRisk;
+slo.sliType = SliType.MonitorUptime;
+slo.targetPercentage = 99.9;
+slo.windowType = SloWindowType.Rolling;
+slo.windowDays = 30;
+slo.multiMonitorMode = SloMultiMonitorMode.AnyDown;
+slo.errorBudgetTotalSeconds = 2592;
+slo.errorBudgetRemainingSeconds = 518.4;
+slo.errorBudgetRemainingPercentage = 20;
+slo.currentSliPercentage = 99.92;
+slo.currentBurnRate = 1.2;
+slo.lastEvaluatedAt = minutesBefore(1);
+const monitor = new Monitor();
+monitor._id = "70000000-0000-4000-8000-000000000001";
+slo.monitors = [monitor];
+
+User.isMasterAdmin = () => true;
+User.getUserId = () => new ObjectID("80000000-0000-4000-8000-000000000001");
+PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
+ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
+
+ModelAPI.getItem = async (options) => {
+  const tableName = new options.modelType().tableName;
+  if (tableName === "ServiceLevelObjective") {
+    // Form prefilling converts relation models to picker IDs. Each API read
+    // returns a fresh record so those conversions cannot mutate stored data.
+    return Object.assign(new ServiceLevelObjective(), slo, {
+      labels: [...slo.labels],
+    });
+  }
+  if (tableName === "ServiceLevelObjectiveBurnRateRule") {
+    const existing = rules.find((item) => item._id === options.id.toString());
+    // ModelForm turns relations into picker IDs while prefilling. Keep that
+    // conversion out of the stored record, just as a real API response would.
+    return existing
+      ? Object.assign(new ServiceLevelObjectiveBurnRateRule(), existing)
+      : null;
+  }
+  return null;
+};
+
+ModelAPI.getList = async (options) => {
+  const tableName = new options.modelType().tableName;
+  const skip = Number(options.skip || 0);
+  const limit = Number(options.limit || 50);
+  const itemsByTable = {
+    ServiceLevelObjectiveBurnRateRule: rules,
+    AlertSeverity: alertSeverities,
+    IncidentSeverity: incidentSeverities,
+    OnCallDutyPolicy: onCallPolicies,
+    Label: labels,
+    Team: teams,
+    TeamMember: teamMembers,
+  };
+  const items = itemsByTable[tableName] || [];
+  return {
+    data: items.slice(skip, skip + limit),
+    count: items.length,
+    skip,
+    limit,
+  };
+};
+
+ModelAPI.getCount = async (options) => {
+  const tableName = new options.modelType().tableName;
+  return tableName === "ServiceLevelObjectiveBurnRateRule" ? rules.length : 0;
+};
+
+ModelAPI.count = ModelAPI.getCount;
+AnalyticsModelAPI.aggregate = async () => ({ data: [] });
+
+ModelAPI.createOrUpdate = async (options) => {
+  const record = options.model;
+  if (record.tableName === "ServiceLevelObjective") {
+    Object.assign(slo, record, {
+      labels: (record.labels || []).map((value) => {
+        const id = (value._id || value).toString();
+        const related = labels.find((item) => item._id === id);
+        if (!related) {
+          throw new Error(`Unknown SLO label relation: ${id}`);
+        }
+        return related;
+      }),
+    });
+    return { data: slo };
+  }
+  const index = rules.findIndex((item) => item._id === record._id);
+
+  if (!record._id) {
+    record._id = `60000000-0000-4000-8000-${String(rules.length + 1).padStart(12, "0")}`;
+  }
+
+  // Resolve exactly the IDs the production form submits. This exercises the
+  // two independent owner, severity, label and on-call mappings on save.
+  const relations = {
+    alertSeverity: alertSeverities,
+    incidentSeverity: incidentSeverities,
+    onCallDutyPolicies: onCallPolicies,
+    incidentOnCallDutyPolicies: onCallPolicies,
+    alertLabels: labels,
+    incidentLabels: labels,
+    alertOwnerTeams: teams,
+    alertOwnerUsers: people,
+    incidentOwnerTeams: teams,
+    incidentOwnerUsers: people,
+  };
+
+  for (const [field, candidates] of Object.entries(relations)) {
+    const resolve = (value) => {
+      const id = (value._id || value).toString();
+      const related = candidates.find((item) => item._id === id);
+      if (!related) {
+        throw new Error(`Unknown ${field} relation: ${id}`);
+      }
+      return related;
+    };
+    if (Array.isArray(record[field])) {
+      record[field] = record[field].map(resolve);
+    } else if (record[field]) {
+      record[field] = resolve(record[field]);
+    }
+  }
+
+  if (index < 0) {
+    rules.push(record);
+  } else {
+    rules[index] = record;
+  }
+
+  return { data: record };
+};
+
+API.get = async () => ({ data: { data: [], count: 0 } });
+API.post = async () => ({ data: { data: [], count: 0 } });
+
+await i18next.use(initReactI18next).init({
+  lng: "en",
+  fallbackLng: "en",
+  resources: { en: { translation: {} } },
+  interpolation: { escapeValue: false },
+});
+
+function OverviewLayout() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return <SloViewLayout />;
+}
+
+function Fixture() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  const isOverview = !useLocation().pathname.endsWith("/burn-rate-rules");
+  return (
+    <>
+      <header className="flex flex-wrap gap-3 items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
+        <div className="flex items-center gap-5">
+          <span className="text-lg font-semibold text-gray-900">OneUptime</span>
+          <span className="text-sm text-gray-500">Checkout availability</span>
+        </div>
+        <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
+          Demo workspace · Synthetic data
+        </span>
+      </header>
+      {isOverview ? (
+        <main className="mx-auto max-w-[1820px]">
+          <Routes>
+            <Route
+              path={RouteMap[PageMap.SLO_VIEW].toString()}
+              element={<OverviewLayout />}
+            >
+              <Route index element={<SloView />} />
+            </Route>
+          </Routes>
+        </main>
+      ) : (
+        <main className="mx-auto max-w-[1820px] px-8 py-8">
+          <div className="mb-7 text-sm text-gray-500">
+            SLOs <span className="mx-2">/</span> Checkout availability{" "}
+            <span className="mx-2">/</span> Burn Rate Rules
+          </div>
+          <SloBurnRateRules />
+        </main>
+      )}
+    </>
+  );
+}
+
+createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <Fixture />
+  </BrowserRouter>,
+);

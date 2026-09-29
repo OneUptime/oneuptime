@@ -1,0 +1,173 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useId,
+  useState,
+} from "react";
+import Tooltip from "../Tooltip/Tooltip";
+import Icon from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
+
+export interface ComponentProps {
+  onChange: (value: boolean) => void;
+  initialValue?: boolean | undefined;
+  value?: boolean | undefined;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  tabIndex?: number | undefined;
+  title?: string | undefined;
+  description?: string | undefined;
+  error?: string | undefined;
+  dataTestId?: string | undefined;
+  tooltip?: string | undefined;
+  ariaLabelledby?: string | undefined;
+  /*
+   * Presses are ignored and the switch says so (aria-disabled) - while the
+   * value it shows is being saved, say. Deliberately not the native
+   * `disabled` attribute: that would throw keyboard focus off a switch the
+   * user just pressed, and it is still the element they are on.
+   */
+  disabled?: boolean | undefined;
+}
+
+const Toggle: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const uniqueId: string = useId();
+  const labelId: string = `toggle-label-${uniqueId}`;
+  const errorId: string = `toggle-error-${uniqueId}`;
+  const [isChecked, setIsChecked] = useState<boolean>(
+    props.initialValue || false,
+  );
+
+  useEffect(() => {
+    if (props.value !== undefined) {
+      if (props.value) {
+        setIsChecked(true);
+      } else {
+        setIsChecked(false);
+      }
+    }
+  }, [props.value]);
+
+  type HandleChangeFunction = (content: boolean) => void;
+
+  const handleChange: HandleChangeFunction = (content: boolean): void => {
+    setIsChecked(content);
+    props.onChange(content);
+  };
+
+  let buttonClassName: string =
+    "bg-gray-200 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
+
+  if (isChecked) {
+    buttonClassName =
+      "bg-indigo-600 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
+  }
+
+  if (props.disabled) {
+    buttonClassName = buttonClassName.replace(
+      "cursor-pointer",
+      "cursor-not-allowed",
+    );
+  }
+
+  let toggleClassName: string =
+    "translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out";
+
+  if (isChecked) {
+    toggleClassName =
+      "translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out";
+  }
+
+  return (
+    <div>
+      <div className="flex items-center">
+        <button
+          onClick={() => {
+            /*
+             * Before handleChange, which flips the switch's own copy of its
+             * value: flipped and then refused by the caller, that copy would
+             * no longer match `value`, and nothing re-syncs it until `value`
+             * itself changes - a disabled switch pressed from the keyboard
+             * would go on showing the state it was refused.
+             */
+            if (props.disabled) {
+              return;
+            }
+
+            if (props.onFocus) {
+              props.onFocus();
+            }
+            if (props.onBlur) {
+              props.onBlur();
+            }
+            /*
+             * handleChange already calls props.onChange. Calling it a second
+             * time here ran every consumer's handler twice per click, which an
+             * idempotent handler never notices and a non-idempotent one cannot
+             * survive. The monitor criteria switches are one click away from
+             * that: they seed a blank incident / alert row on the way on, and
+             * only the "is the array still empty" guard around that seed kept
+             * the second pass from adding a second row.
+             */
+            handleChange(!isChecked);
+          }}
+          onFocus={() => {
+            if (props.onFocus) {
+              props.onFocus();
+            }
+          }}
+          data-testid={props.dataTestId}
+          onBlur={() => {
+            if (props.onBlur) {
+              props.onBlur();
+            }
+          }}
+          tabIndex={props.tabIndex}
+          type="button"
+          className={buttonClassName}
+          role="switch"
+          aria-checked={isChecked ? "true" : "false"}
+          aria-disabled={props.disabled ? "true" : undefined}
+          aria-labelledby={props.ariaLabelledby || labelId}
+          aria-describedby={props.error ? errorId : undefined}
+          aria-invalid={props.error ? "true" : undefined}
+        >
+          <span aria-hidden="true" className={toggleClassName}></span>
+        </button>
+        <span className="ml-3" id={labelId}>
+          <span className="text-sm font-medium text-gray-900">
+            {props.title}
+          </span>
+          <span className="text-sm text-gray-500 ml-1">
+            {props.description}
+          </span>
+        </span>
+        {props.tooltip && (
+          <Tooltip key={1} text={props.tooltip || "Not available"}>
+            <div className="ml-1">
+              <Icon
+                className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
+                icon={IconProp.Help}
+              />
+            </div>
+          </Tooltip>
+        )}
+      </div>
+      {props.error && (
+        <p
+          id={errorId}
+          data-testid="error-message"
+          className="mt-1 text-sm text-red-400"
+          role="alert"
+        >
+          {props.error}
+        </p>
+      )}
+    </div>
+  );
+};
+
+export default Toggle;

@@ -146,7 +146,7 @@ runner:
 | `image.repository`    | Docker image repository.                                                                 | `oneuptime`          |
 | `image.tag`           | Docker image tag. Pin this in production (see [Production checklist](production-checklist.md)). | `release`     |
 | `image.pullPolicy`    | Image pull policy.                                                                        | `IfNotPresent`       |
-| `image.type`          | `community-edition` or `enterprise-edition` (enterprise requires a valid license).        | `community-edition`  |
+| `image.type`          | `community-edition` (the Apache-2.0 images) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features under the OneUptime Enterprise License). Production use of the Enterprise Edition requires a subscription under that license; an install with no license, or one holding a license whose expiry was never recorded, runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), SSO, OIDC, SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; core monitoring is never affected. | `community-edition`  |
 | `image.restartPolicy` | Image restart policy.                                                                     | `Always`             |
 
 ## Autoscaling & availability
@@ -180,9 +180,10 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.monitoringWorkers`                  | Number of parallel processes used to monitor resources.               | `3`     |
 | `probes.<key>.monitorFetchLimit`                  | Number of resources monitored in parallel.                            | `10`    |
 | `probes.<key>.automountServiceAccountToken`       | Mount a Kubernetes service-account token into Probe pods. Disabled by default because Probes do not require Kubernetes API credentials. | `false` |
+| `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes register as global probes, so this opens those targets to monitors from **every project** on the instance. Loopback, link-local and cloud metadata addresses stay blocked either way. Ignored, with a startup warning, when `billing.enabled` is `true`; deploy a private probe there instead. | `false` |
 | `probes.<key>.syntheticMonitorScriptTimeoutInMs`  | Timeout for synthetic monitor scripts in milliseconds (`1`–`2147363647`). The upper bound reserves 120 seconds for browser and worker startup within Node.js's safe timer range. | `60000` |
 | `probes.<key>.syntheticMonitorMaxConcurrency`     | Maximum isolated synthetic browser processes per Probe; extra executions queue FIFO. | `4` |
-| `probes.<key>.syntheticMonitorMaxProcessTreeRssBytes` | Aggregate RSS ceiling for each isolated worker and all browser descendants. | `1610612736` |
+| `probes.<key>.syntheticMonitorMaxProcessTreeRssBytes` | Memory ceiling for each isolated worker and all browser descendants together, measured as their proportional set size (pages the browser's processes share count once). | `1610612736` |
 | `probes.<key>.syntheticMonitorMaxDiskBytes` | Writable disk ceiling for each isolated execution, including browser profiles, caches, IndexedDB, and OPFS. | `268435456` |
 | `probes.<key>.syntheticMonitorTempStorageSizeLimit` | Pod-level `emptyDir` ceiling for `/tmp`, providing a backstop across all concurrent synthetic executions. Increase this when raising concurrency or the per-run disk ceiling. | `2Gi` |
 | `probes.<key>.syntheticMonitorChromiumSandboxEnabled` | Require Chromium's OS sandbox. Enable only after installing a Playwright-compatible Localhost seccomp profile on every Probe node; launch fails closed when the sandbox is unavailable. | `false` |
@@ -199,12 +200,20 @@ Synthetic executions always run in short-lived processes and browser workers.
 The image's default root Probe supervisor additionally assigns each execution a
 unique, low-privilege UID. An explicit non-root Probe override remains supported,
 but workers then share the Probe UID and lose that extra UID boundary. The stock
-`RuntimeDefault` seccomp profile keeps the chart portable but commonly blocks
-the user-namespace calls Chromium's additional OS sandbox requires. To enable
-that defense in depth, install a CRI/OCI-compatible profile derived from your
-container runtime's default with `clone`, `setns`, and `unshare` enabled in the
+`RuntimeDefault` seccomp profile keeps the chart portable but blocks the
+user-namespace calls both browsers' additional OS sandbox layer requires:
+Chromium's sandbox must then stay disabled, and Firefox falls back to its
+seccomp-only sandbox. To enable that defense in depth, install a
+CRI/OCI-compatible profile derived from your container runtime's default with
+`clone`, `setns`, `unshare` **and `chroot`** allowed unconditionally in the
 kubelet seccomp directory on every Probe node, then configure the matching path.
-Do not use `Probe/seccomp_profile.json` verbatim here: it contains
+Firefox and Chromium both call `chroot` inside the user namespace they create.
+A profile that allows the namespace but not `chroot` crashes every Firefox
+content process (`Sandbox: chroot: EPERM`) and the Chromium zygote
+(`Check failed: sys_chroot`), so every synthetic check fails. No capability is
+needed for either call, and adding `SYS_CHROOT` does not help when the
+profile omits `chroot`.
+Do not use `packages/Probe/seccomp_profile.json` verbatim here: it contains
 Moby-specific conditional fields for Docker Compose rather than Kubernetes CRI.
 
 ```yaml
@@ -218,6 +227,8 @@ probes:
 ```
 
 > **Why probes have custom DNS settings.** Probes resolve mostly *external* hostnames. The Kubernetes default (`ndots:5` plus a multi-entry search list) turns every external lookup into ~7 DNS queries funneled through a single upstream resolver, which under load causes intermittent `getaddrinfo EAI_AGAIN` failures and false monitor-down alerts. The chart ships a **chart-wide `dnsConfig` default** (`ndots:1`, which removes the search-domain fan-out, plus public fallback nameservers `8.8.8.8`/`1.1.1.1`); `dnsPolicy` stays `ClusterFirst` so `*.svc.cluster.local` (the OneUptime API the probe calls) still resolves. Each probe inherits this fallback unless it sets its own `probes.<key>.dnsConfig`. On **air-gapped clusters** with no egress to public DNS, drop the chart-wide `nameservers` list (keep the `options` block) or set `dnsConfig: {}`.
+
+> **IPv6 targets.** Chart probes run on the cluster's pod network, so they can reach IPv6 destinations only on a dual-stack or IPv6-only cluster. On an IPv4-only cluster, checks of IPv6 destinations fail on these probes (a Ping monitor's failure reason then says the probe cannot send IPv6 traffic). To check a probe, run `kubectl exec -n <namespace> deploy/<release>-probe-<key> -- ping -6 -c 1 2001:4860:4860::8888`: `1 received` means it has IPv6, and `Network is unreachable` means the pod has no IPv6 route. To monitor IPv6 destinations from an IPv4-only cluster, use a [custom probe](https://oneuptime.com/docs/probe/custom-probe#monitoring-ipv6-destinations) on a machine that has IPv6.
 
 ## Incidents & alerts
 
@@ -390,6 +401,25 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.maxInflightRequests`                | Insert requests served concurrently per pod before shedding with 429 (bounds pod memory).            | `100` |
 | `telemetryWriter.telemetryFanIn*`                    | Same batching/retry knobs as `worker.telemetryFanIn*`.                                               | see `values.yaml` |
 | `telemetryWriter.clickhouseMaxOpenConnections` / `telemetryWriter.clickhouseIngestMaxOpenConnections` | Per-pod ClickHouse pool ceilings.                                    | `100` / inherit |
+
+## Private network access
+
+Two instance-wide gates decide whether outbound requests a project member
+configures may reach private ranges (RFC-1918, CGNAT, IPv6 unique-local).
+Loopback, link-local and the cloud metadata endpoint stay blocked under both.
+They point in opposite directions: webhooks are refused private targets unless
+you open them, while data sources, LLM providers, SMTP, OAuth token URLs, OIDC
+discovery and runbook HTTP steps are allowed them unless you close them. Probe
+monitors have their own per-probe switch, `probes.<key>.allowPrivateNetworkMonitors`
+(see [Probes](#probes)). See
+[Private Network Access](https://oneuptime.com/docs/self-hosted/private-network-access)
+for the full picture.
+
+| Parameter                                 | Description                                                                                                                         | Default |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks and on-call user webhooks reach private ranges. Status page subscriber webhooks are never covered.   | `false` |
+| `webhooks.privateNetworkAllowlist`        | Comma-separated hosts, wildcards, IPs and CIDRs webhooks may reach regardless of range. Never list `169.254.169.254`.                | `""`    |
+| `outboundConnections.blockPrivateNetwork` | Refuse private ranges for everything that is not a webhook, too (`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`). Always on when `billing.enabled` is `true`. With it on, a refused host name, webhooks included, is reported without saying what it resolved to. | `false` |
 
 ## Update check
 

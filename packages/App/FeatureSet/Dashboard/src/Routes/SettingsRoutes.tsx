@@ -1,0 +1,445 @@
+import PageComponentProps from "../Pages/PageComponentProps";
+import SettingsLayout from "../Pages/Settings/Layout";
+
+import PageMap from "../Utils/PageMap";
+import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import React, { FunctionComponent, lazy, ReactElement } from "react";
+import { Route as PageRoute, Routes } from "react-router-dom";
+
+// Pages
+import ProjectSettings from "../Pages/Settings/ProjectSettings";
+import SettingsApiKeys from "../Pages/Settings/APIKeys";
+
+import SettingsApiKeyView from "../Pages/Settings/APIKeyView";
+
+import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
+
+import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyView";
+
+import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
+
+import SettingLabels from "../Pages/Settings/Labels";
+
+import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
+
+import SettingsDomains from "../Pages/Settings/Domains";
+
+import SettingsBilling from "../Pages/Settings/Billing";
+import SettingsSSO from "../Pages/Settings/SSO";
+import SettingsOIDC from "../Pages/Settings/OIDC";
+
+import SettingsSCIM from "../Pages/Settings/SCIM";
+
+import SettingsNotificationLogs from "../Pages/Settings/NotificationLogs";
+import SettingsNotifications from "../Pages/Settings/NotificationSettings";
+import SettingsInvoices from "../Pages/Settings/Invoices";
+
+import SettingsMicrosoftTeamsIntegration from "../Pages/Settings/MicrosoftTeamsIntegration";
+
+import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
+
+import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
+
+import SettingsMobileApps from "../Pages/Settings/MobileApps";
+
+import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
+import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
+
+import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
+
+import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
+
+import SettingsRunners from "../Pages/Settings/Runners";
+import SettingsRunnerView from "../Pages/Settings/RunnerView";
+import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
+
+import SettingsAIFeatures from "../Pages/Settings/AIFeatures";
+import SettingsAICredits from "../Pages/Settings/AICredits";
+import SettingsAIGuardrails from "../Pages/Settings/AIGuardrails";
+
+import SettingsAILogs from "../Pages/Settings/AILogs";
+
+import SettingsMcpServer from "../Pages/Settings/McpServer";
+
+const SettingsDangerZone: React.LazyExoticComponent<
+  typeof import("../Pages/Settings/DangerZone").default
+> = lazy(() => {
+  return import("../Pages/Settings/DangerZone");
+});
+
+export interface ComponentProps extends PageComponentProps {
+  onProjectDeleted: () => void;
+}
+
+const SettingsRoutes: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  return (
+    <Routes>
+      <PageRoute
+        path={SettingsRoutePath[PageMap.SETTINGS] || ""}
+        element={<SettingsLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <ProjectSettings
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_DANGERZONE)}
+          element={
+            <SettingsDangerZone
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_DANGERZONE] as Route}
+              onProjectDeleted={props.onProjectDeleted}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_NOTIFICATION_LOGS)}
+          element={
+            <SettingsNotificationLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AUDIT_LOGS)}
+          element={
+            <SettingsAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AUDIT_LOGS_SETTINGS,
+            2,
+          )}
+          element={
+            <SettingsAuditLogsSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_MOBILE_APPS)}
+          element={
+            <SettingsMobileApps
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}
+          element={
+            <SettingsAIFeatures
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LLM_PROVIDERS)}
+          element={
+            <SettingsLlmProviders
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW,
+            2,
+          )}
+          element={
+            <SettingsLlmProviderView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNERS)}
+          element={
+            <SettingsRunners
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_RUNNERS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNER_VIEW, 2)}
+          element={
+            <SettingsRunnerView
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_RUNNER_CREDENTIALS,
+          )}
+          element={
+            <SettingsRunnerCredentials
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_GUARDRAILS)}
+          element={
+            <SettingsAIGuardrails
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_CREDITS)}
+          element={
+            <SettingsAICredits
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_CREDITS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LOGS)}
+          element={
+            <SettingsAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_MCP_SERVER)}
+          element={
+            <SettingsMcpServer
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_MCP_SERVER] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USAGE_HISTORY)}
+          element={
+            <SettingsUsageHistory
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_FEATURE_FLAGS)}
+          element={
+            <SettingFeatureFlags
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_NOTIFICATION_SETTINGS,
+          )}
+          element={
+            <SettingsNotifications
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SLACK_INTEGRATION)}
+          element={
+            <SettingsSlackIntegration
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
+          )}
+          element={
+            <SettingsMicrosoftTeamsIntegration
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SSO)}
+          element={
+            <SettingsSSO
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_OIDC)}
+          element={
+            <SettingsOIDC
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_OIDC] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SCIM)}
+          element={
+            <SettingsSCIM
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SCIM] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_DOMAINS)}
+          element={
+            <SettingsDomains
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_DOMAINS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_APIKEYS)}
+          element={
+            <SettingsApiKeys
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_APIKEYS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_APIKEY_VIEW, 2)}
+          element={
+            <SettingsApiKeyView
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS,
+          )}
+          element={
+            <SettingsIngestionKeys
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+            2,
+          )}
+          element={
+            <SettingsIngestionKeyView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_SETTINGS,
+          )}
+          element={
+            <SettingsTelemetrySettings
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_BILLING)}
+          element={
+            <SettingsBilling
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_BILLING] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_BILLING_INVOICES)}
+          element={
+            <SettingsInvoices
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LABELS)}
+          element={
+            <SettingLabels
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
+            />
+          }
+        />
+      </PageRoute>
+    </Routes>
+  );
+};
+
+export default SettingsRoutes;

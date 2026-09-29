@@ -1,0 +1,29 @@
+{{> Start this}}
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+
+{{> InfoBlock info="A new note has been added to the incident. Here are the details:  "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title: " plainText=incidentTitle }}
+{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " plainText=incidentSeverity  }}
+{{> IncidentCustomFieldRows this }}
+{{> DetailBoxField title="Note: " text=note  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
+
+
+{{#if detailsUrl}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
+{{else}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
+{{/if}}
+
+{{> UnsubscribeBlock this}}
+{{> VerticalSpace this}}
+
+{{> End this}}

@@ -1,0 +1,272 @@
+import Label from "../../Models/DatabaseModels/Label";
+import RumApplication from "../../Models/DatabaseModels/RumApplication";
+import RumApplicationLabelRule from "../../Models/DatabaseModels/RumApplicationLabelRule";
+import RumApplicationLabelRuleService from "./RumApplicationLabelRuleService";
+import RumApplicationService from "./RumApplicationService";
+import ObjectID from "../../Types/ObjectID";
+import Select from "../Types/Database/Select";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
+
+class RumApplicationLabelRuleEngineServiceClass
+  implements RuleRunEngine<RumApplication, RumApplicationLabelRule>
+{
+  public readonly ruleSelect: Select<RumApplicationLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    matchLabels: { _id: true },
+    nameRegexPattern: true,
+    descriptionRegexPattern: true,
+    labelsToAdd: { _id: true },
+  };
+
+  // Evaluation re-reads the application, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<RumApplication> = {
+    _id: true,
+    projectId: true,
+  };
+
+  /**
+   * Evaluates RumApplicationLabelRule rows for the given application and
+   * attaches matched labels. The union is deduped against labels already on
+   * the application before insert to avoid PK conflicts on the join table.
+   */
+  @CaptureSpan()
+  public async applyRulesToRumApplication(
+    rumApplication: RumApplication,
+  ): Promise<void> {
+    if (!rumApplication.id || !rumApplication.projectId) {
+      return;
+    }
+
+    try {
+      const rules: Array<RumApplicationLabelRule> =
+        await RumApplicationLabelRuleService.findBy({
+          query: {
+            projectId: rumApplication.projectId,
+            isEnabled: true,
+          },
+          props: { isRoot: true },
+          select: this.ruleSelect,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
+          skip: 0,
+        });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "RumApplicationLabelRule",
+        projectId: rumApplication.projectId,
+        rulesRead: rules.length,
+      });
+
+      if (rules.length === 0) {
+        return;
+      }
+
+      await this.applyRules({ rumApplication: rumApplication, rules: rules });
+    } catch (error) {
+      logger.error(`Error applying RUM application label rules: ${error}`, {
+        projectId: rumApplication.projectId?.toString(),
+        rumApplicationId: rumApplication.id?.toString(),
+      } as LogAttributes);
+    }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an application that already exists
+   * and only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      RumApplication,
+      RumApplicationLabelRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        rumApplication: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running RUM application label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        rumApplicationId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    rumApplication: RumApplication;
+    rules: Array<RumApplicationLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { rumApplication, rules } = data;
+
+    if (!rumApplication.id || !rumApplication.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const appWithDetails: RumApplication | null =
+      await RumApplicationService.findOneById({
+        id: rumApplication.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!appWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    let anyRuleMatched: boolean = false;
+
+    for (const rule of rules) {
+      if (!this.doesMatchRule(appWithDetails, rule)) {
+        continue;
+      }
+      anyRuleMatched = true;
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+    }
+
+    if (!anyRuleMatched) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (appWithDetails.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await RumApplicationService.getRepository()
+      .createQueryBuilder()
+      .relation(RumApplication, "labels")
+      .of(rumApplication.id.toString())
+      .add(newLabelIds);
+
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    rumApplication.labels = Array.from(mergedLabelIds).map((id: string) => {
+      const label: Label = new Label();
+      label.id = new ObjectID(id);
+      return label;
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
+  }
+
+  private doesMatchRule(
+    rumApplication: RumApplication,
+    rule: RumApplicationLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "matchLabels",
+        "nameRegexPattern",
+        "descriptionRegexPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        rumApplicationRule: RumApplicationLabelRule,
+      ): boolean => {
+        return this.doesMatchRuleLegacy(rumApplication, rumApplicationRule);
+      },
+    });
+  }
+
+  private doesMatchRuleLegacy(
+    rumApplication: RumApplication,
+    rule: RumApplicationLabelRule,
+  ): boolean {
+    if (rule.matchLabels && rule.matchLabels.length > 0) {
+      if (!rumApplication.labels || rumApplication.labels.length === 0) {
+        return false;
+      }
+      const ruleLabelIds: Array<string> = rule.matchLabels.map((l: Label) => {
+        return l.id?.toString() || "";
+      });
+      const labelIds: Array<string> = rumApplication.labels.map((l: Label) => {
+        return l.id?.toString() || "";
+      });
+      if (
+        !ruleLabelIds.some((id: string) => {
+          return labelIds.includes(id);
+        })
+      ) {
+        return false;
+      }
+    }
+
+    if (
+      rule.nameRegexPattern &&
+      (!rumApplication.name ||
+        !this.testRegex(rule.nameRegexPattern, rumApplication.name))
+    ) {
+      return false;
+    }
+
+    if (
+      rule.descriptionRegexPattern &&
+      (!rumApplication.description ||
+        !this.testRegex(
+          rule.descriptionRegexPattern,
+          rumApplication.description,
+        ))
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private testRegex(pattern: string, value: string): boolean {
+    try {
+      const regex: RegExp = new RegExp(pattern, "i");
+      return regex.test(value);
+    } catch {
+      logger.warn(`Invalid regex in RUM application label rule: ${pattern}`);
+      return false;
+    }
+  }
+}
+
+export default new RumApplicationLabelRuleEngineServiceClass();

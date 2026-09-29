@@ -1,0 +1,688 @@
+import { SpanKind } from "../../../Models/AnalyticsModels/Span";
+import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import {
+  DATABASE_INSTANCE_NAME_ATTRIBUTE,
+  DatabaseCallerContext,
+  DatabaseEndpoint,
+  DatabaseEndpointScope,
+  NETWORK_SCOPED_NAME_SUFFIXES,
+  buildDatabaseServerDisplayName,
+  formatDatabaseEndpoint,
+  getDatabaseClusterHost,
+  isIpLiteralHost,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  getDatabaseSystemFamily,
+  getMoreSpecificDatabaseSystem,
+  isAutoCreatableDatabaseSystem,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  DATABASE_ADDRESS_ATTRIBUTES,
+  DATABASE_PORT_ATTRIBUTES,
+  DATABASE_SYSTEM_ATTRIBUTES,
+  resolveDatabaseCallTarget,
+} from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
+import { DATABASE_CONNECTION_SPAN_NAMES } from "../../../Types/DatabaseServer/DatabaseConnectionSpan";
+import {
+  CALLER_CLUSTER_ATTRIBUTE,
+  CALLER_NAMESPACE_ATTRIBUTE,
+  DatabaseCallerContextSql,
+  NON_BLANK_TEXT_PATTERN,
+  ORDINAL_SUFFIX_PATTERN,
+  PLAIN_HOST_ADDRESS_PATTERN,
+  PRIVATE_IP_ADDRESS_PATTERN,
+  QUERY_SETTINGS,
+  databaseCallerContextSql,
+  databaseInstanceSql,
+  escapeSql,
+  firstNonEmptyAttributeSql,
+} from "./ServiceDependencyDiscovery";
+
+// Defined beside the dependency query, which reads DB calls the same way.
+export {
+  CALLER_CLUSTER_ATTRIBUTE,
+  CALLER_NAMESPACE_ATTRIBUTE,
+  NON_BLANK_TEXT_PATTERN,
+  ORDINAL_SUFFIX_PATTERN,
+  PLAIN_HOST_ADDRESS_PATTERN,
+  PRIVATE_IP_ADDRESS_PATTERN,
+  databaseCallerContextSql,
+  databaseInstanceSql,
+  firstNonEmptyAttributeSql,
+};
+
+/*
+ * Database endpoint discovery from CLIENT spans — the pure half of the
+ * client-spans step of "TelemetryEntity:ComputeServiceDependencies".
+ *
+ * Ingest already stamps every DB CLIENT span with the entity key of the
+ * database endpoint it calls (resolveDatabaseCallTarget, per row). This step
+ * turns the same evidence into DatabaseServer rows: one grouped query over
+ * the window, then the SAME resolver ingest ran (resolveDatabaseCallTarget,
+ * fed the row's grouped attributes), so the endpoint a row is found or
+ * created under is byte-for-byte the endpoint whose key the spans carry.
+ *
+ * The query selects the system / address / port / SQL Server instance with
+ * the precedence the ingest resolver uses (first attribute that is present
+ * and not '', stable semconv names first). The caller's Kubernetes context
+ * only changes the canonical endpoint of some addresses, so the query keeps
+ * it ONLY for those and groups on '' otherwise — decided on the raw address,
+ * lowercased, by databaseCallerContextSql, which the client-span dependency
+ * query shares (see it for the rules).
+ *
+ * That is what keeps the grouping bounded: a thousand pods calling
+ * `orders.cjd8.eu-west-1.rds.amazonaws.com` are ONE group, not one per pod,
+ * namespace or cluster. getDatabaseEndpointCallerContextNeeds is the
+ * predicates' TypeScript twin, and the test suite proves the reduced
+ * context canonicalizes identically — and, against a real ClickHouse, that
+ * the SQL and the twin agree.
+ *
+ * Everything here is synchronous and side-effect free apart from reading one
+ * environment variable, so it can be tested without ClickHouse or Postgres.
+ */
+
+// Unique marker comment, so the query can be told apart in logs and tests.
+export const DATABASE_ENDPOINT_SQL_MARKER: string =
+  "oneuptime:database-endpoint-discovery";
+
+export const DATABASE_SERVER_MIN_CALLS_ENV: string =
+  "DATABASE_SERVER_MIN_CALLS";
+export const DEFAULT_DATABASE_SERVER_MIN_CALLS: number = 10;
+
+const PLAIN_HOST_ADDRESS_REGEX: RegExp = new RegExp(PLAIN_HOST_ADDRESS_PATTERN);
+const PRIVATE_IP_ADDRESS_REGEX: RegExp = new RegExp(PRIVATE_IP_ADDRESS_PATTERN);
+const UPPERCASE_ASCII_REGEX: RegExp = /[A-Z]+/g;
+
+const SPAN_TABLE: string = `oneuptime.${AnalyticsTableName.Span}`;
+
+// SQL over the lowercased raw address, for the row order.
+const ADDRESS_SQL: string = "lower(serverAddress)";
+const HOST_PART_SQL: string = `splitByChar(':', ${ADDRESS_SQL})[1]`;
+
+/*
+ * An IP-literal address (IPv4 host[:port], bare or bracketed IPv6). Only
+ * orders the rows — IP groups never create a database (they can only match
+ * one that owns them), so when the row cap bites, host-named groups win.
+ */
+const IP_LITERAL_ADDRESS_SQL: string = `(isIPv4String(${HOST_PART_SQL}) OR isIPv6String(${ADDRESS_SQL}) OR isIPv6String(extract(${ADDRESS_SQL}, '${escapeSql(
+  "^\\[([^\\]]*)\\]",
+)}')))`;
+
+/**
+ * ClickHouse predicate: true when the span in `nameColumn` is a query, not
+ * connection management (DATABASE_CONNECTION_SPAN_NAMES, compared trimmed
+ * and lowercased, exactly as isDatabaseConnectionSpanName does). A span
+ * with no name is a query. The discovery threshold counts only these, so
+ * a pooled client's `pg-pool.connect` / `pg.connect` around every query no
+ * longer doubles its calls.
+ */
+export function databaseQuerySpanSql(nameColumn: string = "name"): string {
+  const names: string = DATABASE_CONNECTION_SPAN_NAMES.map(
+    (name: string): string => {
+      return `'${escapeSql(name.toLowerCase())}'`;
+    },
+  ).join(", ");
+
+  return `NOT has([${names}], lower(trimBoth(ifNull(${nameColumn}, ''))))`;
+}
+
+export interface DatabaseEndpointQueryWindow {
+  projectId: string;
+  // ClickHouse DateTime64 expressions, e.g. toDateTime64('...', 9).
+  startSql: string;
+  endSql: string;
+  // Cap on the grouped rows returned per run.
+  maxRows: number;
+}
+
+/*
+ * ClickHouse serializes UInt64 aggregates as JSON strings, so callCount can
+ * arrive as a string and is Number()-coerced. callCount counts queries only
+ * (databaseQuerySpanSql): a group of nothing but connection spans comes
+ * back with 0, and still matches and sights a row that owns its endpoint.
+ */
+export interface DatabaseEndpointRow {
+  dbSystem?: string | undefined;
+  serverAddress?: string | undefined;
+  serverPort?: string | number | undefined;
+  // SQL Server instance named beside the address (see readDatabaseInstanceName).
+  dbInstance?: string | undefined;
+  callerNamespace?: string | undefined;
+  // 1 when the caller had a namespace, for the addresses that keep only that.
+  callerInKubernetes?: string | number | boolean | undefined;
+  callerCluster?: string | undefined;
+  callCount?: string | number | undefined;
+}
+
+export interface DiscoveredDatabaseEndpoint {
+  system: string;
+  endpoint: DatabaseEndpoint;
+  scope: DatabaseEndpointScope;
+  // Calls to this endpoint (and its siblings) in the window, across every row.
+  callCount: number;
+  /*
+   * The other endpoints of the same logical database seen in the window —
+   * the members of one managed cluster (getDatabaseClusterHost). They are
+   * claimed as aliases of the row `endpoint` resolves to, never rows of
+   * their own. Absent when there are none.
+   */
+  siblings?: Array<DatabaseEndpoint> | undefined;
+  // The name a row created for a managed cluster gets (its cluster name).
+  displayName?: string | undefined;
+}
+
+// Lowercase A-Z only, as ClickHouse `lower` does.
+function asciiLowerCase(value: string): string {
+  return value.replace(UPPERCASE_ASCII_REGEX, (match: string): string => {
+    return match.toLowerCase();
+  });
+}
+
+function hasOrdinalSuffix(label: string): boolean {
+  const dash: number = label.lastIndexOf("-");
+  if (dash < 0 || dash === label.length - 1) {
+    return false;
+  }
+  for (let index: number = dash + 1; index < label.length; index++) {
+    const code: number = label.charCodeAt(index);
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Which parts of the caller's context can change the canonical endpoint of
+ * this raw address: its namespace, whether it runs in Kubernetes (the
+ * `callerInKubernetes` flag — only for plain two-label hosts, where nothing
+ * else of the namespace matters) and its cluster. The TypeScript twin of the
+ * three caller columns of buildDatabaseEndpointSql (databaseCallerContextSql)
+ * — keep them in step.
+ */
+export function getDatabaseEndpointCallerContextNeeds(address: string): {
+  namespace: boolean;
+  kubernetes: boolean;
+  cluster: boolean;
+} {
+  const value: string =
+    typeof address === "string" ? asciiLowerCase(address) : "";
+
+  if (!PLAIN_HOST_ADDRESS_REGEX.test(value)) {
+    return { namespace: true, kubernetes: false, cluster: true };
+  }
+
+  const hostPart: string = value.split(":")[0]!;
+  const labels: Array<string> = hostPart.split(".");
+
+  let networkScopedName: boolean = false;
+  for (const suffix of NETWORK_SCOPED_NAME_SUFFIXES) {
+    if (hostPart.endsWith(suffix)) {
+      networkScopedName = true;
+    }
+  }
+
+  return {
+    namespace:
+      labels.length === 1 ||
+      (labels.length === 2 && hasOrdinalSuffix(labels[0]!)),
+    kubernetes: labels.length === 2,
+    cluster:
+      labels.length <= 2 ||
+      labels.includes("svc") ||
+      networkScopedName ||
+      PRIVATE_IP_ADDRESS_REGEX.test(value),
+  };
+}
+
+/**
+ * One row per (system, address, port, instance, caller context that
+ * matters) with its call count, over the CLIENT spans of the window that
+ * name a database system and an address. Spans without those attributes are
+ * dropped on `attributeKeys` (bloom-indexed, far smaller than the attribute
+ * map) before the map is read. The call count is of queries only:
+ * connection-management spans (databaseQuerySpanSql) keep a group in the
+ * result - an existing row is still matched and sighted - but never count
+ * towards the min-calls threshold. Ordered host-named groups first, then by
+ * calls, so the endpoints that can create a database survive the row cap.
+ */
+export function buildDatabaseEndpointSql(
+  window: DatabaseEndpointQueryWindow,
+): string {
+  const maxRows: number =
+    Number.isFinite(window.maxRows) && window.maxRows > 0
+      ? Math.floor(window.maxRows)
+      : 1;
+
+  const keyList: (keys: ReadonlyArray<string>) => string = (
+    keys: ReadonlyArray<string>,
+  ): string => {
+    return `[${keys
+      .map((key: string): string => {
+        return `'${escapeSql(key)}'`;
+      })
+      .join(", ")}]`;
+  };
+
+  const callerContext: DatabaseCallerContextSql =
+    databaseCallerContextSql("serverAddress");
+
+  return `
+    /* ${DATABASE_ENDPOINT_SQL_MARKER} */
+    SELECT
+      ${firstNonEmptyAttributeSql(DATABASE_SYSTEM_ATTRIBUTES)} AS dbSystem,
+      ${firstNonEmptyAttributeSql(DATABASE_ADDRESS_ATTRIBUTES)} AS serverAddress,
+      ${firstNonEmptyAttributeSql(DATABASE_PORT_ATTRIBUTES)} AS serverPort,
+      ${databaseInstanceSql()} AS dbInstance,
+      ${callerContext.callerNamespace} AS callerNamespace,
+      ${callerContext.callerInKubernetes} AS callerInKubernetes,
+      ${callerContext.callerCluster} AS callerCluster,
+      countIf(${databaseQuerySpanSql()}) AS callCount
+    FROM ${SPAN_TABLE}
+    WHERE projectId = '${escapeSql(window.projectId)}'
+      AND startTime >= ${window.startSql}
+      AND startTime < ${window.endSql}
+      AND kind = '${SpanKind.Client}'
+      AND hasAny(attributeKeys, ${keyList(DATABASE_SYSTEM_ATTRIBUTES)})
+      AND hasAny(attributeKeys, ${keyList(DATABASE_ADDRESS_ATTRIBUTES)})
+      AND dbSystem != ''
+      AND serverAddress != ''
+    GROUP BY dbSystem, serverAddress, serverPort, dbInstance, callerNamespace, callerInKubernetes, callerCluster
+    ORDER BY ${IP_LITERAL_ADDRESS_SQL} ASC, callCount DESC
+    LIMIT ${maxRows}
+    ${QUERY_SETTINGS}
+  `;
+}
+
+function toCount(value: unknown): number {
+  const parsed: number = Math.round(Number(value));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function nonEmptyText(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed: string = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function isFlagSet(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+interface EndpointAccumulator {
+  key: string;
+  endpoint: DatabaseEndpoint;
+  scope: DatabaseEndpointScope;
+  callCount: number;
+  callsBySystem: Map<string, number>;
+}
+
+interface FamilyAccumulator {
+  key: string;
+  // The managed cluster's host, for a family of cluster members.
+  clusterHost: string | null;
+  members: Array<EndpointAccumulator>;
+}
+
+interface EngineFamilyCalls {
+  // The most specific engine of the family the rows named.
+  system: string;
+  // Calls of every engine of the family.
+  calls: number;
+}
+
+function compareSystemsByCallsThenName(
+  a: [string, number],
+  b: [string, number],
+): number {
+  if (a[1] !== b[1]) {
+    return b[1] - a[1];
+  }
+  if (a[0] < b[0]) {
+    return -1;
+  }
+  return a[0] > b[0] ? 1 : 0;
+}
+
+/*
+ * The engines rows named for one endpoint, folded per engine family
+ * (getDatabaseSystemFamily). A client library cannot tell a fork from the
+ * engine it forks, so for one MariaDB server the MariaDB connector says
+ * "mariadb" while every MySQL driver says "mysql": the family's calls are
+ * one database's calls, and its engine is the most specific one named —
+ * folded with getMoreSpecificDatabaseSystem, the rule a row's engine is
+ * refined by, busiest first, so the busiest fork wins over the family and
+ * a family value never undoes a fork.
+ */
+function foldSystemsByFamily(
+  callsBySystem: Map<string, number>,
+): Array<EngineFamilyCalls> {
+  const byFamily: Map<string, Array<[string, number]>> = new Map<
+    string,
+    Array<[string, number]>
+  >();
+
+  for (const entry of callsBySystem) {
+    const family: string = getDatabaseSystemFamily(entry[0]) || entry[0];
+    const members: Array<[string, number]> = byFamily.get(family) || [];
+    members.push(entry);
+    byFamily.set(family, members);
+  }
+
+  const families: Array<EngineFamilyCalls> = [];
+  for (const members of byFamily.values()) {
+    members.sort(compareSystemsByCallsThenName);
+
+    let system: string = "";
+    let calls: number = 0;
+    for (const [memberSystem, memberCalls] of members) {
+      system =
+        getMoreSpecificDatabaseSystem(system, memberSystem) || memberSystem;
+      calls += memberCalls;
+    }
+
+    families.push({ system: system, calls: calls });
+  }
+
+  return families;
+}
+
+/*
+ * The engine an endpoint is recorded under when rows disagree. Engines of
+ * one family are one database seen by different clients (a CockroachDB
+ * reached by some as "postgresql", a MariaDB as "mysql"), so they are
+ * folded first (foldSystemsByFamily); between families — which can only be
+ * a misreport — an engine that may create a row wins, then the family with
+ * the most calls, then the name, so the answer is stable.
+ */
+function pickSystem(callsBySystem: Map<string, number>): string {
+  let best: string = "";
+  let bestCreatable: boolean = false;
+  let bestCalls: number = -1;
+
+  for (const family of foldSystemsByFamily(callsBySystem)) {
+    const creatable: boolean = isAutoCreatableDatabaseSystem(family.system);
+    const better: boolean =
+      best === "" ||
+      (creatable && !bestCreatable) ||
+      (creatable === bestCreatable &&
+        (family.calls > bestCalls ||
+          (family.calls === bestCalls && family.system < best)));
+    if (better) {
+      best = family.system;
+      bestCreatable = creatable;
+      bestCalls = family.calls;
+    }
+  }
+
+  return best;
+}
+
+function compareByCallsThenKey(
+  a: { key: string; callCount: number },
+  b: { key: string; callCount: number },
+): number {
+  if (a.callCount !== b.callCount) {
+    return b.callCount - a.callCount;
+  }
+  if (a.key < b.key) {
+    return -1;
+  }
+  return a.key > b.key ? 1 : 0;
+}
+
+/*
+ * The member a family is recorded under: the one reached by the cluster's
+ * own name when a client used it, else the busiest, then by endpoint.
+ */
+function pickPrimaryMember(family: FamilyAccumulator): EndpointAccumulator {
+  const members: Array<EndpointAccumulator> = [...family.members].sort(
+    compareByCallsThenKey,
+  );
+  if (family.clusterHost) {
+    for (const member of members) {
+      if (member.endpoint.host === family.clusterHost) {
+        return member;
+      }
+    }
+  }
+  return members[0]!;
+}
+
+/**
+ * Query rows → the unique databases they name. Each row goes through
+ * resolveDatabaseCallTarget — the ingest resolver itself — with the grouped
+ * attributes and the caller context the row kept, exactly as ingest
+ * resolved the span: loopback / host-relative / unparseable addresses
+ * resolve to nothing, and rows that land on the same formatted endpoint are
+ * merged with their calls summed. Endpoints that are members of one managed
+ * cluster (getDatabaseClusterHost) are merged into ONE entry for the
+ * cluster, recorded under one member with the others as `siblings`.
+ * Busiest first.
+ */
+export function resolveDatabaseEndpointRows(
+  rows: Array<DatabaseEndpointRow>,
+): Array<DiscoveredDatabaseEndpoint> {
+  const byEndpoint: Map<string, EndpointAccumulator> = new Map<
+    string,
+    EndpointAccumulator
+  >();
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row || typeof row !== "object") {
+      continue;
+    }
+
+    const attributes: Record<string, unknown> = {
+      [DATABASE_SYSTEM_ATTRIBUTES[0]!]: row.dbSystem,
+      [DATABASE_ADDRESS_ATTRIBUTES[0]!]: row.serverAddress,
+      [DATABASE_PORT_ATTRIBUTES[0]!]: row.serverPort,
+      [DATABASE_INSTANCE_NAME_ATTRIBUTE]: row.dbInstance,
+    };
+
+    const caller: DatabaseCallerContext = {
+      kubernetesNamespace: nonEmptyText(row.callerNamespace),
+      kubernetesClusterName: nonEmptyText(row.callerCluster),
+      hostName: null,
+      // Only the collector purpose reads these; a client call never does.
+      isEphemeral: true,
+      runsInKubernetes: isFlagSet(row.callerInKubernetes),
+    };
+
+    const target: {
+      system: string;
+      endpoint: DatabaseEndpoint;
+      scope: DatabaseEndpointScope;
+    } | null = resolveDatabaseCallTarget({
+      getAttribute: (key: string): unknown => {
+        return attributes[key];
+      },
+      caller: caller,
+    });
+
+    if (!target) {
+      continue;
+    }
+
+    const key: string = formatDatabaseEndpoint(target.endpoint);
+    const calls: number = toCount(row.callCount);
+
+    let accumulator: EndpointAccumulator | undefined = byEndpoint.get(key);
+    if (!accumulator) {
+      accumulator = {
+        key: key,
+        endpoint: target.endpoint,
+        scope: target.scope,
+        callCount: 0,
+        callsBySystem: new Map<string, number>(),
+      };
+      byEndpoint.set(key, accumulator);
+    }
+
+    accumulator.callCount += calls;
+    accumulator.callsBySystem.set(
+      target.system,
+      (accumulator.callsBySystem.get(target.system) || 0) + calls,
+    );
+  }
+
+  const families: Map<string, FamilyAccumulator> = new Map<
+    string,
+    FamilyAccumulator
+  >();
+
+  for (const accumulator of byEndpoint.values()) {
+    const clusterHost: string | null = getDatabaseClusterHost(
+      accumulator.endpoint.host,
+    );
+    // The cluster's own name keys like its members, so it joins them.
+    const familyKey: string = clusterHost
+      ? formatDatabaseEndpoint({
+          host: clusterHost,
+          port: accumulator.endpoint.port,
+          kubernetesClusterName: accumulator.endpoint.kubernetesClusterName,
+        })
+      : accumulator.key;
+
+    let family: FamilyAccumulator | undefined = families.get(familyKey);
+    if (!family) {
+      family = { key: familyKey, clusterHost: null, members: [] };
+      families.set(familyKey, family);
+    }
+    if (clusterHost) {
+      family.clusterHost = clusterHost;
+    }
+    family.members.push(accumulator);
+  }
+
+  const discovered: Array<{ key: string; value: DiscoveredDatabaseEndpoint }> =
+    [];
+
+  for (const family of families.values()) {
+    const primary: EndpointAccumulator = pickPrimaryMember(family);
+
+    let callCount: number = 0;
+    const callsBySystem: Map<string, number> = new Map<string, number>();
+    for (const member of family.members) {
+      callCount += member.callCount;
+      for (const [system, calls] of member.callsBySystem) {
+        callsBySystem.set(system, (callsBySystem.get(system) || 0) + calls);
+      }
+    }
+
+    const system: string = pickSystem(callsBySystem);
+    const value: DiscoveredDatabaseEndpoint = {
+      system: system,
+      endpoint: primary.endpoint,
+      scope: primary.scope,
+      callCount: callCount,
+    };
+
+    const siblings: Array<EndpointAccumulator> = family.members
+      .filter((member: EndpointAccumulator): boolean => {
+        return member !== primary;
+      })
+      .sort((a: EndpointAccumulator, b: EndpointAccumulator): number => {
+        return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+      });
+    if (siblings.length > 0) {
+      value.siblings = siblings.map(
+        (member: EndpointAccumulator): DatabaseEndpoint => {
+          return member.endpoint;
+        },
+      );
+    }
+
+    if (family.clusterHost) {
+      value.displayName = buildDatabaseServerDisplayName({
+        system: system,
+        endpoint: { host: family.clusterHost, port: primary.endpoint.port },
+      });
+    }
+
+    discovered.push({ key: family.key, value: value });
+  }
+
+  discovered.sort(
+    (
+      a: { key: string; value: DiscoveredDatabaseEndpoint },
+      b: { key: string; value: DiscoveredDatabaseEndpoint },
+    ): number => {
+      return compareByCallsThenKey(
+        { key: a.key, callCount: a.value.callCount },
+        { key: b.key, callCount: b.value.callCount },
+      );
+    },
+  );
+
+  return discovered.map(
+    (entry: {
+      key: string;
+      value: DiscoveredDatabaseEndpoint;
+    }): DiscoveredDatabaseEndpoint => {
+      return entry.value;
+    },
+  );
+}
+
+/**
+ * Every endpoint of a discovered database: the one it is recorded under,
+ * then its siblings.
+ */
+export function getDiscoveredDatabaseEndpoints(
+  discovered: DiscoveredDatabaseEndpoint,
+): Array<DatabaseEndpoint> {
+  return [
+    discovered.endpoint,
+    ...(Array.isArray(discovered.siblings) ? discovered.siblings : []),
+  ];
+}
+
+/*
+ * Calls an endpoint needs inside one window before client spans may create a
+ * row for it on their own (env DATABASE_SERVER_MIN_CALLS, default 10, at
+ * least 1). Only queries count - a connection span is not a call (see
+ * databaseQuerySpanSql). One stray connection string in a trace is not a
+ * database worth listing; an existing row is matched and sighted whatever
+ * the count.
+ */
+export function getDatabaseServerMinCalls(): number {
+  const raw: string | undefined = process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+
+  if (raw === undefined || raw.trim() === "") {
+    return DEFAULT_DATABASE_SERVER_MIN_CALLS;
+  }
+
+  const parsed: number = Number(raw.trim());
+
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    return DEFAULT_DATABASE_SERVER_MIN_CALLS;
+  }
+
+  return Math.max(parsed, 1);
+}
+
+/**
+ * The conservative create policy for client-span discovery, minus the
+ * project budget (which needs the database): a GLOBAL-scope endpoint (never
+ * a single-label name, an unqualified cluster-local / private-network
+ * address or a link-local one), named by host rather than a bare IP (an IP
+ * says nothing stable about which server it is), of a known engine that is
+ * not a cloud-API or in-process database, and called at least `minCalls`
+ * times in the window (a managed cluster's members counted together).
+ */
+export function isDatabaseEndpointAutoCreateCandidate(data: {
+  discovered: DiscoveredDatabaseEndpoint;
+  minCalls: number;
+}): boolean {
+  const discovered: DiscoveredDatabaseEndpoint = data.discovered;
+
+  return (
+    discovered.scope === "global" &&
+    !isIpLiteralHost(discovered.endpoint.host) &&
+    isAutoCreatableDatabaseSystem(discovered.system) &&
+    discovered.callCount >= data.minCalls
+  );
+}

@@ -1,0 +1,221 @@
+# Components
+
+Components are the building blocks you add after the trigger. Each one does one thing — send a message, call an API, check a condition — and connects to whatever comes next.
+
+This page is the catalog. For how to add and connect them on the canvas, see [Authoring a Workflow](/docs/workflows/authoring).
+
+## API
+
+Make an HTTP request to any URL.
+
+**Settings**:
+
+- **Method** — `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`.
+- **URL** — the address to call.
+- **Headers** — any headers to send.
+- **Body** — the request body for `POST` / `PUT` / `PATCH`.
+
+**Outputs**:
+
+- **Success** — fires when the call worked (2xx response). Passes along the status, headers, and body.
+- **Error** — fires on a network failure or non-2xx response. Passes along the error message.
+
+Use this for: any external API, your own admin endpoints, or any integration that doesn't have its own component.
+
+## AI
+
+### Generate Text with AI
+
+Generate one text response from a prompt and optional JSON context. The component uses the project's configured default LLM provider, falling back to the installation's global provider when one is available. Provider credentials and endpoints are configured centrally; they are not workflow arguments.
+
+**Settings**:
+
+- **System Instructions** — optional guidance for the model's role, tone, and constraints.
+- **Prompt** — the required task. It can include workflow variables and outputs from earlier components.
+- **Context** — optional JSON that you deliberately include with the request. It is appended after an explicit end-of-message trust marker and treated as untrusted data through the rest of the message.
+- **Temperature** — variation from `0` to `1`. The default is `0.2` for predictable automation.
+- **Maximum Output Tokens** — from `1` to `4096`. The default is `1024`.
+
+The combined System Instructions, Prompt, and serialized Context are limited to 50,000 characters. The provider request has a 60-second maximum duration and is attempted once. At most three workflow AI requests can run concurrently per project.
+
+**Outputs**:
+
+- **Response** — the generated text.
+- **Provider** and **Model** — the configuration used for the call.
+- **Total Tokens** and **Completion Tokens** — usage reported by the provider.
+- **LLM Log ID** — the metered AI log entry for the call.
+- **Error** — the validation, access, provider, budget, billing, or timeout error, when present.
+
+Connect **Success** to components that should use the response. Connect **Error** to an explicit fallback, alert, or log path. The component makes one model request without tool definitions or provider-native capability fields: it cannot query OneUptime, call APIs, or change project data by itself. Besides OneUptime's fixed component-safety instructions, only the System Instructions, Prompt, and Context you configure are sent to the provider, after workflow variables in those fields are resolved. The configured provider/model remains a trust boundary because a model can have intrinsic provider-managed capabilities.
+
+Model output is untrusted text. Review it before sending customer-facing communications, and do not use free-form AI text alone to authorize destructive workflow actions. See [Configuration & Safety](/docs/workflows/configuration) for provider, egress, logging, and cost details.
+
+## Webhook (outbound)
+
+A simpler version of the API component for "fire and forget" cases. Posts a JSON body to a URL.
+
+Use **API** if you need to read the response. Use **Webhook** if you just want to send a notification and move on.
+
+## Slack
+
+Post a message to a Slack channel.
+
+**Settings**:
+
+- **Channel** — the channel name. The bot must already be in that channel.
+- **Message** — the text to send. Supports Slack formatting.
+
+Connect Slack to your project first under **Project Settings → Workspace → Slack**. See [Slack Workspace Connection](/docs/workspace-connections/slack).
+
+## Microsoft Teams
+
+Post a message to a Microsoft Teams channel.
+
+**Settings**:
+
+- **Team and channel** — where to post.
+- **Message** — the text to send.
+
+See [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) for setup.
+
+## Discord
+
+Post a message to a Discord channel through an incoming webhook URL.
+
+## Telegram
+
+Send a message to a Telegram chat using a bot token and chat ID.
+
+## Email
+
+Send an email through an SMTP server that you enter on the block.
+
+**Settings**:
+
+- **From Email** — the sender, for example `Alerts <alerts@company.com>`.
+- **To Email** — the recipient's email address. Separate several addresses with commas or semicolons.
+- **Subject** — the subject line.
+- **Email Body** — the message, sent as HTML.
+- **SMTP Host** and **SMTP Port** — the mail server to connect to.
+- **SMTP Username** and **SMTP Password** — optional. Fill in both or neither.
+- **Use Implicit TLS** — turn on for implicit TLS, usually on port 465. Leave off for STARTTLS, usually on port 587.
+
+**Outputs**:
+
+- **Success** — fires when the SMTP server accepted the message.
+- **Error** — fires when the SMTP host is refused, the server can't be reached, or it rejects the message. Passes along the error message. A missing **To Email**, **From Email**, **SMTP Host** or **SMTP Port** stops the run instead.
+
+The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs & Logs](/docs/workflows/runs-and-logs).
+
+Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, an SMTP host on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach a mail server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`. A refused host takes the **Error** output, and nothing is sent.
+
+## Custom Code
+
+Run a small piece of JavaScript when you need something the other blocks can't do.
+
+**Settings**:
+
+- **Code** — your JavaScript. The last value (or what you return from an async function) becomes the block's output.
+- **Arguments** — named values you can pass in.
+
+**Outputs**: success (your return value) and error (any exception).
+
+Use this for: reshaping data between two systems, doing a small calculation, anything that doesn't deserve its own block. For heavier scripting, use a [Runbook](/docs/runbooks/index) instead.
+
+## JSON
+
+Convert between text and JSON.
+
+- **JSON → Text** — turn a JSON object into a string. Useful when the next block expects text.
+- **Text → JSON** — parse a string into a JSON object. Useful when something arrived as text and you need to read a field.
+
+## Conditions
+
+Branch based on a comparison. In the **Add Component** panel this block is called **If / Else**, under the Conditions category.
+
+**Settings**:
+
+- **Left value** — usually a value from an earlier block.
+- **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
+- **Right value** — what to compare against.
+
+**Outputs**: **Yes** and **No**. Connect the next blocks to whichever branch you want.
+
+## Delay
+
+Pause the workflow for a set amount of time before continuing. Useful when you need to give another system a moment to catch up.
+
+## Log
+
+Write a line to the run log. No external effect — it just shows up in the workflow's logs for you to read. Handy for debugging.
+
+## Execute Workflow
+
+Call another workflow from this one. The called workflow runs on its own — your workflow continues without waiting for it to finish.
+
+Use this to share common logic. Build a "post to incident channel" workflow once, then call it from any other workflow that needs to notify the channel.
+
+There's a safety limit so workflows can't keep calling each other in a loop. See [Configuration & Safety](/docs/workflows/configuration).
+
+## OneUptime data components
+
+For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the **Add Component** panel has these components — search by the type's name. Each title is generated from the record type, so the Monitor set reads:
+
+- **Find One Monitor** — read one record matching the query.
+- **Find Many Monitors** — read a list of records matching the query.
+- **Create One Monitor** — add one record from a JSON object.
+- **Create Many Monitors** — add several records from a JSON array.
+- **Update One Monitor** — apply the write payload to one matching record.
+- **Update Many Monitors** — apply the write payload to matching records, up to Limit.
+- **Delete One Monitor** — delete one matching record.
+- **Delete Many Monitors** — delete matching records, up to Limit.
+
+The same set gives you three triggers — **On Create Monitor**, **On Update Monitor**, and **On Delete Monitor**. See [Triggers](/docs/workflows/triggers).
+
+A type only offers the components its model allows. A read-only type has the two Find components and nothing else, so if you can't find **Delete One Monitor** in the panel, that type doesn't permit it.
+
+This is how a workflow can read and change OneUptime data. For example: a webhook from your CI tool can use **Create One Incident** to open an incident with the failure details.
+
+## Working with records
+
+Every field on a data component is keyed on the record's own **column** names — the same names the API uses, not the labels on the dashboard form. The ID column is `_id`. The `id` spelling is accepted as an alias anywhere you can type a column name, but `_id` is what a record gives back, so that's what to read on the way out:
+
+```json
+{ "_id": "00000000-0000-0000-0000-000000000000" }
+```
+
+**Query** decides which records the component acts on. Keys are columns, values are what to match:
+
+```json
+{ "monitorType": "Website", "isEnabled": true }
+```
+
+A query is always scoped to the project the workflow runs in. You can't reach another project's records, and you don't need to add the project to the query yourself.
+
+**JSON Object** on Create One, **JSON Array** on Create Many, and **Data (JSON Object)** on the Update components carry the fields to write, keyed the same way:
+
+```json
+{ "name": "Checkout API", "monitorType": "Website" }
+```
+
+A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Select Fields**, on the Find components and the triggers, uses the same column keys with `true` values: `{"_id": true, "name": true}`.
+
+**Skip** and **Limit** are two number fields on Find Many, Update Many, and Delete Many — `Skip: 0` with `Limit: 100` takes the first hundred matches. Limit defaults to `10`, and on Update Many and Delete Many it caps how many records are actually written, not just how many come back. So `Items Deleted: 10` means ten records were deleted, not that ten matched. Raise Limit when you mean to change more than ten.
+
+**Success** and **Error** report whether the query ran, not what it found. A query matching nothing returns `0` and still leaves through Success — that is not a failure. To branch on whether anything matched, read the returned count in an **If / Else** block.
+
+## Which component should I use?
+
+A few quick rules:
+
+- If there's a dedicated block for what you want (Slack, Email, a OneUptime record), use it — you get nicer error handling and clearer logs.
+- For any other external API, use **API**.
+- To summarize, classify, or draft text from explicitly selected workflow data, use **Generate Text with AI**.
+- To reshape data between blocks, use **Custom Code** or **JSON**.
+- To take different actions based on a value, use **Conditions**.
+
+## Where to read next
+
+- [Variables](/docs/workflows/variables) — passing data between blocks.
+- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what each block did on a run.
+- [Configuration & Safety](/docs/workflows/configuration) — limits, owners, and secrets.

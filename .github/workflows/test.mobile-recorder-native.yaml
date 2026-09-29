@@ -6,23 +6,23 @@ name: Mobile Recorder Native Consumer Build
 on:
   pull_request:
     paths:
-      - "App/FeatureSet/MobileRecorder/**"
-      - "MobileApp/app.config.js"
-      - "MobileApp/app.json"
-      - "MobileApp/google-services.json"
-      - "MobileApp/package.json"
-      - "MobileApp/package-lock.json"
+      - "packages/App/FeatureSet/MobileRecorder/**"
+      - "packages/MobileApp/app.config.js"
+      - "packages/MobileApp/app.json"
+      - "packages/MobileApp/google-services.json"
+      - "packages/MobileApp/package.json"
+      - "packages/MobileApp/package-lock.json"
       - ".github/workflows/test.mobile-recorder-native.yaml"
   push:
     branches:
       - master
     paths:
-      - "App/FeatureSet/MobileRecorder/**"
-      - "MobileApp/app.config.js"
-      - "MobileApp/app.json"
-      - "MobileApp/google-services.json"
-      - "MobileApp/package.json"
-      - "MobileApp/package-lock.json"
+      - "packages/App/FeatureSet/MobileRecorder/**"
+      - "packages/MobileApp/app.config.js"
+      - "packages/MobileApp/app.json"
+      - "packages/MobileApp/google-services.json"
+      - "packages/MobileApp/package.json"
+      - "packages/MobileApp/package-lock.json"
       - ".github/workflows/test.mobile-recorder-native.yaml"
   workflow_dispatch:
 
@@ -45,12 +45,12 @@ jobs:
         with:
           node-version: 26
           cache: npm
-          cache-dependency-path: App/FeatureSet/MobileRecorder/package-lock.json
+          cache-dependency-path: packages/App/FeatureSet/MobileRecorder/package-lock.json
 
       - name: Build and pack Mobile Recorder
         run: |
           mkdir -p "$RUNNER_TEMP/mobile-recorder-package"
-          cd App/FeatureSet/MobileRecorder
+          cd packages/App/FeatureSet/MobileRecorder
           npm install
           npm run compile
           npm pack --pack-destination "$RUNNER_TEMP/mobile-recorder-package"
@@ -81,7 +81,7 @@ jobs:
         with:
           node-version: 26
           cache: npm
-          cache-dependency-path: MobileApp/package-lock.json
+          cache-dependency-path: packages/MobileApp/package-lock.json
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Install app and packed SDK
         run: |
-          cd MobileApp
+          cd packages/MobileApp
           npm install
           package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
           test -f "$package_file"
@@ -105,15 +105,15 @@ jobs:
           npm pkg set "dependencies.@oneuptime/react-native-replay=file:$package_file"
 
       - name: Generate native Android project
-        run: cd MobileApp && npx expo prebuild --platform android --no-install
+        run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
 
       - name: Compile unsigned Android debug app
-        run: cd MobileApp/android && ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: cd packages/MobileApp/android && ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Verify Mobile Recorder Android package is linked
         run: |
-          grep -F '"@oneuptime/react-native-replay"' MobileApp/android/build/generated/autolinking/autolinking.json
-          grep -F "OneUptimeReplayPackage" MobileApp/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java
+          grep -F '"@oneuptime/react-native-replay"' packages/MobileApp/android/build/generated/autolinking/autolinking.json
+          grep -F "OneUptimeReplayPackage" packages/MobileApp/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java
 
   android-react-native-073:
     name: Android RN 0.73 compatibility
@@ -156,7 +156,7 @@ jobs:
       - name: Compile native library against React Native 0.73
         run: |
           ONEUPTIME_REPLAY_ANDROID_DIR="$RUNNER_TEMP/react-native-073-consumer/node_modules/@oneuptime/react-native-replay/android" gradle \
-            -p App/FeatureSet/MobileRecorder/Tests/Fixtures/ReactNative073Android \
+            -p packages/App/FeatureSet/MobileRecorder/Tests/Fixtures/ReactNative073Android \
             :react-native-replay:assembleDebug \
             --no-daemon \
             --stacktrace
@@ -173,7 +173,7 @@ jobs:
         with:
           node-version: 26
           cache: npm
-          cache-dependency-path: MobileApp/package-lock.json
+          cache-dependency-path: packages/MobileApp/package-lock.json
 
       - name: Download customer package
         uses: actions/download-artifact@v4
@@ -183,7 +183,7 @@ jobs:
 
       - name: Install app and packed SDK
         run: |
-          cd MobileApp
+          cd packages/MobileApp
           npm install
           package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
           test -f "$package_file"
@@ -194,17 +194,17 @@ jobs:
           npm pkg set "dependencies.@oneuptime/react-native-replay=file:$package_file"
 
       - name: Generate native iOS project
-        run: cd MobileApp && npx expo prebuild --platform ios --no-install
+        run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install
 
       - name: Install CocoaPods dependencies
-        run: cd MobileApp/ios && pod install
+        run: cd packages/MobileApp/ios && pod install
 
       - name: Verify Mobile Recorder pod is linked
-        run: grep -F "OneUptimeReactNativeReplay" MobileApp/ios/Podfile.lock
+        run: grep -F "OneUptimeReactNativeReplay" packages/MobileApp/ios/Podfile.lock
 
       - name: Compile unsigned iOS simulator app
         run: |
-          cd MobileApp
+          cd packages/MobileApp
           xcodebuild \
             -workspace ios/OneUptimeOnCall.xcworkspace \
             -scheme OneUptimeOnCall \

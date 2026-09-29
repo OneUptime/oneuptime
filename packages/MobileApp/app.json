@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "OneUptime On-Call",
+    "slug": "oneuptime-on-call",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "scheme": "oneuptime",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.oneuptime.oncall",
+      "icon": "./assets/icon.png",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"],
+        "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.oneuptime.oncall",
+      "versionCode": 2,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_NOTIFICATION_POLICY",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F3F4F7",
+          "image": "./assets/splash-light.png",
+          "imageWidth": 200,
+          "ios": {
+            "backgroundColor": "#F3F4F7",
+            "image": "./assets/splash-light.png",
+            "imageWidth": 200
+          },
+          "android": {
+            "backgroundColor": "#F3F4F7",
+            "image": "./assets/splash-light.png",
+            "imageWidth": 200
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#58A6FF"
+        }
+      ],
+      "expo-local-authentication",
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d9f87edc-1c3e-466f-b032-1ced7621aa8a"
+      }
+    },
+    "owner": "oneuptime"
+  }
+}

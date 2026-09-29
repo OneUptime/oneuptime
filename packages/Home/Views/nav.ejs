@@ -1,0 +1,1575 @@
+<!-- Skip to main content link for accessibility -->
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-gray-600 focus:text-white focus:rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500">Skip to main content</a>
+
+<header role="banner">
+<div class="relative bg-white">
+  <div class="mx-auto max-w-7xl px-6">
+    <div class="flex items-center justify-between border-b-2 border-gray-100 py-6 md:justify-start md:space-x-10">
+      <div class="flex justify-start lg:w-0 lg:flex-1">
+        <a href="/">
+          <span class="sr-only">OneUptime</span>
+          <img class="h-8 w-auto sm:h-10" src="/img/3-transparent.svg" alt="OneUptime logo" width="140" height="40" fetchpriority="high">
+        </a>
+      </div>
+      <div class="-my-2 -mr-2 md:hidden">
+        <button type="button" onclick="openMobileMenu()"
+          class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-500"
+          aria-expanded="false">
+          <span class="sr-only">Open menu</span>
+          <!-- Heroicon name: outline/bars-3 -->
+          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+            stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+      </div>
+      <nav class="max-md:hidden space-x-10 md:flex">
+        <div class="relative">
+          <!-- Opens the searchable products modal (command-palette style). -->
+          <button onclick="openProductModal()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            aria-haspopup="dialog" aria-expanded="false">
+            <span>Products</span>
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Enterprise Dropdown -->
+        <div class="relative" onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()">
+          <button onclick="showSolutionsMenu()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            aria-expanded="false">
+            <span>Enterprise</span>
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <div onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()"
+            class="absolute z-20 -ml-4 pt-3 w-screen max-w-4xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+            id="solutions-menu" hidden style="visibility: collapse; opacity: 0;">
+            <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-gray-900/5 bg-white">
+              <div class="flex">
+                <!-- Left Column - Dark Featured Section -->
+                <div class="w-72 bg-gray-900 p-6 flex flex-col">
+                  <div class="flex-1">
+                    <p class="text-[10px] font-medium uppercase tracking-widest text-gray-500 mb-2">Enterprise</p>
+                    <h2 class="text-xl font-semibold text-white leading-snug">Built for how you work</h2>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">Scale your reliability operations with enterprise-grade tools.</p>
+                  </div>
+
+                  <div class="space-y-2 mt-6">
+                    <a href="/enterprise/overview" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">Enterprise Overview</p>
+                        <p class="text-xs text-gray-500">Scale with confidence</p>
+                      </div>
+                    </a>
+                    <a href="/enterprise/self-hosted" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.7 5.1a3 3 0 0 1 2.4-1.2h7.8a3 3 0 0 1 2.4 1.2l2.55 3.45a4.5 4.5 0 0 1 .9 2.7"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">Self-Hosted</p>
+                        <p class="text-xs text-gray-500">Run it on your own infrastructure</p>
+                      </div>
+                    </a>
+                    <a href="/enterprise/demo" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors" data-testid="request-demo-desktop-link">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">Request Demo</p>
+                        <p class="text-xs text-gray-500">See it in action</p>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div class="mt-6 pt-5 border-t border-white/10">
+                    <a href="/legal/contact" class="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-gray-300 transition-colors">
+                      Contact Sales
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Right Column - Main Content -->
+                <div class="flex-1 p-6">
+                  <!-- Enterprise -->
+                  <div class="mb-6">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Enterprise</p>
+                    <div class="grid grid-cols-2 gap-1">
+                      <a href="/enterprise/overview" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Enterprise Overview</p>
+                          <p class="text-xs text-gray-500">Solutions for large organizations</p>
+                        </div>
+                      </a>
+                      <a href="/enterprise/self-hosted" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-teal-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Self-Hosted</p>
+                          <p class="text-xs text-gray-500">Deployment, architecture, support</p>
+                        </div>
+                      </a>
+                      <a href="/trust" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Trust Center</p>
+                          <p class="text-xs text-gray-500">Certifications, evidence, governed claims</p>
+                        </div>
+                      </a>
+                      <a href="/enterprise/demo" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Request Demo</p>
+                          <p class="text-xs text-gray-500">Schedule a personalized demo</p>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Teams -->
+                  <div class="pt-5 border-t border-gray-100">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Teams</p>
+                    <div class="grid grid-cols-4 gap-2">
+                      <a href="/solutions/devops" class="group flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-10 h-10 rounded-lg bg-cyan-50 flex items-center justify-center">
+                          <svg class="h-5 w-5 text-cyan-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7"></path>
+                          </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">DevOps</span>
+                      </a>
+                      <a href="/solutions/sre" class="group flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center">
+                          <svg class="h-5 w-5 text-violet-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">SRE</span>
+                      </a>
+                      <a href="/solutions/platform" class="group flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                          <svg class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 4.5l4.179-2.25L12 21.75 2.25 12l4.179 2.25"></path>
+                          </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">Platform</span>
+                      </a>
+                      <a href="/solutions/developers" class="group flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                          <svg class="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"></path>
+                          </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">Developers</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Industries -->
+                  <div class="pt-5 mt-5 border-t border-gray-100">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Industries</p>
+                    <div class="grid grid-cols-3 gap-2">
+                      <a href="/industries/fintech" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-8 h-8 rounded-md bg-green-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">FinTech</span>
+                      </a>
+                      <a href="/industries/saas" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">SaaS</span>
+                      </a>
+                      <a href="/industries/healthcare" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-8 h-8 rounded-md bg-red-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Healthcare</span>
+                      </a>
+                      <a href="/industries/ecommerce" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-8 h-8 rounded-md bg-orange-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">E-Commerce</span>
+                      </a>
+                      <a href="/industries/media" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-8 h-8 rounded-md bg-purple-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Media</span>
+                      </a>
+                      <a href="/industries/government" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                        <div class="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"></path>
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Government</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                  <a href="/docs" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Documentation</a>
+                  <a href="/pricing" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
+                  <a href="/blog" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Blog</a>
+                </div>
+                <a href="/accounts/register" class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+                  Get Started Free
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
+
+        <!-- Resources Dropdown -->
+        <div class="relative" onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()">
+          <button onclick="showResourcesMenu()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            aria-expanded="false">
+            <span>Resources</span>
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <div onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()" id="resources-menu" hidden
+            class="absolute right-0 z-20 pt-3 w-screen max-w-3xl transform px-2 sm:px-0"
+            style="visibility: collapse; opacity: 0;">
+            <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-gray-900/5 bg-white">
+              <div class="flex">
+                <!-- Left Column - Dark Featured Section -->
+                <div class="w-64 bg-gray-900 p-6 flex flex-col">
+                  <div class="flex-1">
+                    <p class="text-[10px] font-medium uppercase tracking-widest text-gray-500 mb-2">Resources</p>
+                    <h2 class="text-xl font-semibold text-white leading-snug">Learn & Connect</h2>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">Everything you need to get started and succeed.</p>
+                  </div>
+
+                  <div class="space-y-2 mt-6">
+                    <a href="/docs" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">Documentation</p>
+                        <p class="text-xs text-gray-500">Guides & tutorials</p>
+                      </div>
+                    </a>
+                    <a href="/reference" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">API Reference</p>
+                        <p class="text-xs text-gray-500">REST API & SDKs</p>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div class="mt-6 pt-5 border-t border-white/10">
+                    <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-gray-300 transition-colors">
+                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+                      </svg>
+                      Star on GitHub
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Right Column - Main Content -->
+                <div class="flex-1 p-6">
+                  <!-- Learn Section -->
+                  <div class="mb-6">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Learn</p>
+                    <div class="grid grid-cols-2 gap-1">
+                      <a href="/blog" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Blog</p>
+                          <p class="text-xs text-gray-500">News & insights</p>
+                        </div>
+                      </a>
+                      <a href="/books" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Books</p>
+                          <p class="text-xs text-gray-500">Ideas for better infrastructure</p>
+                        </div>
+                      </a>
+                      <a href="https://status.oneuptime.com" target="_blank" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Status</p>
+                          <p class="text-xs text-gray-500">System status</p>
+                        </div>
+                      </a>
+                      <a href="https://github.com/OneUptime/oneuptime/releases" target="_blank" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Changelog</p>
+                          <p class="text-xs text-gray-500">What's new</p>
+                        </div>
+                      </a>
+                      <a href="https://www.youtube.com/@OneUptimehq" target="_blank" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-rose-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Videos</p>
+                          <p class="text-xs text-gray-500">Watch & learn</p>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Support & Company -->
+                  <div class="grid grid-cols-2 gap-6 pt-5 border-t border-gray-100">
+                    <!-- Support -->
+                    <div>
+                      <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Support</p>
+                      <div class="grid grid-cols-1 gap-2">
+                        <a href="/support" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-sky-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-sky-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Help Center</span>
+                        </a>
+                        <a href="mailto:support@oneuptime.com" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Contact Us</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Company -->
+                    <div>
+                      <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Company</p>
+                      <div class="grid grid-cols-1 gap-2">
+                        <a href="/about" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">About Us</span>
+                        </a>
+                        <a href="https://shop.oneuptime.com" target="_blank" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-pink-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-pink-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Merch Store</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                  <a href="/legal" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Legal</a>
+                  <a href="/legal/privacy" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Privacy</a>
+                  <a href="/legal/terms" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Terms</a>
+                </div>
+                <span class="text-sm text-gray-500">Open Source</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <div class="max-md:hidden items-center justify-end md:flex md:flex-1 lg:w-0">
+        <a href="/accounts" class="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900">Sign
+          in</a>
+        <a href="/accounts/register"
+          class="ml-8 inline-flex items-center justify-center whitespace-nowrap rounded-md border border-transparent bg-gray-900 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-gray-900 hover:text-white"
+          data-testid="Sign-up">Sign up</a>
+      </div>
+    </div>
+  </div>
+
+  <!--
+      Mobile menu, show/hide based on mobile menu state.
+  
+      Entering: "duration-200 ease-out"
+        From: "opacity-0 scale-95"
+        To: "opacity-100 scale-100"
+      Leaving: "duration-100 ease-in"
+        From: "opacity-100 scale-100"
+        To: "opacity-0 scale-95"
+    -->
+
+  <div id="mobile-menu" hidden class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden z-20"
+    style="visibility: collapse;">
+    <div class="divide-y-2 divide-gray-50 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+      <div class="px-5 pt-5 pb-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <img class="h-8 w-auto" src="/img/3-transparent.svg" alt="OneUptime">
+          </div>
+          <div class="-mr-2">
+            <button type="button"
+              class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-500"
+              onclick="closeMobileMenu()">
+              <span class="sr-only">Close menu</span>
+              <!-- Heroicon name: outline/x-mark -->
+              <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="mt-6">
+          <nav class="grid grid-cols-2 gap-3">
+            <!-- Status Page - Emerald -->
+            <a href="/product/status-page" class="flex items-center gap-3 rounded-xl p-3 hover:bg-emerald-50 ring-1 ring-transparent hover:ring-emerald-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200">
+                <%- include('./Partials/icons/status-page', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Status Page</span>
+            </a>
+
+            <!-- Incidents - Rose -->
+            <a href="/product/incident-management" class="flex items-center gap-3 rounded-xl p-3 hover:bg-rose-50 ring-1 ring-transparent hover:ring-rose-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                <%- include('./Partials/icons/incidents', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Incidents</span>
+            </a>
+
+            <!-- Monitoring - Blue -->
+            <a href="/product/monitoring" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/monitoring', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Monitoring</span>
+            </a>
+
+            <!-- On-Call - Stone -->
+            <a href="/product/on-call" class="flex items-center gap-3 rounded-xl p-3 hover:bg-stone-50 ring-1 ring-transparent hover:ring-stone-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-stone-50 ring-1 ring-stone-200">
+                <%- include('./Partials/icons/on-call', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">On-Call</span>
+            </a>
+
+            <!-- Scheduled Maintenance - Teal -->
+            <a href="/product/scheduled-maintenance" class="flex items-center gap-3 rounded-xl p-3 hover:bg-teal-50 ring-1 ring-transparent hover:ring-teal-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                <%- include('./Partials/icons/scheduled-maintenance', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Maintenance</span>
+            </a>
+
+            <!-- Observability - Indigo -->
+            <a href="/product/observability" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/observability', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Observability</span>
+            </a>
+
+            <!-- Topology - Teal -->
+            <a href="/product/topology" class="flex items-center gap-3 rounded-xl p-3 hover:bg-teal-50 ring-1 ring-transparent hover:ring-teal-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                <%- include('./Partials/icons/topology', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Topology</span>
+            </a>
+
+            <!-- Security Events - Red -->
+            <a href="/product/security-events" class="flex items-center gap-3 rounded-xl p-3 hover:bg-red-50 ring-1 ring-transparent hover:ring-red-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200">
+                <%- include('./Partials/icons/security-events', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Security Events</span>
+            </a>
+
+            <!-- Logs - Amber -->
+            <a href="/product/logs-management" class="flex items-center gap-3 rounded-xl p-3 hover:bg-amber-50 ring-1 ring-transparent hover:ring-amber-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
+                <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Logs</span>
+            </a>
+
+            <!-- Metrics - Purple -->
+            <a href="/product/metrics" class="flex items-center gap-3 rounded-xl p-3 hover:bg-purple-50 ring-1 ring-transparent hover:ring-purple-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200">
+                <%- include('./Partials/icons/metrics', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Metrics</span>
+            </a>
+
+            <!-- Traces - Yellow -->
+            <a href="/product/traces" class="flex items-center gap-3 rounded-xl p-3 hover:bg-yellow-50 ring-1 ring-transparent hover:ring-yellow-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200">
+                <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Traces</span>
+            </a>
+
+            <!-- Exceptions - Orange -->
+            <a href="/product/exceptions" class="flex items-center gap-3 rounded-xl p-3 hover:bg-orange-50 ring-1 ring-transparent hover:ring-orange-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                <%- include('./Partials/icons/exceptions', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Exceptions</span>
+            </a>
+
+            <!-- Services - Indigo -->
+            <a href="/product/services" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/services', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Services</span>
+            </a>
+
+            <!-- Kubernetes - Cyan -->
+            <a href="/product/kubernetes" class="flex items-center gap-3 rounded-xl p-3 hover:bg-cyan-50 ring-1 ring-transparent hover:ring-cyan-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200">
+                <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Kubernetes</span>
+            </a>
+
+            <!-- Docker - Blue -->
+            <a href="/product/docker" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/docker', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Docker</span>
+            </a>
+
+            <!-- Podman - Blue -->
+            <a href="/product/podman" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/podman', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Podman</span>
+            </a>
+
+            <!-- Hosts - Slate -->
+            <a href="/product/host" class="flex items-center gap-3 rounded-xl p-3 hover:bg-slate-50 ring-1 ring-transparent hover:ring-slate-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200">
+                <%- include('./Partials/icons/host', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Hosts</span>
+            </a>
+
+            <!-- Proxmox - Orange -->
+            <a href="/product/proxmox" class="flex items-center gap-3 rounded-xl p-3 hover:bg-orange-50 ring-1 ring-transparent hover:ring-orange-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                <%- include('./Partials/icons/proxmox', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Proxmox</span>
+            </a>
+
+            <!-- VMware - Indigo -->
+            <a href="/product/vmware" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/vmware', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">VMware</span>
+            </a>
+
+            <!-- AI / LLM Observability - Violet -->
+            <a href="/product/ai-observability" class="flex items-center gap-3 rounded-xl p-3 hover:bg-violet-50 ring-1 ring-transparent hover:ring-violet-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-50 ring-1 ring-violet-200">
+                <%- include('./Partials/icons/ai-observability', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">AI / LLM Observability</span>
+            </a>
+
+            <!-- Ceph - Red -->
+            <a href="/product/ceph" class="flex items-center gap-3 rounded-xl p-3 hover:bg-red-50 ring-1 ring-transparent hover:ring-red-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200">
+                <%- include('./Partials/icons/ceph', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Ceph</span>
+            </a>
+
+            <!-- Docker Swarm - Blue -->
+            <a href="/product/docker-swarm" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/docker-swarm', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Docker Swarm</span>
+            </a>
+
+            <!-- IoT Devices - Teal -->
+            <a href="/product/iot" class="flex items-center gap-3 rounded-xl p-3 hover:bg-teal-50 ring-1 ring-transparent hover:ring-teal-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                <%- include('./Partials/icons/iot', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">IoT Devices</span>
+            </a>
+
+            <!-- Network Devices - Sky -->
+            <a href="/product/network-monitoring" class="flex items-center gap-3 rounded-xl p-3 hover:bg-sky-50 ring-1 ring-transparent hover:ring-sky-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                <%- include('./Partials/icons/network-devices', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Network Devices</span>
+            </a>
+
+            <!-- Serverless - Fuchsia -->
+            <a href="/product/serverless" class="flex items-center gap-3 rounded-xl p-3 hover:bg-fuchsia-50 ring-1 ring-transparent hover:ring-fuchsia-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                <%- include('./Partials/icons/serverless', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Serverless</span>
+            </a>
+
+            <!-- Cloud - Sky -->
+            <a href="/product/cloud" class="flex items-center gap-3 rounded-xl p-3 hover:bg-sky-50 ring-1 ring-transparent hover:ring-sky-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                <%- include('./Partials/icons/cloud', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Cloud</span>
+            </a>
+
+            <!-- Profiles - Rose -->
+            <a href="/product/profiles" class="flex items-center gap-3 rounded-xl p-3 hover:bg-rose-50 ring-1 ring-transparent hover:ring-rose-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Profiles</span>
+            </a>
+
+            <!-- RUM - Indigo -->
+            <a href="/product/rum" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/rum', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">RUM</span>
+            </a>
+
+            <!-- Workflows - Sky -->
+            <a href="/product/workflows" class="flex items-center gap-3 rounded-xl p-3 hover:bg-sky-50 ring-1 ring-transparent hover:ring-sky-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                <%- include('./Partials/icons/workflows', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Workflows</span>
+            </a>
+
+            <!-- Dashboards - Indigo -->
+            <a href="/product/dashboards" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/dashboards', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Dashboards</span>
+            </a>
+
+            <!-- AI Agent - Violet (Featured) -->
+            <a href="/product/ai-agent" class="col-span-2 flex items-center gap-3 rounded-xl p-3 bg-gradient-to-r from-violet-50 to-purple-50 ring-1 ring-violet-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-100 ring-1 ring-violet-300">
+                <%- include('./Partials/icons/ai-agent', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">AI</span>
+            </a>
+          </nav>
+
+          <!-- Enterprise Section -->
+          <div class="mt-6 pt-6 border-t border-gray-100">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Enterprise</p>
+            <div class="grid grid-cols-3 gap-2">
+              <a href="/solutions/devops" class="flex flex-col items-center p-3 rounded-xl border border-gray-100 hover:border-cyan-200 hover:bg-cyan-50/50">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-2">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3"></path>
+                  </svg>
+                </div>
+                <span class="text-xs font-medium text-gray-900 text-center">DevOps</span>
+              </a>
+              <a href="/solutions/sre" class="flex flex-col items-center p-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50/50">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-2">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                  </svg>
+                </div>
+                <span class="text-xs font-medium text-gray-900 text-center">SRE</span>
+              </a>
+              <a href="/solutions/platform" class="flex flex-col items-center p-3 rounded-xl border border-gray-100 hover:border-amber-200 hover:bg-amber-50/50">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-2">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25"></path>
+                  </svg>
+                </div>
+                <span class="text-xs font-medium text-gray-900 text-center">Platform</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-6 py-6 px-5 border-t border-gray-100">
+        <div class="grid grid-cols-2 gap-y-4 gap-x-8">
+          <a href="/pricing" class="text-base font-medium text-gray-900 hover:text-gray-700">Pricing</a>
+
+          <a href="/docs" class="text-base font-medium text-gray-900 hover:text-gray-700">Docs</a>
+
+          <a href="/enterprise/demo" class="text-base font-medium text-gray-900 hover:text-gray-700"
+            data-testid="request-demo-mobile-link">Request Demo</a>
+
+          <a href="/enterprise/self-hosted" class="text-base font-medium text-gray-900 hover:text-gray-700">Self-Hosted</a>
+
+          <a href="/trust" class="text-base font-medium text-gray-900 hover:text-gray-700">Trust Center</a>
+
+          <a href="/support" class="text-base font-medium text-gray-900 hover:text-gray-700">Support</a>
+
+          <a href="/books" class="text-base font-medium text-gray-900 hover:text-gray-700">Books</a>
+        </div>
+        <div>
+          <a href="/accounts/register"
+            class="flex w-full items-center justify-center rounded-md border border-transparent bg-gray-900 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-gray-900">Sign
+            up</a>
+          <p class="mt-6 text-center text-base font-medium text-gray-500">
+            Existing customer?
+            <a href="/accounts" class="text-gray-600 hover:text-gray-500">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- Products search modal (command-palette, mirrors the in-app    -->
+<!-- NavBarMenuModal). Rendered at header root so its fixed overlay -->
+<!-- is never clipped by a transformed ancestor.                   -->
+<!-- ============================================================= -->
+<div id="product-modal" class="relative z-50 hidden" role="dialog" aria-modal="true" aria-label="Products">
+  <!-- Backdrop -->
+  <div id="product-modal-backdrop"
+    class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-200"></div>
+
+  <!-- Scroll + click-away container -->
+  <div class="fixed inset-0 z-50 overflow-y-auto" onclick="closeProductModal()">
+    <div class="flex min-h-full items-start justify-center p-4 sm:p-6">
+      <div id="product-modal-card"
+        class="relative mt-[6vh] flex w-full max-w-3xl translate-y-2 scale-[0.98] flex-col overflow-hidden rounded-2xl bg-white opacity-0 shadow-2xl ring-1 ring-gray-900/5 transition-all duration-200 ease-out"
+        style="max-height: 82vh;" onclick="event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="border-b border-gray-100 bg-gradient-to-br from-indigo-50/70 via-white to-white px-5 pt-5 pb-4 sm:px-6">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500">Products</p>
+              <h2 class="mt-1 text-lg font-semibold text-gray-900">Explore the OneUptime platform</h2>
+              <p class="mt-0.5 max-sm:hidden text-sm text-gray-500 sm:block">One platform for monitoring, observability &amp; incident response.</p>
+            </div>
+            <button type="button" onclick="closeProductModal()" aria-label="Close"
+              class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white hover:text-gray-600 hover:shadow-sm">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <!-- Search box -->
+          <div class="mt-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 shadow-sm transition focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100">
+            <svg class="h-5 w-5 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+            </svg>
+            <input id="product-modal-search" type="text" role="combobox" aria-expanded="true"
+              aria-controls="product-modal-body" aria-label="Search products" autocomplete="off" autocorrect="off"
+              autocapitalize="off" spellcheck="false" placeholder="Search products…"
+              class="flex-1 border-0 bg-transparent p-0 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0" />
+            <button id="product-modal-clear" type="button" onclick="clearProductSearch()" aria-label="Clear search"
+              style="display:none;"
+              class="h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            <kbd id="product-modal-kbd"
+              class="max-sm:hidden flex-shrink-0 items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">⌘K</kbd>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div id="product-modal-body" role="listbox" aria-label="Products"
+          class="flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+
+          <!-- Featured: AI Agent (hidden while searching) -->
+          <a id="product-modal-featured" href="/product/ai-agent"
+            class="group mb-5 flex items-center gap-4 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 p-4 transition-colors hover:border-violet-300">
+            <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 ring-1 ring-violet-300">
+              <%- include('./Partials/icons/ai-agent', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-gray-900">AI</p>
+              <p class="mt-0.5 text-xs leading-relaxed text-gray-600 line-clamp-2">Investigates incidents with AI and turns findings into fix pull requests for your review.</p>
+            </div>
+            <svg class="h-5 w-5 flex-shrink-0 text-violet-400 transition-colors group-hover:text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+            </svg>
+          </a>
+
+          <!-- Essentials -->
+          <div class="product-group mb-6">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Essentials</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/monitoring" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="monitoring uptime synthetic checks">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/monitoring', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Monitoring</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Uptime &amp; synthetic checks</p>
+                </div>
+              </a>
+              <a href="/product/status-page" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="status page communicate incidents to users">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200">
+                  <%- include('./Partials/icons/status-page', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Status Page</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Communicate incidents to users</p>
+                </div>
+              </a>
+              <a href="/product/incident-management" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="incidents detect manage resolve">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                  <%- include('./Partials/icons/incidents', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Incidents</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Detect, manage &amp; resolve</p>
+                </div>
+              </a>
+              <a href="/product/on-call" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="on-call alerts smart routing escalations">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-stone-100 ring-1 ring-stone-300">
+                  <%- include('./Partials/icons/on-call', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">On-Call &amp; Alerts</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Smart routing &amp; escalations</p>
+                </div>
+              </a>
+              <a href="/product/scheduled-maintenance" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="scheduled maintenance plan communicate downtime">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/scheduled-maintenance', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Scheduled Maintenance</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Plan &amp; communicate downtime</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Observability -->
+          <div class="product-group mb-6">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Observability</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/observability" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="observability platform logs metrics traces opentelemetry otel correlate signals">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/observability', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Observability</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Logs, metrics &amp; traces in one</p>
+                </div>
+              </a>
+              <a href="/product/topology" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="topology service map infrastructure network map dependency graph traces lldp service mesh">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/topology', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Topology</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Service, infra &amp; network maps</p>
+                </div>
+              </a>
+              <a href="/product/security-events" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="security events siem ocsf sigma detection rules threat detection audit soar chronicle google secops">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200">
+                  <%- include('./Partials/icons/security-events', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Security Events</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">SIEM signals &amp; Sigma detections</p>
+                </div>
+              </a>
+              <a href="/product/logs-management" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="logs fastest log ingest search">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
+                  <%- include('./Partials/icons/logs', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Logs</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Fastest log ingest &amp; search</p>
+                </div>
+              </a>
+              <a href="/product/metrics" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="metrics application infra metrics">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200">
+                  <%- include('./Partials/icons/metrics', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Metrics</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Application &amp; infra metrics</p>
+                </div>
+              </a>
+              <a href="/product/traces" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="traces distributed request tracing">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200">
+                  <%- include('./Partials/icons/traces', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Traces</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Distributed request tracing</p>
+                </div>
+              </a>
+              <a href="/product/exceptions" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="exceptions error tracking debugging">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                  <%- include('./Partials/icons/exceptions', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Exceptions</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Error tracking &amp; debugging</p>
+                </div>
+              </a>
+              <a href="/product/profiles" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="profiles cpu memory profiling">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                  <%- include('./Partials/icons/profiles', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Profiles</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">CPU &amp; memory profiling</p>
+                </div>
+              </a>
+              <a href="/product/rum" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="rum real user monitoring">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/rum', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">RUM</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Real user monitoring</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Infrastructure -->
+          <div class="product-group mb-6">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Infrastructure</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/services" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="services catalog every service you run">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/services', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Services</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Catalog every service you run</p>
+                </div>
+              </a>
+              <a href="/product/kubernetes" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="kubernetes cluster pod observability k8s">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200">
+                  <%- include('./Partials/icons/kubernetes', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Kubernetes</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Cluster &amp; pod observability</p>
+                </div>
+              </a>
+              <a href="/product/docker" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="docker host container observability">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/docker', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Docker</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Host &amp; container observability</p>
+                </div>
+              </a>
+              <a href="/product/podman" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="podman host container observability">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/podman', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Podman</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Host &amp; container observability</p>
+                </div>
+              </a>
+              <a href="/product/host" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="hosts auto-discovered server metrics">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200">
+                  <%- include('./Partials/icons/host', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Hosts</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Auto-discovered server metrics</p>
+                </div>
+              </a>
+              <a href="/product/proxmox" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="proxmox ve clusters vms backups">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
+                  <%- include('./Partials/icons/proxmox', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Proxmox</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">VE clusters, VMs &amp; backups</p>
+                </div>
+              </a>
+              <a href="/product/vmware" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="vmware vsphere vcenter esxi hosts vms virtual machines datastores vsan clusters resource pools">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/vmware', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">VMware</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">vCenter, ESXi hosts, VMs &amp; datastores</p>
+                </div>
+              </a>
+              <a href="/product/ai-observability" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="ai llm observability gen_ai openai anthropic tokens cost prompts agents">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-violet-50 ring-1 ring-violet-200">
+                  <%- include('./Partials/icons/ai-observability', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">AI / LLM Observability</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Tokens, cost, traces &amp; prompts</p>
+                </div>
+              </a>
+              <a href="/product/ceph" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="ceph storage cluster health">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 ring-1 ring-red-200">
+                  <%- include('./Partials/icons/ceph', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Ceph</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Storage cluster health</p>
+                </div>
+              </a>
+              <a href="/product/docker-swarm" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="docker swarm nodes services tasks stacks">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/docker-swarm', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Docker Swarm</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Nodes, services, tasks &amp; stacks</p>
+                </div>
+              </a>
+              <a href="/product/iot" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="iot devices fleets sensors gateways battery signal telemetry">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/iot', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">IoT Devices</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Fleets, sensors &amp; gateways</p>
+                </div>
+              </a>
+              <a href="/product/network-monitoring" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="network devices snmp switches routers firewalls interfaces lldp topology latency">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                  <%- include('./Partials/icons/network-devices', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Network Devices</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Switches, routers &amp; firewalls</p>
+                </div>
+              </a>
+              <a href="/product/serverless" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="serverless functions cold starts lambda">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <%- include('./Partials/icons/serverless', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Serverless</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Functions &amp; cold starts</p>
+                </div>
+              </a>
+              <a href="/product/cloud" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="cloud aws gcp azure">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                  <%- include('./Partials/icons/cloud', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Cloud</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">AWS, GCP &amp; Azure</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Automation & Analytics -->
+          <div class="product-group mb-1">
+            <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Automation &amp; Analytics</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/workflows" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="workflows no-code automation builder">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                  <%- include('./Partials/icons/workflows', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Workflows</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">No-code automation builder</p>
+                </div>
+              </a>
+              <a href="/product/runbooks" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="runbooks auto-trigger response steps">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                  <%- include('./Partials/icons/runbooks', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Runbooks</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Auto-trigger response steps</p>
+                </div>
+              </a>
+              <a href="/product/dashboards" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="dashboards custom data visualizations">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/dashboards', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Dashboards</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Custom data visualizations</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="product-modal-empty" style="display:none;" class="flex-col items-center justify-center py-16 text-center">
+            <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">No products found</p>
+            <p id="product-modal-empty-q" class="mt-1 text-xs text-gray-500"></p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-4 border-t border-gray-100 bg-gray-50/80 px-5 py-3 sm:px-6">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener" class="group flex min-w-0 items-center gap-3">
+            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900 transition-colors group-hover:bg-gray-700">
+              <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <div class="min-w-0 text-left">
+              <p class="truncate text-sm font-medium text-gray-900">Open Source</p>
+              <p class="truncate text-xs text-gray-500">Self-host or use our cloud</p>
+            </div>
+          </a>
+          <div class="max-md:hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex">
+            <span class="flex items-center gap-1">
+              <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↑</kbd>
+              <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↓</kbd>
+            </span>
+            <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">↵</kbd>
+            <kbd class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm">esc</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+
+  let solutionsMenuTimer = null;
+  let resourcesMenuTimer = null;
+
+  // Closed panels must leave layout so they cannot create invisible overflow.
+  function closeMobileMenu() {
+    document.getElementById("mobile-menu").hidden = true;
+    document.getElementById("mobile-menu").style.visibility = "collapse";
+  }
+
+  function openMobileMenu() {
+    document.getElementById("mobile-menu").hidden = false;
+    document.getElementById("mobile-menu").style.visibility = "visible";
+  }
+
+  // ===== Products search modal (command-palette) =====
+  var productActiveIndex = 0;
+
+  function getVisibleProductCards() {
+    return Array.prototype.slice
+      .call(document.querySelectorAll("#product-modal .product-card"))
+      .filter(function (card) {
+        return card.style.display !== "none";
+      });
+  }
+
+  function setProductActive(index) {
+    var cards = getVisibleProductCards();
+    if (cards.length === 0) {
+      productActiveIndex = -1;
+      return;
+    }
+    if (index < 0) {
+      index = 0;
+    }
+    if (index > cards.length - 1) {
+      index = cards.length - 1;
+    }
+    productActiveIndex = index;
+    cards.forEach(function (card, i) {
+      if (i === index) {
+        card.classList.add("border-indigo-300", "bg-indigo-50", "shadow-sm");
+        card.classList.remove("border-transparent");
+        card.scrollIntoView({ block: "nearest" });
+      } else {
+        card.classList.remove("border-indigo-300", "bg-indigo-50", "shadow-sm");
+        card.classList.add("border-transparent");
+      }
+    });
+  }
+
+  function highlightProductMatches(query) {
+    document
+      .querySelectorAll("#product-modal .product-card-title")
+      .forEach(function (el) {
+        var text = el.getAttribute("data-text");
+        if (text === null) {
+          text = el.textContent;
+          el.setAttribute("data-text", text);
+        }
+        if (!query) {
+          el.textContent = text;
+          return;
+        }
+        var idx = text.toLowerCase().indexOf(query);
+        if (idx === -1) {
+          el.textContent = text;
+          return;
+        }
+        el.textContent = "";
+        el.appendChild(document.createTextNode(text.slice(0, idx)));
+        var mark = document.createElement("mark");
+        mark.className = "rounded-sm bg-yellow-100 px-0.5 text-inherit";
+        mark.textContent = text.slice(idx, idx + query.length);
+        el.appendChild(mark);
+        el.appendChild(document.createTextNode(text.slice(idx + query.length)));
+      });
+  }
+
+  function filterProductModal() {
+    var input = document.getElementById("product-modal-search");
+    var query = (input.value || "").trim().toLowerCase();
+    var anyVisible = false;
+
+    document
+      .querySelectorAll("#product-modal .product-card")
+      .forEach(function (card) {
+        var hay = card.getAttribute("data-search") || "";
+        var match = !query || hay.indexOf(query) !== -1;
+        card.style.display = match ? "" : "none";
+        if (match) {
+          anyVisible = true;
+        }
+      });
+
+    document
+      .querySelectorAll("#product-modal .product-group")
+      .forEach(function (group) {
+        var visible =
+          group.querySelectorAll(".product-card").length > 0 &&
+          Array.prototype.slice
+            .call(group.querySelectorAll(".product-card"))
+            .some(function (card) {
+              return card.style.display !== "none";
+            });
+        group.style.display = visible ? "" : "none";
+      });
+
+    // Featured banner only shows while idle (no search query).
+    var featured = document.getElementById("product-modal-featured");
+    if (featured) {
+      featured.style.display = query ? "none" : "";
+    }
+
+    var empty = document.getElementById("product-modal-empty");
+    empty.style.display = anyVisible ? "none" : "flex";
+    document.getElementById("product-modal-empty-q").textContent = query
+      ? "“" + query + "”"
+      : "";
+
+    var clear = document.getElementById("product-modal-clear");
+    clear.style.display = query ? "inline-flex" : "none";
+    document.getElementById("product-modal-kbd").style.display = query
+      ? "none"
+      : "";
+
+    highlightProductMatches(query);
+    setProductActive(0);
+  }
+
+  function clearProductSearch() {
+    var input = document.getElementById("product-modal-search");
+    input.value = "";
+    filterProductModal();
+    input.focus();
+  }
+
+  function openProductModal() {
+    var modal = document.getElementById("product-modal");
+    if (!modal) {
+      return;
+    }
+    var input = document.getElementById("product-modal-search");
+    input.value = "";
+    filterProductModal();
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(function () {
+      var backdrop = document.getElementById("product-modal-backdrop");
+      backdrop.classList.add("opacity-100");
+      backdrop.classList.remove("opacity-0");
+      var card = document.getElementById("product-modal-card");
+      card.classList.add("opacity-100", "translate-y-0", "scale-100");
+      card.classList.remove("opacity-0", "translate-y-2", "scale-[0.98]");
+    });
+    setTimeout(function () {
+      input.focus();
+    }, 60);
+  }
+
+  function closeProductModal() {
+    var modal = document.getElementById("product-modal");
+    if (!modal || modal.classList.contains("hidden")) {
+      return;
+    }
+    var backdrop = document.getElementById("product-modal-backdrop");
+    backdrop.classList.add("opacity-0");
+    backdrop.classList.remove("opacity-100");
+    var card = document.getElementById("product-modal-card");
+    card.classList.add("opacity-0", "translate-y-2", "scale-[0.98]");
+    card.classList.remove("opacity-100", "translate-y-0", "scale-100");
+    document.body.style.overflow = "";
+    setTimeout(function () {
+      modal.classList.add("hidden");
+    }, 200);
+  }
+
+  function moveProductVertical(direction) {
+    var cards = getVisibleProductCards();
+    if (cards.length === 0) {
+      return;
+    }
+    var active = cards[productActiveIndex] || cards[0];
+    var activeRect = active.getBoundingClientRect();
+    var activeCenterX = activeRect.left + activeRect.width / 2;
+
+    var targetTop = null;
+    cards.forEach(function (card) {
+      var top = card.getBoundingClientRect().top;
+      if (direction === "down" && top > activeRect.top + 1) {
+        if (targetTop === null || top < targetTop) {
+          targetTop = top;
+        }
+      }
+      if (direction === "up" && top < activeRect.top - 1) {
+        if (targetTop === null || top > targetTop) {
+          targetTop = top;
+        }
+      }
+    });
+    if (targetTop === null) {
+      return;
+    }
+
+    var bestIndex = productActiveIndex;
+    var bestDistance = Infinity;
+    cards.forEach(function (card, i) {
+      var rect = card.getBoundingClientRect();
+      if (Math.abs(rect.top - targetTop) <= 1) {
+        var centerX = rect.left + rect.width / 2;
+        var distance = Math.abs(centerX - activeCenterX);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = i;
+        }
+      }
+    });
+    setProductActive(bestIndex);
+  }
+
+  function handleProductKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeProductModal();
+      return;
+    }
+    var cards = getVisibleProductCards();
+    if (cards.length === 0) {
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setProductActive(productActiveIndex + 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setProductActive(productActiveIndex - 1);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveProductVertical("down");
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveProductVertical("up");
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      var card = cards[productActiveIndex] || cards[0];
+      if (card && card.href) {
+        window.location.href = card.href;
+      }
+    }
+  }
+
+  (function initProductModal() {
+    var input = document.getElementById("product-modal-search");
+    if (input) {
+      input.addEventListener("input", filterProductModal);
+      input.addEventListener("keydown", handleProductKeydown);
+    }
+    document.addEventListener("keydown", function (event) {
+      var modal = document.getElementById("product-modal");
+      var isOpen = modal && !modal.classList.contains("hidden");
+      if ((event.key === "k" || event.key === "K") && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        if (isOpen) {
+          closeProductModal();
+        } else {
+          openProductModal();
+        }
+      } else if (event.key === "Escape" && isOpen) {
+        closeProductModal();
+      }
+    });
+  })();
+
+  function showSolutionsMenu() {
+    if (solutionsMenuTimer) {
+      clearTimeout(solutionsMenuTimer);
+      solutionsMenuTimer = null;
+    }
+    var menu = document.getElementById("solutions-menu");
+    menu.hidden = false;
+    menu.style.visibility = "visible";
+    menu.style.opacity = "1";
+  }
+
+  function hideSolutionsMenu() {
+    if (solutionsMenuTimer) {
+      clearTimeout(solutionsMenuTimer);
+    }
+    solutionsMenuTimer = setTimeout(() => {
+      var menu = document.getElementById("solutions-menu");
+      menu.hidden = true;
+      menu.style.opacity = "0";
+      menu.style.visibility = "collapse";
+      solutionsMenuTimer = null;
+    }, 150);
+  }
+
+  function showResourcesMenu() {
+    if (resourcesMenuTimer) {
+      clearTimeout(resourcesMenuTimer);
+      resourcesMenuTimer = null;
+    }
+    var menu = document.getElementById("resources-menu");
+    menu.hidden = false;
+    menu.style.visibility = "visible";
+    menu.style.opacity = "1";
+  }
+
+  function hideResourcesMenu() {
+    if (resourcesMenuTimer) {
+      clearTimeout(resourcesMenuTimer);
+    }
+    resourcesMenuTimer = setTimeout(() => {
+      var menu = document.getElementById("resources-menu");
+      menu.hidden = true;
+      menu.style.opacity = "0";
+      menu.style.visibility = "collapse";
+      resourcesMenuTimer = null;
+    }, 150);
+  }
+
+</script>
+</header>

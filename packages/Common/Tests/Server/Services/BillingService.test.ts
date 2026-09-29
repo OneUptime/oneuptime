@@ -1,0 +1,2105 @@
+import getJestMockFunction from "../../MockType";
+import {
+  BillingService,
+  Invoice,
+  PaymentMethod,
+  SubscriptionItem,
+} from "../../../Server/Services/BillingService";
+import {
+  ActiveMonitoringMeteredPlan,
+  LogDataIngestMeteredPlan,
+  SessionReplayDataIngestMeteredPlan,
+} from "../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import ProductType from "../../../Types/MeteredPlan/ProductType";
+import Errors from "../../../Server/Utils/Errors";
+import {
+  getChangePlanData,
+  getCouponData,
+  getCustomerData,
+  getMeteredSubscription,
+  getStripeCustomer,
+  getStripeInvoice,
+  getStripeSubscription,
+  getSubscriptionData,
+  getSubscriptionPlanData,
+  mockIsBillingEnabled,
+} from "../TestingUtils/Services/BillingServiceHelper";
+import {
+  ChangePlan,
+  CouponData,
+  CustomerData,
+  MeteredSubscription,
+  PaymentMethodsResponse,
+  Subscription,
+} from "../TestingUtils/Services/Types";
+import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
+import { describe, expect, beforeEach, jest } from "@jest/globals";
+import MeteredPlan from "../../../Types/Billing/MeteredPlan";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
+import OneUptimeDate from "../../../Types/Date";
+
+jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      requireMeteredSubscriptionPayment: jest.fn(async (): Promise<void> => {
+        return;
+      }),
+    },
+  };
+});
+
+describe("BillingService", () => {
+  let billingService: BillingService;
+  const customer: CustomerData = getCustomerData();
+  const mockCustomer: Stripe.Customer = getStripeCustomer(
+    customer.id.toString(),
+  );
+
+  beforeEach(
+    async () => {
+      jest.clearAllMocks();
+      billingService = await mockIsBillingEnabled(true);
+    },
+    10 * 1000, // 10 second timeout because setting up the DB is slow
+  );
+
+  describe("Customer Management", () => {
+    describe("createCustomer", () => {
+      it("should create a customer when valid data is provided", async () => {
+        mockStripe.customers.create =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const result: string = await billingService.createCustomer(customer);
+
+        expect(result).toEqual(mockCustomer.id);
+        expect(mockStripe.customers.create).toHaveBeenCalledWith({
+          name: customer.name,
+          email: customer.email.toString(),
+          metadata: {
+            id: customer.id.toString(),
+          },
+        });
+        expect(result).toBe(mockCustomer.id);
+      });
+
+      it("should throw an exception if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(billingService.createCustomer(customer)).rejects.toThrow(
+          Errors.BillingService.BILLING_NOT_ENABLED,
+        );
+      });
+    });
+
+    describe("updateCustomerName", () => {
+      it("should successfully update a customer name", async () => {
+        const newName: string = "newName";
+        await billingService.updateCustomerName(
+          customer.id.toString(),
+          newName,
+        );
+        expect(mockStripe.customers.update).toHaveBeenCalledWith(
+          customer.id.toString(),
+          { name: newName },
+        );
+      });
+
+      it("should throw an exception if billing is not enabled for updating customer name", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.updateCustomerName("cust_123", "Jane Doe"),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+    });
+
+    describe("deleteCustomer", () => {
+      it("should successfully delete a customer", async () => {
+        await billingService.deleteCustomer(customer.id.toString());
+
+        expect(mockStripe.customers.del).toHaveBeenCalledWith(
+          customer.id.toString(),
+        );
+      });
+
+      it("should throw an exception if billing is not enabled for deleting customer", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(billingService.deleteCustomer("cust_123")).rejects.toThrow(
+          Errors.BillingService.BILLING_NOT_ENABLED,
+        );
+      });
+    });
+  });
+
+  describe("Subscription Management", () => {
+    Object.defineProperty(global, "performance", {
+      writable: true,
+    });
+
+    let mockDate: Date = OneUptimeDate.getCurrentDate();
+
+    let mockSubscription: Stripe.Subscription;
+    const subscription: Subscription = getSubscriptionData();
+    const subscriptionPlan: SubscriptionPlan = getSubscriptionPlanData();
+    const meteredSubscription: MeteredSubscription =
+      getMeteredSubscription(subscriptionPlan);
+
+    beforeEach(() => {
+      mockSubscription = getStripeSubscription();
+      mockDate = OneUptimeDate.getCurrentDate();
+    });
+
+    describe("subscribeToMeteredPlan", () => {
+      it("should successfully create a metered plan subscription with all required parameters", async () => {
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        const result: {
+          meteredSubscriptionId: string;
+          trialEndsAt: Date | null;
+        } = await billingService.subscribeToMeteredPlan(subscription);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            customer: subscription.customerId,
+            items: [],
+            trial_end: "now",
+          }),
+        );
+        expect(result.meteredSubscriptionId).toBe(mockSubscription.id);
+        expect(result.trialEndsAt).toBe(subscription.trialDate);
+      });
+
+      it("should create a metered plan subscription with a trial date in the future", async () => {
+        const futureDate: Date = new Date();
+        futureDate.setDate(futureDate.getDate() + 10); // 10 days in the future
+        subscription.trialDate = futureDate;
+
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        await billingService.subscribeToMeteredPlan(subscription);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            trial_end: Math.floor(subscription.trialDate.getTime() / 1000),
+          }),
+        );
+      });
+
+      it("should create a subscription without a trial when the trial date is not in the future", async () => {
+        const pastDate: Date = new Date("2020-01-01");
+        subscription.trialDate = pastDate;
+
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        await billingService.subscribeToMeteredPlan(subscription);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            trial_end: "now",
+          }),
+        );
+      });
+
+      it("should handle API errors during subscription creation", async () => {
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockImplementation(() => {
+            throw new Error("Stripe API error");
+          });
+
+        await expect(
+          billingService.subscribeToMeteredPlan(subscription),
+        ).rejects.toThrowError("Stripe API error");
+      });
+
+      it("should correctly handle the promo code", async () => {
+        subscription.promoCode = "VALIDPROMO";
+
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        await billingService.subscribeToMeteredPlan(subscription);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            coupon: subscription.promoCode,
+          }),
+        );
+      });
+
+      it("should set the default payment method if provided", async () => {
+        subscription.defaultPaymentMethodId = "pm_123";
+
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        await billingService.subscribeToMeteredPlan(subscription);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            default_payment_method: subscription.defaultPaymentMethodId,
+          }),
+        );
+      });
+
+      it("should skip metered plans that have no Stripe price yet", async () => {
+        /*
+         * Regression test: a metered plan can reach AllMeteredPlans before its
+         * Stripe price is created. subscribeToMeteredPlan must not turn such a
+         * plan into a subscription item (getPriceId throws for it), which
+         * otherwise aborts project creation. The priced plans must still be
+         * subscribed.
+         *
+         * Every product type has a price today, so the unpriced plan is
+         * simulated at hasPriceId - the seam subscribeToMeteredPlan consults -
+         * rather than by naming whichever product happens to lack one.
+         */
+        jest
+          .spyOn(SessionReplayDataIngestMeteredPlan, "hasPriceId")
+          .mockReturnValue(false);
+        jest
+          .spyOn(ActiveMonitoringMeteredPlan, "reportQuantityToBillingProvider")
+          .mockResolvedValue(undefined);
+        jest
+          .spyOn(
+            SessionReplayDataIngestMeteredPlan,
+            "reportQuantityToBillingProvider",
+          )
+          .mockResolvedValue(undefined);
+
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        try {
+          await billingService.subscribeToMeteredPlan({
+            ...subscription,
+            serverMeteredPlans: [
+              ActiveMonitoringMeteredPlan,
+              SessionReplayDataIngestMeteredPlan,
+            ],
+          });
+
+          expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+              items: [{ price: ActiveMonitoringMeteredPlan.getPriceId() }],
+            }),
+          );
+        } finally {
+          // Nothing restores spies between tests, so the stub must not leak.
+          jest.restoreAllMocks();
+        }
+      });
+
+      it("should not throw when every metered plan lacks a Stripe price", async () => {
+        jest
+          .spyOn(SessionReplayDataIngestMeteredPlan, "hasPriceId")
+          .mockReturnValue(false);
+        jest
+          .spyOn(
+            SessionReplayDataIngestMeteredPlan,
+            "reportQuantityToBillingProvider",
+          )
+          .mockResolvedValue(undefined);
+
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        try {
+          await expect(
+            billingService.subscribeToMeteredPlan({
+              ...subscription,
+              serverMeteredPlans: [SessionReplayDataIngestMeteredPlan],
+            }),
+          ).resolves.toEqual(
+            expect.objectContaining({
+              meteredSubscriptionId: mockSubscription.id,
+            }),
+          );
+
+          expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+              items: [],
+            }),
+          );
+        } finally {
+          jest.restoreAllMocks();
+        }
+      });
+    });
+
+    describe("subscribeToPlan", () => {
+      it("should not subscribe to plan if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.subscribeToPlan(meteredSubscription),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully subscribe a customer to a plan", async () => {
+        const mockSubscription2: Stripe.Subscription = getStripeSubscription();
+        mockStripe.subscriptions.create = getJestMockFunction()
+          .mockResolvedValueOnce(mockSubscription)
+          .mockResolvedValueOnce(mockSubscription2);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt: Date | null;
+        } = await billingService.subscribeToPlan(meteredSubscription);
+
+        expect(result.subscriptionId).toEqual(mockSubscription.id);
+        expect(result.meteredSubscriptionId).toEqual(mockSubscription2.id);
+        const datePlusTrialDays: Date = OneUptimeDate.addRemoveDays(
+          mockDate,
+          subscriptionPlan.getTrialPeriod(),
+        );
+        const datePlusTrialDaysNumber: number = datePlusTrialDays.getTime();
+
+        expect(result.trialEndsAt?.toString()).toBeTruthy();
+        expect(result.trialEndsAt?.toString()).toEqual(
+          datePlusTrialDays.toString(),
+        );
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                price: meteredSubscription.isYearly
+                  ? subscriptionPlan.getYearlyPlanId()
+                  : subscriptionPlan.getMonthlyPlanId(),
+                quantity: meteredSubscription.quantity,
+              }),
+            ]),
+            trial_end: Math.floor(datePlusTrialDaysNumber / 1000),
+          }),
+        );
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            trial_end: Math.floor(datePlusTrialDaysNumber / 1000),
+          }),
+        );
+      });
+
+      it("should subscribe without a trial when trial is false", async () => {
+        meteredSubscription.trial = false;
+        const mockSubscription2: Stripe.Subscription = getStripeSubscription();
+
+        mockStripe.subscriptions.create = getJestMockFunction()
+          .mockResolvedValueOnce(mockSubscription)
+          .mockResolvedValueOnce(mockSubscription2);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt: Date | null;
+        } = await billingService.subscribeToPlan(meteredSubscription);
+
+        expect(result.subscriptionId).toEqual(mockSubscription.id);
+        expect(result.meteredSubscriptionId).toEqual(mockSubscription2.id);
+        expect(result.trialEndsAt).toBeNull();
+
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                price: meteredSubscription.isYearly
+                  ? subscriptionPlan.getYearlyPlanId()
+                  : subscriptionPlan.getMonthlyPlanId(),
+                quantity: meteredSubscription.quantity,
+              }),
+            ]),
+            trial_end: "now",
+          }),
+        );
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            trial_end: "now",
+          }),
+        );
+      });
+
+      it("should apply a promo code if provided", async () => {
+        meteredSubscription.promoCode = "PROMO123";
+        const mockSubscription2: Stripe.Subscription = getStripeSubscription();
+        mockStripe.subscriptions.create = getJestMockFunction()
+          .mockResolvedValueOnce(mockSubscription)
+          .mockResolvedValueOnce(mockSubscription2);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt: Date | null;
+        } = await billingService.subscribeToPlan(meteredSubscription);
+
+        expect(result.subscriptionId).toEqual(mockSubscription.id);
+        expect(result.meteredSubscriptionId).toEqual(mockSubscription2.id);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                price: meteredSubscription.isYearly
+                  ? subscriptionPlan.getYearlyPlanId()
+                  : subscriptionPlan.getMonthlyPlanId(),
+                quantity: meteredSubscription.quantity,
+              }),
+            ]),
+            coupon: meteredSubscription.promoCode,
+          }),
+        );
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            coupon: meteredSubscription.promoCode,
+          }),
+        );
+      });
+
+      it("should set the default payment method if provided", async () => {
+        meteredSubscription.defaultPaymentMethodId = "pm_123";
+        const mockSubscription2: Stripe.Subscription = getStripeSubscription();
+        mockStripe.subscriptions.create = getJestMockFunction()
+          .mockResolvedValueOnce(mockSubscription)
+          .mockResolvedValueOnce(mockSubscription2);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt: Date | null;
+        } = await billingService.subscribeToPlan(meteredSubscription);
+
+        expect(result.subscriptionId).toEqual(mockSubscription.id);
+        expect(result.meteredSubscriptionId).toEqual(mockSubscription2.id);
+
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                price: meteredSubscription.isYearly
+                  ? subscriptionPlan.getYearlyPlanId()
+                  : subscriptionPlan.getMonthlyPlanId(),
+                quantity: meteredSubscription.quantity,
+              }),
+            ]),
+            default_payment_method: meteredSubscription.defaultPaymentMethodId,
+          }),
+        );
+        expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            customer: meteredSubscription.customerId,
+            default_payment_method: meteredSubscription.defaultPaymentMethodId,
+          }),
+        );
+      });
+    });
+
+    describe("changeQuantity", () => {
+      it("should not change quantity if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.changeQuantity(mockSubscription.id, 1),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully change the quantity of a subscription", async () => {
+        const newQuantity: number = 2;
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+
+        await billingService.changeQuantity(mockSubscription.id, newQuantity);
+
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          mockSubscription.id,
+        );
+        expect(mockStripe.subscriptionItems.update).toHaveBeenCalledWith(
+          mockSubscription.items?.data[0]?.id,
+          {
+            quantity: newQuantity,
+          },
+        );
+      });
+
+      it("should handle subscription not found scenario in change quantity", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(
+          billingService.changeQuantity("invalid_id", 2),
+        ).rejects.toThrow(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
+      });
+
+      it("should not change quantity if the subscription is canceled", async () => {
+        mockSubscription.status = "canceled";
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        await billingService.changeQuantity(mockSubscription.id, 2);
+
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalled();
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+      });
+
+      it("should handle missing subscription item ID in the subscription", async () => {
+        mockSubscription.items.data = [];
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        await expect(
+          billingService.changeQuantity(mockSubscription.id, 2),
+        ).rejects.toThrow(Errors.BillingService.SUBSCRIPTION_ITEM_NOT_FOUND);
+      });
+    });
+
+    describe("changePlan", () => {
+      const newPlan: ChangePlan = getChangePlanData(getSubscriptionPlanData());
+
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(billingService.changePlan(newPlan)).rejects.toThrow(
+          Errors.BillingService.BILLING_NOT_ENABLED,
+        );
+      });
+
+      it("should successfully change the plan", async () => {
+        // mocks
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+
+        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
+          {},
+        );
+
+        const mockPaymentMethods: Array<PaymentMethod> = [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: true,
+          },
+        ];
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await billingService.changePlan(newPlan);
+
+        /*
+         * The plan is swapped onto the subscriptions the project already has,
+         * so its ids do not move. The existing item's id has to be in the
+         * update: without it Stripe adds the new price alongside the old one
+         * and the customer is billed for both plans.
+         */
+        expect(mockStripe.subscriptions.update).toHaveBeenCalledWith(
+          newPlan.subscriptionId,
+          expect.objectContaining({
+            items: [
+              {
+                id: mockSubscription.items.data[0]?.id,
+                price: newPlan.newPlan.getMonthlyPlanId(),
+                quantity: newPlan.quantity,
+              },
+            ],
+          }),
+        );
+
+        expect(result.subscriptionId).toEqual(newPlan.subscriptionId);
+        expect(result.meteredSubscriptionId).toEqual(
+          newPlan.meteredSubscriptionId,
+        );
+
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+        expect(mockStripe.subscriptions.create).not.toHaveBeenCalled();
+      });
+
+      it("should replace a subscription that cannot be updated", async () => {
+        /*
+         * An update cannot revive an unpaid subscription, so the project is
+         * given new ones - the path reactivation takes.
+         *
+         * "unpaid" rather than "canceled" because this asserts on the cancel
+         * too: unpaid bills nothing but is still open at the payment
+         * provider, so it is both replaced and cancelled. A subscription that
+         * is already cancelled is replaced but never sent back to be
+         * cancelled again.
+         */
+        mockSubscription.status = "unpaid";
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+
+        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
+          {},
+        );
+
+        const newMockSubscription: Stripe.Subscription =
+          getStripeSubscription();
+        const newMockMeteredSubscription: Stripe.Subscription =
+          getStripeSubscription();
+
+        mockStripe.subscriptions.create = getJestMockFunction()
+          .mockResolvedValueOnce(newMockSubscription)
+          .mockResolvedValueOnce(newMockMeteredSubscription);
+
+        const mockPaymentMethods: Array<PaymentMethod> = [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: true,
+          },
+        ];
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await billingService.changePlan(newPlan);
+
+        expect(result.subscriptionId).toEqual(newMockSubscription.id);
+        expect(result.meteredSubscriptionId).toEqual(
+          newMockMeteredSubscription.id,
+        );
+
+        /*
+         * The replacements follow the customer's default card rather than
+         * being pinned to pm_123. A pin outranks the customer default at
+         * Stripe, so a customer who later replaced pm_123 would keep being
+         * charged on it.
+         */
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
+        for (const call of (mockStripe.subscriptions.create as jest.Mock).mock
+          .calls) {
+          expect(call[0]).not.toHaveProperty("default_payment_method");
+        }
+
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          newPlan.subscriptionId,
+        );
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          newPlan.meteredSubscriptionId,
+        );
+      });
+
+      it("should handle errors when the current subscription is not found", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(billingService.changePlan(newPlan)).rejects.toThrow(
+          Errors.BillingService.SUBSCRIPTION_NOT_FOUND,
+        );
+      });
+
+      it("should check for active payment methods before changing the plan", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        const mockPaymentMethods: Array<PaymentMethod> = Array<PaymentMethod>();
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        await expect(billingService.changePlan(newPlan)).rejects.toThrow(
+          Errors.BillingService.NO_PAYMENTS_METHODS,
+        );
+      });
+    });
+
+    describe("isSubscriptionActive", () => {
+      it("should return true for an active subscription status", () => {
+        const activeStatuses: Array<SubscriptionStatus> = [
+          SubscriptionStatus.Active,
+          SubscriptionStatus.Trialing,
+        ];
+
+        activeStatuses.forEach((status: SubscriptionStatus) => {
+          expect(billingService.isSubscriptionActive(status)).toBeTruthy();
+        });
+      });
+
+      it("should return false for an inactive subscription status", () => {
+        const inactiveStatuses: Array<SubscriptionStatus> = [
+          SubscriptionStatus.Incomplete,
+          SubscriptionStatus.IncompleteExpired,
+          SubscriptionStatus.Canceled,
+          SubscriptionStatus.Unpaid,
+        ];
+
+        inactiveStatuses.forEach((status: SubscriptionStatus) => {
+          expect(billingService.isSubscriptionActive(status)).toBeFalsy();
+        });
+      });
+    });
+
+    describe("addOrUpdateMeteredPricingOnSubscription", () => {
+      const quantity: number = 10;
+
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.addOrUpdateMeteredPricingOnSubscription(
+            mockSubscription.id,
+            ActiveMonitoringMeteredPlan,
+            quantity,
+          ),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully add metered pricing to a subscription", async () => {
+        const subscriptionItem: SubscriptionItem | undefined =
+          mockSubscription.items.data[0];
+        const meteredPlan: MeteredPlan = new MeteredPlan({
+          priceId: subscriptionItem?.price?.id || "",
+          pricePerUnitInUSD: 100,
+          unitName: "unit",
+        });
+
+        mockSubscription.items.data = [];
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.create =
+          getJestMockFunction().mockResolvedValue({ id: "sub_item_123" });
+        mockStripe.subscriptionItems.createUsageRecord =
+          getJestMockFunction().mockResolvedValue({});
+
+        await billingService.addOrUpdateMeteredPricingOnSubscription(
+          mockSubscription.id,
+          ActiveMonitoringMeteredPlan,
+          quantity,
+        );
+
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          mockSubscription.id,
+        );
+        expect(mockStripe.subscriptionItems.create).toHaveBeenCalledWith({
+          subscription: mockSubscription.id,
+          price: meteredPlan.getPriceId(),
+        });
+        expect(
+          mockStripe.subscriptionItems.createUsageRecord,
+        ).toHaveBeenCalledWith("sub_item_123", { quantity });
+      });
+
+      it("should successfully update existing metered pricing on a subscription", async () => {
+        const subscriptionItem: SubscriptionItem | undefined =
+          mockSubscription.items.data[0];
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.createUsageRecord =
+          getJestMockFunction().mockResolvedValue({});
+
+        await billingService.addOrUpdateMeteredPricingOnSubscription(
+          mockSubscription.id,
+          ActiveMonitoringMeteredPlan,
+          quantity,
+        );
+
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          mockSubscription.id,
+        );
+        expect(
+          mockStripe.subscriptionItems.createUsageRecord,
+        ).toHaveBeenCalledWith(subscriptionItem?.id, {
+          quantity: quantity,
+        });
+      });
+
+      it("should handle non-existent subscription", async () => {
+        const subscriptionId: string = "sub_nonexistent";
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(
+          billingService.addOrUpdateMeteredPricingOnSubscription(
+            subscriptionId,
+            ActiveMonitoringMeteredPlan,
+            quantity,
+          ),
+        ).rejects.toThrow(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
+      });
+
+      it("should no-op for a metered plan without a Stripe price", async () => {
+        /*
+         * getPriceId throws for a plan whose Stripe price does not exist. The
+         * report path must skip the push instead of throwing - usage is already
+         * staged into TelemetryUsageBilling by the caller. Every product type
+         * is priced today, so the unpriced plan is stubbed at hasPriceId.
+         */
+        jest
+          .spyOn(SessionReplayDataIngestMeteredPlan, "hasPriceId")
+          .mockReturnValue(false);
+
+        mockStripe.subscriptions.retrieve = getJestMockFunction();
+
+        try {
+          await expect(
+            billingService.addOrUpdateMeteredPricingOnSubscription(
+              mockSubscription.id,
+              SessionReplayDataIngestMeteredPlan,
+              quantity,
+            ),
+          ).resolves.toBeUndefined();
+
+          expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
+        } finally {
+          jest.restoreAllMocks();
+        }
+      });
+    });
+
+    describe("hasMeteredPlanPriceId", () => {
+      /*
+       * Use a top-level BillingService instance (the same one the helpers use
+       * for getMeteredPlanPriceId) rather than the module-reset instance from
+       * mockIsBillingEnabled, whose fresh EnvironmentConfig has no billing key.
+       */
+      const service: BillingService = new BillingService();
+
+      it("should return true for product types with a Stripe price", () => {
+        expect(
+          service.hasMeteredPlanPriceId(ProductType.ActiveMonitoring),
+        ).toBe(true);
+        expect(service.hasMeteredPlanPriceId(ProductType.Logs)).toBe(true);
+        expect(service.hasMeteredPlanPriceId(ProductType.Metrics)).toBe(true);
+        expect(service.hasMeteredPlanPriceId(ProductType.Traces)).toBe(true);
+        expect(service.hasMeteredPlanPriceId(ProductType.Profiles)).toBe(true);
+        expect(service.hasMeteredPlanPriceId(ProductType.SessionReplay)).toBe(
+          true,
+        );
+        expect(service.hasMeteredPlanPriceId(ProductType.SecurityEvents)).toBe(
+          true,
+        );
+      });
+
+      it("should return false for a product type with no Stripe price", () => {
+        /*
+         * Every ProductType is priced today, so the false branch is only
+         * reachable through a type that getMeteredPlanPriceId does not know.
+         * It still has to answer false rather than propagate the throw - that
+         * is the whole reason callers can use it as a guard.
+         */
+        expect(
+          service.hasMeteredPlanPriceId("Unpriced Product" as ProductType),
+        ).toBe(false);
+      });
+
+      it("should mirror getPriceId for the metered plan instances", () => {
+        expect(ActiveMonitoringMeteredPlan.hasPriceId()).toBe(true);
+        expect(LogDataIngestMeteredPlan.hasPriceId()).toBe(true);
+        expect(SessionReplayDataIngestMeteredPlan.hasPriceId()).toBe(true);
+      });
+
+      /*
+       * Security Events shipped its ingest, metering and staging without a
+       * Stripe price, so usage accrued in TelemetryUsageBilling and was never
+       * invoiced - silently, because the callers treat a missing price as
+       * "skip this plan". Enumerate the enum rather than listing types by
+       * hand so the next pillar added cannot repeat that.
+       */
+      it("should have a Stripe price for every ProductType", () => {
+        const unpriced: Array<ProductType> = Object.values(ProductType).filter(
+          (productType: ProductType) => {
+            return !service.hasMeteredPlanPriceId(productType);
+          },
+        );
+
+        expect(unpriced).toEqual([]);
+      });
+    });
+
+    describe("isPromoCodeValid", () => {
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.isPromoCodeValid("INVALID_PROMO_CODE"),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should return true for a valid promo code", async () => {
+        const promoCode: string = "VALIDPROMO";
+        const mockCoupon: { valid: boolean } = { valid: true };
+
+        mockStripe.coupons.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCoupon);
+
+        const isValid: boolean =
+          await billingService.isPromoCodeValid(promoCode);
+
+        expect(isValid).toBeTruthy();
+        expect(mockStripe.coupons.retrieve).toHaveBeenCalledWith(promoCode);
+      });
+
+      it("should return false for an invalid or expired promo code", async () => {
+        const promoCode: string = "INVALIDPROMO";
+        const mockCoupon: { valid: boolean } = {
+          valid: false,
+        };
+        mockStripe.coupons.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCoupon);
+
+        const isValid: boolean =
+          await billingService.isPromoCodeValid(promoCode);
+
+        expect(isValid).toBeFalsy();
+        expect(mockStripe.coupons.retrieve).toHaveBeenCalledWith(promoCode);
+      });
+
+      it("should handle non-existent promo code", async () => {
+        const promoCode: string = "NONEXISTENTPROMO";
+
+        mockStripe.coupons.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(
+          billingService.isPromoCodeValid(promoCode),
+        ).rejects.toThrow(Errors.BillingService.PROMO_CODE_NOT_FOUND);
+
+        expect(mockStripe.coupons.retrieve).toHaveBeenCalledWith(promoCode);
+      });
+
+      it("should handle errors from the Stripe API", async () => {
+        const promoCode: string = "ERRORPROMO";
+
+        mockStripe.coupons.retrieve = getJestMockFunction().mockImplementation(
+          () => {
+            throw new Error();
+          },
+        );
+
+        await expect(
+          billingService.isPromoCodeValid(promoCode),
+        ).rejects.toThrow(Errors.BillingService.PROMO_CODE_INVALID);
+      });
+    });
+
+    describe("removeSubscriptionItem", () => {
+      const subscriptionId: string = "sub_123";
+      const subscriptionItemId: string = "si_123";
+      const isMeteredSubscriptionItem: boolean = false;
+
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.removeSubscriptionItem(
+            subscriptionId,
+            subscriptionItemId,
+            isMeteredSubscriptionItem,
+          ),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully remove a metered subscription item", async () => {
+        const isMeteredSubscriptionItem: boolean = true;
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del =
+          getJestMockFunction().mockResolvedValue({});
+
+        await billingService.removeSubscriptionItem(
+          subscriptionId,
+          subscriptionItemId,
+          isMeteredSubscriptionItem,
+        );
+
+        expect(mockStripe.subscriptionItems.del).toHaveBeenCalledWith(
+          subscriptionItemId,
+          {
+            proration_behavior: "create_prorations",
+            clear_usage: true,
+          },
+        );
+      });
+
+      it("should successfully remove a metered subscription item when isMeteredSubscriptionItem", async () => {
+        const subscriptionItemId: string =
+          mockSubscription.items.data[0]?.id || "";
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del =
+          getJestMockFunction().mockResolvedValue({});
+
+        await billingService.removeSubscriptionItem(
+          mockSubscription.id,
+          subscriptionItemId,
+          isMeteredSubscriptionItem,
+        );
+
+        expect(mockStripe.subscriptionItems.del).toHaveBeenCalledWith(
+          subscriptionItemId,
+          {},
+        );
+      });
+
+      it("should handle non-existent subscription or subscription item", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(
+          billingService.removeSubscriptionItem(
+            subscriptionId,
+            subscriptionItemId,
+            isMeteredSubscriptionItem,
+          ),
+        ).rejects.toThrow(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
+      });
+
+      it("should handle errors from the Stripe API", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del =
+          getJestMockFunction().mockImplementation(() => {
+            throw new Error("Stripe API error");
+          });
+
+        await expect(
+          billingService.removeSubscriptionItem(
+            subscriptionId,
+            subscriptionItemId,
+            isMeteredSubscriptionItem,
+          ),
+        ).rejects.toThrow("Stripe API error");
+      });
+
+      it("should not remove an item if the subscription is canceled", async () => {
+        const isMeteredSubscriptionItem: boolean = false;
+        mockSubscription.status = "canceled";
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del = getJestMockFunction();
+
+        await billingService.removeSubscriptionItem(
+          subscriptionId,
+          subscriptionItemId,
+          isMeteredSubscriptionItem,
+        );
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("getSubscriptionItems", () => {
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.getSubscriptionItems(mockSubscription.id),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully retrieve subscription items for a given subscription", async () => {
+        mockSubscription.items.data = [
+          // @ts-expect-error - Simplified mock object for testing without all required Stripe SubscriptionItem properties
+          { id: "item_1", price: { id: "price_123" } },
+          // @ts-expect-error - Simplified mock object for testing without all required Stripe SubscriptionItem properties
+          { id: "item_2", price: { id: "price_456" } },
+        ];
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        const items: SubscriptionItem[] =
+          await billingService.getSubscriptionItems(mockSubscription.id);
+
+        expect(items).toEqual(mockSubscription.items.data);
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          mockSubscription.id,
+        );
+      });
+
+      it("should handle the case where the subscription does not exist", async () => {
+        const subscriptionId: string = "sub_nonexistent";
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(
+          billingService.getSubscriptionItems(subscriptionId),
+        ).rejects.toThrow(Errors.BillingService.SUBSCRIPTION_NOT_FOUND);
+      });
+    });
+  });
+
+  describe("Payment & Billing", () => {
+    const customerId: string = "cust_123";
+    const invoiceId: string = "inv_123";
+    const paymentMethodId: string = "pm_123";
+    const subscriptionId: string = "sub_123";
+
+    const mockPaymentMethods: Array<PaymentMethod> = [
+      {
+        id: "pm_123",
+        type: "card",
+        last4Digits: "4242",
+        isDefault: true,
+      },
+      {
+        id: "pm_456",
+        type: "card",
+        last4Digits: "4343",
+        isDefault: false,
+      },
+    ];
+
+    describe("generateCouponCode", () => {
+      const couponData: CouponData = getCouponData();
+      const mockCoupon: { id: string; valid: boolean } = {
+        id: "coupon_123",
+        valid: true,
+      };
+
+      it("should successfully generate a coupon code", async () => {
+        mockStripe.coupons.create =
+          getJestMockFunction().mockResolvedValue(mockCoupon);
+
+        const result: string =
+          await billingService.generateCouponCode(couponData);
+
+        expect(result).toEqual(mockCoupon.id);
+        expect(mockStripe.coupons.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: couponData.name,
+            percent_off: couponData.percentOff,
+            duration: "repeating",
+            duration_in_months: couponData.durationInMonths,
+            max_redemptions: couponData.maxRedemptions,
+            metadata: couponData.metadata,
+          }),
+        );
+      });
+    });
+
+    describe("deletePaymentMethod", () => {
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.deletePaymentMethod(customerId, paymentMethodId),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully delete a payment method", async () => {
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        // deletePaymentMethod checks the card belongs to this customer first.
+        mockStripe.paymentMethods.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: paymentMethodId,
+            customer: customerId,
+          });
+
+        mockStripe.paymentMethods.detach =
+          getJestMockFunction().mockResolvedValue({});
+
+        // After the detach, the subscriptions are re-synced to the new default.
+        const customerWithDefault: Stripe.Customer =
+          getStripeCustomer(customerId);
+        customerWithDefault.invoice_settings.default_payment_method = "pm_456";
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(customerWithDefault);
+        mockStripe.customers.update = getJestMockFunction().mockResolvedValue(
+          {},
+        );
+        mockStripe.subscriptions.list = getJestMockFunction().mockResolvedValue(
+          { data: [] },
+        );
+
+        await billingService.deletePaymentMethod(customerId, paymentMethodId);
+
+        expect(mockStripe.paymentMethods.detach).toHaveBeenCalledWith(
+          paymentMethodId,
+        );
+
+        // pm_123 was the default, so the remaining card is promoted.
+        expect(mockStripe.customers.update).toHaveBeenCalledWith(customerId, {
+          invoice_settings: {
+            default_payment_method: "pm_456",
+          },
+        });
+        expect(mockStripe.subscriptions.list).toHaveBeenCalledWith({
+          customer: customerId,
+          status: "all",
+          limit: 100,
+        });
+      });
+
+      it("should not delete a payment method that belongs to another customer", async () => {
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        mockStripe.paymentMethods.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: paymentMethodId,
+            customer: "cus_another_project",
+          });
+
+        mockStripe.paymentMethods.detach =
+          getJestMockFunction().mockResolvedValue({});
+
+        await expect(
+          billingService.deletePaymentMethod(customerId, paymentMethodId),
+        ).rejects.toThrow("Payment method does not belong to this project");
+
+        expect(mockStripe.paymentMethods.detach).not.toHaveBeenCalled();
+      });
+
+      it("should throw an exception if it's the only payment method", async () => {
+        mockStripe.paymentMethods.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: paymentMethodId,
+            customer: customerId,
+          });
+
+        // mock a single payment method to simulate a scenario where deletion is not allowed
+        const mockSinglePaymentMethod: Array<PaymentMethod> = [
+          {
+            id: paymentMethodId,
+            type: "card",
+            last4Digits: "4242",
+            isDefault: true,
+          },
+        ];
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockSinglePaymentMethod);
+
+        await expect(
+          billingService.deletePaymentMethod(customerId, paymentMethodId),
+        ).rejects.toThrow(
+          Errors.BillingService.MIN_REQUIRED_PAYMENT_METHOD_NOT_MET,
+        );
+      });
+    });
+
+    describe("hasPaymentMethods", () => {
+      it("should return true if the customer has payment methods", async () => {
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({
+            data: mockPaymentMethods,
+          });
+
+        const result: boolean =
+          await billingService.hasPaymentMethods(customerId);
+
+        expect(result).toBeTruthy();
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledWith({
+          customer: customerId,
+          type: "card",
+          limit: 1,
+        });
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledTimes(1);
+      });
+
+      it("should return false if the customer does not have payment methods", async () => {
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({
+            data: [],
+          });
+
+        const result: boolean =
+          await billingService.hasPaymentMethods(customerId);
+
+        expect(result).toBeFalsy();
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledTimes(4);
+      });
+    });
+
+    describe("getPaymentMethods", () => {
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.getPaymentMethods(customerId),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should return all payment methods for a customer", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+              isDefault: true,
+            },
+            {
+              id: "pm_456",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4343", brand: "mastercard" },
+              isDefault: true,
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods).toHaveLength(2);
+        expect(paymentMethods[0]?.id).toBe("pm_123");
+        expect(paymentMethods[0]?.last4Digits).toBe("4242");
+
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledWith({
+          customer: customerId,
+          type: "card",
+        });
+      });
+
+      it("should mark the customer's default payment method and order it first", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+            },
+            {
+              id: "pm_456",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4343", brand: "mastercard" },
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+
+        const customerWithDefault: Stripe.Customer = getStripeCustomer(
+          customer.id.toString(),
+        );
+        customerWithDefault.invoice_settings.default_payment_method = "pm_456";
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(customerWithDefault);
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods).toHaveLength(2);
+        expect(paymentMethods[0]?.id).toBe("pm_456");
+        expect(paymentMethods[0]?.isDefault).toBe(true);
+        expect(paymentMethods[1]?.id).toBe("pm_123");
+        expect(paymentMethods[1]?.isDefault).toBe(false);
+        expect(mockStripe.customers.update).not.toHaveBeenCalled();
+      });
+
+      it("should not mark any payment method as default when the default is not in the list", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+
+        const customerWithDetachedDefault: Stripe.Customer = getStripeCustomer(
+          customer.id.toString(),
+        );
+        customerWithDetachedDefault.invoice_settings.default_payment_method =
+          "pm_detached";
+        mockStripe.customers.retrieve = getJestMockFunction().mockResolvedValue(
+          customerWithDetachedDefault,
+        );
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods).toHaveLength(1);
+        expect(paymentMethods[0]?.isDefault).toBe(false);
+        expect(mockStripe.customers.update).not.toHaveBeenCalled();
+      });
+
+      it("should set the first payment method as default when none is set", async () => {
+        const mockPaymentMethodsResponse: {
+          data: Array<Stripe.PaymentMethod>;
+        } = {
+          data: [
+            {
+              id: "pm_123",
+              type: "card",
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
+              card: { last4: "4242", brand: "mastercard" },
+            },
+          ],
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods[0]?.isDefault).toBe(true);
+        expect(mockStripe.customers.update).toHaveBeenCalledWith(customerId, {
+          invoice_settings: {
+            default_payment_method: "pm_123",
+          },
+        });
+      });
+
+      it("should return an empty array if no payment methods are present", async () => {
+        const mockEmptyPaymentMethodsResponse: {
+          data: Array<PaymentMethod>;
+        } = { data: [] };
+
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue(
+            mockEmptyPaymentMethodsResponse,
+          );
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const paymentMethods: PaymentMethod[] =
+          await billingService.getPaymentMethods(customerId);
+
+        expect(paymentMethods).toEqual([]);
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledWith({
+          customer: customerId,
+          type: "card",
+        });
+      });
+    });
+
+    describe("getSetupIntentSecret", () => {
+      it("should successfully return a setup intent secret", async () => {
+        const mockSetupIntent: { client_secret: string } = {
+          client_secret: "seti_123_secret_xyz",
+        };
+        mockStripe.setupIntents.create =
+          getJestMockFunction().mockResolvedValue(mockSetupIntent);
+
+        const secret: string =
+          await billingService.getSetupIntentSecret(customerId);
+
+        expect(secret).toBe(mockSetupIntent.client_secret);
+        expect(mockStripe.setupIntents.create).toHaveBeenCalledWith({
+          customer: customerId,
+        });
+      });
+
+      it("should handle missing client secret in the response", async () => {
+        mockStripe.setupIntents.create =
+          getJestMockFunction().mockResolvedValue({});
+
+        await expect(
+          billingService.getSetupIntentSecret(customerId),
+        ).rejects.toThrow(Errors.BillingService.CLIENT_SECRET_MISSING);
+      });
+    });
+
+    describe("cancelSubscription", () => {
+      it("should successfully cancel a subscription", async () => {
+        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue({
+          id: subscriptionId,
+          status: "canceled",
+        });
+
+        await billingService.cancelSubscription(subscriptionId);
+
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          subscriptionId,
+        );
+      });
+
+      it("should handle errors from the Stripe API", async () => {
+        const subscriptionId: string = "sub_123";
+
+        // mock an error response from the Stripe API
+        mockStripe.subscriptions.del = getJestMockFunction().mockImplementation(
+          () => {
+            throw new Error("Stripe API error");
+          },
+        );
+
+        await billingService.cancelSubscription(subscriptionId);
+        // todo: we could expect the error to be logged
+      });
+
+      it("should not cancel a subscription if billing is not enabled", async () => {
+        const subscriptionId: string = "sub_123";
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.cancelSubscription(subscriptionId),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("getSubscriptionStatus", () => {
+      const expectedStatus: SubscriptionStatus = SubscriptionStatus.Active;
+
+      it("should successfully retrieve the subscription status", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: subscriptionId,
+            status: expectedStatus,
+          });
+
+        const status: SubscriptionStatus =
+          await billingService.getSubscriptionStatus(subscriptionId);
+
+        expect(status).toBe(expectedStatus);
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          subscriptionId,
+        );
+      });
+
+      it("should successfully retrieve the subscription status", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: subscriptionId,
+            status: expectedStatus,
+          });
+
+        const status: SubscriptionStatus =
+          await billingService.getSubscriptionStatus(subscriptionId);
+
+        expect(status).toBe(expectedStatus);
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          subscriptionId,
+        );
+      });
+    });
+
+    describe("getSubscription", () => {
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.getSubscription(subscriptionId),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should successfully retrieve subscription data", async () => {
+        const subscriptionId: string = "sub_123";
+        const mockSubscription: Stripe.Subscription = getStripeSubscription();
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        const subscription: Stripe.Subscription =
+          await billingService.getSubscription(subscriptionId);
+
+        expect(subscription).toEqual(mockSubscription);
+        expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+          subscriptionId,
+        );
+      });
+    });
+
+    describe("getInvoices", () => {
+      it("should successfully retrieve a list of invoices for a customer", async () => {
+        const mockInvoices: { data: Array<Stripe.Invoice> } = {
+          data: [getStripeInvoice(), getStripeInvoice()],
+        };
+        mockStripe.invoices.list =
+          getJestMockFunction().mockResolvedValue(mockInvoices);
+
+        const invoices: Array<Invoice> =
+          await billingService.getInvoices(customerId);
+
+        expect(invoices).toEqual(
+          mockInvoices.data.map((invoice: Stripe.Invoice) => {
+            return {
+              id: invoice.id,
+              amount: invoice.amount_due,
+              currencyCode: invoice.currency,
+              customerId: invoice.customer,
+              downloadableLink: "",
+              status: "paid",
+              subscriptionId: invoice.subscription,
+              invoiceNumber: invoice.number,
+              invoiceDate: new Date(invoice.created * 1000),
+            };
+          }),
+        );
+
+        expect(mockStripe.invoices.list).toHaveBeenCalledWith({
+          customer: customerId,
+          limit: 100,
+        });
+      });
+
+      it("should return an empty array if no invoices are found for the customer", async () => {
+        const mockEmptyInvoices: { data: Invoice[] } = { data: [] };
+        mockStripe.invoices.list =
+          getJestMockFunction().mockResolvedValue(mockEmptyInvoices);
+
+        const invoices: Array<Invoice> =
+          await billingService.getInvoices(customerId);
+
+        expect(invoices).toEqual([]);
+        expect(mockStripe.invoices.list).toHaveBeenCalledWith({
+          customer: customerId,
+          limit: 100,
+        });
+      });
+    });
+
+    describe("generateInvoiceAndChargeCustomer", () => {
+      const itemText: string = "Service Charge";
+      const amountInUsd: number = 100;
+      const mockPaymentMethodsResponse: PaymentMethodsResponse = {
+        data: [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: true,
+          },
+        ],
+      };
+
+      it("should successfully generate an invoice and charge the customer", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        // mock responses for invoice creation, adding an item, and finalizing
+        const mockInvoice: any = getStripeInvoice();
+        mockStripe.invoices.create =
+          getJestMockFunction().mockResolvedValue(mockInvoice);
+        mockStripe.invoiceItems.create =
+          getJestMockFunction().mockResolvedValue({});
+        mockStripe.invoices.finalizeInvoice =
+          getJestMockFunction().mockResolvedValue({});
+
+        // mock response for paying the invoice
+        mockStripe.invoices.pay = getJestMockFunction().mockResolvedValue({});
+
+        await billingService.generateInvoiceAndChargeCustomer(
+          customerId,
+          itemText,
+          amountInUsd,
+        );
+
+        expect(mockStripe.invoices.create).toHaveBeenCalledWith(
+          expect.objectContaining({ customer: customerId }),
+        );
+        expect(mockStripe.invoiceItems.create).toHaveBeenCalledWith(
+          expect.objectContaining({ invoice: mockInvoice.id }),
+        );
+        expect(mockStripe.invoices.finalizeInvoice).toHaveBeenCalledWith(
+          mockInvoice.id,
+        );
+        expect(mockStripe.invoices.pay).toHaveBeenCalledWith(mockInvoice.id, {
+          payment_method: mockPaymentMethodsResponse.data[0]?.id,
+        });
+      });
+
+      it("should handle payment method errors when creating the invoice", async () => {
+        mockStripe.invoices.create =
+          getJestMockFunction().mockResolvedValue(null);
+
+        await expect(
+          billingService.generateInvoiceAndChargeCustomer(
+            customerId,
+            itemText,
+            amountInUsd,
+          ),
+        ).rejects.toThrow(Errors.BillingService.INVOICE_NOT_GENERATED);
+      });
+
+      it("should handle payment method errors when charging the invoice", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        // mock successful invoice creation and finalization
+        const mockInvoice: any = getStripeInvoice();
+        mockStripe.invoices.create =
+          getJestMockFunction().mockResolvedValue(mockInvoice);
+        mockStripe.invoiceItems.create =
+          getJestMockFunction().mockResolvedValue({});
+        mockStripe.invoices.finalizeInvoice =
+          getJestMockFunction().mockResolvedValue({});
+
+        billingService.voidInvoice = getJestMockFunction();
+
+        // mock an error during invoice payment
+        mockStripe.invoices.pay = getJestMockFunction().mockImplementation(
+          () => {
+            throw new Error("Payment method error");
+          },
+        );
+
+        await expect(
+          billingService.generateInvoiceAndChargeCustomer(
+            customerId,
+            itemText,
+            amountInUsd,
+          ),
+        ).rejects.toThrow();
+        expect(billingService.voidInvoice).toHaveBeenCalled();
+      });
+    });
+
+    describe("voidInvoice", () => {
+      it("should successfully void an invoice", async () => {
+        const mockVoidedInvoice: Stripe.Invoice = getStripeInvoice();
+        mockVoidedInvoice.status = "void";
+
+        mockStripe.invoices.voidInvoice =
+          getJestMockFunction().mockResolvedValue(mockVoidedInvoice);
+
+        const voidedInvoice: Stripe.Invoice =
+          await billingService.voidInvoice(invoiceId);
+
+        expect(voidedInvoice).toEqual(mockVoidedInvoice);
+        expect(mockStripe.invoices.voidInvoice).toHaveBeenCalledWith(invoiceId);
+      });
+    });
+
+    describe("payInvoice", () => {
+      const mockPaymentMethodsResponse: PaymentMethodsResponse = {
+        data: [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: true,
+          },
+        ],
+      };
+
+      it("should throw if billing is not enabled", async () => {
+        billingService = await mockIsBillingEnabled(false);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(Errors.BillingService.BILLING_NOT_ENABLED);
+      });
+
+      it("should throw if no payments methods exist", async () => {
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(Errors.BillingService.NO_PAYMENTS_METHODS);
+      });
+
+      it("should successfully pay an invoice", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockResolvedValue(mockPaidInvoice);
+
+        const paidInvoice: Invoice = await billingService.payInvoice(
+          customerId,
+          mockPaidInvoice.id || "",
+        );
+
+        expect(paidInvoice).toEqual({
+          id: mockPaidInvoice.id,
+          amount: mockPaidInvoice.amount_due,
+          currencyCode: mockPaidInvoice.currency,
+          customerId: mockPaidInvoice.customer,
+          status: mockPaidInvoice.status,
+          downloadableLink: "",
+          subscriptionId: mockPaidInvoice.subscription,
+          invoiceNumber: mockPaidInvoice.number,
+          invoiceDate: new Date(mockPaidInvoice.created * 1000),
+        });
+        expect(mockStripe.invoices.pay).toHaveBeenCalledWith(
+          mockPaidInvoice.id,
+          {
+            payment_method: paymentMethodId,
+          },
+        );
+      });
+
+      const mockTwoPaymentMethodsResponse: PaymentMethodsResponse = {
+        data: [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: false,
+          },
+          {
+            id: "pm_456",
+            type: "card",
+            last4Digits: "4343",
+            isDefault: false,
+          },
+        ],
+      };
+
+      type GetCardDeclinedErrorFunction = () => Error;
+
+      const getCardDeclinedError: GetCardDeclinedErrorFunction = (): Error => {
+        return Object.assign(new Error("Your card was declined."), {
+          type: "StripeCardError",
+          code: "card_declined",
+        });
+      };
+
+      it("should fall back to the next payment method when the first is declined", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay = getJestMockFunction()
+          .mockRejectedValueOnce(getCardDeclinedError())
+          .mockResolvedValue(mockPaidInvoice);
+
+        const paidInvoice: Invoice = await billingService.payInvoice(
+          customerId,
+          mockPaidInvoice.id || "",
+        );
+
+        expect(paidInvoice.id).toBe(mockPaidInvoice.id);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(2);
+        expect(mockStripe.invoices.pay).toHaveBeenNthCalledWith(
+          1,
+          mockPaidInvoice.id,
+          {
+            payment_method: "pm_123",
+          },
+        );
+        expect(mockStripe.invoices.pay).toHaveBeenNthCalledWith(
+          2,
+          mockPaidInvoice.id,
+          {
+            payment_method: "pm_456",
+          },
+        );
+      });
+
+      it("should charge the customer's default payment method first", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+
+        const customerWithDefault: Stripe.Customer = getStripeCustomer(
+          customer.id.toString(),
+        );
+        customerWithDefault.invoice_settings.default_payment_method = "pm_456";
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(customerWithDefault);
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockResolvedValue(mockPaidInvoice);
+
+        await billingService.payInvoice(customerId, mockPaidInvoice.id || "");
+
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(1);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledWith(
+          mockPaidInvoice.id,
+          {
+            payment_method: "pm_456",
+          },
+        );
+      });
+
+      it("should throw the last error when all payment methods are declined", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const lastError: Error = Object.assign(
+          new Error("Insufficient funds."),
+          {
+            type: "StripeCardError",
+            code: "card_declined",
+          },
+        );
+        mockStripe.invoices.pay = getJestMockFunction()
+          .mockRejectedValueOnce(getCardDeclinedError())
+          .mockRejectedValueOnce(lastError);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(lastError);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(2);
+      });
+
+      it("should not try other payment methods on errors unrelated to the payment method", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const invoiceStateError: Error = Object.assign(
+          new Error("Invoice is already paid."),
+          {
+            type: "StripeInvalidRequestError",
+            code: "invoice_already_paid",
+          },
+        );
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockRejectedValue(invoiceStateError);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(invoiceStateError);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(1);
+      });
+
+      it("should fall back to the next payment method on payment method and bank account errors", async () => {
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const bankAccountError: Error = Object.assign(
+          new Error("This bank account cannot be used."),
+          {
+            type: "StripeInvalidRequestError",
+            code: "bank_account_unusable",
+          },
+        );
+
+        const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
+        mockStripe.invoices.pay = getJestMockFunction()
+          .mockRejectedValueOnce(bankAccountError)
+          .mockResolvedValue(mockPaidInvoice);
+
+        const paidInvoice: Invoice = await billingService.payInvoice(
+          customerId,
+          mockPaidInvoice.id || "",
+        );
+
+        expect(paidInvoice.id).toBe(mockPaidInvoice.id);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(2);
+      });
+
+      it("should not try other payment methods when authentication is required", async () => {
+        /*
+         * the interactive 3DS flow in BillingInvoiceAPI must surface
+         * authentication for the default payment method instead.
+         */
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockTwoPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        const requiresActionError: Error = Object.assign(
+          new Error("This payment requires additional authentication."),
+          {
+            type: "StripeInvalidRequestError",
+            code: "invoice_payment_intent_requires_action",
+          },
+        );
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockRejectedValue(requiresActionError);
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow(requiresActionError);
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(1);
+      });
+
+      it("should try at most three payment methods", async () => {
+        const mockFourPaymentMethodsResponse: PaymentMethodsResponse = {
+          data: ["pm_1", "pm_2", "pm_3", "pm_4"].map((id: string) => {
+            return {
+              id,
+              type: "card",
+              last4Digits: "4242",
+              isDefault: false,
+            };
+          }),
+        };
+        mockStripe.paymentMethods.list = getJestMockFunction()
+          .mockResolvedValueOnce(mockFourPaymentMethodsResponse)
+          .mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
+
+        mockStripe.invoices.pay = getJestMockFunction().mockRejectedValue(
+          getCardDeclinedError(),
+        );
+
+        await expect(
+          billingService.payInvoice(customerId, invoiceId),
+        ).rejects.toThrow("Your card was declined.");
+        expect(mockStripe.invoices.pay).toHaveBeenCalledTimes(3);
+      });
+    });
+  });
+});

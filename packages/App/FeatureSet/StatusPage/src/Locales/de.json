@@ -1,0 +1,331 @@
+{
+  "a11y": {
+    "skipToMainContent": "Zum Hauptinhalt springen",
+    "loading": "Wird geladen..."
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Absenden",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "loading": "Wird geladen...",
+    "search": "Suchen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "yes": "Ja",
+    "no": "Nein",
+    "statusPage": "Statusseite"
+  },
+  "language": {
+    "label": "Sprache",
+    "switchLanguage": "Sprache wechseln"
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "incidents": "Vorfälle",
+    "announcements": "Ankündigungen",
+    "scheduledEvents": "Geplante Ereignisse",
+    "subscribe": "Abonnieren",
+    "login": "Anmelden",
+    "logout": "Abmelden"
+  },
+  "overview": {
+    "uptimeSuffix": "% Verfügbarkeit",
+    "operational": "Betriebsbereit",
+    "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
+    "activeIncidents": "Aktive Vorfälle",
+    "scheduledMaintenanceEvents": "Geplante Wartungsereignisse",
+    "allClearTitle": "Alles sieht gut aus",
+    "allClearDescription": "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt. Bitte fügen Sie einige Ressourcen über das Dashboard hinzu.",
+    "allResourcesAre": "Alle Ressourcen sind {{status}}",
+    "someResourcesAre": "Einige Ressourcen sind {{status}}",
+    "someResourcesAreUnder": "Einige Ressourcen sind in {{status}}",
+    "oneSubGroup": "1 Gruppe",
+    "subGroupCount": "{{total}} Gruppen"
+  },
+  "eventItem": {
+    "affectedResources": "Betroffene Ressourcen",
+    "stateChangedTo": "Status geändert auf",
+    "view": "{{eventType}} anzeigen",
+    "updateTo": "Update zu diesem {{eventType}}",
+    "postedOn": "veröffentlicht am"
+  },
+  "monitorOverview": {
+    "daysAgo": "vor {{days}} Tagen",
+    "today": "Heute",
+    "notAvailable": "Nicht verfügbar"
+  },
+  "uptimeHistory": {
+    "graphLabel": "Verfügbarkeitsverlauf der letzten {{total}} Tage",
+    "dayLabel": "{{date}}: {{uptime}}% Verfügbarkeit",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% Verfügbarkeit, {{total}} Vorfälle",
+    "dayLabelNoData": "{{date}}: keine Daten",
+    "dayLabelNoDataWithIncidents": "{{date}}: keine Daten, {{total}} Vorfälle",
+    "uptime": "Verfügbarkeit",
+    "noMonitoringData": "Keine Überwachungsdaten für diesen Tag",
+    "incidents": "Vorfälle",
+    "noIncidents": "Keine Vorfälle",
+    "noIncidentsDescription": "An diesem Tag wurden keine Vorfälle gemeldet.",
+    "declared": "Gemeldet",
+    "oneIncidentOnThisDay": "1 Vorfall an diesem Tag gemeldet",
+    "incidentsOnThisDay": "{{total}} Vorfälle an diesem Tag gemeldet"
+  },
+  "liveStatus": {
+    "updated": "Aktualisiert {{time}}",
+    "refresh": "Aktualisieren",
+    "refreshing": "Wird aktualisiert",
+    "refreshFailed": "Aktualisierung fehlgeschlagen. Es wird der zuletzt bekannte Status angezeigt."
+  },
+  "search": {
+    "label": "Ressourcen suchen",
+    "placeholder": "Ressourcen suchen",
+    "clear": "Suche löschen",
+    "resultCount": "{{matched}} von {{total}} Ressourcen",
+    "noMatchesInGroup": "Hier entsprechen keine Ressourcen Ihrer Suche.",
+    "noResultsTitle": "Keine passenden Ressourcen",
+    "noResultsDescription": "Nichts auf dieser Seite entspricht „{{query}}“. Versuchen Sie eine kürzere Suche."
+  },
+  "incidents": {
+    "title": "Vorfälle",
+    "singular": "Vorfall",
+    "active": "Aktive Vorfälle",
+    "resolved": "Behobene Vorfälle",
+    "none": "Keine Vorfälle",
+    "noneDescription": "Auf dieser Statusseite wurden keine Vorfälle veröffentlicht.",
+    "postmortem": "Nachbearbeitung des Vorfalls",
+    "declaredAt": "Gemeldet am ",
+    "report": "Vorfallsbericht",
+    "notFound": "Vorfall auf dieser Statusseite nicht gefunden."
+  },
+  "episodes": {
+    "report": "Episodenbericht",
+    "none": "Keine Episode",
+    "notFound": "Episode auf dieser Statusseite nicht gefunden."
+  },
+  "announcements": {
+    "title": "Ankündigungen",
+    "singular": "Ankündigung",
+    "active": "Aktive Ankündigungen",
+    "past": "Vergangene Ankündigungen",
+    "none": "Keine Ankündigungen",
+    "noneDescription": "Auf dieser Seite wurden bisher keine Ankündigungen veröffentlicht.",
+    "announcedAt": "Angekündigt am ",
+    "notFound": "Ankündigung auf dieser Statusseite nicht gefunden."
+  },
+  "scheduledEvents": {
+    "title": "Geplante Ereignisse",
+    "singular": "Geplantes Ereignis",
+    "scheduledMaintenance": "Geplante Wartung",
+    "ongoing": "Laufende Ereignisse",
+    "upcoming": "Geplante Ereignisse",
+    "completed": "Abgeschlossene Ereignisse",
+    "none": "Keine geplanten Ereignisse",
+    "noneDescription": "Für diese Statusseite wurden keine geplanten Ereignisse veröffentlicht.",
+    "scheduledAt": "Geplant für ",
+    "report": "Bericht über geplantes Ereignis",
+    "notFound": "Kein geplantes Ereignis für diese Statusseite gefunden."
+  },
+  "subscribe": {
+    "title": "Abonnieren",
+    "submit": "Abonnieren",
+    "newSubscription": "Neues Abonnement",
+    "manageExisting": "Bestehendes Abonnement verwalten",
+    "sendManagementLink": "Verwaltungslink senden",
+    "subscribedSuccessfully": "Sie wurden erfolgreich abonniert.",
+    "emailSentCheckSpam": "Eine E-Mail mit dem Link wurde an Ihre E-Mail-Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
+    "manageLinkSent": "Wenn ein Abonnement mit Ihren Angaben übereinstimmt, haben wir einen Link zur Verwaltung des Abonnements gesendet.",
+    "manageLinkSentEmail": "Wenn für diese E-Mail-Adresse ein Abonnement besteht, haben wir einen Link zur Verwaltung des Abonnements an diese Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
+    "menu": {
+      "email": "E-Mail",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Per E-Mail abonnieren",
+      "description": "Alle unsere Updates werden an diese E-Mail-Adresse gesendet.",
+      "yourEmail": "Ihre E-Mail",
+      "placeholder": "abonnent@firma.de",
+      "managePrompt": "Bitte geben Sie die E-Mail-Adresse ein, mit der Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese E-Mail-Adresse.",
+      "managePlaceholder": "email@ihrefirma.de"
+    },
+    "sms": {
+      "title": "Per SMS abonnieren",
+      "description": "Alle unsere Updates werden an diese Telefonnummer gesendet.",
+      "yourPhoneNumber": "Ihre Telefonnummer",
+      "placeholder": "+491234567890",
+      "managePrompt": "Bitte geben Sie die Telefonnummer ein, mit der Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese Telefonnummer."
+    },
+    "slack": {
+      "title": "Über Slack abonnieren",
+      "description": "Alle unsere Updates werden an diesen Slack-Webhook gesendet.",
+      "workspaceName": "Slack-Arbeitsbereichsname",
+      "workspaceNameDescription": "Geben Sie den Namen Ihres Slack-Arbeitsbereichs zur Validierung ein.",
+      "workspaceNamePlaceholder": "mein-firmen-arbeitsbereich",
+      "webhookUrl": "Slack Eingehende Webhook-URL",
+      "webhookUrlDescription": "Statusseiten-Updates werden an diesen Slack-Webhook gesendet.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Bitte geben Sie den Namen des Slack-Arbeitsbereichs ein, mit dem Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diesen Arbeitsbereich."
+    },
+    "microsoftTeams": {
+      "title": "Über Microsoft Teams abonnieren",
+      "description": "Alle unsere Updates werden an diesen Teams-Webhook gesendet.",
+      "workspaceName": "Name des Microsoft Teams-Arbeitsbereichs",
+      "workspaceNameDescription": "Geben Sie den Namen Ihres Microsoft Teams-Arbeitsbereichs zur Validierung ein.",
+      "workspaceNamePlaceholder": "mein-firmen-arbeitsbereich",
+      "webhookUrl": "Microsoft Teams Eingehende Webhook-URL",
+      "webhookUrlDescription": "Statusseiten-Updates werden an diesen Teams-Webhook gesendet.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Bitte geben Sie den Namen des Microsoft Teams-Arbeitsbereichs ein, mit dem Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diesen Arbeitsbereich."
+    },
+    "webhook": {
+      "title": "Per Webhook abonnieren",
+      "description": "Alle unsere Updates werden als JSON-POST-Anfragen an diese Webhook-URL gesendet.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "Bei jedem Statusseiten-Ereignis wird eine JSON-POST-Anfrage an diese URL gesendet.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "Alle Ressourcen abonnieren",
+      "allDescription": "Wählen Sie diese Option, wenn Sie alle Ressourcen abonnieren möchten.",
+      "select": "Ressourcen zum Abonnieren auswählen",
+      "selectDescription": "Bitte wählen Sie die Ressourcen aus, die Sie abonnieren möchten."
+    },
+    "eventTypes": {
+      "all": "Alle Ereignistypen abonnieren",
+      "allDescription": "Wählen Sie diese Option, wenn Sie alle Ereignistypen abonnieren möchten.",
+      "select": "Ereignistypen zum Abonnieren auswählen",
+      "selectDescription": "Bitte wählen Sie die Ereignistypen aus, die Sie abonnieren möchten."
+    },
+    "update": {
+      "title": "Abonnement aktualisieren",
+      "description": "Sie können Ihre Abonnementeinstellungen hier aktualisieren oder sich abmelden.",
+      "saved": "Ihre Änderungen wurden gespeichert.",
+      "submit": "Abonnement aktualisieren",
+      "unsubscribe": "Abbestellen",
+      "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten."
+    },
+    "confirm": {
+      "title": "Abonnement bestätigen",
+      "success": "Abonnement erfolgreich bestätigt"
+    },
+    "unsubscribe": {
+      "title": "Abbestellen",
+      "titleWithName": "{{statusPageName}} abbestellen",
+      "confirmPrompt": "Möchten Sie keine Benachrichtigungen mehr von dieser Statusseite erhalten?",
+      "channelEmail": "E-Mail-Adresse",
+      "channelSms": "Telefonnummer",
+      "channelSlack": "Slack-Workspace",
+      "channelMicrosoftTeams": "Microsoft Teams-Workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dieses Abonnement wurde vom Team hinzugefügt, das diese Statusseite betreibt. Handelt es sich um eine gemeinsam genutzte Adresse wie eine Mailingliste, erhält nach dem Abbestellen niemand mehr diese Benachrichtigungen, der sie über diese Adresse bekommt, und das Team wird informiert.",
+      "confirmButton": "Abbestellen",
+      "manageInstead": "Stattdessen auswählen, welche Benachrichtigungen Sie erhalten",
+      "manageSubscription": "Abonnement verwalten",
+      "success": "Sie haben die Benachrichtigungen abbestellt. Sie erhalten keine weiteren Benachrichtigungen von dieser Statusseite.",
+      "alreadyUnsubscribed": "Dieses Abonnement wurde bereits beendet. Sie erhalten keine Benachrichtigungen von dieser Statusseite.",
+      "outOfDateLink": "Dieser Abbestelllink ist veraltet. Verwenden Sie zum Abbestellen den Link in einer aktuellen Nachricht dieser Statusseite.",
+      "invalidLink": "Dieser Abbestelllink ist ungültig. Er ist möglicherweise unvollständig, oder das Abonnement wurde entfernt. Verwenden Sie zum Abbestellen den Link in einer aktuellen Nachricht dieser Statusseite.",
+      "failed": "Das Abbestellen ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "loadFailed": "Dieser Abbestelllink konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "login": "Anmelden"
+    },
+    "login": {
+      "welcomeBack": "Willkommen zurück!",
+      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "useSSO": "Stattdessen Single Sign-On (SSO) verwenden"
+    },
+    "sso": {
+      "title": "Mit SSO anmelden",
+      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert",
+      "notAvailable": "Single Sign-On (SSO) ist für diese Statusseite nicht verfügbar. Melden Sie sich stattdessen mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
+      "backToLogin": "Zurück zur Anmeldung"
+    },
+    "forgotPassword": {
+      "title": "Passwort vergessen",
+      "description": "Wenn Sie Ihr Passwort für {{statusPageName}} vergessen haben, geben Sie bitte Ihre E-Mail-Adresse ein und der Link zum Zurücksetzen des Passworts wird Ihnen zugesandt.",
+      "success": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail geschickt. Bitte vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
+      "sendLink": "Link zum Zurücksetzen des Passworts senden",
+      "rememberPassword": "Erinnern Sie sich an Ihr Passwort?"
+    },
+    "resetPassword": {
+      "description": "Erstellen Sie ein neues Passwort für Ihr {{statusPageName}}-Konto.",
+      "instructions": "Bitte geben Sie Ihr neues Passwort ein und wir werden es aktualisieren.",
+      "success": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
+      "submit": "Passwort zurücksetzen",
+      "knowPassword": "Kennen Sie Ihr Passwort?"
+    },
+    "masterPassword": {
+      "enterWithName": "{{statusPageName}}-Passwort eingeben",
+      "enterGeneric": "Passwort eingeben",
+      "prompt": "Bitte geben Sie das Passwort ein, um fortzufahren.",
+      "passwordRequired": "Passwort ist erforderlich.",
+      "passwordLabel": "Passwort",
+      "passwordDescription": "Geben Sie das Passwort ein, um diese Seite zu entsperren.",
+      "passwordPlaceholder": "Passwort eingeben",
+      "submit": "Statusseite entsperren"
+    },
+    "signingOut": "Sie werden abgemeldet..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "Seite nicht gefunden.",
+      "description": "Die von Ihnen gesuchte Seite existiert nicht."
+    },
+    "forbidden": {
+      "title": "Zugriff verweigert",
+      "description": "Sie haben keine Berechtigung, auf diese Seite zuzugreifen."
+    },
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+  },
+  "footer": {
+    "poweredBy": "Bereitgestellt von OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identifiziert",
+    "acknowledged": "Bestätigt",
+    "resolved": "Behoben",
+    "criticalIncident": "Kritischer Vorfall",
+    "majorIncident": "Schwerwiegender Vorfall",
+    "minorIncident": "Geringfügiger Vorfall",
+    "operational": "Betriebsbereit",
+    "degraded": "Beeinträchtigt",
+    "offline": "Offline",
+    "scheduled": "Geplant",
+    "ongoing": "Laufend",
+    "ended": "Beendet",
+    "completed": "Abgeschlossen"
+  },
+  "Subscriber ID is required": "Abonnenten-ID ist erforderlich",
+  "Token is required": "Token ist erforderlich",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} darf nicht weniger als {{minLength}} Zeichen enthalten.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} darf nicht mehr als {{maxLength}} Zeichen enthalten.",
+  "{{field}} should not have spaces.": "{{field}} darf keine Leerzeichen enthalten.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} darf nur Buchstaben, Zahlen, Bindestriche (-) und Unterstriche (_) enthalten.",
+  "{{field}} should not have numbers.": "{{field}} darf keine Zahlen enthalten.",
+  "{{field}} should be a future date.": "{{field}} muss ein Datum in der Zukunft sein.",
+  "{{field}} should be a number.": "{{field}} muss eine Zahl sein.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} darf nicht größer als {{maxValue}} sein.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} darf nicht kleiner als {{minValue}} sein.",
+  "{{field}} is required.": "{{field}} ist erforderlich.",
+  "{{field}} should match {{matchField}}": "{{field}} muss mit {{matchField}} übereinstimmen",
+  "Email is not valid.": "E-Mail ist ungültig."
+}

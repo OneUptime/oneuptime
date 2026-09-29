@@ -1,0 +1,242 @@
+# What `helm install` / `helm upgrade` says about probes.<name>.allowPrivateNetworkMonitors
+# (issue #3879).
+#
+# Every probe this chart deploys registers with REGISTER_PROBE_KEY, so it is a
+# GLOBAL probe shared by every project on the instance. 13.0.0's probe dropped
+# the opt-in on such probes without a word; the probe now honors it, except on
+# an instance with billing.enabled (the hosted, open-signup product), where a
+# global probe stays public-only. NOTES.txt is the one place the chart can say
+# either thing at install time:
+#
+#   - billing.enabled and a probe opts in: "IGNORED VALUES" names each value
+#     that will have no effect, so the operator is not left debugging refused
+#     monitors the way #3879's reporter was.
+#   - billing off and a probe opts in: a short reminder that the grant covers
+#     every project on the instance, not only the operator's own.
+#
+# Both list only probes that actually render a Deployment (the same
+# `enabled` rule as templates/probe.yaml), so a disabled probe never shows up
+# in a notice about a pod that does not exist. The rendered env itself, and
+# the two checks that render this notice next to probe.yaml, are in
+# private-network-access_test.yaml: this suite selects NOTES.txt alone.
+suite: probe private network monitors notice
+templates:
+  - templates/NOTES.txt
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: says nothing about private network monitoring by default
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+
+  - it: says nothing on a billing-enabled instance when no probe opts in
+    set:
+      billing.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+
+  # An explicit false is the default spelled out; it asks for nothing.
+  - it: says nothing when a probe explicitly keeps it off
+    set:
+      probes.one.allowPrivateNetworkMonitors: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+
+  - it: says nothing when a probe explicitly keeps it off on a billing-enabled instance
+    set:
+      billing.enabled: true
+      probes.one.allowPrivateNetworkMonitors: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+
+  # --- Self-hosted instance (billing off): the opt-in is honored. ---
+
+  # The probe logs the same warning at startup; install time is where the
+  # operator is actually looking.
+  - it: reminds the operator which probes are open to every project
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: one$'
+      - matchRegexRaw:
+          pattern: 'monitors from every project on this instance can reach private'
+      - matchRegexRaw:
+          pattern: 'Loopback,\s+link-local and cloud metadata addresses stay blocked'
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+
+  - it: lists every opted-in probe
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: one, two$'
+
+  - it: leaves out a probe that keeps it off
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: false
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: one$'
+
+  - it: lists an operator-added probe even when the default probe keeps it off
+    set:
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: two$'
+
+  # Map keys range in sorted order, so the notice is stable across upgrades
+  # (and across `helm diff` runs) whatever order the values file uses.
+  - it: lists probes in a stable, sorted order
+    set:
+      probes.zeta.enabled: true
+      probes.zeta.name: Probe Zeta
+      probes.zeta.allowPrivateNetworkMonitors: true
+      probes.alpha.enabled: true
+      probes.alpha.name: Probe Alpha
+      probes.alpha.allowPrivateNetworkMonitors: true
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: alpha, one, zeta$'
+
+  # probe.yaml renders nothing but a Service for a disabled probe, so there is
+  # no pod the setting could apply to.
+  - it: leaves out a disabled probe
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: false
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: one$'
+
+  - it: says nothing when the only opted-in probe is disabled
+    set:
+      probes.one.enabled: false
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+
+  # With deployment.disableDeployments no probe Deployment renders at all.
+  - it: says nothing when deployments are disabled
+    set:
+      deployment.disableDeployments: true
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+
+  # --- Billing-enabled instance: global probes stay public-only. ---
+
+  # The regression #3879 was about is a setting dropped without a word. Here
+  # it is still dropped, deliberately, so say so where the operator looks.
+  - it: names the ignored value on a billing-enabled instance
+    set:
+      billing.enabled: true
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^IGNORED VALUES: probes\.one\.allowPrivateNetworkMonitors$'
+      - matchRegexRaw:
+          pattern: 'billing\.enabled is true'
+      - matchRegexRaw:
+          pattern: 'stay public-only'
+      - matchRegexRaw:
+          pattern: 'deploy a private probe on that network'
+      # It must not also claim the probe is open.
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+
+  - it: names every ignored value on a billing-enabled instance
+    set:
+      billing.enabled: true
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^IGNORED VALUES: probes\.one\.allowPrivateNetworkMonitors, probes\.two\.allowPrivateNetworkMonitors$'
+
+  - it: leaves a probe that keeps it off out of the ignored values
+    set:
+      billing.enabled: true
+      probes.one.allowPrivateNetworkMonitors: false
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^IGNORED VALUES: probes\.two\.allowPrivateNetworkMonitors$'
+
+  - it: leaves a disabled probe out of the ignored values
+    set:
+      billing.enabled: true
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: false
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^IGNORED VALUES: probes\.one\.allowPrivateNetworkMonitors$'
+
+  - it: says nothing on a billing-enabled instance when the only opted-in probe is disabled
+    set:
+      billing.enabled: true
+      probes.one.enabled: false
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+
+  - it: says nothing on a billing-enabled instance when deployments are disabled
+    set:
+      billing.enabled: true
+      deployment.disableDeployments: true
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'IGNORED VALUES'
+
+  # The notice sits beside the chart's other install-time warnings and must
+  # not displace them.
+  - it: prints alongside the legacy cache values notice
+    set:
+      billing.enabled: true
+      redis.auth.password: legacy-pw
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: 'DEPRECATED VALUES: redis'
+      - matchRegexRaw:
+          pattern: '(?m)^IGNORED VALUES: probes\.one\.allowPrivateNetworkMonitors$'

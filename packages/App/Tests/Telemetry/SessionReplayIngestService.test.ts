@@ -1,0 +1,4361 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
+import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
+import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
+import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+  SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
+  SESSION_REPLAY_MAX_USER_REF_LENGTH,
+  SESSION_REPLAY_SCHEMA_VERSION,
+  SESSION_REPLAY_WIRE_VERSION,
+  SessionReplayChunkEnvelope,
+  SessionReplayChunkMeta,
+} from "Common/Types/Rum/SessionReplay";
+import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
+import zlib from "zlib";
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+    getLogAttributesFromRequest: jest.fn(),
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/CaptureSpan", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return (): void => {
+        // No-op decorator: the real one needs a live tracer provider.
+      };
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
+  const counter: { add: unknown } = { add: jest.fn() };
+  const histogram: { record: unknown } = { record: jest.fn() };
+
+  return {
+    __esModule: true,
+    default: {
+      getIngestCounter: () => {
+        return counter;
+      },
+      getIngestDuration: () => {
+        return histogram;
+      },
+      getIngestPayloadBytes: () => {
+        return histogram;
+      },
+    },
+  };
+});
+
+/*
+ * SESSION_REPLAY_ENABLED_BY_DEFAULT ships TRUE; setting it to false is how
+ * an operator turns replay off instance-wide, and the gate then refuses
+ * outright (the config endpoint already did). Everything in this file
+ * exercises an instance that DOES offer replay; the off case has its own
+ * file, SessionReplayInstanceSwitch.test.ts.
+ */
+jest.mock("../../FeatureSet/Telemetry/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../FeatureSet/Telemetry/Config",
+  ) as Record<string, unknown>;
+
+  return {
+    __esModule: true,
+    ...actual,
+    SESSION_REPLAY_INGEST_ENABLED: true,
+    SESSION_REPLAY_ENABLED_BY_DEFAULT: true,
+  };
+});
+
+/*
+ * A CONNECTED Redis, so the "register the session with the finalizer only
+ * after its rows landed" ordering is actually observable. The string half
+ * is a real in-memory map because the session-start memo and the seal hint
+ * are read back by the code under test.
+ */
+const zaddMock: ReturnType<typeof jest.fn> = jest.fn();
+const expireMock: ReturnType<typeof jest.fn> = jest.fn();
+const saddMock: ReturnType<typeof jest.fn> = jest.fn();
+const decrbyMock: ReturnType<typeof jest.fn> = jest.fn();
+const redisStrings: Map<string, string> = new Map<string, string>();
+let redisConnected: boolean = true;
+
+jest.mock("Common/Server/Infrastructure/Redis", () => {
+  return {
+    __esModule: true,
+    default: {
+      getClient: (): unknown => {
+        if (!redisConnected) {
+          return null;
+        }
+
+        return {
+          zadd: zaddMock,
+          expire: expireMock,
+          sadd: saddMock,
+          decrby: decrbyMock,
+          get: (key: string): Promise<string | null> => {
+            return Promise.resolve(redisStrings.get(key) ?? null);
+          },
+          set: (
+            key: string,
+            value: string,
+            _expiryToken?: string,
+            _seconds?: number,
+            nxToken?: string,
+          ): Promise<"OK" | null> => {
+            if (nxToken === "NX" && redisStrings.has(key)) {
+              return Promise.resolve(null);
+            }
+
+            redisStrings.set(key, value);
+            return Promise.resolve("OK");
+          },
+        };
+      },
+      isConnected: (): boolean => {
+        return redisConnected;
+      },
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/RumApplicationService", () => {
+  return {
+    __esModule: true,
+    default: {
+      markSessionReplayChunkReceived: jest.fn(),
+    },
+  };
+});
+
+jest.mock(
+  "Common/Server/Utils/SessionReplay/SessionReplayHealthCounters",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        recordRefusal: jest.fn(),
+        recordDrop: jest.fn(),
+        readRefusalsLast24h: jest.fn(),
+        readDropsLast24h: jest.fn(),
+      },
+    };
+  },
+);
+
+jest.mock("Common/Server/Services/RumSessionService", () => {
+  return {
+    __esModule: true,
+    default: { model: { tableName: "RumSessionV1" } },
+  };
+});
+
+jest.mock("Common/Server/Services/RumSessionChunkService", () => {
+  return {
+    __esModule: true,
+    default: { model: { tableName: "RumSessionChunkV1" } },
+  };
+});
+
+/*
+ * resolvePolicy is derived from getPolicy so every existing case that seeds
+ * getPolicyMock keeps meaning what it meant; a null policy resolves as
+ * "application-not-enabled" unless a test overrides resolvePolicy itself.
+ */
+jest.mock("Common/Server/Utils/SessionReplay/SessionReplayGateCache", () => {
+  const getPolicy: ReturnType<typeof jest.fn> = jest.fn();
+
+  return {
+    __esModule: true,
+    default: {
+      getPolicy: getPolicy,
+      resolvePolicy: jest.fn(async (data: unknown): Promise<unknown> => {
+        const policy: unknown = await getPolicy(data);
+
+        return {
+          policy: policy,
+          refusal: policy ? null : "application-not-enabled",
+        };
+      }),
+      isOriginAllowed: jest.fn().mockReturnValue(true),
+      markProjectDisabled: jest.fn(),
+      clearCache: jest.fn(),
+    },
+    SessionReplayPolicyRefusal: {
+      ProjectNotAllowed: "project-not-allowed",
+      ApplicationNotEnabled: "application-not-enabled",
+      ApplicationUnknown: "application-unknown",
+      ProjectKilled: "project-killed",
+      IdentifierMissing: "app-identifier-missing",
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/TelemetryFanInWriter", () => {
+  return {
+    __esModule: true,
+    default: {
+      submit: jest.fn(),
+    },
+    /*
+     * The REAL pushObservedAck semantics, not a bare push. The ack-after-
+     * flush contract (a rejected flush fails the job so BullMQ re-processes
+     * it, wrapped in SessionReplayStorageFlushError) is load-bearing, and a
+     * mock that drops the wrapError callback would never exercise it.
+     */
+    pushObservedAck: (
+      pendingAcks: Array<Promise<void>>,
+      flushed: Promise<void>,
+      wrapError: (err: Error) => Error,
+    ): void => {
+      const ack: Promise<void> = flushed.catch((error: Error) => {
+        throw wrapError(error);
+      });
+
+      ack.catch((): void => {
+        /* Pre-observed; delivered for real at the job's await point. */
+      });
+
+      pendingAcks.push(ack);
+    },
+  };
+});
+
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/SessionReplayScrubService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        loadRules: jest.fn(),
+        scrubEvents: jest.fn(),
+      },
+    };
+  },
+);
+
+jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplayChunkStore", () => {
+  return {
+    __esModule: true,
+    default: {
+      storeBody: jest.fn(),
+      readBody: jest.fn(),
+      deleteBody: jest.fn(),
+    },
+  };
+});
+
+jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter", () => {
+  return {
+    __esModule: true,
+    default: {
+      consumeChunkAllowance: jest.fn(),
+      consumeByteBudget: jest.fn(),
+      consumeApplicationMonthlyBudget: jest.fn(),
+      refundByteBudget: jest.fn(),
+      getBytesUsedToday: jest.fn(),
+    },
+    SessionReplayLimitOutcome: {
+      Allowed: "allowed",
+      RateLimited: "rate-limited",
+      BudgetExhausted: "budget-exhausted",
+      CounterUnavailable: "counter-unavailable",
+    },
+  };
+});
+
+/*
+ * The erasure tombstone is a real Redis round trip on the ingest hot path.
+ * Default it to "not erased" so the existing cases exercise the normal
+ * route, and let individual tests override it.
+ */
+jest.mock(
+  "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone",
+  () => {
+    class FakeErasureTombstoneUnavailableError extends Error {}
+
+    return {
+      __esModule: true,
+      isSessionErased: jest.fn(),
+      ErasureTombstoneUnavailableError: FakeErasureTombstoneUnavailableError,
+    };
+  },
+);
+
+import {
+  ErasureTombstoneUnavailableError,
+  isSessionErased,
+} from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
+import SessionReplayGateCache, {
+  SessionReplayGatePolicy,
+} from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
+import SessionReplayHealthCounters from "Common/Server/Utils/SessionReplay/SessionReplayHealthCounters";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import logger from "Common/Server/Utils/Logger";
+import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import SessionReplayScrubService from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
+import SessionReplayChunkStore from "../../FeatureSet/Telemetry/Utils/SessionReplayChunkStore";
+import SessionReplayRateLimiter, {
+  SessionReplayLimitOutcome,
+} from "../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter";
+import SessionReplayIngestService, {
+  SessionReplayGateDecision,
+  SessionReplayGateOutcome,
+} from "../../FeatureSet/Telemetry/Services/SessionReplayIngestService";
+import { SessionReplayIngestJobData } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+
+type MockedFn = ReturnType<typeof jest.fn>;
+
+const getPolicyMock: MockedFn =
+  SessionReplayGateCache.getPolicy as unknown as MockedFn;
+const resolvePolicyMock: MockedFn =
+  SessionReplayGateCache.resolvePolicy as unknown as MockedFn;
+const isOriginAllowedMock: MockedFn =
+  SessionReplayGateCache.isOriginAllowed as unknown as MockedFn;
+const recordRefusalMock: MockedFn =
+  SessionReplayHealthCounters.recordRefusal as unknown as MockedFn;
+const recordDropMock: MockedFn =
+  SessionReplayHealthCounters.recordDrop as unknown as MockedFn;
+const markChunkReceivedMock: MockedFn =
+  RumApplicationService.markSessionReplayChunkReceived as unknown as MockedFn;
+const submitMock: MockedFn = TelemetryFanInWriter.submit as unknown as MockedFn;
+const loadRulesMock: MockedFn =
+  SessionReplayScrubService.loadRules as unknown as MockedFn;
+const scrubEventsMock: MockedFn =
+  SessionReplayScrubService.scrubEvents as unknown as MockedFn;
+const readBodyMock: MockedFn =
+  SessionReplayChunkStore.readBody as unknown as MockedFn;
+const consumeChunkAllowanceMock: MockedFn =
+  SessionReplayRateLimiter.consumeChunkAllowance as unknown as MockedFn;
+const consumeByteBudgetMock: MockedFn =
+  SessionReplayRateLimiter.consumeByteBudget as unknown as MockedFn;
+const consumeApplicationMonthlyBudgetMock: MockedFn =
+  SessionReplayRateLimiter.consumeApplicationMonthlyBudget as unknown as MockedFn;
+const refundByteBudgetMock: MockedFn =
+  SessionReplayRateLimiter.refundByteBudget as unknown as MockedFn;
+
+const PROJECT_ID: ObjectID = ObjectID.generate();
+const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
+
+const APP_IDENTIFIER: string = "checkout-web";
+
+function buildPolicy(
+  overrides?: Partial<SessionReplayGatePolicy>,
+): SessionReplayGatePolicy {
+  return {
+    projectId: PROJECT_ID,
+    rumApplicationId: RUM_APPLICATION_ID,
+    isProjectAllowed: true,
+    isAppEnabled: true,
+    allowedOrigins: ["https://shop.example.com"],
+    maskingMode: SessionReplayMaskingMode.MaskAllText,
+    consentMode: SessionReplayConsentMode.NotRequired,
+    captureTrigger: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+    samplePercentage: 100,
+    maskSelectors: [],
+    blockSelectors: [],
+    recordCanvas: false,
+    captureUserIdentity: false,
+    captureGeo: true,
+    retentionInDays: 7,
+    monthlyBudgetInGB: null,
+    ignoreErrorPatterns: [],
+    tracePropagationOrigins: [],
+    sameOriginTracePropagation: true,
+    lcpBudgetMs: 0,
+    longTaskBudgetMs: 0,
+    slowRequestBudgetMs: 0,
+    configEpoch: 1234,
+    ...overrides,
+  };
+}
+
+function buildEnvelope(
+  overrides?: Partial<SessionReplayChunkEnvelope>,
+): SessionReplayChunkEnvelope {
+  return {
+    v: SESSION_REPLAY_WIRE_VERSION,
+    appIdentifier: APP_IDENTIFIER,
+    sessionId: "a".repeat(32),
+    tabId: "b".repeat(16),
+    chunkIndex: 0,
+    sessionStartUnixMs: 1_800_000_000_000,
+    clientSendUnixMs: 1_800_000_015_000,
+    chunkStartOffsetMs: 0,
+    chunkEndOffsetMs: 15_000,
+    eventCount: 42,
+    hasFullSnapshot: true,
+    isFinal: false,
+    recorderKind: "dom",
+    schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
+    rrwebVersion: "2.1.0",
+    recorderVersion: "1.0.0",
+    maskingMode: SessionReplayMaskingMode.MaskAllText,
+    consentState: "Granted",
+    triggerReason: SessionReplayTriggerReason.Error,
+    payloadEncoding: "gzip",
+    payloadBytes: 0,
+    url: "https://shop.example.com/checkout",
+    signals: {
+      errorCount: 2,
+      rageClickCount: 1,
+      deadClickCount: 0,
+      errorClickCount: 1,
+      refreshRageCount: 0,
+      routeCount: 3,
+    },
+    fidelityNotices: [],
+    droppedEvents: 0,
+    flushFailures: 0,
+    meta: {
+      entryUrl: "https://shop.example.com/",
+      browserName: "Chrome",
+      browserVersion: "141",
+      osName: "macOS",
+      deviceType: "desktop",
+      viewportWidth: 1440,
+      viewportHeight: 900,
+    },
+    ...overrides,
+  };
+}
+
+/* Build a real wire body so the parser is exercised, not stubbed. */
+function buildBody(
+  envelopes: Array<Partial<SessionReplayChunkEnvelope>>,
+  events: Array<unknown> = [{ type: 2, timestamp: 1, data: {} }],
+): Buffer {
+  const parts: Array<Buffer> = [];
+
+  for (const overrides of envelopes) {
+    const payload: Buffer = zlib.gzipSync(
+      new Uint8Array(Buffer.from(JSON.stringify(events))),
+    );
+
+    const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+      ...overrides,
+      payloadBytes: payload.length,
+    });
+
+    parts.push(Buffer.from(`${JSON.stringify(envelope)}\n`));
+    parts.push(payload);
+  }
+
+  return Buffer.concat(
+    parts.map((p: Buffer): Uint8Array => {
+      return new Uint8Array(p);
+    }),
+  );
+}
+
+function buildJobData(
+  body: Buffer,
+  overrides?: Partial<SessionReplayIngestJobData>,
+): SessionReplayIngestJobData {
+  return {
+    projectId: PROJECT_ID.toString(),
+    appIdentifier: APP_IDENTIFIER,
+    inlineBodyBase64: body.toString("base64"),
+    serverReceiveUnixMs: 1_800_000_020_000,
+    samplePercentageAtCapture: 100,
+    countryCode: "GB",
+    ...overrides,
+  };
+}
+
+function getSubmittedRows(tableName: string): Array<JSONObject> {
+  for (const call of submitMock.mock.calls) {
+    const target: { model: { tableName: string } } = call[0] as {
+      model: { tableName: string };
+    };
+
+    if (target.model.tableName === tableName) {
+      return call[1] as Array<JSONObject>;
+    }
+  }
+
+  return [];
+}
+
+describe("SessionReplayIngestService.gateChunkRequest", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordRefusalMock.mockResolvedValue(undefined as never);
+    recordDropMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    isOriginAllowedMock.mockReturnValue(true);
+    consumeChunkAllowanceMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.Allowed,
+    } as never);
+    consumeByteBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.Allowed,
+    } as never);
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.Allowed,
+    } as never);
+    refundByteBudgetMock.mockResolvedValue(undefined as never);
+  });
+
+  const baseGateInput: {
+    projectId: ObjectID;
+    appIdentifier: string;
+    origin: string;
+    sessionIds: Array<string>;
+    maxChunkIndex: number;
+    chunkCount: number;
+    payloadBytes: number;
+  } = {
+    projectId: PROJECT_ID,
+    appIdentifier: APP_IDENTIFIER,
+    origin: "https://shop.example.com",
+    sessionIds: ["a".repeat(32)],
+    maxChunkIndex: 0,
+    chunkCount: 1,
+    payloadBytes: 7000,
+  };
+
+  test("accepts a fully-configured application", async () => {
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(decision.directive).toBe("continue");
+    expect(decision.policy).toBeDefined();
+  });
+
+  test("stops when the policy resolves to null (project or app disabled)", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.directive).toBe("stop");
+    expect(decision.reason).toBe("not-enabled");
+    /* Nothing may be counted or staged once the gate says no. */
+    expect(consumeChunkAllowanceMock).not.toHaveBeenCalled();
+  });
+
+  test("a failed policy lookup is retryable, never a silent accept", async () => {
+    getPolicyMock.mockRejectedValue(new Error("postgres down") as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+    expect(decision.reason).toBe("policy-unavailable");
+    expect(decision.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  test("refuses an origin that is not on the allowlist", async () => {
+    isOriginAllowedMock.mockReturnValue(false);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.OriginRefused);
+    expect(decision.directive).toBe("stop");
+  });
+
+  /*
+   * Defence in depth only. The route can no longer produce this input: the
+   * envelope parser rejects chunkIndex >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+   * first, and SessionReplayIngest maps that to the same 204 + directive
+   * "stop" (see SessionReplayIngestAPI.test.ts). This pins the gate's own
+   * branch so relaxing the parser later cannot silently remove the cap.
+   */
+  test("stops at the per-session chunk cap", async () => {
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        maxChunkIndex: 480,
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.reason).toBe("session-chunk-cap");
+  });
+
+  test("stops an unsampled session", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.reason).toBe("not-sampled");
+  });
+
+  /*
+   * The configuration that ONCE shipped as the default and recorded nothing
+   * at all: captureTrigger OnErrorOrFrustration with samplePercentage 0
+   * made isSampled() false for every session, so every chunk came back 204.
+   * The defaults are now Always at 100%, but any project that dialled
+   * sampling down still relies on this rule. Sampling is meant to be
+   * ADDITIONAL to the trigger: a frame uploaded because something actually
+   * went wrong has already earned its place, and re-deciding it by dice
+   * roll discards exactly the sessions the feature exists to keep.
+   */
+  for (const reason of [
+    SessionReplayTriggerReason.Error,
+    SessionReplayTriggerReason.Frustration,
+    SessionReplayTriggerReason.Manual,
+  ]) {
+    test(`accepts a "${reason}"-triggered chunk at samplePercentage 0`, async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ samplePercentage: 0 }) as never,
+      );
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest({
+          ...baseGateInput,
+          triggerReasons: [reason],
+        });
+
+      expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+      expect(decision.directive).toBe("continue");
+    });
+  }
+
+  /*
+   * "sampled" is the one reason that must still face the check: it is the
+   * recorder saying it uploaded on the dice roll alone, so re-rolling it
+   * server-side is what catches a stale recorder still uploading after the
+   * rate was turned down.
+   */
+  test('re-rolls a "sampled"-triggered chunk and stops it when out of sample', async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        triggerReasons: [SessionReplayTriggerReason.Sampled],
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.reason).toBe("not-sampled");
+  });
+
+  /*
+   * A catch-up post can carry both. One real trigger in the batch is enough:
+   * splitting the batch to refuse only the sampled frames would cost a second
+   * round trip to save writing frames we already have in hand.
+   */
+  test("a mixed batch is accepted when any frame fired a real trigger", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        triggerReasons: [
+          SessionReplayTriggerReason.Sampled,
+          SessionReplayTriggerReason.Error,
+        ],
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+  });
+
+  test("rate limiting is retryable and carries Retry-After", async () => {
+    consumeChunkAllowanceMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.RateLimited,
+      retryAfterSeconds: 17,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.RateLimited);
+    expect(decision.retryAfterSeconds).toBe(17);
+    expect(decision.directive).toBe("throttle");
+    /* The byte budget is not consumed for a request we are refusing. */
+    expect(consumeByteBudgetMock).not.toHaveBeenCalled();
+  });
+
+  test("an exhausted byte budget stops the recorder rather than throttling it", async () => {
+    consumeByteBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.BudgetExhausted,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.directive).toBe("stop");
+    expect(decision.reason).toBe("budget-exhausted");
+  });
+
+  test("unavailable counters fail closed as retryable, not open", async () => {
+    consumeChunkAllowanceMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.CounterUnavailable,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+  });
+
+  /*
+   * The application's customer-configured monthly budget, distinct from the
+   * operator's instance-wide daily cap. A budget field that is stored and
+   * displayed but never consulted promises a protection that does not
+   * exist, so these pin that it is actually enforced.
+   */
+  test("does not consult the monthly budget when none is configured", async () => {
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(consumeApplicationMonthlyBudgetMock).not.toHaveBeenCalled();
+  });
+
+  test("charges the monthly budget with the configured ceiling in bytes", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 2 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(consumeApplicationMonthlyBudgetMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      rumApplicationId: RUM_APPLICATION_ID,
+      bytes: baseGateInput.payloadBytes,
+      budgetBytes: 2 * 1024 * 1024 * 1024,
+    });
+  });
+
+  test("an exhausted monthly budget stops the recorder with its own reason", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+    );
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.BudgetExhausted,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.directive).toBe("stop");
+    /*
+     * A distinct reason from the instance-wide "budget-exhausted": the
+     * customer's remediation differs (raise your own budget vs contact the
+     * operator), so the two must be tellable apart in the response and on
+     * the refusal metric.
+     */
+    expect(decision.reason).toBe("app-monthly-budget-exhausted");
+  });
+
+  test("an unreachable monthly budget counter fails closed as retryable", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+    );
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.CounterUnavailable,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+    expect(decision.reason).toBe("budget-counter-unavailable");
+  });
+  /*
+   * Audit finding ingest-9: the wire reason keeps the closed vocabulary the
+   * recorder and the health surface know, and the decision carries WHICH
+   * switch was off for the metrics label.
+   */
+  test("a null policy names which switch is off", async () => {
+    resolvePolicyMock.mockResolvedValueOnce({
+      policy: null,
+      refusal: "project-not-allowed",
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.reason).toBe("not-enabled");
+    expect(decision.policyRefusal).toBe("project-not-allowed");
+  });
+
+  describe("refusal counters", () => {
+    test("every non-accepted decision is counted exactly once, under the application", async () => {
+      isOriginAllowedMock.mockReturnValue(false);
+
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(recordRefusalMock).toHaveBeenCalledTimes(1);
+      expect(recordRefusalMock).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        appIdentifier: APP_IDENTIFIER,
+        reason: "origin-not-allowed",
+      });
+    });
+
+    test("a clean accept is not a refusal", async () => {
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(recordRefusalMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * appIdentifier is a request HEADER whose only obligation is to match
+     * the envelope, so an invented one must never open a counter of its
+     * own: a stream of tiny 204'd requests would otherwise mint an
+     * unbounded number of Redis hashes. Only a refusal that PROVED the
+     * application exists may be counted under the caller's identifier.
+     */
+    test("a refusal decided before the application is known goes in one per-project bucket", async () => {
+      resolvePolicyMock.mockResolvedValueOnce({
+        policy: null,
+        refusal: "application-unknown",
+      } as never);
+
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        appIdentifier: "invented-by-the-caller",
+      });
+
+      expect(recordRefusalMock).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        appIdentifier: "(unresolved-application)",
+        reason: "not-enabled",
+      });
+    });
+
+    test("a disabled application IS proven to exist, so it keeps its own counter", async () => {
+      resolvePolicyMock.mockResolvedValueOnce({
+        policy: null,
+        refusal: "application-not-enabled",
+      } as never);
+
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(recordRefusalMock).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        appIdentifier: APP_IDENTIFIER,
+        reason: "not-enabled",
+      });
+    });
+
+    test("the refusal count is not awaited on the request path", async () => {
+      isOriginAllowedMock.mockReturnValue(false);
+
+      /*
+       * A counter that never settles must not hold the 204. If the gate
+       * awaited it, this call would never resolve.
+       */
+      recordRefusalMock.mockReturnValue(
+        new Promise<void>((): void => {
+          /* Never settles. */
+        }) as never,
+      );
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(decision.reason).toBe("origin-not-allowed");
+      expect(recordRefusalMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("deployment-level and policy refusals are counted too", async () => {
+      getPolicyMock.mockResolvedValue(null as never);
+
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(recordRefusalMock).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "not-enabled" }),
+      );
+
+      recordRefusalMock.mockClear();
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+      consumeChunkAllowanceMock.mockResolvedValue({
+        outcome: SessionReplayLimitOutcome.RateLimited,
+        retryAfterSeconds: 7,
+      } as never);
+
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(recordRefusalMock).toHaveBeenCalledTimes(1);
+      expect(recordRefusalMock).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "rate-limited" }),
+      );
+    });
+  });
+
+  /*
+   * Audit finding ingest-5. A request with no Granted frame against a
+   * RequireExplicit policy used to be accepted (202) and dropped in the
+   * worker, where the recorder could never learn it. This includes a stale
+   * recorder still asserting NotRequired after the server policy changed.
+   */
+  describe("consent at the gate", () => {
+    test.each([
+      ["Unknown frames", ["Unknown", "Unknown"]],
+      ["NotRequired frames", ["NotRequired", "NotRequired"]],
+      ["mixed non-Granted frames", ["Unknown", "NotRequired"]],
+      ["a missing consent assertion", []],
+    ])(
+      "refuses %s with a reason, and WITHOUT a stop",
+      async (_description: string, consentStates: Array<string>) => {
+        getPolicyMock.mockResolvedValue(
+          buildPolicy({
+            consentMode: SessionReplayConsentMode.RequireExplicit,
+          }) as never,
+        );
+
+        const decision: SessionReplayGateDecision =
+          await SessionReplayIngestService.gateChunkRequest({
+            ...baseGateInput,
+            consentStates: consentStates,
+          });
+
+        expect(decision.outcome).toBe(SessionReplayGateOutcome.Refused);
+        expect(decision.directive).toBe("continue");
+        expect(decision.reason).toBe("consent-required");
+        /* Refused before any counter is charged. */
+        expect(consumeChunkAllowanceMock).not.toHaveBeenCalled();
+        expect(recordRefusalMock).toHaveBeenCalledWith(
+          expect.objectContaining({ reason: "consent-required" }),
+        );
+      },
+    );
+
+    test("a mixed batch with a Granted frame passes the gate", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest({
+          ...baseGateInput,
+          consentStates: ["Unknown", "NotRequired", "Granted"],
+        });
+
+      expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    });
+
+    test("Unknown consent is fine when the policy does not require it", async () => {
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest({
+          ...baseGateInput,
+          consentStates: ["Unknown"],
+        });
+
+      expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    });
+  });
+
+  /*
+   * Audit finding ingest-4: a catch-up post straddling the per-session cap
+   * keeps the frames under it and tells the recorder to stand down.
+   */
+  test("frames set aside for the cap turn an accept into a 202-with-stop, counted as a refusal", async () => {
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        maxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+        chunkCount: 2,
+        overCapChunkCount: 1,
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(decision.directive).toBe("stop");
+    expect(decision.reason).toBe("session-chunk-cap");
+    expect(recordRefusalMock).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "session-chunk-cap" }),
+    );
+  });
+
+  /*
+   * Audit finding ingest-7: the daily counter was charged before the
+   * monthly ceiling said no, and kept growing after its own exhaustion.
+   */
+  describe("daily byte counter refunds", () => {
+    test("a monthly refusal gives the daily bytes back", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+      );
+      consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+        outcome: SessionReplayLimitOutcome.BudgetExhausted,
+      } as never);
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(decision.reason).toBe("app-monthly-budget-exhausted");
+      /*
+       * Through the limiter, which owns the daily key and the rule about
+       * which refusals may be refunded at all.
+       */
+      expect(refundByteBudgetMock).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        bytes: baseGateInput.payloadBytes,
+      });
+    });
+
+    /*
+     * The daily counter is the ONLY evidence that the daily budget is
+     * spent: /config's budget pause and the health card's
+     * daily-budget-spent state both test `usedToday >= dailyLimit`. The
+     * limiter therefore keeps the crossing request charged and refunds
+     * only what comes after it (see SessionReplayRateLimiterMonthly.test),
+     * and the gate must not refund on top of that decision - a second
+     * DECRBY here would push the counter back under the limit and make
+     * every budget state unreachable while the gate refused every chunk.
+     */
+    test("a daily exhaustion is NOT refunded again by the gate", async () => {
+      consumeByteBudgetMock.mockResolvedValue({
+        outcome: SessionReplayLimitOutcome.BudgetExhausted,
+      } as never);
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(decision.reason).toBe("budget-exhausted");
+      expect(decrbyMock).not.toHaveBeenCalled();
+      expect(refundByteBudgetMock).not.toHaveBeenCalled();
+    });
+
+    test("an unreachable monthly counter also gives the daily bytes back", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+      );
+      consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+        outcome: SessionReplayLimitOutcome.CounterUnavailable,
+      } as never);
+
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(refundByteBudgetMock).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        bytes: baseGateInput.payloadBytes,
+      });
+    });
+
+    test("an accepted request is never refunded", async () => {
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+      expect(decrbyMock).not.toHaveBeenCalled();
+      expect(refundByteBudgetMock).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Audit finding workers-lifecycle-7: the finalizer cannot see a byte
+   * budget in chunk rows, so the gate leaves it a hint per session.
+   */
+  test("a budget refusal leaves a seal hint the finalizer can read", async () => {
+    consumeByteBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.BudgetExhausted,
+    } as never);
+
+    await SessionReplayIngestService.gateChunkRequest({
+      ...baseGateInput,
+      sessionIds: ["a".repeat(32), "c".repeat(32)],
+    });
+
+    expect(
+      redisStrings.get(
+        `replay:seal:${PROJECT_ID.toString()}:${"a".repeat(32)}`,
+      ),
+    ).toBe("budget");
+    expect(
+      redisStrings.get(
+        `replay:seal:${PROJECT_ID.toString()}:${"c".repeat(32)}`,
+      ),
+    ).toBe("budget");
+  });
+
+  test("a sampling refusal leaves no seal hint", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    await SessionReplayIngestService.gateChunkRequest({
+      ...baseGateInput,
+      triggerReasons: [SessionReplayTriggerReason.Sampled],
+    });
+
+    expect(redisStrings.size).toBe(0);
+  });
+});
+
+describe("SessionReplayIngestService.processFromQueue", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordRefusalMock.mockResolvedValue(undefined as never);
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  /*
+   * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
+   *
+   * Recorders up to 12.0.x cut an oversized FullSnapshot into raw slices of
+   * the array text and posted each slice as its own chunk index, tagged
+   * snapshotPart {index, total}. Nothing here ever concatenated them, so every
+   * slice fell through decodePayload's JSON.parse and was dropped as
+   * "payload-undecodable" - a label that described the parse and hid the
+   * cause. The recorder no longer produces fragments at all (Chunker
+   * .emitOversizedEvent); these tests pin what happens to the ones still in
+   * flight from a cached bundle.
+   */
+  describe("legacy split-snapshot fragments", () => {
+    test("refuses a fragment rather than storing an unparseable slice", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 3, snapshotPart: { index: 0, total: 2 } }]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(0);
+    });
+
+    /*
+     * Only a MULTI-part tag means a fragment. total 1 is a whole event that a
+     * recorder happened to label, and refusing it would throw away a chunk
+     * that decodes perfectly well.
+     */
+    test("accepts a single-part chunk, which is not a fragment", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, snapshotPart: { index: 0, total: 1 } }]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+    });
+
+    test("refuses the fragment WITHOUT losing the whole chunks beside it", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0 },
+            { chunkIndex: 1, snapshotPart: { index: 0, total: 2 } },
+            { chunkIndex: 2, snapshotPart: { index: 1, total: 2 } },
+            { chunkIndex: 3 },
+          ]),
+        ),
+      );
+
+      const rows: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+      expect(
+        rows.map((row: JSONObject): unknown => {
+          return row["chunkIndex"];
+        }),
+      ).toEqual([0, 3]);
+    });
+  });
+
+  describe("erasure tombstone", () => {
+    /*
+     * A chunk can be staged in Redis, or sitting in the queue, at the moment
+     * an erasure request completes. Without a check here the worker writes it
+     * afterwards and the erased session partially reappears - a failed
+     * right-to-erasure obligation that nothing else would ever notice.
+     */
+    test("drops a chunk whose session has been erased, and writes nothing", async () => {
+      (isSessionErased as jest.Mock).mockResolvedValue(true as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(0);
+      expect(getSubmittedRows("RumSessionV1")).toHaveLength(0);
+    });
+
+    test("checks the tombstone BEFORE decoding, so an erased session costs no gunzip", async () => {
+      (isSessionErased as jest.Mock).mockResolvedValue(true as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      /*
+       * The scrub service sits downstream of the decode. If it was never
+       * called, neither was the decompression it follows.
+       */
+      expect(scrubEventsMock).not.toHaveBeenCalled();
+    });
+
+    test("propagates an unavailable tombstone so the job retries instead of writing", async () => {
+      /*
+       * Fail CLOSED. If we cannot prove a session was not erased, writing it
+       * is the unrecoverable direction; throwing costs only latency once
+       * Redis is back.
+       */
+      (isSessionErased as jest.Mock).mockRejectedValue(
+        new ErasureTombstoneUnavailableError("redis down") as never,
+      );
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow(ErasureTombstoneUnavailableError);
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(0);
+    });
+
+    test("looks the tombstone up once per session, not once per frame", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0 }, { chunkIndex: 1 }, { chunkIndex: 2 }]),
+        ),
+      );
+
+      expect(isSessionErased).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("writes one chunk row and a provisional header for chunk 0", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    const chunkRows: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+    const headerRows: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(chunkRows).toHaveLength(1);
+    expect(headerRows).toHaveLength(1);
+
+    const chunk: JSONObject = chunkRows[0]!;
+
+    expect(chunk["sessionId"]).toBe("a".repeat(32));
+    expect(chunk["tabId"]).toBe("b".repeat(16));
+    expect(chunk["chunkIndex"]).toBe(0);
+    expect(chunk["rumApplicationId"]).toBe(RUM_APPLICATION_ID.toString());
+    expect(chunk["primaryEntityId"]).toBe(RUM_APPLICATION_ID.toString());
+    expect(chunk["primaryEntityType"]).toBe("RealUserMonitor");
+    /* Per-chunk counters come off the envelope, never from the payload. */
+    expect(chunk["errorCount"]).toBe(2);
+    expect(chunk["routeCount"]).toBe(3);
+  });
+
+  /*
+   * Wave 4's new trigger label must survive the parser's closed-set
+   * normalisation, and anything outside the set must still fall back to
+   * "sampled" rather than storing attacker-chosen strings.
+   */
+  test("the performance trigger reason round-trips; unknown reasons normalise to sampled", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            triggerReason: SessionReplayTriggerReason.Performance,
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]?.["triggerReason"]).toBe(
+      "performance",
+    );
+
+    submitMock.mockClear();
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            /*
+             * A DIFFERENT session id. The header's trigger reason is a
+             * session-wide fact carried across chunks (chunk 0's answer is
+             * why the recording exists), so re-using this session's id
+             * would legitimately keep the reason above rather than test the
+             * parser's fallback.
+             */
+            sessionId: "d".repeat(32),
+            chunkIndex: 0,
+            triggerReason: "totally-made-up" as SessionReplayTriggerReason,
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]?.["triggerReason"]).toBe(
+      "sampled",
+    );
+  });
+
+  test("no header row is written for a non-zero chunk index that carries nothing new", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 4 }])),
+    );
+
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+    expect(getSubmittedRows("RumSessionV1")).toHaveLength(0);
+  });
+
+  /*
+   * Tags set after chunk 0, traits from a late identify(), and the terminal
+   * chunk's "recording ended" all reach the header through a NEWER header
+   * version; the finalizer reads the newest, so this is how "tags from the
+   * highest-version meta" works.
+   */
+  test("a later chunk whose meta carries tags, traits or the terminal flag writes a header version", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 7,
+            meta: {
+              ...buildEnvelope().meta!,
+              tags: { experiment: "b" },
+            },
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")).toHaveLength(1);
+    expect(getSubmittedRows("RumSessionV1")[0]!["tags"]).toEqual({
+      experiment: "b",
+    });
+
+    submitMock.mockClear();
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 9, isFinal: true }])),
+    );
+
+    const finalHeader: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(finalHeader["sealedReason"]).toBe("final-chunk");
+    expect(finalHeader["isFinalized"]).toBe(false);
+  });
+
+  test("the header carries no accumulated aggregates - the finalizer owns those", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["isFinalized"]).toBe(false);
+    expect(header["chunkCount"]).toBe(0);
+    expect(header["maxChunkIndex"]).toBe(0);
+    expect(header["eventCount"]).toBe("0");
+    expect(header["payloadBytes"]).toBe("0");
+    expect(header["fullSnapshotChunkIndexes"]).toEqual([]);
+  });
+
+  test("version is unix millis, which stays inside Number.MAX_SAFE_INTEGER", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    const version: number = Number(
+      getSubmittedRows("RumSessionChunkV1")[0]!["version"],
+    );
+
+    expect(Number.isSafeInteger(version)).toBe(true);
+    /* Nanos would be ~1.75e18 and would silently lose precision. */
+    expect(version).toBeLessThan(1e15);
+  });
+
+  test("clamps a client clock set in the future and records the skew", async () => {
+    const serverReceiveUnixMs: number = 1_800_000_020_000;
+
+    /* Device clock a year ahead. */
+    const clientStart: number = serverReceiveUnixMs + 365 * 24 * 3600 * 1000;
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            sessionStartUnixMs: clientStart,
+            clientSendUnixMs: clientStart + 15_000,
+          },
+        ]),
+        { serverReceiveUnixMs },
+      ),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    const startTime: string = String(header["startTime"]);
+    const clientReported: string = String(header["clientReportedStartTime"]);
+
+    /*
+     * Unclamped, the future timestamp would land in the partition key and
+     * the TTL expression, creating a partition that never expires.
+     */
+    expect(startTime).toBe(
+      OneUptimeDate.toClickhouseDateTime64(new Date(serverReceiveUnixMs)),
+    );
+    expect(clientReported).not.toBe(startTime);
+    /* Skew is recorded rather than silently swallowed. */
+    expect(Number(header["clockSkewMs"])).toBeGreaterThan(0);
+  });
+
+  test("retentionDate is derived from the clamped session start, not the ingest date", async () => {
+    /*
+     * A chunk from a session that began two hours ago and is only being
+     * flushed now. Deriving retention from the ingest date would give it a
+     * full 7 days from arrival, so this session's chunks would expire on
+     * different days from each other and from the header - TTL-dropping
+     * mid-session and leaving an unplayable fragment.
+     *
+     * Two hours rather than two days because clampSessionStart's backward
+     * window is the 4-hour max session length; anything older is pulled
+     * forward to that boundary, which is a separate behaviour.
+     */
+    const serverReceiveUnixMs: number = 1_800_000_020_000;
+    const sessionStartUnixMs: number = serverReceiveUnixMs - 2 * 3600 * 1000;
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0, sessionStartUnixMs }]), {
+        serverReceiveUnixMs,
+      }),
+    );
+
+    const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    const expected: string = OneUptimeDate.toClickhouseDateTime(
+      OneUptimeDate.addRemoveDays(new Date(sessionStartUnixMs), 7),
+    );
+
+    expect(chunk["retentionDate"]).toBe(expected);
+    /*
+     * Header and chunk MUST match: reads silently get
+     * `AND retentionDate >= now()` appended, so a mismatch produces a
+     * listable-but-unplayable or playable-but-invisible session.
+     */
+    expect(header["retentionDate"]).toBe(expected);
+    /* Explicitly NOT seven days from arrival. */
+    expect(chunk["retentionDate"]).not.toBe(
+      OneUptimeDate.toClickhouseDateTime(
+        OneUptimeDate.addRemoveDays(new Date(serverReceiveUnixMs), 7),
+      ),
+    );
+  });
+
+  test("a session start older than the clamp window is pulled to the window edge", async () => {
+    /*
+     * The clamp is what stops a device clock set to 2015 from producing a
+     * row that is deleted on arrival. Two days back is well outside the
+     * 4-hour backward window, so the start - and therefore the retention
+     * date - lands on the boundary rather than on the client's claim.
+     *
+     * The clock is wrong for BOTH stamps, the way a wrong device clock is:
+     * the chunk says it was sent the moment it closed. A send stamp two days
+     * after the start would instead be a chunk that sat in an offline queue
+     * for two days, which is a different case (see "a chunk uploaded late
+     * from an offline queue").
+     */
+    const serverReceiveUnixMs: number = 1_800_000_020_000;
+    const fourHoursMs: number = 4 * 3600 * 1000;
+    const clientStart: number = serverReceiveUnixMs - 2 * 24 * 3600 * 1000;
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            sessionStartUnixMs: clientStart,
+            clientSendUnixMs: clientStart + 15_000,
+          },
+        ]),
+        { serverReceiveUnixMs },
+      ),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["startTime"]).toBe(
+      OneUptimeDate.toClickhouseDateTime64(
+        new Date(serverReceiveUnixMs - fourHoursMs),
+      ),
+    );
+  });
+
+  test("payloadBytes stores the wire size, and the payload is stored decompressed", async () => {
+    const events: Array<unknown> = [{ type: 2, timestamp: 1, data: {} }];
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }], events)),
+    );
+
+    const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+    expect(chunk["payload"]).toBe(JSON.stringify(events));
+
+    /*
+     * "identity", even though the frame arrived gzipped: the column describes
+     * the bytes in the column, and those were gunzipped, scrubbed and
+     * re-serialised on the way in. It used to be copied straight off the
+     * envelope, so almost every stored row claimed an encoding it did not
+     * have.
+     */
+    expect(chunk["payloadEncoding"]).toBe("identity");
+
+    const wireBytes: number = zlib.gzipSync(
+      new Uint8Array(Buffer.from(JSON.stringify(events))),
+    ).length;
+
+    expect(chunk["payloadBytes"]).toBe(String(wireBytes));
+  });
+
+  test("FAILS CLOSED: a policy that resolves to null drops without writing", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(loadRulesMock).not.toHaveBeenCalled();
+  });
+
+  test("FAILS CLOSED: a policy lookup error throws so the job retries", async () => {
+    getPolicyMock.mockRejectedValue(new Error("postgres down") as never);
+
+    await expect(
+      SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      ),
+    ).rejects.toThrow("postgres down");
+
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test("FAILS CLOSED: a scrub-rule load failure never falls back to empty rules", async () => {
+    loadRulesMock.mockRejectedValue(
+      new Error("scrub rules unavailable") as never,
+    );
+
+    await expect(
+      SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      ),
+    ).rejects.toThrow("scrub rules unavailable");
+
+    /* The log and trace scrubbers would have continued here. Replay does not. */
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test("FAILS CLOSED: an incomplete scrub drops the chunk", async () => {
+    scrubEventsMock.mockResolvedValue({
+      isComplete: false,
+      nodesVisited: 250_001,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      truncatedAtDepth: true,
+    } as never);
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test.each<[SessionReplayChunkEnvelope["consentState"]]>([
+    ["Unknown"],
+    ["NotRequired"],
+  ])(
+    "FAILS CLOSED: a %s consent state is dropped when consent is required",
+    async (consentState: SessionReplayChunkEnvelope["consentState"]) => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, consentState }])),
+      );
+
+      expect(submitMock).not.toHaveBeenCalled();
+      expect(recordDropMock).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "consent-not-granted" }),
+      );
+    },
+  );
+
+  test("under explicit consent a mixed job stores only Granted frames", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({
+        consentMode: SessionReplayConsentMode.RequireExplicit,
+      }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          { chunkIndex: 0, consentState: "Unknown" },
+          { chunkIndex: 1, consentState: "NotRequired" },
+          { chunkIndex: 2, consentState: "Granted" },
+        ]),
+      ),
+    );
+
+    const storedChunks: Array<JSONObject> =
+      getSubmittedRows("RumSessionChunkV1");
+    expect(storedChunks).toHaveLength(1);
+    expect(storedChunks[0]?.["chunkIndex"]).toBe(2);
+    expect(recordDropMock).toHaveBeenCalledTimes(2);
+    expect(recordDropMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ reason: "consent-not-granted" }),
+    );
+    expect(recordDropMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ reason: "consent-not-granted" }),
+    );
+  });
+
+  test("an Unknown consent state is accepted when the app does not require consent", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({
+        consentMode: SessionReplayConsentMode.NotRequired,
+      }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0, consentState: "Unknown" }])),
+    );
+
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+  });
+
+  test("reads an out-of-band staged body through the replay chunk store", async () => {
+    const body: Buffer = buildBody([{ chunkIndex: 2 }]);
+
+    readBodyMock.mockResolvedValue(body as never);
+
+    const jobData: SessionReplayIngestJobData = buildJobData(body);
+    delete jobData.inlineBodyBase64;
+
+    await SessionReplayIngestService.processFromQueue(
+      jobData,
+      "replay:chunk:abc",
+    );
+
+    expect(readBodyMock).toHaveBeenCalledWith("replay:chunk:abc");
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+  });
+
+  test("a staged body that has expired drops rather than failing forever", async () => {
+    readBodyMock.mockResolvedValue(null as never);
+
+    const jobData: SessionReplayIngestJobData = buildJobData(
+      buildBody([{ chunkIndex: 2 }]),
+    );
+    delete jobData.inlineBodyBase64;
+
+    await SessionReplayIngestService.processFromQueue(
+      jobData,
+      "replay:chunk:gone",
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test("a job carrying neither an inline body nor a bodyKey is a producer bug and throws", async () => {
+    const jobData: SessionReplayIngestJobData = buildJobData(
+      buildBody([{ chunkIndex: 0 }]),
+    );
+    delete jobData.inlineBodyBase64;
+
+    await expect(
+      SessionReplayIngestService.processFromQueue(jobData),
+    ).rejects.toThrow(/inline body nor a bodyKey/);
+  });
+
+  test("writes every frame of a multi-frame catch-up request", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0 }, { chunkIndex: 1 }, { chunkIndex: 2 }]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(3);
+    /* Still exactly one header: only chunk 0 mints one. */
+    expect(getSubmittedRows("RumSessionV1")).toHaveLength(1);
+  });
+
+  test("country is stored only when the application enabled geo capture", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureGeo: false }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]!["countryCode"]).toBe("");
+  });
+
+  /*
+   * End-user identity.
+   *
+   * The recorder has always put meta.identifiedUserRef on the wire when the
+   * application had identity capture on, and the envelope parser has always
+   * accepted it - but the ingest wrote both columns as "" unconditionally,
+   * so the session list said "Anonymous" for every recording, the User key
+   * filter could never match anything, and a ByIdentifiedUserKey erasure
+   * request resolved zero sessions while the settings page said "Captures
+   * end-user identity: Yes".
+   */
+  describe("end-user identity on the session header", () => {
+    const USER_REF: string = "user-42@acme.test";
+
+    function metaWithUserRef(userRef: string): SessionReplayChunkMeta {
+      return {
+        entryUrl: "https://shop.example.com/",
+        browserName: "Chrome",
+        browserVersion: "141",
+        osName: "macOS",
+        deviceType: "desktop",
+        viewportWidth: 1440,
+        viewportHeight: 900,
+        identifiedUserRef: userRef,
+      };
+    }
+
+    test("stores an HMAC key and the raw label when capture is on", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      /* SHA-256 hex: the column has to be a fixed-width opaque token. */
+      expect(header["identifiedUserKey"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(header["identifiedUserLabel"]).toBe(USER_REF);
+
+      /* The key must not be the reference in disguise. */
+      expect(header["identifiedUserKey"]).not.toContain("acme");
+    });
+
+    /*
+     * The post-login case. A visitor lands anonymous (chunk 0 carries no
+     * reference), signs in, and the page calls identify("user-42") with no
+     * traits; the recorder forces meta onto the NEXT flushed chunk, which
+     * is neither chunk 0 nor final. The header must learn the identity from
+     * that middle chunk - otherwise a session that ends without a final
+     * chunk (a killed tab) stays "Anonymous" forever, and a live one stays
+     * anonymous until it ends.
+     */
+    test("a later chunk whose meta carries only an end-user reference writes a header version with the identity", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionV1")[0]!["identifiedUserLabel"]).toBe(
+        "",
+      );
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 3, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const laterHeaders: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+      expect(laterHeaders).toHaveLength(1);
+      expect(laterHeaders[0]!["identifiedUserLabel"]).toBe(USER_REF);
+      expect(laterHeaders[0]!["identifiedUserKey"]).toMatch(/^[0-9a-f]{64}$/);
+
+      submitMock.mockClear();
+
+      /* A plain mid-session chunk with no meta still writes no header. */
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 4 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionV1")).toHaveLength(0);
+    });
+
+    /*
+     * The ACL-critical assertion. The recorder is supposed to withhold the
+     * reference entirely when capture is off, but the recorder's copy of the
+     * policy can be a config-cache TTL stale and a hand-crafted POST is not
+     * bound by it at all - so the server must refuse it too.
+     */
+    test("stores nothing when the application has capture switched off", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: false }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["identifiedUserKey"]).toBe("");
+      expect(header["identifiedUserLabel"]).toBe("");
+      expect(JSON.stringify(header)).not.toContain("acme.test");
+    });
+
+    test("a page that supplies no reference stays anonymous", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["identifiedUserKey"]).toBe("");
+      expect(header["identifiedUserLabel"]).toBe("");
+    });
+
+    /*
+     * Determinism is what makes erasure work: a request naming a person has
+     * to resolve to the same digest their sessions were filed under, months
+     * later and from a different process.
+     */
+    test("the same reference in the same project yields the same key", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const first: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              sessionId: "c".repeat(32),
+              meta: metaWithUserRef(USER_REF),
+            },
+          ]),
+        ),
+      );
+
+      const second: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      expect(second).toBe(first);
+    });
+
+    /*
+     * Scoped by project, so one customer's digest can never be used to probe
+     * another's - and so a project-wide erasure reaches every application in
+     * that project, which is exactly what ProcessSessionErasureRequests
+     * filters on.
+     */
+    test("the same reference in a different project yields a different key", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const first: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      const otherProjectId: ObjectID = ObjectID.generate();
+
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          captureUserIdentity: true,
+          projectId: otherProjectId,
+        }) as never,
+      );
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+          { projectId: otherProjectId.toString() },
+        ),
+      );
+
+      const second: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      expect(second).not.toBe(first);
+      expect(second).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    /*
+     * The server's cap has to be the SAME cap the recorder slices to.
+     *
+     * The recorder sends userRef.slice(0, SESSION_REPLAY_MAX_USER_REF_LENGTH)
+     * and the targeting handshake hashes it at that length. The envelope
+     * parser used to fold it into the 128-byte cap it shares with
+     * browserName and osName, so any reference longer than 128 characters -
+     * a namespaced customer id, a signed token, a long email - was hashed
+     * from a DIFFERENT string than the one a dashboard lookup or an erasure
+     * request would hash. Nothing errored; the recordings were simply filed
+     * under a key no one could ever resolve.
+     */
+    test("a long reference is stored whole, not folded into the device-string cap", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      /* Comfortably past the 128-byte meta cap, inside the 512 user-ref cap. */
+      const longRef: string = `acme-tenant-${"z".repeat(200)}@customers.example.com`;
+
+      expect(longRef.length).toBeGreaterThan(128);
+      expect(longRef.length).toBeLessThanOrEqual(
+        SESSION_REPLAY_MAX_USER_REF_LENGTH,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(longRef) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["identifiedUserLabel"]).toBe(longRef);
+      expect(header["identifiedUserKey"]).toBe(
+        SessionReplayIdentity.buildUserKey({
+          projectId: PROJECT_ID,
+          userRef: longRef,
+        }),
+      );
+    });
+
+    /*
+     * Past the shared cap both sides slice to, the server sees exactly what
+     * a recorder would have sent - the 512-character prefix - so the key is
+     * the same either way. What must NOT happen is the two sides disagreeing
+     * about where to cut.
+     */
+    test("a reference past the shared cap hashes the same prefix the recorder would send", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      const overLong: string = "z".repeat(
+        SESSION_REPLAY_MAX_USER_REF_LENGTH + 200,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(overLong) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect((header["identifiedUserLabel"] as string).length).toBe(
+        SESSION_REPLAY_MAX_USER_REF_LENGTH,
+      );
+      expect(header["identifiedUserKey"]).toBe(
+        SessionReplayIdentity.buildUserKey({
+          projectId: PROJECT_ID,
+          userRef: overLong.slice(0, SESSION_REPLAY_MAX_USER_REF_LENGTH),
+        }),
+      );
+    });
+  });
+
+  /*
+   * The provisional header's signal counters.
+   *
+   * They used to be hardcoded to 0 while `hasError` in the same object
+   * literal was derived from envelope.signals.errorCount - so for the 10-15
+   * minutes before the finalizer runs, the "With errors" tab returned rows
+   * whose Signals cell read "Clean", and the "With frustration" tab excluded
+   * the very session that was captured BECAUSE of a rage click. Both tabs
+   * are read during an incident, which is exactly that window.
+   */
+  describe("provisional signal counters", () => {
+    test("chunk 0's signals seed the header instead of being zeroed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              signals: {
+                errorCount: 2,
+                rageClickCount: 1,
+                deadClickCount: 3,
+                errorClickCount: 1,
+                refreshRageCount: 0,
+                routeCount: 4,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["errorCount"]).toBe(2);
+      expect(header["rageClickCount"]).toBe(1);
+      expect(header["deadClickCount"]).toBe(3);
+      expect(header["errorClickCount"]).toBe(1);
+      expect(header["pageCount"]).toBe(4);
+    });
+
+    /*
+     * The invariant that made the list self-contradictory: hasError said
+     * "yes" while the counter it is derived from said zero.
+     */
+    test("hasError and errorCount can no longer disagree", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              signals: {
+                errorCount: 1,
+                rageClickCount: 0,
+                deadClickCount: 0,
+                errorClickCount: 0,
+                refreshRageCount: 0,
+                routeCount: 0,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["hasError"]).toBe(true);
+      expect(header["errorCount"]).toBeGreaterThan(0);
+    });
+
+    test("a clean chunk 0 still reports zeroes", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              signals: {
+                errorCount: 0,
+                rageClickCount: 0,
+                deadClickCount: 0,
+                errorClickCount: 0,
+                refreshRageCount: 0,
+                routeCount: 0,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["hasError"]).toBe(false);
+      expect(header["errorCount"]).toBe(0);
+      expect(header["rageClickCount"]).toBe(0);
+    });
+  });
+
+  /*
+   * The mirror-image bug of the one above.
+   *
+   * The header is written again by any later chunk whose meta carries
+   * something new (tags, traits, a post-login identify()) and by the
+   * terminal chunk. That later version used to publish THAT chunk's
+   * per-chunk signals and THAT chunk's single route as the whole session's
+   * - and because the list reads argMax(col, version), the newest version
+   * wins. So a session captured because chunk 0 threw fell out of the
+   * "With errors" tab the moment its clean final chunk landed, and its
+   * route pills shrank to the last page, for the whole 10-15 minute
+   * provisional window. Every fact a later header version publishes must
+   * therefore be monotonic.
+   */
+  describe("a later header version never loses what earlier chunks knew", () => {
+    const ERRORED_CHUNK_ZERO: Partial<SessionReplayChunkEnvelope> = {
+      chunkIndex: 0,
+      url: "https://shop.example.com/cart",
+      routes: ["https://shop.example.com/", "https://shop.example.com/cart"],
+      signals: {
+        errorCount: 1,
+        rageClickCount: 2,
+        deadClickCount: 0,
+        errorClickCount: 0,
+        refreshRageCount: 0,
+        routeCount: 2,
+      },
+    };
+
+    /* A clean terminal chunk, which is the common case. */
+    const CLEAN_FINAL_CHUNK: Partial<SessionReplayChunkEnvelope> = {
+      chunkIndex: 5,
+      isFinal: true,
+      url: "https://shop.example.com/checkout",
+      routes: ["https://shop.example.com/checkout"],
+      signals: {
+        errorCount: 0,
+        rageClickCount: 0,
+        deadClickCount: 0,
+        errorClickCount: 0,
+        refreshRageCount: 0,
+        routeCount: 1,
+      },
+    };
+
+    test("the errored session stays errored after its clean final chunk", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([ERRORED_CHUNK_ZERO])),
+      );
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([CLEAN_FINAL_CHUNK])),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["hasError"]).toBe(true);
+      expect(header["errorCount"]).toBe(1);
+      expect(header["rageClickCount"]).toBe(2);
+      /* The terminal chunk is still what seals the row. */
+      expect(header["sealedReason"]).toBe("final-chunk");
+    });
+
+    test("the route list is the union of every page reached, not the last one", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([ERRORED_CHUNK_ZERO])),
+      );
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([CLEAN_FINAL_CHUNK])),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+      /* entryUrl is chunk 0's landing page, not the last chunk's page. */
+      expect(header["entryUrl"]).toBe("https://shop.example.com/");
+      /* exitUrl IS the latest chunk's page - that is what it means. */
+      expect(header["exitUrl"]).toBe("https://shop.example.com/checkout");
+    });
+
+    test("a re-delivered chunk 0 does not double the counters or un-seal the row", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([ERRORED_CHUNK_ZERO])),
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([CLEAN_FINAL_CHUNK])),
+      );
+
+      submitMock.mockClear();
+
+      /* The same chunk 0 again, as a BullMQ retry would deliver it. */
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([ERRORED_CHUNK_ZERO])),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      /* Merged with max, not summed, so a retry is idempotent. */
+      expect(header["errorCount"]).toBe(1);
+      expect(header["rageClickCount"]).toBe(2);
+      expect(header["sealedReason"]).toBe("final-chunk");
+    });
+
+    test("without Redis a later header still writes, from what this job knows", async () => {
+      redisConnected = false;
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([ERRORED_CHUNK_ZERO, CLEAN_FINAL_CHUNK])),
+      );
+
+      /*
+       * Both header versions come from ONE job, so the in-job carry merges
+       * them even with no memo to read: the newest version still reports
+       * the error. Across jobs an outage degrades to the old per-chunk
+       * behaviour, which the finalizer corrects.
+       */
+      const headers: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+      expect(headers).toHaveLength(2);
+      expect(headers[1]!["hasError"]).toBe(true);
+      expect(headers[1]!["errorCount"]).toBe(1);
+    });
+  });
+
+  /*
+   * WHERE the user went, per chunk.
+   *
+   * The chunk table used to carry routeCount but not the routes themselves,
+   * so the session header's exitUrl / routes[] could only ever be whatever
+   * chunk 0 knew - the landing page, for the life of a single-page app. The
+   * finalizer now derives all three from these columns.
+   */
+  describe("per-chunk url and routes", () => {
+    test("every chunk records the url it was flushed from", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0, url: "https://shop.example.com/" },
+            { chunkIndex: 1, url: "https://shop.example.com/cart" },
+            { chunkIndex: 2, url: "https://shop.example.com/checkout" },
+          ]),
+        ),
+      );
+
+      const chunks: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+      expect(
+        chunks.map((c: JSONObject): unknown => {
+          return c["url"];
+        }),
+      ).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+    });
+
+    test("the envelope's route list is stored, in order, with the flush url appended", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout",
+              routes: [
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+    });
+
+    /*
+     * An older recorder posting to a newer server sends no routes at all.
+     * It must still contribute its page to the session's route list rather
+     * than contributing nothing.
+     */
+    test("a recorder that sends no route list still contributes its own url", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0, url: "https://shop.example.com/legacy" },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual(["https://shop.example.com/legacy"]);
+    });
+
+    test("a route repeated across the chunk is stored once", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/cart",
+              routes: [
+                "https://shop.example.com/cart",
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/cart",
+        "https://shop.example.com/",
+      ]);
+    });
+
+    /*
+     * The columns render under the WIDER session-metadata ACL, so an
+     * unscrubbed reset token here reaches more readers than the payload
+     * does. Client-side scrubbing is not a control the server may assume.
+     */
+    test("routes are re-scrubbed server side, not trusted from the wire", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/account?session=s3cr3t-a",
+              routes: [
+                "https://shop.example.com/reset-password?token=s3cr3t-b",
+                "https://shop.example.com/users/550e8400-e29b-41d4-a716-446655440000",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      const stored: string = JSON.stringify([chunk["url"], chunk["routes"]]);
+
+      expect(stored).not.toContain("s3cr3t");
+      expect(stored).not.toContain("token");
+      expect(stored).not.toContain("550e8400");
+      expect(chunk["url"]).toBe("https://shop.example.com/account");
+    });
+  });
+
+  /*
+   * URL scrubbing is applied in the browser, but the server may not ASSUME
+   * it happened: a stale bundle, a self-hosted recorder or a hand-crafted
+   * POST with a scraped ingestion key all put whatever URL they like on the
+   * wire, and entryUrl / exitUrl / routes sit in the wider metadata ACL and
+   * render in the session list.
+   */
+  describe("server-side URL scrubbing on the session header", () => {
+    test("a hand-crafted envelope carrying a reset-password token is scrubbed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/reset-password?token=s3cr3t-reset-token-value&email=victim@example.com",
+              meta: {
+                entryUrl:
+                  "https://shop.example.com/magic-link?token=another-s3cr3t",
+                browserName: "Chrome",
+                browserVersion: "141",
+                osName: "macOS",
+                deviceType: "desktop",
+                viewportWidth: 1440,
+                viewportHeight: 900,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      const urlFields: string = JSON.stringify([
+        header["entryUrl"],
+        header["exitUrl"],
+        header["routes"],
+      ]);
+
+      expect(urlFields).not.toContain("token");
+      expect(urlFields).not.toContain("s3cr3t");
+      expect(urlFields).not.toContain("email");
+      expect(urlFields).not.toContain("victim@example.com");
+
+      /* Route structure survives - that is the whole point of scrubbing. */
+      expect(header["exitUrl"]).toBe("https://shop.example.com/reset-password");
+      expect(header["entryUrl"]).toBe("https://shop.example.com/magic-link");
+      /* With no route list on the envelope, routes is the chunk's own url. */
+      expect(header["routes"]).toEqual([
+        "https://shop.example.com/reset-password",
+      ]);
+    });
+
+    /*
+     * The provisional header carries chunk 0's REAL route list.
+     *
+     * It is not rewritten until the finalizer runs, so a one-entry list made
+     * the "Page URL visited (exact)" filter miss a page the user
+     * demonstrably reached for the whole 10-15 minute provisional window -
+     * on a row that simultaneously reported pageCount 2.
+     */
+    test("the provisional header carries chunk 0's whole route list", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout",
+              routes: [
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+              signals: {
+                errorCount: 0,
+                rageClickCount: 0,
+                deadClickCount: 0,
+                errorClickCount: 0,
+                refreshRageCount: 0,
+                routeCount: 2,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+
+      /* The count and the list can no longer disagree on the same row. */
+      expect((header["routes"] as Array<string>).length).toBe(
+        (header["pageCount"] as number) + 1,
+      );
+    });
+
+    test("the provisional route list is scrubbed like the rest", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout",
+              routes: [
+                "https://shop.example.com/reset-password?token=s3cr3t-header",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(JSON.stringify(header["routes"])).not.toContain("s3cr3t");
+      expect(JSON.stringify(header["routes"])).not.toContain("token");
+    });
+
+    test("identifier-shaped path segments are redacted, not just the query", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/users/550e8400-e29b-41d4-a716-446655440000/orders",
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["exitUrl"]).toBe(
+        "https://shop.example.com/users/[redacted]/orders",
+      );
+    });
+
+    test("entryUrl falls back to the chunk url, scrubbed, when meta carries none", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout?cart=abc",
+              meta: {
+                /* The parser always materialises entryUrl, empty when absent. */
+                entryUrl: "",
+                browserName: "Chrome",
+                browserVersion: "141",
+                osName: "macOS",
+                deviceType: "desktop",
+                viewportWidth: 1440,
+                viewportHeight: 900,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["entryUrl"]).toBe("https://shop.example.com/checkout");
+      expect(header["exitUrl"]).toBe("https://shop.example.com/checkout");
+    });
+  });
+
+  /*
+   * The decompression budget is what actually bounds the worker. A per-frame
+   * cap alone multiplies by MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST and again by
+   * SESSION_REPLAY_WORKER_CONCURRENCY, because every decoded frame stays
+   * resident until the submit at the end of the job - low gigabytes from one
+   * authenticated client posting highly compressible padding.
+   */
+  describe("decompression budget", () => {
+    /*
+     * These two are the only tests in the file that inflate tens of
+     * megabytes, and on a loaded runner (the App, Common and recorder
+     * suites run concurrently) they take several times their quiet-run
+     * cost. Under the 30s default they timed out, and - worse - jest moved
+     * on while the job was still running, so its four chunk rows landed in
+     * submitMock DURING the next test and failed it with a count that
+     * pointed at the ingest code instead of at the timeout.
+     *
+     * Two guards, because either alone leaves a hole: a generous per-test
+     * timeout so a slow runner does not fail a passing assertion, and an
+     * afterEach that awaits the in-flight job so a timeout that does happen
+     * cannot bleed into the next test.
+     */
+    const DECOMPRESSION_TEST_TIMEOUT_MS: number = 120 * 1000;
+
+    let inFlightJob: Promise<void> | null = null;
+
+    afterEach(async () => {
+      if (!inFlightJob) {
+        return;
+      }
+
+      const pending: Promise<void> = inFlightJob;
+      inFlightJob = null;
+
+      await pending.catch((): void => {
+        /* The test has already asserted, or already failed. */
+      });
+    });
+
+    test(
+      "a frame that inflates past the per-frame cap is dropped, not decoded",
+      async () => {
+        /* 9 MiB of repetitive text: a tiny gzip, past the 8 MiB frame cap. */
+        const oversized: Array<unknown> = ["x".repeat(9 * 1024 * 1024)];
+
+        inFlightJob = SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }], oversized)),
+        );
+
+        await inFlightJob;
+
+        expect(submitMock).not.toHaveBeenCalled();
+      },
+      DECOMPRESSION_TEST_TIMEOUT_MS,
+    );
+
+    test(
+      "the budget is per JOB, so later frames of a fat request are dropped",
+      async () => {
+        const fat: Array<unknown> = ["y".repeat(7 * 1024 * 1024)];
+
+        inFlightJob = SessionReplayIngestService.processFromQueue(
+          buildJobData(
+            buildBody(
+              [
+                { chunkIndex: 0 },
+                { chunkIndex: 1 },
+                { chunkIndex: 2 },
+                { chunkIndex: 3 },
+                { chunkIndex: 4 },
+              ],
+              fat,
+            ),
+          ),
+        );
+
+        await inFlightJob;
+
+        /*
+         * A 32 MiB job allowance at ~7 MiB a frame admits four; the fifth
+         * inflate is capped at what is left and aborts. Under a
+         * per-frame-only bound all five would have been held in memory at
+         * once.
+         */
+        expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(4);
+      },
+      DECOMPRESSION_TEST_TIMEOUT_MS,
+    );
+  });
+
+  describe("ack-after-flush", () => {
+    /*
+     * The rejection is pre-observed here so Node does not report an
+     * unhandled rejection between this promise being created and
+     * pushObservedAck attaching its own handler several awaits later. It
+     * stays a genuine rejection for the code under test.
+     */
+    function rejectedFlush(): Promise<void> {
+      const flushed: Promise<void> = Promise.reject(
+        new Error("clickhouse refused the insert"),
+      );
+
+      flushed.catch((): void => {
+        /* Pre-observed only. */
+      });
+
+      return flushed;
+    }
+
+    test("a rejected flush fails the job so BullMQ re-processes it", async () => {
+      submitMock.mockResolvedValue({
+        flushed: rejectedFlush(),
+      } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow(/failed to flush rows to storage/);
+    });
+
+    test("the session is registered with the finalizer only after the acks land", async () => {
+      submitMock.mockResolvedValue({
+        flushed: rejectedFlush(),
+      } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow();
+
+      /*
+       * A ZADD here would leave the finalizer aggregating a session with no
+       * rows behind it.
+       */
+      expect(zaddMock).not.toHaveBeenCalled();
+    });
+
+    test("a successful flush does register the session", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(zaddMock).toHaveBeenCalledTimes(1);
+      expect(expireMock).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits and capabilities", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  test("the chunk row carries clickCount / customEventCount, 0 when the recorder sent none", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            signals: {
+              ...buildEnvelope().signals,
+              clickCount: 41,
+              customEventCount: 3,
+            },
+          },
+          { chunkIndex: 1 },
+        ]),
+      ),
+    );
+
+    const rows: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+    expect(rows[0]!["clickCount"]).toBe(41);
+    expect(rows[0]!["customEventCount"]).toBe(3);
+    expect(rows[1]!["clickCount"]).toBe(0);
+    expect(rows[1]!["customEventCount"]).toBe(0);
+  });
+
+  test("the header's engagement aggregates are zero - the finalizer owns them", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["clickCount"]).toBe(0);
+    expect(header["customEventCount"]).toBe(0);
+    expect(header["firstErrorOffsetMs"]).toBe("0");
+    expect(header["activeMs"]).toBe("0");
+  });
+
+  test("tags are written under the session ACL regardless of identity capture", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: false }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            meta: {
+              ...buildEnvelope().meta!,
+              tags: { build: "abc", tier: 1 } as unknown as Record<
+                string,
+                string
+              >,
+            },
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]!["tags"]).toEqual({
+      build: "abc",
+      tier: "1",
+    });
+  });
+
+  test("traits are stored ONLY when the application captures user identity", async () => {
+    const meta: SessionReplayChunkMeta = {
+      ...buildEnvelope().meta!,
+      identifiedUserRef: "user-42",
+      identifiedUserTraits: { plan: "pro", seats: "12" },
+    };
+
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: false }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0, meta: meta }])),
+    );
+
+    const withoutCapture: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(withoutCapture["identifiedUserTraits"]).toEqual({});
+    expect(JSON.stringify(withoutCapture)).not.toContain('"plan"');
+
+    submitMock.mockClear();
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: true }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0, meta: meta }])),
+    );
+
+    expect(
+      getSubmittedRows("RumSessionV1")[0]!["identifiedUserTraits"],
+    ).toEqual({ plan: "pro", seats: "12" });
+  });
+
+  test("recorder capabilities land in attributes as recorder.capabilities, with the key indexed", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            capabilities: ["click-events", "web-vitals", "bogus"],
+          },
+        ]),
+      ),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["attributes"]).toEqual({
+      "recorder.capabilities": "click-events,web-vitals",
+    });
+    expect(header["attributeKeys"]).toEqual(["recorder.capabilities"]);
+
+    submitMock.mockClear();
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    /* An older recorder writes no attribute rather than an empty one. */
+    expect(getSubmittedRows("RumSessionV1")[0]!["attributes"]).toEqual({});
+    expect(getSubmittedRows("RumSessionV1")[0]!["attributeKeys"]).toEqual([]);
+  });
+
+  test("a frame at the per-session cap is dropped in the worker as defence in depth", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          { chunkIndex: 3 },
+          { chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+    expect(recordDropMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        appIdentifier: APP_IDENTIFIER,
+        reason: "session-chunk-cap",
+      }),
+    );
+  });
+
+  /*
+   * Audit finding ingest-5: a drop after the 202 is invisible to the
+   * recorder, so it is counted under the application for the health
+   * surface.
+   */
+  test("worker drops are counted under the application", async () => {
+    scrubEventsMock.mockResolvedValue({
+      isComplete: false,
+      nodesVisited: 1,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: true,
+    } as never);
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    expect(recordDropMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      appIdentifier: APP_IDENTIFIER,
+      reason: "scrub-incomplete",
+    });
+  });
+
+  describe("recording health is stamped after the flush ack", () => {
+    test("a durable write stamps last-chunk-received", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(markChunkReceivedMock).toHaveBeenCalledTimes(1);
+      expect(markChunkReceivedMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    });
+
+    test("a rejected flush does not", async () => {
+      const flushed: Promise<void> = Promise.reject(
+        new Error("clickhouse refused the insert"),
+      );
+      flushed.catch((): void => {
+        /* Pre-observed only. */
+      });
+      submitMock.mockResolvedValue({ flushed: flushed } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow();
+
+      expect(markChunkReceivedMock).not.toHaveBeenCalled();
+    });
+
+    test("a job whose every frame was dropped stamps nothing", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, consentState: "Unknown" }])),
+      );
+
+      expect(markChunkReceivedMock).not.toHaveBeenCalled();
+      expect(recordDropMock).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "consent-not-granted" }),
+      );
+    });
+
+    test("a failed stamp never fails the job", async () => {
+      markChunkReceivedMock.mockRejectedValue(
+        new Error("postgres down") as never,
+      );
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  /* Audit finding ingest-15. */
+  test("registers the project in the finalizer's index alongside the session", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          { chunkIndex: 0, tabId: "tab-1" },
+          { chunkIndex: 0, tabId: "tab-2" },
+        ]),
+      ),
+    );
+
+    /* One multi-member ZADD for both tabs, then one SADD of the project. */
+    expect(zaddMock).toHaveBeenCalledTimes(1);
+    expect(zaddMock.mock.calls[0]!.slice(1)).toHaveLength(4);
+    expect(saddMock).toHaveBeenCalledWith(
+      "replay:active:projects",
+      PROJECT_ID.toString(),
+    );
+  });
+
+  /*
+   * Audit finding ingest-6: every chunk of a session must agree on the
+   * clamped start and the retention date, or reads that append
+   * `retentionDate >= now()` show a session whose tail is missing.
+   */
+  describe("one session start per session", () => {
+    const CLIENT_START: number = 1_800_000_000_000;
+
+    test("a late chunk of a long session reuses chunk 0's start and retention", async () => {
+      /* Chunk 0 processed promptly. */
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, sessionStartUnixMs: CLIENT_START }]),
+          { serverReceiveUnixMs: CLIENT_START + 20_000 },
+        ),
+      );
+
+      const first: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      submitMock.mockClear();
+
+      /*
+       * Chunk 900 arrives 5h later (3h50m into the session, plus a retry
+       * queue): without the memo the 4h clamp drags its start to now-4h.
+       */
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 460,
+              sessionStartUnixMs: CLIENT_START,
+              chunkStartOffsetMs: 3 * 60 * 60 * 1000 + 50 * 60 * 1000,
+              chunkEndOffsetMs: 3 * 60 * 60 * 1000 + 50 * 60 * 1000 + 15_000,
+            },
+          ]),
+          { serverReceiveUnixMs: CLIENT_START + 5 * 60 * 60 * 1000 },
+        ),
+      );
+
+      const late: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(late["sessionStartTime"]).toBe(first["sessionStartTime"]);
+      expect(late["retentionDate"]).toBe(first["retentionDate"]);
+    });
+
+    test("a retention change mid-session does not split the session across expiry days", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      const first: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      submitMock.mockClear();
+
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ retentionInDays: 30 }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 1 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")[0]!["retentionDate"]).toBe(
+        first["retentionDate"],
+      );
+    });
+
+    test("without Redis the fallback clamp is offset-aware", async () => {
+      redisConnected = false;
+
+      const chunkStartOffsetMs: number = 3 * 60 * 60 * 1000 + 50 * 60 * 1000;
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 460,
+              sessionStartUnixMs: CLIENT_START,
+              chunkStartOffsetMs: chunkStartOffsetMs,
+              chunkEndOffsetMs: chunkStartOffsetMs + 15_000,
+            },
+          ]),
+          { serverReceiveUnixMs: CLIENT_START + 5 * 60 * 60 * 1000 },
+        ),
+      );
+
+      const row: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      /*
+       * The honest start is the client's own: 3h50m before a chunk received
+       * 5h in is inside the 4h window once the offset is accounted for.
+       */
+      expect(row["sessionStartTime"]).toBe(
+        OneUptimeDate.toClickhouseDateTime64(new Date(CLIENT_START)),
+      );
+    });
+
+    /*
+     * Offline mode. A device that lost its connection kept recording and
+     * uploaded the backlog when it came back; the recorder stamps
+     * clientSendUnixMs as it actually sends, so "send minus the chunk's end"
+     * is how long the chunk sat in the queue, on the device's own clock.
+     */
+    describe("a chunk uploaded late from an offline queue", () => {
+      const HOUR_MS: number = 60 * 60 * 1000;
+      const DAY_MS: number = 24 * HOUR_MS;
+
+      beforeEach(() => {
+        /* The fallback clamp is what decides a session's first chunk. */
+        redisConnected = false;
+      });
+
+      const processLateChunk: (data: {
+        sessionStartUnixMs: number;
+        clientSendUnixMs: number;
+        serverReceiveUnixMs: number;
+        chunkStartOffsetMs?: number;
+      }) => Promise<JSONObject> = async (data: {
+        sessionStartUnixMs: number;
+        clientSendUnixMs: number;
+        serverReceiveUnixMs: number;
+        chunkStartOffsetMs?: number;
+      }): Promise<JSONObject> => {
+        const chunkStartOffsetMs: number = data.chunkStartOffsetMs ?? 60_000;
+
+        await SessionReplayIngestService.processFromQueue(
+          buildJobData(
+            buildBody([
+              {
+                chunkIndex: 4,
+                sessionStartUnixMs: data.sessionStartUnixMs,
+                clientSendUnixMs: data.clientSendUnixMs,
+                chunkStartOffsetMs: chunkStartOffsetMs,
+                chunkEndOffsetMs: chunkStartOffsetMs + 15_000,
+              },
+            ]),
+            { serverReceiveUnixMs: data.serverReceiveUnixMs },
+          ),
+        );
+
+        return getSubmittedRows("RumSessionChunkV1")[0]!;
+      };
+
+      test("keeps its real start when it arrives a day after it was recorded", async () => {
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          clientSendUnixMs: arrivedAt,
+          serverReceiveUnixMs: arrivedAt + 300,
+        });
+
+        /* Before offline mode this was pinned to arrival minus four hours. */
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(new Date(CLIENT_START)),
+        );
+        expect(row["chunkStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(new Date(CLIENT_START + 60_000)),
+        );
+      });
+
+      test("retention runs from when it was recorded, not when it arrived", async () => {
+        const arrivedAt: number = CLIENT_START + 2 * DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          clientSendUnixMs: arrivedAt,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        expect(row["retentionDate"]).toBe(
+          OneUptimeDate.toClickhouseDateTime(
+            OneUptimeDate.addRemoveDays(new Date(CLIENT_START), 7),
+          ),
+        );
+      });
+
+      test("measures the wait on the device clock, so a wrong clock still lands in the window", async () => {
+        /*
+         * The device clock runs two hours slow. The session start it reports
+         * and its send stamp are both two hours early, so the wait between
+         * them is still exactly the day it spent offline.
+         */
+        const clockErrorMs: number = -2 * HOUR_MS;
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START + clockErrorMs,
+          clientSendUnixMs: arrivedAt + clockErrorMs,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        /*
+         * Inside the ordinary clamp window, so the device's own start is
+         * kept exactly as it would be for a chunk sent straight away - and
+         * not dragged a day forward to "arrival minus four hours".
+         */
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(
+            new Date(CLIENT_START + clockErrorMs),
+          ),
+        );
+      });
+
+      test("never believes a wait longer than a recorder may hold a chunk", async () => {
+        const arrivedAt: number = CLIENT_START + 30 * DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          clientSendUnixMs: arrivedAt,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        /*
+         * Thirty days claimed, three believed: the reference instant moves
+         * back by SESSION_REPLAY_MAX_OFFLINE_DELAY_MS only, and the ordinary
+         * four-hour clamp applies below that.
+         */
+        const expectedStart: number =
+          arrivedAt -
+          60_000 -
+          SESSION_REPLAY_MAX_OFFLINE_DELAY_MS -
+          4 * HOUR_MS;
+
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(new Date(expectedStart)),
+        );
+      });
+
+      test("an older recorder that stamped the send time at close gains nothing", async () => {
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          /* Stamped when the chunk closed, as recorders before offline mode did. */
+          clientSendUnixMs: CLIENT_START + 75_000,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(
+            new Date(arrivedAt - 60_000 - 4 * HOUR_MS),
+          ),
+        );
+      });
+
+      test("a device clock in the future still cannot start a session after it arrived", async () => {
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+        const yearAheadMs: number = 365 * DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          /* A device clock a year ahead, and a chunk that waited two hours. */
+          sessionStartUnixMs: CLIENT_START + yearAheadMs,
+          clientSendUnixMs: CLIENT_START + yearAheadMs + 75_000 + 2 * HOUR_MS,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        /*
+         * The wait is believed, the start is not: it cannot land after the
+         * reference instant - arrival, less the chunk's offset, less the two
+         * hours it waited - so it lands ON it.
+         */
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(
+            new Date(arrivedAt - 60_000 - 2 * HOUR_MS),
+          ),
+        );
+      });
+    });
+  });
+});
+
+/*
+ * The anonymous visitor id.
+ *
+ * github.com/OneUptime/oneuptime/issues/3705: an application whose pages
+ * never call identify() had every session listed as "Anonymous" with
+ * nothing to group them by - a session id lives for one visit, so two
+ * visits from the same browser shared nothing. The recorder now mints ONE
+ * random id per browser profile and repeats it on every meta-bearing
+ * chunk; the header stores it so the list can say "this visitor came back
+ * three times" and the player can offer "other sessions from this
+ * visitor".
+ */
+describe("SessionReplayIngestService.processFromQueue - anonymous visitor id", () => {
+  const VISITOR_ID: string = "3f1a9c7e5b2d4801f6a3c9e7b1d5028f";
+  const OTHER_VISITOR_ID: string = "9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e";
+
+  function metaWithVisitorId(visitorId: string): SessionReplayChunkMeta {
+    return { ...buildEnvelope().meta!, visitorId: visitorId };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  test("the header row written for chunk 0 carries the visitor id", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0, meta: metaWithVisitorId(VISITOR_ID) }]),
+      ),
+    );
+
+    const headers: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0]!["visitorId"]).toBe(VISITOR_ID);
+  });
+
+  /*
+   * The point of the feature. captureUserIdentity gates identifiedUserRef
+   * and the traits because they are what the HOST PAGE said about a
+   * person; the visitor id is a random token the recorder minted for
+   * itself, carries no identity and resolves to nothing outside the table,
+   * so it is stored under the ordinary session ACL whatever the switch
+   * says. The switch is off by default, and an application that leaves it
+   * off is exactly the anonymous case the id exists to group.
+   */
+  test("the visitor id is stored even when the application has identity capture off", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: false }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            meta: {
+              ...metaWithVisitorId(VISITOR_ID),
+              identifiedUserRef: "user-42@acme.test",
+            },
+          },
+        ]),
+      ),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["visitorId"]).toBe(VISITOR_ID);
+
+    /* While the identity beside it is still refused, as before. */
+    expect(header["identifiedUserKey"]).toBe("");
+    expect(header["identifiedUserLabel"]).toBe("");
+    expect(JSON.stringify(header)).not.toContain("acme.test");
+  });
+
+  test("a later header version whose meta lacks the visitor id keeps the one chunk 0 carried", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0, meta: metaWithVisitorId(VISITOR_ID) }]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]!["visitorId"]).toBe(VISITOR_ID);
+
+    submitMock.mockClear();
+
+    /*
+     * The final chunk writes a header version of its own, and the list
+     * reads argMax(col, version) - so if this version carried "" (the
+     * fixture's default meta has no visitorId: an older recorder, or a
+     * hand-crafted POST) the session would silently drop out of its
+     * visitor's group the moment it ended. The carry in Redis is what
+     * keeps it.
+     */
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 9, isFinal: true }])),
+    );
+
+    const finalHeaders: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(finalHeaders).toHaveLength(1);
+    expect(finalHeaders[0]!["sealedReason"]).toBe("final-chunk");
+    expect(finalHeaders[0]!["visitorId"]).toBe(VISITOR_ID);
+  });
+
+  test("first non-empty wins: a later chunk cannot re-file the session under another visitor", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0, meta: metaWithVisitorId(VISITOR_ID) }]),
+      ),
+    );
+
+    submitMock.mockClear();
+
+    /* Tags make this mid-session chunk write a header version. */
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 5,
+            meta: {
+              ...metaWithVisitorId(OTHER_VISITOR_ID),
+              tags: { experiment: "b" },
+            },
+          },
+        ]),
+      ),
+    );
+
+    const laterHeaders: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(laterHeaders).toHaveLength(1);
+    expect(laterHeaders[0]!["tags"]).toEqual({ experiment: "b" });
+    expect(laterHeaders[0]!["visitorId"]).toBe(VISITOR_ID);
+  });
+
+  test("a visitor id the recorder could not have minted never reaches the row, and never refuses the chunk", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            meta: metaWithVisitorId(VISITOR_ID.toUpperCase()),
+          },
+        ]),
+      ),
+    );
+
+    /* The recording is not lost over a bad optional field. */
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["visitorId"]).toBe("");
+    expect(JSON.stringify(header)).not.toContain(VISITOR_ID.toUpperCase());
+  });
+
+  test("an envelope from a recorder that predates the visitor id yields an empty column", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["visitorId"]).toBe("");
+  });
+});
+
+/*
+ * Ended tabs are registered for early finalization.
+ *
+ * github.com/OneUptime/oneuptime/issues/3642: after a user closed the tab,
+ * the sessions table kept saying "Recording now" for 10-15 minutes. The
+ * recorder DID send a final chunk on pagehide, but ingest registered it in
+ * replay:active:<projectId> exactly like any other chunk, so the finalizer
+ * could only notice the tab was gone by waiting out its 10-minute idle
+ * window on a 5-minute cron. The final chunk now also lands in
+ * replay:ended:<projectId>, under the same member and the SAME score, which
+ * is what the every-minute ended-session finalizer reads and compares.
+ */
+describe("SessionReplayIngestService.processFromQueue - ended tabs for early finalization", () => {
+  const ACTIVE_KEY: string = `replay:active:${PROJECT_ID.toString()}`;
+  const ENDED_KEY: string = `replay:ended:${PROJECT_ID.toString()}`;
+  const TTL_SECONDS: number = 6 * 60 * 60;
+
+  const SESSION_A: string = "a".repeat(32);
+  const SESSION_B: string = "c".repeat(32);
+  const SESSION_C: string = "d".repeat(32);
+
+  const loggerWarnMock: MockedFn = logger.warn as unknown as MockedFn;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    zaddMock.mockReset();
+    expireMock.mockReset();
+    saddMock.mockReset();
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  /*
+   * Undo the Date.now spy, and the per-test Redis failure implementations,
+   * so nothing here leaks into a describe added after this one.
+   */
+  afterEach(() => {
+    jest.restoreAllMocks();
+    zaddMock.mockReset();
+    expireMock.mockReset();
+    saddMock.mockReset();
+  });
+
+  /* Every ZADD made against one key, in call order. */
+  function getZaddCallsFor(key: string): Array<Array<unknown>> {
+    return zaddMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return call[0] === key;
+    });
+  }
+
+  /*
+   * The single ZADD against a key, decoded from its flat
+   * [score, member, score, member, ...] argument list. Fails the test if
+   * the key was written more than once, since one multi-member ZADD per
+   * key per job is part of the contract.
+   */
+  function getZaddedMembers(key: string): Map<string, number> {
+    const calls: Array<Array<unknown>> = getZaddCallsFor(key);
+
+    expect(calls).toHaveLength(1);
+
+    const args: Array<unknown> = calls[0]!.slice(1);
+    const members: Map<string, number> = new Map<string, number>();
+
+    expect(args.length % 2).toBe(0);
+
+    for (let i: number = 0; i < args.length; i += 2) {
+      expect(typeof args[i]).toBe("number");
+      expect(typeof args[i + 1]).toBe("string");
+      expect(members.has(args[i + 1] as string)).toBe(false);
+
+      members.set(args[i + 1] as string, args[i] as number);
+    }
+
+    return members;
+  }
+
+  /*
+   * Date.now() hands out a DIFFERENT value on every call, so a
+   * regression that stamps the ended set with its own Date.now() (rather
+   * than reusing the active ZADD's score) produces scores that disagree
+   * and fails the equality assertions, instead of passing by luck inside
+   * one millisecond.
+   */
+  function makeClockTickOnEveryRead(): void {
+    let now: number = 1_900_000_000_000;
+
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      now += 7;
+      return now;
+    });
+  }
+
+  function getWarnings(): Array<string> {
+    return loggerWarnMock.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .filter((message: unknown): message is string => {
+        return typeof message === "string";
+      });
+  }
+
+  describe("which tabs are registered as ended", () => {
+    test("REGRESSION: a final chunk writes both sets, with an identical member and score", async () => {
+      makeClockTickOnEveryRead();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 7, tabId: "tab-1", isFinal: true }]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+      const member: string = `${SESSION_A}:tab-1`;
+
+      expect([...active.keys()]).toEqual([member]);
+      expect([...ended.keys()]).toEqual([member]);
+      expect(ended.get(member)).toBe(active.get(member));
+    });
+
+    test("a single-chunk session that closes on chunk 0 is registered as ended", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, tabId: "tab-1", isFinal: true }]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+    });
+
+    test("a non-final chunk writes only the active set", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0, tabId: "tab-1" },
+            { chunkIndex: 1, tabId: "tab-1" },
+          ]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ACTIVE_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+      expect(zaddMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a mixed batch of sessions and tabs lists only the final ones as ended, all under one score", async () => {
+      makeClockTickOnEveryRead();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            /* Session A, tab 1: closed. */
+            { sessionId: SESSION_A, tabId: "tab-1", chunkIndex: 3 },
+            {
+              sessionId: SESSION_A,
+              tabId: "tab-1",
+              chunkIndex: 4,
+              isFinal: true,
+            },
+            /* Session A, tab 2: the same session still open in another tab. */
+            { sessionId: SESSION_A, tabId: "tab-2", chunkIndex: 9 },
+            /* Session B, one tab: closed. */
+            {
+              sessionId: SESSION_B,
+              tabId: "tab-3",
+              chunkIndex: 12,
+              isFinal: true,
+            },
+            /* Session C, one tab: still recording. */
+            { sessionId: SESSION_C, tabId: "tab-4", chunkIndex: 0 },
+          ]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+
+      expect([...active.keys()].sort()).toEqual(
+        [
+          `${SESSION_A}:tab-1`,
+          `${SESSION_A}:tab-2`,
+          `${SESSION_B}:tab-3`,
+          `${SESSION_C}:tab-4`,
+        ].sort(),
+      );
+      expect([...ended.keys()].sort()).toEqual(
+        [`${SESSION_A}:tab-1`, `${SESSION_B}:tab-3`].sort(),
+      );
+
+      /* Every member of both sets carries the one score of this job. */
+      const scores: Set<number> = new Set<number>([
+        ...active.values(),
+        ...ended.values(),
+      ]);
+
+      expect(scores.size).toBe(1);
+    });
+
+    test("an ended member is always also an active member", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { sessionId: SESSION_A, tabId: "tab-1", isFinal: true },
+            { sessionId: SESSION_B, tabId: "tab-2", isFinal: true },
+            { sessionId: SESSION_B, tabId: "tab-3" },
+          ]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+
+      for (const member of getZaddedMembers(ENDED_KEY).keys()) {
+        expect(active.has(member)).toBe(true);
+      }
+    });
+
+    test("a tab's final chunk sent twice in one body is ONE ended member", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 5, tabId: "tab-1", isFinal: true },
+            /* A catch-up request re-sending the same final chunk. */
+            { chunkIndex: 5, tabId: "tab-1", isFinal: true },
+            { chunkIndex: 6, tabId: "tab-1", isFinal: true },
+          ]),
+        ),
+      );
+
+      /* getZaddedMembers itself fails on a repeated member. */
+      expect(getZaddedMembers(ACTIVE_KEY).size).toBe(1);
+      expect(getZaddedMembers(ENDED_KEY).size).toBe(1);
+    });
+
+    test("two tabs sharing a session id are two ended members, not one", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 2, tabId: "tab-1", isFinal: true },
+            { chunkIndex: 8, tabId: "tab-2", isFinal: true },
+          ]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ENDED_KEY).keys()].sort()).toEqual(
+        [`${SESSION_A}:tab-1`, `${SESSION_A}:tab-2`].sort(),
+      );
+    });
+
+    test("a re-delivered job re-registers the tab as ended under a fresh score", async () => {
+      makeClockTickOnEveryRead();
+
+      const jobData: SessionReplayIngestJobData = buildJobData(
+        buildBody([{ chunkIndex: 4, tabId: "tab-1", isFinal: true }]),
+      );
+
+      await SessionReplayIngestService.processFromQueue(jobData);
+
+      const firstScore: number = getZaddedMembers(ENDED_KEY).get(
+        `${SESSION_A}:tab-1`,
+      )!;
+
+      zaddMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(jobData);
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+      const member: string = `${SESSION_A}:tab-1`;
+
+      expect(ended.get(member)).toBe(active.get(member));
+      expect(ended.get(member)).toBeGreaterThan(firstScore);
+    });
+  });
+
+  /*
+   * A tab that reached the per-session chunk cap.
+   *
+   * The recorder's truncation seal is minted index
+   * MAX_SESSION_REPLAY_CHUNKS_PER_SESSION, which the gate and the worker
+   * both refuse, and the recorder then shuts down, so closing the tab later
+   * sends nothing either. The chunk at the LAST PERMITTED index is the last
+   * row the tab will ever have, and the shared rule
+   * (Common/Utils/Rum/SessionReplayRecordingEnded) counts a tab that stored
+   * it as ended. Before this, such a tab had no ended member at all and kept
+   * "Recording now" for the whole idle window.
+   */
+  describe("a tab's last permitted chunk index is registered as ended", () => {
+    const LAST_PERMITTED_INDEX: number =
+      MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1;
+
+    test("REGRESSION: a NON-final chunk at the last permitted index writes both sets, with an identical member and score", async () => {
+      makeClockTickOnEveryRead();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: LAST_PERMITTED_INDEX, tabId: "tab-1" }]),
+        ),
+      );
+
+      const active: Map<string, number> = getZaddedMembers(ACTIVE_KEY);
+      const ended: Map<string, number> = getZaddedMembers(ENDED_KEY);
+      const member: string = `${SESSION_A}:tab-1`;
+
+      expect(LAST_PERMITTED_INDEX).toBe(479);
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...active.keys()]).toEqual([member]);
+      expect([...ended.keys()]).toEqual([member]);
+      expect(ended.get(member)).toBe(active.get(member));
+      expect(expireMock).toHaveBeenCalledWith(ENDED_KEY, TTL_SECONDS);
+    });
+
+    test("a non-final chunk one index short of it (478) writes only the active set", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: LAST_PERMITTED_INDEX - 1, tabId: "tab-1" }]),
+        ),
+      );
+
+      expect(LAST_PERMITTED_INDEX - 1).toBe(478);
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...getZaddedMembers(ACTIVE_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+    });
+
+    test("in one body, only the tab that reached the last permitted index is listed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: LAST_PERMITTED_INDEX - 1, tabId: "tab-1" },
+            { chunkIndex: LAST_PERMITTED_INDEX, tabId: "tab-2" },
+            { chunkIndex: 12, tabId: "tab-3" },
+          ]),
+        ),
+      );
+
+      expect(getZaddedMembers(ACTIVE_KEY).size).toBe(3);
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-2`,
+      ]);
+    });
+
+    test("a tab whose last permitted chunk is also its final chunk is ONE ended member", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: LAST_PERMITTED_INDEX - 1, tabId: "tab-1" },
+            {
+              chunkIndex: LAST_PERMITTED_INDEX,
+              tabId: "tab-1",
+              isFinal: true,
+            },
+          ]),
+        ),
+      );
+
+      /* getZaddedMembers itself fails on a repeated member. */
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+    });
+
+    test("the refused truncation seal past the cap does not stop the last permitted chunk beside it from being listed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: LAST_PERMITTED_INDEX, tabId: "tab-1" },
+            /* The recorder's disclosure chunk: dropped as session-chunk-cap. */
+            {
+              chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+              tabId: "tab-1",
+              isFinal: true,
+            },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+    });
+
+    test("a last-permitted-index chunk that was dropped is not listed", async () => {
+      (isSessionErased as jest.Mock).mockImplementation(((data: {
+        sessionId: string;
+      }): Promise<boolean> => {
+        return Promise.resolve(data.sessionId === SESSION_A);
+      }) as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              sessionId: SESSION_A,
+              chunkIndex: LAST_PERMITTED_INDEX,
+              tabId: "tab-1",
+            },
+            { sessionId: SESSION_B, chunkIndex: 3, tabId: "tab-2" },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+    });
+  });
+
+  /*
+   * Only final frames that became chunk rows are listed. A dropped one left
+   * nothing in ClickHouse for the finalizer to find, while the active
+   * registration keeps covering every frame, as it always has.
+   */
+  describe("a final frame that was dropped is not listed as ended", () => {
+    test("a consent-dropped final frame is left out, while a written one beside it is listed", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              sessionId: SESSION_A,
+              tabId: "tab-1",
+              isFinal: true,
+              consentState: "Unknown",
+            },
+            {
+              sessionId: SESSION_B,
+              tabId: "tab-2",
+              isFinal: true,
+              consentState: "Granted",
+            },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_B}:tab-2`,
+      ]);
+      /* Unchanged: the active registration still names every frame. */
+      expect(getZaddedMembers(ACTIVE_KEY).size).toBe(2);
+    });
+
+    test("a final frame over the per-session chunk cap is left out, and the ended set is not touched", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 3, tabId: "tab-1" },
+            {
+              chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+              tabId: "tab-2",
+              isFinal: true,
+            },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ACTIVE_KEY)).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+    });
+
+    test("an incompletely scrubbed final frame is left out", async () => {
+      scrubEventsMock.mockResolvedValueOnce({
+        isComplete: false,
+        nodesVisited: 1,
+        stringsScrubbed: 0,
+        skippedOversizedStrings: 0,
+        skippedStructuralStrings: 0,
+        truncatedAtDepth: true,
+      } as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            /* Scrubbed first, and incomplete: dropped. */
+            { chunkIndex: 6, tabId: "tab-1", isFinal: true },
+            { chunkIndex: 2, tabId: "tab-2" },
+          ]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+    });
+
+    test("an erased session's final frame is left out", async () => {
+      (isSessionErased as jest.Mock).mockImplementation(((data: {
+        sessionId: string;
+      }): Promise<boolean> => {
+        return Promise.resolve(data.sessionId === SESSION_A);
+      }) as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { sessionId: SESSION_A, tabId: "tab-1", isFinal: true },
+            { sessionId: SESSION_B, tabId: "tab-2", isFinal: true },
+          ]),
+        ),
+      );
+
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_B}:tab-2`,
+      ]);
+    });
+
+    test("a job whose every frame was dropped registers nothing at all", async () => {
+      (isSessionErased as jest.Mock).mockResolvedValue(true as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(zaddMock).not.toHaveBeenCalled();
+      expect(expireMock).not.toHaveBeenCalled();
+      expect(saddMock).not.toHaveBeenCalled();
+    });
+
+    test("a rejected flush registers the final chunk in neither set", async () => {
+      const flushed: Promise<void> = Promise.reject(
+        new Error("clickhouse refused the insert"),
+      );
+      flushed.catch((): void => {
+        /* Pre-observed only. */
+      });
+      submitMock.mockResolvedValue({ flushed: flushed } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).rejects.toThrow();
+
+      expect(zaddMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("key housekeeping", () => {
+    test("the TTL is refreshed on both keys, to the active set's TTL", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(expireMock).toHaveBeenCalledWith(ACTIVE_KEY, TTL_SECONDS);
+      expect(expireMock).toHaveBeenCalledWith(ENDED_KEY, TTL_SECONDS);
+      expect(expireMock).toHaveBeenCalledTimes(2);
+    });
+
+    test("the project is still added to the finalizer's index", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(saddMock).toHaveBeenCalledTimes(1);
+      expect(saddMock).toHaveBeenCalledWith(
+        "replay:active:projects",
+        PROJECT_ID.toString(),
+      );
+    });
+
+    /*
+     * The finalizer's project-index reconcile SCANs replay:active:* and
+     * reads every match as a project's active set, so the ended key must
+     * not live under that prefix.
+     */
+    test("the ended key is outside the replay:active: prefix", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      const writtenKeys: Array<unknown> = zaddMock.mock.calls.map(
+        (call: Array<unknown>): unknown => {
+          return call[0];
+        },
+      );
+
+      expect(writtenKeys).toEqual([ACTIVE_KEY, ENDED_KEY]);
+      expect(ENDED_KEY.startsWith("replay:active:")).toBe(false);
+    });
+
+    test("the active set is written before the ended set", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      expect(zaddMock.mock.invocationCallOrder).toHaveLength(2);
+      expect(zaddMock.mock.calls[0]![0]).toBe(ACTIVE_KEY);
+      expect(zaddMock.mock.calls[1]![0]).toBe(ENDED_KEY);
+    });
+  });
+
+  describe("best-effort: Redis failures never fail the job", () => {
+    test("a failed active ZADD is swallowed and logged, and no orphan ended member is written", async () => {
+      zaddMock.mockRejectedValueOnce(new Error("READONLY replica") as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      /* The rows landed; only the registration was lost. */
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(0);
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("could not register active sessions") &&
+            message.includes(PROJECT_ID.toString())
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("a failed ended ZADD is swallowed and logged, and the active registration stands", async () => {
+      zaddMock.mockImplementation(((key: string): Promise<number> => {
+        if (key === ENDED_KEY) {
+          return Promise.reject(new Error("OOM command not allowed"));
+        }
+
+        return Promise.resolve(1);
+      }) as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(getZaddCallsFor(ACTIVE_KEY)).toHaveLength(1);
+      expect(expireMock).toHaveBeenCalledWith(ACTIVE_KEY, TTL_SECONDS);
+      expect(saddMock).toHaveBeenCalledTimes(1);
+      /* The TTL refresh after the failed ZADD is skipped, not attempted. */
+      expect(expireMock).not.toHaveBeenCalledWith(ENDED_KEY, expect.anything());
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("could not register ended sessions") &&
+            message.includes(PROJECT_ID.toString())
+          );
+        }),
+      ).toBe(true);
+    });
+
+    /*
+     * The warning used to promise "finalized on the idle window instead".
+     * That is not what happens when the same session has another tab with a
+     * candidate: that tab's check reads THIS tab's rows too, and finalizes
+     * the session early once the grace (measured on the rows, not on Redis)
+     * has passed. An operator reading the log must not be misled about
+     * which path will pick the session up.
+     */
+    test("REGRESSION: the failed ended ZADD warning names both the other-tab path and the idle window", async () => {
+      zaddMock.mockImplementation(((key: string): Promise<number> => {
+        if (key === ENDED_KEY) {
+          return Promise.reject(new Error("OOM command not allowed"));
+        }
+
+        return Promise.resolve(1);
+      }) as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+      );
+
+      const endedWarnings: Array<string> = getWarnings().filter(
+        (message: string): boolean => {
+          return message.includes("could not register ended sessions");
+        },
+      );
+
+      expect(endedWarnings).toHaveLength(1);
+      expect(endedWarnings[0]).toContain("another tab of the same session");
+      expect(endedWarnings[0]).toContain("idle window");
+      expect(endedWarnings[0]).not.toContain("on the idle window instead");
+    });
+
+    test("a failed project-index SADD still lets the ended tab be listed", async () => {
+      saddMock.mockRejectedValueOnce(new Error("connection reset") as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      /* The active member landed, so its ended twin may too. */
+      expect([...getZaddedMembers(ENDED_KEY).keys()]).toEqual([
+        `${SESSION_A}:tab-1`,
+      ]);
+      expect(loggerWarnMock).toHaveBeenCalled();
+    });
+
+    test("a failed ended TTL refresh is swallowed too", async () => {
+      expireMock.mockImplementation(((key: string): Promise<number> => {
+        if (key === ENDED_KEY) {
+          return Promise.reject(new Error("timeout"));
+        }
+
+        return Promise.resolve(1);
+      }) as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(getZaddCallsFor(ENDED_KEY)).toHaveLength(1);
+    });
+
+    /*
+     * This used to return silently, leaving an operator with a stuck
+     * "Recording now" badge and nothing in the logs to explain it.
+     */
+    test("a disconnected Redis writes nothing and logs a warning naming the project and the sweep", async () => {
+      redisConnected = false;
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ tabId: "tab-1", isFinal: true }])),
+        ),
+      ).resolves.toBeUndefined();
+
+      /* The recording itself is still written. */
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+
+      expect(zaddMock).not.toHaveBeenCalled();
+      expect(expireMock).not.toHaveBeenCalled();
+      expect(saddMock).not.toHaveBeenCalled();
+
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("Redis is not connected") &&
+            message.includes(PROJECT_ID.toString()) &&
+            message.includes("never-finalized sweep")
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("a disconnected Redis warns for a non-final chunk as well", async () => {
+      redisConnected = false;
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, tabId: "tab-1" }])),
+      );
+
+      expect(
+        getWarnings().some((message: string): boolean => {
+          return (
+            message.includes("Redis is not connected") &&
+            message.includes(PROJECT_ID.toString())
+          );
+        }),
+      ).toBe(true);
+    });
+  });
+});
+
+/*
+ * Recorders escape `%`, `&` and `http/` in every envelope and event, and put
+ * a space before each frame's newline, so a customer's web application
+ * firewall does not take a chunk for a smuggled HTTP request (CRS 921110).
+ * None of that may survive into what is stored: the worker JSON.parses the
+ * payload and re-serialises it, and the envelope is parsed the same way.
+ */
+describe("SessionReplayIngestService.processFromQueue - frames written for a web application firewall", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordRefusalMock.mockResolvedValue(undefined as never);
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  const EVENTS: Array<unknown> = [
+    { type: 2, timestamp: 1, data: { text: "50% off & more" } },
+    {
+      type: 3,
+      timestamp: 2,
+      data: {
+        href: "https://docs.example.com/a%20b?c=1&d=2",
+        text: "GET / HTTP/1.1",
+      },
+    },
+  ];
+
+  function encodedFrame(
+    overrides: Partial<SessionReplayChunkEnvelope>,
+    encoding: "gzip" | "identity",
+  ): Buffer {
+    const text: string = `[${EVENTS.map((event: unknown): string => {
+      return SessionReplayWireEncoding.escapeJson(JSON.stringify(event));
+    }).join(",")}]`;
+
+    expect(text).not.toMatch(/[%&]|http\//i);
+
+    const payload: Buffer =
+      encoding === "gzip"
+        ? zlib.gzipSync(new Uint8Array(Buffer.from(text)))
+        : Buffer.from(text);
+
+    const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+      ...overrides,
+      payloadEncoding: encoding,
+      payloadBytes: payload.length,
+    });
+
+    return Buffer.concat([
+      new Uint8Array(
+        Buffer.from(SessionReplayWireEncoding.encodeEnvelopeLine(envelope)),
+      ),
+      new Uint8Array(payload),
+    ]);
+  }
+
+  test("a gzip chunk is stored as the page's own text, with no escapes left", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        encodedFrame(
+          {
+            chunkIndex: 0,
+            url: "https://shop.example.com/widget%20list",
+            meta: {
+              ...buildEnvelope().meta!,
+              tags: { plan: "Budget & Co" },
+            },
+          },
+          "gzip",
+        ),
+      ),
+    );
+
+    const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+    expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
+    expect(chunk["url"]).toBe("https://shop.example.com/widget%20list");
+    expect(getSubmittedRows("RumSessionV1")[0]!["tags"]).toEqual({
+      plan: "Budget & Co",
+    });
+  });
+
+  test("a terminal flush of several identity frames stores every one decoded", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        Buffer.concat([
+          new Uint8Array(encodedFrame({ chunkIndex: 0 }, "identity")),
+          new Uint8Array(encodedFrame({ chunkIndex: 1 }, "identity")),
+          new Uint8Array(
+            encodedFrame({ chunkIndex: 2, isFinal: true }, "identity"),
+          ),
+        ]),
+      ),
+    );
+
+    const chunks: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+    expect(chunks).toHaveLength(3);
+
+    for (const chunk of chunks) {
+      expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
+    }
+  });
+});

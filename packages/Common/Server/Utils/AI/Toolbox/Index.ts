@@ -1,0 +1,392 @@
+import { JSONObject } from "../../../../Types/JSON";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../../../Types/Permission";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import { LLMToolDefinition } from "../../LLM/LLMService";
+import logger from "../../Logger";
+import {
+  ObservabilityTool,
+  ToolContext,
+  ToolExecutionResult,
+} from "./ToolTypes";
+import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
+import { QueryAlertsTool } from "./AlertTools";
+import { QueryMonitorsTool } from "./MonitorTools";
+import { QueryRumApplicationsTool, QueryRumWebVitalsTool } from "./RumTools";
+import {
+  QueryTelemetryResourcesTool,
+  QueryResourceTelemetryTool,
+} from "./ResourceTools";
+import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
+import {
+  GetOnCallStatusTool,
+  QueryOnCallPagesTool,
+  QueryOnCallPoliciesTool,
+} from "./OnCallTools";
+import {
+  QueryStatusPageAnnouncementsTool,
+  QueryStatusPagesTool,
+} from "./StatusPageTools";
+import { QuerySlosTool } from "./SloTools";
+import { QueryRunbooksTool } from "./RunbookTools";
+import { GetAlertTimelineTool, GetIncidentTimelineTool } from "./TimelineTools";
+import {
+  GetAIInvestigationTool,
+  QueryAIInsightsTool,
+  StartInvestigationTool,
+} from "./AIMetaTools";
+import { QueryProbesTool, QueryWorkflowsTool } from "./WorkflowProbeTools";
+import { QueryTeamsTool } from "./TeamTools";
+import { CreateAlertNoteTool, CreateIncidentNoteTool } from "./NoteWriteTools";
+import { TopExceptionsTool } from "./ExceptionTools";
+import { LogHistogramTool, SearchLogsTool } from "./LogTools";
+import {
+  SearchSecurityEventsTool,
+  SecurityEventSummaryTool,
+} from "./SecurityEventTools";
+import { RecentChangesTool } from "./RecentChangesTools";
+import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
+import { GetTraceTool, QueryTracesTool } from "./TraceTools";
+import { LookupContextTool } from "./ContextTools";
+import {
+  FindCodeForExceptionTool,
+  ListCodeRepositoriesTool,
+  ReadCodeFileTool,
+  SearchCodeTool,
+} from "./CodeTools";
+import {
+  CommitCodeToBranchTool,
+  OpenCodePullRequestTool,
+} from "./CodeWriteTools";
+import {
+  AcknowledgeIncidentTool,
+  CreateIncidentTool,
+  ResolveIncidentTool,
+} from "./IncidentWriteTools";
+import { AcknowledgeAlertTool, ResolveAlertTool } from "./AlertWriteTools";
+import {
+  PageOnCallPolicyTool,
+  RunRunbookTool,
+  PostIncidentStatusUpdateTool,
+  ChangeIncidentSeverityTool,
+} from "./AIActionTools";
+import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
+
+export interface ToolCallOutcome {
+  success: boolean;
+  /*
+   * What goes back to the LLM: serialized data, or an error envelope the
+   * model can self-correct from.
+   */
+  textForLlm: string;
+  result?: ToolExecutionResult | undefined;
+  errorMessage?: string | undefined;
+}
+
+const TOOL_EXECUTION_TIMEOUT_MS: number = 45 * 1000;
+
+/*
+ * The curated tool belt for AI features (chat today, the Investigation Engine
+ * later). Read tools wrap an existing deterministic query; write tools mutate
+ * the project (create/acknowledge/resolve). Every tool executes under the
+ * requesting user's permission props, and write tools are additionally gated by
+ * the conversation's permission mode (see ChatAgentRunner).
+ */
+export default class AIToolbox {
+  private static readonly tools: Array<ObservabilityTool> = [
+    LookupContextTool,
+    QueryIncidentsTool,
+    SearchIncidentsTool,
+    GetIncidentTimelineTool,
+    GetAlertTimelineTool,
+    QueryAlertsTool,
+    QueryMonitorsTool,
+    QueryRumApplicationsTool,
+    QueryRumWebVitalsTool,
+    QueryTelemetryResourcesTool,
+    QueryResourceTelemetryTool,
+    QueryScheduledMaintenanceTool,
+    /*
+     * Platform reads: the operational surface an on-call product exists to
+     * answer questions about — who is on call, what does the runbook say,
+     * what do customers see, is the error budget burning.
+     */
+    QueryOnCallPoliciesTool,
+    GetOnCallStatusTool,
+    QueryOnCallPagesTool,
+    QueryStatusPagesTool,
+    QueryStatusPageAnnouncementsTool,
+    QuerySlosTool,
+    QueryRunbooksTool,
+    QueryWorkflowsTool,
+    QueryProbesTool,
+    QueryTeamsTool,
+    /*
+     * The AI's own prior work: autonomous investigation results and insight
+     * findings. Chat reads these first instead of re-deriving a root cause
+     * the platform already posted.
+     */
+    GetAIInvestigationTool,
+    QueryAIInsightsTool,
+    TopExceptionsTool,
+    SearchLogsTool,
+    SearchSecurityEventsTool,
+    SecurityEventSummaryTool,
+    LogHistogramTool,
+    QueryMetricsTool,
+    BaselineAnomalyTool,
+    QueryTracesTool,
+    GetTraceTool,
+    RecentChangesTool,
+    /*
+     * Source code (read-only). Closes the loop from a telemetry signal to the
+     * code that produced it — see CodeTools for the narrower trust posture.
+     */
+    ListCodeRepositoriesTool,
+    FindCodeForExceptionTool,
+    SearchCodeTool,
+    ReadCodeFileTool,
+    // Write tools (mutations). Gated by conversation permission mode.
+    CreateIncidentTool,
+    AcknowledgeIncidentTool,
+    ResolveIncidentTool,
+    AcknowledgeAlertTool,
+    ResolveAlertTool,
+    // AI action belt (Phase 0) — operate the platform, not just answer.
+    PageOnCallPolicyTool,
+    RunRunbookTool,
+    PostIncidentStatusUpdateTool,
+    ChangeIncidentSeverityTool,
+    // Private notes (never notify status-page subscribers) + investigations.
+    CreateIncidentNoteTool,
+    CreateAlertNoteTool,
+    StartInvestigationTool,
+    /*
+     * Code writes (mutations). These never touch the default or a protected
+     * branch — every chat-authored commit lands somewhere a human must still
+     * merge from. See CodeWriteTools for why that invariant is load-bearing.
+     */
+    OpenCodePullRequestTool,
+    CommitCodeToBranchTool,
+  ];
+
+  public static getTools(): Array<ObservabilityTool> {
+    return this.tools;
+  }
+
+  // LLM tool definitions cached per permission mode (ReadOnly hides mutations).
+  private static llmToolDefinitionsByMode: Map<
+    AIChatPermissionMode,
+    Array<LLMToolDefinition>
+  > = new Map();
+
+  public static getToolByName(name: string): ObservabilityTool | undefined {
+    return this.tools.find((tool: ObservabilityTool) => {
+      return tool.name === name;
+    });
+  }
+
+  public static isMutationTool(name: string): boolean {
+    const tool: ObservabilityTool | undefined = this.getToolByName(name);
+    return Boolean(tool?.isMutation);
+  }
+
+  /*
+   * The tool definitions offered to the model for a given permission mode. In
+   * ReadOnly mode the mutating tools are withheld entirely, so the model never
+   * even proposes an action it isn't allowed to take.
+   */
+  public static getLlmToolDefinitions(
+    mode: AIChatPermissionMode,
+  ): Array<LLMToolDefinition> {
+    const cached: Array<LLMToolDefinition> | undefined =
+      this.llmToolDefinitionsByMode.get(mode);
+    if (cached) {
+      return cached;
+    }
+
+    const includeMutations: boolean = mode !== AIChatPermissionMode.ReadOnly;
+
+    const definitions: Array<LLMToolDefinition> = this.tools
+      .filter((tool: ObservabilityTool) => {
+        return includeMutations || !tool.isMutation;
+      })
+      .map((tool: ObservabilityTool) => {
+        return {
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+        };
+      });
+
+    this.llmToolDefinitionsByMode.set(mode, definitions);
+    return definitions;
+  }
+
+  /*
+   * The grants hasPermissionForTool consults are the caller's grants in
+   * props.tenantId, while every tool scopes its query by ctx.projectId — and
+   * for the raw-SQL aggregation tools that projectId is the ONLY scope. So
+   * for a non-root caller the two must name the same single project, or one
+   * project's grants would authorize a query against another. A multi-tenant
+   * request is refused for the same reason: its tenant permissions span every
+   * project the user belongs to rather than the one the tool will query.
+   */
+  public static isContextScopedToOneProject(ctx: ToolContext): boolean {
+    if (ctx.props.isRoot || ctx.props.isMasterAdmin) {
+      return true;
+    }
+
+    if (ctx.props.isMultiTenantRequest) {
+      return false;
+    }
+
+    if (!ctx.props.tenantId || !ctx.projectId) {
+      return false;
+    }
+
+    return ctx.props.tenantId.toString() === ctx.projectId.toString();
+  }
+
+  public static hasPermissionForTool(
+    tool: ObservabilityTool,
+    ctx: ToolContext,
+    args?: JSONObject,
+  ): boolean {
+    if (ctx.props.isRoot || ctx.props.isMasterAdmin) {
+      return true;
+    }
+
+    if (!this.isContextScopedToOneProject(ctx)) {
+      return false;
+    }
+
+    /*
+     * Fail closed on block permissions: if any of the tool's permissions is
+     * block-listed for this user, deny the tool outright. This is coarser
+     * than the label-scoped block filtering the model layer applies, but the
+     * raw-SQL aggregation tools have no model layer — this gate is their
+     * only authorization.
+     */
+    const blockedPermissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        ctx.props,
+        PermissionType.Block,
+      ).map((userPermission: UserPermission) => {
+        return userPermission.permission;
+      });
+
+    const userPermissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        ctx.props,
+        PermissionType.Allow,
+      ).map((userPermission: UserPermission) => {
+        return userPermission.permission;
+      });
+
+    const groups: Array<Array<Permission>> =
+      args !== undefined && tool.getRequiredPermissionGroups
+        ? tool.getRequiredPermissionGroups(args)
+        : [tool.requiredPermissions];
+    return (
+      groups.length > 0 &&
+      groups.every((group: Array<Permission>): boolean => {
+        return (
+          group.length > 0 &&
+          !PermissionHelper.doesPermissionsIntersect(
+            blockedPermissions,
+            group,
+          ) &&
+          PermissionHelper.doesPermissionsIntersect(userPermissions, group)
+        );
+      })
+    );
+  }
+
+  public static async executeTool(data: {
+    name: string;
+    args: JSONObject;
+    ctx: ToolContext;
+  }): Promise<ToolCallOutcome> {
+    const tool: ObservabilityTool | undefined = this.getToolByName(data.name);
+
+    if (!tool) {
+      return {
+        success: false,
+        textForLlm: `Error: unknown tool "${data.name}". Available tools: ${this.tools
+          .map((availableTool: ObservabilityTool) => {
+            return availableTool.name;
+          })
+          .join(", ")}.`,
+        errorMessage: `Unknown tool: ${data.name}`,
+      };
+    }
+
+    // Checked first so the refusal names the real problem, not a permission.
+    if (!this.isContextScopedToOneProject(data.ctx)) {
+      return {
+        success: false,
+        textForLlm: `Error: ${data.name} can only run inside the single project this request is authorized for. Answer with the data you already have.`,
+        errorMessage: `Permission denied for tool: ${data.name} (the request is not scoped to this project)`,
+      };
+    }
+
+    /*
+     * Tool JSON is untrusted at runtime even though callers are typed. Check
+     * the envelope before argument-dependent permission functions read it.
+     */
+    if (
+      !data.args ||
+      typeof data.args !== "object" ||
+      Array.isArray(data.args)
+    ) {
+      return {
+        success: false,
+        textForLlm: `Error: arguments for ${data.name} must be a JSON object. Adjust the arguments and try again.`,
+        errorMessage: `Invalid arguments for tool: ${data.name}; expected a JSON object`,
+      };
+    }
+
+    if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
+      return {
+        success: false,
+        textForLlm: `Error: the current user does not have permission to use ${data.name}. Answer with the data you already have, and tell the user which permission is missing.`,
+        errorMessage: `Permission denied for tool: ${data.name}`,
+      };
+    }
+
+    try {
+      const result: ToolExecutionResult = await Promise.race([
+        tool.execute(data.args, data.ctx),
+        new Promise<never>(
+          (_resolve: unknown, reject: (err: Error) => void) => {
+            setTimeout(() => {
+              reject(new Error("Tool execution timed out."));
+            }, TOOL_EXECUTION_TIMEOUT_MS);
+          },
+        ),
+      ]);
+
+      return {
+        success: true,
+        textForLlm: result.dataForLlm,
+        result: result,
+      };
+    } catch (error) {
+      const message: string =
+        error instanceof Error ? error.message : String(error);
+
+      logger.error(`AI toolbox tool ${data.name} failed: ${message}`);
+
+      return {
+        success: false,
+        textForLlm: `Error executing ${data.name}: ${message}. Adjust the arguments and try again, or answer with the data you already have.`,
+        errorMessage: message,
+      };
+    }
+  }
+}

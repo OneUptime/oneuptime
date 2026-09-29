@@ -1,0 +1,87 @@
+{
+  /*
+   * Type-checks every Enterprise UI test (this directory). It is also the
+   * "nearest tsconfig" eslint's projectService uses for them.
+   *
+   * These tests render Dashboard AND Admin Dashboard screens with Common's
+   * testing library, so they need what neither ee/tsconfig.json (server: no
+   * React, no frontend paths) nor the two ee UI tsconfigs (one frontend each,
+   * no jest) provide. Everything resolves the way the ee "ui" jest project
+   * resolves it at runtime (ee/jest.config.js): React, the testing library
+   * and jest's own types from packages/Common/node_modules, and the
+   * Enterprise plugin specifiers to the REAL ee plugins.
+   *
+   * `npm run compile` in ee/ runs it (needs packages/Common installed).
+   */
+  "compilerOptions": {
+    "target": "es2017",
+    "jsx": "react",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "es2022",
+    "moduleResolution": "node",
+    "paths": {
+      "@oneuptime/ee-dashboard": ["../../Dashboard/Index"],
+      "@oneuptime/ee-admin-dashboard": ["../../AdminDashboard/Index"],
+      "@oneuptime/dashboard/*": [
+        "../../../packages/App/FeatureSet/Dashboard/src/*"
+      ],
+      "@oneuptime/admin-dashboard/*": [
+        "../../../packages/App/FeatureSet/AdminDashboard/src/*"
+      ],
+      "Common/*": ["../../../packages/Common/*"],
+      "react": ["../../../packages/Common/node_modules/@types/react"],
+      "react-dom": ["../../../packages/Common/node_modules/@types/react-dom"],
+      "react-dom/*": [
+        "../../../packages/Common/node_modules/@types/react-dom/*"
+      ],
+      "react-router-dom": [
+        "../../../packages/Common/node_modules/react-router-dom"
+      ],
+      "react-i18next": ["../../../packages/Common/node_modules/react-i18next"],
+      "i18next": ["../../../packages/Common/node_modules/i18next"],
+      "use-async-effect": [
+        "../../../packages/Common/node_modules/use-async-effect"
+      ],
+      "reactflow": ["../../../packages/Common/node_modules/reactflow"],
+      "recharts": ["../../../packages/Common/node_modules/recharts"],
+      "recharts/*": ["../../../packages/Common/node_modules/recharts/*"],
+      "@jest/globals": ["../../../packages/Common/node_modules/@jest/globals"],
+      "expect": ["../../../packages/Common/node_modules/expect"],
+      "@testing-library/*": [
+        "../../../packages/Common/node_modules/@testing-library/*"
+      ]
+    },
+    "typeRoots": ["../../../packages/Common/node_modules/@types"],
+    "types": ["node", "jest", "testing-library__jest-dom"],
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../../../packages/Common/Typings/Index.d.ts",
+    "../../../packages/App/FeatureSet/Dashboard/index.d.ts",
+    "../../../packages/App/FeatureSet/AdminDashboard/index.d.ts"
+  ]
+}

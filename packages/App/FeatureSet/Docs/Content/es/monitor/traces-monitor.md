@@ -1,0 +1,85 @@
+# Monitor de trazas
+
+El monitoreo de trazas te permite supervisar las trazas distribuidas de tus aplicaciones y activar alertas basadas en patrones de spans, recuentos y estados. OneUptime evalúa los datos de trazas de tus servicios de telemetría en una ventana de tiempo.
+
+## Información general
+
+Los monitores de trazas buscan y cuentan los spans que coinciden con filtros específicos. Esto te permite:
+
+- Alertar sobre picos de spans de error en tus servicios
+- Monitorear operaciones y puntos de conexión específicos
+- Rastrear el volumen y los patrones de spans
+- Filtrar por estado del span, nombre y atributos personalizados
+- Detectar problemas de rendimiento y confiabilidad a partir de datos de trazas
+
+## Creación de un monitor de trazas
+
+1. Ve a **Monitores** en el panel de OneUptime
+2. Haz clic en **Crear monitor**
+3. Selecciona **Trazas** como tipo de monitor
+4. Selecciona los servicios de telemetría a monitorear
+5. Configura los filtros de spans y los criterios según sea necesario
+
+## Opciones de configuración
+
+### Servicios de telemetría
+
+Selecciona uno o más servicios desde los que monitorear trazas. Los servicios deben enviar trazas a OneUptime a través de OpenTelemetry.
+
+### Filtros de spans
+
+| Filtro            | Descripción                                                                                                | Requerido |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | --------- |
+| Estados de span   | Filtra por código de estado del span (OK, ERROR, UNSET)                                                    | No        |
+| Nombre del span   | Búsqueda de texto para nombres de span específicos (por ejemplo, nombres de operación o punto de conexión) | No        |
+| Atributos         | Pares clave-valor para filtrar en atributos de span personalizados                                         | No        |
+| Ventana de tiempo | Hasta qué punto atrás buscar spans (en segundos, predeterminado: 60)                                       | No        |
+
+### Códigos de estado de span
+
+- **OK**: La operación se marcó explícitamente como exitosa, ya sea desde el código de la aplicación o mediante un pipeline de trazas
+- **ERROR**: La operación encontró un error
+- **UNSET**: No se estableció ningún estado de error. Es el estado predeterminado de OpenTelemetry
+
+UNSET no significa que falten datos. La instrumentación de OpenTelemetry establece ERROR cuando una operación falla y deja los spans exitosos en UNSET, por lo que en un servicio en buen estado la mayoría de los spans son UNSET. OneUptime los muestra en verde como «Unset (no error)». Registrar una excepción no cambia el estado de un span, por lo que un span en UNSET aún puede tener excepciones; se muestran junto con el span. Para alertar sobre fallos, filtra por ERROR. Para contar todos los spans que no fallaron, selecciona tanto OK como UNSET.
+
+Si quieres que las solicitudes exitosas se muestren como OK, añade un pipeline de trazas en **Trazas > Ajustes > Canalizaciones** con la condición de filtro **Estado = Sin establecer** y un **Reasignador de estado** que asigne al estado Correcto (1) los valores de `http.response.status_code`, como `200`.
+
+## Criterios de monitoreo
+
+### Tipos de verificación disponibles
+
+| Tipo de verificación | Descripción                                                              |
+| -------------------- | ------------------------------------------------------------------------ |
+| Recuento de spans    | El número de spans que coinciden con tus filtros en la ventana de tiempo |
+
+### Tipos de filtro
+
+- **Mayor que**: El recuento de spans supera un umbral
+- **Menor que**: El recuento de spans está por debajo de un umbral
+- **Mayor o igual que**: El recuento de spans está en o por encima de un umbral
+- **Menor o igual que**: El recuento de spans está en o por debajo de un umbral
+- **Igual a**: El recuento de spans coincide exactamente
+
+### Ejemplos de criterios
+
+#### Alertar si hay más de 50 spans de error en 60 segundos
+
+- **Estados de span**: ERROR
+- **Ventana de tiempo**: 60 segundos
+- **Verificar en**: Recuento de spans
+- **Tipo de filtro**: Mayor que
+- **Valor**: 50
+
+#### Alertar sobre errores en un punto de conexión específico
+
+- **Nombre del span**: `POST /api/checkout`
+- **Estados de span**: ERROR
+- **Ventana de tiempo**: 120 segundos
+- **Verificar en**: Recuento de spans
+- **Tipo de filtro**: Mayor que
+- **Valor**: 0
+
+## Requisitos de configuración
+
+El monitoreo de trazas requiere que tus aplicaciones envíen trazas distribuidas a OneUptime a través de OpenTelemetry. Consulta la documentación de [OpenTelemetry](/docs/telemetry/open-telemetry) para obtener instrucciones de configuración.

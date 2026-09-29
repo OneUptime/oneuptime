@@ -1,0 +1,384 @@
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import IncomingRequestMonitorView from "./IncomingRequestMonitorSummaryView";
+import IncomingEmailMonitorSummaryView from "./IncomingEmailMonitorSummaryView";
+import PingMonitorView from "./PingMonitorView";
+import PortMonitorView from "./PortMonitorView";
+import SSLCertificateMonitorView from "./SSLCertificateMonitorView";
+import ServerMonitorSummaryView from "./ServerMonitorView";
+import SyntheticMonitorView from "./SyntheticMonitorView";
+import WebsiteMonitorSummaryView from "./WebsiteMonitorView";
+import SnmpMonitorView from "./SnmpMonitorView";
+import DnsMonitorView from "./DnsMonitorView";
+import SqlMonitorView from "./SqlMonitorView";
+import DatabaseMonitorView from "./DatabaseMonitorView";
+import DomainMonitorView from "./DomainMonitorView";
+import DnssecMonitorView from "./DnssecMonitorView";
+import ExternalStatusPageMonitorView from "./ExternalStatusPageMonitorView";
+import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import React, { FunctionComponent, ReactElement } from "react";
+import TelemetryMonitorSummaryView from "./TelemetryMonitorView";
+import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
+import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
+import EvaluationLogList from "./EvaluationLogList";
+import { MonitorSummaryProbeState } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
+
+export interface ComponentProps {
+  monitorType: MonitorType;
+  incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
+  incomingEmailMonitorHeartbeatCheckedAt?: Date | undefined;
+  probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
+  incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  incomingEmailMonitorRequest?: IncomingEmailMonitorRequest | undefined;
+  serverMonitorResponse?: ServerMonitorResponse | undefined;
+  telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
+  probeName?: string | undefined;
+  /*
+   * Optional so the callers that render one probe's log in isolation (the
+   * Probes tab, the monitoring-log modal) keep their existing wording. The
+   * monitor overview passes it, because "no data yet", "this probe is
+   * switched off" and "nothing is watching this monitor" are three different
+   * situations - and telling the user to wait a few minutes for the last two
+   * is how a probe change comes to read as never having applied.
+   */
+  probeSummaryState?: MonitorSummaryProbeState | undefined;
+}
+
+const SummaryInfo: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  type GetProbeableMonitorSummarysInfo = (
+    probeMonitorResponse: ProbeMonitorResponse,
+    key: number,
+  ) => ReactElement;
+
+  const getProbableMonitorSummarysInfo: GetProbeableMonitorSummarysInfo = (
+    probeMonitorResponse: ProbeMonitorResponse,
+    key: number,
+  ): ReactElement => {
+    if (!probeMonitorResponse) {
+      return (
+        <div key={key} className="space-y-6">
+          <ErrorMessage
+            message={`${
+              props.probeName || "This probe"
+            } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
+          />
+        </div>
+      );
+    }
+
+    let summaryComponent: ReactElement = <></>;
+
+    if (
+      props.monitorType === MonitorType.Website ||
+      props.monitorType === MonitorType.API
+    ) {
+      summaryComponent = (
+        <WebsiteMonitorSummaryView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (
+      props.monitorType === MonitorType.Ping ||
+      props.monitorType === MonitorType.IP
+    ) {
+      summaryComponent = (
+        <PingMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.Port) {
+      summaryComponent = (
+        <PortMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.SSLCertificate) {
+      summaryComponent = (
+        <SSLCertificateMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.SyntheticMonitor) {
+      summaryComponent = (
+        <SyntheticMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.CustomJavaScriptCode) {
+      summaryComponent = (
+        <CustomCodeMonitorSummaryView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.NetworkDevice) {
+      summaryComponent = (
+        <SnmpMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.DNS) {
+      summaryComponent = (
+        <DnsMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.Domain) {
+      summaryComponent = (
+        <DomainMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.DNSSEC) {
+      summaryComponent = (
+        <DnssecMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.SQLQuery) {
+      summaryComponent = (
+        <SqlMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.Database) {
+      summaryComponent = (
+        <DatabaseMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.ExternalStatusPage) {
+      summaryComponent = (
+        <ExternalStatusPageMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    return (
+      <div key={key} className="space-y-6">
+        {summaryComponent}
+      </div>
+    );
+  };
+
+  const renderEvaluationLogs: (
+    summary?: MonitorEvaluationSummary | undefined,
+  ) => ReactElement = (
+    summary?: MonitorEvaluationSummary | undefined,
+  ): ReactElement => {
+    if (!summary) {
+      return <></>;
+    }
+
+    return <EvaluationLogList evaluationSummary={summary} />;
+  };
+
+  const probableMonitorEvaluationSummary: MonitorEvaluationSummary | undefined =
+    props.evaluationSummary ||
+    props.probeMonitorResponses?.find((response: ProbeMonitorResponse) => {
+      return Boolean(response.evaluationSummary);
+    })?.evaluationSummary;
+
+  if (
+    MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
+    (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
+  ) {
+    if (props.probeSummaryState === MonitorSummaryProbeState.NoProbesAttached) {
+      return (
+        <ErrorMessage
+          message={
+            "No probes are monitoring this resource. Add one under Probes to start collecting data."
+          }
+        />
+      );
+    }
+
+    if (
+      props.probeSummaryState === MonitorSummaryProbeState.SelectedProbeDisabled
+    ) {
+      return (
+        <ErrorMessage
+          message={`${
+            props.probeName || "This probe"
+          } is disabled for this monitor, so it is not collecting any data. Enable it under Probes.`}
+        />
+      );
+    }
+
+    return (
+      <ErrorMessage
+        message={`${
+          props.probeName || "This probe"
+        } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
+      />
+    );
+  }
+
+  /*
+   * Network Device monitors are evaluated server-side from the device's
+   * own polls and traps — there is no per-probe check log to summarize
+   * here. The device page owns the live data (reachability, interfaces,
+   * inventory, health charts); this monitor only carries the alerting
+   * criteria.
+   */
+  if (
+    props.monitorType === MonitorType.NetworkDevice &&
+    (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
+  ) {
+    return (
+      <ErrorMessage
+        message={
+          "This monitor alerts on a registered Network Device. Live polling data — reachability, interfaces, inventory, and health charts — lives on the device's page under Network Devices. Criteria on this monitor are evaluated every time the device is polled and every time it sends a matching trap."
+        }
+      />
+    );
+  }
+
+  if (
+    !props.incomingMonitorRequest &&
+    props.monitorType === MonitorType.IncomingRequest
+  ) {
+    return (
+      <ErrorMessage
+        message={
+          "No summary available. Looks like no incoming / inbound request was made."
+        }
+      />
+    );
+  }
+
+  if (
+    !props.incomingEmailMonitorRequest &&
+    props.monitorType === MonitorType.IncomingEmail
+  ) {
+    return (
+      <ErrorMessage
+        message={
+          "No summary available. Looks like no email has been received yet."
+        }
+      />
+    );
+  }
+
+  return (
+    <div>
+      {props.probeMonitorResponses &&
+        props.probeMonitorResponses.map(
+          (probeMonitorResponse: ProbeMonitorResponse, index: number) => {
+            return getProbableMonitorSummarysInfo(probeMonitorResponse, index);
+          },
+        )}
+
+      {MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
+        renderEvaluationLogs(probableMonitorEvaluationSummary)}
+
+      {props.incomingMonitorRequest &&
+      props.monitorType === MonitorType.IncomingRequest ? (
+        <div className="space-y-6">
+          <IncomingRequestMonitorView
+            incomingRequestMonitorHeartbeatCheckedAt={
+              props.incomingRequestMonitorHeartbeatCheckedAt
+            }
+            incomingMonitorRequest={props.incomingMonitorRequest}
+          />
+          {renderEvaluationLogs(
+            props.incomingMonitorRequest.evaluationSummary ||
+              props.evaluationSummary,
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {props.incomingEmailMonitorRequest &&
+      props.monitorType === MonitorType.IncomingEmail ? (
+        <div className="space-y-6">
+          <IncomingEmailMonitorSummaryView
+            incomingEmailMonitorHeartbeatCheckedAt={
+              props.incomingEmailMonitorHeartbeatCheckedAt
+            }
+            incomingEmailMonitorRequest={props.incomingEmailMonitorRequest}
+          />
+          {renderEvaluationLogs(
+            props.incomingEmailMonitorRequest.evaluationSummary ||
+              props.evaluationSummary,
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {props.monitorType === MonitorType.Server &&
+      props.serverMonitorResponse ? (
+        <div className="space-y-6">
+          <ServerMonitorSummaryView
+            serverMonitorResponse={props.serverMonitorResponse}
+          />
+          {renderEvaluationLogs(
+            props.serverMonitorResponse.evaluationSummary ||
+              props.evaluationSummary,
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {MonitorTypeHelper.isTelemetryMonitor(props.monitorType) && (
+        <div className="space-y-6">
+          <TelemetryMonitorSummaryView
+            telemetryMonitorSummary={props.telemetryMonitorSummary}
+          />
+          {renderEvaluationLogs(props.evaluationSummary)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SummaryInfo;

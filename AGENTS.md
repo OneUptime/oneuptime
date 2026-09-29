@@ -10,7 +10,7 @@ Do not worry about circular dependencies. All the import should be on the top of
 
 If you are doing any postgres migration. Please do not write migraton code manually, run npm run generate-postgres-migration instead.
 
-After generating the migration file, you MUST also register it in `Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — add the import at the top and append the class to the default export array. The migration will not run on app startup until it is registered there.
+After generating the migration file, you MUST also register it in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — add the import at the top and append the class to the default export array. The migration will not run on app startup until it is registered there.
 
 CI enforces this. The "Postgres Schema Drift" workflow migrates an empty database with every registered migration and then generates a migration against the result; anything it can still generate is drift and fails the job. Run the same check locally with `npm run check-postgres-schema-drift` — it prints the exact statements that are missing.
 
@@ -20,7 +20,9 @@ Clickhouse migrations are written manually. Please write the migration code in D
 
 ### After you make a change.
 
-Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works.
+Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.
+
+Please run "npm run compile" in projects that you made changes to make sure compile works.
 
 ### Tests
 
@@ -45,13 +47,13 @@ cluster-backed suites that install the chart on a throwaway KinD cluster. That i
 `helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
 see `HelmChart/README.md` for how to add one.
 
-### Project docs
-
-Internal roadmaps live in `Internal/Roadmap/` (see its README for the index).
-
 ### Mobile app releases
 
 Before building or publishing the Android or iOS app, read
-[MobileApp/RELEASING.md](MobileApp/RELEASING.md). It contains the existing store and
+[packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md). It contains the existing store and
 Expo identifiers, the verified release procedure, privacy checks, and the steps
 needed after uploading a binary to actually submit and publish the update.
+
+### Commit frequently
+
+Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.

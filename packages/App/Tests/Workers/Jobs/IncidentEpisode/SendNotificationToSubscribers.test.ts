@@ -1,0 +1,2475 @@
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import URL from "Common/Types/API/URL";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import Email from "Common/Types/Email";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Phone from "Common/Types/Phone";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
+
+/*
+ * IncidentEpisode:SendNotificationToSubscribers tells status page subscribers
+ * that an episode was created. These tests hold it to the variables
+ * SubscriberNotificationTemplateVariables offers for SubscriberEpisodeCreated,
+ * on every channel that compiles a custom template, check that each custom
+ * template gets those values in the format its channel renders, and pin the
+ * default messages it sends when no custom template applies.
+ *
+ * The resource list is formatted by the real StatusPageResourceUtil, so the
+ * grouped-resource tests see the same "<br/>" and "; " separators that
+ * production does.
+ */
+
+type CronHandler = () => Promise<void>;
+
+const mockCapturedJobs: Record<string, CronHandler> = {};
+// The options each job registered with (its timeout among them).
+const mockCapturedOptions: Record<string, unknown> = {};
+
+jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+  return {
+    __esModule: true,
+    default: jest.fn(
+      (jobName: string, options: unknown, runFunction: CronHandler): void => {
+        mockCapturedJobs[jobName] = runFunction;
+        mockCapturedOptions[jobName] = options;
+      },
+    ),
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    EXTERNAL_FAULT: {},
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/DatabaseConfig", () => {
+  return {
+    __esModule: true,
+    default: { getHost: jest.fn(), getHttpProtocol: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findAllBy: jest.fn(),
+      updateOneById: jest.fn(),
+      // The claim (SubscriberNotificationClaim).
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      getEpisodeLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/IncidentEpisodeMemberService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+// IncidentStatusPageScope reads the member incidents' status page scope.
+jest.mock("Common/Server/Services/IncidentService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/IncidentEpisodeFeedService", () => {
+  return {
+    __esModule: true,
+    default: { createIncidentEpisodeFeedItem: jest.fn() },
+  };
+});
+
+/*
+ * The job reaches status pages through IncidentStatusPageScope, which reads
+ * resources with findByMonitors - the lookup that also follows monitor
+ * groups. findAllBy is kept only to prove the job no longer calls it.
+ */
+jest.mock("Common/Server/Services/StatusPageResourceService", () => {
+  return {
+    __esModule: true,
+    default: { findByMonitors: jest.fn(), findAllBy: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getStatusPagesToSendNotification: jest.fn(),
+      getSubscribersByStatusPage: jest.fn(),
+      shouldSendNotification: jest.fn(),
+      getUnsubscribeLink: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/StatusPageService", () => {
+  return {
+    __esModule: true,
+    default: { getStatusPageURL: jest.fn() },
+    Service: {
+      getSubscriberEmailFooterText: jest.fn(() => {
+        return "Footer text";
+      }),
+    },
+  };
+});
+
+jest.mock(
+  "Common/Server/Services/StatusPageSubscriberNotificationTemplateService",
+  () => {
+    return {
+      __esModule: true,
+      default: { getTemplateForStatusPage: jest.fn() },
+      Service: {
+        /*
+         * The real substitution, wrapped in a mock so tests can read the
+         * variables each channel handed to its template.
+         */
+        /*
+         * The real email body compile, which escapes every plain value and
+         * inserts only SafeHtml ones as HTML, recorded so tests can read what
+         * each email body was given (see SubscriberTemplateCompileFixtures).
+         */
+        compileEmailBodyTemplate: jest.fn(
+          (template: string, variables: Record<string, unknown>): string => {
+            return (
+              jest.requireActual(
+                "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler",
+              ) as {
+                default: {
+                  compileEmailBodyTemplate: (
+                    template: string,
+                    variables: Record<string, unknown>,
+                  ) => string;
+                };
+              }
+            ).default.compileEmailBodyTemplate(template, variables);
+          },
+        ),
+        compileTemplate: jest.fn(
+          (template: string, variables: Record<string, string>): string => {
+            let compiled: string = template;
+            for (const [key, value] of Object.entries(variables)) {
+              compiled = compiled.replace(
+                new RegExp(`{{\\s*${key}\\s*}}`, "g"),
+                value || "",
+              );
+            }
+            return compiled;
+          },
+        ),
+      },
+    };
+  },
+);
+
+jest.mock("Common/Server/Services/MailService", () => {
+  return { __esModule: true, default: { sendMail: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/SmsService", () => {
+  return { __esModule: true, default: { sendSms: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/ProjectCallSMSConfigService", () => {
+  return {
+    __esModule: true,
+    default: { toTwilioConfig: jest.fn(() => {}) },
+  };
+});
+
+jest.mock("Common/Server/Services/ProjectSmtpConfigService", () => {
+  return {
+    __esModule: true,
+    default: { toEmailServer: jest.fn(() => {}) },
+  };
+});
+
+jest.mock("Common/Server/Types/Markdown", () => {
+  return {
+    __esModule: true,
+    MarkdownContentType: { Email: "Email" },
+    default: { convertToHTML: jest.fn(), convertToPlainText: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Utils/Workspace/Slack/Slack", () => {
+  return {
+    __esModule: true,
+    default: {
+      sendMessageToChannelViaIncomingWebhook: jest.fn(),
+      convertMarkdownToSlackRichText: jest.fn((text: string) => {
+        return text;
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams", () => {
+  return {
+    __esModule: true,
+    default: { sendMessageToChannelViaIncomingWebhook: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
+  return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
+});
+
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
+import IncidentEpisodeMemberService from "Common/Server/Services/IncidentEpisodeMemberService";
+import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
+import MailService from "Common/Server/Services/MailService";
+import SmsService from "Common/Server/Services/SmsService";
+import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import Hostname from "Common/Types/API/Hostname";
+import Protocol from "Common/Types/API/Protocol";
+import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import IncidentService from "Common/Server/Services/IncidentService";
+import Dictionary from "Common/Types/Dictionary";
+import {
+  StoredIncidentScope,
+  allSites,
+  incidentScopeFindBy,
+  scopedTo,
+  sharedMonitor,
+  siteOf,
+  sitePage,
+  siteResource,
+  siteSubscriber,
+  statusPagesByIdFake,
+  subscribersByPageFake,
+} from "../Fixtures/IncidentStatusPageScopeFixtures";
+import {
+  expectEveryUnsubscribeLinkToCarryAToken,
+  fakeGetUnsubscribeLink,
+  smsManageLinkFor,
+  unsubscribeLinkFor,
+  withUnsubscribeToken,
+} from "../Fixtures/UnsubscribeLinkFixtures";
+import {
+  HOSTILE_PAGE_NAME,
+  HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_TEXT,
+  HOSTILE_TITLE,
+  HOSTILE_TITLE_HTML,
+  RecordedCompile,
+  expectNoHtmlEntities,
+  expectOnlyTheListedHtmlVariables,
+  hostileResources,
+  recordedCompiles,
+} from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  StatusWrite,
+  statusWritesInOrder,
+} from "../Fixtures/SubscriberNotificationSendFixtures";
+import {
+  PENDING_ROW_VERSION,
+  describeSubscriberDelivery,
+} from "../Fixtures/SubscriberDeliveryContract";
+import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import "../../../../FeatureSet/Workers/Jobs/IncidentEpisode/SendNotificationToSubscribers";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+
+const JOB: string = "IncidentEpisode:SendNotificationToSubscribers";
+const EVENT: StatusPageSubscriberNotificationEventType =
+  StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated;
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "22222222-2222-4222-8222-222222222222",
+);
+const EPISODE_ID: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
+const LOGO_FILE_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+const SUBSCRIBER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const SECOND_SUBSCRIBER_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const MONITOR_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+const SECOND_STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "99999999-9999-4999-8999-999999999999",
+);
+
+const STATUS_PAGE_URL: string = "https://status.acme.com";
+const SECOND_STATUS_PAGE_URL: string = "https://status.beta.com";
+// The status page shows an episode on its incident detail route.
+const DETAILS_URL: string =
+  "https://status.acme.com/incidents/33333333-3333-4333-8333-333333333333";
+const SECOND_DETAILS_URL: string =
+  "https://status.beta.com/incidents/33333333-3333-4333-8333-333333333333";
+const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  "https://status.acme.com",
+  SUBSCRIBER_ID,
+);
+// An SMS from this public page carries the manage link (see smsManageLinkFor).
+const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+  "https://status.acme.com",
+  SUBSCRIBER_ID,
+);
+const SECOND_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
+  "https://status.acme.com",
+  SECOND_SUBSCRIBER_ID,
+);
+const DASHBOARD_URL: string = "https://oneuptime.acme.com/dashboard/episode/1";
+
+const EPISODE_TITLE: string = "Regional network interruption";
+const SEVERITY: string = "Major";
+const RESOURCE: string = "Edge network";
+const DESCRIPTION: string = "Several **edge** routers are dropping traffic.";
+const DESCRIPTION_HTML: string =
+  "<p>Several <strong>edge</strong> routers are dropping traffic.</p>";
+const DESCRIPTION_TEXT: string = "Several edge routers are dropping traffic.";
+
+// The episode's resources in two groups, as each format lists them.
+const GROUPED_RESOURCES_HTML: string =
+  "Europe: Edge network<br/>Americas: Core network";
+const GROUPED_RESOURCES_TEXT: string =
+  "Europe: Edge network; Americas: Core network";
+
+let pendingEpisodes: Array<IncidentEpisode> = [];
+let skipEpisodes: Array<IncidentEpisode> = [];
+let memberMonitors: Array<Monitor> = [];
+// The episode's one member incident, unless a test sets memberIncidents.
+const MEMBER_INCIDENT_ID: ObjectID = new ObjectID(
+  "12121212-1212-4121-8121-121212121212",
+);
+let memberIncidents: Array<Incident> | null = null;
+// The status page scope stored for each incident id; unscoped when absent.
+let storedScopes: Dictionary<StoredIncidentScope> = {};
+
+function episode(overrides?: {
+  isVisibleOnStatusPage?: boolean;
+  withoutTitle?: boolean;
+  withoutSeverity?: boolean;
+}): IncidentEpisode {
+  const row: IncidentEpisode = new IncidentEpisode();
+  row._id = EPISODE_ID.toString();
+  if (!overrides?.withoutTitle) {
+    row.title = EPISODE_TITLE;
+  }
+  row.description = DESCRIPTION;
+  row.projectId = PROJECT_ID;
+  row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  row.episodeNumber = 3;
+
+  if (!overrides?.withoutSeverity) {
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity.name = SEVERITY;
+    row.incidentSeverity = severity;
+  }
+
+  return row;
+}
+
+function monitor(): Monitor {
+  const row: Monitor = new Monitor();
+  row._id = MONITOR_ID.toString();
+  return row;
+}
+
+function statusPage(overrides?: {
+  showEpisodesOnStatusPage?: boolean;
+  // Leaves the column undefined, which is how an unselected column reads.
+  leaveShowEpisodesUnset?: boolean;
+  id?: ObjectID;
+  pageTitle?: string;
+  withoutPageTitle?: boolean;
+  withLogo?: boolean;
+  // Custom SMTP and Twilio, which Email and SMS need to use custom templates.
+  withCustomSmtpAndSms?: boolean;
+}): StatusPage {
+  const page: StatusPage = new StatusPage();
+  page._id = (overrides?.id || STATUS_PAGE_ID).toString();
+  page.projectId = PROJECT_ID;
+  page.name = "Acme";
+  if (!overrides?.withoutPageTitle) {
+    page.pageTitle = overrides?.pageTitle || "Acme Status";
+  }
+  page.isPublicStatusPage = true;
+  if (!overrides?.leaveShowEpisodesUnset) {
+    page.showEpisodesOnStatusPage =
+      overrides?.showEpisodesOnStatusPage !== false;
+  }
+  page.onlyShowScopedIncidents = false;
+  if (overrides?.withLogo) {
+    page.logoFileId = LOGO_FILE_ID;
+  }
+  if (overrides?.withCustomSmtpAndSms) {
+    (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+  }
+  return page;
+}
+
+function resource(overrides?: {
+  id?: string;
+  statusPageId?: ObjectID;
+  displayName?: string;
+  // Puts the resource in a status page group of this name.
+  groupName?: string;
+}): StatusPageResource {
+  const row: StatusPageResource = new StatusPageResource();
+  row._id = overrides?.id || "88888888-8888-4888-8888-888888888888";
+  row.statusPageId = overrides?.statusPageId || STATUS_PAGE_ID;
+  row.displayName = overrides?.displayName || RESOURCE;
+  if (overrides?.groupName) {
+    const group: StatusPageGroup = new StatusPageGroup();
+    group.name = overrides.groupName;
+    row.statusPageGroupId = ObjectID.generate();
+    row.statusPageGroup = group;
+  }
+  return row;
+}
+
+// "Edge network" in the Europe group and "Core network" in the Americas one.
+function groupedResources(): Array<StatusPageResource> {
+  return [
+    resource({ displayName: "Edge network", groupName: "Europe" }),
+    resource({
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      displayName: "Core network",
+      groupName: "Americas",
+    }),
+  ];
+}
+
+function subscriber(overrides?: {
+  id?: ObjectID;
+  email?: string;
+}): StatusPageSubscriber {
+  const row: StatusPageSubscriber = new StatusPageSubscriber();
+  row._id = (overrides?.id || SUBSCRIBER_ID).toString();
+  row.subscriberEmail = new Email(overrides?.email || "customer@example.com");
+  row.subscriberPhone = new Phone("+15555550100");
+  row.slackIncomingWebhookUrl = URL.fromString(
+    "https://hooks.slack.com/services/T000/B000/XXXX",
+  );
+  row.microsoftTeamsIncomingWebhookUrl = URL.fromString(
+    "https://outlook.office.com/webhook/abc",
+  );
+  row.subscriberWebhook = URL.fromString("https://hooks.acme.com/status");
+  return withUnsubscribeToken(row);
+}
+
+function mock(fn: unknown): jest.Mock {
+  return fn as unknown as jest.Mock;
+}
+
+/*
+ * Every status write the job made, in order: the claim to InProgress
+ * (SubscriberNotificationClaim) and each updateOneById.
+ */
+function statusWrites(): Array<JSONObject> {
+  return statusWritesInOrder({
+    claim: IncidentEpisodeService.compareAndSetColumnsByIdWithoutHooks,
+    update: IncidentEpisodeService.updateOneById,
+  }).map((write: StatusWrite): JSONObject => {
+    return write.data;
+  });
+}
+
+function sentMail(): Array<JSONObject> {
+  return mock(MailService.sendMail).mock.calls.map(
+    (call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    },
+  );
+}
+
+function sentSms(): Array<string> {
+  return mock(SmsService.sendSms).mock.calls.map(
+    (call: Array<unknown>): string => {
+      return (call[0] as { message: string }).message;
+    },
+  );
+}
+
+function sentSlack(): Array<string> {
+  return mock(SlackUtil.sendMessageToChannelViaIncomingWebhook).mock.calls.map(
+    (call: Array<unknown>): string => {
+      return (call[0] as { text: string }).text;
+    },
+  );
+}
+
+function sentTeams(): Array<string> {
+  return mock(
+    MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+  ).mock.calls.map((call: Array<unknown>): string => {
+    return (call[0] as { text: string }).text;
+  });
+}
+
+function sentWebhooks(): Array<JSONObject> {
+  return mock(
+    StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  ).mock.calls.map((call: Array<unknown>): JSONObject => {
+    return (call[0] as { payload: JSONObject }).payload;
+  });
+}
+
+function feedItems(): Array<JSONObject> {
+  return mock(
+    IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
+  ).mock.calls.map((call: Array<unknown>): JSONObject => {
+    return call[0] as JSONObject;
+  });
+}
+
+function templateLookups(): Array<JSONObject> {
+  return mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mock.calls.map((call: Array<unknown>): JSONObject => {
+    return call[0] as JSONObject;
+  });
+}
+
+function nothingSent(): void {
+  expect(MailService.sendMail).not.toHaveBeenCalled();
+  expect(SmsService.sendSms).not.toHaveBeenCalled();
+  expect(
+    SlackUtil.sendMessageToChannelViaIncomingWebhook,
+  ).not.toHaveBeenCalled();
+  expect(
+    MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+  ).not.toHaveBeenCalled();
+  expect(
+    StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  ).not.toHaveBeenCalled();
+}
+
+function dashboardDefault(
+  method: StatusPageSubscriberNotificationMethod,
+): string {
+  const template: string =
+    getDefaultSubscriberNotificationTemplate(EVENT, method)?.body || "";
+  const variables: Record<string, string> = {
+    statusPageName: "Acme Status",
+    statusPageUrl: STATUS_PAGE_URL,
+    detailsUrl: DETAILS_URL,
+    unsubscribeUrl:
+      method === StatusPageSubscriberNotificationMethod.SMS
+        ? SMS_UNSUBSCRIBE_URL
+        : UNSUBSCRIBE_URL,
+    episodeTitle: EPISODE_TITLE,
+    episodeSeverity: SEVERITY,
+    episodeDescription: DESCRIPTION,
+    resourcesAffected: RESOURCE,
+  };
+
+  return template.replace(/{{\s*(\w+)\s*}}/g, (_match: string, key: string) => {
+    return variables[key] ?? "";
+  });
+}
+
+async function runJob(): Promise<void> {
+  expect(mockCapturedJobs[JOB]).toBeDefined();
+  await mockCapturedJobs[JOB]!();
+}
+
+interface CompileCall {
+  template: string;
+  variables: Record<string, string>;
+}
+
+function compileCalls(): Array<CompileCall> {
+  // Text and email body compiles, in order (see SubscriberTemplateCompileFixtures).
+  return recordedCompiles(
+    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+    StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+  ).map((call: RecordedCompile): CompileCall => {
+    return {
+      template: call.template,
+      variables: call.variables,
+    };
+  });
+}
+
+// The variables the job handed to compileTemplate for this template.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const calls: Array<CompileCall> = compileCalls().filter(
+    (call: CompileCall): boolean => {
+      return call.template === template;
+    },
+  );
+
+  expect(calls).toHaveLength(1);
+  return calls[0]!.variables;
+}
+
+const EMAIL_SUBJECT_TEMPLATE: string =
+  "Subject: {{episodeTitle}} ({{episodeSeverity}})";
+
+/*
+ * A subject that echoes the format-dependent variables, so the sent subject
+ * shows which format it was given.
+ */
+const FORMAT_EMAIL_SUBJECT_TEMPLATE: string =
+  "{{episodeTitle}}: {{episodeDescription}} ({{resourcesAffected}})";
+
+/*
+ * A template body that prints every variable advertised for the event as
+ * name=[value], so a test can see which ones rendered and with what.
+ */
+function templateUsingEveryVariable(channel: string): string {
+  const lines: Array<string> =
+    SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+      EVENT,
+    ).map((name: string): string => {
+      return `${name}=[{{${name}}}]`;
+    });
+
+  return [`channel=${channel}`, ...lines].join("\n");
+}
+
+// What templateUsingEveryVariable renders to with these values.
+function renderedEveryVariable(
+  channel: string,
+  values: Record<string, string>,
+): string {
+  const lines: Array<string> =
+    SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+      EVENT,
+    ).map((name: string): string => {
+      return `${name}=[${values[name] ?? ""}]`;
+    });
+
+  return [`channel=${channel}`, ...lines].join("\n");
+}
+
+/*
+ * Gives the status pages custom SMTP and Twilio and a custom template for
+ * the event on Email, SMS, Slack and Teams, each printing every advertised
+ * variable. The email template's subject is emailSubject, or
+ * EMAIL_SUBJECT_TEMPLATE when none is given. A lookup for any other event
+ * finds no template. Returns the body used for each channel.
+ */
+function useCustomTemplatesOnEveryChannel(
+  pages?: Array<StatusPage>,
+  emailSubject?: string,
+): Record<string, string> {
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue(
+    (pages || [statusPage({ withCustomSmtpAndSms: true })]) as never,
+  );
+
+  const bodies: Record<string, string> = {
+    [StatusPageSubscriberNotificationMethod.Email]:
+      templateUsingEveryVariable("email"),
+    [StatusPageSubscriberNotificationMethod.SMS]:
+      templateUsingEveryVariable("sms"),
+    [StatusPageSubscriberNotificationMethod.Slack]:
+      templateUsingEveryVariable("slack"),
+    [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+      templateUsingEveryVariable("teams"),
+  };
+
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockImplementation(async (args: unknown) => {
+    const lookup: JSONObject = args as JSONObject;
+    const method: string = lookup["notificationMethod"] as string;
+
+    if (lookup["eventType"] !== EVENT || !bodies[method]) {
+      return null;
+    }
+
+    return method === StatusPageSubscriberNotificationMethod.Email
+      ? {
+          templateBody: bodies[method],
+          emailSubject: emailSubject || EMAIL_SUBJECT_TEMPLATE,
+        }
+      : { templateBody: bodies[method] };
+  });
+
+  return bodies;
+}
+
+/*
+ * The episode's monitor is a resource on both status pages, shown as
+ * "Edge network" on the first and "DNS resolvers" on the second.
+ */
+function resourcesOnBothPages(): void {
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+    resource(),
+    resource({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      statusPageId: SECOND_STATUS_PAGE_ID,
+      displayName: "DNS resolvers",
+    }),
+  ] as never);
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+
+  pendingEpisodes = [episode()];
+  skipEpisodes = [];
+  memberMonitors = [monitor()];
+  memberIncidents = null;
+  storedScopes = {};
+
+  mock(IncidentService.findBy).mockImplementation(
+    incidentScopeFindBy(() => {
+      return storedScopes;
+    }) as never,
+  );
+
+  mock(IncidentEpisodeService.findAllBy).mockImplementation(
+    async (args: unknown): Promise<Array<IncidentEpisode>> => {
+      const query: JSONObject = (args as { query: JSONObject }).query;
+
+      if (
+        query["shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated"] === false
+      ) {
+        return skipEpisodes;
+      }
+
+      return pendingEpisodes;
+    },
+  );
+  mock(IncidentEpisodeService.updateOneById).mockResolvedValue(1 as never);
+  // This run wins every claim unless a test says otherwise.
+  mock(
+    IncidentEpisodeService.compareAndSetColumnsByIdWithoutHooks,
+  ).mockResolvedValue(true as never);
+  mock(IncidentEpisodeService.getEpisodeLinkInDashboard).mockResolvedValue(
+    URL.fromString(DASHBOARD_URL) as never,
+  );
+  mock(IncidentEpisodeMemberService.findBy).mockImplementation(async () => {
+    if (memberIncidents) {
+      return memberIncidents.map((incident: Incident) => {
+        const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+        member.incidentId = incident.id!;
+        member.incident = incident;
+        return member;
+      });
+    }
+
+    const incident: Incident = new Incident();
+    incident._id = MEMBER_INCIDENT_ID.toString();
+    incident.monitors = memberMonitors;
+    const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+    member.incidentId = MEMBER_INCIDENT_ID;
+    member.incident = incident;
+    return [member];
+  });
+  mock(
+    IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
+  ).mockResolvedValue(undefined as never);
+
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+    resource(),
+  ] as never);
+
+  mock(DatabaseConfig.getHost).mockResolvedValue(
+    Hostname.fromString("oneuptime.acme.com") as never,
+  );
+  mock(DatabaseConfig.getHttpProtocol).mockResolvedValue(
+    Protocol.HTTPS as never,
+  );
+
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue([statusPage()] as never);
+  mock(
+    StatusPageSubscriberService.getSubscribersByStatusPage,
+  ).mockResolvedValue([subscriber()] as never);
+  mock(StatusPageSubscriberService.shouldSendNotification).mockReturnValue(
+    true,
+  );
+  // Each subscriber gets a link of its own, on the page it subscribed to.
+  mock(StatusPageSubscriberService.getUnsubscribeLink).mockImplementation(
+    fakeGetUnsubscribeLink,
+  );
+  mock(StatusPageService.getStatusPageURL).mockImplementation(
+    async (statusPageId: unknown): Promise<string> => {
+      return (statusPageId as ObjectID).toString() ===
+        SECOND_STATUS_PAGE_ID.toString()
+        ? SECOND_STATUS_PAGE_URL
+        : STATUS_PAGE_URL;
+    },
+  );
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockResolvedValue(null as never);
+
+  mock(Markdown.convertToHTML).mockResolvedValue(DESCRIPTION_HTML as never);
+  mock(Markdown.convertToPlainText).mockReturnValue(DESCRIPTION_TEXT);
+
+  mock(MailService.sendMail).mockResolvedValue(undefined as never);
+  mock(SmsService.sendSms).mockResolvedValue(undefined as never);
+  mock(SlackUtil.sendMessageToChannelViaIncomingWebhook).mockResolvedValue(
+    undefined as never,
+  );
+  mock(
+    MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+  ).mockResolvedValue(undefined as never);
+  mock(
+    StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  ).mockResolvedValue(undefined as never);
+});
+
+describe("IncidentEpisode:SendNotificationToSubscribers default messages", () => {
+  test("is registered", () => {
+    expect(mockCapturedJobs[JOB]).toBeDefined();
+  });
+
+  test("reads the episode fields the messages use", async () => {
+    await runJob();
+
+    const pendingQuery: { query: JSONObject; select: JSONObject } | undefined =
+      mock(IncidentEpisodeService.findAllBy)
+        .mock.calls.map(
+          (call: Array<unknown>): { query: JSONObject; select: JSONObject } => {
+            return call[0] as { query: JSONObject; select: JSONObject };
+          },
+        )
+        .find((args: { query: JSONObject; select: JSONObject }): boolean => {
+          return (
+            args.query[
+              "shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated"
+            ] === true
+          );
+        });
+
+    expect(pendingQuery).toBeDefined();
+    expect(pendingQuery!.select["title"]).toBe(true);
+    expect(pendingQuery!.select["description"]).toBe(true);
+    expect(pendingQuery!.select["incidentSeverity"]).toEqual({ name: true });
+  });
+
+  test("emails the episode-created template with the episode's details", async () => {
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect((sentMail()[0]!["toEmail"] as Email).toString()).toBe(
+      "customer@example.com",
+    );
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberEpisodeCreated,
+    );
+    expect(sentMail()[0]!["subject"]).toBe(`[Incident] ${EPISODE_TITLE}`);
+    expect(sentMail()[0]!["vars"]).toEqual({
+      statusPageName: "Acme Status",
+      statusPageUrl: STATUS_PAGE_URL,
+      detailsUrl: DETAILS_URL,
+      logoUrl: "",
+      isPublicStatusPage: "true",
+      resourcesAffected: RESOURCE,
+      episodeSeverity: SEVERITY,
+      episodeTitle: EPISODE_TITLE,
+      episodeDescription: DESCRIPTION_HTML,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      subscriberEmailNotificationFooterText: "Footer text",
+    });
+  });
+
+  test("links the default email to the status page's logo when it has one", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage({ withLogo: true })] as never);
+
+    await runJob();
+
+    expect((sentMail()[0]!["vars"] as JSONObject)["logoUrl"]).toBe(
+      "https://oneuptime.acme.com/status-page-api/logo/22222222-2222-4222-8222-222222222222",
+    );
+  });
+
+  test("an untitled episode gets the bare subject prefix, not 'undefined'", async () => {
+    pendingEpisodes = [episode({ withoutTitle: true })];
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["subject"]).toBe("[Incident] ");
+  });
+
+  test("SMS, Slack and Teams match the dashboard's starter templates", async () => {
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Incident ${EPISODE_TITLE} (${SEVERITY}) on Acme Status. Impact: ${RESOURCE}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+    expect(sentSms()[0]).toBe(
+      dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
+    );
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentSlack()[0]).toBe(
+      dashboardDefault(StatusPageSubscriberNotificationMethod.Slack),
+    );
+    expect(sentSlack()[0]).toContain(`**Description:** ${DESCRIPTION}`);
+
+    expect(sentTeams()).toHaveLength(1);
+    expect(sentTeams()[0]).toBe(
+      dashboardDefault(StatusPageSubscriberNotificationMethod.MicrosoftTeams),
+    );
+  });
+
+  test("tells webhook subscribers it is an EpisodeCreated event", async () => {
+    await runJob();
+
+    expect(sentWebhooks()).toEqual([
+      {
+        eventType: "EpisodeCreated",
+        statusPageId: STATUS_PAGE_ID.toString(),
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        data: {
+          episodeId: EPISODE_ID.toString(),
+          episodeTitle: EPISODE_TITLE,
+          episodeDescription: DESCRIPTION,
+          incidentSeverity: SEVERITY,
+          resourcesAffected: RESOURCE,
+          detailsUrl: DETAILS_URL,
+        },
+      },
+    ]);
+  });
+
+  test("records progress, success and a feed item", async () => {
+    await runJob();
+
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnEpisodeCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+        // What the sweeper times an interrupted send from.
+        subscriberNotificationClaimedAtOnEpisodeCreated: expect.any(Date),
+      },
+      {
+        subscriberNotificationStatusOnEpisodeCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+        subscriberNotificationStatusMessage:
+          "Notifications sent successfully to all subscribers. Acme: 1 email, 1 SMS, 1 Slack, 1 Microsoft Teams, 1 webhook sent.",
+      },
+    ]);
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toBe(Blue500);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toContain(
+      `📧 **Subscriber Episode Created Notification Sent for [Episode 3](${DASHBOARD_URL})**:`,
+    );
+  });
+
+  test("marks episodes that should not notify as Skipped", async () => {
+    pendingEpisodes = [];
+    skipEpisodes = [episode()];
+
+    await runJob();
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnEpisodeCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          "Notifications skipped as subscribers are not to be notified for this episode.",
+      },
+    ]);
+  });
+
+  test("skips an episode that is hidden from the status page", async () => {
+    pendingEpisodes = [episode({ isVisibleOnStatusPage: false })];
+
+    await runJob();
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnEpisodeCreated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        "Episode is not visible on status page. Skipping notifications.",
+    });
+  });
+
+  test("skips an episode whose incidents have no monitor", async () => {
+    memberMonitors = [];
+
+    await runJob();
+
+    nothingSent();
+    // Claimed first, so the skip never overwrites a notification queued since.
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnEpisodeCreated:
+          StatusPageSubscriberNotificationStatus.InProgress,
+        // What the sweeper times an interrupted send from.
+        subscriberNotificationClaimedAtOnEpisodeCreated: expect.any(Date),
+      },
+      {
+        subscriberNotificationStatusOnEpisodeCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          "No monitors are attached to the incidents in this episode. Skipping notifications to subscribers.",
+      },
+    ]);
+  });
+
+  test("does not skip an episode it could not claim: another run has it, or it changed since", async () => {
+    memberMonitors = [];
+    mock(
+      IncidentEpisodeService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(false as never);
+
+    await runJob();
+
+    nothingSent();
+    expect(IncidentEpisodeService.updateOneById).not.toHaveBeenCalled();
+  });
+});
+
+describe("IncidentEpisode:SendNotificationToSubscribers details link", () => {
+  /*
+   * The status page app has no /episodes page; an episode opens on the
+   * incident detail route, which falls back to the episode lookup.
+   */
+  test("default email, SMS and webhook link to the episode on the incident detail route", async () => {
+    await runJob();
+
+    expect(sentSms()).toHaveLength(1);
+    expect(sentSms()[0]).toContain(`Details: ${DETAILS_URL}.`);
+    expect((sentMail()[0]!["vars"] as JSONObject)["detailsUrl"]).toBe(
+      DETAILS_URL,
+    );
+    expect((sentWebhooks()[0]!["data"] as JSONObject)["detailsUrl"]).toBe(
+      DETAILS_URL,
+    );
+
+    const everythingSent: string = JSON.stringify([
+      sentMail(),
+      sentSms(),
+      sentSlack(),
+      sentTeams(),
+      sentWebhooks(),
+    ]);
+    expect(everythingSent).not.toContain("/episodes/");
+  });
+
+  test("custom templates get the incident detail route on every channel", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["detailsUrl"]).toBe(DETAILS_URL);
+      expect(JSON.stringify(call.variables)).not.toContain("/episodes/");
+    }
+  });
+
+  test("a status page without a custom domain links to its preview incident route", async () => {
+    const pageUrl: string = `https://oneuptime.acme.com/status-page/${STATUS_PAGE_ID.toString()}`;
+    useCustomTemplatesOnEveryChannel();
+    mock(StatusPageService.getStatusPageURL).mockResolvedValue(
+      pageUrl as never,
+    );
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["statusPageUrl"]).toBe(pageUrl);
+      expect(call.variables["detailsUrl"]).toBe(
+        `https://oneuptime.acme.com/status-page/22222222-2222-4222-8222-222222222222/incidents/${EPISODE_ID.toString()}`,
+      );
+    }
+  });
+});
+
+interface PageOrderCase {
+  name: string;
+  hiddenFirst: boolean;
+}
+
+describe("IncidentEpisode:SendNotificationToSubscribers respects showEpisodesOnStatusPage", () => {
+  test.each([
+    { name: "hiding page listed first", hiddenFirst: true },
+    { name: "hiding page listed last", hiddenFirst: false },
+  ])(
+    "$name: the page that hides episodes gets nothing, the page that shows them is notified",
+    async (order: PageOrderCase) => {
+      const hidingPage: StatusPage = statusPage({
+        showEpisodesOnStatusPage: false,
+        withCustomSmtpAndSms: true,
+      });
+      const showingPage: StatusPage = statusPage({
+        id: SECOND_STATUS_PAGE_ID,
+        pageTitle: "Beta Status",
+        withCustomSmtpAndSms: true,
+      });
+      resourcesOnBothPages();
+      useCustomTemplatesOnEveryChannel(
+        order.hiddenFirst
+          ? [hidingPage, showingPage]
+          : [showingPage, hidingPage],
+      );
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockImplementation(
+        async (statusPageId: unknown): Promise<Array<StatusPageSubscriber>> => {
+          return (statusPageId as ObjectID).toString() ===
+            SECOND_STATUS_PAGE_ID.toString()
+            ? [
+                subscriber({
+                  id: SECOND_SUBSCRIBER_ID,
+                  email: "beta@example.com",
+                }),
+              ]
+            : [subscriber()];
+        },
+      );
+
+      await runJob();
+
+      // The hiding page is never even looked at.
+      const pagesRead: Array<string> = mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as ObjectID).toString();
+      });
+      expect(pagesRead).toEqual([SECOND_STATUS_PAGE_ID.toString()]);
+      for (const lookup of templateLookups()) {
+        expect((lookup["statusPageId"] as ObjectID).toString()).toBe(
+          SECOND_STATUS_PAGE_ID.toString(),
+        );
+      }
+      expect(templateLookups()).toHaveLength(4);
+
+      // Exactly one subscriber - the showing page's - hears about it.
+      expect(sentMail()).toHaveLength(1);
+      expect((sentMail()[0]!["toEmail"] as Email).toString()).toBe(
+        "beta@example.com",
+      );
+      expect(sentSms()).toHaveLength(1);
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+      expect(sentWebhooks()).toHaveLength(1);
+      expect(sentWebhooks()[0]!["statusPageId"]).toBe(
+        SECOND_STATUS_PAGE_ID.toString(),
+      );
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(5);
+      for (const call of calls) {
+        expect(call.variables["statusPageName"]).toBe("Beta Status");
+        expect(call.variables["statusPageUrl"]).toBe(SECOND_STATUS_PAGE_URL);
+        expect(call.variables["detailsUrl"]).toBe(SECOND_DETAILS_URL);
+        expect(call.variables["resourcesAffected"]).toBe("DNS resolvers");
+      }
+
+      expect(JSON.stringify(sentWebhooks())).not.toContain("Acme Status");
+
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!["displayColor"]).toBe(Blue500);
+    },
+  );
+
+  test("when every page hides episodes nothing is sent and the feed says so", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage({ showEpisodesOnStatusPage: false }),
+    ] as never);
+
+    await runJob();
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toBe(Yellow500);
+    expect(feedItems()[0]!["feedInfoInMarkdown"]).toBe(
+      `📧 **No notification sent to subscribers** for the creation of [Episode 3](${DASHBOARD_URL}).`,
+    );
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnEpisodeCreated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessage:
+        /*
+         * Every page hides episodes: nothing was sent, and the message says
+         * so rather than that everyone was sent it.
+         */
+        "Not sent to any subscriber: no status page was sent this notification. Acme: not sent, this status page does not show episodes.",
+    });
+  });
+
+  test("a page whose showEpisodesOnStatusPage was not loaded counts as hiding episodes", async () => {
+    /*
+     * Why StatusPageSubscriberService.getStatusPagesToSendNotification must
+     * select showEpisodesOnStatusPage: an unselected column reads as
+     * undefined, and this job then skips the page.
+     */
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage({ leaveShowEpisodesUnset: true }),
+    ] as never);
+
+    await runJob();
+
+    nothingSent();
+  });
+});
+
+interface ProviderCase {
+  name: string;
+  withCustomSmtp: boolean;
+  withCustomSms: boolean;
+}
+
+describe("IncidentEpisode:SendNotificationToSubscribers custom templates need the page's own SMTP and Twilio", () => {
+  /*
+   * Email uses a custom template only when the status page has custom SMTP,
+   * and SMS only when it has custom Twilio. Slack and Teams need neither.
+   * Each check is tested on its own, so dropping or swapping one fails.
+   */
+  test.each([
+    {
+      name: "without custom SMTP or Twilio",
+      withCustomSmtp: false,
+      withCustomSms: false,
+    },
+    {
+      name: "with custom SMTP only",
+      withCustomSmtp: true,
+      withCustomSms: false,
+    },
+    {
+      name: "with custom Twilio only",
+      withCustomSmtp: false,
+      withCustomSms: true,
+    },
+    {
+      name: "with custom SMTP and Twilio",
+      withCustomSmtp: true,
+      withCustomSms: true,
+    },
+  ])(
+    "$name: Email and SMS use custom templates only where configured",
+    async (providers: ProviderCase) => {
+      const page: StatusPage = statusPage();
+      if (providers.withCustomSmtp) {
+        (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+      }
+      if (providers.withCustomSms) {
+        (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+      }
+      const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel([
+        page,
+      ]);
+
+      await runJob();
+
+      const expectedTemplates: Array<string> = [
+        bodies[StatusPageSubscriberNotificationMethod.Slack]!,
+        bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ];
+      if (providers.withCustomSmtp) {
+        expectedTemplates.push(
+          bodies[StatusPageSubscriberNotificationMethod.Email]!,
+          EMAIL_SUBJECT_TEMPLATE,
+        );
+      }
+      if (providers.withCustomSms) {
+        expectedTemplates.push(
+          bodies[StatusPageSubscriberNotificationMethod.SMS]!,
+        );
+      }
+
+      expect(
+        compileCalls()
+          .map((call: CompileCall): string => {
+            return call.template;
+          })
+          .sort(),
+      ).toEqual(expectedTemplates.sort());
+
+      expect(sentMail()).toHaveLength(1);
+      if (providers.withCustomSmtp) {
+        expect(sentMail()[0]!["templateType"]).toBe(
+          EmailTemplateType.BlankTemplate,
+        );
+        expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toContain(
+          "channel=email",
+        );
+      } else {
+        expect(sentMail()[0]!["templateType"]).toBe(
+          EmailTemplateType.SubscriberEpisodeCreated,
+        );
+        expect(sentMail()[0]!["subject"]).toBe(`[Incident] ${EPISODE_TITLE}`);
+      }
+
+      expect(sentSms()).toHaveLength(1);
+      if (providers.withCustomSms) {
+        expect(sentSms()[0]).toContain("channel=sms");
+      } else {
+        expect(sentSms()[0]).toBe(
+          dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
+        );
+      }
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentSlack()[0]).toContain("channel=slack");
+      expect(sentTeams()).toHaveLength(1);
+      expect(sentTeams()[0]).toContain("channel=teams");
+    },
+  );
+});
+
+describe("IncidentEpisode:SendNotificationToSubscribers custom templates receive every advertised variable", () => {
+  test("Email body and subject, SMS, Slack and Teams each get all of them", async () => {
+    const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+
+    // Email body and subject, SMS, Slack and Teams: one each.
+    expect(calls).toHaveLength(5);
+    expect(
+      calls
+        .map((call: CompileCall): string => {
+          return call.template;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        bodies[StatusPageSubscriberNotificationMethod.Email]!,
+        EMAIL_SUBJECT_TEMPLATE,
+        bodies[StatusPageSubscriberNotificationMethod.SMS]!,
+        bodies[StatusPageSubscriberNotificationMethod.Slack]!,
+        bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ].sort(),
+    );
+
+    const names: Array<string> =
+      SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+        EVENT,
+      );
+    expect([...names].sort()).toEqual(
+      [
+        "statusPageName",
+        "statusPageUrl",
+        "unsubscribeUrl",
+        "resourcesAffected",
+        "episodeTitle",
+        "episodeDescription",
+        "episodeSeverity",
+        "detailsUrl",
+      ].sort(),
+    );
+
+    for (const call of calls) {
+      const missing: Array<string> = names.filter((name: string): boolean => {
+        return (
+          !Object.prototype.hasOwnProperty.call(call.variables, name) ||
+          typeof call.variables[name] !== "string"
+        );
+      });
+
+      expect({ template: call.template, missing }).toEqual({
+        template: call.template,
+        missing: [],
+      });
+    }
+  });
+
+  test("every template lookup is for the episode-created event", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    expect(templateLookups()).toHaveLength(4);
+    expect(
+      templateLookups()
+        .map((lookup: JSONObject): string => {
+          return lookup["notificationMethod"] as string;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        StatusPageSubscriberNotificationMethod.Email,
+        StatusPageSubscriberNotificationMethod.SMS,
+        StatusPageSubscriberNotificationMethod.Slack,
+        StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+      ].sort(),
+    );
+    for (const lookup of templateLookups()) {
+      expect(lookup["eventType"]).toBe(EVENT);
+    }
+  });
+});
+
+interface PageNameCase {
+  name: string;
+  withoutPageTitle: boolean;
+  expected: string;
+}
+
+describe("IncidentEpisode:SendNotificationToSubscribers custom template variable values", () => {
+  test("resourcesAffected, statusPageName and statusPageUrl belong to the page being notified", async () => {
+    resourcesOnBothPages();
+    useCustomTemplatesOnEveryChannel([
+      statusPage({ withCustomSmtpAndSms: true }),
+      statusPage({
+        withCustomSmtpAndSms: true,
+        id: SECOND_STATUS_PAGE_ID,
+        pageTitle: "Beta Status",
+      }),
+    ]);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(10);
+
+    const valuesByPage: Record<string, Array<string>> = {};
+    for (const call of calls) {
+      const page: string = call.variables["statusPageName"] as string;
+      const values: string = [
+        call.variables["statusPageUrl"],
+        call.variables["resourcesAffected"],
+        call.variables["detailsUrl"],
+      ].join(" | ");
+      valuesByPage[page] = valuesByPage[page] || [];
+      if (!valuesByPage[page]!.includes(values)) {
+        valuesByPage[page]!.push(values);
+      }
+    }
+
+    expect(valuesByPage).toEqual({
+      "Acme Status": [`${STATUS_PAGE_URL} | ${RESOURCE} | ${DETAILS_URL}`],
+      "Beta Status": [
+        `${SECOND_STATUS_PAGE_URL} | DNS resolvers | ${SECOND_DETAILS_URL}`,
+      ],
+    });
+  });
+
+  test.each([
+    {
+      name: "with a page title",
+      withoutPageTitle: false,
+      expected: "Acme Status",
+    },
+    { name: "without a page title", withoutPageTitle: true, expected: "Acme" },
+  ])("$name: statusPageName is '$expected'", async (row: PageNameCase) => {
+    useCustomTemplatesOnEveryChannel([
+      statusPage({
+        withCustomSmtpAndSms: true,
+        withoutPageTitle: row.withoutPageTitle,
+      }),
+    ]);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["statusPageName"]).toBe(row.expected);
+    }
+  });
+
+  test("unsubscribeUrl is each subscriber's own link", async () => {
+    const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel();
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue([
+      subscriber(),
+      subscriber({ id: SECOND_SUBSCRIBER_ID, email: "second@example.com" }),
+    ] as never);
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(10);
+
+    /*
+     * Subscribers are sent to a bounded number at a time, so their compiles
+     * interleave; each still carries its own subscriber's link, on all five
+     * of its templates. An SMS from this public page carries the
+     * subscriber's manage link instead (see smsManageLinkFor).
+     */
+    const isSms: (call: CompileCall) => boolean = (
+      call: CompileCall,
+    ): boolean => {
+      return (
+        call.template === bodies[StatusPageSubscriberNotificationMethod.SMS]
+      );
+    };
+    const linksCompiled: Array<string> = calls
+      .map((call: CompileCall): string => {
+        return `${isSms(call) ? "sms" : "other"} ${call.variables["unsubscribeUrl"]}`;
+      })
+      .sort();
+    expect(linksCompiled).toEqual(
+      [
+        `sms ${SMS_UNSUBSCRIBE_URL}`,
+        `sms ${smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}`,
+        ...Array(4).fill(`other ${UNSUBSCRIBE_URL}`),
+        ...Array(4).fill(`other ${SECOND_UNSUBSCRIBE_URL}`),
+      ].sort(),
+    );
+
+    expect(sentSms()).toHaveLength(2);
+    expect(
+      sentSms().some((message: string): boolean => {
+        return message.includes(`unsubscribeUrl=[${SMS_UNSUBSCRIBE_URL}]`);
+      }),
+    ).toBe(true);
+    expect(
+      sentSms().some((message: string): boolean => {
+        return message.includes(
+          `unsubscribeUrl=[${smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}]`,
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("episodeTitle and episodeSeverity come from the episode", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["episodeTitle"]).toBe(EPISODE_TITLE);
+      expect(call.variables["episodeSeverity"]).toBe(SEVERITY);
+    }
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject: ${EPISODE_TITLE} (${SEVERITY})`,
+    );
+  });
+
+  test("episodeSeverity reads ' - ' when the episode has no severity, as the default email does", async () => {
+    pendingEpisodes = [episode({ withoutSeverity: true })];
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["episodeSeverity"]).toBe(" - ");
+    }
+    expect(sentMail()[0]!["subject"]).toBe(`Subject: ${EPISODE_TITLE} ( - )`);
+  });
+
+  test("episodeDescription is HTML in the email body, plain text in the subject and SMS, and Markdown in Slack and Teams", async () => {
+    const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    expect(Markdown.convertToHTML).toHaveBeenCalledWith(
+      DESCRIPTION,
+      MarkdownContentType.Email,
+    );
+    expect(Markdown.convertToPlainText).toHaveBeenCalledWith(DESCRIPTION);
+
+    const expectedByTemplate: Record<string, string> = {
+      [bodies[StatusPageSubscriberNotificationMethod.Email]!]: DESCRIPTION_HTML,
+      [EMAIL_SUBJECT_TEMPLATE]: DESCRIPTION_TEXT,
+      [bodies[StatusPageSubscriberNotificationMethod.SMS]!]: DESCRIPTION_TEXT,
+      [bodies[StatusPageSubscriberNotificationMethod.Slack]!]: DESCRIPTION,
+      [bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!]:
+        DESCRIPTION,
+    };
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+    for (const call of calls) {
+      expect(call.variables["episodeDescription"]).toBe(
+        expectedByTemplate[call.template],
+      );
+    }
+  });
+
+  test("the description is converted once per episode, however many pages and subscribers", async () => {
+    resourcesOnBothPages();
+    useCustomTemplatesOnEveryChannel([
+      statusPage({ withCustomSmtpAndSms: true }),
+      statusPage({
+        withCustomSmtpAndSms: true,
+        id: SECOND_STATUS_PAGE_ID,
+        pageTitle: "Beta Status",
+      }),
+    ]);
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue([
+      subscriber(),
+      subscriber({ id: SECOND_SUBSCRIBER_ID, email: "second@example.com" }),
+    ] as never);
+
+    await runJob();
+
+    // Two pages with two subscribers each, five templates per subscriber.
+    expect(compileCalls()).toHaveLength(20);
+    expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
+    expect(Markdown.convertToHTML).toHaveBeenCalledWith(
+      DESCRIPTION,
+      MarkdownContentType.Email,
+    );
+    expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
+    expect(Markdown.convertToPlainText).toHaveBeenCalledWith(DESCRIPTION);
+  });
+
+  test("a template using every advertised variable renders completely on every channel", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    // What the fixtures hold for each advertised variable.
+    const expectedValues: Record<string, string> = {
+      statusPageName: "Acme Status",
+      statusPageUrl: STATUS_PAGE_URL,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      resourcesAffected: RESOURCE,
+      episodeTitle: EPISODE_TITLE,
+      episodeDescription: DESCRIPTION,
+      episodeSeverity: SEVERITY,
+      detailsUrl: DETAILS_URL,
+    };
+
+    const names: Array<string> =
+      SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+        EVENT,
+      );
+    expect(Object.keys(expectedValues).sort()).toEqual([...names].sort());
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentSms()).toHaveLength(1);
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    const rendered: Record<string, string> = {
+      email: (sentMail()[0]!["vars"] as JSONObject)["body"] as string,
+      sms: sentSms()[0]!,
+      slack: sentSlack()[0]!,
+      teams: sentTeams()[0]!,
+    };
+
+    /*
+     * Each channel gets the description in the format it renders: HTML in
+     * the email body, plain text in SMS, and as written in Slack and Teams.
+     */
+    const descriptionByChannel: Record<string, string> = {
+      email: DESCRIPTION_HTML,
+      sms: DESCRIPTION_TEXT,
+      slack: DESCRIPTION,
+      teams: DESCRIPTION,
+    };
+
+    for (const [channel, message] of Object.entries(rendered)) {
+      expect(message).toContain(`channel=${channel}`);
+      expect(message).not.toMatch(/{{|}}/);
+
+      for (const name of names) {
+        let value: string =
+          name === "episodeDescription"
+            ? descriptionByChannel[channel]!
+            : expectedValues[name]!;
+
+        // An SMS from this public page carries the manage link.
+        if (name === "unsubscribeUrl" && channel === "sms") {
+          value = SMS_UNSUBSCRIBE_URL;
+        }
+
+        expect(value).not.toBe("");
+        expect(message).toContain(`${name}=[${value}]`);
+      }
+    }
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject: ${EPISODE_TITLE} (${SEVERITY})`,
+    );
+  });
+});
+
+interface SubjectFallbackCase {
+  name: string;
+  withoutTitle: boolean;
+  subject: string;
+}
+
+describe("IncidentEpisode:SendNotificationToSubscribers custom email subject fallback", () => {
+  /*
+   * A custom email template without its own subject gets "[Incident] "
+   * followed by the episode title; an untitled episode gets the bare prefix
+   * rather than "undefined".
+   */
+  test.each([
+    {
+      name: "titled",
+      withoutTitle: false,
+      subject: `[Incident] ${EPISODE_TITLE}`,
+    },
+    { name: "untitled", withoutTitle: true, subject: "[Incident] " },
+  ])("$name: the subject is '$subject'", async (row: SubjectFallbackCase) => {
+    pendingEpisodes = [episode({ withoutTitle: row.withoutTitle })];
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage({ withCustomSmtpAndSms: true })] as never);
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.Email
+        ? { templateBody: "<p>{{episodeDescription}}</p>" }
+        : null;
+    });
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()[0]!["subject"]).toBe(row.subject);
+    // The email body gets the description as HTML.
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: `<p>${DESCRIPTION_HTML}</p>`,
+    });
+  });
+});
+
+interface ChannelValues {
+  emailBody: Record<string, string>;
+  plainText: Record<string, string>;
+  markdown: Record<string, string>;
+}
+
+/*
+ * The variables each kind of custom template should get for the fixtures
+ * with groupedResources(): only episodeDescription and resourcesAffected
+ * differ between them.
+ */
+function groupedChannelValues(): ChannelValues {
+  const shared: Record<string, string> = {
+    statusPageName: "Acme Status",
+    statusPageUrl: STATUS_PAGE_URL,
+    detailsUrl: DETAILS_URL,
+    unsubscribeUrl: UNSUBSCRIBE_URL,
+    episodeSeverity: SEVERITY,
+    episodeTitle: EPISODE_TITLE,
+  };
+
+  return {
+    emailBody: {
+      ...shared,
+      episodeDescription: DESCRIPTION_HTML,
+      resourcesAffected: GROUPED_RESOURCES_HTML,
+    },
+    plainText: {
+      ...shared,
+      episodeDescription: DESCRIPTION_TEXT,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
+    },
+    markdown: {
+      ...shared,
+      episodeDescription: DESCRIPTION,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
+    },
+  };
+}
+
+describe("IncidentEpisode:SendNotificationToSubscribers custom templates with grouped resources get their channel's format", () => {
+  let bodies: Record<string, string> = {};
+
+  beforeEach(() => {
+    bodies = useCustomTemplatesOnEveryChannel(
+      undefined,
+      FORMAT_EMAIL_SUBJECT_TEMPLATE,
+    );
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+  });
+
+  test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+    await runJob();
+
+    const values: ChannelValues = groupedChannelValues();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: renderedEveryVariable("email", values.emailBody),
+    });
+    expect(sentMail()[0]!["subject"]).toBe(
+      `${EPISODE_TITLE}: ${DESCRIPTION_TEXT} (${GROUPED_RESOURCES_TEXT})`,
+    );
+    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    expect(sentSms()).toEqual([
+      renderedEveryVariable("sms", {
+        ...values.plainText,
+        unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
+      }),
+    ]);
+    expect(sentSlack()).toEqual([
+      renderedEveryVariable("slack", values.markdown),
+    ]);
+    expect(sentTeams()).toEqual([
+      renderedEveryVariable("teams", values.markdown),
+    ]);
+
+    // The groups are on their own lines only where HTML is rendered.
+    const emailBody: string = (sentMail()[0]!["vars"] as JSONObject)[
+      "body"
+    ] as string;
+    expect(emailBody).toContain(
+      `resourcesAffected=[${GROUPED_RESOURCES_HTML}]`,
+    );
+    expect(emailBody).toContain(`episodeDescription=[${DESCRIPTION_HTML}]`);
+    for (const message of [
+      sentMail()[0]!["subject"] as string,
+      sentSms()[0]!,
+      sentSlack()[0]!,
+      sentTeams()[0]!,
+    ]) {
+      expect(message).not.toContain("<br/>");
+      expect(message).not.toContain("<p>");
+    }
+    expect(sentSms()[0]).toContain(
+      `resourcesAffected=[${GROUPED_RESOURCES_TEXT}]`,
+    );
+    expect(sentSlack()[0]).toContain(`episodeDescription=[${DESCRIPTION}]`);
+    expect(sentTeams()[0]).toContain(`episodeDescription=[${DESCRIPTION}]`);
+  });
+
+  test("hands each channel's template every advertised variable, in that channel's format", async () => {
+    await runJob();
+
+    const values: ChannelValues = groupedChannelValues();
+
+    const names: Array<string> =
+      SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+        EVENT,
+      );
+    for (const dictionary of [
+      values.emailBody,
+      values.plainText,
+      values.markdown,
+    ]) {
+      expect(Object.keys(dictionary).sort()).toEqual([...names].sort());
+    }
+
+    expect(compileCalls()).toHaveLength(5);
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.Email]!,
+      ),
+    ).toEqual(values.emailBody);
+    expect(variablesCompiledInto(FORMAT_EMAIL_SUBJECT_TEMPLATE)).toEqual(
+      values.plainText,
+    );
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.SMS]!,
+      ),
+    ).toEqual({ ...values.plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL });
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.Slack]!,
+      ),
+    ).toEqual(values.markdown);
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ),
+    ).toEqual(values.markdown);
+  });
+
+  test("sends webhooks the Markdown description and a plain-text resource list", async () => {
+    await runJob();
+
+    expect(sentWebhooks()).toHaveLength(1);
+    expect(sentWebhooks()[0]!["eventType"]).toBe("EpisodeCreated");
+    expect(sentWebhooks()[0]!["data"]).toEqual({
+      episodeId: EPISODE_ID.toString(),
+      episodeTitle: EPISODE_TITLE,
+      episodeDescription: DESCRIPTION,
+      incidentSeverity: SEVERITY,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
+      detailsUrl: DETAILS_URL,
+    });
+  });
+});
+
+describe("IncidentEpisode:SendNotificationToSubscribers default email with grouped resources", () => {
+  test("still gets HTML for the description and the resource list", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberEpisodeCreated,
+    );
+    expect(sentMail()[0]!["subject"]).toBe(`[Incident] ${EPISODE_TITLE}`);
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        episodeDescription: DESCRIPTION_HTML,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      }),
+    );
+  });
+});
+
+interface TemplateSyntaxDescription {
+  name: string;
+  markdown: string;
+  // The plain text the Markdown helper turns it into.
+  text: string;
+}
+
+/*
+ * Descriptions quoting template syntax. The subject is finished text when the
+ * worker sends it, so the mail is marked literal: compiling it again read the
+ * braces as Handlebars, and the email either failed to render and was never
+ * sent or lost the quoted words. Tests/Notification/
+ * SubscriberEmailSubjectLiteral.test.ts follows such a subject to SMTP.
+ */
+const TEMPLATE_SYNTAX_DESCRIPTIONS: Array<TemplateSyntaxDescription> = [
+  {
+    name: "a bare expression",
+    markdown: "Deploy blocked on {{ x }}",
+    text: "Deploy blocked on {{ x }}",
+  },
+  {
+    name: "a quoted Helm value",
+    markdown: "Helm upgrade failed: `{{ .Values.image.tag }}` was empty",
+    text: "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+  },
+  {
+    name: "a lone opening pair of braces",
+    markdown: "Config parser stopped at {{ on line 3",
+    text: "Config parser stopped at {{ on line 3",
+  },
+];
+
+describe("IncidentEpisode:SendNotificationToSubscribers email subjects are sent as written", () => {
+  test.each(TEMPLATE_SYNTAX_DESCRIPTIONS)(
+    "a description with $name reaches the custom subject as written",
+    async ({ markdown, text }: TemplateSyntaxDescription) => {
+      const row: IncidentEpisode = episode();
+      row.description = markdown;
+      pendingEpisodes = [row];
+      mock(Markdown.convertToPlainText).mockImplementation(
+        (value: unknown): string => {
+          return value === markdown ? text : "";
+        },
+      );
+      useCustomTemplatesOnEveryChannel(
+        undefined,
+        FORMAT_EMAIL_SUBJECT_TEMPLATE,
+      );
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `${EPISODE_TITLE}: ${text} (${RESOURCE})`,
+      );
+      expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    },
+  );
+
+  test("a title with template syntax reaches the default subject as written", async () => {
+    const row: IncidentEpisode = episode();
+    row.title = "Rollout of {{ .Values.image.tag }} stalled";
+    pendingEpisodes = [row];
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["subject"]).toBe(
+      "[Incident] Rollout of {{ .Values.image.tag }} stalled",
+    );
+    expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
+
+/*
+ * An episode reaches the union of the status pages its incidents reach, each
+ * through its own status page scope (Incident.statusPages). Ten site pages
+ * all list the shared monitor the incidents are on.
+ */
+describe("IncidentEpisode:SendNotificationToSubscribers, with status page scope on its incidents", () => {
+  const INCIDENT_A: ObjectID = new ObjectID(
+    "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1",
+  );
+  const INCIDENT_B: ObjectID = new ObjectID(
+    "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1",
+  );
+
+  let pages: Array<StatusPage> = [];
+  let subscribers: Array<StatusPageSubscriber> = [];
+
+  function memberOnSharedMonitor(id: ObjectID): Incident {
+    const incident: Incident = new Incident();
+    incident._id = id.toString();
+    incident.monitors = [sharedMonitor()];
+    return incident;
+  }
+
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function sitesLookedUp(): Array<number> {
+    return mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mock.calls.map((call: Array<unknown>): number => {
+      return siteOf(call[0]);
+    });
+  }
+
+  beforeEach(() => {
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site);
+    });
+    subscribers = allSites().map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: `site${site}@acme.com` });
+    });
+
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      allSites().map(siteResource) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockImplementation(
+      statusPagesByIdFake(() => {
+        return pages;
+      }) as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockImplementation(
+      subscribersByPageFake(() => {
+        return subscribers;
+      }) as never,
+    );
+
+    memberIncidents = [memberOnSharedMonitor(INCIDENT_A)];
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([7, 3]) };
+  });
+
+  test("reaches pages through the monitor lookup that follows monitor groups", async () => {
+    await runJob();
+
+    expect(StatusPageResourceService.findByMonitors).toHaveBeenCalled();
+    expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+  });
+
+  test("a page that lists the monitor only through a monitor group is told", async () => {
+    storedScopes = {};
+    pages = [sitePage(4)];
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+      siteResource(4),
+    ] as never);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site4@acme.com"]);
+  });
+
+  test("a shared monitor on ten pages, with its incident scoped to two, tells only those two", async () => {
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site3@acme.com", "site7@acme.com"]);
+    expect(sitesLookedUp()).toEqual([3, 7]);
+  });
+
+  test("reaches the union of its incidents' pages, each through its own scope", async () => {
+    // Sites 1-3 only show scoped incidents.
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: site <= 3 });
+    });
+    memberIncidents = [
+      memberOnSharedMonitor(INCIDENT_A),
+      memberOnSharedMonitor(INCIDENT_B),
+    ];
+    // A is scoped to Site 03 and Site 04; B is unscoped.
+    storedScopes = { [INCIDENT_A.toString()]: scopedTo([3, 4]) };
+
+    await runJob();
+
+    // B reaches 4-10 (not the scoped-only pages); A adds Site 03.
+    expect(sitesLookedUp()).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    /*
+     * Sites 01 and 02 are on A's monitor too, and A is limited to other
+     * pages: that is the reason given, although B would not reach them
+     * either (they only show scoped incidents).
+     */
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 2 status pages outside the status pages this is limited to:** Site 01, Site 02.",
+    );
+  });
+
+  test("the scope of every member incident is read in one query", async () => {
+    memberIncidents = [
+      memberOnSharedMonitor(INCIDENT_A),
+      memberOnSharedMonitor(INCIDENT_B),
+    ];
+
+    await runJob();
+
+    expect(IncidentService.findBy).toHaveBeenCalledTimes(1);
+    const query: JSONObject = (
+      mock(IncidentService.findBy).mock.calls[0]![0] as { query: JSONObject }
+    ).query;
+    expect(JSON.stringify(query["_id"])).toContain(INCIDENT_A.toString());
+    expect(JSON.stringify(query["_id"])).toContain(INCIDENT_B.toString());
+  });
+
+  test("an episode of unscoped incidents reaches none of ten pages that only show scoped incidents", async () => {
+    storedScopes = {};
+    pages = allSites().map((site: number): StatusPage => {
+      return sitePage(site, { onlyShowScopedIncidents: true });
+    });
+
+    await runJob();
+
+    nothingSent();
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Yellow500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "**Not sent to 10 status pages that only show incidents limited to them:**",
+    );
+  });
+
+  test("someone on two reached pages gets one email and one SMS, but each page's webhook, Slack and Teams message", async () => {
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({
+        site: site,
+        email: "shared@acme.com",
+        phone: "+15555550100",
+        webhook: "https://hooks.acme.com/status",
+        slack: "https://hooks.slack.com/services/T000/B000/XXXX",
+        teams: "https://outlook.office.com/webhook/abc",
+      });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com"]);
+    expect(sentSms()).toHaveLength(1);
+    expect(
+      sentWebhooks().map((payload: JSONObject): number => {
+        return siteOf(payload["statusPageId"]);
+      }),
+    ).toEqual([3, 7]);
+    expect(sentSlack()).toHaveLength(2);
+    expect(sentTeams()).toHaveLength(2);
+  });
+
+  test("an episode of unscoped incidents sends every subscription its email, as before", async () => {
+    storedScopes = {};
+    subscribers = [3, 7].map((site: number): StatusPageSubscriber => {
+      return siteSubscriber({ site: site, email: "shared@acme.com" });
+    });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["shared@acme.com", "shared@acme.com"]);
+  });
+
+  test("the feed item lists each page, the subject used and what was sent", async () => {
+    subscribers = [
+      siteSubscriber({ site: 3, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 1, email: "a@acme.com" }),
+      siteSubscriber({ site: 7, index: 2, phone: "+15555550100" }),
+    ];
+
+    await runJob();
+
+    expect(feedItems()).toHaveLength(1);
+    expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+      [
+        "**Status pages:**",
+        "",
+        `- **Site 03**: 1 email sent. Subject: "\\[Incident\\] ${EPISODE_TITLE}".`,
+        "- **Site 07**: 1 SMS sent. Not sent again to 1 email address already sent it through another status page.",
+        "",
+        "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+        "",
+        "**Not sent to 8 status pages outside the status pages this is limited to:** Site 01, Site 02, Site 04, Site 05, Site 06, Site 08, Site 09, Site 10.",
+      ].join("\n"),
+    );
+  });
+
+  test("a page that hides episodes is listed as passed over", async () => {
+    pages[2] = sitePage(3, { showEpisodesOnStatusPage: false });
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(["site7@acme.com"]);
+    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+      "- **Site 03**: not sent, this status page does not show episodes.",
+    );
+  });
+});
+
+/*
+ * Escaping. The episode title and severity, the status page's name and the
+ * names of its resources and groups are plain text a project member typed.
+ * In an email they must read as those characters; the description is
+ * Markdown rendered to HTML and stays HTML. Text channels (a subject, SMS,
+ * Slack, Teams, webhooks) show text as written, so they must get no HTML
+ * entities at all.
+ */
+describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in email", () => {
+  const HOSTILE_SEVERITY: string = "Major <b>&</b>";
+
+  const ESCAPING_EMAIL_BODY: string =
+    '<h1>{{episodeTitle}}</h1><p>{{statusPageName}} / {{episodeSeverity}}</p><div>{{resourcesAffected}}</div><div>{{episodeDescription}}</div><a href="{{detailsUrl}}">Details</a>';
+  const ESCAPING_TEXT: string =
+    "{{episodeTitle}} on {{statusPageName}} ({{episodeSeverity}}): {{resourcesAffected}}";
+
+  beforeEach(() => {
+    const row: IncidentEpisode = episode();
+    row.title = HOSTILE_TITLE;
+    row.incidentSeverity!.name = HOSTILE_SEVERITY;
+    pendingEpisodes = [row];
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      hostileResources(STATUS_PAGE_ID) as never,
+    );
+  });
+
+  describe("with custom templates", () => {
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({
+          withCustomSmtpAndSms: true,
+          pageTitle: HOSTILE_PAGE_NAME,
+        }),
+      ] as never);
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return method === StatusPageSubscriberNotificationMethod.Email
+          ? { templateBody: ESCAPING_EMAIL_BODY, emailSubject: ESCAPING_TEXT }
+          : { templateBody: `${method}: ${ESCAPING_TEXT}` };
+      });
+    });
+
+    test("the email body escapes the plain values and keeps the description and the resource list as HTML", async () => {
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+        `<h1>${HOSTILE_TITLE_HTML}</h1><p>${HOSTILE_PAGE_NAME_HTML} / Major &lt;b&gt;&amp;&lt;/b&gt;</p><div>${HOSTILE_RESOURCES_HTML}</div><div>${DESCRIPTION_HTML}</div><a href="${DETAILS_URL}">Details</a>`,
+      );
+
+      const emailBody: Array<RecordedCompile> = recordedCompiles(
+        StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+        StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+      ).filter((call: RecordedCompile): boolean => {
+        return call.emailBody;
+      });
+      expect(emailBody).toHaveLength(1);
+      expectOnlyTheListedHtmlVariables(emailBody[0]!.rawVariables, EVENT);
+    });
+
+    test("the subject, SMS, Slack, Teams and webhooks get every value as written", async () => {
+      await runJob();
+
+      const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_SEVERITY}): ${HOSTILE_RESOURCES_TEXT}`;
+
+      expect(sentMail()[0]!["subject"]).toBe(text);
+      expect(sentSms()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+      ]);
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expectNoHtmlEntities(message);
+      }
+
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({
+          episodeTitle: HOSTILE_TITLE,
+          resourcesAffected: HOSTILE_RESOURCES_TEXT,
+        }),
+      );
+    });
+  });
+
+  test("the default email gets the resource list escaped, and the SMS and chat defaults get it as written", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage({ pageTitle: HOSTILE_PAGE_NAME }),
+    ] as never);
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        resourcesAffected: HOSTILE_RESOURCES_HTML,
+        episodeDescription: DESCRIPTION_HTML,
+        episodeTitle: HOSTILE_TITLE,
+        statusPageName: HOSTILE_PAGE_NAME,
+      }),
+    );
+    expect(sentSms()).toEqual([
+      `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+    expect(sentSlack()[0]).toContain(
+      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+    );
+    expect(sentTeams()[0]).toContain(
+      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+    );
+    for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+      expectNoHtmlEntities(message);
+      expect(message).not.toContain("<br/>");
+    }
+  });
+});
+
+describe("IncidentEpisode unsubscribe links", () => {
+  test("every message links to the subscriber's own unsubscribe page, token included", async () => {
+    await runJob();
+
+    /*
+     * The job hands getUnsubscribeLink the subscriber row it read - with its
+     * unsubscribe token - so the link works on private status pages without
+     * signing in. An id alone, or the old manage page, would not.
+     */
+    expectEveryUnsubscribeLinkToCarryAToken(
+      StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});
+
+/*
+ * How the notification sends (SubscriberDeliveryContract): every message
+ * awaited and counted, failures of every kind on every channel, every
+ * subscriber past LIMIT_MAX, and the send window and the run's latest claim.
+ */
+describeSubscriberDelivery({
+  title: "IncidentEpisode:SendNotificationToSubscribers",
+  jobName: JOB,
+  runJob: runJob,
+  cronOptions: (): JSONObject | undefined => {
+    return mockCapturedOptions[JOB] as JSONObject | undefined;
+  },
+  pendRows: (count: number): Array<ObjectID> => {
+    pendingEpisodes = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const row: IncidentEpisode = episode();
+      row.version = PENDING_ROW_VERSION;
+
+      if (index > 0) {
+        row._id = ObjectID.generate().toString();
+      }
+
+      pendingEpisodes.push(row);
+    }
+
+    return pendingEpisodes.map((row: IncidentEpisode): ObjectID => {
+      return row.id!;
+    });
+  },
+  statusColumn: "subscriberNotificationStatusOnEpisodeCreated",
+  messageColumn: "subscriberNotificationStatusMessage",
+  claimedAtColumn: "subscriberNotificationClaimedAtOnEpisodeCreated",
+  claim: IncidentEpisodeService.compareAndSetColumnsByIdWithoutHooks,
+  update: IncidentEpisodeService.updateOneById,
+  feed: IncidentEpisodeFeedService.createIncidentEpisodeFeedItem,
+  subscribers: StatusPageSubscriberService.getSubscribersByStatusPage,
+  emailSubscriber: (id: string): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.subscriberEmail = new Email(`subscriber-${id.slice(-12)}@example.com`);
+    return withUnsubscribeToken(row);
+  },
+  senders: {
+    email: MailService.sendMail,
+    sms: SmsService.sendSms,
+    slack: SlackUtil.sendMessageToChannelViaIncomingWebhook,
+    teams: MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    webhook: StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+  },
+  sentMessage: "Notifications sent successfully to all subscribers.",
+  retryScope: SubscriberNotificationRetryScope.EveryPage,
+});

@@ -14,6 +14,26 @@ The one exception is `validate-collector-configs.sh`, which is deliberately not
 part of `npm test`: it runs the real collector binary over the agent configs and
 therefore needs docker and helm. See its section below.
 
+Two checks inside `npm test` use tools when they are there, and the "Ops Config
+Test" workflow provides both:
+
+- **gomplate.** `EnterpriseEditionBuild.test.js` checks its Dockerfile renderer
+  against gomplate for every `Dockerfile.tpl`. Without gomplate on PATH the
+  check is skipped with the reason logged, except when `CI` is set: then it
+  fails, because a parity check must not pass by skipping. The workflow
+  installs the release binary at the `GOMPLATE_VERSION` that
+  `Scripts/Install/configure.sh` pins.
+- **docker.** `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` turns on the real-Docker
+  check of what `COPY ./ee` ships through `.dockerignore` (it builds one tiny
+  image from `public.ecr.aws/docker/library/node:26-alpine3.24`). With the
+  variable set, a docker that does not answer `docker version` fails the test
+  instead of skipping it. The workflow sets the variable on the jest step.
+- **the npm registry, and docker.** `RUN_NPM_CLI_UPDATE_TESTS=1` turns on the
+  real runs of `Scripts/Docker/UpdateNpmCli.js` in `UpdateNpmCli.test.js`:
+  one against a vulnerable npm installed from the registry, one inside
+  `node:26-alpine3.24` through the real `.dockerignore`. The workflow sets it
+  on the jest step too.
+
 or from the repo root:
 
 ```sh
@@ -34,7 +54,7 @@ stay CommonJS inside the ESM repo root.
 > root dependencies or run the suite with another consistent jest in the repo:
 >
 > ```sh
-> node Common/node_modules/jest/bin/jest.js \
+> node packages/Common/node_modules/jest/bin/jest.js \
 >   --config Tests/Ops/jest.config.json --runInBand
 > ```
 
@@ -155,7 +175,7 @@ logfmt, nginx, logback, Python, .NET and klog lines, and holds the three agents
 and the Kubernetes ConfigMap to one identical chain.
 
 The expectations are not guesses: each config was run through the real
-`otelcol-contrib` 0.154.0 — the version the images are built `FROM` — over a
+`otelcol-contrib` 0.161.0 — the version the images are built `FROM` — over a
 fixture log file, and the severity this suite predicts is the severity the
 collector emitted. The pattern is additionally cross-checked against Go's
 `regexp` package, which is the same RE2 implementation stanza's `regex_parser`
@@ -183,9 +203,11 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 ### `validate-collector-configs.sh`
 
 Not part of `npm test`, because it needs docker and helm. It runs
-`otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.154.0`
-image over the four agent configs and over both collector ConfigMaps rendered
-out of the `kubernetes-agent` chart.
+`otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
+image over the four agent configs, over the Database Agent's per-receiver
+configs (as shipped, and again with every optional metric their comments list
+switched on), and over both collector ConfigMaps rendered out of the
+`kubernetes-agent` chart.
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
@@ -198,6 +220,81 @@ or an expr string one backslash short. It runs on every PR from the
 cd Tests/Ops && npm run validate-collector-configs
 ```
 
+### `DatabaseAgentConfigs.test.js`
+
+The Database Agent (`agents/DatabaseAgent`) is config-only: a stock collector
+image plus one config per receiver
+(`configs/{postgresql,mysql,redis,mongodb,sqlserver,oracledb,elasticsearch,memcached}.yaml`;
+a fork such as MariaDB or Valkey runs its family's config). OneUptime registers
+a database from what those configs stamp, so their shape is pinned, per
+config:
+
+- the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
+  so a fork reports itself), `server.address`,
+  `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
+  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+  deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
+  `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
+  Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
+  `host.name` is switched off;
+- `oneuptime.database.server.id` is set by a transform and deleted again when
+  `DATABASE_SERVER_ID` is blank, on metrics and logs, and never by the
+  resource processor (which refuses an empty value);
+- no `resourcedetection` processor, one receiver instance per pipeline, the
+  processor order `memory_limiter → resource → transform → batch` (the `logs`
+  pipeline adds `transform/query_event_body` before `batch`), and a
+  single `otlphttp` exporter to `${env:ONEUPTIME_URL}/otlp` with the
+  ingestion-key header;
+- where the receiver emits query samples and top queries (PostgreSQL, MySQL,
+  MongoDB, SQL Server, Oracle), `transform/query_event_body` copies
+  `db.query.text` into the empty log body — otherwise the Logs tab shows `{}`
+  as every event's message — and leaves a body that is already there alone;
+- TLS flags and event toggles stay unquoted (booleans), query events exist only
+  where the receiver has them, and Redis / MongoDB turn on the receiver's own
+  `server.address` / `server.port`;
+- every `${env:...}` is passed by `docker-compose.yml`, `install.sh` reuses and
+  writes exactly the compose variables, accepts only engines that have a
+  config, and shares its host classifiers and its engine → config table with
+  `troubleshoot.sh`; the systemd unit runs the directory `install.sh` installs
+  to.
+
+### `DatabaseAgentScripts.test.js`
+
+Runs the Database Agent's `install.sh` and `troubleshoot.sh` for real in a
+scratch directory, with `docker` and `curl` replaced by recording stubs (no
+daemon or network needed). It pins what they do with a user's values: the
+login reaches the container with every `$` doubled (the collector expands
+`$$` and `${...}` once more — measured against 0.161.0 and a live database),
+a re-run neither re-escapes nor loses it, an `.env` from an older script is read
+as typed, the first `docker compose up` runs from `.env` alone, an edited
+compose file or config is kept as `<file>.bak.<timestamp>` on a re-run, a
+re-run recreates the container on the config it just downloaded (Compose does
+not compare a bind-mounted file's content, so it needs `--force-recreate`, and
+so does every `compose up` the script advises), forks run their family's
+config under their own name; and that the diagnostic reads
+only a log line's `error` field, reports a failed EXPLAIN as a warning rather
+than a missing grant, and hands the ingestion key to a digest-pinned curl image
+on stdin, never on a command line.
+
+### `AgentTroubleshootTokenCheck.test.js`
+
+Runs the ingestion-key check of the Ceph, Proxmox, VMware and Docker Swarm
+agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
+chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
+each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
+with 401 (missing, unknown, expired) or 422 (disabled, or a browser key from a
+collector). The matrix pins the verdicts:
+
+- a browser key that `/otlp/v1/validate` accepts is still refused;
+- on a server without that route, `/otlp/v1/metrics` answering 401/422 is a
+  refused key, not "reachable";
+- the `/fluentd/v1/logs` fallback reads 401/422 and "Missing ingestion token"
+  as a refusal, still reads an old server's 400 "Invalid service token" as one,
+  and calls a probe with no HTTP answer inconclusive, never "Token ACCEPTED".
+
+The Docker Swarm check has no `/fluentd` fallback, so there an old server that
+does not refuse the key stays inconclusive.
+
 ### `ContainerAgentDockerApiVersion.test.js`
 
 The `docker_stats` receiver has to name the Docker Engine API version it speaks,
@@ -209,7 +306,7 @@ collector exits with it, and the container restart-loops. The version is now the
 `ENV` and in each compose file's pass-through.
 
 Everything this suite asserts was **measured** against
-`otel/opentelemetry-collector-contrib:0.154.0` and a real daemon, not assumed —
+`otel/opentelemetry-collector-contrib:0.161.0` and a real daemon, not assumed —
 see the header comment for the full table. Three measurements matter:
 
 | `api_version`         | on the wire            | collector             |
@@ -246,7 +343,7 @@ pattern-matching their source, the suite **runs** each script's `API_VERSION`
 resolution block under `sh` and asserts the URL it produces: unset →
 `http://localhost/v1.44`, explicitly empty → `http://localhost` (unversioned, the
 curl analogue of negotiating), explicit → that version. It also asserts
-`DockerSwarmAgent/docker-compose.yml` passes the variable to the
+`agents/DockerSwarmAgent/docker-compose.yml` passes the variable to the
 `oneuptime-docker-swarm-inventory` sidecar, the container that actually runs the
 script, which the collector service's entry does not reach. `DockerAgent`'s and
 `PodmanAgent`'s scripts are not wired into their images today (`Dockerfile.tpl`
@@ -283,7 +380,199 @@ daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
 
+### `DatabaseAgentQueryEventBodyRuntime.test.js`
+
+The runtime counterpart of the query-event check above. It runs each query-event
+config's `logs` pipeline processors, as shipped, in the pinned collector image,
+feeds them the records the receivers really produced (an empty body, the query
+in `db.query.text`, the event's name) through an OTLP JSON file, and reads back
+what the pipeline exports: the query text as the body with the attribute kept,
+the event name for an event without query text, and a filelog line untouched.
+Off by default, like the suite above:
+
+```bash
+RUN_CONTAINER_AGENT_RUNTIME_TESTS=1 npm test
+```
+
+### `EnterpriseEditionBuild.test.js`
+
+How the Community and Enterprise editions are built, tested and shipped. The
+enterprise code lives in `ee/` under its own license, and the split only holds
+if the build and CI machinery keeps the two apart. Almost none of that
+machinery runs on a pull request (images are published, and the e2e suites
+run, only after a merge), so the suite pins the machinery itself:
+
+- **The App image** (`packages/App/Dockerfile.tpl`, rendered for production
+  and development with `Utils/DockerfileTemplate.js`). The stage graph is
+  `base -> community-build -> enterprise-build -> enterprise`, with `community`
+  built from `community-build` and kept last so a plain `docker build` is the
+  Community Edition. Nothing the community stage is built from copies or
+  mentions `ee/`, and it refuses bundles that contain the ee sentinel strings.
+  The enterprise build recreates the `/usr/src/packages` links that
+  `ee/package.json`'s `file:` dependencies resolve through, installs ee from
+  its lockfile with `--ignore-scripts` before copying the sources, type-checks
+  the ee server, rebuilds only the Dashboard and Admin Dashboard with
+  `ONEUPTIME_EDITION=enterprise`, refuses bundles without the sentinels, and
+  prunes ee's dev dependencies afterwards. Only the enterprise stage sets
+  `ONEUPTIME_EDITION`. The development image never copies `ee/`.
+- **Every other image**: each `Dockerfile.tpl` in the repository (production
+  and development renders, with and without its optional `file.Exists`
+  blocks) is checked stage by stage with `Utils/DockerfileContext.js`, and
+  only the App's `enterprise-build` and `enterprise` stages may take anything
+  from `ee/`. Every image is built with the repository root as its context,
+  so `ee/` is always there to take. The check refuses a `COPY`/`ADD` of the
+  whole context (`.`, `./`, `/`), of any path with an `ee` segment, of a
+  pattern that matches `ee`, or of a variable, in the shell and JSON forms
+  with any flags. It also refuses `COPY --from`, `FROM` or `RUN --mount` from
+  a stage that holds `ee/`, and a `RUN --mount` bind of the context. Each of
+  those has a negative-control test.
+- **`.dockerignore` / `.gitignore`**: ee key material, build output and tests
+  stay out of `COPY ./ee` and out of git. With
+  `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` (set in CI) a real `docker build`
+  proves what `COPY ./ee` ships through the real `.dockerignore`. It includes
+  a fixture for every `ee/**/*.<ext>` key pattern listed there.
+- **CI**: every core compile/test job deletes `ee/` before it installs
+  anything (core is the Community Edition by construction); `compile-ee` and
+  `test.ee.yaml` install what ee needs and compile/test it, and `test.ee.yaml`
+  also runs App's two Enterprise boundary guards with `ee/` present (their
+  ee-direction checks skip without it); the Build workflow
+  builds both App targets and checks each with
+  `Scripts/GHA/check_app_image_edition.sh`; the release jobs that enable
+  billing (the SaaS e2e jobs) run the `enterprise-` tags, the self-hosted e2e
+  jobs the Community ones, and every image merge publishes an `enterprise-`
+  tag.
+- **Deployment**: no compose file and no Helm template sets `ONEUPTIME_EDITION`,
+  which would override the Enterprise image's own marker.
+- **The dev loop**: the dev `app` service mounts `ee/` with an anonymous
+  `node_modules` volume, nodemon watches `ee/Server`, and `dev.sh`'s
+  `install_enterprise_deps` (run for real with a fake `npm`) installs ee's
+  dependencies once per lockfile and does nothing without `ee/`.
+  `Scripts/Dev/install-node-modules.sh` (also run for real) installs `ee/` last.
+- **Helm**: both charts are annotated Apache-2.0, and the fictitious "hardened
+  images" claim is gone.
+
+The renderer is cross-checked against gomplate itself, for every
+`Dockerfile.tpl` with and without an `SslCertificates` directory. A missing
+gomplate fails this check in CI and skips it elsewhere.
+
+### `EnterpriseSbomCoverage.test.js`
+
+`Scripts/GHA/generate_sboms.sh` scans the `enterprise-` tag only for the images
+in its hard-coded `ENTERPRISE_IMAGES`. Those should be exactly the images whose
+enterprise tag is a separate build: the ones whose Dockerfile has an
+`enterprise` stage, which `build_docker_images.sh` builds as a target. The
+suite reads the images and Dockerfiles from release.yml's
+`build_docker_images.sh --image ... --dockerfile ...` calls. It renders each
+template, finds the ones with an `enterprise` stage (using the same line test
+as `build_docker_images.sh`, cross-checked against the stage parser) and
+asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
+
+### `KubernetesAiAgentRelease.test.js`
+
+The kubernetes-agent chart installs the Kubernetes AI agent
+(`oneuptime/kubernetes-ai-agent`) by default, at the moving `release` tag, and
+the agent needs the same release's server. So release.yml builds and merges it
+with version tags only, moves its `release` tags in `push-release-tags` (with
+the App's, after the three e2e jobs), and `helm-chart-deploy` waits for that
+before it publishes the charts. The e2e jobs need `helm-chart-check` (lint and
+render only, the same commands) instead of the deploy, because
+`push-release-tags` needs them and the old edge would be a cycle.
+`generate-sboms` names the agent's merge, and `finalize-github-release` waits
+for the charts.
+
+The suite pins all of that, that the chart's default image, the server's
+`KUBERNETES_AI_AGENT_IMAGE_REPOSITORY` and the image release.yml builds are
+the same, that build.yml builds the image on every pull request (and that each
+of its image jobs warms the base images of exactly the Dockerfiles it builds,
+after rendering them and before building them), and that test-release.yaml
+builds both architectures on every push to master with the `test` tags. Every
+job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
+held to the same warm-up rule, with the Dockerfiles it builds read from the
+compose file, what its services `depends_on` included. A build is read from a
+`docker compose -f` of that file that can build (`up`, `create`, `build`,
+`run`), which is how test-release.yaml's E2E jobs build their e2e container,
+and from `npm run dev`, read as the root package.json's `dev` script with its
+`--services`, which is how the Terraform Provider E2E bring-up builds `app` and
+`ingress`, both FROM public.ecr.aws images. The other npm scripts that build
+from it (`build`, `force-build`) are not read, and no workflow runs them. It
+also checks every workflow's `needs` for a job that does not exist and for
+cycles: GitHub refuses to run such a workflow, and nothing on a pull request
+runs release.yml.
+
+### `UpdateNpmCli.test.js`
+
+npm bundles its whole dependency tree, so the `tar`, `undici`,
+`brace-expansion` and `ip-address` inside `<global root>/npm` are whatever the
+npm release was packed with, and `npm audit` over our lockfiles never sees
+them. Scanners reported nine CVEs in exactly those four in every Node image,
+put there by `npm install -g npm@latest`. Every Node image now runs
+`Scripts/Docker/UpdateNpmCli.js` instead: `npm@latest` (never older than the
+image's npm), with its dependencies reinstalled by npm's own resolver at the
+newest versions npm's ranges accept, checked with the new npm itself
+(`--version`, `ls --all --omit=dev`) before and after it replaces anything.
+
+The suite covers the version choice, the install manifest, the order of the
+steps, the swap (including the overlayfs `EXDEV` fallbacks and putting the old
+npm back when the move fails), and that every failure leaves the image's npm
+exactly as it was, with no staging directory behind. With
+`RUN_NPM_CLI_UPDATE_TESTS=1` it also updates a real npm 12.0.2 (which bundles
+all four vulnerable packages) and uses the result for a real install, and runs
+the script inside `node:26-alpine3.24` through the real `.dockerignore`.
+
+### `ContainerImageHardening.test.js`
+
+What keeps the images free of the rest of what scanners reported, for every
+`Dockerfile.tpl`, rendered for production and development:
+
+- every Node image runs the npm update in the stage that ships, before
+  anything it installs, and none installs npm with `npm install -g npm`;
+- `.dockerignore` lets that one script into the build context, and still keeps
+  the rest of `Scripts/` out;
+- no image starts `FROM` a full Debian node image (buildpack-deps: compilers,
+  kernel headers and ~70 `-dev` libraries), only alpine or slim;
+- a production image that installs a compiler removes it after the last step
+  that could need it (`apk del .gyp`, or `apt-get purge --auto-remove`);
+- tini is started from the path the image's package manager installs it to;
+- the Runner still installs the command-line tools the full image provided;
+- the Kubernetes AI agent ships only node, tini, the CA store and one kubectl
+  binary, copied in from a stage that checked it against a pinned sha256 (the
+  download tool never ships), and runs the compiled agent as `node`;
+- E2E installs itself with `--ignore-scripts` (its `preinstall` would install
+  a second, unpinned set of browsers and WebKit's libraries), only while no
+  dependency has an install script, and installs exactly the engines its
+  Playwright projects launch;
+- the App drops aedes' `examples/` (a `package.json` named like a malware
+  package) in the layer that installs it;
+- the Nginx base and its node donor are pinned to the same Alpine release, and
+  only the nginx modules `nginx.conf` never loads are removed;
+- the collector version is the same everywhere the container agents run it or
+  it is validated.
+
+### `lint-app-dockerfile.sh`
+
+Not part of `npm test`, because it needs docker. It renders the App
+Dockerfile for production and development and runs
+`docker buildx build --check` over the production render for the default,
+`community` and `enterprise` targets and over the development render. That
+resolves each target's stage graph with BuildKit itself, which the jest suite
+cannot. It runs on every PR from the "Ops Config Test" workflow.
+
+```sh
+cd Tests/Ops && npm run lint-app-dockerfile
+```
+
 ## Utils
+
+`Utils/DockerfileTemplate.js` renders a `Dockerfile.tpl` for production or
+development and splits a Dockerfile into its stages. It understands only the
+one `if`/`else`/`end` block the templates use, plus, when the caller answers
+`file.Exists`, the optional `{{- if file.Exists "..." }}` blocks (with Go's
+whitespace trimming). It throws on anything else. It also finds every
+`Dockerfile.tpl` the way `configure.sh` does.
+
+`Utils/DockerfileContext.js` parses `COPY`/`ADD` (shell and JSON forms) and
+`RUN --mount`, and reports every way a stage can take `ee/` from the build
+context or from a stage that holds it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

@@ -1,0 +1,402 @@
+<!-- Critical meta tags MUST be first (within first 1024 bytes) -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#000000" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1E293B" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- Resource hints - start fetching critical resources early -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Preconnect to external image/avatar domains to reduce layout shift & latency -->
+<link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin>
+<link rel="dns-prefetch" href="//avatars.githubusercontent.com">
+<!-- DNS prefetch for deferred analytics -->
+<link rel="dns-prefetch" href="//eu.posthog.com">
+<!-- Preload Tailwind to reduce FOUC/CLS -->
+<link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,400..800;1,400..800&display=swap" as="style">
+
+<!-- Google Fonts - Geist (Vercel's typeface), roman + italic, weights 400-800 -->
+<link href="https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,400..800;1,400..800&display=swap"
+    rel="stylesheet">
+
+<!-- Font and form element styles -->
+<style>
+    * {
+        font-family: Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    appearance: none; /* standard */
+    -webkit-appearance: none; /* vendor */
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    appearance: none;
+    -webkit-appearance: none;
+    }
+
+    /*Chrome*/
+    @media screen and (-webkit-min-device-pixel-ratio:0) {
+        input[type='range']::-webkit-slider-thumb {
+            width: 20px;
+            -webkit-appearance: none;
+            border-radius: 50%;
+            height: 20px;
+            cursor: pointer;
+            background: #4b5563;
+        }
+    }
+
+    /*Firefox*/
+    input[type='range']::-moz-range-thumb {
+        width: 16px;
+        -webkit-appearance: none;
+        border-radius: 50%;
+        height: 16px;
+        cursor: pointer;
+        background: #4b5563;
+        border-color: #4b5563;
+    }
+</style>
+<!-- Critical CSS to prevent layout shift before Tailwind loads -->
+<style>
+    /* Critical layout styles to prevent CLS - these match Tailwind utility classes */
+    .bg-white { background-color: #fff; }
+    .relative { position: relative; }
+    .flex { display: flex; }
+    .hidden { display: none; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .justify-start { justify-content: flex-start; }
+    .justify-center { justify-content: center; }
+    .text-center { text-align: center; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .max-w-7xl { max-width: 80rem; }
+    .max-w-3xl { max-width: 48rem; }
+    .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+    .py-24 { padding-top: 6rem; padding-bottom: 6rem; }
+    .border-b-2 { border-bottom-width: 2px; border-bottom-style: solid; }
+    .border-gray-100 { border-color: #f3f4f6; }
+    .overflow-hidden { overflow: hidden; }
+    .w-auto { width: auto; }
+    .h-8 { height: 2rem; }
+    .h-10 { height: 2.5rem; }
+    .space-x-10 > :not([hidden]) ~ :not([hidden]) { margin-left: 2.5rem; }
+    .inline-flex { display: inline-flex; }
+    .grid { display: grid; }
+    .gap-4 { gap: 1rem; }
+    .gap-5 { gap: 1.25rem; }
+    .isolate { isolation: isolate; }
+    .fixed { position: fixed; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+    @media (min-width: 640px) {
+        .sm\:h-10 { height: 2.5rem; }
+        .sm\:py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+        .sm\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .sm\:gap-5 { gap: 1.25rem; }
+    }
+    @media (min-width: 768px) {
+        .md\:hidden { display: none; }
+        .md\:flex { display: flex; }
+        .md\:justify-start { justify-content: flex-start; }
+        .md\:space-x-10 > :not([hidden]) ~ :not([hidden]) { margin-left: 2.5rem; }
+    }
+    @media (min-width: 1024px) {
+        .lg\:w-0 { width: 0; }
+        .lg\:flex-1 { flex: 1 1 0%; }
+        .lg\:px-8 { padding-left: 2rem; padding-right: 2rem; }
+        .lg\:py-40 { padding-top: 10rem; padding-bottom: 10rem; }
+    }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .auto-rows-fr { grid-auto-rows: minmax(0, 1fr); }
+    /* Reserve space for logo-roll section to prevent CLS */
+    .marquee-container { overflow: hidden; min-height: 60px; }
+    .logo-item { min-width: 160px; height: 60px; }
+    .logo-item img { max-height: 36px; max-width: 140px; }
+    /*
+     * Desktop-only markup is written `max-md:hidden md:flex`, not
+     * `hidden md:flex`: a browser extension or user stylesheet that declares
+     * `.hidden { display: none !important }` (Bootstrap 3, HTML5 Boilerplate)
+     * would otherwise pin it shut at every width. Mirror Tailwind's max-width
+     * hides here so phones still hide that markup before Tailwind loads.
+     */
+    @media not all and (min-width: 1536px) { .max-2xl\:hidden { display: none; } }
+    @media not all and (min-width: 1280px) { .max-xl\:hidden { display: none; } }
+    @media not all and (min-width: 1024px) { .max-lg\:hidden { display: none; } }
+    @media not all and (min-width: 768px) { .max-md\:hidden { display: none; } }
+    @media not all and (min-width: 640px) { .max-sm\:hidden { display: none; } }
+</style>
+
+<!-- Tailwind CSS (render-critical), served from this install rather than cdn.tailwindcss.com -->
+<script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
+
+<!--
+    Home's own reporting on a captured touch. The shared partial captures the
+    attribution and calls this; the event name is the marketing site's, which
+    is exactly why it is not in the partial.
+-->
+<script>
+    window.oneUptimeOnAttributionCaptured = function (eventProps) {
+        if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+            posthog.capture('home/utm_event', eventProps);
+        }
+    };
+</script>
+
+<%- include('../../Common/Server/Views/Partials/AnalyticsConsent', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+
+<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
+<!-- Google Tag Manager -->
+<script>(function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+            'gtm.start':
+                new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
+<!-- End Google Tag Manager -->
+<% } %>
+
+<!--
+    Deferred analytics - PostHog loads after page render to improve LCP. Until
+    it lands the stub queues capture calls, so nothing in the product has to
+    know whether the library is there. Loading is not gated on the cookie
+    banner (Common/Server/Views/Partials/AnalyticsConsent.ejs).
+-->
+<script>
+    // PostHog stub - capture calls are queued until the library loads
+    window.posthog = window.posthog || [];
+    window.posthog._i = [];
+    window.posthog.init = window.posthog.init || function(){};
+    window.posthog.capture = window.posthog.capture || function(){window.posthog.push(['capture'].concat(Array.prototype.slice.call(arguments, 0)));};
+
+    // Defer PostHog initialization until after page render
+    (function() {
+        var started = false;
+
+        function initPostHog() {
+            if (started) { return; }
+            started = true;
+
+            !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
+            posthog.init('phc_lrbfSHsDc1YOhfbabPI8ncLCKz8eqeGdmu0O6IRKaz1', { api_host: 'https://eu.posthog.com', autocapture: false });
+        }
+
+        function initWhenIdle() {
+            // Use requestIdleCallback to defer PostHog until browser is idle
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(initPostHog);
+            } else {
+                setTimeout(initPostHog, 1);
+            }
+        }
+
+        /*
+         * Unconditional. PostHog used to wait for the banner; it no longer
+         * does — see the top of
+         * Common/Server/Views/Partials/AnalyticsConsent.ejs for the decision
+         * and its consequences. The stub above still queues capture calls
+         * until the library is in, so nothing is lost in the meantime.
+         */
+        initWhenIdle();
+    })();
+</script>
+
+<!--
+    Canonical browser record of a booked meeting
+    (Docs/analytics/enterprise-conversion-tracking.md). It carries no attendee
+    details: Cal's bookingSuccessful detail includes the attendee's name and
+    email, and none of it is passed through. The legacy per-page PostHog event
+    is emitted alongside so existing dashboards keep their history.
+-->
+<script>
+    /*
+     * Cal fires the booking event under more than one action name: the older
+     * 'bookingSuccessful' and the newer 'bookingSuccessfulV2'. embed.js is
+     * loaded unpinned from app.cal.com, so which name arrives is Cal's
+     * decision on any given day - and a booking that fires only the name we
+     * are not subscribed to reports no conversion at all, silently, while the
+     * booking itself still succeeds. Subscribing to one name makes the
+     * enterprise lead conversion depend on a third party not renaming it.
+     *
+     * Subscribe to both and latch: whichever arrives first reports the
+     * booking, and a second name for the same booking is ignored, so one
+     * booking stays one meeting_booked.
+     */
+    window.oneUptimeOnCalBookingSuccess = function (handler) {
+        if (typeof Cal !== 'function') {
+            return;
+        }
+
+        var reported = false;
+
+        var once = function (e) {
+            if (reported) {
+                return;
+            }
+            reported = true;
+            handler(e && e.detail ? e.detail : {});
+        };
+
+        ['bookingSuccessful', 'bookingSuccessfulV2'].forEach(function (action) {
+            Cal('on', { action: action, callback: once });
+        });
+    };
+
+    window.oneUptimeTrackMeetingBooked = function (options) {
+        options = options || {};
+
+        var properties = {
+            event_schema_version: 1,
+            booking_source: 'cal.com',
+            booking_kind: options.bookingKind || 'unknown',
+            page_path: window.location.pathname,
+            cal_event_type: typeof options.calEventType === 'string' ? options.calEventType : 'bookingSuccessful',
+            cal_namespace: typeof options.calNamespace === 'string' ? options.calNamespace : 'default'
+        };
+
+        if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+            posthog.capture('meeting_booked', properties);
+
+            // Legacy event name, kept so existing PostHog dashboards do not break.
+            if (options.legacyEventName) {
+                posthog.capture(options.legacyEventName, properties);
+            }
+        }
+
+        /*
+         * One booking, one GA4 event. The dataLayer push below is the only
+         * path to Google; the GTM container forwards it with a Custom Event
+         * trigger (see Docs/analytics/gtm-key-events.json).
+         *
+         * There used to be a `gtag('event', 'meeting_booked', ...)` mirror
+         * here as well. Once the Google tag is on the page, gtag interop is
+         * live and that call reaches GA4 *directly*, bypassing GTM - so with
+         * the forwarding tag in place the same booking was counted twice,
+         * under one name, from two mechanisms. Keep every OneUptime event on
+         * the dataLayer path so the container stays the single control point.
+         */
+        if (typeof dataLayer !== 'undefined') {
+            dataLayer.push(Object.assign({ event: 'meeting_booked' }, properties));
+        }
+    };
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Track page view
+        if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+            posthog.capture('home/page_view', {
+                'page': {
+                    'path': window.location.pathname,
+                    'referrer': document.referrer,
+                    'search': window.location.search,
+                    'url': window.location.href,
+                    'title': document.title,
+                }
+            });
+        }
+
+        /*
+         * CTA clicks, for conversion funnel analysis.
+         *
+         * `data-ou-cta` names the event explicitly and is the path to prefer.
+         * The href patterns below are the fallback that covers the register
+         * and demo links scattered across the site without tagging each one.
+         *
+         * A[href*="demo"] used to be in that fallback and was wrong in both
+         * directions at once: it matched in-page scroll anchors like
+         * #book-demo on the demo page itself - a visitor moving down a page
+         * they had already reached, counted as a fresh demo request - while
+         * matching nothing at all on the self-hosted page, whose enterprise
+         * CTAs point at #architecture-assessment. The one CTA that mattered
+         * most to a sales-led funnel was the one that fired nothing.
+         */
+        document.querySelectorAll('a[data-ou-cta], a[href="/accounts/register"], a[href*="register"], a[href="/enterprise/demo"]').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                var href = this.getAttribute('href');
+                var eventName = this.getAttribute('data-ou-cta')
+                    || (href.indexOf('register') !== -1 ? 'cta_get_started' : 'cta_request_demo');
+
+                // PostHog
+                if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+                    posthog.capture('home/' + eventName, {
+                        'page': window.location.pathname,
+                        'href': href,
+                        'text': this.innerText.trim()
+                    });
+                }
+
+                // GA4 via dataLayer
+                if (typeof dataLayer !== 'undefined') {
+                    dataLayer.push({
+                        'event': eventName,
+                        'eventCategory': 'cta_click',
+                        'eventAction': eventName,
+                        'eventLabel': window.location.pathname
+                    });
+                }
+            });
+        });
+    });
+</script>
+
+<!-- PWA Meta Tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OneUptime">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="OneUptime">
+
+<!-- Icons -->
+<link rel="shortcut icon" href="/img/favicons/favicon.ico?v=up-v1">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png?v=up-v1">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicons/favicon-16x16.png?v=up-v1">
+<link rel="icon" type="image/svg+xml" sizes="any" href="/oneuptime-assets/brand/favicons/oneuptime-up-v1.svg">
+<link rel="mask-icon" href="/img/favicons/safari-pinned-tab.svg" color="#000000">
+
+<!-- Microsoft Tiles -->
+<meta name="msapplication-TileColor" content="#000000">
+<meta name="msapplication-TileImage" content="/img/favicons/mstile-144x144.png">
+
+<!-- Legacy and compatibility -->
+<link rel="apple-touch-icon-precomposed" href="/img/favicons/apple-touch-icon.png">
+<link rel="image_src" type="image/png" href="/img/hou-wb.svg">
+
+<!-- Canonical URL -->
+<% const canonicalUrl = (typeof seo !== 'undefined' && seo.fullCanonicalUrl) ? seo.fullCanonicalUrl : (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com'); %>
+<link rel="canonical" href="<%= canonicalUrl %>">
+
+<!-- Feed autodiscovery -->
+<% const feedBaseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com').replace(/\/$/, ''); %>
+<link rel="alternate" type="application/rss+xml" title="OneUptime Blog RSS Feed" href="<%= feedBaseUrl %>/blog/rss.xml">

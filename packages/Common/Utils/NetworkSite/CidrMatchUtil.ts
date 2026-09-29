@@ -1,0 +1,436 @@
+/*
+ * Matching helpers for NetworkSite auto-assignment rules: IPv4 CIDR
+ * containment, case-insensitive '*' wildcard hostname patterns, and the
+ * highest-priority-wins rule picker. Pure and dependency-free so the rule
+ * engine's decisions are unit-testable.
+ */
+
+import {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
+import RuleCriteriaMatcher from "../Rules/RuleCriteriaMatcher";
+
+// The shape NetworkSiteAssignmentRule rows are matched with.
+export interface AssignmentRuleCandidate {
+  criteria?: unknown;
+  subnetCidr?: string | null | undefined;
+  hostnamePattern?: string | null | undefined;
+  priority?: number | null | undefined;
+  createdAt?: Date | null | undefined;
+}
+
+/*
+ * The device attributes a rule is evaluated against. A hostname pattern is
+ * tried against every name-ish attribute because "the hostname" means
+ * different things depending on how the device got here: a discovery import
+ * stores the responding IP in `hostname` and the SNMP sysName in `name`, so a
+ * pattern like `*0664*` would never see the string the user is looking at in
+ * the device list if we only tried `hostname`.
+ *
+ * `dnsName` is the device's fully qualified DNS name, kept apart from `name`
+ * once a discovery scan (or the bulk "shorten names" action) names the device
+ * by its short hostname (OneUptime/oneuptime#3678). It is a candidate for the
+ * same reason `name` is: a rule like `*.corp.example.com` was written against
+ * the FQDN the device used to be called, and renaming the device to
+ * `core-sw-01` must not silently drop it out of the site that rule placed it
+ * in. The FQDN either lands here or already lives in `sysName`, so matching
+ * all four keeps every match a device had before the rename.
+ */
+export interface RuleMatchTarget {
+  ip?: string | null | undefined;
+  hostname?: string | null | undefined;
+  sysName?: string | null | undefined;
+  name?: string | null | undefined;
+  dnsName?: string | null | undefined;
+}
+
+export class CidrMatchUtil {
+  /*
+   * Longest hostname pattern we will evaluate. The column itself is
+   * ShortText (100), and a DNS name tops out at 253 characters, so anything
+   * longer is either a mistake or an attempt to make matching expensive.
+   */
+  public static readonly MAX_HOSTNAME_PATTERN_LENGTH: number = 253;
+
+  /*
+   * Hoisted out of the call sites so the literals are not the object of a
+   * member expression, which `wrap-regex` and Prettier cannot agree on.
+   */
+  private static readonly PREFIX_LENGTH_PATTERN: RegExp = /^\d{1,2}$/;
+
+  private static readonly OCTET_PATTERN: RegExp = /^\d{1,3}$/;
+
+  /*
+   * True when the IPv4 address `ip` falls inside `cidr` ('10.0.0.0/8').
+   * Prefixes /0 through /32 are supported; a bare address is treated as /32.
+   * Any invalid input returns false instead of throwing.
+   */
+  public static ipInCidr(ip: string, cidr: string): boolean {
+    const ipValue: number | null = CidrMatchUtil.parseIpv4(ip);
+    if (ipValue === null) {
+      return false;
+    }
+
+    if (typeof cidr !== "string" || cidr.trim().length === 0) {
+      return false;
+    }
+
+    const parts: Array<string> = cidr.trim().split("/");
+    if (parts.length > 2) {
+      return false;
+    }
+
+    const baseValue: number | null = CidrMatchUtil.parseIpv4(parts[0] || "");
+    if (baseValue === null) {
+      return false;
+    }
+
+    let prefixLength: number = 32;
+    if (parts.length === 2) {
+      const prefixText: string = parts[1] || "";
+      if (!CidrMatchUtil.PREFIX_LENGTH_PATTERN.test(prefixText)) {
+        return false;
+      }
+      prefixLength = parseInt(prefixText, 10);
+      if (prefixLength < 0 || prefixLength > 32) {
+        return false;
+      }
+    }
+
+    /*
+     * JS bitwise ops are 32-bit signed; >>> 0 keeps the mask and the masked
+     * addresses unsigned. A shift by 32 is a no-op in JS, so /0 is special
+     * cased to the all-zero mask (matches everything).
+     */
+    const mask: number =
+      prefixLength === 0 ? 0 : (0xffffffff << (32 - prefixLength)) >>> 0;
+
+    return (ipValue & mask) >>> 0 === (baseValue & mask) >>> 0;
+  }
+
+  // True when `cidr` is a well-formed IPv4 CIDR (or bare address == /32).
+  public static isValidCidr(cidr: string): boolean {
+    if (typeof cidr !== "string" || cidr.trim().length === 0) {
+      return false;
+    }
+    const parts: Array<string> = cidr.trim().split("/");
+    if (parts.length > 2) {
+      return false;
+    }
+    if (CidrMatchUtil.parseIpv4(parts[0] || "") === null) {
+      return false;
+    }
+    if (parts.length === 2) {
+      const prefixText: string = parts[1] || "";
+      if (!CidrMatchUtil.PREFIX_LENGTH_PATTERN.test(prefixText)) {
+        return false;
+      }
+      const prefixLength: number = parseInt(prefixText, 10);
+      if (prefixLength < 0 || prefixLength > 32) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /*
+   * Case-insensitive wildcard match where '*' matches any run of characters
+   * (including none) and every other character is literal. The pattern must
+   * cover the whole hostname. Non-string or missing inputs never match, and
+   * so does an over-long pattern.
+   *
+   * Deliberately NOT a regex: compiling a user-authored pattern into
+   * /^.*a.*a.*a...$/ makes the backtracking engine explore an exponential
+   * number of split points on a long homogeneous input, which blocks the
+   * event loop for minutes. This matcher is O(hostname x pattern) worst case
+   * with no recursion, so a hostile rule cannot hang the process.
+   */
+  public static hostnameMatchesWildcard(
+    hostname: string,
+    pattern: string,
+  ): boolean {
+    if (typeof hostname !== "string" || typeof pattern !== "string") {
+      return false;
+    }
+
+    const text: string = hostname.trim().toLowerCase();
+    const glob: string = pattern.trim().toLowerCase();
+
+    if (glob.length > CidrMatchUtil.MAX_HOSTNAME_PATTERN_LENGTH) {
+      return false;
+    }
+
+    /*
+     * Greedy two-pointer glob match. On a mismatch we rewind only to the
+     * most recent '*' and advance the character it consumed by one, so each
+     * character of the hostname is revisited at most once per '*'.
+     */
+    let textIndex: number = 0;
+    let globIndex: number = 0;
+    let lastStarIndex: number = -1;
+    let textIndexAtLastStar: number = 0;
+
+    while (textIndex < text.length) {
+      if (globIndex < glob.length && glob[globIndex] === "*") {
+        lastStarIndex = globIndex;
+        textIndexAtLastStar = textIndex;
+        globIndex++;
+      } else if (
+        globIndex < glob.length &&
+        glob[globIndex] === text[textIndex]
+      ) {
+        globIndex++;
+        textIndex++;
+      } else if (lastStarIndex !== -1) {
+        globIndex = lastStarIndex + 1;
+        textIndexAtLastStar++;
+        textIndex = textIndexAtLastStar;
+      } else {
+        return false;
+      }
+    }
+
+    // Any trailing '*' in the pattern can still match the empty remainder.
+    while (globIndex < glob.length && glob[globIndex] === "*") {
+      globIndex++;
+    }
+
+    return globIndex === glob.length;
+  }
+
+  /*
+   * True when the rule's populated criteria all match the target. A CIDR
+   * criterion matches the target's ip; a hostname pattern matches the
+   * hostname, the SNMP sysName, the device's display name, or its DNS name —
+   * see RuleMatchTarget. A rule with no criteria never matches.
+   */
+  public static ruleMatches(
+    rule: AssignmentRuleCandidate,
+    target: RuleMatchTarget,
+  ): boolean {
+    if (rule.criteria !== undefined && rule.criteria !== null) {
+      return RuleCriteriaMatcher.matchesSync({
+        criteria: rule.criteria,
+        emptyResult: false,
+        matchesFilter: (filter: RuleCriteriaFilter): boolean => {
+          return CidrMatchUtil.matchesConfiguredFilter(filter, target);
+        },
+      });
+    }
+
+    return CidrMatchUtil.ruleMatchesLegacy(rule, target);
+  }
+
+  private static ruleMatchesLegacy(
+    rule: AssignmentRuleCandidate,
+    target: RuleMatchTarget,
+  ): boolean {
+    const hasCidr: boolean = Boolean(
+      rule.subnetCidr && rule.subnetCidr.trim().length > 0,
+    );
+    const hasPattern: boolean = Boolean(
+      rule.hostnamePattern && rule.hostnamePattern.trim().length > 0,
+    );
+
+    if (!hasCidr && !hasPattern) {
+      return false;
+    }
+
+    if (hasCidr) {
+      if (!target.ip || !CidrMatchUtil.ipInCidr(target.ip, rule.subnetCidr!)) {
+        return false;
+      }
+    }
+
+    if (hasPattern) {
+      const candidates: Array<string | null | undefined> =
+        CidrMatchUtil.getNameCandidates(target);
+
+      const matchesAnyName: boolean = candidates.some(
+        (candidate: string | null | undefined) => {
+          return Boolean(
+            candidate &&
+              CidrMatchUtil.hostnameMatchesWildcard(
+                candidate,
+                rule.hostnamePattern!,
+              ),
+          );
+        },
+      );
+
+      if (!matchesAnyName) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * The name-ish attributes a hostname pattern is tried against, in one place
+   * so the legacy column path and the criteria path can never disagree about
+   * which names count: a device that matched a rule stored as a plain
+   * `hostnamePattern` column must match the same pattern once the rule is
+   * re-saved as criteria. See RuleMatchTarget for why each attribute is here.
+   */
+  private static getNameCandidates(
+    target: RuleMatchTarget,
+  ): Array<string | null | undefined> {
+    return [target.hostname, target.sysName, target.name, target.dnsName];
+  }
+
+  private static matchesConfiguredFilter(
+    filter: RuleCriteriaFilter,
+    target: RuleMatchTarget,
+  ): boolean {
+    const expected: string = String(filter.value);
+
+    if (filter.field === "subnetCidr") {
+      const matchesCidr: boolean = Boolean(
+        target.ip && CidrMatchUtil.ipInCidr(target.ip, expected),
+      );
+
+      if (filter.operator === RuleCriteriaOperator.MatchesPattern) {
+        return matchesCidr;
+      }
+
+      if (filter.operator === RuleCriteriaOperator.DoesNotMatchPattern) {
+        return !matchesCidr;
+      }
+
+      return false;
+    }
+
+    if (filter.field !== "hostnamePattern") {
+      return false;
+    }
+
+    /*
+     * Every operator below is phrased over the same candidate list, and the
+     * negated ones mean "NO candidate matches" rather than "some candidate
+     * does not match". That is what keeps adding `dnsName` safe: a device
+     * whose FQDN contains "printer" is still excluded by a DoesNotContain
+     * "printer" rule after it is renamed to its short hostname.
+     */
+    const candidates: Array<string> = CidrMatchUtil.getNameCandidates(
+      target,
+    ).filter((candidate: string | null | undefined): candidate is string => {
+      return typeof candidate === "string";
+    });
+    const expectedLower: string = expected.toLocaleLowerCase();
+    const anyCandidateMatches: (
+      matches: (value: string) => boolean,
+    ) => boolean = (matches: (value: string) => boolean): boolean => {
+      return candidates.some(matches);
+    };
+
+    switch (filter.operator) {
+      case RuleCriteriaOperator.Equals:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase() === expectedLower;
+        });
+      case RuleCriteriaOperator.NotEquals:
+        return !anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase() === expectedLower;
+        });
+      case RuleCriteriaOperator.Contains:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().includes(expectedLower);
+        });
+      case RuleCriteriaOperator.DoesNotContain:
+        return !anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().includes(expectedLower);
+        });
+      case RuleCriteriaOperator.StartsWith:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().startsWith(expectedLower);
+        });
+      case RuleCriteriaOperator.EndsWith:
+        return anyCandidateMatches((value: string): boolean => {
+          return value.toLocaleLowerCase().endsWith(expectedLower);
+        });
+      case RuleCriteriaOperator.MatchesPattern:
+        return anyCandidateMatches((value: string): boolean => {
+          return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
+        });
+      case RuleCriteriaOperator.DoesNotMatchPattern:
+        return !anyCandidateMatches((value: string): boolean => {
+          return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
+        });
+      default:
+        return false;
+    }
+  }
+
+  /*
+   * Picks the winning rule for a target: among matching rules the highest
+   * priority number wins; ties go to the earlier createdAt when both rows
+   * carry one, otherwise the earlier rule in the input order (stable).
+   * Returns null when nothing matches.
+   */
+  public static pickRule<T extends AssignmentRuleCandidate>(
+    rules: Array<T>,
+    target: RuleMatchTarget,
+  ): T | null {
+    let best: T | null = null;
+
+    for (const rule of rules) {
+      if (!CidrMatchUtil.ruleMatches(rule, target)) {
+        continue;
+      }
+
+      if (!best) {
+        best = rule;
+        continue;
+      }
+
+      const bestPriority: number = best.priority || 0;
+      const rulePriority: number = rule.priority || 0;
+
+      if (rulePriority > bestPriority) {
+        best = rule;
+        continue;
+      }
+
+      if (
+        rulePriority === bestPriority &&
+        rule.createdAt &&
+        best.createdAt &&
+        rule.createdAt.getTime() < best.createdAt.getTime()
+      ) {
+        best = rule;
+      }
+    }
+
+    return best;
+  }
+
+  // '10.0.0.1' -> unsigned 32-bit value; anything malformed -> null.
+  private static parseIpv4(ip: string): number | null {
+    if (typeof ip !== "string") {
+      return null;
+    }
+
+    const octets: Array<string> = ip.trim().split(".");
+    if (octets.length !== 4) {
+      return null;
+    }
+
+    let value: number = 0;
+    for (const octetText of octets) {
+      if (!CidrMatchUtil.OCTET_PATTERN.test(octetText)) {
+        return null;
+      }
+      const octet: number = parseInt(octetText, 10);
+      if (octet > 255) {
+        return null;
+      }
+      value = (value * 256 + octet) >>> 0;
+    }
+
+    return value;
+  }
+}
+
+export default CidrMatchUtil;

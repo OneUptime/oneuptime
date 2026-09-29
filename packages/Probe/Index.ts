@@ -1,0 +1,190 @@
+import {
+  PORT,
+  PROBE_INGRESS_PORT,
+  PROBE_MONITORING_WORKERS,
+  PROBE_MONITOR_FETCH_LIMIT,
+  PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED,
+  PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY,
+  PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES,
+  PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES,
+  PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  PROBE_MONITOR_RETRY_LIMIT,
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+} from "./Config";
+import AliveJob from "./Jobs/Alive";
+import FetchMonitorList from "./Jobs/Monitor/FetchList";
+import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
+import FetchDiscoveryScans from "./Jobs/Discovery/FetchScans";
+import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
+import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
+import Register from "./Services/Register";
+import NetFlowReceiver from "./Services/NetFlowReceiver";
+import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
+import SyslogReceiver from "./Services/SyslogReceiver";
+import MetricsAPI from "./API/Metrics";
+import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
+import ProbeApiDiagnostics from "./Utils/ProbeApiDiagnostics";
+import ProxyConfig from "./Utils/ProxyConfig";
+import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
+import ProcessTreeMemory from "./Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
+import Telemetry from "Common/Server/Utils/Telemetry";
+import Profiling from "Common/Server/Utils/Profiling";
+import Express, {
+  ExpressApplication,
+  ExpressJson,
+  ExpressRaw,
+  ExpressUrlEncoded,
+  createExpressApp,
+} from "Common/Server/Utils/Express";
+import "ejs";
+
+const APP_NAME: string = "probe";
+
+const init: PromiseVoidFunction = async (): Promise<void> => {
+  try {
+    // Initialize proxy configuration first, before any HTTP requests
+    ProxyConfig.configure();
+
+    // Log proxy status
+    if (ProxyConfig.isProxyConfigured()) {
+      logger.info("Proxy configuration:");
+
+      const httpProxy: string | null = ProxyConfig.getHttpProxyUrl();
+      const httpsProxy: string | null = ProxyConfig.getHttpsProxyUrl();
+
+      if (httpProxy) {
+        logger.info(`  HTTP proxy: ${httpProxy}`);
+      }
+
+      if (httpsProxy) {
+        logger.info(`  HTTPS proxy: ${httpsProxy}`);
+      }
+    }
+
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
+    // Initialize profiling (opt-in via ENABLE_PROFILING env var)
+    Profiling.init({
+      serviceName: APP_NAME,
+    });
+
+    logger.info(
+      `Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Synthetic concurrency: ${PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY}, Synthetic process-tree memory limit: ${PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES} bytes, Synthetic per-run disk limit: ${PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES} bytes, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`,
+    );
+    if (!PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED) {
+      logger.warn(
+        "Synthetic Chromium OS sandbox is disabled. Install a Playwright-compatible seccomp profile and set PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED=true for defense in depth.",
+      );
+    }
+    const syntheticMemoryWarning: string | null =
+      ProcessTreeMemory.getStartupWarning();
+    if (syntheticMemoryWarning) {
+      logger.warn(syntheticMemoryWarning);
+    }
+
+    /*
+     * Say which private-network policy this probe is running under, every
+     * time. A monitor refusing an internal target is otherwise the first sign
+     * of it, and for a hostname target that refusal deliberately does not say
+     * why (OneUptime issue #3879).
+     */
+    PrivateNetworkMonitorPolicy.logStartupMessage(
+      PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+    );
+
+    /*
+     * Print the whole connectivity-relevant environment once, and start
+     * watching for event-loop stalls — a probe that cannot talk to the
+     * server is nearly always explained by one of the two, and asking a
+     * customer for this after the fact costs a support round trip each time.
+     */
+    ProbeApiDiagnostics.logStartupEnvironment();
+    ProbeApiDiagnostics.startProcessMonitor();
+
+    // init the app
+    await App.init({
+      appName: APP_NAME,
+      port: PORT, // some random port to start the server. Since this is the probe, it doesn't need to be exposed.
+      isFrontendApp: false,
+      statusOptions: {
+        liveCheck: async () => {},
+        readyCheck: async () => {},
+      },
+    });
+
+    // Add metrics API routes
+    const app: ExpressApplication = Express.getExpressApp();
+    app.use("/metrics", MetricsAPI);
+
+    // add default routes
+    await App.addDefaultRoutes();
+
+    /*
+     * Optional ingress listener for IncomingRequest (heartbeat) monitors.
+     * Runs on a dedicated port so it can be exposed to a private network
+     * without also exposing the probe's status/metrics endpoints.
+     */
+    if (PROBE_INGRESS_PORT !== null && PROBE_INGRESS_PORT.toNumber() > 0) {
+      const ingressPortNumber: number = PROBE_INGRESS_PORT.toNumber();
+      const ingressApp: ExpressApplication = createExpressApp();
+      ingressApp.use(ExpressJson({ limit: "50mb" }));
+      ingressApp.use(ExpressUrlEncoded({ extended: true, limit: "50mb" }));
+      ingressApp.use(ExpressRaw({ type: "application/octet-stream" }));
+      ingressApp.use(IncomingRequestIngressAPI);
+
+      ingressApp.listen(ingressPortNumber, () => {
+        logger.info(
+          `Probe ingress listener started on port ${ingressPortNumber} (heartbeat / incoming-request endpoints)`,
+        );
+      });
+    }
+
+    try {
+      // Register this probe.
+      await Register.registerProbe();
+
+      logger.debug("Probe registered");
+
+      AliveJob();
+      FetchMonitorList();
+      FetchMonitorTestList();
+      FetchDiscoveryScans();
+      // Device-owned polling: walk this probe's assigned NetworkDevices.
+      FetchNetworkDeviceList();
+      // On-demand ping / traceroute the dashboard asked this probe to run.
+      FetchNetworkDeviceDiagnostics();
+
+      // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
+      SnmpTrapReceiver.start();
+
+      // Optional syslog receiver (PROBE_SYSLOG_RECEIVER_ENABLED).
+      SyslogReceiver.start();
+
+      // Optional NetFlow v5 receiver (PROBE_NETFLOW_RECEIVER_ENABLED).
+      NetFlowReceiver.start();
+
+      await Register.reportIfOffline();
+    } catch (err) {
+      logger.error("Register probe failed");
+      logger.error(err);
+      throw err;
+    }
+  } catch (err) {
+    logger.error("App Init Failed:");
+    logger.error(err);
+    throw err;
+  }
+};
+
+init().catch((err: Error) => {
+  logger.error(err);
+  logger.error("Exiting node process");
+  process.exit(1);
+});

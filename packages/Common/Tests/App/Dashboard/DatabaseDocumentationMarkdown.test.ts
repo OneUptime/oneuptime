@@ -1,0 +1,1801 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import yaml from "js-yaml";
+import path from "path";
+import {
+  DATABASE_AGENT_COLLECTOR_IMAGE,
+  DATABASE_AGENT_CONFIGS,
+  DATABASE_AGENT_DOCKER_COMPOSE,
+  DATABASE_AGENT_ENGINES,
+  DatabaseAgentEngine,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
+import {
+  DATABASE_HEALTH_MONITOR_SYSTEMS,
+  DatabaseAgentIdentity,
+  DatabaseDocumentationTarget,
+  getDatabaseAgentEndpoint,
+  getDatabaseAgentEngine,
+  getDatabaseAgentEngineLabel,
+  getDatabaseAgentEnvFile,
+  getDatabaseAgentInstallationMarkdown,
+  getDatabaseAgentKubernetesManifest,
+  getDatabaseAgentSystem,
+  getDatabaseAgentSystems,
+  getDatabaseHealthMonitorCreateUrl,
+  getDatabaseOwnCollectorMarkdown,
+  getDatabaseProbeEndpoint,
+  resolveDatabaseAgentIdentity,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+  getCollectorReceiverComponentName,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  canonicalizeDatabaseEndpoint,
+  DatabaseEndpoint,
+  getDatabaseEndpointScope,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DatabaseAlertTemplate,
+  getDatabaseAlertTemplates,
+} from "../../../Types/Monitor/DatabaseAlertTemplates";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import SeriesResourceLabels from "../../../Server/Utils/Monitor/SeriesResourceLabels";
+
+/*
+ * The in-app Database Agent guide. The agent is config-only, so a guide that
+ * shows a paraphrase of the config — or an .env that names a variable the
+ * compose file does not pass through — installs an agent that silently
+ * reports nothing (or reports under the wrong identity). These tests hold the
+ * embedded copies byte-identical to agents/DatabaseAgent and pin the values
+ * a row's Documentation tab prefills. For the engines the agent ships no
+ * config for, they hold the "your own collector" guide to the engine
+ * catalog: every engine with a receiver or a metrics endpoint gets a
+ * complete, well-formed collector config, and "no engine metrics" is said
+ * only of an engine that runs inside the application.
+ */
+
+const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..");
+const AGENT_DIR: string = path.join(REPO_ROOT, "agents", "DatabaseAgent");
+const MARKDOWN_SOURCE: string = fs.readFileSync(
+  path.join(
+    REPO_ROOT,
+    "packages",
+    "App",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Pages",
+    "Database",
+    "Utils",
+    "DocumentationMarkdown.ts",
+  ),
+  "utf8",
+);
+
+/*
+ * The line install.sh writes at the top of every .env (its
+ * COLLECTOR_ESCAPE_MARKER, `\$` unescaped): the rule a hand-written file
+ * follows too, stated where the password is.
+ */
+const ENV_MARKER: string = (
+  fs
+    .readFileSync(
+      path.join(REPO_ROOT, "agents", "DatabaseAgent", "install.sh"),
+      "utf8",
+    )
+    .match(/^COLLECTOR_ESCAPE_MARKER="(.*)"$/m) as RegExpMatchArray
+)[1]!.replace(/\\\$/g, "$");
+
+const URL: string = "https://oneuptime.example.com";
+const KEY: string = "ingest-key-123";
+const DATABASE_ID: string = "3c1e9a52-1f2b-4c3d-9e8f-0a1b2c3d4e5f";
+
+function readAgentFile(...segments: Array<string>): string {
+  return fs.readFileSync(path.join(AGENT_DIR, ...segments), "utf8");
+}
+
+/* Environment variable names the compose file passes to the collector. */
+function composeVariables(): Set<string> {
+  return new Set<string>(
+    Array.from(
+      readAgentFile("docker-compose.yml").matchAll(/^\s*-\s*([A-Z_]+)=\$\{/gm),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    }),
+  );
+}
+
+/* Fenced code blocks of some markdown, with their info string. */
+function codeBlocks(
+  markdown: string,
+): Array<{ language: string; body: string }> {
+  const blocks: Array<{ language: string; body: string }> = [];
+  let current: { language: string; lines: Array<string> } | null = null;
+
+  for (const line of markdown.split("\n")) {
+    const fence: RegExpMatchArray | null = line.match(/^```(\S*)\s*$/);
+    if (fence) {
+      if (current) {
+        blocks.push({
+          language: current.language,
+          body: current.lines.join("\n"),
+        });
+        current = null;
+      } else {
+        current = { language: fence[1] || "", lines: [] };
+      }
+      continue;
+    }
+    if (current) {
+      current.lines.push(line);
+    }
+  }
+
+  expect(current).toBeNull();
+  return blocks;
+}
+
+function rowFor(
+  descriptor: DatabaseSystemDescriptor,
+): DatabaseDocumentationTarget {
+  return {
+    id: DATABASE_ID,
+    dbSystem: descriptor.system,
+    serverAddress: "db.prod.example.com",
+    serverPort: descriptor.defaultPort,
+  };
+}
+
+/* A row's Documentation tab, as DocumentationCard picks it. */
+function guideFor(database: DatabaseDocumentationTarget): string {
+  const engine: DatabaseAgentEngine | null = getDatabaseAgentEngine(
+    database.dbSystem,
+  );
+  return engine
+    ? getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: engine,
+        system: database.dbSystem,
+        database: database,
+      })
+    : getDatabaseOwnCollectorMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        database: database,
+      });
+}
+
+describe("the embedded agent files are the shipped ones", () => {
+  test("one embedded config per shipped configs/*.yaml, and nothing else", () => {
+    const shipped: Array<string> = fs
+      .readdirSync(path.join(AGENT_DIR, "configs"))
+      .filter((file: string): boolean => {
+        return file.endsWith(".yaml");
+      })
+      .map((file: string): string => {
+        return file.replace(/\.yaml$/, "");
+      })
+      .sort();
+
+    expect([...DATABASE_AGENT_ENGINES].sort()).toEqual(shipped);
+    expect(Object.keys(DATABASE_AGENT_CONFIGS).sort()).toEqual(shipped);
+  });
+
+  test.each([...DATABASE_AGENT_ENGINES])(
+    "configs/%s.yaml is embedded byte for byte",
+    (engine: DatabaseAgentEngine) => {
+      expect(DATABASE_AGENT_CONFIGS[engine]).toBe(
+        readAgentFile("configs", `${engine}.yaml`),
+      );
+    },
+  );
+
+  test("docker-compose.yml is embedded byte for byte", () => {
+    expect(DATABASE_AGENT_DOCKER_COMPOSE).toBe(
+      readAgentFile("docker-compose.yml"),
+    );
+  });
+
+  test("the collector image is the compose file's pin", () => {
+    const match: RegExpMatchArray | null = readAgentFile(
+      "docker-compose.yml",
+    ).match(/^\s*image:\s*(\S+)\s*$/m);
+
+    expect(match).not.toBeNull();
+    expect(DATABASE_AGENT_COLLECTOR_IMAGE).toBe(match![1]);
+  });
+
+  test("every config is named after the receiver it runs", () => {
+    for (const engine of DATABASE_AGENT_ENGINES) {
+      expect(DATABASE_AGENT_CONFIGS[engine]).toContain(
+        `\nreceivers:\n  ${engine}:\n`,
+      );
+    }
+  });
+});
+
+describe("getDatabaseAgentEngine", () => {
+  test.each([
+    ["postgresql", "postgresql"],
+    ["postgres", "postgresql"],
+    ["mysql", "mysql"],
+    ["mariadb", "mysql"],
+    ["percona", "mysql"],
+    ["Redis", "redis"],
+    ["valkey", "redis"],
+    ["keydb", "redis"],
+    ["dragonflydb", "redis"],
+    ["mongodb", "mongodb"],
+    ["microsoft.sql_server", "sqlserver"],
+    ["mssql", "sqlserver"],
+    ["oracle", "oracledb"],
+    ["elasticsearch", "elasticsearch"],
+    ["opensearch", "elasticsearch"],
+    ["memcached", "memcached"],
+  ])("a %s row runs configs/%s.yaml", (dbSystem: string, engine: string) => {
+    expect(getDatabaseAgentEngine(dbSystem)).toBe(engine);
+  });
+
+  test("is null for an engine the agent ships no config for", () => {
+    for (const dbSystem of [
+      "sqlite",
+      "tidb",
+      "cockroachdb",
+      "clickhouse",
+      "sap.hana",
+      "snowflake",
+      "couchdb",
+      "acmedb",
+      "",
+    ]) {
+      expect({ dbSystem, engine: getDatabaseAgentEngine(dbSystem) }).toEqual({
+        dbSystem,
+        engine: null,
+      });
+    }
+    expect(getDatabaseAgentEngine(undefined)).toBeNull();
+    expect(getDatabaseAgentEngine(null)).toBeNull();
+  });
+
+  test("labels name every engine a config monitors", () => {
+    expect(getDatabaseAgentEngineLabel("mysql")).toBe("MySQL / MariaDB");
+    expect(getDatabaseAgentEngineLabel("redis")).toBe(
+      "Redis / Valkey / KeyDB / Dragonfly",
+    );
+    expect(getDatabaseAgentEngineLabel("elasticsearch")).toBe(
+      "Elasticsearch / OpenSearch",
+    );
+    expect(getDatabaseAgentEngineLabel("sqlserver")).toBe("SQL Server");
+  });
+});
+
+describe("getDatabaseAgentSystem / getDatabaseAgentSystems", () => {
+  test("a row keeps its own engine when the config monitors it", () => {
+    expect(getDatabaseAgentSystem("mysql", "mariadb")).toBe("mariadb");
+    expect(getDatabaseAgentSystem("redis", "Valkey")).toBe("valkey");
+    expect(getDatabaseAgentSystem("sqlserver", "mssql")).toBe(
+      "microsoft.sql_server",
+    );
+    expect(getDatabaseAgentSystem("elasticsearch", "opensearch")).toBe(
+      "opensearch",
+    );
+  });
+
+  test("otherwise the engine the config is named after", () => {
+    expect(getDatabaseAgentSystem("mysql")).toBe("mysql");
+    expect(getDatabaseAgentSystem("oracledb")).toBe("oracle.db");
+    expect(getDatabaseAgentSystem("sqlserver", null)).toBe(
+      "microsoft.sql_server",
+    );
+    // A row of another engine never leaks its name into this config.
+    expect(getDatabaseAgentSystem("mysql", "postgresql")).toBe("mysql");
+  });
+
+  test("the product page offers every engine a shipped config monitors, forks included", () => {
+    const systems: Array<string> = getDatabaseAgentSystems();
+
+    expect([...systems].sort()).toEqual(
+      [
+        "dragonfly",
+        "elasticsearch",
+        "keydb",
+        "mariadb",
+        "memcached",
+        "microsoft.sql_server",
+        "mongodb",
+        "mysql",
+        "opensearch",
+        "oracle.db",
+        "postgresql",
+        "redis",
+        "valkey",
+      ].sort(),
+    );
+    for (const system of systems) {
+      expect(getDatabaseAgentEngine(system)).not.toBeNull();
+    }
+  });
+});
+
+describe("resolveDatabaseAgentIdentity", () => {
+  test("the product page gets placeholders and the engine's default port", () => {
+    const identity: DatabaseAgentIdentity =
+      resolveDatabaseAgentIdentity("mysql");
+
+    expect(identity).toEqual({
+      serverAddress: "db.example.com",
+      serverPort: 3306,
+      endpoint: "db.example.com:3306",
+      databaseId: "",
+      isPrefilled: false,
+      instanceName: "",
+    });
+  });
+
+  test("a row uses its serverAddress / serverPort", () => {
+    expect(
+      resolveDatabaseAgentIdentity("postgresql", {
+        id: DATABASE_ID,
+        serverAddress: "DB.Prod.Internal",
+        serverPort: 6432,
+      }),
+    ).toEqual({
+      serverAddress: "db.prod.internal",
+      serverPort: 6432,
+      endpoint: "db.prod.internal:6432",
+      databaseId: DATABASE_ID,
+      isPrefilled: true,
+      instanceName: "",
+    });
+  });
+
+  test("without an address, the first parseable endpoint (cluster qualifier dropped)", () => {
+    const identity: DatabaseAgentIdentity = resolveDatabaseAgentIdentity(
+      "postgresql",
+      {
+        id: DATABASE_ID,
+        endpoints: [
+          "localhost:5432",
+          "postgres.payments.svc.cluster.local:5432@prod",
+        ],
+        kubernetesNamespace: "payments",
+      },
+    );
+
+    expect(identity.serverAddress).toBe("postgres.payments.svc.cluster.local");
+    expect(identity.serverPort).toBe(5432);
+    expect(identity.endpoint).toBe("postgres.payments.svc.cluster.local:5432");
+    expect(identity.isPrefilled).toBe(true);
+  });
+
+  test("brackets an IPv6 address in the endpoint", () => {
+    expect(
+      resolveDatabaseAgentIdentity("postgresql", {
+        id: DATABASE_ID,
+        serverAddress: "2001:db8::10",
+        serverPort: 5432,
+      }).endpoint,
+    ).toBe("[2001:db8::10]:5432");
+  });
+
+  test("an unknown engine without a port leaves the port out", () => {
+    const identity: DatabaseAgentIdentity = resolveDatabaseAgentIdentity(
+      "someengine",
+      { id: DATABASE_ID, serverAddress: "db.example.com" },
+    );
+    expect(identity.serverPort).toBeNull();
+    expect(identity.endpoint).toBe("db.example.com");
+  });
+
+  test("the agent's endpoint is a URL for the elasticsearch receiver only", () => {
+    const identity: DatabaseAgentIdentity = resolveDatabaseAgentIdentity(
+      "opensearch",
+      { id: DATABASE_ID, serverAddress: "search.prod.example.com" },
+    );
+
+    expect(getDatabaseAgentEndpoint("elasticsearch", identity)).toBe(
+      "http://search.prod.example.com:9200",
+    );
+    expect(getDatabaseAgentEndpoint("postgresql", identity)).toBe(
+      "search.prod.example.com:9200",
+    );
+  });
+});
+
+describe("the .env file", () => {
+  test("interpolates the viewer's URL and key and single-quotes the password", () => {
+    const env: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      identity: resolveDatabaseAgentIdentity("postgresql", {
+        id: DATABASE_ID,
+        serverAddress: "db.prod.internal",
+        serverPort: 5432,
+      }),
+    });
+
+    expect(env.split("\n")).toEqual([
+      ENV_MARKER,
+      `ONEUPTIME_URL=${URL}`,
+      `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+      "DATABASE_SYSTEM=postgresql",
+      "DATABASE_ENDPOINT=db.prod.internal:5432",
+      "DATABASE_ENDPOINT_HOST=db.prod.internal",
+      "DATABASE_ENDPOINT_PORT=5432",
+      "DATABASE_ORACLE_SERVICE=",
+      "DATABASE_SERVER_ADDRESS=db.prod.internal",
+      "DATABASE_SERVER_PORT=5432",
+      "DATABASE_USERNAME=oneuptime_monitor",
+      "DATABASE_PASSWORD='a-strong-password'",
+      "DATABASE_TLS_INSECURE=true",
+      "DATABASE_TLS_INSECURE_SKIP_VERIFY=false",
+      "DATABASE_COLLECTION_INTERVAL=30s",
+      "DATABASE_QUERY_EVENTS=false",
+      `DATABASE_SERVER_ID=${DATABASE_ID}`,
+    ]);
+  });
+
+  /*
+   * Regression: the hand-written .env the guide shows had every `$` doubled
+   * but not install.sh's line saying so, and install.sh read such a file as
+   * holding the password as typed — re-running it (the upgrade) doubled
+   * every `$` again. The sample now carries install.sh's own first line.
+   */
+  test("starts with install.sh's own line saying every $ of the login is doubled", () => {
+    expect(ENV_MARKER).toBe(
+      "# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.",
+    );
+
+    for (const engine of DATABASE_AGENT_ENGINES) {
+      const env: string = getDatabaseAgentEnvFile({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: engine,
+        identity: resolveDatabaseAgentIdentity(getDatabaseAgentSystem(engine)),
+      });
+
+      expect({ engine, first: env.split("\n")[0] }).toEqual({
+        engine,
+        first: ENV_MARKER,
+      });
+    }
+  });
+
+  test("a fork reports itself: a MariaDB row's .env says mariadb and runs the mysql config", () => {
+    const env: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "mysql",
+      system: "mariadb",
+      identity: resolveDatabaseAgentIdentity("mariadb"),
+    });
+
+    expect(env).toContain("\nDATABASE_SYSTEM=mariadb\n");
+  });
+
+  test("per-engine shapes: SQL Server host/port, Oracle service, Elasticsearch URL, Memcached no login", () => {
+    const sqlserver: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "sqlserver",
+      identity: resolveDatabaseAgentIdentity("microsoft.sql_server", {
+        id: DATABASE_ID,
+        serverAddress: "sql.prod.internal",
+      }),
+    });
+    expect(sqlserver).toContain("\nDATABASE_SYSTEM=microsoft.sql_server\n");
+    expect(sqlserver).toContain("\nDATABASE_ENDPOINT_HOST=sql.prod.internal\n");
+    expect(sqlserver).toContain("\nDATABASE_ENDPOINT_PORT=1433\n");
+
+    const oracle: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "oracledb",
+      identity: resolveDatabaseAgentIdentity("oracle.db"),
+    });
+    expect(oracle).toContain("\nDATABASE_ORACLE_SERVICE=FREEPDB1\n");
+    expect(oracle).toContain("\nDATABASE_ENDPOINT=db.example.com:1521\n");
+
+    const search: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "elasticsearch",
+      identity: resolveDatabaseAgentIdentity("elasticsearch"),
+    });
+    expect(search).toContain(
+      "\nDATABASE_ENDPOINT=http://db.example.com:9200\n",
+    );
+    expect(search).toContain("\nDATABASE_ENDPOINT_HOST=db.example.com\n");
+
+    const memcached: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "memcached",
+      identity: resolveDatabaseAgentIdentity("memcached"),
+    });
+    expect(memcached).toContain("\nDATABASE_USERNAME=\n");
+    expect(memcached).toContain("\nDATABASE_PASSWORD=\n");
+  });
+
+  test("Redis leaves the username empty (requirepass-only servers)", () => {
+    const env: string = getDatabaseAgentEnvFile({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "redis",
+      identity: resolveDatabaseAgentIdentity("redis"),
+    });
+    expect(env).toContain("\nDATABASE_USERNAME=\n");
+    expect(env).toContain("DATABASE_SERVER_PORT=6379");
+    expect(env).toContain("\nDATABASE_SERVER_ID=");
+  });
+
+  test.each([...DATABASE_AGENT_ENGINES])(
+    "the %s .env names exactly the variables the compose file passes to the collector",
+    (engine: DatabaseAgentEngine) => {
+      const passed: Set<string> = composeVariables();
+      const env: string = getDatabaseAgentEnvFile({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: engine,
+        identity: resolveDatabaseAgentIdentity(getDatabaseAgentSystem(engine)),
+      });
+
+      const named: Array<string> = env
+        .split("\n")
+        .filter((line: string): boolean => {
+          return !line.startsWith("#");
+        })
+        .map((line: string): string => {
+          return line.split("=")[0]!;
+        });
+      expect(passed.size).toBeGreaterThan(12);
+      expect(new Set(named)).toEqual(passed);
+    },
+  );
+});
+
+describe("the product-level guide", () => {
+  const markdown: string = getDatabaseAgentInstallationMarkdown({
+    oneuptimeUrl: URL,
+    apiKey: KEY,
+    engine: "mysql",
+  });
+
+  test("embeds the compose file and the selected engine's config verbatim", () => {
+    expect(markdown).toContain(DATABASE_AGENT_DOCKER_COMPOSE.trimEnd());
+    expect(markdown).toContain(DATABASE_AGENT_CONFIGS.mysql.trimEnd());
+    expect(markdown).not.toContain(DATABASE_AGENT_CONFIGS.postgresql.trimEnd());
+  });
+
+  test("shows the MySQL grants and nothing about the other engines' logins", () => {
+    expect(markdown).toContain(
+      "GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'oneuptime_monitor'@'%';",
+    );
+    expect(markdown).toContain("SLAVE MONITOR");
+    expect(markdown).not.toContain("GRANT pg_monitor");
+    expect(markdown).not.toContain("ACL SETUSER");
+  });
+
+  test("has no row block, no alerting section, an empty DATABASE_SERVER_ID and no Kubernetes manifest", () => {
+    expect(markdown).not.toContain("## This database");
+    expect(markdown).not.toContain("## Alert on this database");
+    expect(markdown).toContain("\nDATABASE_SERVER_ID=\n");
+    expect(markdown).not.toContain("kind: Deployment");
+    expect(markdown).toContain("DATABASE_SYSTEM=mysql bash install.sh");
+  });
+
+  test("picking a fork on the product page installs it under its own name", () => {
+    const mariadb: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "mysql",
+      system: "mariadb",
+    });
+
+    expect(mariadb).toContain("DATABASE_SYSTEM=mariadb bash install.sh");
+    expect(mariadb).toContain("collects MariaDB engine metrics");
+    expect(mariadb).toContain(DATABASE_AGENT_CONFIGS.mysql.trimEnd());
+  });
+
+  test("never ships a placeholder key or URL, and never prints env references unescaped", () => {
+    expect(markdown).toContain(`ONEUPTIME_URL=${URL}`);
+    expect(markdown).toContain(`ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`);
+    expect(MARKDOWN_SOURCE).not.toContain("<YOUR_API_KEY>");
+    expect(MARKDOWN_SOURCE).not.toContain("your-telemetry-ingestion-key");
+    // The embedded config keeps its ${env:...} references literally.
+    expect(markdown).toContain('endpoint: "${env:DATABASE_ENDPOINT}"');
+  });
+
+  test("documents every agent environment variable", () => {
+    for (const variable of composeVariables()) {
+      expect(markdown).toContain(`| \`${variable}\` |`);
+    }
+  });
+
+  test("tells a hand-written .env to double every $ in the password", () => {
+    expect(markdown).toContain("write every `$` in it as `$$`");
+    expect(markdown).not.toContain(
+      "If the password contains `$`, `#`, spaces or quotes, single-quote it",
+    );
+  });
+
+  test("offers the Database Health monitor for MySQL, with the link when given", () => {
+    expect(markdown).toContain("Database Health monitor");
+    const linked: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      databaseHealthMonitorUrl: "/dashboard/p1/monitors/create",
+    });
+    expect(linked).toContain(
+      "[create a Database Health monitor](/dashboard/p1/monitors/create)",
+    );
+  });
+
+  test("does not offer it for Redis or MongoDB", () => {
+    for (const engine of ["redis", "mongodb"] as Array<DatabaseAgentEngine>) {
+      expect(
+        getDatabaseAgentInstallationMarkdown({
+          oneuptimeUrl: URL,
+          apiKey: KEY,
+          engine: engine,
+        }),
+      ).not.toContain("Database Health monitor");
+    }
+    expect(DATABASE_HEALTH_MONITOR_SYSTEMS).toEqual([
+      "postgresql",
+      "mysql",
+      "microsoft.sql_server",
+    ]);
+  });
+});
+
+describe("what the guide says the agent collects", () => {
+  /*
+   * The guide's first sentence. It used to read "connections, throughput,
+   * cache hit ratio, locks, replication, memory" for every engine.
+   */
+  function collectedSentence(engine: DatabaseAgentEngine): string {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: engine,
+    });
+    const sentence: string | undefined = markdown
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("The OneUptime Database Agent collects");
+      });
+    expect(sentence).toBeDefined();
+    return sentence!;
+  }
+
+  /*
+   * Every metric the memcached receiver sent in the e2e run (collector
+   * 0.161.0, memcached:1.6): nothing about locks or replication.
+   */
+  const MEMCACHED_METRICS_SEEN: Array<string> = [
+    "memcached.operation_hit_ratio",
+    "memcached.commands",
+    "memcached.bytes",
+    "memcached.cpu.usage",
+    "memcached.connections.total",
+    "memcached.current_items",
+    "memcached.connections.current",
+    "memcached.evictions",
+    "memcached.operations",
+    "memcached.network",
+    "memcached.threads",
+  ];
+
+  test("Memcached's promises only what its receiver reports: no locks, no replication", () => {
+    const sentence: string = collectedSentence("memcached");
+
+    expect(sentence).not.toMatch(/\blocks?\b/i);
+    expect(sentence).not.toMatch(/replica/i);
+    expect(sentence).not.toMatch(/throughput/i);
+
+    // Each thing it names is one of the metrics that arrived.
+    const backedBy: Array<[RegExp, string]> = [
+      [/\bconnections\b/, "memcached.connections.current"],
+      [/\bcommands\b/, "memcached.commands"],
+      [/\bhits and misses\b/, "memcached.operations"],
+      [/\bevictions\b/, "memcached.evictions"],
+      [/\bitems\b/, "memcached.current_items"],
+      [/\bmemory\b/, "memcached.bytes"],
+      [/\bnetwork\b/, "memcached.network"],
+      [/\bthreads\b/, "memcached.threads"],
+      [/\bCPU\b/, "memcached.cpu.usage"],
+    ];
+    for (const [phrase, metric] of backedBy) {
+      expect({ phrase: phrase.source, said: phrase.test(sentence) }).toEqual({
+        phrase: phrase.source,
+        said: true,
+      });
+      expect(MEMCACHED_METRICS_SEEN).toContain(metric);
+    }
+    for (const metric of MEMCACHED_METRICS_SEEN) {
+      expect(metric).not.toMatch(/lock|repl/);
+    }
+  });
+
+  test.each([
+    ["postgresql", "`max_connections`"],
+    ["mysql", "InnoDB buffer pool"],
+    ["redis", "keyspace hits and misses"],
+    ["mongodb", "cursors"],
+    ["sqlserver", "page life expectancy"],
+    ["oracledb", "tablespace usage"],
+    ["elasticsearch", "cluster health"],
+    ["memcached", "evictions"],
+  ] as Array<[DatabaseAgentEngine, string]>)(
+    "%s's names that engine's own metrics",
+    (engine: DatabaseAgentEngine, signature: string) => {
+      expect(collectedSentence(engine)).toContain(signature);
+    },
+  );
+
+  test("no two engines share one generic list", () => {
+    // The list between "engine metrics — " and " — with a stock …".
+    const lists: Array<string> = DATABASE_AGENT_ENGINES.map(
+      (engine: DatabaseAgentEngine): string => {
+        const list: string | undefined =
+          collectedSentence(engine).split(" — ")[1];
+        expect(list).toBeTruthy();
+        return list!;
+      },
+    );
+
+    expect(new Set<string>(lists).size).toBe(DATABASE_AGENT_ENGINES.length);
+  });
+
+  test("offers query samples and top queries only where the receiver ships them", () => {
+    const withEvents: Array<DatabaseAgentEngine> =
+      DATABASE_AGENT_ENGINES.filter((engine: DatabaseAgentEngine): boolean => {
+        return DATABASE_AGENT_CONFIGS[engine].includes("db.server.top_query:");
+      });
+
+    expect([...withEvents].sort()).toEqual(
+      ["mongodb", "mysql", "oracledb", "postgresql", "sqlserver"].sort(),
+    );
+    for (const engine of DATABASE_AGENT_ENGINES) {
+      expect({
+        engine,
+        offered: collectedSentence(engine).includes("query samples"),
+      }).toEqual({ engine, offered: withEvents.includes(engine) });
+    }
+  });
+});
+
+describe("the monitoring-user grants match the agent's README", () => {
+  const README_BLOCKS: Array<string> = codeBlocks(readAgentFile("README.md"))
+    .filter((block: { language: string; body: string }): boolean => {
+      return ["sql", "text", "js"].includes(block.language);
+    })
+    .map((block: { language: string; body: string }): string => {
+      return block.body;
+    });
+
+  test.each([...DATABASE_AGENT_ENGINES])(
+    "the %s guide's grant blocks are the README's",
+    (engine: DatabaseAgentEngine) => {
+      const markdown: string = getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: engine,
+      });
+      const section: string = markdown.substring(
+        markdown.indexOf("## Create a monitoring user"),
+        markdown.indexOf("## Quick Start — Install Script"),
+      );
+
+      for (const block of codeBlocks(section)) {
+        expect({
+          engine,
+          inReadme: README_BLOCKS.includes(block.body),
+        }).toEqual({ engine, inReadme: true });
+      }
+    },
+  );
+
+  /*
+   * Regression: with pg_monitor and query events on, every EXPLAIN of a top
+   * query failed with "permission denied", and nothing said why.
+   */
+  /*
+   * Regression: the guide named only the semicolon, but the receiver's
+   * unquoted connection string also breaks on a double quote and trims the
+   * spaces around the login — such a password failed every login.
+   */
+  test("the SQL Server guide names everything its connection string cannot carry", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "sqlserver",
+    });
+
+    expect(markdown).toContain(
+      'must not contain a semicolon (`;`) or a double quote (`"`), nor start or end with a space',
+    );
+    expect(markdown).toContain("For a named instance");
+    expect(markdown).toContain("local_tcp_port");
+  });
+
+  test("the PostgreSQL guide explains that plans need table access", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+    });
+
+    expect(markdown).toContain("explain plans additionally need `SELECT`");
+    expect(markdown).toContain("`failed to explain`");
+  });
+});
+
+describe("a database's own guide", () => {
+  const database: DatabaseDocumentationTarget = {
+    id: DATABASE_ID,
+    name: "PostgreSQL db.prod.internal:5432",
+    dbSystem: "postgresql",
+    serverAddress: "db.prod.internal",
+    serverPort: 5432,
+  };
+
+  test("prefills the identity and the id everywhere", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: database,
+    });
+
+    expect(markdown).toContain("## This database");
+    expect(markdown).toContain(
+      `| \`DATABASE_SERVER_ID\` | \`${DATABASE_ID}\` |`,
+    );
+    expect(markdown).toContain(`DATABASE_SERVER_ID=${DATABASE_ID}\n`);
+    expect(markdown).toContain(
+      `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ADDRESS=db.prod.internal DATABASE_SERVER_PORT=5432 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+    );
+    expect(markdown).not.toContain("replace `db.example.com`");
+  });
+
+  /*
+   * Regression: a row without an address (every Docker- or Podman-detected
+   * database) got the placeholder address on the install
+   * command line; install.sh took the placeholder as given instead of
+   * asking for the real name, and the row claimed it.
+   */
+  test("a row without an address gets no placeholder address on the install command line", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: { id: DATABASE_ID, dbSystem: "postgresql" },
+    });
+    const command: string | undefined = markdown
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.endsWith(" bash install.sh");
+      });
+
+    expect(command).toBe(
+      `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+    );
+    // The samples keep the placeholder, and say to replace it.
+    expect(markdown).toContain("replace `db.example.com`");
+    expect(markdown).toContain("DATABASE_SERVER_ADDRESS=db.example.com");
+    expect(markdown).toContain("the install script asks for the host name");
+  });
+
+  test("a fork's row installs under its own engine with its family's config", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "valkey",
+      serverAddress: "cache.prod.internal",
+    });
+
+    expect(markdown).toContain(
+      `DATABASE_SYSTEM=valkey DATABASE_SERVER_ADDRESS=cache.prod.internal DATABASE_SERVER_PORT=6379 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+    );
+    expect(markdown).toContain("| `DATABASE_SYSTEM` | `valkey` |");
+    expect(markdown).toContain(DATABASE_AGENT_CONFIGS.redis.trimEnd());
+  });
+
+  test("tells the reader how to alert on this database", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: database,
+    });
+
+    expect(markdown).toContain("## Alert on this database");
+    expect(markdown).toContain(
+      `\`oneuptime.database.server.id\` = \`${DATABASE_ID}\``,
+    );
+  });
+
+  test("points at the row's Recommendations tab for an engine with recommended monitors", () => {
+    const recommendationsUrl: string = `/dashboard/p1/databases/${DATABASE_ID}/recommendations`;
+    const linked: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: database,
+      recommendationsUrl: recommendationsUrl,
+    });
+
+    expect(linked).toContain(
+      `The [Recommendations](${recommendationsUrl}) tab offers ready-made PostgreSQL monitors`,
+    );
+    expect(linked).toContain("To build your own, create a **Metrics** monitor");
+
+    // Without a URL the tab is still named.
+    expect(
+      getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: "postgresql",
+        database: database,
+      }),
+    ).toContain(
+      "The **Recommendations** tab offers ready-made PostgreSQL monitors",
+    );
+
+    // A fork gets its family receiver's set, under its own name.
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "valkey",
+        serverAddress: "cache.example.com",
+      }),
+    ).toContain("tab offers ready-made Valkey monitors");
+  });
+
+  // The guide says every recommended set has a check for metrics stopping.
+  test("every engine with recommended monitors has an Engine Metrics Stopped check", () => {
+    const engines: Array<string> = DATABASE_SYSTEMS.filter(
+      (descriptor: DatabaseSystemDescriptor): boolean => {
+        return getDatabaseAlertTemplates(descriptor.system).length > 0;
+      },
+    ).map((descriptor: DatabaseSystemDescriptor): string => {
+      return descriptor.system;
+    });
+
+    expect(engines.length).toBeGreaterThan(0);
+
+    for (const system of engines) {
+      expect({
+        system,
+        hasStoppedCheck: getDatabaseAlertTemplates(system).some(
+          (template: DatabaseAlertTemplate): boolean => {
+            return template.name === "Engine Metrics Stopped";
+          },
+        ),
+      }).toEqual({ system, hasStoppedCheck: true });
+    }
+  });
+
+  test("never points at an empty Recommendations tab", () => {
+    for (const system of ["clickhouse", "cockroachdb", "ibm.db2", "AcmeDB"]) {
+      expect(getDatabaseAlertTemplates(system)).toEqual([]);
+
+      const markdown: string = guideFor({
+        id: DATABASE_ID,
+        dbSystem: system,
+        serverAddress: "db.example.com",
+      });
+
+      expect({
+        system,
+        recommends: markdown.includes("Recommendations"),
+      }).toEqual({
+        system,
+        recommends: false,
+      });
+      expect(markdown).toContain(
+        "Create a **Metrics** monitor over an engine metric and filter it on that attribute",
+      );
+    }
+
+    // An engine the agent has no config for, with recommended monitors.
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "couchdb",
+        serverAddress: "couch.example.com",
+      }),
+    ).toContain("tab offers ready-made CouchDB monitors");
+  });
+
+  /*
+   * Regression: the guide said a counter "needs a rate before it can be
+   * alerted on", but monitors have no rate; the collector's
+   * cumulativetodelta processor is what makes a counter thresholdable.
+   */
+  test("sends counters through cumulativetodelta, not a rate monitors do not have", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: database,
+    });
+
+    expect(markdown).toContain("`cumulativetodelta` processor");
+    expect(markdown).toContain("monitors have no rate");
+    expect(MARKDOWN_SOURCE).not.toContain("needs a rate");
+  });
+
+  test("points at Create monitor on the Metrics tab's charts", () => {
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        serverAddress: "db.example.com",
+      }),
+    ).toContain(
+      "A chart opened from this database's **Metrics** tab has **Create monitor**",
+    );
+  });
+
+  /*
+   * Regression: the guide said the Recommendations tab fills "once its
+   * engine metrics have arrived" (any batch counted, logs included), that
+   * a summed chart becomes a monitor on the same number (a monitor cannot
+   * add series), and that scheduled maintenance "applies to" a filtered
+   * monitor (only grouped series were silenced).
+   */
+  test("says what the recommendations wait for, how a summed chart alerts, and what maintenance silences", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "postgresql",
+      serverAddress: "db.example.com",
+    });
+
+    expect(markdown).toContain(
+      "once the metrics they read (from the collector's receiver for this engine) have arrived",
+    );
+    expect(markdown).toContain(
+      "(a metric the chart adds up across series becomes a monitor that alerts on each series)",
+    );
+    expect(markdown).toContain(
+      "and none are opened for this database while it is in a scheduled maintenance window.",
+    );
+    expect(MARKDOWN_SOURCE).not.toContain("engine metrics have arrived");
+    expect(MARKDOWN_SOURCE).not.toContain(
+      "scheduled maintenance applies to them",
+    );
+  });
+
+  /*
+   * Measured on SQL Server 2022 on Linux through the agent's config:
+   * sqlserver.batch.request.rate read 8, 13, 18, 23 on consecutive scrapes
+   * of an idle server — the counter's raw total, not a rate.
+   */
+  test("warns SQL Server readers that sqlserver.*.rate metrics are since-start totals, and only them", () => {
+    const sqlServer: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "mssql",
+      serverAddress: "sql.example.com",
+    });
+
+    expect(sqlServer).toContain(
+      "`sqlserver.*.rate` metrics behave like counters",
+    );
+    expect(sqlServer).toContain("total since the server started");
+    // The value it recommends instead is one a SQL Server template reads.
+    expect(sqlServer).toContain("`sqlserver.processes.blocked`");
+    expect(
+      getDatabaseAlertTemplates("microsoft.sql_server").some(
+        (template: DatabaseAlertTemplate): boolean => {
+          return template.metricNames.includes("sqlserver.processes.blocked");
+        },
+      ),
+    ).toBe(true);
+
+    for (const system of ["postgresql", "mysql", "oracle.db", "redis"]) {
+      expect({
+        system,
+        warns: guideFor({
+          id: DATABASE_ID,
+          dbSystem: system,
+          serverAddress: "db.example.com",
+        }).includes("sqlserver.*.rate"),
+      }).toEqual({ system, warns: false });
+    }
+  });
+
+  test("a Kubernetes database gets the Deployment for its namespace", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: {
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        endpoints: ["postgres.payments.svc.cluster.local:5432@prod"],
+        kubernetesNamespace: "payments",
+        isKubernetes: true,
+      },
+    });
+
+    expect(markdown).toContain("## Run the agent in Kubernetes");
+    expect(markdown).toContain("kubectl -n payments create configmap");
+    expect(markdown).toContain(
+      "/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml",
+    );
+    expect(markdown).toContain("namespace: payments");
+    expect(markdown).toContain(`value: "${DATABASE_ID}"`);
+    expect(markdown).toContain("write every `$` in it as `$$`");
+  });
+
+  test("a non-Kubernetes database gets no manifest", () => {
+    expect(
+      getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: "postgresql",
+        database: database,
+      }),
+    ).not.toContain("kind: Deployment");
+  });
+});
+
+describe("the Database Health monitor on a database's guide", () => {
+  test("the create link opens the form with the Database Health type picked", () => {
+    const url: string = getDatabaseHealthMonitorCreateUrl(
+      "/dashboard/p1/monitors/create",
+    );
+
+    expect(url).toBe("/dashboard/p1/monitors/create?monitorType=Database");
+
+    // The value the monitor-create page reads back is a monitor type it knows.
+    const picked: string | null = new URLSearchParams(
+      url.substring(url.indexOf("?")),
+    ).get("monitorType");
+    expect(picked).toBe(MonitorType.Database);
+    expect(Object.values(MonitorType)).toContain(picked);
+
+    // A route that already carries a query keeps it.
+    expect(getDatabaseHealthMonitorCreateUrl("/create?a=1")).toBe(
+      "/create?a=1&monitorType=Database",
+    );
+  });
+
+  /*
+   * Regression: the Documentation card linked the bare monitor-create page,
+   * so "create a Database Health monitor" landed on the type picker.
+   */
+  test("the Documentation card prefills the type and links the row's Recommendations tab", () => {
+    const card: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(card).toMatch(
+      /getDatabaseHealthMonitorCreateUrl\(\s*RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.MONITOR_CREATE\]/,
+    );
+    expect(card).toContain(
+      "RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]",
+    );
+    expect(card.match(/recommendationsUrl: recommendationsUrl,/g)?.length).toBe(
+      2,
+    );
+    expect(
+      card.match(/databaseHealthMonitorUrl: databaseHealthMonitorUrl,/g)
+        ?.length,
+    ).toBe(2);
+
+    expect(
+      getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: "postgresql",
+        databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+          "/dashboard/p1/monitors/create",
+        ),
+      }),
+    ).toContain(
+      "[create a Database Health monitor](/dashboard/p1/monitors/create?monitorType=Database)",
+    );
+  });
+
+  test("getDatabaseProbeEndpoint picks the first endpoint a probe can name exactly", () => {
+    expect(
+      getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        endpoints: [
+          "postgres.payments.svc.cluster.local:5432@prod",
+          "db.prod.internal:5432",
+          "db.example.com:5432",
+        ],
+      }),
+    ).toBe("db.prod.internal:5432");
+
+    // A named instance carries no port for the probe form to hold.
+    expect(
+      getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        endpoints: ["sql1.corp\\inst01", "sql1.corp:14330"],
+      }),
+    ).toBe("sql1.corp:14330");
+
+    expect(
+      getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        endpoints: ["postgres.payments.svc.cluster.local:5432@prod"],
+      }),
+    ).toBeNull();
+    expect(
+      getDatabaseProbeEndpoint({ id: DATABASE_ID, dbSystem: "postgresql" }),
+    ).toBeNull();
+    expect(getDatabaseProbeEndpoint(null)).toBeNull();
+  });
+
+  /*
+   * The endpoint the guide tells the reader to point the probe at must be
+   * the one the monitor's alerts are resolved by: a probe step's host and
+   * port go through SeriesResourceLabels.buildDatabaseEndpointRef, and the
+   * result is looked up among the database's endpoints verbatim.
+   */
+  test.each([
+    ["postgresql", "db.prod.internal:5432"],
+    ["mysql", "orders.example.com:3307"],
+    ["microsoft.sql_server", "10.0.0.5:1433"],
+  ])(
+    "a %s probe at the endpoint the guide names resolves to that endpoint",
+    (system: string, endpoint: string) => {
+      const named: string | null = getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: system,
+        endpoints: [endpoint],
+      });
+
+      expect(named).toBe(endpoint);
+
+      const separator: number = endpoint.lastIndexOf(":");
+      expect(
+        SeriesResourceLabels.buildDatabaseEndpointRef({
+          address: endpoint.substring(0, separator),
+          port: Number(endpoint.substring(separator + 1)),
+          system: system,
+        }),
+      ).toBe(named);
+    },
+  );
+
+  test("says which endpoint to connect to for the probe's alerts to land on the database", () => {
+    const withEndpoint: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "postgresql",
+      serverAddress: "db.prod.internal",
+      serverPort: 5432,
+      endpoints: ["db.prod.internal:5432"],
+    });
+    expect(withEndpoint).toContain(
+      "Point it at `db.prod.internal:5432`, one of this database's endpoints, and its alerts and incidents appear on this database's Alerts and Incidents tabs.",
+    );
+
+    const onlyQualified: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "mysql",
+      endpoints: ["mysql.shop.svc.cluster.local:3306@prod"],
+      kubernetesNamespace: "shop",
+      isKubernetes: true,
+    });
+    expect(onlyQualified).toContain(
+      "written without an `@cluster` suffix — a probe reports no cluster.",
+    );
+
+    const productPage: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "sqlserver",
+    });
+    expect(productPage).toContain(
+      "Its alerts and incidents also appear on the database whose endpoints include the host and port it connects to.",
+    );
+  });
+});
+
+/* The `.env` block of a guide: the fenced block that sets ONEUPTIME_URL. */
+function envBlockOf(markdown: string): Map<string, string> {
+  const block: { language: string; body: string } | undefined = codeBlocks(
+    markdown,
+  ).find((candidate: { language: string; body: string }): boolean => {
+    return candidate.body.includes("\nONEUPTIME_URL=");
+  });
+  expect(block).toBeDefined();
+  const values: Map<string, string> = new Map<string, string>();
+  for (const line of block!.body.split("\n")) {
+    const match: RegExpMatchArray | null = line.match(/^([A-Z_]+)=(.*)$/);
+    if (match) {
+      values.set(match[1]!, match[2]!);
+    }
+  }
+  return values;
+}
+
+function installCommandOf(markdown: string): string {
+  const command: string | undefined = markdown
+    .split("\n")
+    .find((line: string): boolean => {
+      return line.endsWith(" bash install.sh");
+    });
+  expect(command).toBeDefined();
+  return command!;
+}
+
+/*
+ * Regression: a row for a SQL Server named instance (`host\instance`, no
+ * port) got the default instance's port 1433 everywhere — the agent then
+ * monitored the default instance, charted it on the named instance's page
+ * and claimed its endpoint — and the install command line carried the
+ * backslash unquoted, so the shell dropped it and the identity became
+ * `sql1.corp.example.cominst01`.
+ */
+describe("a SQL Server named instance the row knows no port for", () => {
+  const INSTANCE_PORT: string = "<instance-tcp-port>";
+  const row: DatabaseDocumentationTarget = {
+    id: DATABASE_ID,
+    dbSystem: "microsoft.sql_server",
+    serverAddress: "sql1.corp.example.com\\inst01",
+    endpoints: ["sql1.corp.example.com\\inst01"],
+  };
+
+  test("its identity is the bare host with no port, and names the instance", () => {
+    const expected: DatabaseAgentIdentity = {
+      serverAddress: "sql1.corp.example.com",
+      serverPort: null,
+      endpoint: `sql1.corp.example.com:${INSTANCE_PORT}`,
+      databaseId: DATABASE_ID,
+      isPrefilled: true,
+      instanceName: "inst01",
+    };
+
+    expect(resolveDatabaseAgentIdentity("microsoft.sql_server", row)).toEqual(
+      expected,
+    );
+    // A row known only by its endpoint (detected from traces) the same.
+    expect(
+      resolveDatabaseAgentIdentity("microsoft.sql_server", {
+        id: DATABASE_ID,
+        endpoints: ["SQL1.corp.example.com\\INST01"],
+      }),
+    ).toEqual(expected);
+  });
+
+  test("the guide asks for the instance's port instead of defaulting to 1433", () => {
+    const markdown: string = guideFor(row);
+    const env: Map<string, string> = envBlockOf(markdown);
+
+    /*
+     * The command line leaves the port to install.sh, which asks for the
+     * endpoint and takes the identity's port from it.
+     */
+    expect(installCommandOf(markdown)).toBe(
+      `DATABASE_SYSTEM=microsoft.sql_server DATABASE_SERVER_ADDRESS=sql1.corp.example.com DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+    );
+    expect(env.get("DATABASE_ENDPOINT")).toBe(
+      `sql1.corp.example.com:${INSTANCE_PORT}`,
+    );
+    expect(env.get("DATABASE_ENDPOINT_HOST")).toBe("sql1.corp.example.com");
+    expect(env.get("DATABASE_ENDPOINT_PORT")).toBe(INSTANCE_PORT);
+    expect(env.get("DATABASE_SERVER_ADDRESS")).toBe("sql1.corp.example.com");
+    expect(env.get("DATABASE_SERVER_PORT")).toBe(INSTANCE_PORT);
+    expect(markdown).toContain(
+      `| \`DATABASE_SERVER_PORT\` | \`${INSTANCE_PORT}\` |`,
+    );
+    for (const value of env.values()) {
+      expect(value).not.toContain("\\");
+      expect(value).not.toContain("1433");
+    }
+    // How to find the port, said where the reader needs it.
+    expect(markdown).toContain("named instance `inst01`");
+    expect(markdown).toContain(
+      "SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;",
+    );
+    expect(markdown).not.toContain("replace `db.example.com`");
+  });
+
+  test("the Kubernetes manifest leaves the port to fill in too", () => {
+    const manifest: string = getDatabaseAgentKubernetesManifest({
+      oneuptimeUrl: URL,
+      engine: "sqlserver",
+      identity: resolveDatabaseAgentIdentity("microsoft.sql_server", row),
+      namespace: "sql",
+    });
+
+    expect(manifest).toContain(
+      `- name: DATABASE_ENDPOINT_PORT\n              value: "${INSTANCE_PORT}"`,
+    );
+    expect(manifest).toContain(
+      `- name: DATABASE_SERVER_PORT\n              value: "${INSTANCE_PORT}"`,
+    );
+    expect(manifest).toContain(
+      '- name: DATABASE_ENDPOINT_HOST\n              value: "sql1.corp.example.com"',
+    );
+    expect(manifest).not.toContain("1433");
+    expect(manifest).not.toContain("\\");
+  });
+
+  test("an instance whose port the row knows gets that port, and no instance note", () => {
+    for (const target of [
+      {
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        endpoints: ["sql1.corp.example.com\\inst01,14330"],
+      },
+      {
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        serverAddress: "sql1.corp.example.com\\inst01",
+        serverPort: 14330,
+      },
+    ] as Array<DatabaseDocumentationTarget>) {
+      const markdown: string = guideFor(target);
+      const env: Map<string, string> = envBlockOf(markdown);
+
+      expect(installCommandOf(markdown)).toBe(
+        `DATABASE_SYSTEM=microsoft.sql_server DATABASE_SERVER_ADDRESS=sql1.corp.example.com DATABASE_SERVER_PORT=14330 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+      );
+      expect(env.get("DATABASE_ENDPOINT_PORT")).toBe("14330");
+      expect(env.get("DATABASE_SERVER_PORT")).toBe("14330");
+      expect(markdown).not.toContain("named instance `inst01`");
+      expect(markdown).not.toContain(INSTANCE_PORT);
+    }
+  });
+});
+
+describe("the install command line", () => {
+  /*
+   * Every NAME=value on it is one shell word whose value reaches install.sh
+   * unchanged: bare only when made of characters the shell leaves alone,
+   * otherwise single-quoted.
+   */
+  test.each([
+    [
+      {
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        serverAddress: "db.prod.internal",
+        serverPort: 5432,
+      },
+    ],
+    [
+      {
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        serverAddress: "2001:db8::10",
+        serverPort: 5432,
+      },
+    ],
+    [
+      {
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        endpoints: ["sql1.corp\\inst01"],
+      },
+    ],
+    [
+      {
+        id: "not a uuid; echo hi",
+        dbSystem: "mysql",
+        serverAddress: "db.example.com",
+      },
+    ],
+  ] as Array<[DatabaseDocumentationTarget]>)(
+    "carries every value through the shell unchanged (%j)",
+    (target: DatabaseDocumentationTarget) => {
+      const words: Array<string> = installCommandOf(guideFor(target))
+        .replace(/ bash install\.sh$/, "")
+        .match(/[A-Z_]+=(?:'[^']*'|\S*)/g)!;
+
+      for (const word of words) {
+        expect(word).toMatch(/^[A-Z_]+=(?:[A-Za-z0-9._:@%+,/=-]+|'[^']*')$/);
+      }
+      expect(words.join(" ")).toBe(
+        installCommandOf(guideFor(target)).replace(/ bash install\.sh$/, ""),
+      );
+    },
+  );
+
+  test("a value with a shell character is single-quoted", () => {
+    expect(
+      installCommandOf(
+        guideFor({
+          id: "it's; odd",
+          dbSystem: "mysql",
+          serverAddress: "db.example.com",
+        }),
+      ),
+    ).toBe(
+      `DATABASE_SYSTEM=mysql DATABASE_SERVER_ADDRESS=db.example.com DATABASE_SERVER_PORT=3306 DATABASE_SERVER_ID='it'\\''s; odd' bash install.sh`,
+    );
+  });
+});
+
+/*
+ * Regression: the placeholder was `db.internal`, a `.internal` name — which
+ * only resolves inside one network and never creates a database on its own —
+ * so a sample copied as given never made the database it promised.
+ */
+describe("the placeholder identity", () => {
+  test("is a name that creates its database", () => {
+    const identity: DatabaseAgentIdentity =
+      resolveDatabaseAgentIdentity("postgresql");
+    const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+      system: "postgresql",
+      address: identity.serverAddress,
+      port: identity.serverPort,
+      caller: { isEphemeral: true },
+      purpose: "collector",
+    });
+
+    expect(identity.isPrefilled).toBe(false);
+    expect(endpoint).not.toBeNull();
+    expect(getDatabaseEndpointScope(endpoint as DatabaseEndpoint)).toBe(
+      "global",
+    );
+    expect(MARKDOWN_SOURCE).not.toContain("db.internal");
+  });
+});
+
+describe("getDatabaseAgentKubernetesManifest", () => {
+  const manifest: string = getDatabaseAgentKubernetesManifest({
+    oneuptimeUrl: URL,
+    engine: "redis",
+    system: "valkey",
+    identity: resolveDatabaseAgentIdentity("valkey", {
+      id: DATABASE_ID,
+      serverAddress: "redis-master.cache.svc.cluster.local",
+    }),
+    namespace: "cache",
+  });
+
+  test("runs the pinned collector image with the row's values", () => {
+    expect(manifest).toContain(`image: ${DATABASE_AGENT_COLLECTOR_IMAGE}`);
+    expect(manifest).toContain("namespace: cache");
+    expect(manifest).toContain(`value: "${URL}"`);
+    expect(manifest).toContain('value: "valkey"');
+    expect(manifest).toContain(
+      'value: "redis-master.cache.svc.cluster.local:6379"',
+    );
+    expect(manifest).toContain('value: "6379"');
+    expect(manifest).toContain(`value: "${DATABASE_ID}"`);
+    expect(manifest).toContain("mountPath: /etc/otelcol-contrib");
+  });
+
+  test("sets every variable the compose file passes", () => {
+    const names: Array<string> = Array.from(
+      manifest.matchAll(/^\s*- name: ([A-Z][A-Z0-9_]+)$/gm),
+    )
+      .map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      })
+      .sort();
+
+    expect(names).toEqual([...composeVariables()].sort());
+  });
+
+  test("keeps secrets in a Secret and never stamps k8s.cluster.name", () => {
+    expect(manifest).toContain("secretKeyRef:");
+    expect(manifest).not.toContain(KEY);
+    expect(manifest).not.toContain("k8s.cluster.name");
+  });
+
+  test("an empty namespace falls back to default", () => {
+    expect(
+      getDatabaseAgentKubernetesManifest({
+        oneuptimeUrl: URL,
+        engine: "redis",
+        identity: resolveDatabaseAgentIdentity("redis"),
+        namespace: "  ",
+      }),
+    ).toContain("namespace: default");
+  });
+});
+
+/*
+ * Every engine the catalog knows gets a guide on its Documentation tab.
+ * Regression: engines with a contrib receiver (SAP HANA, Cloud Spanner) or
+ * their own Prometheus endpoint (ClickHouse, CockroachDB, Neo4j, …) were
+ * told "there is no OpenTelemetry Collector receiver … no engine metrics",
+ * and SQL Server, Oracle, Elasticsearch and Memcached rows got only a
+ * processor and an exporter, with no receiver and no pipeline.
+ */
+describe("every catalog engine's Documentation tab", () => {
+  test.each(
+    DATABASE_SYSTEMS.map((descriptor: DatabaseSystemDescriptor): string => {
+      return descriptor.system;
+    }),
+  )(
+    "%s gets a guide whose YAML parses and whose pipeline is wired",
+    (system: string) => {
+      const descriptor: DatabaseSystemDescriptor = DATABASE_SYSTEMS.find(
+        (candidate: DatabaseSystemDescriptor): boolean => {
+          return candidate.system === system;
+        },
+      )!;
+      const markdown: string = guideFor(rowFor(descriptor));
+
+      for (const block of codeBlocks(markdown)) {
+        if (block.language !== "yaml") {
+          continue;
+        }
+        const parsed: unknown = yaml.load(block.body);
+        expect(typeof parsed).toBe("object");
+
+        const config: {
+          receivers?: Record<string, unknown>;
+          processors?: Record<string, unknown>;
+          exporters?: Record<string, unknown>;
+          service?: {
+            pipelines?: Record<
+              string,
+              {
+                receivers: Array<string>;
+                processors: Array<string>;
+                exporters: Array<string>;
+              }
+            >;
+          };
+        } = parsed as never;
+
+        // Every component a pipeline names is defined in the same block.
+        for (const pipeline of Object.values(config.service?.pipelines || {})) {
+          for (const receiver of pipeline.receivers) {
+            expect(Object.keys(config.receivers || {})).toContain(receiver);
+          }
+          for (const processor of pipeline.processors) {
+            expect(Object.keys(config.processors || {})).toContain(processor);
+          }
+          for (const exporter of pipeline.exporters) {
+            expect(Object.keys(config.exporters || {})).toContain(exporter);
+          }
+        }
+      }
+
+      if (descriptor.engineMetrics.kind === "embedded") {
+        expect(markdown).toContain("runs inside your application's process");
+        expect(markdown).not.toContain("resource/database");
+        return;
+      }
+
+      // Never "no receiver" for an engine that has a way to its metrics.
+      expect(markdown).not.toContain(
+        "There is no OpenTelemetry Collector receiver",
+      );
+      expect(markdown).toContain(DATABASE_ID);
+    },
+  );
+
+  test("an engine with a contrib receiver but no agent config gets the complete receiver config", () => {
+    for (const system of [
+      "sap.hana",
+      "snowflake",
+      "couchdb",
+      "riak",
+      "aerospike",
+      "gcp.spanner",
+    ]) {
+      const descriptor: DatabaseSystemDescriptor = DATABASE_SYSTEMS.find(
+        (candidate: DatabaseSystemDescriptor): boolean => {
+          return candidate.system === system;
+        },
+      )!;
+      const component: string = getCollectorReceiverComponentName(
+        descriptor.receiverTypes[0]!,
+      );
+      const markdown: string = guideFor(rowFor(descriptor));
+      const config: string = codeBlocks(markdown).find(
+        (block: { language: string; body: string }): boolean => {
+          return block.language === "yaml";
+        },
+      )!.body;
+
+      expect({
+        system,
+        receiver: config.includes(`\n  ${component}:\n`),
+      }).toEqual({ system, receiver: true });
+      expect(config).toContain(`receivers: [${component}]`);
+      expect(config).toContain(`value: ${system}`);
+      expect(config).toContain('value: "db.prod.example.com"');
+      expect(config).toContain(`value: "${DATABASE_ID}"`);
+      expect(config).toContain(`endpoint: "${URL}/otlp"`);
+      expect(config).toContain(`x-oneuptime-token: "${KEY}"`);
+      expect(config).toContain("key: service.name\n        action: delete");
+    }
+  });
+
+  test("an engine with its own Prometheus endpoint gets the scrape, with service.name and service.instance.id deleted", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "clickhouse",
+      serverAddress: "ch.prod.example.com",
+    });
+    const config: string = codeBlocks(markdown).find(
+      (block: { language: string; body: string }): boolean => {
+        return block.language === "yaml";
+      },
+    )!.body;
+
+    expect(markdown).toContain("serves Prometheus metrics itself");
+    expect(markdown).toContain("Enable the `<prometheus>` section");
+    expect(config).toContain('metrics_path: "/metrics"');
+    expect(config).toContain('targets: ["ch.prod.example.com:9363"]');
+    expect(config).toContain("receivers: [prometheus/database]");
+    expect(config).toContain(
+      "key: service.instance.id\n        action: delete",
+    );
+    expect(config).toContain("value: 9000");
+  });
+
+  test("a managed cloud database is pointed at its provider's monitoring API", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "dynamodb",
+      serverAddress: "dynamodb.us-east-1.amazonaws.com",
+    });
+
+    expect(markdown).toContain("is a managed service");
+    expect(markdown).toContain("`awsfirehose` receiver");
+    expect(markdown).toContain("resource/database");
+  });
+
+  test("an engine with no built-in endpoint says what to do, and still gives the identity stamp", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "ibm.db2",
+      serverAddress: "db2.prod.example.com",
+    });
+
+    expect(markdown).toContain("The collector has no Db2 receiver");
+    expect(markdown).toContain("resource/database");
+    expect(markdown).toContain("value: ibm.db2");
+  });
+
+  test("an unknown engine gets the identity stamp under its raw name", () => {
+    const markdown: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "AcmeDB",
+      serverAddress: "acme.prod.example.com",
+    });
+
+    expect(markdown).toContain("OneUptime does not know AcmeDB's engine yet");
+    expect(markdown).toContain("value: acmedb");
+  });
+
+  test("an in-process engine explains what the page shows instead", () => {
+    const markdown: string = guideFor({ id: DATABASE_ID, dbSystem: "sqlite" });
+
+    expect(markdown).toContain(
+      "SQLite runs inside your application's process, so there is no server to collect engine metrics from",
+    );
+    expect(markdown).toContain(DATABASE_ID);
+    expect(markdown).not.toContain("resource/database");
+    expect(markdown).not.toContain("Database Health monitor");
+  });
+
+  test("an own-collector guide with environment credentials says to double $ in them", () => {
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "sap.hana",
+        serverAddress: "hana.prod.example.com",
+      }),
+    ).toContain("write every `$` in a password as `$$`");
+  });
+});

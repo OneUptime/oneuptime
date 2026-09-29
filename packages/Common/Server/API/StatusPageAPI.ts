@@ -1,0 +1,6696 @@
+import UserMiddleware from "../Middleware/UserAuthorization";
+import PublicDashboardRateLimit, {
+  PublicDashboardRateLimitBucket,
+} from "../Middleware/PublicDashboardRateLimit";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import AcmeChallengeService from "../Services/AcmeChallengeService";
+import IncidentEpisodeService from "../Services/IncidentEpisodeService";
+import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
+import IncidentEpisodePublicNoteService from "../Services/IncidentEpisodePublicNoteService";
+import IncidentEpisodeStateTimelineService from "../Services/IncidentEpisodeStateTimelineService";
+import IncidentPublicNoteService from "../Services/IncidentPublicNoteService";
+import IncidentService from "../Services/IncidentService";
+import IncidentStateService from "../Services/IncidentStateService";
+import IncidentStateTimelineService from "../Services/IncidentStateTimelineService";
+import MonitorGroupService from "../Services/MonitorGroupService";
+import MonitorStatusService from "../Services/MonitorStatusService";
+import ScheduledMaintenancePublicNoteService from "../Services/ScheduledMaintenancePublicNoteService";
+import ScheduledMaintenanceService from "../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../Services/ScheduledMaintenanceStateService";
+import ScheduledMaintenanceStateTimelineService from "../Services/ScheduledMaintenanceStateTimelineService";
+import StatusPageAnnouncementService from "../Services/StatusPageAnnouncementService";
+import StatusPageDomainService from "../Services/StatusPageDomainService";
+import StatusPageFooterLinkService from "../Services/StatusPageFooterLinkService";
+import StatusPageGroupService from "../Services/StatusPageGroupService";
+import StatusPageHeaderLinkService from "../Services/StatusPageHeaderLinkService";
+import StatusPageHistoryChartBarColorRuleService from "../Services/StatusPageHistoryChartBarColorRuleService";
+import StatusPageResourceService from "../Services/StatusPageResourceService";
+import StatusPageService, {
+  Service as StatusPageServiceType,
+} from "../Services/StatusPageService";
+import { MergedDowntimeTotals } from "../Services/MonitorStatusTimelineService";
+import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
+import StatusPageSsoService from "../Services/StatusPageSsoService";
+import StatusPageOidcService from "../Services/StatusPageOidcService";
+import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import Query from "../Types/Database/Query";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../Utils/Express";
+import EditionEnforcement from "../Utils/EditionEnforcement";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import {
+  SEARCH_ENGINE_INDEXING_FLAG_NAME,
+  isSearchEngineIndexingEnabled,
+} from "../../Types/StatusPage/SearchEngineIndexing";
+import Response from "../Utils/Response";
+import BaseAPI from "./BaseAPI";
+import CommonAPI from "./CommonAPI";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ArrayUtil from "../../Utils/Array";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
+import Email from "../../Types/Email";
+import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import { JSONArray, JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import ObjectID from "../../Types/ObjectID";
+import Phone from "../../Types/Phone";
+import PositiveNumber from "../../Types/PositiveNumber";
+import AcmeChallenge from "../../Models/DatabaseModels/AcmeChallenge";
+import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodePublicNote from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "../../Models/DatabaseModels/StatusPageAnnouncement";
+import File from "../../Models/DatabaseModels/File";
+import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
+import StatusPageFooterLink from "../../Models/DatabaseModels/StatusPageFooterLink";
+import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
+import StatusPageHeaderLink from "../../Models/DatabaseModels/StatusPageHeaderLink";
+import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
+import StatusPageSSO from "../../Models/DatabaseModels/StatusPageSso";
+import StatusPageOIDC from "../../Models/DatabaseModels/StatusPageOidc";
+import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
+import StatusPageGroupTreeUtil, {
+  StatusPageGroupTreeIndex,
+} from "../../Utils/StatusPage/GroupTree";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import { Green } from "../../Types/BrandColors";
+import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import URL from "../../Types/API/URL";
+import SMS from "../../Types/SMS/SMS";
+import SmsService from "../Services/SmsService";
+import ProjectCallSMSConfigService from "../Services/ProjectCallSMSConfigService";
+import MailService from "../Services/MailService";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import DatabaseConfig from "../DatabaseConfig";
+import CookieUtil from "../Utils/Cookie";
+import { StatusPageApiRoute } from "../../ServiceRoute";
+import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "../Services/StatusPageSubscriberNotificationTemplateService";
+import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
+import IncidentStatusPageScope, {
+  INCIDENT_SCOPE_SELECT,
+} from "../Utils/StatusPage/IncidentStatusPageScope";
+import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+import StatusPageSubscriberUnsubscribe, {
+  StatusPageSubscriberUnsubscribeDetails,
+  StatusPageSubscriberUnsubscribeState,
+} from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+
+/*
+ * A manage-subscription request is unauthenticated, and one Slack or Microsoft
+ * Teams workspace name can match several subscriptions. Cap how many of them a
+ * single request sends a link to.
+ */
+export const MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST: number = 20;
+
+type EscapeXmlFunction = (text: string) => string;
+
+/*
+ * The status badge is hand-built SVG served as image/svg+xml, and SVG is a
+ * document - anything interpolated into it is markup, not text. A monitor
+ * status named `</text><script>...` would otherwise run on the status page
+ * origin for anyone who opens the badge URL directly.
+ */
+const escapeXml: EscapeXmlFunction = (text: string): string => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
+
+type ResolveStatusPageIdOrThrowFunction = (
+  statusPageIdOrDomain: string,
+) => Promise<ObjectID>;
+
+const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
+  statusPageIdOrDomain: string,
+): Promise<ObjectID> => {
+  /*
+   * Delegates to the service resolver so every endpoint shares its
+   * custom-domain -> statusPageId cache (one Postgres lookup per domain per
+   * TTL instead of one per request).
+   */
+  const statusPageId: ObjectID | null =
+    await StatusPageService.resolveStatusPageIdOrNull(statusPageIdOrDomain);
+
+  if (!statusPageId) {
+    throw new NotFoundException("Status Page not found");
+  }
+
+  return statusPageId;
+};
+
+export default class StatusPageAPI extends BaseAPI<
+  StatusPage,
+  StatusPageServiceType
+> {
+  /*
+   * Post-auth overview responses keyed by resolved statusPageId. The payload
+   * is user-independent (authorization is a binary gate checked per-request,
+   * before any cache read), so one short-TTL snapshot per page per process
+   * serves every viewer. See buildOverviewResponse.
+   */
+  private static overviewResponseCache: InMemoryTTLCache<JSONObject> =
+    new InMemoryTTLCache<JSONObject>(500);
+
+  /*
+   * In-flight overview builds keyed by the same cache key, so concurrent
+   * cold-cache requests share one build instead of stampeding the database.
+   */
+  private static overviewResponseInFlight: Map<string, Promise<JSONObject>> =
+    new Map();
+
+  private static readonly OVERVIEW_CACHE_TTL_MS: number = 15_000;
+
+  public static clearOverviewResponseCache(): void {
+    this.overviewResponseCache.clear();
+    this.overviewResponseInFlight.clear();
+  }
+
+  /*
+   * Holding one of StatusPage's update roles is not the same as being allowed
+   * to update a given page: team block rows, label-restricted grants and
+   * Owned-scoped grants all narrow it. Apply the checks a CRUD update of this
+   * page would run - block and label rules against the loaded page, then the
+   * query narrowing (tenant, labels, Owned scope) - and require the page to
+   * survive them. `statusPage` must have been loaded with its labels.
+   */
+  private static async assertCanUpdateStatusPage(data: {
+    statusPage: StatusPage;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await ModelPermission.checkUpdatePermissionByModel({
+      modelType: StatusPage,
+      fetchModelWithAccessControlIds: async (): Promise<StatusPage> => {
+        return data.statusPage;
+      },
+      props: data.props,
+    });
+
+    const permittedQuery: Query<StatusPage> =
+      await ModelPermission.checkUpdateQueryPermissions(
+        StatusPage,
+        {
+          _id: data.statusPage.id!,
+          projectId: data.projectId,
+        },
+        {},
+        data.props,
+      );
+
+    const permittedStatusPage: StatusPage | null =
+      await StatusPageService.findOneBy({
+        query: permittedQuery,
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!permittedStatusPage) {
+      throw new NotAuthorizedException(
+        "You do not have permission to send this status page's report.",
+      );
+    }
+  }
+
+  public constructor() {
+    super(StatusPage, StatusPageService);
+
+    // get title, description of the page.  This is used for SEO.
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/seo/:statusPageIdOrDomain`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const statusPageIdOrDomain: string = req.params[
+          "statusPageIdOrDomain"
+        ] as string;
+
+        // Shares the service resolver's custom-domain -> statusPageId cache.
+        const statusPageId: ObjectID | null =
+          await StatusPageService.resolveStatusPageIdOrNull(
+            statusPageIdOrDomain,
+          );
+
+        if (!statusPageId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+          {
+            query: {
+              _id: statusPageId,
+            },
+            select: {
+              pageTitle: true,
+              pageDescription: true,
+              name: true,
+              defaultLanguage: true,
+              enableSearchEngineIndexing: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+        if (!statusPage) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+
+        return Response.sendJsonObjectResponse(req, res, {
+          title: statusPage.pageTitle || statusPage.name,
+          description: statusPage.pageDescription,
+          _id: statusPage._id?.toString(),
+          defaultLanguage: statusPage.defaultLanguage || null,
+          /*
+           * Drives <meta name="robots"> and X-Robots-Tag on the rendered page.
+           * Normalised here rather than shipping the raw column, so the two
+           * frontend servers never have to decide what a missing value means.
+           */
+          [SEARCH_ENGINE_INDEXING_FLAG_NAME]: isSearchEngineIndexingEnabled(
+            statusPage.enableSearchEngineIndexing,
+          ),
+        });
+      },
+    );
+
+    // favicon api.
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageIdOrDomain`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+              },
+              select: {
+                faviconFile: {
+                  file: true,
+                  _id: true,
+                  fileType: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage || !statusPage.faviconFile) {
+            logger.debug(
+              "Favicon file not found. Returning default favicon.",
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendFileByPath(
+              req,
+              res,
+              `/usr/src/Common/UI/Images/favicon/status-green.png`,
+            );
+          }
+
+          logger.debug(
+            `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
+            getLogAttributesFromRequest(req as any),
+          );
+
+          return Response.sendFileResponse(req, res, statusPage.faviconFile);
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error, getLogAttributesFromRequest(req as any));
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/logo/:statusPageIdOrDomain`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+              },
+              select: {
+                logoFile: {
+                  file: true,
+                  _id: true,
+                  fileType: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage || !statusPage.logoFile) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page logo not found"),
+            );
+          }
+
+          return Response.sendFileResponse(req, res, statusPage.logoFile);
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error, getLogAttributesFromRequest(req as any));
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page logo not found"),
+          );
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/cover-image/:statusPageIdOrDomain`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+              },
+              select: {
+                coverImageFile: {
+                  file: true,
+                  _id: true,
+                  fileType: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage || !statusPage.coverImageFile) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page cover image not found"),
+            );
+          }
+
+          return Response.sendFileResponse(req, res, statusPage.coverImageFile);
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error, getLogAttributesFromRequest(req as any));
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page cover image not found"),
+          );
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/incident-public-note/attachment/:statusPageId/:incidentId/:noteId/:fileId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getIncidentPublicNoteAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/incident-episode-public-note/attachment/:statusPageId/:episodeId/:noteId/:fileId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getIncidentEpisodePublicNoteAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/incident/postmortem/attachment/:statusPageId/:incidentId/:fileId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getIncidentPostmortemAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/scheduled-maintenance-public-note/attachment/:statusPageId/:scheduledMaintenanceId/:noteId/:fileId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getScheduledMaintenancePublicNoteAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getStatusPageAnnouncementAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // embedded overall status badge api
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/badge/:statusPageId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const token: string = req.query["token"] as string;
+
+          if (!token) {
+            return res.status(400).send("Token is required");
+          }
+
+          // Fetch status page with security token
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+                enableEmbeddedOverallStatus: true,
+                embeddedOverallStatusToken: token,
+              },
+              select: {
+                _id: true,
+                projectId: true,
+                downtimeMonitorStatuses: {
+                  _id: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage) {
+            return res.status(404).send("Status badge not found or disabled");
+          }
+
+          // Get status page resources and current statuses
+          const statusPageResources: Array<StatusPageResource> =
+            await StatusPageResourceService.findBy({
+              query: {
+                statusPageId: statusPageId,
+              },
+              select: {
+                _id: true,
+                monitor: {
+                  _id: true,
+                  currentMonitorStatusId: true,
+                },
+                monitorGroupId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          // Get monitor statuses
+          const monitorStatuses: Array<MonitorStatus> =
+            await MonitorStatusService.findBy({
+              query: {
+                projectId: statusPage.projectId!,
+              },
+              select: {
+                _id: true,
+                name: true,
+                color: true,
+                priority: true,
+                isOperationalState: true,
+              },
+              sort: {
+                priority: SortOrder.Ascending,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          // Get monitor group current statuses
+          const monitorGroupCurrentStatuses: Dictionary<ObjectID> =
+            await StatusPageService.getMonitorGroupCurrentStatuses({
+              statusPageResources,
+              monitorStatuses,
+            });
+
+          // Calculate overall status
+          const overallStatus: MonitorStatus | null =
+            StatusPageService.getOverallMonitorStatus({
+              statusPageResources,
+              monitorStatuses,
+              monitorGroupCurrentStatuses,
+            });
+
+          // Generate SVG badge
+          const statusName: string = escapeXml(
+            overallStatus?.name || "Unknown",
+          );
+          const statusColor: string = escapeXml(
+            overallStatus?.color?.toString() || "#808080",
+          );
+
+          const svg: string = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20">
+  <linearGradient id="b" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="a">
+    <rect width="150" height="20" rx="3" fill="#fff"/>
+  </mask>
+  <g mask="url(#a)">
+    <path fill="#555" d="M0 0h50v20H0z"/>
+    <path fill="${statusColor}" d="M50 0h100v20H50z"/>
+    <path fill="url(#b)" d="M0 0h150v20H0z"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="25" y="15" fill="#010101" fill-opacity=".3">status</text>
+    <text x="25" y="14">status</text>
+    <text x="100" y="15" fill="#010101" fill-opacity=".3">${statusName}</text>
+    <text x="100" y="14">${statusName}</text>
+  </g>
+</svg>`;
+
+          res.setHeader("Content-Type", "image/svg+xml");
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          /*
+           * The badge is only ever loaded through <img>, which ignores both of
+           * these. They exist for the case where someone opens the badge URL
+           * as a top-level document, where the SVG would otherwise be a
+           * scriptable document on this origin.
+           */
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader(
+            "Content-Security-Policy",
+            "sandbox; script-src 'none'; object-src 'none'",
+          );
+          return res.send(svg);
+        } catch (err) {
+          logger.error(err, getLogAttributesFromRequest(req as any));
+          return res.status(500).send("Internal Server Error");
+        }
+      },
+    );
+
+    // confirm subscription api
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/confirm-subscription/:statusPageSubscriberId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const token: string = req.query["verification-token"] as string;
+
+        const statusPageSubscriberId: ObjectID = new ObjectID(
+          req.params["statusPageSubscriberId"] as string,
+        );
+
+        const subscriber: StatusPageSubscriber | null =
+          await StatusPageSubscriberService.findOneBy({
+            query: {
+              _id: statusPageSubscriberId,
+              subscriptionConfirmationToken: token,
+            },
+            select: {
+              isSubscriptionConfirmed: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!subscriber) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException(
+              "Subscriber not found or confirmation token is invalid",
+            ),
+          );
+        }
+
+        // check if subscription confirmed already.
+
+        if (subscriber.isSubscriptionConfirmed) {
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
+        await StatusPageSubscriberService.updateOneById({
+          id: statusPageSubscriberId,
+          data: {
+            isSubscriptionConfirmed: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
+          subscriberId: statusPageSubscriberId,
+        });
+
+        return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
+    /*
+     * The unsubscribe link in every subscriber notification opens the status
+     * page's unsubscribe page ({statusPageUrl}/unsubscribe/{id}-{token}, see
+     * Common/Types/StatusPage/StatusPageSubscriberUnsubscribe), which reads
+     * what the link belongs to with GET and cancels it with POST.
+     *
+     * - GET changes nothing. Mail scanners and link previewers fetch every
+     *   link in a message; they must not unsubscribe anybody.
+     * - POST unsubscribes, and is idempotent. It answers whatever its body is
+     *   - the page sends none, and an RFC 8058 one-click request sends
+     *   "List-Unsubscribe=One-Click" - because holding the token is the whole
+     *   authorisation.
+     *
+     * Deliberately no read-access check: a private status page's subscribers
+     * are exactly the people who may not be able to sign in to it, and the
+     * token proves the request came from the subscription's own inbox (or
+     * phone, or channel). Nothing but the subscription's own contact is ever
+     * returned - no page content - so a private page stays private.
+     *
+     * Every bad link answers the same Invalid, so the endpoint cannot be used
+     * to learn which subscriptions exist; see
+     * StatusPageSubscriberService.getUnsubscribeLinkDetails.
+     */
+    const unsubscribeApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/unsubscribe/:statusPageId/:subscriberId/:token`;
+
+    this.router.get(
+      unsubscribeApiPath,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const details: StatusPageSubscriberUnsubscribeDetails =
+            await StatusPageSubscriberService.getUnsubscribeLinkDetails({
+              statusPageId: req.params["statusPageId"] as string,
+              subscriberId: req.params["subscriberId"] as string,
+              token: req.params["token"] as string,
+            });
+
+          // A token-bearing answer: never let a shared cache keep it.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            details as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      unsubscribeApiPath,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const state: StatusPageSubscriberUnsubscribeState =
+            await StatusPageSubscriberService.unsubscribeWithLink({
+              statusPageId: req.params["statusPageId"] as string,
+              subscriberId: req.params["subscriberId"] as string,
+              token: req.params["token"] as string,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            state: state,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // CNAME verification api
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/cname-verification/:token`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const host: string | undefined = req.get("host");
+
+        if (!host) {
+          throw new BadDataException("Host not found");
+        }
+
+        const token: string = req.params["token"] as string;
+
+        logger.debug(
+          `CNAME Verification: Host:${host}  - Token:${token}`,
+          getLogAttributesFromRequest(req as any),
+        );
+
+        const domain: StatusPageDomain | null =
+          await StatusPageDomainService.findOneBy({
+            query: {
+              cnameVerificationToken: token,
+              fullDomain: host,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!domain) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid token."),
+          );
+        }
+
+        return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
+    // ACME Challenge Validation.
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/.well-known/acme-challenge/:token`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        logger.debug(
+          `ACME challenge validation request received for token: ${req.params["token"]} from host: ${req.headers["host"]}`,
+          getLogAttributesFromRequest(req as any),
+        );
+
+        const challenge: AcmeChallenge | null =
+          await AcmeChallengeService.findOneBy({
+            query: {
+              token: req.params["token"] as string,
+            },
+            select: {
+              challenge: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!challenge) {
+          logger.error(
+            `ACME challenge not found for token: ${req.params["token"]} from host: ${req.headers["host"]}`,
+            getLogAttributesFromRequest(req as any),
+          );
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Challenge not found"),
+          );
+        }
+
+        return Response.sendTextResponse(
+          req,
+          res,
+          challenge.challenge as string,
+        );
+      },
+    );
+
+    /*
+     * Sends the status page's report to an address the caller chooses, so it
+     * is gated like editing the status page: an authenticated member of the
+     * project that owns it who could update this particular page.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/test-email-report`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          /*
+           * This route acts on one page in one project, and the permission
+           * checks below must be evaluated for that single tenant, so the
+           * request is never treated as multi-tenant.
+           */
+          const props: DatabaseCommonInteractionProps = {
+            ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+            isMultiTenantRequest: false,
+          };
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new StatusPage().getUpdatePermissions(),
+            errorMessage:
+              "You do not have permission to send this status page's report.",
+          });
+
+          if (
+            !req.body["statusPageId"] ||
+            !ObjectID.isValidUUID(req.body["statusPageId"].toString())
+          ) {
+            throw new BadDataException("A valid statusPageId is required.");
+          }
+
+          const email: Email = new Email(req.body["email"] as string);
+          const statusPageId: ObjectID = new ObjectID(
+            req.body["statusPageId"].toString() as string,
+          );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneById({
+              id: statusPageId,
+              select: {
+                _id: true,
+                projectId: true,
+                labels: {
+                  _id: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          CommonAPI.assertResourceBelongsToProject({
+            resourceProjectId: statusPage?.projectId,
+            projectId,
+          });
+
+          await StatusPageAPI.assertCanUpdateStatusPage({
+            statusPage: statusPage!,
+            projectId,
+            props,
+          });
+
+          await StatusPageService.sendEmailReport({
+            email: email,
+            statusPageId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!req.body["domain"]) {
+            throw new BadDataException("domain is required in request body");
+          }
+
+          const domain: string = req.body["domain"] as string;
+
+          const statusPageDomain: StatusPageDomain | null =
+            await StatusPageDomainService.findOneBy({
+              query: {
+                fullDomain: domain,
+                domain: {
+                  isVerified: true,
+                } as any,
+              },
+              select: {
+                statusPageId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPageDomain) {
+            throw new BadDataException("No status page found with this domain");
+          }
+
+          const objectId: ObjectID = statusPageDomain.statusPageId!;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            statusPageId: objectId.toString(),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/master-page/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const statusPageIdParam: string = req.params[
+            "statusPageId"
+          ] as string;
+          ObjectID.validateUUID(statusPageIdParam);
+          const objectId: ObjectID = new ObjectID(statusPageIdParam);
+
+          const allowStatusPageCustomizations: boolean =
+            await canServeStatusPageCustomizations({
+              req,
+              statusPageId: objectId,
+            });
+
+          const select: Select<StatusPage> = {
+            _id: true,
+            slug: true,
+            coverImageFileId: true,
+            logoFileId: true,
+            logoAltText: true,
+            coverImageAltText: true,
+            pageTitle: true,
+            pageDescription: true,
+            copyrightText: true,
+            hidePoweredByOneUptimeBranding: true,
+            enableEmailSubscribers: true,
+            enableSlackSubscribers: true,
+            enableMicrosoftTeamsSubscribers: true,
+            enableWebhookSubscribers: true,
+            enableSmsSubscribers: true,
+            isPublicStatusPage: true,
+            enableMasterPassword: true,
+            allowSubscribersToChooseResources: true,
+            allowSubscribersToChooseEventTypes: true,
+            requireSsoForLogin: true,
+            coverImageFile: {
+              file: true,
+              _id: true,
+              fileType: true,
+              name: true,
+            },
+            faviconFile: {
+              file: true,
+              _id: true,
+              fileType: true,
+              name: true,
+            },
+            logoFile: {
+              file: true,
+              _id: true,
+              fileType: true,
+              name: true,
+            },
+            showIncidentsOnStatusPage: true,
+            showAnnouncementsOnStatusPage: true,
+            showScheduledMaintenanceEventsOnStatusPage: true,
+            showSubscriberPageOnStatusPage: true,
+            defaultLanguage: true,
+            enabledLanguages: true,
+          };
+
+          if (allowStatusPageCustomizations) {
+            select.customCSS = true;
+            select.customJavaScript = true;
+            select.headerHTML = true;
+            select.footerHTML = true;
+          }
+
+          /*
+           * The status page app offers SSO sign-in when this is non-zero.
+           * While SSO is not active - the Community Edition serves no status
+           * page SSO routes, and on a lapsed Enterprise license they refuse -
+           * it reports none rather than send visitors into a dead end.
+           */
+          const hasEnabledSSO: PositiveNumber =
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.countBy({
+                  query: {
+                    isEnabled: true,
+                    statusPageId: objectId,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : new PositiveNumber(0);
+
+          const item: StatusPage | null = await this.service.findOneById({
+            id: objectId,
+            select,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!item) {
+            throw new BadDataException("Status Page not found");
+          }
+
+          if (!allowStatusPageCustomizations) {
+            /*
+             * The conditional select above keeps these values out of the
+             * normal database result. Explicit redaction is the second half
+             * of the boundary: it prevents a future eager-load, hook, cache,
+             * or over-populated service result from serializing tenant code
+             * onto the authenticated application's origin.
+             */
+            delete item.customCSS;
+            delete item.customJavaScript;
+            delete item.headerHTML;
+            delete item.footerHTML;
+          }
+
+          /*
+           * The status page app forces SSO sign-in from this flag. Report
+           * the EFFECTIVE requirement: while SSO is not active (the
+           * Community Edition, or a lapsed Enterprise license) it is not
+           * enforced and password sign-in works, so the page must not send
+           * visitors into an SSO flow that does not exist or refuses. The
+           * stored value is untouched and applies again as soon as SSO is
+           * active.
+           */
+          if (!EditionEnforcement.isSsoEnforced()) {
+            item.requireSsoForLogin = false;
+          }
+
+          const footerLinks: Array<StatusPageFooterLink> =
+            await StatusPageFooterLinkService.findBy({
+              query: {
+                statusPageId: objectId,
+              },
+              select: {
+                _id: true,
+                link: true,
+                title: true,
+                order: true,
+              },
+              sort: {
+                order: SortOrder.Ascending,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          const headerLinks: Array<StatusPageHeaderLink> =
+            await StatusPageHeaderLinkService.findBy({
+              query: {
+                statusPageId: objectId,
+              },
+              select: {
+                _id: true,
+                link: true,
+                title: true,
+                order: true,
+              },
+              sort: {
+                order: SortOrder.Ascending,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          const response: JSONObject = {
+            statusPage: BaseModel.toJSON(item, StatusPage),
+            footerLinks: BaseModel.toJSONArray(
+              footerLinks,
+              StatusPageFooterLink,
+            ),
+            headerLinks: BaseModel.toJSONArray(
+              headerLinks,
+              StatusPageHeaderLink,
+            ),
+            hasEnabledSSO: hasEnabledSSO.toNumber(),
+            allowStatusPageCustomizations,
+          };
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Every request here runs a scrypt verify, so the route carries a
+     * password attempt limit, the same one the dashboard master password
+     * route uses but with its own counters. It runs ahead of UserMiddleware so
+     * a refused attempt costs neither a session lookup nor a hash. See
+     * PublicDashboardRateLimit for the budget and why it fails closed.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/master-password/:statusPageId`,
+      PublicDashboardRateLimit.getMiddleware(
+        PublicDashboardRateLimitBucket.StatusPageMasterPassword,
+      ),
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!req.params["statusPageId"]) {
+            throw new BadDataException("Status Page ID not found");
+          }
+
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const password: unknown = req.body && req.body["password"];
+
+          if (typeof password !== "string" || !password) {
+            throw new BadDataException("Master password is required.");
+          }
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneById({
+              id: statusPageId,
+              select: {
+                _id: true,
+                projectId: true,
+                enableMasterPassword: true,
+                masterPassword: true,
+                masterPasswordSalt: true,
+                isPublicStatusPage: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage) {
+            throw new NotFoundException("Status Page not found");
+          }
+
+          if (statusPage.isPublicStatusPage) {
+            throw new BadDataException(
+              "This status page is already visible to everyone.",
+            );
+          }
+
+          if (!statusPage.enableMasterPassword || !statusPage.masterPassword) {
+            throw new BadDataException(
+              "Master password has not been configured for this status page.",
+            );
+          }
+
+          const isMasterPasswordValid: boolean =
+            await StatusPageService.verifyHashedColumnValue({
+              item: statusPage,
+              columnName: "masterPassword",
+              plainValue: password,
+            });
+
+          if (!isMasterPasswordValid) {
+            throw new BadDataException(MASTER_PASSWORD_INVALID_MESSAGE);
+          }
+
+          CookieUtil.setStatusPageMasterPasswordCookie({
+            expressResponse: res,
+            statusPageId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sso/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page SSO login routes.
+           */
+          const sso: Array<StatusPageSSO> =
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    signOnURL: true,
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
+
+          return Response.sendEntityArrayResponse(
+            req,
+            res,
+            sso,
+            new PositiveNumber(sso.length),
+            StatusPageSSO,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/oidc/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page OIDC login routes.
+           */
+          const oidc: Array<StatusPageOIDC> =
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageOidcService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
+
+          return Response.sendEntityArrayResponse(
+            req,
+            res,
+            oidc,
+            new PositiveNumber(oidc.length),
+            StatusPageOIDC,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // Get all status page resources for subscriber to subscribe to.
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/resources/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          await this.checkHasReadAccess({
+            statusPageId: statusPageId,
+            req: req,
+          });
+
+          const resources: Array<StatusPageResource> =
+            await StatusPageResourceService.findBy({
+              query: {
+                statusPageId: statusPageId,
+              },
+              select: {
+                _id: true,
+                displayName: true,
+                order: true,
+                statusPageGroup: {
+                  _id: true,
+                  name: true,
+                  order: true,
+                },
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          return Response.sendEntityArrayResponse(
+            req,
+            res,
+            resources,
+            new PositiveNumber(resources.length),
+            StatusPageResource,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/uptime/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          // This reosurce ID can be of a status page resource OR a status page group.
+          const statusPageResourceId: ObjectID = new ObjectID(
+            req.params["statusPageResourceId"] as string,
+          );
+
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          if (!statusPageId || !statusPageResourceId) {
+            throw new BadDataException("Status Page or Resource not found");
+          }
+
+          await this.checkHasReadAccess({
+            statusPageId: statusPageId,
+            req: req,
+          });
+
+          /*
+           * get start and end date from request body.
+           * if no end date is provided then it will be current date.
+           * if no start date is provided then it will be 14 days ago from end date.
+           */
+
+          let startDate: Date = OneUptimeDate.getSomeDaysAgo(14);
+          let endDate: Date = OneUptimeDate.getCurrentDate();
+
+          if (req.body["startDate"]) {
+            startDate = OneUptimeDate.fromString(
+              req.body["startDate"] as string,
+            );
+          }
+
+          if (req.body["endDate"]) {
+            endDate = OneUptimeDate.fromString(req.body["endDate"] as string);
+          }
+
+          if (OneUptimeDate.isAfter(startDate, endDate)) {
+            throw new BadDataException("Start date cannot be after end date");
+          }
+
+          if (
+            OneUptimeDate.getDaysBetweenTwoDatesInclusive(startDate, endDate) >
+            90
+          ) {
+            throw new BadDataException(
+              "You can only get uptime for 90 days. Please select a date range within 90 days.",
+            );
+          }
+
+          const {
+            monitorStatuses,
+            monitorGroupCurrentStatuses,
+            statusPageResources,
+            statusPage,
+            monitorStatusTimelines,
+            uptimeDailyAggregate,
+            statusPageGroups,
+            monitorsInGroup,
+          } = await this.getStatusPageResourcesAndTimelines({
+            statusPageId: statusPageId,
+            startDateForMonitorTimeline: startDate,
+            endDateForMonitorTimeline: endDate,
+          });
+
+          const downtimeMonitorStatuses: Array<MonitorStatus> =
+            statusPage.downtimeMonitorStatuses || [];
+
+          /*
+           * this endpoint reports uptime over an explicit [startDate, endDate] range, so events
+           * have to be clipped to it and the denominator has to be the range itself. Without
+           * this an open (endsAt = null) row that started before the range contributes its
+           * entire duration to the downtime total.
+           */
+          const uptimeWindow: UptimeWindow = {
+            startDate: startDate,
+            endDate: endDate,
+          };
+
+          /*
+           * A monitor group is down whenever at least one of its monitors
+           * is, which the per-monitor aggregate cannot say, so its uptime is
+           * merged over its monitors by the database - not from
+           * monitorStatusTimelines, which arrive under one 10,000 row cap
+           * across every monitor on the page, newest first. Asked here,
+           * because the walk below is synchronous.
+           */
+          const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+            await this.getMergedDowntimeByMonitorGroupId({
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+              downtimeMonitorStatuses: downtimeMonitorStatuses,
+              startDate: startDate,
+              endDate: endDate,
+            });
+
+          type ResourceUptime = {
+            statusPageResourceId: ObjectID;
+            uptimePercent: number | null;
+            statusPageResourceName: string;
+            currentStatus: MonitorStatus | null;
+          };
+
+          type StatusPageGroupUptime = {
+            statusPageGroupId: ObjectID | null;
+            parentStatusPageGroupId: ObjectID | null;
+            uptimePercent: number | null;
+            statusPageResourceUptimes: Array<ResourceUptime>;
+            statusPageGroupName: string | null;
+            currentStatus: MonitorStatus | null;
+          };
+
+          type GetUptimeByStatusPageGroup = (data: {
+            statusPageGroup: StatusPageGroup | null;
+          }) => StatusPageGroupUptime;
+
+          const getUptimeByStatusPageGroup: GetUptimeByStatusPageGroup =
+            (data: {
+              statusPageGroup: StatusPageGroup | null;
+            }): StatusPageGroupUptime => {
+              const groupUptime: StatusPageGroupUptime = {
+                statusPageGroupId:
+                  data && data.statusPageGroup
+                    ? data.statusPageGroup?.id
+                    : null,
+                parentStatusPageGroupId:
+                  data.statusPageGroup?.parentStatusPageGroupId || null,
+                uptimePercent: null,
+                statusPageResourceUptimes: [],
+                statusPageGroupName: data.statusPageGroup?.name || null,
+                currentStatus: null,
+              };
+
+              const group: StatusPageGroup | null = data.statusPageGroup;
+
+              for (const resource of statusPageResources) {
+                if (
+                  (resource.statusPageGroupId &&
+                    resource.statusPageGroupId.toString() &&
+                    group &&
+                    group._id?.toString() &&
+                    group._id?.toString() ===
+                      resource.statusPageGroupId.toString()) ||
+                  (!resource.statusPageGroupId && !group)
+                ) {
+                  // if its not a monitor or a monitor group, then continue. This should ideally not happen.
+
+                  if (!resource.monitor && !resource.monitorGroupId) {
+                    continue;
+                  }
+
+                  const resourceUptime: ResourceUptime = {
+                    statusPageResourceId: resource.id!,
+                    uptimePercent: null,
+                    statusPageResourceName:
+                      resource.displayName || resource.monitor?.name || "",
+                    currentStatus: null,
+                  };
+
+                  // if its a monitor
+
+                  const precision: UptimePrecision =
+                    resource.uptimePercentPrecision ||
+                    UptimePrecision.ONE_DECIMAL;
+
+                  if (resource.monitor) {
+                    let currentStatus: MonitorStatus | undefined =
+                      monitorStatuses.find((status: MonitorStatus) => {
+                        return (
+                          status._id?.toString() ===
+                          resource.monitor?.currentMonitorStatusId?.toString()
+                        );
+                      });
+
+                    if (!currentStatus) {
+                      currentStatus = new MonitorStatus();
+                      currentStatus.name = "Operational";
+                      currentStatus.color = Green;
+
+                      resourceUptime.currentStatus = currentStatus;
+                    } else {
+                      resourceUptime.currentStatus = currentStatus;
+                    }
+
+                    if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    /*
+                     * From the per-day aggregate, not monitorStatusTimelines:
+                     * those rows come back under one 10,000 row cap across
+                     * every monitor on the page, newest first, and on a page
+                     * with a flapping monitor that is the last few days of the
+                     * range - so the percentage would cover only those days.
+                     * Null when the resource does not show its uptime.
+                     */
+                    resourceUptime.uptimePercent =
+                      StatusPageResourceUptimeUtil.calculateUptimePercentOfResource(
+                        {
+                          statusPageResource: resource,
+                          monitorStatusTimelines: monitorStatusTimelines,
+                          precision: precision,
+                          downtimeMonitorStatuses: downtimeMonitorStatuses,
+                          monitorsInGroup: monitorsInGroup,
+                          uptimeWindow: uptimeWindow,
+                          uptimeDailyAggregate: uptimeDailyAggregate,
+                        },
+                      );
+
+                    groupUptime.statusPageResourceUptimes.push(resourceUptime);
+                  }
+
+                  // if its a monitor group, then its uptime is merged over its monitors.
+
+                  if (resource.monitorGroupId) {
+                    let currentStatus: MonitorStatus | undefined =
+                      monitorStatuses.find((status: MonitorStatus) => {
+                        return (
+                          status._id?.toString() ===
+                          monitorGroupCurrentStatuses[
+                            resource.monitorGroupId?.toString() || ""
+                          ]?.toString()
+                        );
+                      });
+
+                    if (!currentStatus) {
+                      currentStatus = new MonitorStatus();
+                      currentStatus.name = "Operational";
+                      currentStatus.color = Green;
+
+                      resourceUptime.currentStatus = currentStatus;
+                    } else {
+                      resourceUptime.currentStatus = currentStatus;
+                    }
+
+                    if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    if (resource.showUptimePercent) {
+                      const merged: MergedDowntimeTotals | undefined =
+                        mergedDowntimeByMonitorGroupId[
+                          resource.monitorGroupId.toString()
+                        ];
+
+                      let uptimePercent: number | null = merged
+                        ? UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+                            coveredSeconds: merged.coveredSeconds,
+                            downtimeSeconds: merged.downtimeSeconds,
+                            precision: precision,
+                          })
+                        : null;
+
+                      // nothing recorded: fall back to the rows, as a monitor does.
+                      if (uptimePercent === null) {
+                        const resourceStatusTimelines: Array<MonitorStatusTimeline> =
+                          StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                            {
+                              statusPageResource: resource,
+                              monitorStatusTimelines: monitorStatusTimelines,
+                              monitorsInGroup: monitorsInGroup,
+                            },
+                          );
+
+                        uptimePercent = UptimeUtil.calculateUptimePercentage(
+                          resourceStatusTimelines,
+                          precision,
+                          downtimeMonitorStatuses,
+                          uptimeWindow,
+                        );
+                      }
+
+                      resourceUptime.uptimePercent = uptimePercent;
+                    }
+
+                    groupUptime.statusPageResourceUptimes.push(resourceUptime);
+                  }
+                }
+              }
+
+              return groupUptime;
+            };
+
+          const groupUptimes: Array<StatusPageGroupUptime> = [];
+
+          for (const group of statusPageGroups) {
+            groupUptimes.push(
+              getUptimeByStatusPageGroup({ statusPageGroup: group }),
+            );
+          }
+
+          /*
+           * Groups nest, so a group's own uptime % / current status has to
+           * cover every resource in its subtree, not just the resources
+           * attached directly to it. statusPageResourceUptimes stays the
+           * group's own resources - the nesting is reported through
+           * parentStatusPageGroupId so callers can rebuild the tree.
+           */
+          const resourceUptimesByGroupId: Dictionary<Array<ResourceUptime>> =
+            {};
+
+          /*
+           * Keyed the same way, so the loop below can look a group's uptime up
+           * instead of scanning the whole list for it. A status page can carry
+           * well over a thousand groups, and a scan per group is a scan of the
+           * whole list per group.
+           */
+          const groupUptimeByGroupId: Dictionary<StatusPageGroupUptime> = {};
+
+          for (const groupUptime of groupUptimes) {
+            const groupId: string =
+              groupUptime.statusPageGroupId?.toString() || "";
+
+            resourceUptimesByGroupId[groupId] =
+              groupUptime.statusPageResourceUptimes;
+            groupUptimeByGroupId[groupId] = groupUptime;
+          }
+
+          /*
+           * One index for every subtree walk below, rather than one
+           * re-bucketing of the group list per group.
+           */
+          const statusPageGroupTreeIndex: StatusPageGroupTreeIndex =
+            StatusPageGroupTreeUtil.buildIndex({
+              statusPageGroups: statusPageGroups,
+            });
+
+          for (const group of statusPageGroups) {
+            const groupUptime: StatusPageGroupUptime | undefined =
+              groupUptimeByGroupId[group.id?.toString() || ""];
+
+            if (!groupUptime) {
+              continue;
+            }
+
+            const resourceUptimesInSubtree: Array<ResourceUptime> =
+              StatusPageGroupTreeUtil.getGroupAndDescendants({
+                statusPageGroup: group,
+                statusPageGroups: statusPageGroups,
+                index: statusPageGroupTreeIndex,
+              }).flatMap((groupInSubtree: StatusPageGroup) => {
+                return (
+                  resourceUptimesByGroupId[
+                    groupInSubtree.id?.toString() || ""
+                  ] || []
+                );
+              });
+
+            if (group.showUptimePercent) {
+              groupUptime.uptimePercent =
+                UptimeUtil.calculateAvgUptimePercentage({
+                  uptimePercentages: resourceUptimesInSubtree
+                    .filter((resource: ResourceUptime) => {
+                      return resource.uptimePercent !== null;
+                    })
+                    .map((resource: ResourceUptime) => {
+                      return resource.uptimePercent || 0;
+                    }),
+                  precision:
+                    group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
+                });
+            }
+
+            if (group.showCurrentStatus) {
+              groupUptime.currentStatus =
+                StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+                  monitorStatuses: resourceUptimesInSubtree
+                    .filter((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus !== null;
+                    })
+                    .map((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus!;
+                    }),
+                });
+            }
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            statusPageResourceUptimes: [
+              ...getUptimeByStatusPageGroup({ statusPageGroup: null })
+                .statusPageResourceUptimes,
+            ],
+            groupUptimes: groupUptimes,
+            startDate: startDate,
+            endDate: endDate,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Shared handler for the overview endpoint. Registered for both POST
+     * (used by the status page SPA) and GET (machine-readable access for
+     * crawlers / AI agents) so the authentication and authorization path
+     * can never drift between the two methods. It does not read req.body.
+     */
+    const overviewHandler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+          req.params["statusPageIdOrDomain"] as string,
+        );
+
+        /*
+         * checkHasReadAccess MUST stay before any cache read: it is what keeps
+         * private pages, IP whitelists, and master passwords enforced on every
+         * request even when the payload below is served from cache.
+         */
+        await this.checkHasReadAccess({
+          statusPageId: statusPageId,
+          req: req,
+        });
+
+        // Resolved id, so domain-served and id-served views share one entry.
+        const cacheKey: string = statusPageId.toString();
+
+        /*
+         * The cached JSONObject is shared across requests and must never be
+         * mutated after build.
+         */
+        let response: JSONObject | undefined =
+          StatusPageAPI.overviewResponseCache.get(cacheKey);
+
+        if (!response) {
+          let inFlight: Promise<JSONObject> | undefined =
+            StatusPageAPI.overviewResponseInFlight.get(cacheKey);
+
+          if (!inFlight) {
+            inFlight = this.buildOverviewResponse(statusPageId);
+            StatusPageAPI.overviewResponseInFlight.set(cacheKey, inFlight);
+
+            inFlight
+              .then((builtResponse: JSONObject) => {
+                StatusPageAPI.overviewResponseCache.set(
+                  cacheKey,
+                  builtResponse,
+                  StatusPageAPI.OVERVIEW_CACHE_TTL_MS,
+                );
+              })
+              .catch(() => {
+                // Failed builds are never cached; the next request rebuilds.
+              })
+              .finally(() => {
+                StatusPageAPI.overviewResponseInFlight.delete(cacheKey);
+              });
+          }
+
+          response = await inFlight;
+        }
+
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(req, res, response);
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    const overviewApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/overview/:statusPageIdOrDomain`;
+
+    this.router.post(
+      overviewApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      overviewHandler,
+    );
+
+    /*
+     * GET variant of the overview endpoint. Same middleware and same handler
+     * as the POST route above — private status pages are rejected for
+     * unauthenticated callers exactly as they are on POST.
+     */
+    this.router.get(
+      overviewApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      overviewHandler,
+    );
+
+    this.router.put(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.subscribeToStatusPage(req);
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const subscriber: StatusPageSubscriber =
+            await this.getSubscriber(req);
+
+          return Response.sendEntityResponse(
+            req,
+            res,
+            subscriber,
+            StatusPageSubscriber,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/subscribe/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.subscribeToStatusPage(req);
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/manage-subscription/:statusPageId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.manageExistingSubscription(req);
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Shared handler for the incidents list endpoint. Registered for both
+     * POST and GET (same auth path). It does not read req.body.
+     */
+    const incidentsListHandler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+          req.params["statusPageIdOrDomain"] as string,
+        );
+
+        const response: JSONObject = await this.getIncidents(
+          objectId,
+          null,
+          req,
+        );
+
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(req, res, response);
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    const incidentsListApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/incidents/:statusPageIdOrDomain`;
+
+    this.router.post(
+      incidentsListApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      incidentsListHandler,
+    );
+
+    this.router.get(
+      incidentsListApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      incidentsListHandler,
+    );
+
+    /*
+     * Shared handler for the scheduled maintenance events list endpoint.
+     * Registered for both POST and GET (same auth path). It does not read
+     * req.body.
+     */
+    const scheduledMaintenanceEventsListHandler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+          req.params["statusPageIdOrDomain"] as string,
+        );
+
+        const response: JSONObject = await this.getScheduledMaintenanceEvents(
+          objectId,
+          null,
+
+          req,
+        );
+
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(req, res, response);
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    const scheduledMaintenanceEventsListApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/scheduled-maintenance-events/:statusPageIdOrDomain`;
+
+    this.router.post(
+      scheduledMaintenanceEventsListApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      scheduledMaintenanceEventsListHandler,
+    );
+
+    this.router.get(
+      scheduledMaintenanceEventsListApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      scheduledMaintenanceEventsListHandler,
+    );
+
+    /*
+     * Shared handler for the announcements list endpoint. Registered for
+     * both POST and GET (same auth path). It does not read req.body.
+     */
+    const announcementsListHandler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+          req.params["statusPageIdOrDomain"] as string,
+        );
+
+        const response: JSONObject = await this.getAnnouncements(
+          objectId,
+          null,
+
+          req,
+        );
+
+        // These can serve private-page data on a GET; never let shared caches store them.
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(req, res, response);
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    const announcementsListApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/announcements/:statusPageIdOrDomain`;
+
+    this.router.post(
+      announcementsListApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      announcementsListHandler,
+    );
+
+    this.router.get(
+      announcementsListApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      announcementsListHandler,
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/incidents/:statusPageIdOrDomain/:incidentId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const incidentId: ObjectID = new ObjectID(
+            req.params["incidentId"] as string,
+          );
+
+          const response: JSONObject = await this.getIncidents(
+            objectId,
+            incidentId,
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/scheduled-maintenance-events/:statusPageIdOrDomain/:scheduledMaintenanceId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const scheduledMaintenanceId: ObjectID = new ObjectID(
+            req.params["scheduledMaintenanceId"] as string,
+          );
+
+          const response: JSONObject = await this.getScheduledMaintenanceEvents(
+            objectId,
+            scheduledMaintenanceId,
+
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/announcements/:statusPageIdOrDomain/:announcementId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const announcementId: ObjectID = new ObjectID(
+            req.params["announcementId"] as string,
+          );
+
+          const response: JSONObject = await this.getAnnouncements(
+            objectId,
+            announcementId,
+
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // Episodes endpoints
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/episodes/:statusPageIdOrDomain`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const response: JSONObject = await this.getEpisodes(
+            objectId,
+            null,
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/episodes/:statusPageIdOrDomain/:episodeId`,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const episodeId: ObjectID = new ObjectID(
+            req.params["episodeId"] as string,
+          );
+
+          const response: JSONObject = await this.getEpisodes(
+            objectId,
+            episodeId,
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public async getScheduledMaintenanceEvents(
+    statusPageId: ObjectID,
+    scheduledMaintenanceId: ObjectID | null,
+    req: ExpressRequest,
+  ): Promise<JSONObject> {
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showScheduledEventHistoryInDays: true,
+        showScheduledEventLabelsOnStatusPage: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+      throw new BadDataException(
+        "Scheduled Maintenance Events are not enabled on this status page",
+      );
+    }
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageService.getStatusPageResources({
+        statusPageId: statusPageId,
+      });
+
+    // check if status page has active scheduled events.
+    const today: Date = OneUptimeDate.getCurrentDate();
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+      statusPage.showScheduledEventHistoryInDays || 14,
+    );
+
+    let query: Query<ScheduledMaintenance> = {
+      startsAt: QueryHelper.inBetween(historyDays, today),
+      statusPages: [statusPageId] as any,
+      projectId: statusPage.projectId!,
+      isVisibleOnStatusPage: true,
+    };
+
+    if (scheduledMaintenanceId) {
+      query = {
+        _id: scheduledMaintenanceId.toString(),
+        statusPages: [statusPageId] as any,
+        projectId: statusPage.projectId!,
+      };
+    }
+
+    let scheduledEventsSelect: Select<ScheduledMaintenance> = {
+      createdAt: true,
+      title: true,
+      description: true,
+      _id: true,
+      endsAt: true,
+      startsAt: true,
+      currentScheduledMaintenanceState: {
+        name: true,
+        color: true,
+        isScheduledState: true,
+        isResolvedState: true,
+        isOngoingState: true,
+        order: true,
+      },
+      monitors: {
+        _id: true,
+      },
+    };
+
+    if (statusPage.showScheduledEventLabelsOnStatusPage) {
+      scheduledEventsSelect = {
+        ...scheduledEventsSelect,
+        labels: {
+          name: true,
+          color: true,
+        },
+      };
+    }
+
+    const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findBy({
+        query: query,
+        select: scheduledEventsSelect,
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+
+    // If there is no scheduledMaintenanceId, then fetch all future scheduled events.
+    if (!scheduledMaintenanceId) {
+      futureScheduledMaintenanceEvents =
+        await ScheduledMaintenanceService.findBy({
+          query: {
+            currentScheduledMaintenanceState: {
+              isScheduledState: true,
+            } as any,
+            statusPages: [statusPageId] as any,
+            projectId: statusPage.projectId!,
+            isVisibleOnStatusPage: true,
+          },
+          select: scheduledEventsSelect,
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      futureScheduledMaintenanceEvents.forEach(
+        (event: ScheduledMaintenance) => {
+          scheduledMaintenanceEvents.push(event);
+        },
+      );
+    }
+
+    const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
+      scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
+        return event.id!;
+      });
+
+    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
+      [];
+
+    if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
+      scheduledMaintenanceEventsPublicNotes =
+        await ScheduledMaintenancePublicNoteService.findBy({
+          query: {
+            scheduledMaintenanceId: QueryHelper.any(
+              scheduledMaintenanceEventsOnStatusPage,
+            ),
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            postedAt: true,
+            note: true,
+            scheduledMaintenanceId: true,
+            attachments: {
+              _id: true,
+              name: true,
+            },
+          },
+          sort: {
+            postedAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+      [];
+
+    if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
+      scheduledMaintenanceStateTimelines =
+        await ScheduledMaintenanceStateTimelineService.findBy({
+          query: {
+            scheduledMaintenanceId: QueryHelper.any(
+              scheduledMaintenanceEventsOnStatusPage,
+            ),
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            _id: true,
+            createdAt: true,
+            startsAt: true,
+            scheduledMaintenanceId: true,
+            scheduledMaintenanceState: {
+              name: true,
+              color: true,
+              isScheduledState: true,
+              isResolvedState: true,
+              isOngoingState: true,
+            },
+          },
+
+          sort: {
+            startsAt: SortOrder.Descending, // newer state changes first
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    const monitorGroupIds: Array<ObjectID> = statusPageResources
+      .map((resource: StatusPageResource) => {
+        return resource.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // get monitors in the group.
+    const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+    // get monitor status charts.
+    const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
+
+    for (const monitorGroupId of monitorGroupIds) {
+      // get monitors in the group.
+
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
+
+      for (const monitorId of monitorsInGroupIds) {
+        if (
+          !monitorsOnStatusPage.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPage.push(monitorId);
+        }
+      }
+
+      monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+    }
+
+    // get scheduled event states.
+    const scheduledEventStates: Array<ScheduledMaintenanceState> =
+      await ScheduledMaintenanceStateService.findBy({
+        query: {
+          projectId: statusPage.projectId!,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+          isEndedState: true,
+          isOngoingState: true,
+          isScheduledState: true,
+        },
+      });
+
+    const response: JSONObject = {
+      scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
+        scheduledMaintenanceEventsPublicNotes,
+        ScheduledMaintenancePublicNote,
+      ),
+      scheduledMaintenanceStates: BaseModel.toJSONArray(
+        scheduledEventStates,
+        ScheduledMaintenanceState,
+      ),
+      scheduledMaintenanceEvents: BaseModel.toJSONArray(
+        scheduledMaintenanceEvents,
+        ScheduledMaintenance,
+      ),
+      statusPageResources: BaseModel.toJSONArray(
+        statusPageResources,
+        StatusPageResource,
+      ),
+      scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
+        scheduledMaintenanceStateTimelines,
+        ScheduledMaintenanceStateTimeline,
+      ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+    };
+
+    return response;
+  }
+
+  @CaptureSpan()
+  public async getAnnouncements(
+    statusPageId: ObjectID,
+    announcementId: ObjectID | null,
+    req: ExpressRequest,
+  ): Promise<JSONObject> {
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showAnnouncementHistoryInDays: true,
+        showAnnouncementsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showAnnouncementsOnStatusPage) {
+      throw new BadDataException(
+        "Announcements are not enabled for this status page.",
+      );
+    }
+
+    // check if status page has active announcement.
+
+    const today: Date = OneUptimeDate.getCurrentDate();
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+      statusPage.showAnnouncementHistoryInDays || 14,
+    );
+
+    let query: Query<StatusPageAnnouncement> = {
+      statusPages: [statusPageId] as any,
+      showAnnouncementAt: QueryHelper.inBetween(historyDays, today),
+      projectId: statusPage.projectId!,
+    };
+
+    if (announcementId) {
+      query = {
+        statusPages: [statusPageId] as any,
+        _id: announcementId.toString(),
+        projectId: statusPage.projectId!,
+      };
+    }
+
+    const announcements: Array<StatusPageAnnouncement> =
+      await StatusPageAnnouncementService.findBy({
+        query: query,
+        select: {
+          createdAt: true,
+          title: true,
+          description: true,
+          _id: true,
+          showAnnouncementAt: true,
+          endAnnouncementAt: true,
+          monitors: {
+            _id: true,
+            name: true,
+          },
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageResourceService.findBy({
+        query: {
+          statusPageId: statusPageId,
+        },
+        select: {
+          statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
+          },
+          monitorId: true,
+          displayTooltip: true,
+          displayDescription: true,
+          displayName: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
+          monitorGroupId: true,
+          monitor: {
+            _id: true,
+            currentMonitorStatusId: true,
+          },
+        },
+
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const monitorGroupIds: Array<ObjectID> = statusPageResources
+      .map((resource: StatusPageResource) => {
+        return resource.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // get monitors in the group.
+    const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+    // get monitor status charts.
+    const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
+
+    for (const monitorGroupId of monitorGroupIds) {
+      // get monitors in the group.
+
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
+
+      for (const monitorId of monitorsInGroupIds) {
+        if (
+          !monitorsOnStatusPage.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPage.push(monitorId);
+        }
+      }
+
+      monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+    }
+
+    const response: JSONObject = {
+      announcements: BaseModel.toJSONArray(
+        announcements,
+        StatusPageAnnouncement,
+      ),
+      statusPageResources: BaseModel.toJSONArray(
+        statusPageResources,
+        StatusPageResource,
+      ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+    };
+
+    return response;
+  }
+
+  @CaptureSpan()
+  public async manageExistingSubscription(req: ExpressRequest): Promise<void> {
+    const statusPageId: ObjectID = new ObjectID(
+      req.params["statusPageId"] as string,
+    );
+
+    logger.debug(
+      `Managing Existing Subscription for Status Page: ${statusPageId}`,
+      getLogAttributesFromRequest(req as any),
+    );
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        enableEmailSubscribers: true,
+        enableSlackSubscribers: true,
+        enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
+        enableSmsSubscribers: true,
+        allowSubscribersToChooseResources: true,
+        allowSubscribersToChooseEventTypes: true,
+        showSubscriberPageOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      logger.debug(
+        `Status page not found with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showSubscriberPageOnStatusPage) {
+      logger.debug(
+        `Subscriber page not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Subscribes not enabled for this status page.",
+      );
+    }
+
+    logger.debug(
+      `Status page found: ${JSON.stringify(statusPage)}`,
+      getLogAttributesFromRequest(req as any),
+    );
+
+    if (
+      req.body.data["subscriberEmail"] &&
+      !statusPage.enableEmailSubscribers
+    ) {
+      logger.debug(
+        `Email subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Email subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      (req.body.data["slackIncomingWebhookUrl"] ||
+        req.body.data["slackWorkspaceName"]) &&
+      !statusPage.enableSlackSubscribers
+    ) {
+      logger.debug(
+        `Slack subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Slack subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      (req.body.data["microsoftTeamsIncomingWebhookUrl"] ||
+        req.body.data["microsoftTeamsWorkspaceName"]) &&
+      !statusPage.enableMicrosoftTeamsSubscribers
+    ) {
+      logger.debug(
+        `Microsoft Teams subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Microsoft Teams subscribers not enabled for this status page.",
+      );
+    }
+
+    if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
+      logger.debug(
+        `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "SMS subscribers not enabled for this status page.",
+      );
+    }
+
+    const identifiers: Array<unknown> = [
+      req.body.data["subscriberEmail"],
+      req.body.data["subscriberPhone"],
+      req.body.data["slackWorkspaceName"],
+      req.body.data["microsoftTeamsWorkspaceName"],
+    ].filter(Boolean);
+
+    const identifierCount: number = identifiers.length;
+
+    if (identifierCount === 0) {
+      logger.debug(
+        `No email, phone, Slack workspace name or Microsoft Teams workspace name provided to manage a subscription on status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Email, phone, Slack workspace name or Microsoft Teams workspace name is required to manage your subscription.",
+      );
+    }
+
+    /*
+     * The manage link opens the subscription it belongs to, so it may only go
+     * to the contact stored on that subscriber. One identifier per request
+     * keeps the subscribers that are looked up and the channel the link is
+     * sent on the same.
+     */
+    if (identifierCount > 1) {
+      throw new BadDataException(
+        "Please provide only one of email, phone, Slack workspace name or Microsoft Teams workspace name.",
+      );
+    }
+
+    // The identifier goes straight into the subscriber query, so only plain text is accepted.
+    if (typeof identifiers[0] !== "string") {
+      throw new BadDataException(
+        "Email, phone, Slack workspace name or Microsoft Teams workspace name must be text.",
+      );
+    }
+
+    const email: Email | undefined = req.body.data["subscriberEmail"]
+      ? new Email(req.body.data["subscriberEmail"] as string)
+      : undefined;
+
+    const phone: Phone | undefined = req.body.data["subscriberPhone"]
+      ? new Phone(req.body.data["subscriberPhone"] as string)
+      : undefined;
+
+    const slackWorkspaceName: string | undefined = req.body.data[
+      "slackWorkspaceName"
+    ]
+      ? (req.body.data["slackWorkspaceName"] as string)
+      : undefined;
+
+    const microsoftTeamsWorkspaceName: string | undefined = req.body.data[
+      "microsoftTeamsWorkspaceName"
+    ]
+      ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
+      : undefined;
+
+    /*
+     * Each lookup selects only the contact for its own channel, so a link can
+     * only be delivered where that subscriber signed up.
+     */
+    let lookupQuery: Query<StatusPageSubscriber>;
+    let lookupSelect: Select<StatusPageSubscriber>;
+
+    /*
+     * The unsubscribe token is read too: the message carries the
+     * subscription's unsubscribe link as well as its manage link.
+     */
+    if (email) {
+      lookupQuery = { subscriberEmail: email };
+      lookupSelect = {
+        _id: true,
+        subscriberEmail: true,
+        unsubscribeToken: true,
+      };
+    } else if (phone) {
+      lookupQuery = { subscriberPhone: phone };
+      lookupSelect = {
+        _id: true,
+        subscriberPhone: true,
+        unsubscribeToken: true,
+      };
+    } else if (slackWorkspaceName) {
+      lookupQuery = { slackWorkspaceName: slackWorkspaceName };
+      lookupSelect = {
+        _id: true,
+        slackIncomingWebhookUrl: true,
+        unsubscribeToken: true,
+      };
+    } else {
+      lookupQuery = {
+        microsoftTeamsWorkspaceName: microsoftTeamsWorkspaceName!,
+      };
+      lookupSelect = {
+        _id: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        unsubscribeToken: true,
+      };
+    }
+
+    logger.debug(
+      `Looking up subscribers by email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, or Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}`,
+      getLogAttributesFromRequest(req as any),
+    );
+
+    /*
+     * An email or phone number is subscribed at most once per status page,
+     * but several channels of one Slack or Teams workspace can be subscribed
+     * under the same workspace name, so every match gets its own link on its
+     * own webhook. Oldest first, so subscriptions added later under the same
+     * name cannot push an existing one past the limit.
+     */
+    const statusPageSubscribers: Array<StatusPageSubscriber> =
+      await StatusPageSubscriberService.findBy({
+        query: {
+          ...lookupQuery,
+          statusPageId: statusPageId,
+        },
+        select: lookupSelect,
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (statusPageSubscribers.length === 0) {
+      /*
+       * Answer exactly as when a subscriber matched, so this endpoint cannot
+       * be used to find out who is subscribed.
+       */
+      logger.debug(
+        `Subscriber not found for email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, or Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      return;
+    }
+
+    /*
+     * Send in the background so that neither the response time nor an error
+     * while sending reveals that a subscriber matched.
+     */
+    this.sendManageSubscriptionLinks({
+      statusPageId: statusPageId,
+      subscribers: statusPageSubscribers,
+      req: req,
+    }).catch((err: Error) => {
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    });
+  }
+
+  @CaptureSpan()
+  public async sendManageSubscriptionLinks(data: {
+    statusPageId: ObjectID;
+    subscribers: Array<StatusPageSubscriber>;
+    req: ExpressRequest;
+  }): Promise<void> {
+    const { statusPageId, subscribers, req } = data;
+
+    /*
+     * Their unsubscribe links need their tokens, as every other sender's do:
+     * a subscriber the backfill has not reached yet is given one first,
+     * rather than sent a link to the "out of date" page.
+     */
+    await StatusPageSubscriberService.ensureUnsubscribeTokens(subscribers);
+
+    const statusPageURL: string =
+      await StatusPageService.getStatusPageURL(statusPageId);
+
+    const statusPages: Array<StatusPage> =
+      await StatusPageSubscriberService.getStatusPagesToSendNotification([
+        statusPageId,
+      ]);
+
+    for (const statusPage of statusPages) {
+      /*
+       * The page is named the way every other subscriber message names it:
+       * its public title first, then its internal name.
+       */
+      const statusPageNameStr: string =
+        statusPage.pageTitle || statusPage.name || "Status Page";
+
+      const [
+        manageEmailTemplate,
+        manageSmsTemplate,
+        manageSlackTemplate,
+        manageMicrosoftTeamsTemplate,
+      ]: Array<StatusPageSubscriberNotificationTemplate | null> =
+        await Promise.all([
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod: StatusPageSubscriberNotificationMethod.Slack,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            },
+          ),
+        ]);
+
+      for (const statusPageSubscriber of subscribers) {
+        // Only ever the contacts stored on the subscriber, never ones from the request.
+        const subscriberEmail: Email | undefined =
+          statusPageSubscriber.subscriberEmail;
+        const subscriberPhone: Phone | undefined =
+          statusPageSubscriber.subscriberPhone;
+        const slackIncomingWebhookUrl: URL | undefined =
+          statusPageSubscriber.slackIncomingWebhookUrl;
+        const microsoftTeamsIncomingWebhookUrl: URL | undefined =
+          statusPageSubscriber.microsoftTeamsIncomingWebhookUrl;
+
+        const manageUrlink: string =
+          StatusPageSubscriberService.getManageSubscriptionLink(
+            URL.fromString(statusPageURL),
+            statusPageSubscriber.id!,
+          ).toString();
+
+        /*
+         * The visitor asked to manage their subscription, so the message
+         * links to its Update Subscription page. It also hands templates the
+         * unsubscribe link every other sender passes as unsubscribeUrl: that
+         * one works without signing in, which the manage page on a private
+         * status page does not.
+         */
+        const unsubscribeUrl: string =
+          StatusPageSubscriberService.getUnsubscribeLink(
+            URL.fromString(statusPageURL),
+            statusPageSubscriber,
+          ).toString();
+
+        const manageTemplateVariables: Record<string, string> = {
+          statusPageName: statusPageNameStr,
+          statusPageUrl: statusPageURL,
+          unsubscribeUrl: unsubscribeUrl,
+          manageSubscriptionUrl: manageUrlink,
+        };
+
+        const defaultChatMessage: string = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
+
+        if (subscriberEmail) {
+          const host: Hostname = await DatabaseConfig.getHost();
+          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+          const statusPageIdString: string | null =
+            statusPage.id?.toString() || statusPage._id?.toString() || null;
+
+          if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
+            // The body is HTML, so the (plain-text) values are escaped into it.
+            const compiledBody: string =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate(
+                manageEmailTemplate.templateBody,
+                manageTemplateVariables,
+              );
+            const compiledSubject: string = manageEmailTemplate.emailSubject
+              ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  manageEmailTemplate.emailSubject,
+                  manageTemplateVariables,
+                )
+              : "Manage your Subscription for " + statusPageNameStr;
+
+            MailService.sendMail(
+              {
+                toEmail: subscriberEmail,
+                templateType: EmailTemplateType.BlankTemplate,
+                vars: {
+                  body: compiledBody,
+                },
+                subject: compiledSubject,
+                isSubjectLiteral: true,
+              },
+              {
+                mailServer: ProjectSmtpConfigService.toEmailServer(
+                  statusPage.smtpConfig,
+                ),
+                projectId: statusPage.projectId!,
+                statusPageId: statusPage.id!,
+              },
+            );
+          } else {
+            MailService.sendMail(
+              {
+                toEmail: subscriberEmail,
+                templateType:
+                  EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
+                vars: {
+                  statusPageName: statusPageNameStr,
+                  statusPageUrl: statusPageURL,
+                  logoUrl:
+                    statusPage.logoFileId && statusPageIdString
+                      ? new URL(httpProtocol, host)
+                          .addRoute(StatusPageApiRoute)
+                          .addRoute(`/logo/${statusPageIdString}`)
+                          .toString()
+                      : "",
+                  isPublicStatusPage: statusPage.isPublicStatusPage
+                    ? "true"
+                    : "false",
+                  subscriberEmailNotificationFooterText:
+                    StatusPageServiceType.getSubscriberEmailFooterText(
+                      statusPage,
+                    ),
+
+                  manageSubscriptionUrl: manageUrlink,
+                },
+                subject: "Manage your Subscription for " + statusPageNameStr,
+                isSubjectLiteral: true,
+              },
+              {
+                mailServer: ProjectSmtpConfigService.toEmailServer(
+                  statusPage.smtpConfig,
+                ),
+                projectId: statusPage.projectId!,
+                statusPageId: statusPage.id!,
+              },
+            );
+          }
+        }
+
+        if (subscriberPhone) {
+          let smsMessage: string;
+          if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
+            /*
+             * On a public status page an SMS carries the shorter manage link
+             * where other messages carry the unsubscribe link: an SMS is
+             * billed by the segment (see
+             * StatusPageSubscriberUnsubscribe.buildSmsLink).
+             */
+            smsMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageSmsTemplate.templateBody,
+                {
+                  ...manageTemplateVariables,
+                  unsubscribeUrl: StatusPageSubscriberUnsubscribe.buildSmsLink({
+                    isPublicStatusPage: statusPage.isPublicStatusPage,
+                    statusPageUrl: statusPageURL,
+                    subscriberId: statusPageSubscriber.id!,
+                    unsubscribeUrl: unsubscribeUrl,
+                  }),
+                },
+              );
+          } else {
+            smsMessage = defaultChatMessage;
+          }
+
+          const sms: SMS = {
+            message: smsMessage,
+            to: subscriberPhone,
+          };
+          // send sms here.
+          SmsService.sendSms(sms, {
+            projectId: statusPage.projectId,
+            customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+              statusPage.callSmsConfig,
+            ),
+            statusPageId: statusPage.id!,
+          }).catch((err: Error) => {
+            logger.error(err, getLogAttributesFromRequest(req as any));
+          });
+        }
+
+        if (slackIncomingWebhookUrl) {
+          let slackMessage: string;
+          if (manageSlackTemplate?.templateBody) {
+            slackMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageSlackTemplate.templateBody,
+                manageTemplateVariables,
+              );
+          } else {
+            slackMessage = defaultChatMessage;
+          }
+
+          SlackUtil.sendMessageToChannelViaIncomingWebhook({
+            url: slackIncomingWebhookUrl,
+            text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
+          }).catch((err: Error) => {
+            logger.error(err, getLogAttributesFromRequest(req as any));
+          });
+        }
+
+        if (microsoftTeamsIncomingWebhookUrl) {
+          let microsoftTeamsMessage: string;
+          if (manageMicrosoftTeamsTemplate?.templateBody) {
+            microsoftTeamsMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageMicrosoftTeamsTemplate.templateBody,
+                manageTemplateVariables,
+              );
+          } else {
+            microsoftTeamsMessage = defaultChatMessage;
+          }
+
+          MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+            url: microsoftTeamsIncomingWebhookUrl,
+            text: microsoftTeamsMessage,
+          }).catch((err: Error) => {
+            logger.error(err, getLogAttributesFromRequest(req as any));
+          });
+        }
+
+        logger.debug(
+          `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
+          getLogAttributesFromRequest(req as any),
+        );
+      }
+    }
+  }
+
+  @CaptureSpan()
+  public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
+    const objectId: ObjectID = new ObjectID(
+      req.params["statusPageId"] as string,
+    );
+
+    logger.debug(
+      `Subscribing to status page with ID: ${objectId}`,
+      getLogAttributesFromRequest(req as any),
+    );
+
+    await this.checkHasReadAccess({
+      statusPageId: objectId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: objectId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        enableEmailSubscribers: true,
+        enableSmsSubscribers: true,
+        enableSlackSubscribers: true,
+        enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
+        allowSubscribersToChooseResources: true,
+        allowSubscribersToChooseEventTypes: true,
+        showSubscriberPageOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      logger.debug(
+        `Status page not found with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showSubscriberPageOnStatusPage) {
+      logger.debug(
+        `Subscriber page not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Subscribes not enabled for this status page.",
+      );
+    }
+
+    logger.debug(
+      `Status page found: ${JSON.stringify(statusPage)}`,
+      getLogAttributesFromRequest(req as any),
+    );
+
+    if (
+      req.body.data["subscriberEmail"] &&
+      !statusPage.enableEmailSubscribers
+    ) {
+      logger.debug(
+        `Email subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Email subscribers not enabled for this status page.",
+      );
+    }
+
+    if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
+      logger.debug(
+        `SMS subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "SMS subscribers not enabled for this status page.",
+      );
+    }
+
+    // if no email or phone, throw error.
+
+    if (
+      req.body.data["slackWorkspaceName"] &&
+      !statusPage.enableSlackSubscribers
+    ) {
+      logger.debug(
+        `Slack subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Slack subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      req.body.data["microsoftTeamsWorkspaceName"] &&
+      !statusPage.enableMicrosoftTeamsSubscribers
+    ) {
+      logger.debug(
+        `Microsoft Teams subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Microsoft Teams subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      req.body.data["subscriberWebhook"] &&
+      !statusPage.enableWebhookSubscribers
+    ) {
+      logger.debug(
+        `Webhook subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Webhook subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      !req.params["subscriberId"] &&
+      !req.body.data["subscriberEmail"] &&
+      !req.body.data["subscriberPhone"] &&
+      !req.body.data["slackWorkspaceName"] &&
+      !req.body.data["microsoftTeamsWorkspaceName"] &&
+      !req.body.data["subscriberWebhook"]
+    ) {
+      logger.debug(
+        `No email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL provided for subscription to status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL is required to subscribe to this status page.",
+      );
+    }
+
+    const email: Email | undefined = req.body.data["subscriberEmail"]
+      ? new Email(req.body.data["subscriberEmail"] as string)
+      : undefined;
+
+    const phone: Phone | undefined = req.body.data["subscriberPhone"]
+      ? new Phone(req.body.data["subscriberPhone"] as string)
+      : undefined;
+
+    const slackIncomingWebhookUrl: string | undefined = req.body.data[
+      "slackIncomingWebhookUrl"
+    ]
+      ? (req.body.data["slackIncomingWebhookUrl"] as string)
+      : undefined;
+
+    const slackWorkspaceName: string | undefined = req.body.data[
+      "slackWorkspaceName"
+    ]
+      ? (req.body.data["slackWorkspaceName"] as string)
+      : undefined;
+
+    const microsoftTeamsIncomingWebhookUrl: string | undefined = req.body.data[
+      "microsoftTeamsIncomingWebhookUrl"
+    ]
+      ? (req.body.data["microsoftTeamsIncomingWebhookUrl"] as string)
+      : undefined;
+
+    const microsoftTeamsWorkspaceName: string | undefined = req.body.data[
+      "microsoftTeamsWorkspaceName"
+    ]
+      ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
+      : undefined;
+
+    const subscriberWebhookUrl: string | undefined = req.body.data[
+      "subscriberWebhook"
+    ]
+      ? (req.body.data["subscriberWebhook"] as string)
+      : undefined;
+
+    let statusPageSubscriber: StatusPageSubscriber | null = null;
+
+    let isUpdate: boolean = false;
+
+    if (!req.params["subscriberId"]) {
+      logger.debug(
+        `Creating new subscriber for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber = new StatusPageSubscriber();
+    } else {
+      const subscriberId: ObjectID = new ObjectID(
+        req.params["subscriberId"] as string,
+      );
+
+      logger.debug(
+        `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      /*
+       * Scope the lookup to the status page in the route. This endpoint only
+       * checks read access on that status page, so without the statusPageId
+       * clause anyone holding a subscriber UUID could pass any status page they
+       * can read and edit a subscriber belonging to a different — possibly
+       * private — status page. A subscriber on another page must be
+       * indistinguishable from one that does not exist, so that the shared
+       * "Subscriber not found" below cannot be used to probe for valid UUIDs.
+       */
+      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+        query: {
+          _id: subscriberId.toString(),
+          statusPageId: objectId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!statusPageSubscriber) {
+        logger.debug(
+          `Subscriber not found with ID: ${subscriberId} on status page with ID: ${objectId}`,
+          getLogAttributesFromRequest(req as any),
+        );
+        throw new BadDataException("Subscriber not found");
+      }
+
+      isUpdate = true;
+    }
+
+    if (email) {
+      logger.debug(
+        `Setting subscriber email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.subscriberEmail = email;
+    }
+
+    if (phone) {
+      logger.debug(
+        `Setting subscriber phone: ${phone}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.subscriberPhone = phone;
+    }
+
+    if (slackIncomingWebhookUrl) {
+      logger.debug(
+        `Setting subscriber slack: ${slackIncomingWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
+        slackIncomingWebhookUrl,
+      );
+    }
+
+    if (slackWorkspaceName) {
+      logger.debug(
+        `Setting subscriber slack workspace name: ${slackWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.slackWorkspaceName = slackWorkspaceName;
+    }
+
+    if (microsoftTeamsIncomingWebhookUrl) {
+      logger.debug(
+        `Setting subscriber Microsoft Teams webhook: ${microsoftTeamsIncomingWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(
+        microsoftTeamsIncomingWebhookUrl,
+      );
+    }
+
+    if (microsoftTeamsWorkspaceName) {
+      logger.debug(
+        `Setting subscriber Microsoft Teams workspace name: ${microsoftTeamsWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.microsoftTeamsWorkspaceName =
+        microsoftTeamsWorkspaceName;
+    }
+
+    if (subscriberWebhookUrl) {
+      logger.debug(
+        `Setting subscriber webhook URL: ${subscriberWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.subscriberWebhook =
+        URL.fromString(subscriberWebhookUrl);
+    }
+
+    if (
+      !isUpdate &&
+      req.body.data["statusPageResources"] &&
+      !statusPage.allowSubscribersToChooseResources
+    ) {
+      logger.debug(
+        `Subscribers not allowed to choose resources for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Subscribers are not allowed to choose resources for this status page.",
+      );
+    }
+
+    if (
+      !isUpdate &&
+      req.body.data["statusPageEventTypes"] &&
+      !statusPage.allowSubscribersToChooseEventTypes
+    ) {
+      logger.debug(
+        `Subscribers not allowed to choose event types for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Subscribers are not allowed to choose event types for this status page.",
+      );
+    }
+
+    statusPageSubscriber.statusPageId = objectId;
+    statusPageSubscriber.sendYouHaveSubscribedMessage = true;
+    statusPageSubscriber.projectId = statusPage.projectId!;
+    statusPageSubscriber.isSubscribedToAllResources = Boolean(
+      req.body.data["isSubscribedToAllResources"],
+    );
+
+    statusPageSubscriber.isSubscribedToAllEventTypes = Boolean(
+      req.body.data["isSubscribedToAllEventTypes"],
+    );
+
+    if (
+      req.body.data["statusPageResources"] &&
+      req.body.data["statusPageResources"].length > 0
+    ) {
+      logger.debug(
+        `Setting subscriber resources: ${JSON.stringify(req.body.data["statusPageResources"])}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.statusPageResources = req.body.data[
+        "statusPageResources"
+      ] as Array<StatusPageResource>;
+    }
+
+    if (
+      req.body.data["statusPageEventTypes"] &&
+      req.body.data["statusPageEventTypes"].length > 0
+    ) {
+      logger.debug(
+        `Setting subscriber event types: ${JSON.stringify(req.body.data["statusPageEventTypes"])}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.statusPageEventTypes = req.body.data[
+        "statusPageEventTypes"
+      ] as Array<StatusPageEventType>;
+    }
+
+    if (isUpdate) {
+      logger.debug(
+        `Updating subscriber with ID: ${statusPageSubscriber.id}`,
+        getLogAttributesFromRequest(req as any),
+      );
+
+      const wantsToUnsubscribe: boolean = Boolean(
+        req.body.data["isUnsubscribed"],
+      );
+
+      await StatusPageSubscriberService.updateOneById({
+        id: statusPageSubscriber.id!,
+        data: {
+          statusPageResources: statusPageSubscriber.statusPageResources!,
+          isSubscribedToAllResources:
+            statusPageSubscriber.isSubscribedToAllResources!,
+          statusPageEventTypes: statusPageSubscriber.statusPageEventTypes!,
+          isSubscribedToAllEventTypes:
+            statusPageSubscriber.isSubscribedToAllEventTypes!,
+          /*
+           * Cancelling goes through unsubscribe() below, like the unsubscribe
+           * link: it records when, once, and tells the team about a
+           * subscriber it added. Only turning the subscription back on is
+           * written here (which clears Unsubscribed At).
+           */
+          ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
+        } as any,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (wantsToUnsubscribe) {
+        await StatusPageSubscriberService.unsubscribe({
+          subscriberId: statusPageSubscriber.id!,
+          source: StatusPageSubscriberUnsubscribeSource.ManageSubscriptionPage,
+        });
+      }
+    } else {
+      logger.debug(
+        `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      // A sign-up, not a subscriber the team added (Is Added By Team stays off).
+      await StatusPageSubscriberService.createFromStatusPageSignUp(
+        statusPageSubscriber,
+      );
+    }
+
+    logger.debug(
+      `Subscription process completed for status page with ID: ${objectId}`,
+      getLogAttributesFromRequest(req as any),
+    );
+  }
+
+  @CaptureSpan()
+  public async getSubscriber(
+    req: ExpressRequest,
+  ): Promise<StatusPageSubscriber> {
+    const objectId: ObjectID = new ObjectID(
+      req.params["statusPageId"] as string,
+    );
+
+    await this.checkHasReadAccess({
+      statusPageId: objectId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: objectId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    const subscriberId: ObjectID = new ObjectID(
+      req.params["subscriberId"] as string,
+    );
+
+    const statusPageSubscriber: StatusPageSubscriber | null =
+      await StatusPageSubscriberService.findOneBy({
+        query: {
+          _id: subscriberId.toString(),
+          statusPageId: statusPage.id!,
+        },
+        select: {
+          isUnsubscribed: true,
+          subscriberEmail: true,
+          subscriberPhone: true,
+          slackWorkspaceName: true,
+          statusPageId: true,
+          statusPageResources: true,
+          isSubscribedToAllResources: true,
+          statusPageEventTypes: true,
+          isSubscribedToAllEventTypes: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!statusPageSubscriber) {
+      throw new BadDataException("Subscriber not found");
+    }
+
+    return statusPageSubscriber;
+  }
+
+  /*
+   * Every incident a public status page is sent goes through here - the
+   * overview's active and timeline incidents, and the incident list and
+   * detail - so it is where the page's JSON, and the overview cache, are made
+   * safe to serve.
+   */
+  private serializeIncidentsForStatusPage(
+    incidents: Array<Incident>,
+  ): JSONArray {
+    return incidents.map((incident: Incident): JSONObject => {
+      const incidentJson: JSONObject = BaseModel.toJSON(incident, Incident);
+
+      // Enforce postmortem visibility before sending or caching status-page JSON.
+      if (incident.showPostmortemOnStatusPage !== true) {
+        delete incidentJson["postmortemNote"];
+        delete incidentJson["postmortemPostedAt"];
+        delete incidentJson["postmortemAttachments"];
+      }
+
+      /*
+       * Which status pages an incident is limited to names the other
+       * audiences it is shown to. The display queries never select these
+       * columns (IncidentStatusPageScope), so this is a second line of
+       * defence against a select that one day does.
+       */
+      IncidentStatusPageScope.removeScopeColumns(incidentJson);
+
+      return incidentJson;
+    });
+  }
+
+  /*
+   * An episode's member incidents, read by id to work out which of the
+   * page's monitors the episode affects, keeping only those this page shows
+   * as far as scope goes. The read selects the scope columns for that
+   * (INCIDENT_SCOPE_SELECT); they are removed again before the incidents are
+   * used, so they cannot reach the page's JSON.
+   */
+  private keepMemberIncidentsInScope(data: {
+    incidents: Array<Incident>;
+    statusPage: StatusPage;
+  }): Array<Incident> {
+    return data.incidents
+      .filter((incident: Incident): boolean => {
+        return IncidentStatusPageScope.isIncidentInScope(
+          incident,
+          data.statusPage,
+        );
+      })
+      .map((incident: Incident): Incident => {
+        return IncidentStatusPageScope.removeScopeColumns(incident);
+      });
+  }
+
+  @CaptureSpan()
+  public async getIncidents(
+    statusPageId: ObjectID,
+    incidentId: ObjectID | null,
+    req: ExpressRequest,
+  ): Promise<JSONObject> {
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showIncidentHistoryInDays: true,
+        showIncidentLabelsOnStatusPage: true,
+        showIncidentsOnStatusPage: true,
+        // Read by IncidentStatusPageScope to decide which incidents it shows.
+        onlyShowScopedIncidents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showIncidentsOnStatusPage) {
+      throw new BadDataException(
+        "Incidents are not enabled on this status page.",
+      );
+    }
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageService.getStatusPageResources({
+        statusPageId: statusPageId,
+      });
+
+    const { monitorsOnStatusPage, monitorsInGroup } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId: statusPageId,
+        // reuse the resources fetched above instead of re-querying them
+        statusPageResources: statusPageResources,
+      });
+
+    const today: Date = OneUptimeDate.getCurrentDate();
+
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+      statusPage.showIncidentHistoryInDays || 14,
+    );
+
+    let incidentQuery: Query<Incident> = {
+      monitors: monitorsOnStatusPage as any,
+      projectId: statusPage.projectId!,
+      createdAt: QueryHelper.inBetween(historyDays, today),
+      isVisibleOnStatusPage: true,
+    };
+
+    if (incidentId) {
+      incidentQuery = {
+        monitors: monitorsOnStatusPage as any,
+        projectId: statusPage.projectId!,
+        _id: incidentId.toString(),
+        isVisibleOnStatusPage: true,
+      };
+    }
+
+    // check if status page has active incident.
+    let incidents: Array<Incident> = [];
+
+    let selectIncidents: Select<Incident> = {
+      createdAt: true,
+      declaredAt: true,
+      updatedAt: true,
+      title: true,
+      description: true,
+      _id: true,
+      postmortemNote: true,
+      postmortemPostedAt: true,
+      showPostmortemOnStatusPage: true,
+      postmortemAttachments: {
+        _id: true,
+        name: true,
+      },
+      incidentSeverity: {
+        name: true,
+        color: true,
+      },
+      currentIncidentState: {
+        name: true,
+        color: true,
+        _id: true,
+        order: true,
+      },
+      monitors: {
+        _id: true,
+      },
+    };
+
+    if (statusPage.showIncidentLabelsOnStatusPage) {
+      selectIncidents = {
+        ...selectIncidents,
+        labels: {
+          name: true,
+          color: true,
+        },
+      };
+    }
+
+    if (monitorsOnStatusPage.length > 0) {
+      /*
+       * Through IncidentStatusPageScope, like every incident read here that
+       * decides what the page shows: an incident limited to other status
+       * pages is left out, and so is an unlimited one when this page only
+       * shows incidents limited to it. The scope is applied in SQL, before
+       * LIMIT_PER_PROJECT cuts the list, not filtered out afterwards.
+       */
+      incidents = await IncidentStatusPageScope.findIncidentsForStatusPage({
+        statusPage: statusPage,
+        query: incidentQuery,
+        select: selectIncidents,
+        sort: {
+          declaredAt: SortOrder.Descending,
+          createdAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      let activeIncidents: Array<Incident> = [];
+
+      const unresolvedIncidentStates: Array<IncidentState> =
+        await IncidentStateService.getUnresolvedIncidentStates(
+          statusPage.projectId!,
+          {
+            isRoot: true,
+          },
+        );
+
+      const unresolvbedIncidentStateIds: Array<ObjectID> =
+        unresolvedIncidentStates.map((state: IncidentState) => {
+          return state.id!;
+        });
+
+      // If there is no particular incident id to fetch then fetch active incidents.
+      if (!incidentId) {
+        activeIncidents =
+          await IncidentStatusPageScope.findIncidentsForStatusPage({
+            statusPage: statusPage,
+            query: {
+              monitors: monitorsOnStatusPage as any,
+              isVisibleOnStatusPage: true,
+              currentIncidentStateId: QueryHelper.any(
+                unresolvbedIncidentStateIds,
+              ),
+              projectId: statusPage.projectId!,
+            },
+            select: selectIncidents,
+            sort: {
+              declaredAt: SortOrder.Descending,
+              createdAt: SortOrder.Descending,
+            },
+
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
+      }
+
+      incidents = [...activeIncidents, ...incidents];
+
+      // get distinct by id.
+
+      incidents = ArrayUtil.distinctByFieldName(incidents, "_id");
+    }
+
+    const incidentsOnStatusPage: Array<ObjectID> = incidents.map(
+      (incident: Incident) => {
+        return incident.id!;
+      },
+    );
+
+    let incidentPublicNotes: Array<IncidentPublicNote> = [];
+
+    if (incidentsOnStatusPage.length > 0) {
+      incidentPublicNotes = await IncidentPublicNoteService.findBy({
+        query: {
+          incidentId: QueryHelper.any(incidentsOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          postedAt: true,
+          note: true,
+          incidentId: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        },
+        sort: {
+          postedAt: SortOrder.Descending, // new note first
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    let incidentStateTimelines: Array<IncidentStateTimeline> = [];
+
+    if (incidentsOnStatusPage.length > 0) {
+      incidentStateTimelines = await IncidentStateTimelineService.findBy({
+        query: {
+          incidentId: QueryHelper.any(incidentsOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+          startsAt: true,
+          incidentId: true,
+          incidentState: {
+            name: true,
+            color: true,
+          },
+        },
+        sort: {
+          startsAt: SortOrder.Descending, // newer state changes first
+        },
+
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // get all the incident states for this project.
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.findBy({
+        query: {
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          isResolvedState: true,
+          order: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const response: JSONObject = {
+      incidentPublicNotes: BaseModel.toJSONArray(
+        incidentPublicNotes,
+        IncidentPublicNote,
+      ),
+      incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
+      incidents: this.serializeIncidentsForStatusPage(incidents),
+      statusPageResources: BaseModel.toJSONArray(
+        statusPageResources,
+        StatusPageResource,
+      ),
+      incidentStateTimelines: BaseModel.toJSONArray(
+        incidentStateTimelines,
+        IncidentStateTimeline,
+      ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+    };
+
+    return response;
+  }
+
+  @CaptureSpan()
+  public async getEpisodes(
+    statusPageId: ObjectID,
+    episodeId: ObjectID | null,
+    req: ExpressRequest,
+  ): Promise<JSONObject> {
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showEpisodeHistoryInDays: true,
+        showEpisodesOnStatusPage: true,
+        showEpisodeLabelsOnStatusPage: true,
+        // Read by IncidentStatusPageScope to decide which incidents it shows.
+        onlyShowScopedIncidents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showEpisodesOnStatusPage) {
+      throw new BadDataException(
+        "Episodes are not enabled on this status page.",
+      );
+    }
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageService.getStatusPageResources({
+        statusPageId: statusPageId,
+      });
+
+    const { monitorsOnStatusPage, monitorsInGroup } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId: statusPageId,
+        // reuse the resources fetched above instead of re-querying them
+        statusPageResources: statusPageResources,
+      });
+
+    const today: Date = OneUptimeDate.getCurrentDate();
+
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+      statusPage.showEpisodeHistoryInDays || 14,
+    );
+
+    /*
+     * Get incidents that have monitors on this status page
+     * Note: We don't filter by incident.isVisibleOnStatusPage here because
+     * episode visibility is independent of incident visibility.
+     * An episode should show if episode.isVisibleOnStatusPage is true,
+     * regardless of whether its member incidents are visible.
+     */
+    const incidentQuery: Query<Incident> = {
+      monitors: monitorsOnStatusPage as any,
+      projectId: statusPage.projectId!,
+      createdAt: QueryHelper.inBetween(historyDays, today),
+    };
+
+    let incidents: Array<Incident> = [];
+
+    if (monitorsOnStatusPage.length > 0) {
+      /*
+       * An episode is listed through the incidents in it that this page
+       * shows, so an incident limited to other status pages (or an unlimited
+       * one, on a page that only shows incidents limited to it) does not
+       * bring its episode here. Newest first, so that when LIMIT_PER_PROJECT
+       * cuts the list it keeps the recent episodes.
+       */
+      incidents = await IncidentStatusPageScope.findIncidentsForStatusPage({
+        statusPage: statusPage,
+        query: incidentQuery,
+        select: {
+          _id: true,
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const incidentIds: Array<ObjectID> = incidents.map((incident: Incident) => {
+      return incident.id!;
+    });
+
+    // Get episode members that link to these incidents
+    let episodeMembers: Array<IncidentEpisodeMember> = [];
+
+    if (incidentIds.length > 0) {
+      episodeMembers = await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentId: QueryHelper.any(incidentIds),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          incidentEpisodeId: true,
+          incidentId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Get unique episode IDs
+    const episodeIdsFromMembers: Set<string> = new Set();
+    for (const member of episodeMembers) {
+      if (member.incidentEpisodeId) {
+        episodeIdsFromMembers.add(member.incidentEpisodeId.toString());
+      }
+    }
+
+    let episodeQuery: Query<IncidentEpisode> = {
+      _id: QueryHelper.any(
+        Array.from(episodeIdsFromMembers).map((id: string) => {
+          return new ObjectID(id);
+        }),
+      ),
+      projectId: statusPage.projectId!,
+      isVisibleOnStatusPage: true,
+    };
+
+    if (episodeId) {
+      episodeQuery = {
+        _id: episodeId.toString(),
+        projectId: statusPage.projectId!,
+        isVisibleOnStatusPage: true,
+      };
+
+      // When viewing a specific episode, also fetch its members directly
+      const episodeMembersForSpecificEpisode: Array<IncidentEpisodeMember> =
+        await IncidentEpisodeMemberService.findBy({
+          query: {
+            incidentEpisodeId: episodeId,
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            incidentEpisodeId: true,
+            incidentId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      /*
+       * An episode is this page's to show only through an incident in it
+       * that the page shows: one on a monitor the page lists, and in scope
+       * for the page. Without this check any visible episode of the project
+       * could be read from any of its status pages by id - including an
+       * episode whose incidents are all limited to other status pages. Like
+       * the list, it does not ask whether the incidents themselves are
+       * visible on status pages, and unlike the list, it has no history
+       * window: a link to an older episode keeps working.
+       */
+      const episodeMemberIncidentIds: Array<ObjectID> =
+        episodeMembersForSpecificEpisode
+          .map((member: IncidentEpisodeMember) => {
+            return member.incidentId;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+
+      const incidentShownOnStatusPage: Incident | null =
+        monitorsOnStatusPage.length > 0 && episodeMemberIncidentIds.length > 0
+          ? await IncidentStatusPageScope.findOneIncidentForStatusPage({
+              statusPage: statusPage,
+              query: {
+                _id: QueryHelper.any(episodeMemberIncidentIds),
+                monitors: monitorsOnStatusPage as any,
+                projectId: statusPage.projectId!,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            })
+          : null;
+
+      if (!incidentShownOnStatusPage) {
+        throw new NotFoundException("Episode not found");
+      }
+
+      // Merge with existing episode members
+      for (const member of episodeMembersForSpecificEpisode) {
+        if (
+          !episodeMembers.some((m: IncidentEpisodeMember) => {
+            return (
+              m.incidentEpisodeId?.toString() ===
+                member.incidentEpisodeId?.toString() &&
+              m.incidentId?.toString() === member.incidentId?.toString()
+            );
+          })
+        ) {
+          episodeMembers.push(member);
+        }
+      }
+    }
+
+    // Get episodes
+    let episodes: Array<IncidentEpisode> = [];
+
+    let selectEpisodes: Select<IncidentEpisode> = {
+      createdAt: true,
+      declaredAt: true,
+      updatedAt: true,
+      title: true,
+      description: true,
+      _id: true,
+      episodeNumber: true,
+      incidentSeverity: {
+        name: true,
+        color: true,
+      },
+      currentIncidentState: {
+        name: true,
+        color: true,
+        _id: true,
+        order: true,
+        isCreatedState: true,
+        isAcknowledgedState: true,
+        isResolvedState: true,
+      },
+      incidentCount: true,
+    };
+
+    if (statusPage.showEpisodeLabelsOnStatusPage) {
+      selectEpisodes = {
+        ...selectEpisodes,
+        labels: {
+          name: true,
+          color: true,
+        },
+      };
+    }
+
+    if (episodeIdsFromMembers.size > 0 || episodeId) {
+      episodes = await IncidentEpisodeService.findBy({
+        query: episodeQuery,
+        select: selectEpisodes,
+        sort: {
+          declaredAt: SortOrder.Descending,
+          createdAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // If no specific episode, also fetch active (unresolved) episodes
+    if (!episodeId && episodeIdsFromMembers.size > 0) {
+      const unresolvedIncidentStates: Array<IncidentState> =
+        await IncidentStateService.getUnresolvedIncidentStates(
+          statusPage.projectId!,
+          {
+            isRoot: true,
+          },
+        );
+
+      const unresolvedIncidentStateIds: Array<ObjectID> =
+        unresolvedIncidentStates.map((state: IncidentState) => {
+          return state.id!;
+        });
+
+      const activeEpisodes: Array<IncidentEpisode> =
+        await IncidentEpisodeService.findBy({
+          query: {
+            _id: QueryHelper.any(
+              Array.from(episodeIdsFromMembers).map((id: string) => {
+                return new ObjectID(id);
+              }),
+            ),
+            isVisibleOnStatusPage: true,
+            currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+            projectId: statusPage.projectId!,
+          },
+          select: selectEpisodes,
+          sort: {
+            declaredAt: SortOrder.Descending,
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      episodes = [...activeEpisodes, ...episodes];
+      episodes = ArrayUtil.distinctByFieldName(episodes, "_id");
+    }
+
+    const episodesOnStatusPage: Array<ObjectID> = episodes.map(
+      (episode: IncidentEpisode) => {
+        return episode.id!;
+      },
+    );
+
+    /*
+     * Build a map of episode ID -> monitor IDs from episode members
+     * Collect all unique incident IDs from episode members
+     */
+    const memberIncidentIds: Array<ObjectID> = [];
+    for (const member of episodeMembers) {
+      if (
+        member.incidentId &&
+        !memberIncidentIds.some((id: ObjectID) => {
+          return id.toString() === member.incidentId!.toString();
+        })
+      ) {
+        memberIncidentIds.push(member.incidentId);
+      }
+    }
+
+    /*
+     * Fetch incidents with their monitors. Read by id, so the scope is
+     * applied here, in memory: a member incident limited to other status
+     * pages does not tell this page which of its monitors the episode
+     * affects. (An episode viewed by id brings all of its members.)
+     */
+    let memberIncidents: Array<Incident> = [];
+    if (memberIncidentIds.length > 0) {
+      memberIncidents = this.keepMemberIncidentsInScope({
+        incidents: await IncidentService.findBy({
+          query: {
+            _id: QueryHelper.any(memberIncidentIds),
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            _id: true,
+            monitors: {
+              _id: true,
+            },
+            ...INCIDENT_SCOPE_SELECT,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+        statusPage: statusPage,
+      });
+    }
+
+    // Build a map of incident ID -> monitors
+    const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+    for (const incident of memberIncidents) {
+      const incidentIdStr: string = incident.id!.toString();
+      const monitorIds: Array<ObjectID> = (incident.monitors || [])
+        .map((m: Monitor) => {
+          return new ObjectID(m._id?.toString() || m.id?.toString() || "");
+        })
+        .filter((id: ObjectID) => {
+          return id.toString() !== "";
+        });
+      incidentMonitorsMap.set(incidentIdStr, monitorIds);
+    }
+
+    // Build episode monitors map from members and incident monitors
+    const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+    for (const member of episodeMembers) {
+      if (member.incidentEpisodeId && member.incidentId) {
+        const episodeIdStr: string = member.incidentEpisodeId.toString();
+        const incidentIdStr: string = member.incidentId.toString();
+
+        if (!episodeMonitorsMap.has(episodeIdStr)) {
+          episodeMonitorsMap.set(episodeIdStr, []);
+        }
+
+        const episodeMonitors: Array<ObjectID> =
+          episodeMonitorsMap.get(episodeIdStr)!;
+        const incidentMonitors: Array<ObjectID> =
+          incidentMonitorsMap.get(incidentIdStr) || [];
+
+        for (const monitorId of incidentMonitors) {
+          if (
+            !episodeMonitors.some((m: ObjectID) => {
+              return m.toString() === monitorId.toString();
+            })
+          ) {
+            episodeMonitors.push(monitorId);
+          }
+        }
+      }
+    }
+
+    // Get public notes for episodes
+    let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
+
+    if (episodesOnStatusPage.length > 0) {
+      episodePublicNotes = await IncidentEpisodePublicNoteService.findBy({
+        query: {
+          incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          postedAt: true,
+          note: true,
+          incidentEpisodeId: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        },
+        sort: {
+          postedAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Get state timelines for episodes
+    let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
+
+    if (episodesOnStatusPage.length > 0) {
+      episodeStateTimelines = await IncidentEpisodeStateTimelineService.findBy({
+        query: {
+          incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+          startsAt: true,
+          incidentEpisodeId: true,
+          incidentState: {
+            name: true,
+            color: true,
+            isCreatedState: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
+          },
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Get all incident states for this project
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.findBy({
+        query: {
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          isResolvedState: true,
+          order: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // Serialize episodes and add monitors to each
+    const episodesJson: JSONArray = BaseModel.toJSONArray(
+      episodes,
+      IncidentEpisode,
+    );
+    for (const episodeJson of episodesJson) {
+      const episodeObj: JSONObject = episodeJson as JSONObject;
+      const episodeId: string | undefined = episodeObj["_id"]?.toString();
+      if (episodeId) {
+        const monitorIds: Array<ObjectID> =
+          episodeMonitorsMap.get(episodeId) || [];
+        episodeObj["monitors"] = monitorIds.map((id: ObjectID) => {
+          return { _id: id.toString() };
+        });
+      }
+    }
+
+    const response: JSONObject = {
+      episodePublicNotes: BaseModel.toJSONArray(
+        episodePublicNotes,
+        IncidentEpisodePublicNote,
+      ),
+      incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
+      episodes: episodesJson,
+      statusPageResources: BaseModel.toJSONArray(
+        statusPageResources,
+        StatusPageResource,
+      ),
+      episodeStateTimelines: BaseModel.toJSONArray(
+        episodeStateTimelines,
+        IncidentEpisodeStateTimeline,
+      ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+    };
+
+    return response;
+  }
+
+  @CaptureSpan()
+  public async getStatusPageResourcesAndTimelines(data: {
+    statusPageId: ObjectID;
+    /*
+     * When omitted, the timeline window is computed from the status page's
+     * own showUptimeHistoryInDays (clamped to 1..90 days, ending now) —
+     * the status page row is fetched below anyway, so callers that want the
+     * page-configured window (the overview endpoint) don't need their own
+     * StatusPage query just to read that column.
+     */
+    startDateForMonitorTimeline?: Date | undefined;
+    endDateForMonitorTimeline?: Date | undefined;
+  }): Promise<{
+    statusPageResources: StatusPageResource[];
+    monitorStatuses: MonitorStatus[];
+    monitorStatusTimelines: MonitorStatusTimeline[];
+    uptimeDailyAggregate: UptimeDailyAggregate;
+    monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    statusPageGroups: StatusPageGroup[];
+    statusPage: StatusPage;
+    monitorsOnStatusPage: ObjectID[];
+    monitorsInGroup: Dictionary<ObjectID[]>;
+    startDateForMonitorTimeline: Date;
+    endDateForMonitorTimeline: Date;
+  }> {
+    const objectId: ObjectID = data.statusPageId;
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: objectId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        isPublicStatusPage: true,
+        overviewPageDescription: true,
+        showIncidentLabelsOnStatusPage: true,
+        showScheduledEventLabelsOnStatusPage: true,
+        showEpisodeLabelsOnStatusPage: true,
+        downtimeMonitorStatuses: {
+          _id: true,
+        },
+        defaultBarColor: true,
+        showOverallUptimePercentOnStatusPage: true,
+        overallUptimePercentPrecision: true,
+        showAnnouncementsOnStatusPage: true,
+        showIncidentsOnStatusPage: true,
+        showEpisodesOnStatusPage: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
+        showUptimeHistoryInDays: true,
+        /*
+         * Read by IncidentStatusPageScope to decide which incidents the
+         * overview shows. Not public: the overview removes it again.
+         */
+        onlyShowScopedIncidents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    let startDateForMonitorTimeline: Date | undefined =
+      data.startDateForMonitorTimeline;
+    let endDateForMonitorTimeline: Date | undefined =
+      data.endDateForMonitorTimeline;
+
+    if (!startDateForMonitorTimeline || !endDateForMonitorTimeline) {
+      let uptimeHistoryDays: number = statusPage.showUptimeHistoryInDays || 90;
+
+      if (uptimeHistoryDays > 90) {
+        uptimeHistoryDays = 90;
+      }
+
+      if (uptimeHistoryDays < 1) {
+        uptimeHistoryDays = 1;
+      }
+
+      startDateForMonitorTimeline =
+        OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
+      endDateForMonitorTimeline = OneUptimeDate.getCurrentDate();
+    }
+
+    //get monitor statuses
+
+    const monitorStatuses: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          name: true,
+          color: true,
+          priority: true,
+          isOperationalState: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // get resource groups.
+
+    const groups: Array<StatusPageGroup> = await StatusPageGroupService.findBy({
+      query: {
+        statusPageId: objectId,
+      },
+      select: {
+        name: true,
+        order: true,
+        description: true,
+        isExpandedByDefault: true,
+        showCurrentStatus: true,
+        showUptimePercent: true,
+        uptimePercentPrecision: true,
+        viewMode: true,
+        rowAxisLabel: true,
+        columnAxisLabel: true,
+        rowAxisValues: true,
+        columnAxisValues: true,
+        parentStatusPageGroupId: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageResourceService.findBy({
+        query: {
+          statusPageId: objectId,
+        },
+        select: {
+          statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+            viewMode: true,
+            rowAxisLabel: true,
+            columnAxisLabel: true,
+          },
+          monitorId: true,
+          displayTooltip: true,
+          displayDescription: true,
+          displayName: true,
+          showStatusHistoryChart: true,
+          showCurrentStatus: true,
+          order: true,
+          monitor: {
+            _id: true,
+            currentMonitorStatusId: true,
+          },
+          monitorGroupId: true,
+          showUptimePercent: true,
+          uptimePercentPrecision: true,
+          rowAxisValue: true,
+          columnAxisValue: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const monitorGroupIds: Array<ObjectID> = statusPageResources
+      .map((resource: StatusPageResource) => {
+        return resource.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // get monitors in the group.
+    const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
+    const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+    // get monitor status charts.
+    const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    const monitorsOnStatusPageForTimeline: Array<ObjectID> = statusPageResources
+      .filter((monitor: StatusPageResource) => {
+        return monitor.showStatusHistoryChart || monitor.showUptimePercent;
+      })
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    /*
+     * Batched: this loop used to issue 4 queries per monitor group per page
+     * view (3 inside MonitorGroupService.getCurrentStatus + one duplicate
+     * group-resource fetch), on the hottest public endpoint in the product.
+     * One shared fetch + the already-loaded `monitorStatuses` now serve every
+     * group.
+     */
+    const monitorGroupResourcesByGroupId: Dictionary<
+      Array<MonitorGroupResource>
+    > =
+      await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+        monitorGroupIds,
+      );
+
+    const monitorGroupStatuses: Dictionary<MonitorStatus> =
+      await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+        monitorGroupIds: monitorGroupIds,
+        monitorStatuses: monitorStatuses,
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+      });
+
+    for (const monitorGroupId of monitorGroupIds) {
+      // get current status of monitors in the group.
+
+      const currentStatus: MonitorStatus | undefined =
+        monitorGroupStatuses[monitorGroupId.toString()];
+
+      if (currentStatus) {
+        monitorGroupCurrentStatuses[monitorGroupId.toString()] =
+          currentStatus.id!;
+      }
+
+      // get monitors in the group.
+
+      const monitorsInGroupIds: Array<ObjectID> = (
+        monitorGroupResourcesByGroupId[monitorGroupId.toString()] || []
+      )
+        .map((resource: MonitorGroupResource) => {
+          return resource.monitorId!;
+        })
+        .filter((id: ObjectID) => {
+          return Boolean(id); // remove nulls
+        });
+
+      const shouldShowTimelineForThisGroup: boolean = Boolean(
+        statusPageResources.find((resource: StatusPageResource) => {
+          return (
+            resource.monitorGroupId?.toString() === monitorGroupId.toString() &&
+            (resource.showStatusHistoryChart || resource.showUptimePercent)
+          );
+        }),
+      );
+
+      for (const monitorId of monitorsInGroupIds) {
+        if (!monitorId) {
+          continue;
+        }
+
+        if (
+          !monitorsOnStatusPage.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPage.push(monitorId);
+        }
+
+        // add this to the timeline event for this group.
+
+        if (
+          shouldShowTimelineForThisGroup &&
+          !monitorsOnStatusPageForTimeline.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPageForTimeline.push(monitorId);
+        }
+      }
+
+      monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+    }
+
+    const monitorStatusTimelines: Array<MonitorStatusTimeline> =
+      await StatusPageService.getMonitorStatusTimelineForStatusPage({
+        monitorIds: monitorsOnStatusPageForTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
+      });
+
+    /*
+     * What the uptime bars are actually painted from.
+     *
+     * `monitorStatusTimelines` above stays in the response - it is documented
+     * public API and the E2E helpers read it for current status - but it must
+     * NOT drive the bars. It is capped at LIMIT_MAX across every monitor on
+     * the page and sorted newest-first, so on a page with churny monitors it
+     * returns a few recent days and silently drops the rest.
+     */
+    const uptimeDailyAggregate: UptimeDailyAggregate =
+      await StatusPageService.getUptimeDailyAggregateForStatusPage({
+        monitorIds: monitorsOnStatusPageForTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
+      });
+
+    // return everything.
+
+    return {
+      statusPageResources,
+      monitorStatuses,
+      monitorGroupCurrentStatuses,
+      statusPageGroups: groups,
+      monitorStatusTimelines,
+      uptimeDailyAggregate,
+      statusPage,
+      monitorsOnStatusPage,
+      monitorsInGroup,
+      startDateForMonitorTimeline,
+      endDateForMonitorTimeline,
+    };
+  }
+
+  /*
+   * Merged downtime for every monitor group on the page whose resource shows
+   * its uptime, keyed by monitor group id: the time at least one of the
+   * group's monitors was in one of the page's downtime statuses, and the time
+   * at least one of them was recorded, over [startDate, endDate].
+   *
+   * A monitor group is down whenever one of its monitors is. The per-monitor
+   * day aggregate cannot say when that was, and monitorStatusTimelines arrive
+   * under one 10,000 row cap across every monitor on the page, newest first -
+   * on a page with a flapping monitor, the last few days of the window. So the
+   * database merges each group's monitors over every row, once per distinct
+   * set of monitors however many groups or resources share it.
+   *
+   * The overview ships the result and the uptime endpoint reads it, so both
+   * measure a monitor group the same way.
+   */
+  @CaptureSpan()
+  public async getMergedDowntimeByMonitorGroupId(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Dictionary<MergedDowntimeTotals>> {
+    const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> = {};
+    const mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals> = {};
+
+    const downtimeMonitorStatusIds: Array<string> = data.downtimeMonitorStatuses
+      .map((status: MonitorStatus): string => {
+        return status.id?.toString() || "";
+      })
+      .filter(Boolean);
+
+    for (const resource of data.statusPageResources) {
+      if (!resource.monitorGroupId || !resource.showUptimePercent) {
+        continue;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      if (mergedDowntimeByMonitorGroupId[monitorGroupId]) {
+        continue;
+      }
+
+      const monitorIds: Array<ObjectID> =
+        data.monitorsInGroup[monitorGroupId] || [];
+      const monitorSetKey: string =
+        StatusPageServiceType.getMonitorSetKey(monitorIds);
+
+      if (!mergedDowntimeByMonitorSet[monitorSetKey]) {
+        mergedDowntimeByMonitorSet[monitorSetKey] =
+          await StatusPageService.getMergedDowntimeForStatusPage({
+            monitorIds: monitorIds,
+            downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+            startDate: data.startDate,
+            endDate: data.endDate,
+          });
+      }
+
+      mergedDowntimeByMonitorGroupId[monitorGroupId] =
+        mergedDowntimeByMonitorSet[monitorSetKey]!;
+    }
+
+    return mergedDowntimeByMonitorGroupId;
+  }
+
+  /*
+   * Builds the full overview payload for one status page. Everything below
+   * is a pure function of the statusPageId — every query runs with isRoot
+   * props and nothing is read from the request — which is what makes the
+   * result safe to cache and share across requests. The returned JSONObject
+   * must never be mutated after build.
+   */
+  @CaptureSpan()
+  public async buildOverviewResponse(
+    statusPageId: ObjectID,
+  ): Promise<JSONObject> {
+    /*
+     * The timeline window comes from the status page's configured
+     * showUptimeHistoryInDays. getStatusPageResourcesAndTimelines
+     * fetches the status page row anyway, so let it compute the window
+     * (clamped to 1..90 days, ending now) instead of issuing a separate
+     * StatusPage query here just to read that one column.
+     */
+    const {
+      monitorStatuses,
+      monitorGroupCurrentStatuses,
+      statusPageResources,
+      statusPage,
+      monitorsOnStatusPage,
+      monitorStatusTimelines,
+      uptimeDailyAggregate,
+      statusPageGroups,
+      monitorsInGroup,
+      startDateForMonitorTimeline: startDate,
+      endDateForMonitorTimeline: endDate,
+    } = await this.getStatusPageResourcesAndTimelines({
+      statusPageId: statusPageId,
+    });
+
+    /*
+     * What a monitor group's uptime percentage is read from in the browser,
+     * over the same window as the day aggregate. See
+     * getMergedDowntimeByMonitorGroupId.
+     */
+    const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+      await this.getMergedDowntimeByMonitorGroupId({
+        statusPageResources: statusPageResources,
+        monitorsInGroup: monitorsInGroup,
+        downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
+        startDate: startDate,
+        endDate: endDate,
+      });
+
+    // check if status page has active incident.
+    let activeIncidents: Array<Incident> = [];
+    if (monitorsOnStatusPage.length > 0) {
+      let select: Select<Incident> = {
+        createdAt: true,
+        declaredAt: true,
+        updatedAt: true,
+        title: true,
+        description: true,
+        _id: true,
+        postmortemNote: true,
+        postmortemPostedAt: true,
+        showPostmortemOnStatusPage: true,
+        postmortemAttachments: {
+          _id: true,
+          name: true,
+        },
+        incidentSeverity: {
+          name: true,
+          color: true,
+        },
+        currentIncidentState: {
+          _id: true,
+          name: true,
+          color: true,
+          order: true,
+        },
+        monitors: {
+          _id: true,
+        },
+      };
+
+      if (statusPage.showIncidentLabelsOnStatusPage) {
+        select = {
+          ...select,
+          labels: {
+            name: true,
+            color: true,
+          },
+        };
+      }
+
+      const unresolvedIncidentStates: Array<IncidentState> =
+        await IncidentStateService.getUnresolvedIncidentStates(
+          statusPage.projectId!,
+          {
+            isRoot: true,
+          },
+        );
+
+      const unresolvedIncidentStateIds: Array<ObjectID> =
+        unresolvedIncidentStates.map((state: IncidentState) => {
+          return state.id!;
+        });
+
+      if (statusPage.showIncidentsOnStatusPage) {
+        // Only the incidents in scope for this page; see getIncidents.
+        activeIncidents =
+          await IncidentStatusPageScope.findIncidentsForStatusPage({
+            statusPage: statusPage,
+            query: {
+              monitors: monitorsOnStatusPage as any,
+              currentIncidentStateId: QueryHelper.any(
+                unresolvedIncidentStateIds,
+              ),
+              isVisibleOnStatusPage: true,
+              projectId: statusPage.projectId!,
+            },
+            select: select,
+            sort: {
+              declaredAt: SortOrder.Descending,
+              createdAt: SortOrder.Descending,
+            },
+
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
+      }
+    }
+
+    const incidentsOnStatusPage: Array<ObjectID> = activeIncidents.map(
+      (incident: Incident) => {
+        return incident.id!;
+      },
+    );
+
+    let incidentPublicNotes: Array<IncidentPublicNote> = [];
+
+    if (incidentsOnStatusPage.length > 0) {
+      incidentPublicNotes = await IncidentPublicNoteService.findBy({
+        query: {
+          incidentId: QueryHelper.any(incidentsOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          note: true,
+          incidentId: true,
+          postedAt: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        },
+        sort: {
+          postedAt: SortOrder.Descending, // new note first
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    let incidentStateTimelines: Array<IncidentStateTimeline> = [];
+
+    if (incidentsOnStatusPage.length > 0) {
+      incidentStateTimelines = await IncidentStateTimelineService.findBy({
+        query: {
+          incidentId: QueryHelper.any(incidentsOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+          startsAt: true,
+          incidentId: true,
+          incidentState: {
+            _id: true,
+            name: true,
+            color: true,
+            isCreatedState: true,
+            isResolvedState: true,
+            isAcknowledgedState: true,
+          },
+        },
+
+        sort: {
+          startsAt: SortOrder.Descending, // newer state changes first
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Fetch active episodes (similar to incidents)
+    let activeEpisodes: Array<IncidentEpisode> = [];
+    let activeEpisodesJson: JSONArray = [];
+    let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
+    let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
+
+    /*
+     * Cheap guard before the expensive part: the block below scans every
+     * incident ever attached to this page's monitors (a many-to-many
+     * join, up to LIMIT_PER_PROJECT rows) just to discover episode
+     * membership — on every overview view, even though most pages have
+     * zero active episodes most of the time. One indexed COUNT of the
+     * project's unresolved, visible episodes lets us skip all of it in
+     * the common case. Behavior-preserving: the final activeEpisodes
+     * query applies exactly these three constraints, so count == 0
+     * implies the block's outputs stay empty.
+     */
+    let unresolvedIncidentStateIds: Array<ObjectID> = [];
+    let hasActiveEpisodes: boolean = false;
+
+    if (
+      statusPage.showEpisodesOnStatusPage &&
+      monitorsOnStatusPage.length > 0
+    ) {
+      const unresolvedIncidentStates: Array<IncidentState> =
+        await IncidentStateService.getUnresolvedIncidentStates(
+          statusPage.projectId!,
+          { isRoot: true },
+        );
+
+      unresolvedIncidentStateIds = unresolvedIncidentStates.map(
+        (state: IncidentState) => {
+          return state.id!;
+        },
+      );
+
+      const activeEpisodeCount: PositiveNumber =
+        await IncidentEpisodeService.countBy({
+          query: {
+            projectId: statusPage.projectId!,
+            isVisibleOnStatusPage: true,
+            currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      hasActiveEpisodes = activeEpisodeCount.toNumber() > 0;
+    }
+
+    if (hasActiveEpisodes) {
+      /*
+       * First, get incidents that have monitors on status page, and are in
+       * scope for it: an episode is shown through the incidents in it that
+       * the page shows (see getEpisodes). Newest first, so that when
+       * LIMIT_PER_PROJECT cuts the list it keeps the incidents most likely
+       * to be in an active episode.
+       */
+      const incidentsForEpisodes: Array<Incident> =
+        await IncidentStatusPageScope.findIncidentsForStatusPage({
+          statusPage: statusPage,
+          query: {
+            monitors: monitorsOnStatusPage as any,
+            isVisibleOnStatusPage: true,
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            _id: true,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const incidentIdsForEpisodes: Array<ObjectID> = incidentsForEpisodes.map(
+        (incident: Incident) => {
+          return incident.id!;
+        },
+      );
+
+      // Get episode members for these incidents
+      let episodeMembers: Array<IncidentEpisodeMember> = [];
+      if (incidentIdsForEpisodes.length > 0) {
+        episodeMembers = await IncidentEpisodeMemberService.findBy({
+          query: {
+            incidentId: QueryHelper.any(incidentIdsForEpisodes),
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            incidentEpisodeId: true,
+            incidentId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      // Get unique episode IDs
+      const episodeIdsFromMembers: Set<string> = new Set();
+      for (const member of episodeMembers) {
+        if (member.incidentEpisodeId) {
+          episodeIdsFromMembers.add(member.incidentEpisodeId.toString());
+        }
+      }
+
+      // Fetch active (unresolved) episodes
+      if (episodeIdsFromMembers.size > 0) {
+        // unresolvedIncidentStateIds was fetched by the guard above.
+        let selectEpisodes: Select<IncidentEpisode> = {
+          createdAt: true,
+          declaredAt: true,
+          updatedAt: true,
+          title: true,
+          description: true,
+          _id: true,
+          episodeNumber: true,
+          incidentSeverity: {
+            name: true,
+            color: true,
+          },
+          currentIncidentState: {
+            name: true,
+            color: true,
+            _id: true,
+            order: true,
+            isCreatedState: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
+          },
+          incidentCount: true,
+        };
+
+        if (statusPage.showEpisodeLabelsOnStatusPage) {
+          selectEpisodes = {
+            ...selectEpisodes,
+            labels: {
+              name: true,
+              color: true,
+            },
+          };
+        }
+
+        activeEpisodes = await IncidentEpisodeService.findBy({
+          query: {
+            _id: QueryHelper.any(
+              Array.from(episodeIdsFromMembers).map((id: string) => {
+                return new ObjectID(id);
+              }),
+            ),
+            currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+            isVisibleOnStatusPage: true,
+            projectId: statusPage.projectId!,
+          },
+          select: selectEpisodes,
+          sort: {
+            declaredAt: SortOrder.Descending,
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        // Build episode monitors map
+        if (activeEpisodes.length > 0) {
+          // Collect all incident IDs from episode members for active episodes
+          const activeEpisodeIds: Set<string> = new Set(
+            activeEpisodes.map((e: IncidentEpisode) => {
+              return e.id!.toString();
+            }),
+          );
+
+          const memberIncidentIds: Array<ObjectID> = [];
+          for (const member of episodeMembers) {
+            if (
+              member.incidentEpisodeId &&
+              activeEpisodeIds.has(member.incidentEpisodeId.toString()) &&
+              member.incidentId &&
+              !memberIncidentIds.some((id: ObjectID) => {
+                return id.toString() === member.incidentId!.toString();
+              })
+            ) {
+              memberIncidentIds.push(member.incidentId);
+            }
+          }
+
+          /*
+           * Fetch incidents with monitors. Read by id, so the scope is
+           * applied in memory, as in getEpisodes - these members came from
+           * incidents in scope, and this keeps it that way should that
+           * change.
+           */
+          let memberIncidents: Array<Incident> = [];
+          if (memberIncidentIds.length > 0) {
+            memberIncidents = this.keepMemberIncidentsInScope({
+              incidents: await IncidentService.findBy({
+                query: {
+                  _id: QueryHelper.any(memberIncidentIds),
+                  isVisibleOnStatusPage: true,
+                  projectId: statusPage.projectId!,
+                },
+                select: {
+                  _id: true,
+                  monitors: {
+                    _id: true,
+                  },
+                  ...INCIDENT_SCOPE_SELECT,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                  isRoot: true,
+                },
+              }),
+              statusPage: statusPage,
+            });
+          }
+
+          // Build incident -> monitors map
+          const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+          for (const incident of memberIncidents) {
+            const incidentIdStr: string = incident.id!.toString();
+            const monitorIds: Array<ObjectID> = (incident.monitors || [])
+              .map((m: Monitor) => {
+                return new ObjectID(
+                  m._id?.toString() || m.id?.toString() || "",
+                );
+              })
+              .filter((id: ObjectID) => {
+                return id.toString() !== "";
+              });
+            incidentMonitorsMap.set(incidentIdStr, monitorIds);
+          }
+
+          // Build episode -> monitors map
+          const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+          for (const member of episodeMembers) {
+            if (
+              member.incidentEpisodeId &&
+              member.incidentId &&
+              activeEpisodeIds.has(member.incidentEpisodeId.toString())
+            ) {
+              const episodeIdStr: string = member.incidentEpisodeId.toString();
+              const incidentIdStr: string = member.incidentId.toString();
+
+              if (!episodeMonitorsMap.has(episodeIdStr)) {
+                episodeMonitorsMap.set(episodeIdStr, []);
+              }
+
+              const episodeMonitors: Array<ObjectID> =
+                episodeMonitorsMap.get(episodeIdStr)!;
+              const incidentMonitors: Array<ObjectID> =
+                incidentMonitorsMap.get(incidentIdStr) || [];
+
+              for (const monitorId of incidentMonitors) {
+                if (
+                  !episodeMonitors.some((m: ObjectID) => {
+                    return m.toString() === monitorId.toString();
+                  })
+                ) {
+                  episodeMonitors.push(monitorId);
+                }
+              }
+            }
+          }
+
+          // Serialize episodes and add monitors
+          activeEpisodesJson = BaseModel.toJSONArray(
+            activeEpisodes,
+            IncidentEpisode,
+          );
+          for (const episodeJson of activeEpisodesJson) {
+            const episodeObj: JSONObject = episodeJson as JSONObject;
+            const episodeId: string | undefined = episodeObj["_id"]?.toString();
+            if (episodeId) {
+              const monitorIds: Array<ObjectID> =
+                episodeMonitorsMap.get(episodeId) || [];
+              episodeObj["monitors"] = monitorIds.map((id: ObjectID) => {
+                return { _id: id.toString() };
+              });
+            }
+          }
+
+          // Get episode public notes
+          const episodesOnStatusPage: Array<ObjectID> = activeEpisodes.map(
+            (episode: IncidentEpisode) => {
+              return episode.id!;
+            },
+          );
+
+          if (episodesOnStatusPage.length > 0) {
+            episodePublicNotes = await IncidentEpisodePublicNoteService.findBy({
+              query: {
+                incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+                projectId: statusPage.projectId!,
+              },
+              select: {
+                postedAt: true,
+                note: true,
+                incidentEpisodeId: true,
+                attachments: {
+                  _id: true,
+                  name: true,
+                },
+              },
+              sort: {
+                postedAt: SortOrder.Descending,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: {
+                isRoot: true,
+              },
+            });
+
+            // Get episode state timelines
+            episodeStateTimelines =
+              await IncidentEpisodeStateTimelineService.findBy({
+                query: {
+                  incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+                  projectId: statusPage.projectId!,
+                },
+                select: {
+                  _id: true,
+                  createdAt: true,
+                  startsAt: true,
+                  incidentEpisodeId: true,
+                  incidentState: {
+                    name: true,
+                    color: true,
+                    isCreatedState: true,
+                    isAcknowledgedState: true,
+                    isResolvedState: true,
+                  },
+                },
+                sort: {
+                  startsAt: SortOrder.Descending,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                  isRoot: true,
+                },
+              });
+          }
+        }
+      }
+    }
+
+    // check if status page has active announcement.
+
+    const today: Date = OneUptimeDate.getCurrentDate();
+
+    let activeAnnouncements: Array<StatusPageAnnouncement> = [];
+
+    if (statusPage.showAnnouncementsOnStatusPage) {
+      activeAnnouncements = await StatusPageAnnouncementService.findBy({
+        query: {
+          statusPages: statusPageId as any,
+          showAnnouncementAt: QueryHelper.lessThan(today),
+          endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          createdAt: true,
+          title: true,
+          description: true,
+          _id: true,
+          showAnnouncementAt: true,
+          endAnnouncementAt: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // check if status page has active scheduled events.
+
+    let scheduledEventsSelect: Select<ScheduledMaintenance> = {
+      createdAt: true,
+      title: true,
+      description: true,
+      _id: true,
+      endsAt: true,
+      startsAt: true,
+      currentScheduledMaintenanceState: {
+        name: true,
+        color: true,
+        isScheduledState: true,
+        isResolvedState: true,
+        isOngoingState: true,
+      },
+      monitors: {
+        _id: true,
+      },
+    };
+
+    if (statusPage.showScheduledEventLabelsOnStatusPage) {
+      scheduledEventsSelect = {
+        ...scheduledEventsSelect,
+        labels: {
+          name: true,
+          color: true,
+        },
+      };
+    }
+
+    let scheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+
+    if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+      scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
+        query: {
+          currentScheduledMaintenanceState: {
+            isOngoingState: true,
+          } as any,
+          statusPages: statusPageId as any,
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+        },
+        select: scheduledEventsSelect,
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+
+    if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+      futureScheduledMaintenanceEvents =
+        await ScheduledMaintenanceService.findBy({
+          query: {
+            currentScheduledMaintenanceState: {
+              isScheduledState: true,
+            } as any,
+            statusPages: statusPageId as any,
+            projectId: statusPage.projectId!,
+            isVisibleOnStatusPage: true,
+          },
+          select: scheduledEventsSelect,
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    futureScheduledMaintenanceEvents.forEach((event: ScheduledMaintenance) => {
+      scheduledMaintenanceEvents.push(event);
+    });
+
+    const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
+      scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
+        return event.id!;
+      });
+
+    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
+      [];
+
+    if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
+      scheduledMaintenanceEventsPublicNotes =
+        await ScheduledMaintenancePublicNoteService.findBy({
+          query: {
+            scheduledMaintenanceId: QueryHelper.any(
+              scheduledMaintenanceEventsOnStatusPage,
+            ),
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            postedAt: true,
+            note: true,
+            scheduledMaintenanceId: true,
+            attachments: {
+              _id: true,
+              name: true,
+            },
+          },
+          sort: {
+            postedAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+      [];
+
+    if (scheduledMaintenanceEventsOnStatusPage.length > 0) {
+      scheduledMaintenanceStateTimelines =
+        await ScheduledMaintenanceStateTimelineService.findBy({
+          query: {
+            scheduledMaintenanceId: QueryHelper.any(
+              scheduledMaintenanceEventsOnStatusPage,
+            ),
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            _id: true,
+            createdAt: true,
+            startsAt: true,
+            scheduledMaintenanceId: true,
+            scheduledMaintenanceState: {
+              _id: true,
+              color: true,
+              name: true,
+              isScheduledState: true,
+              isResolvedState: true,
+              isOngoingState: true,
+            },
+          },
+
+          sort: {
+            startsAt: SortOrder.Descending, // newer state changes first
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    // get all status page bar chart rules
+    const statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule> =
+      await StatusPageHistoryChartBarColorRuleService.findBy({
+        query: {
+          statusPageId: statusPageId,
+        },
+        select: {
+          _id: true,
+          barColor: true,
+          order: true,
+          statusPageId: true,
+          uptimePercentGreaterThanOrEqualTo: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    /*
+     * Fetch all incidents (active + resolved) in the timeline date range
+     * for the uptime bar tooltip and click-through
+     */
+    let timelineIncidents: Array<Incident> = [];
+    if (
+      monitorsOnStatusPage.length > 0 &&
+      statusPage.showIncidentsOnStatusPage
+    ) {
+      /*
+       * Only the incidents in scope for this page; see getIncidents. The
+       * uptime bars stay as they are - a monitor's status is shared by every
+       * page that lists it - but an incident limited to other pages is not
+       * named in their tooltips.
+       */
+      timelineIncidents =
+        await IncidentStatusPageScope.findIncidentsForStatusPage({
+          statusPage: statusPage,
+          query: {
+            monitors: monitorsOnStatusPage as any,
+            declaredAt: QueryHelper.inBetween(startDate, endDate),
+            isVisibleOnStatusPage: true,
+            projectId: statusPage.projectId!,
+          },
+          select: {
+            _id: true,
+            title: true,
+            declaredAt: true,
+            incidentSeverity: {
+              name: true,
+              color: true,
+            },
+            currentIncidentState: {
+              _id: true,
+              name: true,
+              color: true,
+            },
+            monitors: {
+              _id: true,
+            },
+          },
+          sort: {
+            declaredAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    const overallStatus: MonitorStatus | null =
+      StatusPageService.getOverallMonitorStatus({
+        statusPageResources,
+        monitorStatuses,
+        monitorGroupCurrentStatuses,
+      });
+
+    const response: JSONObject = {
+      overallStatus: overallStatus
+        ? BaseModel.toJSON(overallStatus, MonitorStatus)
+        : null,
+
+      scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
+        scheduledMaintenanceEventsPublicNotes,
+        ScheduledMaintenancePublicNote,
+      ),
+      statusPageHistoryChartBarColorRules: BaseModel.toJSONArray(
+        statusPageHistoryChartBarColorRules,
+        StatusPageHistoryChartBarColorRule,
+      ),
+      scheduledMaintenanceEvents: BaseModel.toJSONArray(
+        scheduledMaintenanceEvents,
+        ScheduledMaintenance,
+      ),
+      activeAnnouncements: BaseModel.toJSONArray(
+        activeAnnouncements,
+        StatusPageAnnouncement,
+      ),
+      incidentPublicNotes: BaseModel.toJSONArray(
+        incidentPublicNotes,
+        IncidentPublicNote,
+      ),
+
+      activeIncidents: this.serializeIncidentsForStatusPage(activeIncidents),
+
+      activeEpisodes: activeEpisodesJson,
+      episodePublicNotes: BaseModel.toJSONArray(
+        episodePublicNotes,
+        IncidentEpisodePublicNote,
+      ),
+      episodeStateTimelines: BaseModel.toJSONArray(
+        episodeStateTimelines,
+        IncidentEpisodeStateTimeline,
+      ),
+
+      monitorStatusTimelines: BaseModel.toJSONArray(
+        monitorStatusTimelines,
+        MonitorStatusTimeline,
+      ),
+      uptimeDailyAggregate:
+        UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
+      monitorGroupMergedDowntime: MonitorGroupMergedDowntimeUtil.toJSON(
+        mergedDowntimeByMonitorGroupId,
+      ),
+      resourceGroups: BaseModel.toJSONArray(statusPageGroups, StatusPageGroup),
+      monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
+      statusPageResources: BaseModel.toJSONArray(
+        statusPageResources,
+        StatusPageResource,
+      ),
+      incidentStateTimelines: BaseModel.toJSONArray(
+        incidentStateTimelines,
+        IncidentStateTimeline,
+      ),
+      statusPage: (() => {
+        const statusPageJson: JSONObject = BaseModel.toJSONObject(
+          statusPage,
+          StatusPage,
+        );
+        delete statusPageJson["projectId"];
+        /*
+         * Read only to decide which incidents the overview shows; the page
+         * itself has no use for it.
+         */
+        delete statusPageJson["onlyShowScopedIncidents"];
+        return statusPageJson;
+      })(),
+      scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
+        scheduledMaintenanceStateTimelines,
+        ScheduledMaintenanceStateTimeline,
+      ),
+
+      monitorGroupCurrentStatuses: JSONFunctions.serialize(
+        monitorGroupCurrentStatuses,
+      ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+      timelineIncidents:
+        this.serializeIncidentsForStatusPage(timelineIncidents),
+    };
+
+    return response;
+  }
+
+  private async getStatusPageAnnouncementAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const announcementIdParam: string | undefined =
+      req.params["announcementId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (!statusPageIdParam || !announcementIdParam || !fileIdParam) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let announcementId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      announcementId = new ObjectID(announcementIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showAnnouncementsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !statusPage ||
+      !statusPage.projectId ||
+      !statusPage.showAnnouncementsOnStatusPage
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const announcement: StatusPageAnnouncement | null =
+      await StatusPageAnnouncementService.findOneBy({
+        query: {
+          _id: announcementId.toString(),
+          projectId: statusPage.projectId!,
+          statusPages: [statusPageId] as any,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!announcement) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined = announcement.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async getScheduledMaintenancePublicNoteAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const scheduledMaintenanceIdParam: string | undefined =
+      req.params["scheduledMaintenanceId"];
+    const noteIdParam: string | undefined = req.params["noteId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (
+      !statusPageIdParam ||
+      !scheduledMaintenanceIdParam ||
+      !noteIdParam ||
+      !fileIdParam
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let scheduledMaintenanceId: ObjectID;
+    let noteId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      scheduledMaintenanceId = new ObjectID(scheduledMaintenanceIdParam);
+      noteId = new ObjectID(noteIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !statusPage ||
+      !statusPage.projectId ||
+      !statusPage.showScheduledMaintenanceEventsOnStatusPage
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const scheduledMaintenance: ScheduledMaintenance | null =
+      await ScheduledMaintenanceService.findOneBy({
+        query: {
+          _id: scheduledMaintenanceId.toString(),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+          statusPages: statusPageId as any,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!scheduledMaintenance) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote | null =
+      await ScheduledMaintenancePublicNoteService.findOneBy({
+        query: {
+          _id: noteId.toString(),
+          scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!scheduledMaintenancePublicNote) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined =
+      scheduledMaintenancePublicNote.attachments?.find((file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      });
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async getIncidentPostmortemAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const incidentIdParam: string | undefined = req.params["incidentId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (!statusPageIdParam || !incidentIdParam || !fileIdParam) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let incidentId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      incidentId = new ObjectID(incidentIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId,
+      req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showIncidentsOnStatusPage: true,
+        // Read by IncidentStatusPageScope to decide which incidents it shows.
+        onlyShowScopedIncidents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !statusPage ||
+      !statusPage.projectId ||
+      !statusPage.showIncidentsOnStatusPage
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const { monitorsOnStatusPage } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId,
+      });
+
+    if (!monitorsOnStatusPage || monitorsOnStatusPage.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    // Only an incident this page shows: on its monitors and in its scope.
+    const incident: Incident | null =
+      await IncidentStatusPageScope.findOneIncidentForStatusPage({
+        statusPage: statusPage,
+        query: {
+          _id: incidentId.toString(),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+          showPostmortemOnStatusPage: true,
+          monitors: monitorsOnStatusPage as any,
+        },
+        select: {
+          postmortemAttachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incident) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined = incident.postmortemAttachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async getIncidentPublicNoteAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const incidentIdParam: string | undefined = req.params["incidentId"];
+    const noteIdParam: string | undefined = req.params["noteId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (
+      !statusPageIdParam ||
+      !incidentIdParam ||
+      !noteIdParam ||
+      !fileIdParam
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let incidentId: ObjectID;
+    let noteId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      incidentId = new ObjectID(incidentIdParam);
+      noteId = new ObjectID(noteIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showIncidentsOnStatusPage: true,
+        // Read by IncidentStatusPageScope to decide which incidents it shows.
+        onlyShowScopedIncidents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage || !statusPage.projectId) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    if (!statusPage.showIncidentsOnStatusPage) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const { monitorsOnStatusPage } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId: statusPageId,
+      });
+
+    if (!monitorsOnStatusPage || monitorsOnStatusPage.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    // Only an incident this page shows: on its monitors and in its scope.
+    const incident: Incident | null =
+      await IncidentStatusPageScope.findOneIncidentForStatusPage({
+        statusPage: statusPage,
+        query: {
+          _id: incidentId.toString(),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+          monitors: monitorsOnStatusPage as any,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incident) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const incidentPublicNote: IncidentPublicNote | null =
+      await IncidentPublicNoteService.findOneBy({
+        query: {
+          _id: noteId.toString(),
+          incidentId: incidentId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentPublicNote) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined = incidentPublicNote.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async getIncidentEpisodePublicNoteAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const episodeIdParam: string | undefined = req.params["episodeId"];
+    const noteIdParam: string | undefined = req.params["noteId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (!statusPageIdParam || !episodeIdParam || !noteIdParam || !fileIdParam) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let episodeId: ObjectID;
+    let noteId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      episodeId = new ObjectID(episodeIdParam);
+      noteId = new ObjectID(noteIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showEpisodesOnStatusPage: true,
+        // Read by IncidentStatusPageScope to decide which incidents it shows.
+        onlyShowScopedIncidents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage || !statusPage.projectId) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    if (!statusPage.showEpisodesOnStatusPage) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const { monitorsOnStatusPage } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId: statusPageId,
+      });
+
+    if (!monitorsOnStatusPage || monitorsOnStatusPage.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    // Get episode members (incidents) that are linked to monitors on the status page
+    const episodeMembers: Array<IncidentEpisodeMember> =
+      await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentEpisodeId: episodeId,
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          incidentId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (episodeMembers.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const incidentIds: Array<ObjectID> = episodeMembers
+      .map((member: IncidentEpisodeMember) => {
+        return member.incidentId;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    /*
+     * Check if any of the incidents are linked to monitors on the status
+     * page, and in scope for it: an episode whose incidents are all limited
+     * to other status pages is not this page's to serve.
+     */
+    const incident: Incident | null =
+      await IncidentStatusPageScope.findOneIncidentForStatusPage({
+        statusPage: statusPage,
+        query: {
+          _id: QueryHelper.any(incidentIds),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+          monitors: monitorsOnStatusPage as any,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incident) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    // Verify the episode exists and is visible
+    const episode: IncidentEpisode | null =
+      await IncidentEpisodeService.findOneBy({
+        query: {
+          _id: episodeId.toString(),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!episode) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const episodePublicNote: IncidentEpisodePublicNote | null =
+      await IncidentEpisodePublicNoteService.findOneBy({
+        query: {
+          _id: noteId.toString(),
+          incidentEpisodeId: episodeId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!episodePublicNote) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined = episodePublicNote.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  public async checkHasReadAccess(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<void> {
+    const accessResult: {
+      hasReadAccess: boolean;
+      error?: NotAuthenticatedException | ForbiddenException;
+    } = await this.service.hasReadAccess({
+      statusPageId: data.statusPageId,
+      req: data.req,
+    });
+
+    if (!accessResult.hasReadAccess) {
+      throw (
+        accessResult.error ||
+        new NotAuthenticatedException(
+          "You are not authenticated to access this status page",
+        )
+      );
+    }
+  }
+}

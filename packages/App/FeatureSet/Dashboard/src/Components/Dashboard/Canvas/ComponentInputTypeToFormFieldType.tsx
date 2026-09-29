@@ -1,0 +1,135 @@
+import { ComponentInputType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+
+export default class ComponentInputTypeToFormFieldType {
+  public static getFormFieldTypeByComponentInputType(
+    componentInputType: ComponentInputType,
+    dropdownOptions?: Array<DropdownOption> | undefined,
+  ): {
+    fieldType: FormFieldSchemaType;
+    dropdownOptions?: Array<DropdownOption> | undefined;
+  } {
+    if (componentInputType === ComponentInputType.Boolean) {
+      return {
+        fieldType: FormFieldSchemaType.Toggle,
+        dropdownOptions: [],
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Date) {
+      return {
+        fieldType: FormFieldSchemaType.Date,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.DateTime) {
+      return {
+        fieldType: FormFieldSchemaType.DateTime,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Decimal) {
+      return {
+        fieldType: FormFieldSchemaType.Number,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Number) {
+      return {
+        fieldType: FormFieldSchemaType.Number,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.LongText) {
+      return {
+        fieldType: FormFieldSchemaType.LongText,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.MetricsQueryConfig) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.MetricsQueryConfigs) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.TableColumns) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.TableGroupBy) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Dropdown) {
+      return {
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: dropdownOptions || [],
+      };
+    }
+
+    if (componentInputType === ComponentInputType.MultiSelectDropdown) {
+      return {
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        dropdownOptions: dropdownOptions || [],
+      };
+    }
+
+    if (componentInputType === ComponentInputType.ProjectLabelVariable) {
+      return { fieldType: FormFieldSchemaType.CustomComponent };
+    }
+
+    if (componentInputType === ComponentInputType.TelemetryAttributeVariable) {
+      return { fieldType: FormFieldSchemaType.CustomComponent };
+    }
+
+    if (componentInputType === ComponentInputType.EntityDropdown) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.EntityMultiSelectDropdown) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    /*
+     * FormField renders all three of these with the Monaco CodeEditor,
+     * picking the language off the schema type.
+     */
+    if (componentInputType === ComponentInputType.Html) {
+      return {
+        fieldType: FormFieldSchemaType.HTML,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Css) {
+      return {
+        fieldType: FormFieldSchemaType.CSS,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.JavaScript) {
+      return {
+        fieldType: FormFieldSchemaType.JavaScript,
+      };
+    }
+
+    return {
+      fieldType: FormFieldSchemaType.Text,
+      dropdownOptions: [],
+    };
+  }
+}

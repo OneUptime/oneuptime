@@ -1,0 +1,446 @@
+import PageComponentProps from "../../PageComponentProps";
+import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Card from "Common/UI/Components/Card/Card";
+
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesNetworkThroughputChart from "./KubernetesNetworkThroughputChart";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import {
+  KubernetesCondition,
+  KubernetesNodeObject,
+} from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils from "../Utils/KubernetesCpuUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+
+const KubernetesClusterNodeDetail: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
+  const nodeName: string = Navigation.getLastParamAsString();
+
+  const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [nodeObject, setNodeObject] = useState<KubernetesNodeObject | null>(
+    null,
+  );
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
+
+  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const item: KubernetesCluster | null = await ModelAPI.getItem({
+        modelType: KubernetesCluster,
+        id: modelId,
+        select: {
+          clusterIdentifier: true,
+        },
+      });
+      setCluster(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCluster().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  // Fetch the K8s node object for overview tab
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchNodeObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesNodeObject | null =
+          await fetchLatestK8sObject<KubernetesNodeObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "nodes",
+            resourceName: nodeName,
+          });
+        setNodeObject(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
+
+    fetchNodeObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, nodeName]);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!cluster) {
+    return <ErrorMessage message="Cluster not found." />;
+  }
+
+  const clusterIdentifier: string = cluster.clusterIdentifier || "";
+
+  /*
+   * `k8s.node.cpu.utilization` is cores in use (not a ratio). Divide by
+   * this node's allocatable CPU (from the node object) to render a true
+   * percentage. Falls back to raw cores until the node object loads.
+   */
+  const nodeAllocatableCores: number = nodeObject
+    ? KubernetesCpuUtils.parseCpuToCores(nodeObject.status.allocatable["cpu"])
+    : 0;
+
+  const cpuQuery: MetricQueryConfigData = {
+    metricAliasData: {
+      metricVariable: "node_cpu",
+      title: "CPU Utilization",
+      description: `CPU usage as a percentage of allocatable CPU for node ${nodeName}`,
+      legend: "CPU",
+      legendUnit: "%",
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: "k8s.node.cpu.utilization",
+        attributes: {
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
+        },
+        aggegationType: AggregationType.Avg,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    transformValue:
+      KubernetesCpuUtils.makeScalarCpuPercentTransform(nodeAllocatableCores),
+  };
+
+  const memoryQuery: MetricQueryConfigData = {
+    metricAliasData: {
+      metricVariable: "node_memory",
+      title: "Memory Usage",
+      description: `Memory usage for node ${nodeName}`,
+      legend: "Memory",
+      legendUnit: "",
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: "k8s.node.memory.usage",
+        attributes: {
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
+        },
+        aggegationType: AggregationType.Avg,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
+  };
+
+  const filesystemQuery: MetricQueryConfigData = {
+    metricAliasData: {
+      metricVariable: "node_filesystem",
+      title: "Filesystem Usage",
+      description: `Filesystem usage for node ${nodeName}`,
+      legend: "Filesystem",
+      legendUnit: "",
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: "k8s.node.filesystem.usage",
+        attributes: {
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
+        },
+        aggegationType: AggregationType.Avg,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
+  };
+
+  // Determine node status from conditions
+  const getNodeStatus: () => { label: string; isReady: boolean } = (): {
+    label: string;
+    isReady: boolean;
+  } => {
+    if (!nodeObject) {
+      return { label: "Unknown", isReady: false };
+    }
+    const readyCondition: KubernetesCondition | undefined =
+      nodeObject.status.conditions.find((c: KubernetesCondition) => {
+        return c.type === "Ready";
+      });
+    if (readyCondition && readyCondition.status === "True") {
+      return { label: "Ready", isReady: true };
+    }
+    return { label: "NotReady", isReady: false };
+  };
+
+  // Build overview summary fields from node object
+  const summaryFields: Array<SummaryField> = [
+    { title: "Node Name", value: nodeName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
+
+  if (nodeObject) {
+    const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
+
+    // Extract node roles from labels
+    const roles: Array<string> = Object.keys(nodeObject.metadata.labels)
+      .filter((key: string) => {
+        return key.startsWith("node-role.kubernetes.io/");
+      })
+      .map((key: string) => {
+        return key.replace("node-role.kubernetes.io/", "");
+      });
+
+    // Extract internal IP
+    const internalIP: string =
+      nodeObject.status.addresses.find(
+        (a: { type: string; address: string }) => {
+          return a.type === "InternalIP";
+        },
+      )?.address || "N/A";
+
+    // Check pressure conditions
+    const pressureConditions: Array<string> = nodeObject.status.conditions
+      .filter((c: KubernetesCondition) => {
+        return (
+          c.status === "True" &&
+          (c.type === "MemoryPressure" ||
+            c.type === "DiskPressure" ||
+            c.type === "PIDPressure")
+        );
+      })
+      .map((c: KubernetesCondition) => {
+        return c.type;
+      });
+
+    summaryFields.push({
+      title: "Status",
+      value: (
+        <StatusBadge
+          text={nodeStatus.label}
+          type={
+            nodeStatus.isReady
+              ? StatusBadgeType.Success
+              : StatusBadgeType.Danger
+          }
+        />
+      ),
+    });
+
+    if (roles.length > 0) {
+      summaryFields.push({
+        title: "Roles",
+        value: (
+          <div className="flex gap-1 flex-wrap">
+            {roles.map((role: string) => {
+              return (
+                <StatusBadge
+                  key={role}
+                  text={role}
+                  type={StatusBadgeType.Info}
+                />
+              );
+            })}
+          </div>
+        ),
+      });
+    }
+
+    summaryFields.push({ title: "Internal IP", value: internalIP });
+
+    if (pressureConditions.length > 0) {
+      summaryFields.push({
+        title: "Pressure",
+        value: (
+          <div className="flex gap-1 flex-wrap">
+            {pressureConditions.map((p: string) => {
+              return (
+                <StatusBadge key={p} text={p} type={StatusBadgeType.Danger} />
+              );
+            })}
+          </div>
+        ),
+      });
+    }
+
+    summaryFields.push(
+      {
+        title: "CPU (Capacity / Allocatable)",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeCpuCapacity,
+        value: `${nodeObject.status.capacity["cpu"] || "N/A"} / ${nodeObject.status.allocatable["cpu"] || "N/A"}`,
+      },
+      {
+        title: "Memory (Capacity / Allocatable)",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeMemoryCapacity,
+        value: `${nodeObject.status.capacity["memory"] || "N/A"} / ${nodeObject.status.allocatable["memory"] || "N/A"}`,
+      },
+      {
+        title: "Pods (Capacity)",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodePodCapacity,
+        value: nodeObject.status.capacity["pods"] || "N/A",
+      },
+      {
+        title: "OS Image",
+        value: nodeObject.status.nodeInfo.osImage || "N/A",
+      },
+      {
+        title: "Container Runtime",
+        value: nodeObject.status.nodeInfo.containerRuntimeVersion || "N/A",
+      },
+      {
+        title: "Kubelet Version",
+        value: nodeObject.status.nodeInfo.kubeletVersion || "N/A",
+      },
+      {
+        title: "Architecture",
+        value: `${nodeObject.status.nodeInfo.operatingSystem || "N/A"}/${nodeObject.status.nodeInfo.architecture || "N/A"}`,
+      },
+      {
+        title: "Kernel",
+        value: nodeObject.status.nodeInfo.kernelVersion || "N/A",
+      },
+      {
+        title: "Created",
+        value: nodeObject.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              nodeObject.metadata.creationTimestamp,
+            )
+          : "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={nodeObject?.metadata.labels || {}}
+          annotations={nodeObject?.metadata.annotations || {}}
+          conditions={nodeObject?.status.conditions}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card
+          title="Node Events"
+          description="Kubernetes events for this node in the last 24 hours."
+        >
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="Node"
+            resourceName={nodeName}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`Node Metrics: ${nodeName}`}
+          description="CPU, memory, filesystem, and network usage for this node over the selected time range (the past hour by default)."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
+            renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              /*
+               * The tab's card hands this chart its zoom: a drag here
+               * narrows the CPU, memory and filesystem charts above too,
+               * and a double-click on any of them undoes it.
+               */
+              return (
+                <div className="group/zoomhint mt-4">
+                  <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                    <span>Network Throughput</span>
+                    <InfoTooltip
+                      label="Network Throughput"
+                      text={
+                        KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeNetworkThroughput
+                      }
+                    />
+                    <TimeRangeZoomHint
+                      revealOnHover={true}
+                      className="ml-auto font-normal"
+                    />
+                  </div>
+                  <KubernetesNetworkThroughputChart
+                    clusterIdentifier={clusterIdentifier}
+                    nodeName={nodeName}
+                    startDate={dateRange.startValue}
+                    endDate={dateRange.endValue}
+                  />
+                </div>
+              );
+            }}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="nodes"
+          resourceName={nodeName}
+        />
+      ),
+    },
+  ];
+
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+};
+
+export default KubernetesClusterNodeDetail;

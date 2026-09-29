@@ -1,0 +1,10 @@
+# A release installed from a chart before 14.0.2 (no aiAccess, no aiAgent),
+# upgraded with plain `helm upgrade --reuse-values` — the README's Upgrading
+# command. --reuse-values renders with the previous release's values, never
+# this chart's values.yaml, so .Values.aiAgent is nil.
+#
+# helm-unittest always coalesces a values file over this chart's values.yaml,
+# so the null removes this chart's aiAgent defaults (Helm deletes a key whose
+# user value is null when it coalesces) and the templates see exactly what a
+# real upgrade renders with.
+aiAgent: null

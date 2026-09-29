@@ -1,0 +1,402 @@
+import PageComponentProps from "../../PageComponentProps";
+import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import { formatBytes } from "../Utils/ProxmoxResourceUtils";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+
+/*
+ * Curated MetricView presets sharing one time-range state — explicitly
+ * NOT computed recommendations (Pages/Kubernetes/View/Insights.tsx
+ * precedent). Sections scope node vs guest vs storage series via the
+ * `pve.scope` datapoint attribute stamped by the agent's OTTL
+ * transform (WI-1) — agents installed from the current config always
+ * have it.
+ */
+
+interface MetricSpec {
+  variable: string;
+  title: string;
+  description: string;
+  legend: string;
+  legendUnit: string;
+  metricName: string;
+  aggregation: AggregationType;
+  scope?: "node" | "guest" | "storage" | undefined;
+  yAxisFormatter?: (value: number) => string;
+  transformValue?:
+    | ((value: number, dataPoint: AggregatedModel) => number)
+    | undefined;
+}
+
+function buildQuery(
+  spec: MetricSpec,
+  clusterName: string,
+): MetricQueryConfigData {
+  const attributes: Record<string, string> = {
+    "resource.proxmox.cluster.name": clusterName,
+  };
+  if (spec.scope) {
+    attributes["pve.scope"] = spec.scope;
+  }
+  return {
+    metricAliasData: {
+      metricVariable: spec.variable,
+      title: spec.title,
+      description: spec.description,
+      legend: spec.legend,
+      legendUnit: spec.legendUnit,
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: spec.metricName,
+        attributes: attributes,
+        aggegationType: spec.aggregation,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    yAxisValueFormatter: spec.yAxisFormatter,
+    transformValue: spec.transformValue,
+  };
+}
+
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
+  );
+}
+
+const ratioToPercent: (value: number) => number = (value: number): number => {
+  return value * 100;
+};
+
+function getComputeQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "node_cpu_ratio",
+        title: "Node CPU Utilization",
+        description:
+          "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.",
+        legend: "CPU",
+        legendUnit: "%",
+        metricName: "pve_cpu_usage_ratio",
+        aggregation: AggregationType.Avg,
+        scope: "node",
+        transformValue: ratioToPercent,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "node_memory_usage",
+        title: "Node Memory Usage",
+        description: "Memory bytes used, broken down per node.",
+        legend: "Memory",
+        legendUnit: "",
+        metricName: "pve_memory_usage_bytes",
+        aggregation: AggregationType.Avg,
+        scope: "node",
+        yAxisFormatter: formatBytes,
+      },
+      cluster,
+    ),
+  ];
+}
+
+function getGuestQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "guest_cpu_ratio",
+        title: "Guest CPU Utilization",
+        description:
+          "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.",
+        legend: "Guest CPU",
+        legendUnit: "%",
+        metricName: "pve_cpu_usage_ratio",
+        aggregation: AggregationType.Avg,
+        scope: "guest",
+        transformValue: ratioToPercent,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "guest_memory_usage",
+        title: "Guest Memory Usage",
+        description: "Memory bytes used, broken down per guest.",
+        legend: "Guest Memory",
+        legendUnit: "",
+        metricName: "pve_memory_usage_bytes",
+        aggregation: AggregationType.Avg,
+        scope: "guest",
+        yAxisFormatter: formatBytes,
+      },
+      cluster,
+    ),
+  ];
+}
+
+/*
+ * WI-25: replication series come from pve-exporter's default-on
+ * node-level `replication` collector. They carry the job id ("<vmid>-N")
+ * in the `id` label — no slash, so no pve.scope attribute (the OTTL
+ * transform only stamps scope on slash-prefixed ids). Charts render
+ * empty when the cluster has no replication jobs configured.
+ */
+function getReplicationQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "replication_duration",
+        title: "Replication Duration",
+        description:
+          "Seconds each storage replication run took, broken down per job.",
+        legend: "Duration",
+        legendUnit: "s",
+        metricName: "pve_replication_duration_seconds",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "replication_failed_syncs",
+        title: "Replication Failed Syncs",
+        description:
+          "Failed sync count per replication job — anything above zero means replication is not protecting that guest.",
+        legend: "Failed syncs",
+        legendUnit: "",
+        metricName: "pve_replication_failed_syncs",
+        aggregation: AggregationType.Max,
+      },
+      cluster,
+    ),
+  ];
+}
+
+function getStorageQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "storage_usage",
+        title: "Storage Usage",
+        description: "Disk bytes used, broken down per storage volume.",
+        legend: "Used",
+        legendUnit: "",
+        metricName: "pve_disk_usage_bytes",
+        aggregation: AggregationType.Avg,
+        scope: "storage",
+        yAxisFormatter: formatBytes,
+      },
+      cluster,
+    ),
+  ];
+}
+
+const ProxmoxClusterInsights: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [cluster, setCluster] = useState<ProxmoxCluster | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+
+  const [startAndEndDate, setStartAndEndDate] = useState<InBetween<Date>>(
+    RangeStartAndEndDateTimeUtil.getStartAndEndDate({
+      range: TimeRange.PAST_ONE_HOUR,
+    }),
+  );
+
+  const handleTimeRangeChange: (
+    newTimeRange: RangeStartAndEndDateTime,
+  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
+    setTimeRange(newTimeRange);
+    setStartAndEndDate(
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
+    );
+  }, []);
+
+  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const item: ProxmoxCluster | null = await ModelAPI.getItem({
+        modelType: ProxmoxCluster,
+        id: modelId,
+        select: {
+          name: true,
+        },
+      });
+      setCluster(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCluster().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!cluster?.name) {
+    return <ErrorMessage message="Cluster not found." />;
+  }
+
+  const clusterName: string = cluster.name;
+
+  /*
+   * Issue #4105: the five cards share one range, so they share one zoom.
+   * A drag on any chart — the metric charts and the disk / network rate
+   * charts alike — retimes every card, and a double-click on any of them
+   * (or Reset zoom in any card's header) puts the range from before the
+   * zoom back. The rate charts take the zoom from this scope on their own.
+   */
+  return (
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.CPUChip, "Compute")}
+        description="CPU and memory usage across all nodes in the cluster."
+        queryConfigs={getComputeQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Cube, "Guests")}
+        description="CPU and memory usage across all VMs and containers."
+        queryConfigs={getGuestQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Database, "Storage")}
+        description="Storage volume usage plus per-second disk read/write throughput across the cluster."
+        queryConfigs={getStorageQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+        renderExtraCharts={(dateRange: InBetween<Date>) => {
+          return (
+            <div className="group/zoomhint">
+              <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
+                Disk Throughput
+                <InfoTooltip
+                  label="Disk Throughput"
+                  text={PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
+                />
+              </div>
+              <ProxmoxRateChart
+                clusterName={clusterName}
+                series={[
+                  { metricName: "pve_disk_read_bytes", label: "Read" },
+                  { metricName: "pve_disk_write_bytes", label: "Write" },
+                ]}
+                startDate={dateRange.startValue}
+                endDate={dateRange.endValue}
+                syncId={`proxmox-insights-${modelId.toString()}`}
+              />
+            </div>
+          );
+        }}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.ArrowPath, "Replication")}
+        description="Storage replication job duration and failed sync counts (pvesr). Charts are empty when this cluster has no replication jobs configured."
+        queryConfigs={getReplicationQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Signal, "Network")}
+        description="Per-second inbound and outbound network throughput summed across all guests."
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      >
+        {/*
+         * The card holds only this rate chart, so nothing else in it names
+         * the drag: the hint does, revealed while the pointer is over it.
+         */}
+        <div className="group/zoomhint">
+          <div className="mb-2 flex justify-end text-sm">
+            <TimeRangeZoomHint revealOnHover={true} />
+          </div>
+          <ProxmoxRateChart
+            clusterName={clusterName}
+            series={[
+              { metricName: "pve_network_receive_bytes", label: "Receive" },
+              { metricName: "pve_network_transmit_bytes", label: "Transmit" },
+            ]}
+            startDate={startAndEndDate.startValue}
+            endDate={startAndEndDate.endValue}
+            syncId={`proxmox-insights-${modelId.toString()}`}
+          />
+        </div>
+      </EmbeddedMetricCard>
+    </TimeRangeZoomScope>
+  );
+};
+
+export default ProxmoxClusterInsights;

@@ -1,0 +1,1386 @@
+// AreaChart - Based on Tremor Raw LineChart pattern with gradient area fills
+
+"use client";
+
+import React from "react";
+import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
+import {
+  Area,
+  AreaChart as RechartsAreaChart,
+  CartesianGrid,
+  Dot,
+  Label,
+  Legend as RechartsLegend,
+  ReferenceArea,
+  ReferenceDot,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import ExemplarPoint from "../../Types/ExemplarPoint";
+import FormattedExemplarPoint from "../Types/FormattedExemplarPoint";
+import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
+import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
+import useChartRangeSelection, {
+  ChartBucketWindow,
+  ChartRangeSelection,
+  RangeSelectionChartState,
+  getChartBucketWindow,
+  getChartRowIndex,
+} from "../Utils/UseChartRangeSelection";
+import { AxisDomain } from "recharts/types/util/types";
+
+import { useOnWindowResize } from "../Utils/UseWindowOnResize";
+import {
+  AvailableChartColors,
+  ChartColorValue,
+  constructCategoryColors,
+  getColorClassName,
+  getColorHex,
+  isHexColorValue,
+} from "../Utils/ChartColors";
+import useChartAnnotations, {
+  UseChartAnnotationsResult,
+} from "../Annotations/UseChartAnnotations";
+import { cx } from "../Utils/Cx";
+import {
+  DeferredChartClick,
+  useDeferredChartClick,
+} from "../Utils/DoubleClick";
+import useChartBucketsChange from "../Utils/UseChartBucketsChange";
+import { getYAxisDomain } from "../Utils/GetYAxisDomain";
+import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
+import {
+  PreparedTooltipEntries,
+  prepareTooltipEntries,
+} from "../Utils/TooltipEntries";
+import ChartCurve from "../../Types/ChartCurve";
+
+/*
+ * recharts invokes child event handlers with varying shapes ((event) for
+ * plain SVG passthrough, (data, event) for adapted children) — find the
+ * DOM event wherever it is so propagation can be stopped reliably.
+ */
+function stopChartEventPropagation(...args: Array<unknown>): void {
+  for (const candidate of args) {
+    if (
+      candidate &&
+      typeof (candidate as { stopPropagation?: unknown }).stopPropagation ===
+        "function"
+    ) {
+      (candidate as { stopPropagation: () => void }).stopPropagation();
+      return;
+    }
+  }
+}
+
+//#region Legend
+
+interface LegendItemProps {
+  name: string;
+  color: ChartColorValue;
+  onClick?: (name: string, color: ChartColorValue) => void;
+  activeLegend?: string;
+}
+
+const LegendItem: ({
+  name,
+  color,
+  onClick,
+  activeLegend,
+}: LegendItemProps) => React.JSX.Element = ({
+  name,
+  color,
+  onClick,
+  activeLegend,
+}: LegendItemProps) => {
+  const hasOnValueChange: boolean = Boolean(onClick);
+  return (
+    <li
+      className={cx(
+        "group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition",
+        hasOnValueChange
+          ? "cursor-pointer hover:bg-gray-100"
+          : "cursor-default",
+      )}
+      onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
+        e.stopPropagation();
+        onClick?.(name, color);
+      }}
+    >
+      <span
+        className={cx(
+          "h-[3px] w-3.5 shrink-0 rounded-full",
+          getColorClassName(color, "bg"),
+          activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
+        )}
+        style={
+          isHexColorValue(color)
+            ? { backgroundColor: getColorHex(color) }
+            : undefined
+        }
+        aria-hidden={true}
+      />
+      <p
+        className={cx(
+          "truncate whitespace-nowrap text-xs",
+          "text-gray-700",
+          hasOnValueChange && "group-hover:text-gray-900",
+          activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
+        )}
+      >
+        {name}
+      </p>
+    </li>
+  );
+};
+
+interface ScrollButtonProps {
+  icon: React.ElementType;
+  onClick?: () => void;
+  disabled?: boolean;
+}
+
+const ScrollButton: ({
+  icon,
+  onClick,
+  disabled,
+}: ScrollButtonProps) => React.JSX.Element = ({
+  icon,
+  onClick,
+  disabled,
+}: ScrollButtonProps) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Icon: React.ElementType<any, keyof React.JSX.IntrinsicElements> = icon;
+  const [isPressed, setIsPressed] = React.useState(false);
+  const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+    React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (isPressed) {
+      intervalRef.current = setInterval(() => {
+        onClick?.();
+      }, 300);
+    } else {
+      clearInterval(intervalRef.current as NodeJS.Timeout);
+    }
+    return () => {
+      return clearInterval(intervalRef.current as NodeJS.Timeout);
+    };
+  }, [isPressed, onClick]);
+
+  React.useEffect(() => {
+    if (disabled) {
+      clearInterval(intervalRef.current as NodeJS.Timeout);
+      setIsPressed(false);
+    }
+  }, [disabled]);
+
+  return (
+    <button
+      type="button"
+      className={cx(
+        "group inline-flex size-5 items-center truncate rounded transition",
+        disabled
+          ? "cursor-not-allowed text-gray-400"
+          : "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+      )}
+      disabled={disabled}
+      onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      onMouseDown={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.stopPropagation();
+        setIsPressed(true);
+      }}
+      onMouseUp={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.stopPropagation();
+        setIsPressed(false);
+      }}
+    >
+      <Icon className="size-full" aria-hidden="true" />
+    </button>
+  );
+};
+
+interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
+  categories: string[];
+  colors?: ChartColorValue[];
+  onClickLegendItem?: (category: string, color: string) => void;
+  activeLegend?: string;
+  enableLegendSlider?: boolean;
+}
+
+type HasScrollProps = {
+  left: boolean;
+  right: boolean;
+};
+
+const Legend: React.ForwardRefExoticComponent<
+  LegendProps & React.RefAttributes<HTMLOListElement>
+> = React.forwardRef<HTMLOListElement, LegendProps>(
+  (props: LegendProps, ref: React.ForwardedRef<HTMLOListElement>) => {
+    const {
+      categories,
+      colors = AvailableChartColors,
+      className,
+      onClickLegendItem,
+      activeLegend,
+      enableLegendSlider = false,
+      ...other
+    } = props;
+
+    const scrollableRef: React.RefObject<HTMLInputElement> =
+      React.useRef<HTMLInputElement>(null);
+    const scrollButtonsRef: React.RefObject<HTMLDivElement> =
+      React.useRef<HTMLDivElement>(null);
+    const [hasScroll, setHasScroll] = React.useState<HasScrollProps | null>(
+      null,
+    );
+    const [isKeyDowned, setIsKeyDowned] = React.useState<string | null>(null);
+    const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+      React.useRef<NodeJS.Timeout | null>(null);
+
+    const checkScroll: () => void = React.useCallback(() => {
+      const scrollable: HTMLInputElement | null = scrollableRef?.current;
+      if (!scrollable) {
+        return;
+      }
+
+      const hasLeftScroll: boolean = scrollable.scrollLeft > 0;
+      const hasRightScroll: boolean =
+        scrollable.scrollWidth - scrollable.clientWidth > scrollable.scrollLeft;
+
+      setHasScroll({ left: hasLeftScroll, right: hasRightScroll });
+    }, [setHasScroll]);
+
+    const scrollToTest: (direction: "left" | "right") => void =
+      React.useCallback(
+        (direction: "left" | "right") => {
+          const element: HTMLInputElement | null = scrollableRef?.current;
+          const scrollButtons: HTMLDivElement | null =
+            scrollButtonsRef?.current;
+          const scrollButtonsWith: number = scrollButtons?.clientWidth ?? 0;
+          const width: number = element?.clientWidth ?? 0;
+
+          if (element && enableLegendSlider) {
+            element.scrollTo({
+              left:
+                direction === "left"
+                  ? element.scrollLeft - width + scrollButtonsWith
+                  : element.scrollLeft + width - scrollButtonsWith,
+              behavior: "smooth",
+            });
+            setTimeout(() => {
+              checkScroll();
+            }, 400);
+          }
+        },
+        [enableLegendSlider, checkScroll],
+      );
+
+    React.useEffect(() => {
+      const keyDownHandler: (key: string) => void = (key: string) => {
+        if (key === "ArrowLeft") {
+          scrollToTest("left");
+        } else if (key === "ArrowRight") {
+          scrollToTest("right");
+        }
+      };
+      if (isKeyDowned) {
+        keyDownHandler(isKeyDowned);
+        intervalRef.current = setInterval(() => {
+          keyDownHandler(isKeyDowned);
+        }, 300);
+      } else {
+        clearInterval(intervalRef.current!);
+      }
+      return () => {
+        return clearInterval(intervalRef.current as NodeJS.Timeout);
+      };
+    }, [isKeyDowned, scrollToTest]);
+
+    const keyDown: (e: KeyboardEvent) => void = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setIsKeyDowned(e.key);
+      }
+    };
+    const keyUp: (e: KeyboardEvent) => void = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      setIsKeyDowned(null);
+    };
+
+    React.useEffect(() => {
+      const scrollable: HTMLInputElement | null = scrollableRef?.current;
+      if (enableLegendSlider) {
+        checkScroll();
+        scrollable?.addEventListener("keydown", keyDown);
+        scrollable?.addEventListener("keyup", keyUp);
+      }
+
+      return () => {
+        scrollable?.removeEventListener("keydown", keyDown);
+        scrollable?.removeEventListener("keyup", keyUp);
+      };
+    }, [checkScroll, enableLegendSlider]);
+
+    return (
+      <ol
+        ref={ref}
+        className={cx("relative overflow-hidden", className)}
+        {...other}
+      >
+        <div
+          ref={scrollableRef}
+          tabIndex={0}
+          className={cx(
+            "flex h-full",
+            enableLegendSlider
+              ? hasScroll?.right || hasScroll?.left
+                ? "snap-mandatory items-center overflow-auto pl-4 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : ""
+              : "flex-wrap",
+          )}
+        >
+          {categories.map((category: string, index: number) => {
+            return (
+              <LegendItem
+                key={`item-${index}`}
+                name={category}
+                color={colors[index] as ChartColorValue}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onClick={onClickLegendItem as any}
+                activeLegend={activeLegend!}
+              />
+            );
+          })}
+        </div>
+        {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
+          <>
+            <div
+              ref={scrollButtonsRef}
+              className={cx(
+                "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
+                "bg-white",
+              )}
+            >
+              <ScrollButton
+                icon={RiArrowLeftSLine}
+                onClick={() => {
+                  setIsKeyDowned(null);
+                  scrollToTest("left");
+                }}
+                disabled={!hasScroll?.left}
+              />
+              <ScrollButton
+                icon={RiArrowRightSLine}
+                onClick={() => {
+                  setIsKeyDowned(null);
+                  scrollToTest("right");
+                }}
+                disabled={!hasScroll?.right}
+              />
+            </div>
+          </>
+        ) : null}
+      </ol>
+    );
+  },
+);
+
+Legend.displayName = "Legend";
+
+/* eslint-disable react/no-unused-prop-types */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PayloadItem = {
+  category: string;
+  value: number;
+  index: string;
+  color: ChartColorValue;
+  type?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any;
+};
+/* eslint-enable react/no-unused-prop-types */
+
+const ChartLegend: (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { payload }: any,
+  categoryColors: Map<string, ChartColorValue>,
+  setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
+  activeLegend: string | undefined,
+  onClick?: (category: string, color: string) => void,
+  enableLegendSlider?: boolean,
+  legendPosition?: "left" | "center" | "right",
+  yAxisWidth?: number,
+) => React.JSX.Element = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { payload }: any,
+  categoryColors: Map<string, ChartColorValue>,
+  setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
+  activeLegend: string | undefined,
+  onClick?: (category: string, color: string) => void,
+  enableLegendSlider?: boolean,
+  legendPosition?: "left" | "center" | "right",
+  yAxisWidth?: number,
+): React.JSX.Element => {
+  const legendRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
+
+  useOnWindowResize(() => {
+    const calculateHeight: (height: number | undefined) => number = (
+      height: number | undefined,
+    ) => {
+      return height ? Number(height) + 15 : 60;
+    };
+    setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
+  });
+
+  const legendPayload: Array<PayloadItem> = payload.filter(
+    (item: PayloadItem) => {
+      return item.type !== "none";
+    },
+  );
+
+  const paddingLeft: number =
+    legendPosition === "left" && yAxisWidth ? yAxisWidth - 8 : 0;
+
+  return (
+    <div
+      ref={legendRef}
+      style={{ paddingLeft: paddingLeft }}
+      className={cx(
+        "flex items-center",
+        { "justify-center": legendPosition === "center" },
+        { "justify-start": legendPosition === "left" },
+        { "justify-end": legendPosition === "right" },
+      )}
+    >
+      <Legend
+        categories={legendPayload.map((entry: PayloadItem) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return entry.value as any;
+        })}
+        colors={legendPayload.map((entry: PayloadItem) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return categoryColors.get(entry.value! as any)!;
+        })}
+        onClickLegendItem={onClick!}
+        activeLegend={activeLegend!}
+        enableLegendSlider={enableLegendSlider!}
+      />
+    </div>
+  );
+};
+
+//#region Tooltip
+
+type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">;
+
+interface ChartTooltipProps {
+  active: boolean | undefined;
+  payload: PayloadItem[];
+  label: string;
+  valueFormatter: (value: number) => string;
+}
+
+const ChartTooltip: ({
+  active,
+  payload,
+  label,
+  valueFormatter,
+}: ChartTooltipProps) => React.JSX.Element | null = ({
+  active,
+  payload,
+  label,
+  valueFormatter,
+}: ChartTooltipProps): React.JSX.Element | null => {
+  if (active && payload && payload.length) {
+    /*
+     * Highest value at the hovered timestamp first, capped — on a grouped
+     * chart (one series per host/pod), the spiking series must be the
+     * first line of the tooltip, not buried at its alphabetical position.
+     */
+    const {
+      entries: legendPayload,
+      overflowCount,
+    }: PreparedTooltipEntries<PayloadItem> = prepareTooltipEntries(payload);
+    return (
+      <div
+        className={cx(
+          "rounded-md border text-sm shadow-md",
+          "border-gray-200",
+          "bg-white",
+        )}
+      >
+        <div className={cx("border-b border-inherit px-4 py-2")}>
+          <p className={cx("font-medium", "text-gray-900")}>{label}</p>
+        </div>
+        <div className={cx("space-y-1 px-4 py-2")}>
+          {legendPayload.map(
+            ({ value, category, color }: PayloadItem, index: number) => {
+              return (
+                <div
+                  key={`id-${index}`}
+                  className="flex items-center justify-between space-x-8"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span
+                      aria-hidden="true"
+                      className={cx(
+                        "h-[3px] w-3.5 shrink-0 rounded-full",
+                        getColorClassName(color, "bg"),
+                      )}
+                      style={
+                        isHexColorValue(color)
+                          ? { backgroundColor: getColorHex(color) }
+                          : undefined
+                      }
+                    />
+                    <p
+                      className={cx(
+                        "whitespace-nowrap text-right",
+                        "text-gray-700",
+                      )}
+                    >
+                      {category}
+                    </p>
+                  </div>
+                  <p
+                    className={cx(
+                      "whitespace-nowrap text-right font-medium tabular-nums",
+                      "text-gray-900",
+                    )}
+                  >
+                    {valueFormatter(value)}
+                  </p>
+                </div>
+              );
+            },
+          )}
+          {overflowCount > 0 ? (
+            <p className={cx("pt-1 text-xs", "text-gray-400")}>
+              +{overflowCount} more series — highest values shown
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+//#region AreaChart
+
+interface ActiveDot {
+  index?: number;
+  dataKey?: string;
+}
+
+type BaseEventProps = {
+  eventType: "dot" | "category";
+  categoryClicked: string;
+  [key: string]: number | string;
+};
+
+type AreaChartEventProps = BaseEventProps | null | undefined;
+
+interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>[];
+  index: string;
+  categories: string[];
+  colors?: ChartColorValue[];
+  valueFormatter?: (value: number) => string;
+  startEndOnly?: boolean;
+  showXAxis?: boolean;
+  showYAxis?: boolean;
+  showGridLines?: boolean;
+  yAxisWidth?: number;
+  intervalType?: "preserveStartEnd" | "equidistantPreserveStart";
+  showTooltip?: boolean;
+  showLegend?: boolean;
+  autoMinValue?: boolean;
+  minValue?: number;
+  maxValue?: number;
+  allowDecimals?: boolean;
+  onValueChange?: (value: AreaChartEventProps) => void;
+  enableLegendSlider?: boolean;
+  tickGap?: number;
+  connectNulls?: boolean;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  curve?: ChartCurve;
+  legendPosition?: "left" | "center" | "right";
+  tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void;
+  customTooltip?: React.ComponentType<TooltipProps>;
+  syncid?: string | undefined;
+  referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  formattedTimeReferenceLines?: Array<FormattedTimeReferenceLine> | undefined;
+  formattedReferenceRegions?: Array<FormattedReferenceRegion> | undefined;
+  formattedExemplarPoints?: Array<FormattedExemplarPoint> | undefined;
+  onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /**
+   * Double-click on the plot surface: the counterpart to drag-to-select,
+   * for undoing the zoom it produced. Supplying it makes single clicks
+   * wait DOUBLE_CLICK_DISAMBIGUATION_MS before they act, so a double-click
+   * cannot also fire the bucket-click path twice on its way past — hosts
+   * that have nothing to reset should leave it undefined and keep clicks
+   * instant.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
+  /**
+   * Plain click on a time bucket (the plot background — dot/legend clicks
+   * and drag-selections never reach this). [bucketStart, bucketEnd) uses
+   * the same adjacent-row width derivation as drag-to-select. Fires only
+   * when no toggle-selection is active: a click that clears an active
+   * legend/dot selection keeps its existing meaning.
+   */
+  onBucketClick?:
+    | ((
+        bucketStart: Date,
+        bucketEnd: Date,
+        // The clicked row: one numeric entry per series + the axis keys.
+        valuesAtBucket: Record<string, number | string>,
+      ) => void)
+    | undefined;
+  /**
+   * Categories rendered as compare-to-previous-period ghosts: dashed,
+   * faded, no fill, no dots — context, not data.
+   */
+  ghostCategories?: Array<string> | undefined;
+  /**
+   * Render a shaded "expected range" band underneath the data lines.
+   * Both keys must already be present on every entry of `data` (the
+   * caller is responsible for merging baseline values into the data
+   * array — keeps band fetch decoupled from chart rendering). Omitted
+   * → no band.
+   */
+  anomalyBandLowerKey?: string | undefined;
+  anomalyBandUpperKey?: string | undefined;
+}
+
+const AreaChart: React.ForwardRefExoticComponent<
+  AreaChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, AreaChartProps>(
+  (props: AreaChartProps, ref: React.ForwardedRef<HTMLDivElement>) => {
+    const {
+      data = [],
+      categories = [],
+      index,
+      colors = AvailableChartColors,
+      valueFormatter = (value: number) => {
+        return value.toString();
+      },
+      startEndOnly = false,
+      showXAxis = true,
+      showYAxis = true,
+      showGridLines = true,
+      yAxisWidth = 56,
+      intervalType = "equidistantPreserveStart",
+      showTooltip = true,
+      showLegend = true,
+      autoMinValue = false,
+      minValue,
+      maxValue,
+      allowDecimals = true,
+      connectNulls = false,
+      className,
+      onValueChange,
+      enableLegendSlider = false,
+      tickGap = 5,
+      xAxisLabel,
+      yAxisLabel,
+      legendPosition = "right",
+      tooltipCallback,
+      customTooltip,
+      formattedTimeReferenceLines,
+      formattedReferenceRegions,
+      onTimeRangeSelect,
+      onTimeRangeReset,
+      onBucketClick,
+      ghostCategories,
+      ...other
+    } = props;
+    const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
+      customTooltip;
+    const paddingValue: 0 | 20 =
+      (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
+    const [legendHeight, setLegendHeight] = React.useState(60);
+    const [activeDot, setActiveDot] = React.useState<ActiveDot | undefined>(
+      undefined,
+    );
+    const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
+      undefined,
+    );
+    /*
+     * Every click on the plot waits out the double-click window while a
+     * reset is on offer; see useDeferredChartClick.
+     */
+    const deferredClick: DeferredChartClick = useDeferredChartClick(
+      Boolean(onTimeRangeReset),
+    );
+    /*
+     * Drag-to-select a time window, and the double-click that undoes a
+     * zoom, dropping the clicks it was made of; see useChartRangeSelection.
+     */
+    const rangeSelection: ChartRangeSelection = useChartRangeSelection({
+      data: data,
+      index: index,
+      onTimeRangeSelect: onTimeRangeSelect,
+      onTimeRangeReset: onTimeRangeReset
+        ? (): void => {
+            deferredClick.cancel();
+            onTimeRangeReset();
+          }
+        : undefined,
+    });
+    const categoryColors: Map<string, ChartColorValue> =
+      constructCategoryColors(categories, colors);
+
+    /*
+     * Annotations are drawn onto the categorical axis, so the layer needs
+     * the same x values recharts is drawing — not the source dates.
+     */
+    const categoryLabels: Array<string> = React.useMemo(():
+      | Array<string>
+      | never => {
+      return (data as Array<Record<string, unknown>>).map(
+        (row: Record<string, unknown>): string => {
+          return String(row[index] ?? "");
+        },
+      );
+    }, [data, index]);
+
+    /*
+     * A clicked dot names its row by index, and after a zoom, a reset or a
+     * new range that index holds another bucket: drop it, with the series
+     * highlight it brought. A series picked from the legend still exists,
+     * so it stays picked.
+     */
+    useChartBucketsChange(categoryLabels, (): void => {
+      if (activeDot) {
+        setActiveDot(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      }
+    });
+
+    const annotations: UseChartAnnotationsResult = useChartAnnotations({
+      formattedTimeReferenceLines,
+      formattedReferenceRegions,
+      categoryLabels,
+      axisPaddingPx: paddingValue,
+      scaleKind: "point",
+      hasTopLegend: showLegend,
+      isClickSuppressed: rangeSelection.isClickSuppressed,
+    });
+
+    const yAxisDomain: (number | "auto")[] = getYAxisDomain(
+      autoMinValue,
+      minValue,
+      maxValue,
+    );
+    const hasOnValueChange: boolean = Boolean(onValueChange);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prevActiveRef: React.MutableRefObject<boolean | undefined> =
+      React.useRef<boolean | undefined>(undefined);
+    const prevLabelRef: React.MutableRefObject<string | undefined> =
+      React.useRef<string | undefined>(undefined);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function onDotClick(itemData: any, event: React.MouseEvent): void {
+      event.stopPropagation();
+
+      // Ignore the click that immediately follows a drag-to-select.
+      if (rangeSelection.isClickSuppressed()) {
+        return;
+      }
+
+      if (!hasOnValueChange) {
+        return;
+      }
+      deferredClick.run((): void => {
+        toggleDot(itemData);
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function toggleDot(itemData: any): void {
+      if (
+        (itemData.index === activeDot?.index &&
+          itemData.dataKey === activeDot?.dataKey) ||
+        (hasOnlyOneValueForKey(data, itemData.dataKey) &&
+          activeLegend &&
+          activeLegend === itemData.dataKey)
+      ) {
+        setActiveLegend(undefined);
+        setActiveDot(undefined);
+        onValueChange?.(null);
+      } else {
+        setActiveLegend(itemData.dataKey);
+        setActiveDot({
+          index: itemData.index,
+          dataKey: itemData.dataKey,
+        });
+        onValueChange?.({
+          eventType: "dot",
+          categoryClicked: itemData.dataKey,
+          ...itemData.payload,
+        });
+      }
+    }
+
+    function onCategoryClick(dataKey: string): void {
+      // Ignore the click that immediately follows a drag-to-select.
+      if (rangeSelection.isClickSuppressed()) {
+        return;
+      }
+      if (!hasOnValueChange) {
+        return;
+      }
+      if (
+        (dataKey === activeLegend && !activeDot) ||
+        (hasOnlyOneValueForKey(data, dataKey) &&
+          activeDot &&
+          activeDot.dataKey === dataKey)
+      ) {
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      } else {
+        setActiveLegend(dataKey);
+        onValueChange?.({
+          eventType: "category",
+          categoryClicked: dataKey,
+        });
+      }
+      setActiveDot(undefined);
+    }
+
+    /*
+     * The plain-click path, split out so it can either run inline (no
+     * reset handler) or be deferred behind the double-click window.
+     */
+    function handleChartClick(chartState: RangeSelectionChartState): void {
+      /*
+       * A click while a legend/dot selection is active keeps its
+       * long-standing meaning — clear the selection — and never
+       * also pins a bucket.
+       */
+      if (hasOnValueChange && (activeLegend || activeDot)) {
+        setActiveDot(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+        return;
+      }
+      if (!onBucketClick) {
+        return;
+      }
+      const rowIndex: number | null = getChartRowIndex(data, index, chartState);
+      if (rowIndex === null) {
+        return;
+      }
+      /*
+       * Cover the full bucket: width from adjacent row dates, the
+       * same derivation drag-to-select uses.
+       */
+      const bucket: ChartBucketWindow | null = getChartBucketWindow(
+        data,
+        rowIndex,
+        rowIndex,
+      );
+      if (!bucket) {
+        return;
+      }
+      onBucketClick(
+        bucket.start,
+        bucket.end,
+        (data[rowIndex] || {}) as Record<string, number | string>,
+      );
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cx(
+          "flex-1 w-full",
+          rangeSelection.canSelect && "cursor-crosshair select-none",
+          className,
+        )}
+        {...other}
+      >
+        {/*
+         * The hover card is HTML over the SVG, so it needs a positioned
+         * ancestor that is exactly the chart's box. recharts sizes its
+         * <svg> in CSS pixels with no viewBox, so the card can reuse the
+         * coordinates the rail was drawn with.
+         */}
+        <div className={cx("relative isolate h-full w-full")}>
+          <ResponsiveContainer>
+            <RechartsAreaChart
+              data={data}
+              /*
+               * Omitted, not "": recharts treats "" as a real sync
+               * channel, so every unsynced chart page-wide would
+               * accidentally sync with every other one.
+               */
+              {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
+              {...rangeSelection.chartEventProps}
+              onClick={(chartState: RangeSelectionChartState) => {
+                // Ignore the click that follows a drag-to-select.
+                if (rangeSelection.isClickSuppressed()) {
+                  return;
+                }
+                /*
+                 * With reset on, both clicks of a double-click arrive
+                 * before dblclick does, and neither may pin a bucket: the
+                 * second click re-arms the wait, dblclick drops it.
+                 */
+                deferredClick.run((): void => {
+                  handleChartClick(chartState);
+                });
+              }}
+              margin={{
+                bottom: (xAxisLabel
+                  ? 40
+                  : showXAxis
+                    ? 24
+                    : 8) as unknown as number,
+                left: (yAxisLabel ? 20 : 0) as unknown as number,
+                right: (yAxisLabel ? 5 : 8) as unknown as number,
+                /*
+                 * The annotation rail is drawn in the top margin, so the
+                 * margin has to grow to hold it — otherwise chips render
+                 * above the SVG's own edge and get clipped.
+                 */
+                top: annotations.marginTop,
+              }}
+            >
+              <defs>
+                {categories.map((category: string, i: number) => {
+                  const colorKey: ChartColorValue =
+                    (colors[i % colors.length] as ChartColorValue) || "blue";
+                  const hex: string = getColorHex(colorKey);
+                  return (
+                    <linearGradient
+                      key={category}
+                      id={`gradient-${category.replace(/[^a-zA-Z0-9]/g, "_")}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor={hex} stopOpacity={0.2} />
+                      <stop offset="100%" stopColor={hex} stopOpacity={0.01} />
+                    </linearGradient>
+                  );
+                })}
+              </defs>
+              {showGridLines ? (
+                <CartesianGrid
+                  className={cx("stroke-gray-100")}
+                  strokeDasharray="3 3"
+                  horizontal={true}
+                  vertical={false}
+                />
+              ) : null}
+              <XAxis
+                padding={{ left: paddingValue, right: paddingValue }}
+                hide={!showXAxis}
+                dataKey={index}
+                interval={startEndOnly ? "preserveStartEnd" : intervalType}
+                tick={{
+                  transform: "translate(0, 6)",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  fill: "var(--ou-chart-tick)",
+                }}
+                ticks={
+                  startEndOnly
+                    ? ([
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        (data[0] as any)[index],
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        (data[data.length - 1] as any)[index],
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      ] as any)
+                    : undefined
+                }
+                fill=""
+                stroke=""
+                className={cx("tabular-nums", "fill-gray-500")}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={tickGap}
+              >
+                {xAxisLabel && (
+                  <Label
+                    position="insideBottom"
+                    offset={-20}
+                    className="fill-gray-800 text-sm font-medium"
+                  >
+                    {xAxisLabel}
+                  </Label>
+                )}
+              </XAxis>
+              <YAxis
+                width={yAxisWidth}
+                hide={!showYAxis}
+                axisLine={false}
+                tickLine={false}
+                type="number"
+                domain={yAxisDomain as AxisDomain}
+                tick={{
+                  transform: "translate(-4, 0)",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  fill: "var(--ou-chart-tick)",
+                }}
+                fill=""
+                stroke=""
+                className={cx("tabular-nums", "fill-gray-500")}
+                tickFormatter={valueFormatter}
+                allowDecimals={allowDecimals}
+              >
+                {yAxisLabel && (
+                  <Label
+                    position="insideLeft"
+                    style={{ textAnchor: "middle" }}
+                    angle={-90}
+                    offset={-15}
+                    className="fill-gray-800 text-sm font-medium"
+                  >
+                    {yAxisLabel}
+                  </Label>
+                )}
+              </YAxis>
+              <Tooltip
+                wrapperStyle={{ outline: "none", zIndex: 10 }}
+                isAnimationActive={true}
+                animationDuration={100}
+                cursor={{
+                  stroke: "var(--ou-chart-cursor, #d1d5db)",
+                  strokeWidth: 1,
+                }}
+                offset={20}
+                position={{ y: 0 }}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload, label }: any) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const cleanPayload: TooltipProps["payload"] = payload
+                    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      payload.map((item: any) => {
+                        return {
+                          category: item.dataKey,
+                          value: item.value,
+                          index: item.payload[index],
+                          color: categoryColors.get(
+                            item.dataKey,
+                          ) as ChartColorValue,
+                          type: item.type,
+                          payload: item.payload,
+                        };
+                      })
+                    : [];
+
+                  if (
+                    tooltipCallback &&
+                    (active !== prevActiveRef.current ||
+                      label !== prevLabelRef.current)
+                  ) {
+                    tooltipCallback({ active, payload: cleanPayload, label });
+                    prevActiveRef.current = active;
+                    prevLabelRef.current = label;
+                  }
+
+                  return showTooltip && active ? (
+                    CustomTooltip ? (
+                      <CustomTooltip
+                        active={active}
+                        payload={cleanPayload}
+                        label={label}
+                      />
+                    ) : (
+                      <ChartTooltip
+                        active={active}
+                        payload={cleanPayload}
+                        label={label}
+                        valueFormatter={valueFormatter}
+                      />
+                    )
+                  ) : null;
+                }}
+              />
+
+              {showLegend ? (
+                <RechartsLegend
+                  verticalAlign="top"
+                  /*
+                   * Padded so the annotation rail gets a clear strip between
+                   * the legend and the plot; see UseChartAnnotations.
+                   */
+                  height={legendHeight + annotations.railHeight}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  content={({ payload }: any) => {
+                    return ChartLegend(
+                      { payload },
+                      categoryColors,
+                      setLegendHeight,
+                      activeLegend,
+                      hasOnValueChange
+                        ? (clickedLegendItem: string) => {
+                            return onCategoryClick(clickedLegendItem);
+                          }
+                        : undefined,
+                      enableLegendSlider,
+                      legendPosition,
+                      yAxisWidth,
+                    );
+                  }}
+                />
+              ) : null}
+              {props.anomalyBandLowerKey && props.anomalyBandUpperKey ? (
+                <Area
+                  key="__anomaly_band__"
+                  name="Expected range"
+                  type={props.curve || ChartCurve.MONOTONE}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  dataKey={(
+                    d: Record<string, any>,
+                  ): [number, number] | null => {
+                    const low: number = Number(d[props.anomalyBandLowerKey!]);
+                    const high: number = Number(d[props.anomalyBandUpperKey!]);
+                    if (!Number.isFinite(low) || !Number.isFinite(high)) {
+                      return null;
+                    }
+                    return [low, high];
+                  }}
+                  stroke="var(--ou-chart-tick, #94a3b8)"
+                  strokeOpacity={0.3}
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                  fill="var(--ou-chart-tick, #94a3b8)"
+                  fillOpacity={0.12}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                  activeDot={false}
+                  dot={false}
+                  legendType="none"
+                />
+              ) : null}
+              {categories.map((category: string) => {
+                const gradientId: string = `gradient-${category.replace(/[^a-zA-Z0-9]/g, "_")}`;
+                const colorKey: ChartColorValue = categoryColors.get(
+                  category,
+                ) as ChartColorValue;
+                const hex: string = getColorHex(colorKey);
+                const isCustomColor: boolean = isHexColorValue(colorKey);
+                const isGhost: boolean =
+                  ghostCategories?.includes(category) || false;
+
+                return (
+                  <Area
+                    key={category}
+                    name={category}
+                    type={props.curve || ChartCurve.MONOTONE}
+                    dataKey={category}
+                    stroke={hex}
+                    strokeWidth={isGhost ? 1.5 : 2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    fill={`url(#${gradientId})`}
+                    fillOpacity={isGhost ? 0 : 1}
+                    strokeOpacity={
+                      (activeDot || (activeLegend && activeLegend !== category)
+                        ? 0.3
+                        : 1) * (isGhost ? 0.45 : 1)
+                    }
+                    isAnimationActive={false}
+                    connectNulls={connectNulls}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    activeDot={
+                      isGhost
+                        ? false
+                        : (dotProps: any) => {
+                            const {
+                              cx: cxCoord,
+                              cy: cyCoord,
+                              stroke,
+                              strokeLinecap: slc,
+                              strokeLinejoin: slj,
+                              strokeWidth,
+                            } = dotProps;
+                            return (
+                              <Dot
+                                className={cx(
+                                  "stroke-white",
+                                  onValueChange ? "cursor-pointer" : "",
+                                  getColorClassName(colorKey, "fill"),
+                                )}
+                                cx={cxCoord}
+                                cy={cyCoord}
+                                r={5}
+                                fill={isCustomColor ? hex : ""}
+                                stroke={stroke}
+                                strokeLinecap={slc}
+                                strokeLinejoin={slj}
+                                strokeWidth={strokeWidth}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                onClick={(_: any, event: any) => {
+                                  return onDotClick(dotProps, event);
+                                }}
+                              />
+                            );
+                          }
+                    }
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    dot={
+                      isGhost
+                        ? false
+                        : (dotProps: any) => {
+                            const {
+                              stroke,
+                              strokeLinecap: slc,
+                              strokeLinejoin: slj,
+                              strokeWidth,
+                              cx: cxCoord,
+                              cy: cyCoord,
+                              index: dotIndex,
+                            } = dotProps;
+
+                            if (
+                              (hasOnlyOneValueForKey(data, category) &&
+                                !(
+                                  activeDot ||
+                                  (activeLegend && activeLegend !== category)
+                                )) ||
+                              (activeDot?.index === dotIndex &&
+                                activeDot?.dataKey === category)
+                            ) {
+                              return (
+                                <Dot
+                                  key={dotIndex}
+                                  cx={cxCoord}
+                                  cy={cyCoord}
+                                  r={5}
+                                  stroke={stroke}
+                                  fill={isCustomColor ? hex : ""}
+                                  strokeLinecap={slc}
+                                  strokeLinejoin={slj}
+                                  strokeWidth={strokeWidth}
+                                  className={cx(
+                                    "stroke-white",
+                                    onValueChange ? "cursor-pointer" : "",
+                                    getColorClassName(colorKey, "fill"),
+                                  )}
+                                />
+                              );
+                            }
+                            return (
+                              <React.Fragment key={dotIndex}></React.Fragment>
+                            );
+                          }
+                    }
+                    {...(isGhost ? { strokeDasharray: "6 4" } : {})}
+                  />
+                );
+              })}
+              {props.referenceLines?.map(
+                (refLine: ChartReferenceLineProps, refIndex: number) => {
+                  return (
+                    <ReferenceLine
+                      key={`ref-${refIndex}`}
+                      y={refLine.value}
+                      stroke={refLine.color}
+                      strokeDasharray={refLine.strokeDasharray || "4 4"}
+                      strokeWidth={1.5}
+                    >
+                      {refLine.label && (
+                        <Label
+                          value={refLine.label}
+                          position="insideTopRight"
+                          fill={refLine.color}
+                          fontSize={11}
+                          fontWeight={500}
+                        />
+                      )}
+                    </ReferenceLine>
+                  );
+                },
+              )}
+              {/*
+               * Event markers and shaded windows: hairlines through the plot
+               * topped by a chip rail in the chart's top margin. Everything
+               * that used to be painted over the series as rotated text now
+               * lives in the chip's hover card.
+               */}
+              {annotations.layer}
+              {/* Exemplar dots - clickable markers linking to traces */}
+              {props.formattedExemplarPoints?.map(
+                (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
+                  return (
+                    <ReferenceDot
+                      key={`exemplar-${exemplarIndex}`}
+                      x={exemplar.formattedX}
+                      y={exemplar.y}
+                      r={5}
+                      fill="#7c3aed"
+                      stroke="var(--ou-chart-marker-ring, #ffffff)"
+                      strokeWidth={2}
+                      style={{ cursor: "pointer" }}
+                      onClick={(...args: Array<unknown>) => {
+                        // Never let an exemplar click also pin a bucket.
+                        stopChartEventPropagation(...args);
+                        // Ignore the click that follows a drag-to-select.
+                        if (rangeSelection.isClickSuppressed()) {
+                          return;
+                        }
+                        props.onExemplarClick?.(exemplar.original);
+                      }}
+                    >
+                      <Label
+                        value="E"
+                        position="center"
+                        /*
+                         * Sits on the dot's purple, not on the surface, so it must
+                         * not follow the ring token that flips dark with the theme.
+                         */
+                        fill="#ffffff"
+                        fontSize={8}
+                        fontWeight={700}
+                      />
+                    </ReferenceDot>
+                  );
+                },
+              )}
+              {/* Live drag-to-select highlight */}
+              {rangeSelection.selectionStartLabel &&
+              rangeSelection.selectionEndLabel ? (
+                <ReferenceArea
+                  x1={rangeSelection.selectionStartLabel}
+                  x2={rangeSelection.selectionEndLabel}
+                  fill="rgba(99,102,241,0.12)"
+                  stroke="rgba(99,102,241,0.5)"
+                  strokeWidth={1}
+                  radius={2}
+                />
+              ) : null}
+            </RechartsAreaChart>
+          </ResponsiveContainer>
+          {annotations.overlay}
+        </div>
+      </div>
+    );
+  },
+);
+
+AreaChart.displayName = "AreaChart";
+
+export { AreaChart, ChartTooltip, type AreaChartEventProps, type TooltipProps };

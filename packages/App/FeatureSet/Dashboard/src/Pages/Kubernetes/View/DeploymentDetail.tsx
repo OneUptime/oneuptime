@@ -1,0 +1,381 @@
+import PageComponentProps from "../../PageComponentProps";
+import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Card from "Common/UI/Components/Card/Card";
+
+import MetricQueryConfigData, {
+  ChartSeries,
+} from "Common/Types/Metrics/MetricQueryConfigData";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
+import { getKubernetesDatabaseWorkloadCandidates } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesCpuUtils, {
+  NodeAllocatableCpu,
+} from "../Utils/KubernetesCpuUtils";
+import useNodeAllocatableCpu from "../Utils/useNodeAllocatableCpu";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+
+const KubernetesClusterDeploymentDetail: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
+  const deploymentName: string = Navigation.getLastParamAsString();
+
+  const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [objectData, setObjectData] =
+    useState<KubernetesDeploymentObject | null>(null);
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
+
+  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const item: KubernetesCluster | null = await ModelAPI.getItem({
+        modelType: KubernetesCluster,
+        id: modelId,
+        select: {
+          clusterIdentifier: true,
+        },
+      });
+      setCluster(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCluster().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  // Fetch the K8s deployment object for overview tab
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesDeploymentObject | null =
+          await fetchLatestK8sObject<KubernetesDeploymentObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "deployments",
+            resourceName: deploymentName,
+          });
+        setObjectData(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
+
+    fetchObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, deploymentName]);
+
+  // Per-node allocatable CPU — denominator for the true CPU% transform.
+  const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
+    cluster?.clusterIdentifier || undefined,
+  );
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!cluster) {
+    return <ErrorMessage message="Cluster not found." />;
+  }
+
+  const clusterIdentifier: string = cluster.clusterIdentifier || "";
+
+  const getSeries: (data: AggregateModel) => ChartSeries = (
+    data: AggregateModel,
+  ): ChartSeries => {
+    const attributes: Record<string, unknown> =
+      (data["attributes"] as Record<string, unknown>) || {};
+    const podName: string =
+      (attributes["resource.k8s.pod.name"] as string) || "Unknown Pod";
+    return { title: podName };
+  };
+
+  const cpuQuery: MetricQueryConfigData = {
+    metricAliasData: {
+      metricVariable: "deployment_cpu",
+      title: "Pod CPU Utilization",
+      description: `CPU usage as a percentage of node allocatable CPU for pods in deployment ${deploymentName}`,
+      legend: "CPU",
+      legendUnit: "%",
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: "k8s.pod.cpu.utilization",
+        attributes: {
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.deployment.name": deploymentName,
+        },
+        aggegationType: AggregationType.Avg,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    getSeries: getSeries,
+    transformValue: allocatable
+      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
+      : undefined,
+  };
+
+  const memoryQuery: MetricQueryConfigData = {
+    metricAliasData: {
+      metricVariable: "deployment_memory",
+      title: "Pod Memory Usage",
+      description: `Memory usage for pods in deployment ${deploymentName}`,
+      legend: "Memory",
+      legendUnit: "",
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: "k8s.pod.memory.usage",
+        attributes: {
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.deployment.name": deploymentName,
+        },
+        aggegationType: AggregationType.Avg,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    getSeries: getSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
+  };
+
+  // Build overview summary fields from deployment object
+  const summaryFields: Array<SummaryField> = [
+    { title: "Name", value: deploymentName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
+
+  if (objectData) {
+    const desired: number = objectData.spec.replicas;
+    const ready: number = objectData.status.readyReplicas ?? 0;
+    const available: number = objectData.status.availableReplicas ?? 0;
+    const unavailable: number = objectData.status.unavailableReplicas ?? 0;
+    const isFullyRolledOut: boolean = ready === desired && unavailable === 0;
+
+    summaryFields.push(
+      {
+        title: "Namespace",
+        value: objectData.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={objectData.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
+      },
+      {
+        title: "Rollout Status",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentRolloutStatus,
+        value: (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <StatusBadge
+                text={isFullyRolledOut ? "Complete" : "In Progress"}
+                type={
+                  isFullyRolledOut
+                    ? StatusBadgeType.Success
+                    : StatusBadgeType.Warning
+                }
+              />
+              <span className="text-sm text-gray-600">
+                {ready}/{desired} ready
+              </span>
+            </div>
+            <div className="w-32 bg-gray-100 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${isFullyRolledOut ? "bg-emerald-500" : "bg-amber-500"}`}
+                style={{
+                  width: `${desired > 0 ? (ready / desired) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Desired Replicas",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentDesiredReplicas,
+        value: String(desired),
+      },
+      {
+        title: "Ready Replicas",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReadyReplicas,
+        value: String(ready),
+      },
+      {
+        title: "Available",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentAvailableReplicas,
+        value: String(available),
+      },
+    );
+
+    if (unavailable > 0) {
+      summaryFields.push({
+        title: "Unavailable",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentUnavailableReplicas,
+        value: (
+          <StatusBadge
+            text={String(unavailable)}
+            type={StatusBadgeType.Danger}
+          />
+        ),
+      });
+    }
+
+    summaryFields.push(
+      {
+        title: "Strategy",
+        value: objectData.spec.strategy || "N/A",
+      },
+      {
+        title: "Created",
+        value: objectData.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              objectData.metadata.creationTimestamp,
+            )
+          : "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={objectData?.metadata.labels || {}}
+          annotations={objectData?.metadata.annotations || {}}
+          conditions={objectData?.status.conditions}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card
+          title="Deployment Events"
+          description="Kubernetes events for this deployment in the last 24 hours."
+        >
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="Deployment"
+            resourceName={deploymentName}
+            namespace={objectData?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`Deployment Metrics: ${deploymentName}`}
+          description="CPU and memory usage for pods in this deployment over the selected time range (the past hour by default)."
+        >
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
+        </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="deployments"
+          resourceName={deploymentName}
+          namespace={objectData?.metadata.namespace}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <Fragment>
+      {/*
+       * The Database discovered on this Deployment, if any — by its name, or
+       * the cluster its labels place it in (a pooler an operator labels as
+       * part of a cluster links to that cluster's database). Asked once the
+       * object (and so its namespace and labels) has loaded.
+       */}
+      <DatabaseServerWorkloadBadge
+        resourceLabel="Deployment"
+        target={
+          isLoadingObject
+            ? null
+            : {
+                platform: "kubernetes",
+                parentId: modelId,
+                namespace: objectData?.metadata.namespace,
+                ...getKubernetesDatabaseWorkloadCandidates({
+                  kind: "Deployment",
+                  name: deploymentName,
+                  namespace: objectData?.metadata.namespace,
+                  labels: objectData?.metadata.labels,
+                }),
+              }
+        }
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
+};
+
+export default KubernetesClusterDeploymentDetail;

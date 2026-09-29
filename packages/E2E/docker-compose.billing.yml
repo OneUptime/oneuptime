@@ -1,0 +1,26 @@
+# OVERLAY for the SaaS / billing-enabled CI stack. Always pass it after
+# docker-compose.yml, whose folder (the repo root) every path below resolves
+# against:
+#
+#   docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml up -d
+#
+# It adds the home container and leaves the runner out.
+
+services:
+  home:
+    image: oneuptime/home:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: home
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+
+  # Only started when this profile is active, which nothing ever does.
+  runner:
+    profiles:
+      - billing-disabled

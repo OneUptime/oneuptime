@@ -1,0 +1,61 @@
+import FilterCondition from "../Filter/FilterCondition";
+import { CheckOn, FilterType } from "./CriteriaFilter";
+
+export type MonitorEvaluationEventType =
+  | "criteria-met"
+  | "criteria-not-met"
+  | "incident-created"
+  | "incident-resolved"
+  | "incident-skipped"
+  | "alert-created"
+  | "alert-resolved"
+  | "alert-skipped"
+  | "monitor-status-changed"
+  | "probe-agreement";
+
+export type MonitorEvaluationCriteriaSkipCause =
+  | "disabled"
+  | "earlier-criterion-matched";
+
+export interface MonitorEvaluationFilterResult {
+  checkOn: CheckOn;
+  filterType?: FilterType | undefined;
+  value?: string | number | undefined;
+  message: string;
+  met: boolean;
+}
+
+export interface MonitorEvaluationCriteriaResult {
+  criteriaId?: string | undefined;
+  criteriaName?: string | undefined;
+  filterCondition: FilterCondition;
+  met: boolean;
+  message: string;
+  filters: Array<MonitorEvaluationFilterResult>;
+  skipped?: boolean | undefined;
+  skipReason?: string | undefined;
+  skipCause?: MonitorEvaluationCriteriaSkipCause | undefined;
+}
+
+export interface MonitorEvaluationEvent {
+  type: MonitorEvaluationEventType;
+  title: string;
+  message?: string | undefined;
+  relatedCriteriaId?: string | undefined;
+  relatedIncidentId?: string | undefined;
+  relatedIncidentNumber?: number | undefined;
+  relatedIncidentNumberWithPrefix?: string | undefined;
+  relatedIncidentCreatedAt?: Date | undefined;
+  relatedAlertId?: string | undefined;
+  relatedAlertNumber?: number | undefined;
+  relatedAlertNumberWithPrefix?: string | undefined;
+  relatedAlertCreatedAt?: Date | undefined;
+  // When this action occurred, distinct from an already-active entity's creation.
+  at?: Date | undefined;
+}
+
+export default interface MonitorEvaluationSummary {
+  evaluatedAt: Date;
+  criteriaResults: Array<MonitorEvaluationCriteriaResult>;
+  events: Array<MonitorEvaluationEvent>;
+}

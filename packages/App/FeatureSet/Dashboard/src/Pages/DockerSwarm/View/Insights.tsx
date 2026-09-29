@@ -1,0 +1,333 @@
+import PageComponentProps from "../../PageComponentProps";
+import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { formatBytes } from "../Utils/DockerSwarmResourceUtils";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+
+/*
+ * Curated MetricView presets sharing one time-range state — explicitly
+ * NOT computed recommendations (the Proxmox Insights precedent,
+ * Pages/Proxmox/View/Insights.tsx). Every section scopes to this cluster
+ * the SAME way Pages/DockerSwarm/View/Metrics.tsx does: by the single
+ * `resource.docker.swarm.cluster.name` resource attribute that the
+ * OneUptime Docker Swarm agent stamps. There is NO container.runtime
+ * attribute and there are NO docker_swarm_* / pve_* metrics — the only
+ * metrics that arrive are the docker_stats receiver's container.* series
+ * (container.cpu.utilization, container.memory.usage.total,
+ * container.memory.percent, container.pids.count, container.uptime), so
+ * the presets below target those names verbatim. `container.cpu.utilization`
+ * is already a percentage on the `docker stats` scale - 100% is one full CPU
+ * core, so a container on several cores reads above 100 - and unlike
+ * Proxmox's pve_cpu_usage_ratio it needs no ×100 transform.
+ *
+ * The text under each chart title comes from
+ * DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS, where it is held to the same
+ * rules as every metric tooltip.
+ */
+
+interface MetricSpec {
+  variable: string;
+  title: string;
+  description: string;
+  legend: string;
+  legendUnit: string;
+  metricName: string;
+  aggregation: AggregationType;
+  yAxisFormatter?: (value: number) => string;
+}
+
+function buildQuery(
+  spec: MetricSpec,
+  clusterName: string,
+): MetricQueryConfigData {
+  return {
+    metricAliasData: {
+      metricVariable: spec.variable,
+      title: spec.title,
+      description: spec.description,
+      legend: spec.legend,
+      legendUnit: spec.legendUnit,
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: spec.metricName,
+        attributes: {
+          "resource.docker.swarm.cluster.name": clusterName,
+        },
+        aggegationType: spec.aggregation,
+        aggregateBy: {},
+      },
+      groupBy: {
+        attributes: true,
+      },
+    },
+    yAxisValueFormatter: spec.yAxisFormatter,
+  };
+}
+
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
+  );
+}
+
+/*
+ * Cluster-wide CPU and memory pressure. Avg aggregation grouped by the
+ * datapoint attributes gives one line per container (task), so spikes on
+ * any single task stay visible rather than being averaged away.
+ */
+function getComputeQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "cluster_cpu_utilization",
+        title: "Cluster CPU Utilization",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.clusterCpu,
+        legend: "CPU",
+        legendUnit: "%",
+        metricName: "container.cpu.utilization",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cluster_memory_percent",
+        title: "Cluster Memory Utilization",
+        description:
+          DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.clusterMemoryPercent,
+        legend: "Memory",
+        legendUnit: "%",
+        metricName: "container.memory.percent",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+  ];
+}
+
+/*
+ * Absolute memory bytes used per task, formatted as KiB/MiB/GiB on the
+ * y axis via the shared formatBytes helper.
+ */
+function getMemoryQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "cluster_memory_usage",
+        title: "Task Memory Usage",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.taskMemory,
+        legend: "Memory",
+        legendUnit: "",
+        metricName: "container.memory.usage.total",
+        aggregation: AggregationType.Avg,
+        yAxisFormatter: formatBytes,
+      },
+      cluster,
+    ),
+  ];
+}
+
+/*
+ * "Top tasks" views: Max aggregation grouped by the datapoint attributes
+ * (resource.container.name distinguishes each task) keeps the hottest task
+ * from being diluted by idle ones — the same convention the Docker monitor
+ * alert templates use (Content/en/monitor/docker-monitor.md).
+ */
+function getTopTaskQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "top_tasks_cpu",
+        title: "Top Tasks by CPU",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.topTasksCpu,
+        legend: "CPU",
+        legendUnit: "%",
+        metricName: "container.cpu.utilization",
+        aggregation: AggregationType.Max,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "top_tasks_memory",
+        title: "Top Tasks by Memory",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.topTasksMemory,
+        legend: "Memory",
+        legendUnit: "",
+        metricName: "container.memory.usage.total",
+        aggregation: AggregationType.Max,
+        yAxisFormatter: formatBytes,
+      },
+      cluster,
+    ),
+  ];
+}
+
+/*
+ * Process counts per task. A runaway pid count is an early signal of a
+ * fork bomb or a leaking worker pool before memory pressure shows up.
+ */
+function getProcessQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "task_pids",
+        title: "Task Process Count",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.taskProcesses,
+        legend: "Processes",
+        legendUnit: "",
+        metricName: "container.pids.count",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+  ];
+}
+
+const DockerSwarmClusterInsights: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [cluster, setCluster] = useState<DockerSwarmCluster | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+
+  const [startAndEndDate, setStartAndEndDate] = useState<InBetween<Date>>(
+    RangeStartAndEndDateTimeUtil.getStartAndEndDate({
+      range: TimeRange.PAST_ONE_HOUR,
+    }),
+  );
+
+  const handleTimeRangeChange: (
+    newTimeRange: RangeStartAndEndDateTime,
+  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
+    setTimeRange(newTimeRange);
+    setStartAndEndDate(
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
+    );
+  }, []);
+
+  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const item: DockerSwarmCluster | null = await ModelAPI.getItem({
+        modelType: DockerSwarmCluster,
+        id: modelId,
+        select: {
+          name: true,
+        },
+      });
+      setCluster(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCluster().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!cluster?.name) {
+    return <ErrorMessage message="Cluster not found." />;
+  }
+
+  const clusterName: string = cluster.name;
+
+  /*
+   * The four cards share the page's range, so they share one zoom too
+   * (issue #4105): a drag on any chart narrows every card to the window
+   * dragged out, and a double-click on any chart - in the same card or
+   * another - or Reset zoom beside any card's picker puts back the range
+   * from before the first zoom. Without the scope each card would only
+   * remember its own drags, and a double-click on a different card would
+   * do nothing.
+   */
+  return (
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.CPUChip, "Compute")}
+        description="CPU and memory utilization across every task running in the cluster."
+        queryConfigs={getComputeQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Database, "Memory")}
+        description="Absolute memory bytes used per task across the cluster."
+        queryConfigs={getMemoryQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Cube, "Top Tasks")}
+        description="Peak CPU and memory per task so the busiest workloads stand out."
+        queryConfigs={getTopTaskQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.List, "Processes")}
+        description="Process (PID) count per task — a runaway count is an early signal of a fork bomb or leaking worker pool."
+        queryConfigs={getProcessQueries(clusterName)}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+    </TimeRangeZoomScope>
+  );
+};
+
+export default DockerSwarmClusterInsights;

@@ -1,10 +1,10 @@
-import slugify from "../../Common/Server/Types/MarkdownSlugify";
+import slugify from "../../packages/Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
 import * as path from "path";
 
 const CONTENT_DIR: string = path.resolve(
   __dirname,
-  "../../App/FeatureSet/Docs/Content",
+  "../../packages/App/FeatureSet/Docs/Content",
 );
 const APPLY: boolean = process.argv.includes("--apply");
 

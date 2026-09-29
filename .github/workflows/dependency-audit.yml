@@ -6,10 +6,13 @@ on:
       - "**/package.json"
       - "**/package-lock.json"
       - "**/npm-shrinkwrap.json"
-      - "npm-audit-check.sh"
-      - "npm-audit-exceptions.json"
+      - "Scripts/Security/npm-audit-check.sh"
+      - "Scripts/Security/npm-audit-fix.sh"
+      - "Scripts/Security/npm-audit-exceptions.json"
       - "Scripts/Security/ValidateNpmAudit.js"
+      - "Scripts/Security/PruneNpmAuditExceptions.js"
       - "Scripts/GHA/Tests/npm_audit_check_test.sh"
+      - "Scripts/GHA/Tests/npm_audit_fix_test.sh"
       - ".github/workflows/dependency-audit.yml"
   push:
     branches:
@@ -18,10 +21,13 @@ on:
       - "**/package.json"
       - "**/package-lock.json"
       - "**/npm-shrinkwrap.json"
-      - "npm-audit-check.sh"
-      - "npm-audit-exceptions.json"
+      - "Scripts/Security/npm-audit-check.sh"
+      - "Scripts/Security/npm-audit-fix.sh"
+      - "Scripts/Security/npm-audit-exceptions.json"
       - "Scripts/Security/ValidateNpmAudit.js"
+      - "Scripts/Security/PruneNpmAuditExceptions.js"
       - "Scripts/GHA/Tests/npm_audit_check_test.sh"
+      - "Scripts/GHA/Tests/npm_audit_fix_test.sh"
       - ".github/workflows/dependency-audit.yml"
   schedule:
     # Advisories can be published without any lockfile changing. Recheck the
@@ -48,5 +54,8 @@ jobs:
       - name: Test repository-wide audit gate
         run: bash Scripts/GHA/Tests/npm_audit_check_test.sh
 
+      - name: Test audit exception pruning in the nightly fix job
+        run: bash Scripts/GHA/Tests/npm_audit_fix_test.sh
+
       - name: Audit every npm lockfile
-        run: bash npm-audit-check.sh
+        run: bash Scripts/Security/npm-audit-check.sh

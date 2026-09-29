@@ -11,6 +11,9 @@ x-common-variables: &common-variables
 
   NODE_ENV: ${ENVIRONMENT}
   BILLING_ENABLED: ${BILLING_ENABLED}
+  # Deprecated (see config.example.env): the edition is the image APP_TAG
+  # pulls, and true on the Community image makes the App refuse to start. Deliberately no ONEUPTIME_EDITION here: an empty value
+  # would override the ONEUPTIME_EDITION=enterprise the Enterprise image sets.
   IS_ENTERPRISE_EDITION: ${IS_ENTERPRISE_EDITION}
   BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
   SUBSCRIPTION_PLAN_BASIC: ${SUBSCRIPTION_PLAN_BASIC}
@@ -30,10 +33,15 @@ x-common-variables: &common-variables
   ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
   # Outbound webhook egress policy — see config.example.env for the full
-  # explanation. Both are off by default and both need a matching per-project
-  # opt-in in Project Settings before they grant anything.
+  # explanation. Both are off by default and instance-wide; there is no
+  # per-project setting.
   ALLOW_PRIVATE_NETWORK_WEBHOOKS: ${ALLOW_PRIVATE_NETWORK_WEBHOOKS:-false}
   PRIVATE_NETWORK_WEBHOOK_ALLOWLIST: ${PRIVATE_NETWORK_WEBHOOK_ALLOWLIST:-}
+  # Egress policy for everything that is not a webhook (data sources, LLM
+  # providers, SMTP, OIDC discovery, runbook HTTP steps) — see
+  # config.example.env. Defaulted so a config.env upgraded in place, which will
+  # not have the key, keeps today's self-hosted behaviour.
+  DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES: ${DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES:-false}
 
   SERVER_APP_HOSTNAME: app
   SERVER_HOME_HOSTNAME: home
@@ -388,11 +396,10 @@ services:
   probe-1:
     restart: always
     network_mode: host
-    # Chromium keeps its shared-memory segments in /dev/shm, and Docker gives a
-    # container 64MB of it by default. Several concurrent synthetic browsers at
-    # a desktop viewport exhaust that, and a browser that cannot allocate
-    # shared memory does not fail cleanly -- its renderer or network service
-    # wedges, and the synthetic runtime's first navigation never completes.
+    # A /dev/shm larger than Docker's 64MB default. The synthetic runtime's
+    # browsers do not use it: Playwright starts Chromium with
+    # --disable-dev-shm-usage, so Chromium keeps its shared memory in the
+    # per-execution run directory under /tmp, and Firefox uses memfd.
     shm_size: ${GLOBAL_PROBE_1_SHM_SIZE:-512m}
     # The probe remains root so its trusted supervisor can assign a unique UID
     # to every synthetic execution. Drop everything except the capabilities it
@@ -409,9 +416,18 @@ services:
       - SETUID
     security_opt:
       - no-new-privileges:true
-      # Vendored unchanged from Playwright's official Docker profile:
-      # https://github.com/microsoft/playwright/blob/main/utils/docker/seccomp_profile.json
-      - seccomp=./Probe/seccomp_profile.json
+      # Playwright's official Docker profile
+      # (https://github.com/microsoft/playwright/blob/main/utils/docker/seccomp_profile.json)
+      # with one change: chroot is allowed next to clone/setns/unshare.
+      # Firefox and Chromium both sandbox their child processes by creating
+      # a user namespace and calling chroot inside it, which needs no
+      # capability. Upstream allows chroot only to a container holding
+      # CAP_SYS_CHROOT, which cap_drop ALL removes, and that crashed every
+      # Firefox content process and the Chromium zygote at launch. Allowing
+      # the syscall in the profile, rather than adding the capability back,
+      # keeps chroot(2) unusable for the root supervisor itself.
+      # Probe/Tests/Build/ProbeContainerBrowserSandbox.test.ts pins this.
+      - seccomp=./packages/Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -423,15 +439,20 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_CONCURRENCY}
       PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES:-1610612736}
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
-      # Compose installs the bundled Playwright seccomp profile above, so the
-      # Chromium user-namespace sandbox can be required instead of silently
-      # falling back to --no-sandbox.
+      # Compose installs the bundled seccomp profile above, which allows the
+      # user namespace and the chroot inside it, so the Chromium sandbox can
+      # be required instead of silently falling back to --no-sandbox.
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-      # Bundled probes auto-register as global probes, so the process ignores
-      # this private-probe opt-in and always enforces public-only HTTP egress.
-      # See config.example.env.
+      # Honored here too (issue #3879). This one config.env value applies to
+      # both bundled probes, which auto-register as global probes, so "true"
+      # lets monitors from every project on the instance reach private
+      # addresses through them. Off by default; see config.example.env.
       PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
+      # Lets the probe apply the one exception to the setting above: a global
+      # probe of a billing-enabled (hosted, open-signup) instance stays
+      # public-only. The Helm chart passes billing.enabled the same way.
+      BILLING_ENABLED: ${BILLING_ENABLED}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY:-}
       PROBE_SNMP_GET_CHUNK_SIZE: ${GLOBAL_PROBE_1_SNMP_GET_CHUNK_SIZE:-}
@@ -453,11 +474,10 @@ services:
   probe-2:
     restart: always
     network_mode: host
-    # Chromium keeps its shared-memory segments in /dev/shm, and Docker gives a
-    # container 64MB of it by default. Several concurrent synthetic browsers at
-    # a desktop viewport exhaust that, and a browser that cannot allocate
-    # shared memory does not fail cleanly -- its renderer or network service
-    # wedges, and the synthetic runtime's first navigation never completes.
+    # A /dev/shm larger than Docker's 64MB default. The synthetic runtime's
+    # browsers do not use it: Playwright starts Chromium with
+    # --disable-dev-shm-usage, so Chromium keeps its shared memory in the
+    # per-execution run directory under /tmp, and Firefox uses memfd.
     shm_size: ${GLOBAL_PROBE_2_SHM_SIZE:-512m}
     cap_drop:
       - ALL
@@ -470,7 +490,7 @@ services:
       - SETUID
     security_opt:
       - no-new-privileges:true
-      - seccomp=./Probe/seccomp_profile.json
+      - seccomp=./packages/Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -484,10 +504,15 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-      # Bundled probes auto-register as global probes, so the process ignores
-      # this private-probe opt-in and always enforces public-only HTTP egress.
-      # See config.example.env.
+      # Honored here too (issue #3879). This one config.env value applies to
+      # both bundled probes, which auto-register as global probes, so "true"
+      # lets monitors from every project on the instance reach private
+      # addresses through them. Off by default; see config.example.env.
       PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
+      # Lets the probe apply the one exception to the setting above: a global
+      # probe of a billing-enabled (hosted, open-signup) instance stays
+      # public-only. The Helm chart passes billing.enabled the same way.
+      BILLING_ENABLED: ${BILLING_ENABLED}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_2_NETWORK_DEVICE_POLL_CONCURRENCY:-}
       PROBE_SNMP_GET_CHUNK_SIZE: ${GLOBAL_PROBE_2_SNMP_GET_CHUNK_SIZE:-}
@@ -548,6 +573,19 @@ services:
     network_mode: host # This is needed to access the host network,
     environment:
       <<: *common-variables
+      # ExceptionOccurrenceFixture writes to ClickHouse directly, so pass exactly
+      # the connection settings it reads. From this host-networked container the
+      # "clickhouse" hostname does not resolve; with HOST=localhost the fixture
+      # maps it to the loopback port published by
+      # Scripts/Dev/docker-compose.dev.yml or
+      # packages/E2E/docker-compose.e2e-clickhouse.yml. E2E_CLICKHOUSE_URL
+      # overrides both.
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
+      E2E_CLICKHOUSE_URL: ${E2E_CLICKHOUSE_URL:-}
       E2E_TEST_IS_USER_REGISTERED: ${E2E_TEST_IS_USER_REGISTERED}
       E2E_TEST_REGISTERED_USER_EMAIL: ${E2E_TEST_REGISTERED_USER_EMAIL}
       E2E_TEST_REGISTERED_USER_PASSWORD: ${E2E_TEST_REGISTERED_USER_PASSWORD}

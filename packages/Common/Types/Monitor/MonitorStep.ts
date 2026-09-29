@@ -1,0 +1,1525 @@
+import HTTPMethod from "../API/HTTPMethod";
+import Hostname from "../API/Hostname";
+import URL from "../API/URL";
+import DatabaseProperty from "../Database/DatabaseProperty";
+import Dictionary from "../Dictionary";
+import BadDataException from "../Exception/BadDataException";
+import IP from "../IP/IP";
+import { JSONObject, ObjectType } from "../JSON";
+import JSONFunctions from "../JSONFunctions";
+import ObjectID from "../ObjectID";
+import Port from "../Port";
+import MonitorCriteria from "./MonitorCriteria";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "./MonitorStepLogMonitor";
+import MonitorStepSecurityEventsMonitor, {
+  MonitorStepSecurityEventsMonitorUtil,
+} from "./MonitorStepSecurityEventsMonitor";
+import MonitorType from "./MonitorType";
+import BrowserType from "./SyntheticMonitors//BrowserType";
+import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
+import { FindOperator } from "typeorm";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "./MonitorStepTraceMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "./MonitorStepMetricMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "./MonitorStepExceptionMonitor";
+import MonitorStepProfileMonitor, {
+  MonitorStepProfileMonitorUtil,
+} from "./MonitorStepProfileMonitor";
+import MonitorStepNetworkDeviceMonitor, {
+  MonitorStepNetworkDeviceMonitorUtil,
+} from "./MonitorStepNetworkDeviceMonitor";
+import MonitorStepSnmpMonitor, {
+  MonitorStepSnmpMonitorUtil,
+} from "./MonitorStepSnmpMonitor";
+import MonitorStepDnsMonitor, {
+  MonitorStepDnsMonitorUtil,
+} from "./MonitorStepDnsMonitor";
+import MonitorStepDomainMonitor, {
+  MonitorStepDomainMonitorUtil,
+} from "./MonitorStepDomainMonitor";
+import MonitorStepDnssecMonitor, {
+  MonitorStepDnssecMonitorUtil,
+} from "./MonitorStepDnssecMonitor";
+import MonitorStepSqlMonitor, {
+  MonitorStepSqlMonitorUtil,
+} from "./MonitorStepSqlMonitor";
+import MonitorStepDatabaseMonitor, {
+  MonitorStepDatabaseMonitorUtil,
+} from "./MonitorStepDatabaseMonitor";
+import SqlDatabaseType from "./SqlDatabaseType";
+import MonitorStepExternalStatusPageMonitor, {
+  MonitorStepExternalStatusPageMonitorUtil,
+} from "./MonitorStepExternalStatusPageMonitor";
+import MonitorStepKubernetesMonitor, {
+  MonitorStepKubernetesMonitorUtil,
+} from "./MonitorStepKubernetesMonitor";
+import MonitorStepDockerMonitor, {
+  MonitorStepDockerMonitorUtil,
+} from "./MonitorStepDockerMonitor";
+import MonitorStepHostMonitor, {
+  MonitorStepHostMonitorUtil,
+} from "./MonitorStepHostMonitor";
+import MonitorStepPodmanMonitor, {
+  MonitorStepPodmanMonitorUtil,
+} from "./MonitorStepPodmanMonitor";
+import MonitorStepProxmoxMonitor, {
+  MonitorStepProxmoxMonitorUtil,
+} from "./MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor, {
+  MonitorStepVMwareMonitorUtil,
+} from "./MonitorStepVMwareMonitor";
+import MonitorStepDockerSwarmMonitor, {
+  MonitorStepDockerSwarmMonitorUtil,
+} from "./MonitorStepDockerSwarmMonitor";
+import MonitorStepCephMonitor, {
+  MonitorStepCephMonitorUtil,
+} from "./MonitorStepCephMonitor";
+import MonitorStepIoTMonitor, {
+  MonitorStepIoTMonitorUtil,
+} from "./MonitorStepIoTMonitor";
+import MetricsViewConfig from "../Metrics/MetricsViewConfig";
+import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
+import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
+
+/*
+ * Caps and defaults for per-step request timeout and retry settings.
+ * Users may lower these via the UI; values higher than the cap are clamped.
+ * The retry values count retries AFTER the first attempt, so 0 means exactly
+ * one attempt and 3 means up to four.
+ */
+export const MAX_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000; // 60 seconds
+export const DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000;
+export const MAX_MONITOR_RETRY_COUNT: number = 3;
+export const DEFAULT_MONITOR_RETRY_COUNT: number = 3;
+
+export const clampMonitorRequestTimeoutInMs: (value: number) => number = (
+  value: number,
+): number => {
+  if (!value || value <= 0) {
+    return DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS;
+  }
+  if (value > MAX_MONITOR_REQUEST_TIMEOUT_IN_MS) {
+    return MAX_MONITOR_REQUEST_TIMEOUT_IN_MS;
+  }
+  return value;
+};
+
+export const clampMonitorRetryCount: (value: number) => number = (
+  value: number,
+): number => {
+  if (value === undefined || value === null || isNaN(value) || value < 0) {
+    return DEFAULT_MONITOR_RETRY_COUNT;
+  }
+  if (value > MAX_MONITOR_RETRY_COUNT) {
+    return MAX_MONITOR_RETRY_COUNT;
+  }
+  return value;
+};
+
+export interface MonitorStepType {
+  id: string;
+  // Template policy: keep these fields from each linked monitor during sync.
+  doNotSyncFields?: Array<string> | undefined;
+  monitorDestination?: URL | IP | Hostname | undefined;
+
+  monitorCriteria: MonitorCriteria;
+
+  // this is for API monitor.
+  requestType: HTTPMethod;
+  requestHeaders?: Dictionary<string> | undefined;
+  requestBody?: string | undefined;
+
+  // this is used for API and Website monitor
+  doNotFollowRedirects?: boolean | undefined;
+  allowSelfSignedCertificates?: boolean | undefined;
+
+  /*
+   * mTLS / client certificate authentication (API and Website monitors).
+   * Values can be raw PEM strings or {{monitorSecrets.name}} references.
+   */
+  tlsClientCertificate?: string | undefined;
+  tlsClientKey?: string | undefined;
+  tlsClientKeyPassphrase?: string | undefined;
+
+  // this is for port monitors.
+  monitorDestinationPort?: Port | undefined;
+
+  // this is for custom code monitors or synthetic monitors.
+  customCode?: string | undefined;
+
+  // this is for synthetic monitors.
+  screenSizeTypes?: Array<ScreenSizeType> | undefined;
+  browserTypes?: Array<BrowserType> | undefined;
+
+  // retry count for synthetic monitors - number of times to retry on error
+  retryCountOnError?: number | undefined;
+
+  /*
+   * Per-step request timeout in milliseconds for probe-based monitors
+   * (Website, API, Ping, IP, Port, SSLCertificate). Defaults to and is
+   * capped at 60000 ms (60 seconds).
+   */
+  requestTimeoutInMs?: number | undefined;
+
+  /*
+   * Per-step retry count for probe-based monitors when a check fails. It
+   * counts retries after the first attempt: 0 means one attempt, 2 means up
+   * to three. Defaults to and is capped at 3 on the probe.
+   */
+  retryCount?: number | undefined;
+
+  // Log monitor type.
+  logMonitor?: MonitorStepLogMonitor | undefined;
+
+  // Security events monitor type.
+  securityEventsMonitor?: MonitorStepSecurityEventsMonitor | undefined;
+
+  // trace monitor type.
+  traceMonitor?: MonitorStepTraceMonitor | undefined;
+
+  // Metric Monitor
+  metricMonitor: MonitorStepMetricMonitor | undefined;
+
+  // Exception monitor
+  exceptionMonitor?: MonitorStepExceptionMonitor | undefined;
+
+  // Profile monitor
+  profileMonitor?: MonitorStepProfileMonitor | undefined;
+
+  /*
+   * SNMP config carrier. For Network Device monitors this is populated
+   * server-side (hydrated from the referenced NetworkDevice) when work is
+   * handed to probes — it is never set by users.
+   */
+  snmpMonitor?: MonitorStepSnmpMonitor | undefined;
+
+  // Network Device monitor (references a NetworkDevice resource)
+  networkDeviceMonitor?: MonitorStepNetworkDeviceMonitor | undefined;
+
+  // DNS monitor
+  dnsMonitor?: MonitorStepDnsMonitor | undefined;
+
+  // Domain monitor
+  domainMonitor?: MonitorStepDomainMonitor | undefined;
+
+  // DNSSEC monitor
+  dnssecMonitor?: MonitorStepDnssecMonitor | undefined;
+
+  // SQL Query monitor
+  sqlMonitor?: MonitorStepSqlMonitor | undefined;
+
+  // Database Health monitor (built-in catalog metrics, no user query)
+  databaseMonitor?: MonitorStepDatabaseMonitor | undefined;
+
+  // External Status Page monitor
+  externalStatusPageMonitor?: MonitorStepExternalStatusPageMonitor | undefined;
+
+  // Kubernetes monitor
+  kubernetesMonitor?: MonitorStepKubernetesMonitor | undefined;
+
+  // Docker monitor
+  dockerMonitor?: MonitorStepDockerMonitor | undefined;
+
+  // Host monitor
+  hostMonitor?: MonitorStepHostMonitor | undefined;
+
+  // Podman monitor
+  podmanMonitor?: MonitorStepPodmanMonitor | undefined;
+
+  // Proxmox monitor
+  proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
+
+  // VMware monitor
+  vmwareMonitor?: MonitorStepVMwareMonitor | undefined;
+
+  // Docker Swarm monitor
+  dockerSwarmMonitor?: MonitorStepDockerSwarmMonitor | undefined;
+
+  // Ceph monitor
+  cephMonitor?: MonitorStepCephMonitor | undefined;
+
+  // IoT monitor
+  iotMonitor?: MonitorStepIoTMonitor | undefined;
+}
+
+export default class MonitorStep extends DatabaseProperty {
+  public data: MonitorStepType | undefined = undefined;
+
+  public constructor() {
+    super();
+
+    this.data = {
+      id: ObjectID.generate().toString(),
+      monitorDestination: undefined,
+      doNotFollowRedirects: undefined,
+      allowSelfSignedCertificates: undefined,
+      tlsClientCertificate: undefined,
+      tlsClientKey: undefined,
+      tlsClientKeyPassphrase: undefined,
+      monitorDestinationPort: undefined,
+      monitorCriteria: new MonitorCriteria(),
+      requestType: HTTPMethod.GET,
+      requestHeaders: undefined,
+      requestBody: undefined,
+      customCode: undefined,
+      screenSizeTypes: undefined,
+      browserTypes: undefined,
+      retryCountOnError: undefined,
+      requestTimeoutInMs: undefined,
+      retryCount: undefined,
+      logMonitor: undefined,
+      securityEventsMonitor: undefined,
+      traceMonitor: undefined,
+      metricMonitor: undefined,
+      exceptionMonitor: undefined,
+      profileMonitor: undefined,
+      snmpMonitor: undefined,
+      networkDeviceMonitor: undefined,
+      dnsMonitor: undefined,
+      domainMonitor: undefined,
+      dnssecMonitor: undefined,
+      sqlMonitor: undefined,
+      databaseMonitor: undefined,
+      externalStatusPageMonitor: undefined,
+      kubernetesMonitor: undefined,
+      dockerMonitor: undefined,
+      hostMonitor: undefined,
+      podmanMonitor: undefined,
+      proxmoxMonitor: undefined,
+      vmwareMonitor: undefined,
+      dockerSwarmMonitor: undefined,
+      cephMonitor: undefined,
+      iotMonitor: undefined,
+    };
+  }
+
+  public static getDefaultMonitorStep(arg: {
+    monitorName: string;
+    monitorType: MonitorType;
+    onlineMonitorStatusId: ObjectID;
+    offlineMonitorStatusId: ObjectID;
+    defaultIncidentSeverityId: ObjectID;
+    defaultAlertSeverityId: ObjectID;
+  }): MonitorStep {
+    const monitorStep: MonitorStep = new MonitorStep();
+
+    monitorStep.data = {
+      id: ObjectID.generate().toString(),
+      monitorDestination: undefined,
+      doNotFollowRedirects: undefined,
+      allowSelfSignedCertificates: undefined,
+      tlsClientCertificate: undefined,
+      tlsClientKey: undefined,
+      tlsClientKeyPassphrase: undefined,
+      monitorDestinationPort: undefined,
+      monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
+      requestType: HTTPMethod.GET,
+      requestHeaders: undefined,
+      requestBody: undefined,
+      customCode: undefined,
+      screenSizeTypes: undefined,
+      browserTypes: undefined,
+      retryCountOnError: undefined,
+      requestTimeoutInMs: undefined,
+      retryCount: undefined,
+      /*
+       * Seed the telemetry sub-config for the monitor's OWN type so a
+       * monitor saved on defaults (without the user touching the telemetry
+       * sub-form) still persists a usable query config. Without this the
+       * sub-config stayed undefined and the worker threw "<type> query/config
+       * is missing" on every evaluation, so the monitor never ran. Only the
+       * matching type is seeded; every other type stays undefined.
+       */
+      logMonitor:
+        arg.monitorType === MonitorType.Logs
+          ? MonitorStepLogMonitorUtil.getDefault()
+          : undefined,
+      securityEventsMonitor:
+        arg.monitorType === MonitorType.SecurityEvents
+          ? MonitorStepSecurityEventsMonitorUtil.getDefault()
+          : undefined,
+      traceMonitor:
+        arg.monitorType === MonitorType.Traces
+          ? MonitorStepTraceMonitorUtil.getDefault()
+          : undefined,
+      metricMonitor:
+        arg.monitorType === MonitorType.Metrics
+          ? MonitorStepMetricMonitorUtil.getDefault()
+          : undefined,
+      exceptionMonitor:
+        arg.monitorType === MonitorType.Exceptions
+          ? MonitorStepExceptionMonitorUtil.getDefault()
+          : undefined,
+      profileMonitor: undefined,
+      snmpMonitor: undefined,
+      networkDeviceMonitor: undefined,
+      dnsMonitor: undefined,
+      domainMonitor: undefined,
+      dnssecMonitor: undefined,
+      sqlMonitor: undefined,
+      /*
+       * Seeded, unlike sqlMonitor. The SQL form always writes its config
+       * because the query field is required; a Database Health step has no
+       * required field, so an untouched step would reach the probe with no
+       * connection details at all and the monitor would never run.
+       */
+      databaseMonitor:
+        arg.monitorType === MonitorType.Database
+          ? MonitorStepDatabaseMonitorUtil.getDefault()
+          : undefined,
+      externalStatusPageMonitor: undefined,
+      kubernetesMonitor: undefined,
+      dockerMonitor: undefined,
+      hostMonitor: undefined,
+      podmanMonitor: undefined,
+      proxmoxMonitor: undefined,
+      vmwareMonitor: undefined,
+      dockerSwarmMonitor: undefined,
+      cephMonitor: undefined,
+      iotMonitor: undefined,
+    };
+
+    return monitorStep;
+  }
+
+  /**
+   * Telemetry monitor steps store their metric query configs under their
+   * own step shape (metricMonitor, iotMonitor, kubernetesMonitor, ...),
+   * yet all of them produce a MetricMonitorResponse whose result slots
+   * are ordered by these configs. Criteria evaluation must resolve
+   * metric aliases through whichever shape the step carries — reading
+   * only `metricMonitor` silently falls back to result slot 0 for every
+   * other telemetry monitor type.
+   */
+  public static getMetricsViewConfig(
+    monitorStep: MonitorStep | undefined,
+  ): MetricsViewConfig | undefined {
+    const data: MonitorStepType | undefined = monitorStep?.data;
+
+    if (!data) {
+      return undefined;
+    }
+
+    return (
+      data.metricMonitor?.metricViewConfig ||
+      data.iotMonitor?.metricViewConfig ||
+      data.kubernetesMonitor?.metricViewConfig ||
+      data.dockerMonitor?.metricViewConfig ||
+      data.dockerSwarmMonitor?.metricViewConfig ||
+      data.hostMonitor?.metricViewConfig ||
+      data.podmanMonitor?.metricViewConfig ||
+      data.proxmoxMonitor?.metricViewConfig ||
+      data.vmwareMonitor?.metricViewConfig ||
+      data.cephMonitor?.metricViewConfig
+    );
+  }
+
+  /**
+   * The union of `groupByAttributeKeys` across every metric query config
+   * on this step — i.e. the attributes the monitor is grouped by.
+   *
+   * This is the single source of truth for "is this monitor grouped?".
+   * The telemetry worker uses it to decide whether to build a
+   * `seriesBreakdown`, and the criteria evaluator uses it to decide
+   * whether a criteria is *meant* to fan out one alert/incident per
+   * series. Those two answers must never disagree: when they did, a
+   * grouped monitor that produced no per-series match silently fell
+   * back to a single whole-monitor alert whose dedupe key carries no
+   * series, and every host after the first was skipped for as long as
+   * that alert stayed open.
+   */
+  public static getGroupByAttributeKeys(
+    monitorStep: MonitorStep | undefined,
+  ): Array<string> {
+    return MonitorStep.getGroupByAttributeKeysFromQueryConfigs(
+      MonitorStep.getMetricsViewConfig(monitorStep)?.queryConfigs || [],
+    );
+  }
+
+  /**
+   * The query-config-level half of `getGroupByAttributeKeys`, for the
+   * telemetry worker which already holds the configs and never
+   * reconstructs the step. Per-series alerting needs a consistent key
+   * set across queries so formula series line up — otherwise `a + b`
+   * would split differently for `a` and for `b` and the per-series
+   * formula evaluation would not align — hence the union rather than
+   * per-query keys.
+   */
+  public static getGroupByAttributeKeysFromQueryConfigs(
+    queryConfigs: Array<MetricQueryConfigData>,
+  ): Array<string> {
+    const keys: Set<string> = new Set<string>();
+
+    for (const queryConfig of queryConfigs) {
+      for (const key of queryConfig?.metricQueryData?.groupByAttributeKeys ||
+        []) {
+        if (key) {
+          keys.add(key);
+        }
+      }
+    }
+
+    return Array.from(keys);
+  }
+
+  public get id(): ObjectID {
+    return new ObjectID(this.data?.id as string);
+  }
+
+  public set id(v: ObjectID) {
+    this.data!.id = v.toString();
+  }
+
+  public setRequestType(requestType: HTTPMethod): MonitorStep {
+    this.data!.requestType = requestType;
+    return this;
+  }
+
+  public setRequestHeaders(requestHeaders: Dictionary<string>): MonitorStep {
+    this.data!.requestHeaders = requestHeaders;
+    return this;
+  }
+
+  public static clone(monitorStep: MonitorStep): MonitorStep {
+    return MonitorStep.fromJSON(monitorStep.toJSON());
+  }
+
+  public setRequestBody(requestBody: string): MonitorStep {
+    this.data!.requestBody = requestBody;
+    return this;
+  }
+
+  /*
+   * `undefined` clears it. The form needs that: a destination that no longer
+   * parses must not leave the previously parsed one sitting in the step,
+   * where it would be saved as if the operator had meant it.
+   */
+  public setMonitorDestination(
+    monitorDestination: URL | IP | Hostname | undefined,
+  ): MonitorStep {
+    this.data!.monitorDestination = monitorDestination;
+    return this;
+  }
+
+  public setDoNotFollowRedirects(doNotFollowRedirects: boolean): MonitorStep {
+    this.data!.doNotFollowRedirects = doNotFollowRedirects;
+    return this;
+  }
+
+  public setAllowSelfSignedCertificates(
+    allowSelfSignedCertificates: boolean,
+  ): MonitorStep {
+    this.data!.allowSelfSignedCertificates = allowSelfSignedCertificates;
+    return this;
+  }
+
+  public setTlsClientCertificate(
+    tlsClientCertificate: string | undefined,
+  ): MonitorStep {
+    this.data!.tlsClientCertificate = tlsClientCertificate || undefined;
+    return this;
+  }
+
+  public setTlsClientKey(tlsClientKey: string | undefined): MonitorStep {
+    this.data!.tlsClientKey = tlsClientKey || undefined;
+    return this;
+  }
+
+  public setTlsClientKeyPassphrase(
+    tlsClientKeyPassphrase: string | undefined,
+  ): MonitorStep {
+    this.data!.tlsClientKeyPassphrase = tlsClientKeyPassphrase || undefined;
+    return this;
+  }
+
+  public setPort(monitorDestinationPort: Port): MonitorStep {
+    this.data!.monitorDestinationPort = monitorDestinationPort;
+    return this;
+  }
+
+  public setScreenSizeTypes(
+    screenSizeTypes: Array<ScreenSizeType>,
+  ): MonitorStep {
+    this.data!.screenSizeTypes = screenSizeTypes;
+    return this;
+  }
+
+  public setBrowserTypes(browserTypes: Array<BrowserType>): MonitorStep {
+    this.data!.browserTypes = browserTypes;
+    return this;
+  }
+
+  public setRetryCountOnError(retryCountOnError: number): MonitorStep {
+    this.data!.retryCountOnError = retryCountOnError;
+    return this;
+  }
+
+  public setRequestTimeoutInMs(
+    requestTimeoutInMs: number | undefined,
+  ): MonitorStep {
+    if (requestTimeoutInMs === undefined) {
+      this.data!.requestTimeoutInMs = undefined;
+      return this;
+    }
+    this.data!.requestTimeoutInMs =
+      clampMonitorRequestTimeoutInMs(requestTimeoutInMs);
+    return this;
+  }
+
+  public setRetryCount(retryCount: number | undefined): MonitorStep {
+    if (retryCount === undefined) {
+      this.data!.retryCount = undefined;
+      return this;
+    }
+    this.data!.retryCount = clampMonitorRetryCount(retryCount);
+    return this;
+  }
+
+  public setLogMonitor(logMonitor: MonitorStepLogMonitor): MonitorStep {
+    this.data!.logMonitor = logMonitor;
+    return this;
+  }
+
+  public setSecurityEventsMonitor(
+    securityEventsMonitor: MonitorStepSecurityEventsMonitor,
+  ): MonitorStep {
+    this.data!.securityEventsMonitor = securityEventsMonitor;
+    return this;
+  }
+
+  public setMetricMonitor(
+    metricMonitor: MonitorStepMetricMonitor,
+  ): MonitorStep {
+    this.data!.metricMonitor = metricMonitor;
+    return this;
+  }
+
+  public setTraceMonitor(traceMonitor: MonitorStepTraceMonitor): MonitorStep {
+    this.data!.traceMonitor = traceMonitor;
+    return this;
+  }
+
+  public setExceptionMonitor(
+    exceptionMonitor: MonitorStepExceptionMonitor,
+  ): MonitorStep {
+    this.data!.exceptionMonitor = exceptionMonitor;
+    return this;
+  }
+
+  public setProfileMonitor(
+    profileMonitor: MonitorStepProfileMonitor,
+  ): MonitorStep {
+    this.data!.profileMonitor = profileMonitor;
+    return this;
+  }
+
+  public setNetworkDeviceMonitor(
+    networkDeviceMonitor: MonitorStepNetworkDeviceMonitor,
+  ): MonitorStep {
+    this.data!.networkDeviceMonitor = networkDeviceMonitor;
+    return this;
+  }
+
+  public setSnmpMonitor(snmpMonitor: MonitorStepSnmpMonitor): MonitorStep {
+    this.data!.snmpMonitor = snmpMonitor;
+    return this;
+  }
+
+  public setDnsMonitor(dnsMonitor: MonitorStepDnsMonitor): MonitorStep {
+    this.data!.dnsMonitor = dnsMonitor;
+    return this;
+  }
+
+  public setDomainMonitor(
+    domainMonitor: MonitorStepDomainMonitor,
+  ): MonitorStep {
+    this.data!.domainMonitor = domainMonitor;
+    return this;
+  }
+
+  public setDnssecMonitor(
+    dnssecMonitor: MonitorStepDnssecMonitor,
+  ): MonitorStep {
+    this.data!.dnssecMonitor = dnssecMonitor;
+    return this;
+  }
+
+  public setSqlMonitor(sqlMonitor: MonitorStepSqlMonitor): MonitorStep {
+    this.data!.sqlMonitor = sqlMonitor;
+    return this;
+  }
+
+  public setDatabaseMonitor(
+    databaseMonitor: MonitorStepDatabaseMonitor,
+  ): MonitorStep {
+    this.data!.databaseMonitor = databaseMonitor;
+    return this;
+  }
+
+  public setExternalStatusPageMonitor(
+    externalStatusPageMonitor: MonitorStepExternalStatusPageMonitor,
+  ): MonitorStep {
+    this.data!.externalStatusPageMonitor = externalStatusPageMonitor;
+    return this;
+  }
+
+  public setKubernetesMonitor(
+    kubernetesMonitor: MonitorStepKubernetesMonitor,
+  ): MonitorStep {
+    this.data!.kubernetesMonitor = kubernetesMonitor;
+    return this;
+  }
+
+  public setDockerMonitor(
+    dockerMonitor: MonitorStepDockerMonitor,
+  ): MonitorStep {
+    this.data!.dockerMonitor = dockerMonitor;
+    return this;
+  }
+
+  public setHostMonitor(hostMonitor: MonitorStepHostMonitor): MonitorStep {
+    this.data!.hostMonitor = hostMonitor;
+    return this;
+  }
+
+  public setPodmanMonitor(
+    podmanMonitor: MonitorStepPodmanMonitor,
+  ): MonitorStep {
+    this.data!.podmanMonitor = podmanMonitor;
+    return this;
+  }
+
+  public setProxmoxMonitor(
+    proxmoxMonitor: MonitorStepProxmoxMonitor,
+  ): MonitorStep {
+    this.data!.proxmoxMonitor = proxmoxMonitor;
+    return this;
+  }
+
+  public setVMwareMonitor(
+    vmwareMonitor: MonitorStepVMwareMonitor,
+  ): MonitorStep {
+    this.data!.vmwareMonitor = vmwareMonitor;
+    return this;
+  }
+
+  public setDockerSwarmMonitor(
+    dockerSwarmMonitor: MonitorStepDockerSwarmMonitor,
+  ): MonitorStep {
+    this.data!.dockerSwarmMonitor = dockerSwarmMonitor;
+    return this;
+  }
+
+  public setCephMonitor(cephMonitor: MonitorStepCephMonitor): MonitorStep {
+    this.data!.cephMonitor = cephMonitor;
+    return this;
+  }
+
+  public setIoTMonitor(iotMonitor: MonitorStepIoTMonitor): MonitorStep {
+    this.data!.iotMonitor = iotMonitor;
+    return this;
+  }
+
+  public setCustomCode(customCode: string): MonitorStep {
+    this.data!.customCode = customCode;
+    return this;
+  }
+
+  public setMonitorCriteria(monitorCriteria: MonitorCriteria): MonitorStep {
+    this.data!.monitorCriteria = monitorCriteria;
+    return this;
+  }
+
+  public static getNewMonitorStepAsJSON(): JSONObject {
+    return {
+      _type: ObjectType.MonitorStep,
+      value: {
+        id: ObjectID.generate().toString(),
+        monitorDestination: undefined,
+        doNotFollowRedirects: undefined,
+        allowSelfSignedCertificates: undefined,
+        tlsClientCertificate: undefined,
+        tlsClientKey: undefined,
+        tlsClientKeyPassphrase: undefined,
+        monitorDestinationPort: undefined,
+        monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
+        requestType: HTTPMethod.GET,
+        requestHeaders: undefined,
+        requestBody: undefined,
+        customCode: undefined,
+        screenSizeTypes: undefined,
+        browserTypes: undefined,
+        retryCountOnError: undefined,
+        requestTimeoutInMs: undefined,
+        retryCount: undefined,
+        logMonitor: undefined,
+        securityEventsMonitor: undefined,
+        exceptionMonitor: undefined,
+        kubernetesMonitor: undefined,
+        dockerMonitor: undefined,
+        hostMonitor: undefined,
+        podmanMonitor: undefined,
+        proxmoxMonitor: undefined,
+        vmwareMonitor: undefined,
+        dockerSwarmMonitor: undefined,
+        cephMonitor: undefined,
+        iotMonitor: undefined,
+      },
+    };
+  }
+
+  public static getValidationError(
+    value: MonitorStep,
+    monitorType: MonitorType,
+  ): string | null {
+    if (!value.data) {
+      return "Monitor Step is required.";
+    }
+
+    try {
+      MonitorTemplateSyncFieldUtil.parse(
+        value.data.doNotSyncFields,
+        monitorType,
+      );
+    } catch (error) {
+      return (error as Error).message;
+    }
+
+    // If the monitor type is incoming request, then the monitor destination is not required
+    if (
+      !value.data.monitorDestination &&
+      (monitorType === MonitorType.Port ||
+        monitorType === MonitorType.API ||
+        monitorType === MonitorType.Ping ||
+        monitorType === MonitorType.Website ||
+        monitorType === MonitorType.IP ||
+        monitorType === MonitorType.SSLCertificate)
+    ) {
+      return "Monitor Destination is required.";
+    }
+
+    if (
+      !value.data.customCode &&
+      (monitorType === MonitorType.CustomJavaScriptCode ||
+        monitorType === MonitorType.SyntheticMonitor)
+    ) {
+      if (monitorType === MonitorType.CustomJavaScriptCode) {
+        return "Custom Code is required";
+      }
+      return "Playwright code is required.";
+    }
+
+    if (!value.data.monitorCriteria) {
+      return "Monitor Criteria is required";
+    }
+
+    if (
+      MonitorCriteria.getValidationError(
+        value.data.monitorCriteria,
+        monitorType,
+      )
+    ) {
+      return MonitorCriteria.getValidationError(
+        value.data.monitorCriteria,
+        monitorType,
+      );
+    }
+
+    if (!value.data.requestType && monitorType === MonitorType.API) {
+      return "Request Type is required";
+    }
+
+    if (
+      monitorType === MonitorType.API ||
+      monitorType === MonitorType.Website
+    ) {
+      const hasCert: boolean = Boolean(
+        value.data.tlsClientCertificate &&
+          value.data.tlsClientCertificate.trim(),
+      );
+      const hasKey: boolean = Boolean(
+        value.data.tlsClientKey && value.data.tlsClientKey.trim(),
+      );
+      if (hasCert && !hasKey) {
+        return "Client private key is required when a client certificate is provided";
+      }
+      if (hasKey && !hasCert) {
+        return "Client certificate is required when a client private key is provided";
+      }
+    }
+
+    if (
+      monitorType === MonitorType.Port &&
+      !value.data.monitorDestinationPort
+    ) {
+      return "Port is required";
+    }
+
+    /*
+     * A Network Device monitor only needs to know WHICH device to alert
+     * on. What gets collected (interface walks, endpoint discovery, health
+     * OIDs) is configured on the NetworkDevice resource itself, not here.
+     */
+    if (monitorType === MonitorType.NetworkDevice) {
+      if (!value.data.networkDeviceMonitor?.networkDeviceId) {
+        return "Network Device is required";
+      }
+    }
+
+    if (monitorType === MonitorType.DNS) {
+      if (!value.data.dnsMonitor) {
+        return "DNS configuration is required";
+      }
+
+      if (!value.data.dnsMonitor.queryName) {
+        return "DNS query name (domain) is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Domain) {
+      if (!value.data.domainMonitor) {
+        return "Domain configuration is required";
+      }
+
+      if (!value.data.domainMonitor.domainName) {
+        return "Domain name is required";
+      }
+    }
+
+    if (monitorType === MonitorType.DNSSEC) {
+      if (!value.data.dnssecMonitor) {
+        return "DNSSEC configuration is required";
+      }
+
+      if (!value.data.dnssecMonitor.domainName) {
+        return "Domain name is required";
+      }
+
+      if (
+        !value.data.dnssecMonitor.resolvers ||
+        value.data.dnssecMonitor.resolvers.length === 0
+      ) {
+        return "At least one resolver is required";
+      }
+    }
+
+    if (monitorType === MonitorType.SQLQuery) {
+      if (!value.data.sqlMonitor) {
+        return "SQL monitor configuration is required";
+      }
+
+      if (!value.data.sqlMonitor.host) {
+        return "Database host is required";
+      }
+
+      if (!value.data.sqlMonitor.databaseName) {
+        return "Database name is required";
+      }
+
+      if (!value.data.sqlMonitor.query || !value.data.sqlMonitor.query.trim()) {
+        return "SQL query is required";
+      }
+
+      if (
+        value.data.sqlMonitor.useWindowsIntegratedAuthentication &&
+        value.data.sqlMonitor.databaseType !==
+          SqlDatabaseType.MicrosoftSqlServer
+      ) {
+        return "Windows Integrated Authentication is only supported for Microsoft SQL Server";
+      }
+    }
+
+    if (monitorType === MonitorType.Database) {
+      if (!value.data.databaseMonitor) {
+        return "Database monitor configuration is required";
+      }
+
+      if (!value.data.databaseMonitor.host) {
+        return "Database host is required";
+      }
+
+      if (!value.data.databaseMonitor.databaseName) {
+        return "Database name is required";
+      }
+
+      /*
+       * Deliberately no query check - that is the difference between this
+       * monitor and the SQL Query monitor. Nor is a metric group required:
+       * an empty list is normalized back to every group rather than
+       * rejected, so a step can never be saved in a state that silently
+       * collects nothing.
+       */
+      if (
+        value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
+        value.data.databaseMonitor.databaseType !==
+          SqlDatabaseType.MicrosoftSqlServer
+      ) {
+        return "Windows Integrated Authentication is only supported for Microsoft SQL Server";
+      }
+
+      if (
+        !value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
+        !value.data.databaseMonitor.username
+      ) {
+        return "Database username is required";
+      }
+    }
+
+    if (monitorType === MonitorType.ExternalStatusPage) {
+      if (!value.data.externalStatusPageMonitor) {
+        return "External status page configuration is required";
+      }
+
+      if (!value.data.externalStatusPageMonitor.statusPageUrl) {
+        return "Status page URL is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Kubernetes) {
+      if (!value.data.kubernetesMonitor) {
+        return "Kubernetes monitor configuration is required";
+      }
+
+      if (!value.data.kubernetesMonitor.clusterIdentifier) {
+        return "Kubernetes cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Docker) {
+      if (!value.data.dockerMonitor) {
+        return "Docker monitor configuration is required";
+      }
+
+      if (!value.data.dockerMonitor.hostIdentifier) {
+        return "Docker host is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Host) {
+      if (!value.data.hostMonitor) {
+        return "Host monitor configuration is required";
+      }
+
+      if (!value.data.hostMonitor.hostIdentifier) {
+        return "Host is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Podman) {
+      if (!value.data.podmanMonitor) {
+        return "Podman monitor configuration is required";
+      }
+
+      if (!value.data.podmanMonitor.hostIdentifier) {
+        return "Podman host is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Proxmox) {
+      if (!value.data.proxmoxMonitor) {
+        return "Proxmox monitor configuration is required";
+      }
+
+      if (!value.data.proxmoxMonitor.clusterIdentifier) {
+        return "Proxmox cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.VMware) {
+      if (!value.data.vmwareMonitor) {
+        return "VMware monitor configuration is required";
+      }
+
+      if (!value.data.vmwareMonitor.vcenterIdentifier) {
+        return "vCenter is required";
+      }
+    }
+
+    if (monitorType === MonitorType.DockerSwarm) {
+      if (!value.data.dockerSwarmMonitor) {
+        return "Docker Swarm monitor configuration is required";
+      }
+
+      if (!value.data.dockerSwarmMonitor.clusterIdentifier) {
+        return "Docker Swarm cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.Ceph) {
+      if (!value.data.cephMonitor) {
+        return "Ceph monitor configuration is required";
+      }
+
+      if (!value.data.cephMonitor.clusterIdentifier) {
+        return "Ceph cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.IoTDevice) {
+      if (!value.data.iotMonitor) {
+        return "IoT monitor configuration is required";
+      }
+
+      if (!value.data.iotMonitor.fleetIdentifier) {
+        return "IoT fleet is required";
+      }
+    }
+
+    return null;
+  }
+
+  public override toJSON(): JSONObject {
+    if (this.data) {
+      return JSONFunctions.serialize({
+        _type: ObjectType.MonitorStep,
+        value: {
+          id: this.data.id,
+          doNotSyncFields: MonitorTemplateSyncFieldUtil.parse(
+            this.data.doNotSyncFields,
+          ),
+          monitorDestination:
+            this.data?.monitorDestination?.toJSON() || undefined,
+          doNotFollowRedirects: this.data.doNotFollowRedirects,
+          allowSelfSignedCertificates: this.data.allowSelfSignedCertificates,
+          tlsClientCertificate: this.data.tlsClientCertificate,
+          tlsClientKey: this.data.tlsClientKey,
+          tlsClientKeyPassphrase: this.data.tlsClientKeyPassphrase,
+          monitorDestinationPort:
+            this.data?.monitorDestinationPort?.toJSON() || undefined,
+          monitorCriteria: this.data.monitorCriteria.toJSON(),
+          requestType: this.data.requestType,
+          requestHeaders: this.data.requestHeaders || undefined,
+          requestBody: this.data.requestBody,
+          customCode: this.data.customCode,
+          screenSizeTypes: this.data.screenSizeTypes || undefined,
+          browserTypes: this.data.browserTypes || undefined,
+          retryCountOnError: this.data.retryCountOnError,
+          requestTimeoutInMs: this.data.requestTimeoutInMs || undefined,
+          retryCount:
+            this.data.retryCount === undefined
+              ? undefined
+              : this.data.retryCount,
+          logMonitor: this.data.logMonitor
+            ? MonitorStepLogMonitorUtil.toJSON(
+                this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
+              )
+            : undefined,
+          securityEventsMonitor: this.data.securityEventsMonitor
+            ? MonitorStepSecurityEventsMonitorUtil.toJSON(
+                this.data.securityEventsMonitor,
+              )
+            : undefined,
+          metricMonitor: this.data.metricMonitor
+            ? MonitorStepMetricMonitorUtil.toJSON(this.data.metricMonitor)
+            : undefined,
+          traceMonitor: this.data.traceMonitor
+            ? MonitorStepTraceMonitorUtil.toJSON(
+                this.data.traceMonitor ||
+                  MonitorStepTraceMonitorUtil.getDefault(),
+              )
+            : undefined,
+          exceptionMonitor: this.data.exceptionMonitor
+            ? MonitorStepExceptionMonitorUtil.toJSON(
+                this.data.exceptionMonitor ||
+                  MonitorStepExceptionMonitorUtil.getDefault(),
+              )
+            : undefined,
+          profileMonitor: this.data.profileMonitor
+            ? MonitorStepProfileMonitorUtil.toJSON(
+                this.data.profileMonitor ||
+                  MonitorStepProfileMonitorUtil.getDefault(),
+              )
+            : undefined,
+          snmpMonitor: this.data.snmpMonitor
+            ? MonitorStepSnmpMonitorUtil.toJSON(this.data.snmpMonitor)
+            : undefined,
+          networkDeviceMonitor: this.data.networkDeviceMonitor
+            ? MonitorStepNetworkDeviceMonitorUtil.toJSON(
+                this.data.networkDeviceMonitor,
+              )
+            : undefined,
+          dnsMonitor: this.data.dnsMonitor
+            ? MonitorStepDnsMonitorUtil.toJSON(this.data.dnsMonitor)
+            : undefined,
+          domainMonitor: this.data.domainMonitor
+            ? MonitorStepDomainMonitorUtil.toJSON(this.data.domainMonitor)
+            : undefined,
+          dnssecMonitor: this.data.dnssecMonitor
+            ? MonitorStepDnssecMonitorUtil.toJSON(this.data.dnssecMonitor)
+            : undefined,
+          sqlMonitor: this.data.sqlMonitor
+            ? MonitorStepSqlMonitorUtil.toJSON(this.data.sqlMonitor)
+            : undefined,
+          databaseMonitor: this.data.databaseMonitor
+            ? MonitorStepDatabaseMonitorUtil.toJSON(this.data.databaseMonitor)
+            : undefined,
+          externalStatusPageMonitor: this.data.externalStatusPageMonitor
+            ? MonitorStepExternalStatusPageMonitorUtil.toJSON(
+                this.data.externalStatusPageMonitor,
+              )
+            : undefined,
+          kubernetesMonitor: this.data.kubernetesMonitor
+            ? MonitorStepKubernetesMonitorUtil.toJSON(
+                this.data.kubernetesMonitor,
+              )
+            : undefined,
+          dockerMonitor: this.data.dockerMonitor
+            ? MonitorStepDockerMonitorUtil.toJSON(this.data.dockerMonitor)
+            : undefined,
+          hostMonitor: this.data.hostMonitor
+            ? MonitorStepHostMonitorUtil.toJSON(this.data.hostMonitor)
+            : undefined,
+          podmanMonitor: this.data.podmanMonitor
+            ? MonitorStepPodmanMonitorUtil.toJSON(this.data.podmanMonitor)
+            : undefined,
+          proxmoxMonitor: this.data.proxmoxMonitor
+            ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          vmwareMonitor: this.data.vmwareMonitor
+            ? MonitorStepVMwareMonitorUtil.toJSON(this.data.vmwareMonitor)
+            : undefined,
+          dockerSwarmMonitor: this.data.dockerSwarmMonitor
+            ? MonitorStepDockerSwarmMonitorUtil.toJSON(
+                this.data.dockerSwarmMonitor,
+              )
+            : undefined,
+          cephMonitor: this.data.cephMonitor
+            ? MonitorStepCephMonitorUtil.toJSON(this.data.cephMonitor)
+            : undefined,
+          iotMonitor: this.data.iotMonitor
+            ? MonitorStepIoTMonitorUtil.toJSON(this.data.iotMonitor)
+            : undefined,
+        },
+      });
+    }
+
+    return MonitorStep.getNewMonitorStepAsJSON();
+  }
+
+  public static override fromJSON(json: JSONObject): MonitorStep {
+    if (json instanceof MonitorStep) {
+      return json;
+    }
+
+    if (!json || json["_type"] !== "MonitorStep") {
+      throw new BadDataException("Invalid monitor step");
+    }
+
+    if (!json["value"]) {
+      throw new BadDataException("Invalid monitor step");
+    }
+
+    json = json["value"] as JSONObject;
+
+    let monitorDestination: URL | IP | Hostname | undefined = undefined;
+
+    if (
+      json &&
+      json["monitorDestination"] &&
+      (json["monitorDestination"] as JSONObject)["_type"] === ObjectType.URL
+    ) {
+      monitorDestination = URL.fromJSON(
+        json["monitorDestination"] as JSONObject,
+      );
+    }
+
+    if (
+      json &&
+      json["monitorDestination"] &&
+      (json["monitorDestination"] as JSONObject)["_type"] ===
+        ObjectType.Hostname
+    ) {
+      monitorDestination = Hostname.fromJSON(
+        json["monitorDestination"] as JSONObject,
+      );
+    }
+
+    if (
+      json &&
+      json["monitorDestination"] &&
+      (json["monitorDestination"] as JSONObject)["_type"] === ObjectType.IP
+    ) {
+      monitorDestination = IP.fromJSON(
+        json["monitorDestination"] as JSONObject,
+      );
+    }
+
+    const monitorDestinationPort: Port | undefined = json[
+      "monitorDestinationPort"
+    ]
+      ? Port.fromJSON(json["monitorDestinationPort"] as JSONObject)
+      : undefined;
+
+    if (!json["monitorCriteria"]) {
+      throw new BadDataException("Invalid monitor criteria");
+    }
+
+    if (
+      MonitorCriteria.isValid(json["monitorCriteria"] as JSONObject) === false
+    ) {
+      throw new BadDataException("Invalid monitor criteria");
+    }
+
+    const monitorStep: MonitorStep = new MonitorStep();
+
+    monitorStep.data = JSONFunctions.deserialize({
+      id: json["id"] as string,
+      doNotSyncFields: MonitorTemplateSyncFieldUtil.parse(
+        json["doNotSyncFields"],
+      ),
+      monitorDestination: monitorDestination || undefined,
+      doNotFollowRedirects: json["doNotFollowRedirects"] ?? undefined,
+      allowSelfSignedCertificates:
+        json["allowSelfSignedCertificates"] ?? undefined,
+      tlsClientCertificate:
+        (json["tlsClientCertificate"] as string) ?? undefined,
+      tlsClientKey: (json["tlsClientKey"] as string) ?? undefined,
+      tlsClientKeyPassphrase:
+        (json["tlsClientKeyPassphrase"] as string) ?? undefined,
+      monitorDestinationPort: monitorDestinationPort || undefined,
+      monitorCriteria: MonitorCriteria.fromJSON(
+        json["monitorCriteria"] as JSONObject,
+      ),
+      requestType: (json["requestType"] as HTTPMethod) || HTTPMethod.GET,
+      requestHeaders:
+        (json["requestHeaders"] as Dictionary<string>) || undefined,
+      requestBody: (json["requestBody"] as string) ?? undefined,
+      customCode: (json["customCode"] as string) ?? undefined,
+      screenSizeTypes:
+        (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
+      browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
+      retryCountOnError: (json["retryCountOnError"] as number) ?? undefined,
+      requestTimeoutInMs: (json["requestTimeoutInMs"] as number) || undefined,
+      retryCount:
+        json["retryCount"] === undefined || json["retryCount"] === null
+          ? undefined
+          : (json["retryCount"] as number),
+      logMonitor: json["logMonitor"]
+        ? (json["logMonitor"] as JSONObject)
+        : undefined,
+      securityEventsMonitor: json["securityEventsMonitor"]
+        ? (json["securityEventsMonitor"] as JSONObject)
+        : undefined,
+      /*
+       * Normalize rather than pass the raw JSON straight through. Steps saved
+       * by older builds can carry a metricMonitor with no metricViewConfig,
+       * and every consumer downstream assumes the type's contract holds.
+       */
+      metricMonitor: json["metricMonitor"]
+        ? (MonitorStepMetricMonitorUtil.toJSON(
+            MonitorStepMetricMonitorUtil.fromJSON(
+              json["metricMonitor"] as JSONObject,
+            ),
+          ) as JSONObject)
+        : undefined,
+      traceMonitor: json["traceMonitor"]
+        ? (json["traceMonitor"] as JSONObject)
+        : undefined,
+      exceptionMonitor: json["exceptionMonitor"]
+        ? (json["exceptionMonitor"] as JSONObject)
+        : undefined,
+      profileMonitor: json["profileMonitor"]
+        ? (json["profileMonitor"] as JSONObject)
+        : undefined,
+      snmpMonitor: json["snmpMonitor"]
+        ? (json["snmpMonitor"] as JSONObject)
+        : undefined,
+      networkDeviceMonitor: json["networkDeviceMonitor"]
+        ? (json["networkDeviceMonitor"] as JSONObject)
+        : undefined,
+      dnsMonitor: json["dnsMonitor"]
+        ? (json["dnsMonitor"] as JSONObject)
+        : undefined,
+      /*
+       * Normalized rather than passed through raw: steps saved before the
+       * lookupMethod option existed carry no such key, and the probe would
+       * otherwise receive a config that does not satisfy its own type.
+       */
+      domainMonitor: json["domainMonitor"]
+        ? MonitorStepDomainMonitorUtil.toJSON(
+            MonitorStepDomainMonitorUtil.fromJSON(
+              json["domainMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
+      /*
+       * Normalized for the same reason domainMonitor above is: a config
+       * authored through the API or a template need not carry `resolvers`,
+       * and the probe iterates that list without a guard. A raw passthrough
+       * therefore threw a TypeError inside the probe BEFORE it posted any
+       * result, so the monitor produced nothing at all - no check, no
+       * status change, no error the user could see.
+       */
+      dnssecMonitor: json["dnssecMonitor"]
+        ? MonitorStepDnssecMonitorUtil.toJSON(
+            MonitorStepDnssecMonitorUtil.fromJSON(
+              json["dnssecMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
+      sqlMonitor: json["sqlMonitor"]
+        ? (json["sqlMonitor"] as JSONObject)
+        : undefined,
+      /*
+       * Normalized on the way in, like metricMonitor above: the group list
+       * and the timeouts are clamped here so no consumer downstream has to
+       * defend against a step written by an older build or by hand.
+       */
+      databaseMonitor: json["databaseMonitor"]
+        ? MonitorStepDatabaseMonitorUtil.toJSON(
+            MonitorStepDatabaseMonitorUtil.fromJSON(
+              json["databaseMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
+      externalStatusPageMonitor: json["externalStatusPageMonitor"]
+        ? (json["externalStatusPageMonitor"] as JSONObject)
+        : undefined,
+      kubernetesMonitor: json["kubernetesMonitor"]
+        ? (json["kubernetesMonitor"] as JSONObject)
+        : undefined,
+      dockerMonitor: json["dockerMonitor"]
+        ? (json["dockerMonitor"] as JSONObject)
+        : undefined,
+      hostMonitor: json["hostMonitor"]
+        ? (json["hostMonitor"] as JSONObject)
+        : undefined,
+      podmanMonitor: json["podmanMonitor"]
+        ? (json["podmanMonitor"] as JSONObject)
+        : undefined,
+      proxmoxMonitor: json["proxmoxMonitor"]
+        ? (json["proxmoxMonitor"] as JSONObject)
+        : undefined,
+      vmwareMonitor: json["vmwareMonitor"]
+        ? (json["vmwareMonitor"] as JSONObject)
+        : undefined,
+      dockerSwarmMonitor: json["dockerSwarmMonitor"]
+        ? (json["dockerSwarmMonitor"] as JSONObject)
+        : undefined,
+      cephMonitor: json["cephMonitor"]
+        ? (json["cephMonitor"] as JSONObject)
+        : undefined,
+      iotMonitor: json["iotMonitor"]
+        ? (json["iotMonitor"] as JSONObject)
+        : undefined,
+    }) as any;
+
+    return monitorStep;
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.MonitorStep),
+      value: Zod.object({
+        id: Zod.string(),
+        doNotSyncFields: Zod.array(
+          Zod.string().refine((value: string): boolean => {
+            try {
+              MonitorTemplateSyncFieldUtil.parse([value]);
+              return true;
+            } catch {
+              return false;
+            }
+          }, "Unsupported do not sync field"),
+        ).optional(),
+        monitorDestination: Zod.any().optional(),
+        monitorCriteria: Zod.any(),
+        requestType: Zod.any(),
+        requestHeaders: Zod.any().optional(),
+        requestBody: Zod.string().optional(),
+        doNotFollowRedirects: Zod.boolean().optional(),
+        allowSelfSignedCertificates: Zod.boolean().optional(),
+        tlsClientCertificate: Zod.string().optional(),
+        tlsClientKey: Zod.string().optional(),
+        tlsClientKeyPassphrase: Zod.string().optional(),
+        monitorDestinationPort: Zod.any().optional(),
+        customCode: Zod.string().optional(),
+        screenSizeTypes: Zod.any().optional(),
+        browserTypes: Zod.any().optional(),
+        retryCountOnError: Zod.number().optional(),
+        requestTimeoutInMs: Zod.number().optional(),
+        retryCount: Zod.number().optional(),
+        logMonitor: Zod.any().optional(),
+        securityEventsMonitor: Zod.any().optional(),
+        traceMonitor: Zod.any().optional(),
+        metricMonitor: Zod.any().optional(),
+        profileMonitor: Zod.any().optional(),
+        snmpMonitor: Zod.any().optional(),
+        networkDeviceMonitor: Zod.any().optional(),
+        dnsMonitor: Zod.any().optional(),
+        domainMonitor: Zod.any().optional(),
+        dnssecMonitor: Zod.any().optional(),
+        sqlMonitor: Zod.any().optional(),
+        databaseMonitor: Zod.any().optional(),
+        externalStatusPageMonitor: Zod.any().optional(),
+        kubernetesMonitor: Zod.any().optional(),
+        dockerMonitor: Zod.any().optional(),
+        hostMonitor: Zod.any().optional(),
+        podmanMonitor: Zod.any().optional(),
+        proxmoxMonitor: Zod.any().optional(),
+        vmwareMonitor: Zod.any().optional(),
+        dockerSwarmMonitor: Zod.any().optional(),
+        cephMonitor: Zod.any().optional(),
+        iotMonitor: Zod.any().optional(),
+      }).openapi({
+        type: "object",
+        example: {
+          id: "stepId",
+          monitorDestination: undefined,
+          monitorCriteria: {},
+          requestType: "GET",
+        },
+      }),
+    }).openapi({
+      type: "object",
+      description: "MonitorStep object",
+      example: {
+        _type: ObjectType.MonitorStep,
+        value: {
+          id: "stepId",
+          monitorDestination: undefined,
+          monitorCriteria: {},
+          requestType: "GET",
+        },
+      },
+    });
+  }
+
+  public isValid(): boolean {
+    return true;
+  }
+
+  protected static override toDatabase(
+    value: MonitorStep | FindOperator<MonitorStep>,
+  ): JSONObject | null {
+    if (value && value instanceof MonitorStep) {
+      return (value as MonitorStep).toJSON();
+    } else if (value) {
+      return JSONFunctions.serialize(value as any);
+    }
+
+    return null;
+  }
+
+  protected static override fromDatabase(
+    value: JSONObject,
+  ): MonitorStep | null {
+    if (value) {
+      return MonitorStep.fromJSON(value);
+    }
+
+    return null;
+  }
+
+  public override toString(): string {
+    return JSON.stringify(this.toJSON());
+  }
+}

@@ -10,6 +10,8 @@ const SEVERITY_RANK = {
   critical: 4,
 };
 
+const GHSA_PATTERN = /^GHSA(?:-[A-Z0-9]{4}){3}$/;
+
 function normalizeProject(project) {
   if (project === ".") {
     return ".";
@@ -74,7 +76,7 @@ function loadProjectExceptions(exceptionPath, project, today) {
     const expires = String(entry.expires || "");
     const reason = String(entry.reason || "").trim();
 
-    if (!/^GHSA(?:-[A-Z0-9]{4}){3}$/.test(advisory)) {
+    if (!GHSA_PATTERN.test(advisory)) {
       errors.push(`${label} has an invalid GHSA advisory identifier.`);
       return;
     }
@@ -97,6 +99,45 @@ function loadProjectExceptions(exceptionPath, project, today) {
   return { entries, errors };
 }
 
+// Why a report cannot be trusted, or nothing when it can. A report that fails
+// here says nothing about which advisories are in the tree.
+function auditReportErrors(report, project, npmStatus = 0) {
+  if (!report || typeof report !== "object" || Array.isArray(report)) {
+    return [`${project}: npm audit did not return a JSON object.`];
+  }
+  if (report.error) {
+    const summary =
+      report.error.summary || report.error.code || "unknown npm audit error";
+    return [`${project}: ${summary}`];
+  }
+  const vulnerabilities = report.vulnerabilities;
+  if (
+    typeof report.auditReportVersion !== "number" ||
+    !vulnerabilities ||
+    Array.isArray(vulnerabilities) ||
+    typeof vulnerabilities !== "object"
+  ) {
+    return [
+      `${project}: npm audit returned an incomplete report (exit ${npmStatus}).`,
+    ];
+  }
+  return [];
+}
+
+// Every advisory the report names, at any severity. An exception for an
+// advisory outside this set covers nothing.
+function reportedAdvisories(vulnerabilities) {
+  const advisories = new Set();
+  Object.values(vulnerabilities).forEach((vulnerability) => {
+    (vulnerability.via || []).forEach((via) => {
+      if (typeof via !== "string") {
+        advisories.add(advisoryId(via));
+      }
+    });
+  });
+  return advisories;
+}
+
 function validateAuditReport({
   report,
   project,
@@ -105,45 +146,26 @@ function validateAuditReport({
   exceptionErrors = [],
   npmStatus = 0,
 }) {
-  const errors = [...exceptionErrors];
-  const vulnerabilities = report && report.vulnerabilities;
+  const errors = [
+    ...exceptionErrors,
+    ...auditReportErrors(report, project, npmStatus),
+  ];
   const threshold = SEVERITY_RANK[auditLevel];
-
-  if (!report || typeof report !== "object" || Array.isArray(report)) {
-    errors.push(`${project}: npm audit did not return a JSON object.`);
-  } else if (report.error) {
-    const summary =
-      report.error.summary || report.error.code || "unknown npm audit error";
-    errors.push(`${project}: ${summary}`);
-  } else if (
-    typeof report.auditReportVersion !== "number" ||
-    !vulnerabilities ||
-    Array.isArray(vulnerabilities) ||
-    typeof vulnerabilities !== "object"
-  ) {
-    errors.push(
-      `${project}: npm audit returned an incomplete report (exit ${npmStatus}).`,
-    );
-  }
 
   if (errors.length > 0) {
     return { ok: false, errors, blocked: [], allowed: [], unused: [] };
   }
 
+  const vulnerabilities = report.vulnerabilities;
   const exceptionByAdvisory = new Map(
     exceptions.map((entry) => [entry.advisory, entry]),
   );
 
-  Object.values(vulnerabilities).forEach((vulnerability) => {
-    (vulnerability.via || []).forEach((via) => {
-      if (typeof via === "string") {
-        return;
-      }
-      const exception = exceptionByAdvisory.get(advisoryId(via));
-      if (exception) {
-        exception.seen = true;
-      }
-    });
+  reportedAdvisories(vulnerabilities).forEach((advisory) => {
+    const exception = exceptionByAdvisory.get(advisory);
+    if (exception) {
+      exception.seen = true;
+    }
   });
 
   const memo = new Map();
@@ -315,8 +337,12 @@ if (require.main === module) {
 }
 
 module.exports = {
+  GHSA_PATTERN,
   advisoryId,
+  auditReportErrors,
   loadProjectExceptions,
   normalizeProject,
+  parseArguments,
+  reportedAdvisories,
   validateAuditReport,
 };

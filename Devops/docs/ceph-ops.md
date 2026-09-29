@@ -1,1 +1,0 @@
-# Ops for Ceph Cluster

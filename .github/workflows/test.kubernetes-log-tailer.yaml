@@ -33,5 +33,5 @@ jobs:
       # lockstep with the DaemonSet collector chain in
       # HelmChart/Public/kubernetes-agent, and the two had already drifted
       # (NOTICE 10 vs 9, CRITICAL 20 vs 17) with nothing to say so.
-      - run: cd KubernetesLogTailer && npm install
-      - run: cd KubernetesLogTailer && npm run test
+      - run: cd agents/KubernetesLogTailer && npm install
+      - run: cd agents/KubernetesLogTailer && npm run test

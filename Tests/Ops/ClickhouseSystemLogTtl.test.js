@@ -51,7 +51,7 @@ const DROP_IN_CONTAINER_PATH =
  * TTL off a Date column" test below, and both files shipped the wrong one for a
  * long time. Each of these six system tables has both columns: `event_date` is
  * a `Date` (day precision) and `event_time` is a `DateTime` (second precision;
- * see App/API/AdminHealth.ts, which reads `event_time` off system.query_log).
+ * see App/API/AdminHealthProbes.ts, which reads `event_time` off system.query_log).
  * Adding an hour interval to a `Date` coerces it to midnight of that day, so
  * `event_date + INTERVAL 6 HOUR` expires every row at 06:00 on the row's OWN
  * date — a row flushed at 23:00 is born seventeen hours past its expiry and is

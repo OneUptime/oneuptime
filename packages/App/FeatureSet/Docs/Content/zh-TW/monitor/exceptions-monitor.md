@@ -1,0 +1,117 @@
+# 例外監控
+
+例外監控可讓您監控應用程式的例外狀況與錯誤，當例外數量超過您所設定的閾值時觸發警示。OneUptime 會在某個時間範圍內評估來自您遙測服務的例外資料。
+
+## 概觀
+
+例外監控會計算並篩選符合特定條件的例外。這讓您能夠：
+
+- 針對應用程式中的例外激增發出警示
+- 監控特定的例外類型
+- 將警示範圍限定於特定部署環境（例如 `production`）
+- 依錯誤訊息搜尋例外
+- 分別追蹤已解決與作用中的例外
+- 從錯誤模式偵測應用程式的穩定性問題
+
+## 建立例外監控
+
+1. 在 OneUptime Dashboard 中前往 **監測**
+2. 點選 **建立監測器**
+3. 選擇 **例外** 作為監控類型
+4. 選擇要監控的遙測服務
+5. 視需要設定例外篩選條件與準則
+
+## 設定選項
+
+### 遙測服務
+
+選擇一個或多個服務以監控其例外。服務必須透過 OpenTelemetry 將例外資料傳送至 OneUptime。
+
+### 例外篩選條件
+
+| 篩選條件         | 說明                                                           | 必填 |
+| ---------------- | -------------------------------------------------------------- | ---- |
+| Exception Types  | 依例外類型名稱篩選（例如 `NullPointerException`、`TypeError`） | 否   |
+| Environments     | 依部署環境篩選（例如 `production`、`staging`）                 | 否   |
+| Message          | 在例外訊息中進行文字搜尋                                       | 否   |
+| Include Resolved | 納入已被標記為已解決的例外（預設值：false）                    | 否   |
+| Include Archived | 納入已封存的例外（預設值：false）                              | 否   |
+| Time Window      | 向前搜尋例外的時間範圍（以秒為單位，預設值：60）               | 否   |
+
+### 環境
+
+環境來自每個例外上的 OpenTelemetry 資源屬性 `deployment.environment`，與例外探索器使用 `env:production` 篩選時所用的值相同。輸入一個環境，或以逗號分隔輸入多個環境；只要例外的環境符合其中任何一個，該例外就會被計入。
+
+比對為完全相符且區分大小寫：`production` 不會符合 `Production` 或 `prod`。設定此篩選條件後，沒有環境的例外不會被計入。將其留空即可計入所有環境的例外，包括沒有環境的例外。
+
+環境篩選條件會與其他所有篩選條件一併套用，因此限定於某個遙測服務與 `production` 的監控，只會計入該服務在正式環境中的例外。
+
+透過 API 建立監控時，請將步驟 `exceptionMonitor` 中的 `environments` 設為環境名稱清單：
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
+
+## 監控準則
+
+### 可用的檢查類型
+
+| 檢查類型        | 說明                                 |
+| --------------- | ------------------------------------ |
+| Exception Count | 在時間範圍內符合您篩選條件的例外數量 |
+
+### 篩選類型
+
+- **Greater Than** — 例外數量超過某個閾值
+- **Less Than** — 例外數量低於某個閾值
+- **Greater Than or Equal To** — 例外數量等於或高於某個閾值
+- **Less Than or Equal To** — 例外數量等於或低於某個閾值
+- **Equal To** — 例外數量完全相符
+- **Not Equal To** — 例外數量不相符
+
+### 準則範例
+
+#### 在 60 秒內超過 10 個例外時發出警示
+
+- **時間範圍**：60 秒
+- **Check On**：Exception Count
+- **篩選器類型**：Greater Than
+- **值**：10
+
+#### 針對任何 NullPointerException 發出警示
+
+- **例外類型**：`NullPointerException`
+- **時間範圍**：60 秒
+- **Check On**：Exception Count
+- **篩選器類型**：Greater Than
+- **值**：0
+
+#### 僅針對正式環境的例外發出警示
+
+- **環境**：`production`
+- **時間範圍**：300 秒
+- **Check On**：Exception Count
+- **篩選器類型**：Greater Than
+- **值**：5
+
+#### 監控包含特定訊息的例外
+
+- **訊息**：`out of memory`
+- **時間範圍**：300 秒
+- **Check On**：Exception Count
+- **篩選器類型**：Greater Than
+- **值**：0
+
+## 設定需求
+
+例外監控需要您的應用程式透過 OpenTelemetry 將例外資料傳送至 OneUptime。請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry) 文件以取得設定說明。

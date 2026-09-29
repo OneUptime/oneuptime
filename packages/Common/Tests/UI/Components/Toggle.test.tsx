@@ -1,0 +1,261 @@
+import Toggle from "../../../UI/Components/Toggle/Toggle";
+import "@testing-library/jest-dom";
+import { fireEvent, render } from "@testing-library/react";
+import React from "react";
+import { describe, expect, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
+
+describe("Toggle", () => {
+  test("renders toggle element with required props only", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={false} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toBeInTheDocument();
+  });
+
+  test("renders toggle element with all props", () => {
+    const { getByRole } = render(
+      <Toggle
+        onChange={() => {}}
+        onFocus={() => {}}
+        onBlur={() => {}}
+        initialValue={false}
+        tabIndex={1}
+        title="title"
+        description="description"
+        error="error"
+      />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toBeInTheDocument();
+  });
+
+  test("calls onChange", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onChange={onChange} initialValue={false} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+    fireEvent.click(toggle);
+
+    expect(onChange).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  test("calls onChange exactly once per click", () => {
+    /*
+     * The click handler used to call handleChange (which already calls
+     * props.onChange) and then props.onChange again, running every consumer's
+     * handler twice per click. Idempotent handlers never noticed; the monitor
+     * criteria switches, which seed a blank incident / alert row on the way
+     * on, were saved from a second row only by their own "is the array still
+     * empty" guard.
+     */
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onChange={onChange} initialValue={false} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenNthCalledWith(1, true);
+
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenNthCalledWith(2, false);
+  });
+
+  test("calls onFocus", () => {
+    const onFocus: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onFocus={onFocus} initialValue={false} onChange={() => {}} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+    fireEvent.focus(toggle);
+
+    expect(onFocus).toHaveBeenCalledTimes(1);
+  });
+
+  test("calls onBlur", () => {
+    const onBlur: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onBlur={onBlur} initialValue={false} onChange={() => {}} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+    fireEvent.blur(toggle);
+
+    expect(onBlur).toHaveBeenCalledTimes(1);
+  });
+
+  test("displays error", () => {
+    const { getByText } = render(
+      <Toggle onChange={() => {}} initialValue={false} error="error" />,
+    );
+
+    expect(getByText("error")).toBeInTheDocument();
+  });
+
+  test("displays title", () => {
+    const { getByText } = render(
+      <Toggle
+        onChange={() => {}}
+        initialValue={false}
+        title="title"
+        description="description"
+      />,
+    );
+
+    expect(getByText("title")).toBeInTheDocument();
+  });
+
+  test("displays description", () => {
+    const { getByText } = render(
+      <Toggle
+        onChange={() => {}}
+        initialValue={false}
+        description="description"
+      />,
+    );
+    expect(getByText("description")).toBeInTheDocument();
+  });
+
+  test("sets tabIndex", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={false} tabIndex={1} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("tabindex", "1");
+  });
+
+  test("sets initial value", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("sets initial value to false", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={false} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("sets initial value to undefined", () => {
+    const { getByRole } = render(<Toggle onChange={() => {}} />);
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("sets value", () => {
+    const { getByRole } = render(<Toggle onChange={() => {}} value={true} />);
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("sets value to false", () => {
+    const { getByRole } = render(<Toggle onChange={() => {}} value={false} />);
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("sets value to undefined", () => {
+    const { getByRole } = render(<Toggle onChange={() => {}} />);
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  /*
+   * A caller that saves the value the switch shows disables it while the
+   * save is in flight. A press it then refuses used to flip the switch's own
+   * copy of its value anyway (handleChange runs before onChange), and with
+   * `value` unchanged nothing flipped it back: the switch showed ON beside a
+   * paused rule. A disabled switch ignores the press before it flips.
+   */
+  test("a disabled switch ignores presses and keeps showing its value", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onChange={onChange} value={false} disabled={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(toggle).toHaveClass("cursor-not-allowed");
+  });
+
+  test("a disabled switch keeps keyboard focus: it is aria-disabled, not disabled", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} value={true} disabled={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    toggle.focus();
+
+    expect(toggle).not.toBeDisabled();
+    expect(toggle).toHaveFocus();
+  });
+
+  test("once enabled again, the switch answers presses from the value it shows", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole, rerender } = render(
+      <Toggle onChange={onChange} value={false} disabled={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    fireEvent.click(toggle);
+
+    rerender(<Toggle onChange={onChange} value={false} disabled={false} />);
+
+    expect(toggle).not.toHaveAttribute("aria-disabled");
+    expect(toggle).toHaveClass("cursor-pointer");
+
+    fireEvent.click(toggle);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("an enabled switch says nothing about being disabled", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={false} />,
+    );
+
+    expect(getByRole("switch")).not.toHaveAttribute("aria-disabled");
+  });
+
+  test("styles toggle correctly", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={false} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    expect(toggle).toHaveClass("bg-gray-200");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveClass("bg-indigo-600");
+  });
+});

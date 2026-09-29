@@ -1,0 +1,267 @@
+## カスタムプローブの設定
+
+プライベートネットワーク内のリソースやファイアウォールの内側にあるリソースを監視するために、ネットワーク内にカスタムプローブを設定できます。
+
+まず、OneUptime ダッシュボードのモニター > 設定 > プローブでカスタムプローブを作成します。OneUptime ダッシュボードでカスタムプローブを作成すると、`PROBE_ID` と `PROBE_KEY` が取得できます。
+
+### プローブのデプロイ
+
+#### Docker
+
+プローブを実行するには、Dockerがインストールされていることを確認してください。以下のコマンドでカスタムプローブを実行できます。
+
+```
+docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e ONEUPTIME_URL=https://oneuptime.com -d oneuptime/probe:release
+```
+
+OneUptimeをセルフホストしている場合は、`ONEUPTIME_URL` をカスタムセルフホストインスタンスに変更できます。
+
+##### プロキシ設定
+
+プローブがOneUptimeや外部リソースへのアクセスにプロキシサーバーを経由する必要がある場合、以下の環境変数を使用してプロキシ設定ができます。
+
+```
+# HTTPプロキシの場合
+docker run --name oneuptime-probe --network host \
+  -e PROBE_KEY=<probe-key> \
+  -e PROBE_ID=<probe-id> \
+  -e ONEUPTIME_URL=https://oneuptime.com \
+  -e HTTP_PROXY_URL=http://proxy.example.com:8080 \
+  -e NO_PROXY=localhost,.internal.example.com \
+  -d oneuptime/probe:release
+
+# HTTPSプロキシの場合
+docker run --name oneuptime-probe --network host \
+  -e PROBE_KEY=<probe-key> \
+  -e PROBE_ID=<probe-id> \
+  -e ONEUPTIME_URL=https://oneuptime.com \
+  -e HTTPS_PROXY_URL=http://proxy.example.com:8080 \
+  -e NO_PROXY=localhost,.internal.example.com \
+  -d oneuptime/probe:release
+
+# 認証付きプロキシの場合
+docker run --name oneuptime-probe --network host \
+  -e PROBE_KEY=<probe-key> \
+  -e PROBE_ID=<probe-id> \
+  -e ONEUPTIME_URL=https://oneuptime.com \
+  -e HTTP_PROXY_URL=http://username:password@proxy.example.com:8080 \
+  -e HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080 \
+  -e NO_PROXY=localhost,.internal.example.com \
+  -d oneuptime/probe:release
+```
+
+#### Docker Compose
+
+docker-composeを使用してプローブを実行することもできます。以下の内容で `docker-compose.yml` ファイルを作成してください。
+
+```yaml
+version: "3"
+
+services:
+  oneuptime-probe:
+    image: oneuptime/probe:release
+    container_name: oneuptime-probe
+    environment:
+      - PROBE_KEY=<probe-key>
+      - PROBE_ID=<probe-id>
+      - ONEUPTIME_URL=https://oneuptime.com
+    network_mode: host
+    restart: always
+```
+
+##### プロキシ設定を使用する場合
+
+プロキシサーバーを使用する必要がある場合は、プロキシの環境変数を追加できます。
+
+```yaml
+version: "3"
+
+services:
+  oneuptime-probe:
+    image: oneuptime/probe:release
+    container_name: oneuptime-probe
+    environment:
+      - PROBE_KEY=<probe-key>
+      - PROBE_ID=<probe-id>
+      - ONEUPTIME_URL=https://oneuptime.com
+      # プロキシ設定（オプション）
+      - HTTP_PROXY_URL=http://proxy.example.com:8080
+      - HTTPS_PROXY_URL=http://proxy.example.com:8080
+      - NO_PROXY=localhost,.internal.example.com
+      # 認証付きプロキシの場合:
+      # - HTTP_PROXY_URL=http://username:password@proxy.example.com:8080
+      # - HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080
+      # - NO_PROXY=localhost,.internal.example.com
+    network_mode: host
+    restart: always
+```
+
+次に以下のコマンドを実行してください。
+
+```
+docker compose up -d
+```
+
+OneUptimeをセルフホストしている場合は、`ONEUPTIME_URL` をカスタムセルフホストインスタンスに変更できます。
+
+#### Kubernetes
+
+Kubernetesを使用してプローブを実行することもできます。以下の内容で `oneuptime-probe.yaml` ファイルを作成してください。
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oneuptime-probe
+spec:
+  selector:
+    matchLabels:
+      app: oneuptime-probe
+  template:
+    metadata:
+      labels:
+        app: oneuptime-probe
+    spec:
+      containers:
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+```
+
+##### プロキシ設定を使用する場合
+
+プロキシサーバーを使用する必要がある場合は、プロキシの環境変数を追加できます。
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oneuptime-probe
+spec:
+  selector:
+    matchLabels:
+      app: oneuptime-probe
+  template:
+    metadata:
+      labels:
+        app: oneuptime-probe
+    spec:
+      containers:
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
+            # プロキシ設定（オプション）
+            - name: HTTP_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: HTTPS_PROXY_URL
+              value: "http://proxy.example.com:8080"
+            - name: NO_PROXY
+              value: "localhost,.internal.example.com"
+            # 認証付きプロキシの場合:
+            # - name: HTTP_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: HTTPS_PROXY_URL
+            #   value: "http://username:password@proxy.example.com:8080"
+            # - name: NO_PROXY
+            #   value: "localhost,.internal.example.com"
+```
+
+次に以下のコマンドを実行してください。
+
+```bash
+kubectl apply -f oneuptime-probe.yaml
+```
+
+OneUptimeをセルフホストしている場合は、`ONEUPTIME_URL` をカスタムセルフホストインスタンスに変更できます。
+
+### 環境変数
+
+プローブは以下の環境変数をサポートしています。
+
+#### 必須変数
+
+- `PROBE_KEY` - OneUptime ダッシュボードのプローブキー
+- `PROBE_ID` - OneUptime ダッシュボードのプローブID
+- `ONEUPTIME_URL` - OneUptimeインスタンスのURL（デフォルト：https://oneuptime.com）
+
+#### オプション変数
+
+- `HTTP_PROXY_URL` - HTTPリクエスト用のHTTPプロキシサーバーURL
+- `HTTPS_PROXY_URL` - HTTPSリクエスト用のHTTPプロキシサーバーURL
+- `NO_PROXY` - プロキシをバイパスするホストまたはドメインのカンマ区切りリスト
+- `PROBE_NAME` - プローブのカスタム名
+- `PROBE_DESCRIPTION` - プローブの説明
+- `PROBE_MONITORING_WORKERS` - 監視ワーカーの数（デフォルト：1）
+- `PROBE_MONITOR_FETCH_LIMIT` - 一度に取得するモニター数（デフォルト：10）
+- `PROBE_MONITOR_RETRY_LIMIT` - 失敗したモニターチェックで最初の試行のあとに行う再試行回数。ステップが独自の値を設定していない場合に使用（デフォルト：3、合計最大 4 回）
+- `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 合成モニタースクリプトのタイムアウト（ミリ秒、デフォルト：60000）
+- `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - カスタムコードモニタースクリプトのタイムアウト（ミリ秒、デフォルト：60000）
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - プローブがOneUptimeに送信する各リクエストの期限（デフォルト：45000）
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - OneUptimeへのリクエストがこの値より遅い場合に警告をログに記録（デフォルト：10000）
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - モニター1件のチェックの期限。超過したチェックは中止され、次のサイクルで再試行されます（デフォルト：900000）
+
+#### プロキシ設定
+
+プローブはHTTPとHTTPSの両方のプロキシサーバーをサポートしています。設定すると、プローブはすべての監視トラフィックを指定されたプロキシサーバー経由でルーティングします。カンマ区切りの `NO_PROXY` リストを指定して、内部ホストやネットワークのプロキシをバイパスすることもできます。
+
+**プロキシURLの形式：**
+
+```
+http://[username:password@]proxy.server.com:port
+```
+
+**例：**
+
+- 基本プロキシ：`http://proxy.example.com:8080`
+- 認証付き：`http://username:password@proxy.example.com:8080`
+
+**サポートされる機能：**
+
+- HTTPおよびHTTPSプロキシサポート
+- プロキシ認証（ユーザー名/パスワード）
+- HTTPとHTTPSプロキシ間の自動フォールバック
+- `NO_PROXY` を使用した選択的プロキシバイパス
+- すべての監視タイプで機能（ウェブサイト、API、SSL、合成など）
+
+**注意：** 標準環境変数（`HTTP_PROXY_URL`、`HTTPS_PROXY_URL`、`NO_PROXY`）と小文字バリアント（`http_proxy`、`https_proxy`、`no_proxy`）の両方が互換性のためにサポートされています。
+
+### 確認
+
+プローブが正常に実行されている場合、OneUptime ダッシュボードに `Connected` として表示されます。接続されていない場合は、コンテナのログを確認してください。それでも問題が解決しない場合は、[GitHub](https://github.com/oneuptime/oneuptime) でissueを作成するか、[サポートにお問い合わせください](https://oneuptime.com/support)。
+
+### 切断されたプローブの診断
+
+プローブからOneUptimeへのリクエストが成功しなくなると、そのプローブは `Disconnected` としてマークされます。プローブのログには失敗した各リクエストがどこで停止したかが記録されるため、推測に頼る必要はほとんどありません。
+
+**1. 起動時に出力される環境ブロックを確認します。** すべてのプローブは起動時に、使用しているOneUptimeのURL、リクエストの期限、プロキシ設定、継承したDNSリゾルバー、Node/OSのバージョン、TLS検証が無効化されているかどうかを含むJSONブロックを1つ出力します。問題を報告する際は、必ずこのブロックを添えてください。
+
+**2. 失敗レポートを探します。** OneUptimeへのリクエストが失敗するたびに、`stalledAt` と `whatThisMeans` を含むブロックがログに記録されます。`stalledAt` は、リクエストが通過できなかったフェーズを示します。
+
+| `stalledAt` | 意味 |
+| --- | --- |
+| `SocketAssignment` | マシンから何も送信されていません。ソケットプールが枯渇しているか、設定されたプロキシがCONNECTトンネルを確立できませんでした。 |
+| `TcpConnect` | マシンはSYNを送信しましたが、応答がありませんでした。ファイアウォールやセキュリティアプライアンスがパケットを破棄しているか、ホストに到達できません。 |
+| `TlsHandshake` | TCPは接続しましたが、TLSが完了しませんでした。通常はTLSインスペクションを行う中継装置が原因です。 |
+| `RequestSend` | 接続はできましたが、リクエストを最後まで送信できませんでした。対向側が読み取りを停止しています。 |
+| `WaitingForServerResponse` | リクエストは配信されましたが、サーバーから何も返ってきませんでした。**プローブ側のネットワークに問題はありません**。OneUptimeサーバー、そのロードバランサー、リバースプロキシを確認してください。 |
+| `ResponseBody` | サーバーは応答を開始しましたが、途中で停止しました。 |
+
+同じブロックには `deadlineOverrunInMs` も記録されます。45000msの期限に対して実際の経過時間が45000msを大きく超えている場合は、プローブのプロセス自体がブロックされていたことを意味します。ネットワークを調査する前に、ブロック内の `probeProcess.eventLoopMaxDriftInMs` を確認してください。
+
+**3. 接続の自己診断結果を確認します。** 3回連続で失敗すると、プローブは同じサーバーに対してDNS、TCP、TLS、実際のHTTPラウンドトリップの順に1層ずつテストを行い、各段階を所要時間とともにログに記録します。最初に失敗した段階が原因です。プロキシが設定されている場合、プローブは実際に接続する唯一のホップであるプロキシまでの経路をテストします。
+
+**4. 失敗になる前に遅いリクエストを監視します。** 成功したものの `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` より時間がかかったリクエストは、その所要時間とともにログに記録されます。20秒かかるリクエストがログに出始めたプローブは、45秒の期限を超えつつあります。
+
+OneUptimeサーバー側でも、応答に時間がかかったプローブからのリクエストや、応答が返される前にプローブが処理を打ち切ったリクエストが、プローブIDとともにログに記録されます。この2つのログを突き合わせることで、接続のどちら側に問題があるかがわかります。

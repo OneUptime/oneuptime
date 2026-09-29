@@ -1,0 +1,331 @@
+{
+  "a11y": {
+    "skipToMainContent": "Naar hoofdinhoud springen",
+    "loading": "Laden..."
+  },
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "submit": "Verzenden",
+    "close": "Sluiten",
+    "back": "Terug",
+    "next": "Volgende",
+    "loading": "Laden...",
+    "search": "Zoeken",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "yes": "Ja",
+    "no": "Nee",
+    "statusPage": "Statuspagina"
+  },
+  "language": {
+    "label": "Taal",
+    "switchLanguage": "Taal wijzigen"
+  },
+  "nav": {
+    "overview": "Overzicht",
+    "incidents": "Incidenten",
+    "announcements": "Aankondigingen",
+    "scheduledEvents": "Geplande gebeurtenissen",
+    "subscribe": "Abonneren",
+    "login": "Inloggen",
+    "logout": "Uitloggen"
+  },
+  "overview": {
+    "uptimeSuffix": "% uptime",
+    "operational": "Operationeel",
+    "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
+    "activeIncidents": "Actieve incidenten",
+    "scheduledMaintenanceEvents": "Geplande onderhoudsgebeurtenissen",
+    "allClearTitle": "Alles ziet er goed uit",
+    "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
+    "allResourcesAre": "Alle bronnen zijn {{status}}",
+    "someResourcesAre": "Sommige bronnen zijn {{status}}",
+    "someResourcesAreUnder": "Sommige bronnen zijn in {{status}}",
+    "oneSubGroup": "1 groep",
+    "subGroupCount": "{{total}} groepen"
+  },
+  "eventItem": {
+    "affectedResources": "Getroffen bronnen",
+    "stateChangedTo": "status gewijzigd naar",
+    "view": "{{eventType}} bekijken",
+    "updateTo": "Update voor deze {{eventType}}",
+    "postedOn": "geplaatst op"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} dagen geleden",
+    "today": "Vandaag",
+    "notAvailable": "Niet beschikbaar"
+  },
+  "uptimeHistory": {
+    "graphLabel": "Beschikbaarheidsgeschiedenis van de afgelopen {{total}} dagen",
+    "dayLabel": "{{date}}: {{uptime}}% beschikbaarheid",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% beschikbaarheid, {{total}} incidenten",
+    "dayLabelNoData": "{{date}}: geen gegevens",
+    "dayLabelNoDataWithIncidents": "{{date}}: geen gegevens, {{total}} incidenten",
+    "uptime": "Beschikbaarheid",
+    "noMonitoringData": "Geen monitoringgegevens voor deze dag",
+    "incidents": "Incidenten",
+    "noIncidents": "Geen incidenten",
+    "noIncidentsDescription": "Op deze dag zijn geen incidenten gemeld.",
+    "declared": "Gemeld",
+    "oneIncidentOnThisDay": "1 incident gemeld op deze dag",
+    "incidentsOnThisDay": "{{total}} incidenten gemeld op deze dag"
+  },
+  "liveStatus": {
+    "updated": "Bijgewerkt {{time}}",
+    "refresh": "Vernieuwen",
+    "refreshing": "Bezig met vernieuwen",
+    "refreshFailed": "Vernieuwen is mislukt. De laatst bekende status wordt getoond."
+  },
+  "search": {
+    "label": "Bronnen zoeken",
+    "placeholder": "Bronnen zoeken",
+    "clear": "Zoekopdracht wissen",
+    "resultCount": "{{matched}} van {{total}} bronnen",
+    "noMatchesInGroup": "Geen enkele bron hier komt overeen met uw zoekopdracht.",
+    "noResultsTitle": "Geen overeenkomende bronnen",
+    "noResultsDescription": "Niets op deze pagina komt overeen met ‘{{query}}’. Probeer een kortere zoekopdracht."
+  },
+  "incidents": {
+    "title": "Incidenten",
+    "singular": "Incident",
+    "active": "Actieve incidenten",
+    "resolved": "Opgeloste incidenten",
+    "none": "Geen incidenten",
+    "noneDescription": "Geen incidenten geplaatst op deze statuspagina.",
+    "postmortem": "Post-mortem incident",
+    "declaredAt": "Gemeld op ",
+    "report": "Incidentrapport",
+    "notFound": "Incident niet gevonden op deze statuspagina."
+  },
+  "episodes": {
+    "report": "Episoderapport",
+    "none": "Geen episode",
+    "notFound": "Episode niet gevonden op deze statuspagina."
+  },
+  "announcements": {
+    "title": "Aankondigingen",
+    "singular": "Aankondiging",
+    "active": "Actieve aankondigingen",
+    "past": "Vorige aankondigingen",
+    "none": "Geen aankondigingen",
+    "noneDescription": "Er zijn nog geen aankondigingen geplaatst op deze pagina.",
+    "announcedAt": "Aangekondigd op ",
+    "notFound": "Aankondiging niet gevonden op deze statuspagina."
+  },
+  "scheduledEvents": {
+    "title": "Geplande gebeurtenissen",
+    "singular": "Geplande gebeurtenis",
+    "scheduledMaintenance": "Gepland onderhoud",
+    "ongoing": "Lopende gebeurtenissen",
+    "upcoming": "Geplande gebeurtenissen",
+    "completed": "Voltooide gebeurtenissen",
+    "none": "Geen geplande gebeurtenissen",
+    "noneDescription": "Geen geplande gebeurtenissen geplaatst voor deze statuspagina.",
+    "scheduledAt": "Gepland voor ",
+    "report": "Rapport geplande gebeurtenis",
+    "notFound": "Geen geplande gebeurtenis gevonden voor deze statuspagina."
+  },
+  "subscribe": {
+    "title": "Abonneren",
+    "submit": "Abonneren",
+    "newSubscription": "Nieuw abonnement",
+    "manageExisting": "Bestaand abonnement beheren",
+    "sendManagementLink": "Beheerlink verzenden",
+    "subscribedSuccessfully": "U bent succesvol geabonneerd.",
+    "emailSentCheckSpam": "Er is een e-mail met de link naar uw e-mailadres verzonden. Als u de e-mail niet ziet, controleer dan uw spammap.",
+    "manageLinkSent": "Als er een abonnement is dat overeenkomt met de gegevens die u hebt ingevoerd, hebben we een link verzonden om het te beheren.",
+    "manageLinkSentEmail": "Als er voor dit e-mailadres een abonnement bestaat, hebben we een link om het te beheren naar dit adres verzonden. Als u de e-mail niet ziet, controleer dan uw spammap.",
+    "menu": {
+      "email": "E-mail",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Abonneren via e-mail",
+      "description": "Al onze updates worden naar dit e-mailadres verzonden.",
+      "yourEmail": "Uw e-mailadres",
+      "placeholder": "abonnee@bedrijf.nl",
+      "managePrompt": "Voer het e-mailadres in waarmee u bent geabonneerd",
+      "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit e-mailadres.",
+      "managePlaceholder": "email@uwbedrijf.nl"
+    },
+    "sms": {
+      "title": "Abonneren via SMS",
+      "description": "Al onze updates worden naar dit telefoonnummer verzonden.",
+      "yourPhoneNumber": "Uw telefoonnummer",
+      "placeholder": "+31612345678",
+      "managePrompt": "Voer het telefoonnummer in waarmee u bent geabonneerd",
+      "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit telefoonnummer."
+    },
+    "slack": {
+      "title": "Abonneren via Slack",
+      "description": "Al onze updates worden naar deze Slack-webhook verzonden.",
+      "workspaceName": "Slack-werkruimtenaam",
+      "workspaceNameDescription": "Voer de naam van uw Slack-werkruimte in ter validatie.",
+      "workspaceNamePlaceholder": "mijn-bedrijfs-werkruimte",
+      "webhookUrl": "URL van inkomende Slack-webhook",
+      "webhookUrlDescription": "Updates van de statuspagina worden naar deze Slack-webhook verzonden.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Voer de naam van de Slack-werkruimte in waarmee u bent geabonneerd",
+      "manageDescription": "We sturen u een link om uw abonnement te beheren naar deze werkruimte."
+    },
+    "microsoftTeams": {
+      "title": "Abonneren via Microsoft Teams",
+      "description": "Al onze updates worden naar deze Teams-webhook verzonden.",
+      "workspaceName": "Naam Microsoft Teams-werkruimte",
+      "workspaceNameDescription": "Voer de naam van uw Microsoft Teams-werkruimte in ter validatie.",
+      "workspaceNamePlaceholder": "mijn-bedrijfs-werkruimte",
+      "webhookUrl": "URL van inkomende Microsoft Teams-webhook",
+      "webhookUrlDescription": "Updates van de statuspagina worden naar deze Teams-webhook verzonden.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Voer de naam van de Microsoft Teams-werkruimte in waarmee u bent geabonneerd",
+      "manageDescription": "We sturen u een link om uw abonnement te beheren naar deze werkruimte."
+    },
+    "webhook": {
+      "title": "Abonneren via webhook",
+      "description": "Al onze updates worden als JSON POST-verzoeken naar deze webhook-URL verzonden.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "Bij elke statuspaginagebeurtenis wordt een JSON POST-verzoek naar deze URL verzonden.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "Abonneren op alle bronnen",
+      "allDescription": "Selecteer deze optie als u zich op alle bronnen wilt abonneren.",
+      "select": "Selecteer bronnen om op te abonneren",
+      "selectDescription": "Selecteer alstublieft de bronnen waarop u zich wilt abonneren."
+    },
+    "eventTypes": {
+      "all": "Abonneren op alle gebeurtenistypen",
+      "allDescription": "Selecteer deze optie als u zich op alle gebeurtenistypen wilt abonneren.",
+      "select": "Selecteer gebeurtenistypen om op te abonneren",
+      "selectDescription": "Selecteer alstublieft de gebeurtenistypen waarop u zich wilt abonneren."
+    },
+    "update": {
+      "title": "Abonnement bijwerken",
+      "description": "U kunt hier uw abonnementsvoorkeuren bijwerken of zich afmelden.",
+      "saved": "Uw wijzigingen zijn opgeslagen.",
+      "submit": "Abonnement bijwerken",
+      "unsubscribe": "Afmelden",
+      "unsubscribeDescription": "Selecteer dit als u zich wilt afmelden van alle bronnen."
+    },
+    "confirm": {
+      "title": "Abonnement bevestigen",
+      "success": "Abonnement succesvol bevestigd"
+    },
+    "unsubscribe": {
+      "title": "Afmelden",
+      "titleWithName": "Afmelden voor {{statusPageName}}",
+      "confirmPrompt": "Wilt u geen meldingen meer ontvangen van deze statuspagina?",
+      "channelEmail": "E-mailadres",
+      "channelSms": "Telefoonnummer",
+      "channelSlack": "Slack-workspace",
+      "channelMicrosoftTeams": "Microsoft Teams-workspace",
+      "channelWebhook": "Webhook",
+      "addedByTeamWarning": "Dit abonnement is toegevoegd door het team dat deze statuspagina beheert. Als het een gedeeld adres is, zoals een mailinglijst, stopt afmelden deze meldingen voor iedereen die ze ontvangt, en wordt het team op de hoogte gebracht.",
+      "confirmButton": "Afmelden",
+      "manageInstead": "Kies in plaats daarvan welke meldingen u ontvangt",
+      "manageSubscription": "Uw abonnement beheren",
+      "success": "U bent afgemeld. U ontvangt geen meldingen meer van deze statuspagina.",
+      "alreadyUnsubscribed": "Dit abonnement is al opgezegd. U ontvangt geen meldingen van deze statuspagina.",
+      "outOfDateLink": "Deze afmeldlink is verouderd. Gebruik om u af te melden de afmeldlink in een recent bericht van deze statuspagina.",
+      "invalidLink": "Deze afmeldlink is ongeldig. Hij is mogelijk onvolledig, of het abonnement is verwijderd. Gebruik om u af te melden de afmeldlink in een recent bericht van deze statuspagina.",
+      "failed": "Afmelden is mislukt. Probeer het opnieuw.",
+      "loadFailed": "Deze afmeldlink kon niet worden geladen. Probeer het later opnieuw."
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "E-mail",
+      "password": "Wachtwoord",
+      "newPassword": "Nieuw wachtwoord",
+      "confirmPassword": "Wachtwoord bevestigen",
+      "login": "Inloggen"
+    },
+    "login": {
+      "welcomeBack": "Welkom terug!",
+      "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
+      "forgotPassword": "Wachtwoord vergeten?",
+      "submit": "Inloggen",
+      "useSSO": "Gebruik in plaats daarvan eenmalige aanmelding (SSO)"
+    },
+    "sso": {
+      "title": "Inloggen met SSO",
+      "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
+      "noProviders": "Geen SSO-providers geconfigureerd of ingeschakeld",
+      "notAvailable": "Eenmalige aanmelding (SSO) is niet beschikbaar voor deze statuspagina. Log in plaats daarvan in met uw e-mailadres en wachtwoord.",
+      "backToLogin": "Terug naar inloggen"
+    },
+    "forgotPassword": {
+      "title": "Wachtwoord vergeten",
+      "description": "Als u uw wachtwoord voor {{statusPageName}} bent vergeten, voer dan uw e-mailadres in en de link om uw wachtwoord opnieuw in te stellen wordt naar u verzonden.",
+      "success": "We hebben u per e-mail de link voor het opnieuw instellen van het wachtwoord toegezonden. Vergeet niet uw spammap te controleren.",
+      "sendLink": "Link voor wachtwoordherstel verzenden",
+      "rememberPassword": "Herinnert u zich uw wachtwoord?"
+    },
+    "resetPassword": {
+      "description": "Maak een nieuw wachtwoord aan voor uw {{statusPageName}}-account.",
+      "instructions": "Voer uw nieuwe wachtwoord in en we zullen het bijwerken.",
+      "success": "Uw wachtwoord is bijgewerkt. Log in alstublieft.",
+      "submit": "Wachtwoord opnieuw instellen",
+      "knowPassword": "Kent u uw wachtwoord?"
+    },
+    "masterPassword": {
+      "enterWithName": "Voer wachtwoord van {{statusPageName}} in",
+      "enterGeneric": "Voer wachtwoord in",
+      "prompt": "Voer het wachtwoord in om door te gaan.",
+      "passwordRequired": "wachtwoord is vereist.",
+      "passwordLabel": "Wachtwoord",
+      "passwordDescription": "Voer het wachtwoord in om deze pagina te ontgrendelen.",
+      "passwordPlaceholder": "Wachtwoord invoeren",
+      "submit": "Statuspagina ontgrendelen"
+    },
+    "signingOut": "Bezig met afmelden..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "Pagina niet gevonden.",
+      "description": "De pagina die u zoekt bestaat niet."
+    },
+    "forbidden": {
+      "title": "Toegang geweigerd",
+      "description": "U heeft geen toegang tot deze pagina."
+    },
+    "generic": "Er is iets misgegaan. Probeer het opnieuw."
+  },
+  "footer": {
+    "poweredBy": "Mogelijk gemaakt door OneUptime"
+  },
+  "statusNames": {
+    "identified": "Geïdentificeerd",
+    "acknowledged": "Bevestigd",
+    "resolved": "Opgelost",
+    "criticalIncident": "Kritiek incident",
+    "majorIncident": "Belangrijk incident",
+    "minorIncident": "Klein incident",
+    "operational": "Operationeel",
+    "degraded": "Verminderd",
+    "offline": "Offline",
+    "scheduled": "Gepland",
+    "ongoing": "Lopend",
+    "ended": "Beëindigd",
+    "completed": "Voltooid"
+  },
+  "Subscriber ID is required": "Abonnee-ID is vereist",
+  "Token is required": "Token is vereist",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} mag niet minder dan {{minLength}} tekens bevatten.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} mag niet meer dan {{maxLength}} tekens bevatten.",
+  "{{field}} should not have spaces.": "{{field}} mag geen spaties bevatten.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} mag alleen letters, cijfers, koppeltekens (-) en onderstrepingstekens (_) bevatten.",
+  "{{field}} should not have numbers.": "{{field}} mag geen cijfers bevatten.",
+  "{{field}} should be a future date.": "{{field}} moet een datum in de toekomst zijn.",
+  "{{field}} should be a number.": "{{field}} moet een getal zijn.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} mag niet groter zijn dan {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} mag niet kleiner zijn dan {{minValue}}.",
+  "{{field}} is required.": "{{field}} is verplicht.",
+  "{{field}} should match {{matchField}}": "{{field}} moet overeenkomen met {{matchField}}",
+  "Email is not valid.": "E-mailadres is ongeldig."
+}

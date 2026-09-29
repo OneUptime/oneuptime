@@ -1,0 +1,1301 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  AreaChart,
+  Area,
+  ReferenceArea,
+} from "recharts";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "../../../../Types/Time/RangeStartAndEndDateTime";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import API from "../../../Utils/API/API";
+import URL from "../../../../Types/API/URL";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import { JSONObject } from "../../../../Types/JSON";
+import {
+  ResourceEntityFacetSelections,
+  collectResourceEntityFacetSelections,
+  collectServiceFacetSelections,
+} from "../../../../Types/Telemetry/ResourceEntityFacet";
+import { APP_API_URL } from "../../../Config";
+import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
+import ComponentLoader from "../../ComponentLoader/ComponentLoader";
+import OneUptimeDate from "../../../../Types/Date";
+import useTelemetryEntityNames from "../../../Utils/Telemetry/UseTelemetryEntityNames";
+import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
+import {
+  collectAnalyticsEntityIds,
+  getAnalyticsDimensionLabel,
+  getAnalyticsGroupValueLabel,
+  getAnalyticsSeriesLabel,
+  LogsEntityResolutionRequest,
+} from "../LogsEntityNames";
+import useHistogramRangeSelection, {
+  HistogramRangeSelectionState,
+} from "../../Charts/Utils/useHistogramRangeSelection";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "../../Charts/TimeRangeZoom/TimeRangeZoomContext";
+
+type AnalyticsChartType = "timeseries" | "toplist" | "table";
+type AnalyticsAggregation = "count" | "unique";
+
+interface AnalyticsTimeseriesRow {
+  time: string;
+  count: number;
+  groupValues: Record<string, string>;
+}
+
+interface AnalyticsTopItem {
+  value: string;
+  count: number;
+}
+
+interface AnalyticsTableRow {
+  groupValues: Record<string, string>;
+  count: number;
+}
+
+export interface LogsAnalyticsViewProps {
+  timeRange: RangeStartAndEndDateTime;
+  serviceIds?: Array<string> | undefined;
+  /*
+   * Base session scope from the host page (e.g. a session replay detail
+   * view). Forwarded verbatim so the charts cover the same rows as the list.
+   */
+  sessionIds?: Array<string> | undefined;
+  appliedFacetFilters: Map<string, Set<string>>;
+  logAttributes: Array<string>;
+  /*
+   * Drag-to-zoom for the timeseries chart. Without these the chart zooms
+   * whatever the enclosing viewer offers (the logs viewer hands it the same
+   * zoom its volume histogram uses), so a drag here retimes the viewer.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Set only while there is a zoom to undo: it holds single clicks open.
+  onTimeRangeReset?: (() => void) | undefined;
+}
+
+export const LOGS_ANALYTICS_TIMESERIES_TEST_ID: string =
+  "logs-analytics-timeseries";
+export const LOGS_ANALYTICS_ZOOM_HINT_TEST_ID: string =
+  "logs-analytics-zoom-hint";
+
+const CHART_COLORS: Array<string> = [
+  "#6366f1", // indigo
+  "#ec4899", // pink
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#06b6d4", // cyan
+  "#8b5cf6", // violet
+  "#f43f5e", // rose
+  "#14b8a6", // teal
+  "#64748b", // slate
+  "#84cc16", // lime
+];
+
+const CHART_COLORS_MUTED: Array<string> = [
+  "rgba(99,102,241,0.15)",
+  "rgba(236,72,153,0.15)",
+  "rgba(16,185,129,0.15)",
+  "rgba(245,158,11,0.15)",
+  "rgba(6,182,212,0.15)",
+  "rgba(139,92,246,0.15)",
+  "rgba(244,63,94,0.15)",
+  "rgba(20,184,166,0.15)",
+  "rgba(100,116,139,0.15)",
+  "rgba(132,204,22,0.15)",
+];
+
+const DIMENSION_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "severityText", label: "Severity" },
+  { value: "primaryEntityId", label: "Service" },
+  { value: "traceId", label: "Trace ID" },
+  { value: "spanId", label: "Span ID" },
+];
+
+const TOP_LIST_LIMITS: Array<number> = [5, 10, 25, 50];
+
+interface PivotedTimeseriesRow {
+  time: string;
+  [key: string]: number | string;
+}
+
+/*
+ * Series keys stay the raw joined group values (ids for an entity
+ * dimension) so two entities that share a name remain two series;
+ * `seriesLabels` carries what the legend and tooltip print for each key.
+ */
+export function pivotTimeseriesData(
+  rows: Array<AnalyticsTimeseriesRow>,
+  entityNameMap?: TelemetryEntityNameMap | undefined,
+): {
+  pivotedData: Array<PivotedTimeseriesRow>;
+  seriesKeys: Array<string>;
+  seriesLabels: Record<string, string>;
+} {
+  const map: Map<string, PivotedTimeseriesRow> = new Map();
+  const seriesKeysSet: Set<string> = new Set();
+  const seriesLabels: Record<string, string> = {};
+
+  for (const row of rows) {
+    let pivotRow: PivotedTimeseriesRow | undefined = map.get(row.time);
+
+    if (!pivotRow) {
+      pivotRow = { time: row.time };
+      map.set(row.time, pivotRow);
+    }
+
+    const groupValues: Record<string, string> = row.groupValues || {};
+    const groupKey: string = Object.values(groupValues).join(" / ") || "count";
+    seriesKeysSet.add(groupKey);
+    if (seriesLabels[groupKey] === undefined) {
+      seriesLabels[groupKey] =
+        getAnalyticsSeriesLabel(groupValues, entityNameMap) || groupKey;
+    }
+    pivotRow[groupKey] = ((pivotRow[groupKey] as number) || 0) + row.count;
+  }
+
+  return {
+    pivotedData: Array.from(map.values()),
+    seriesKeys: Array.from(seriesKeysSet),
+    seriesLabels,
+  };
+}
+
+export function formatTickTime(time: string): string {
+  const date: Date = OneUptimeDate.fromString(time);
+
+  if (isNaN(date.getTime())) {
+    return time;
+  }
+
+  return OneUptimeDate.getLocalTimeString(date, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+  });
+}
+
+/** The bucket a tooltip is pointing at, dated because it can be any day in the window. */
+export function formatTooltipLabel(label: string | undefined): string {
+  if (!label) {
+    return "";
+  }
+
+  const date: Date = OneUptimeDate.fromString(label);
+
+  if (isNaN(date.getTime())) {
+    return label;
+  }
+
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(date, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+  });
+}
+
+function formatYAxisTick(value: number): string {
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  }
+
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+  }
+
+  return value.toString();
+}
+
+function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
+  const diffMs: number = endTime.getTime() - startTime.getTime();
+  const diffMinutes: number = diffMs / (1000 * 60);
+
+  if (diffMinutes <= 60) {
+    return 1;
+  }
+
+  if (diffMinutes <= 360) {
+    return 5;
+  }
+
+  if (diffMinutes <= 1440) {
+    return 15;
+  }
+
+  if (diffMinutes <= 10080) {
+    return 60;
+  }
+
+  if (diffMinutes <= 43200) {
+    return 360;
+  }
+
+  return 1440;
+}
+
+interface AnalyticsTooltipProps {
+  active?: boolean;
+  label?: string;
+  // Series key -> printed label (entity names instead of ids).
+  seriesLabels?: Record<string, string> | undefined;
+  payload?: Array<{
+    dataKey: string;
+    value: number;
+    color: string;
+  }>;
+}
+
+const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
+  props: AnalyticsTooltipProps,
+): ReactElement | null => {
+  if (!props.active || !props.payload || props.payload.length === 0) {
+    return null;
+  }
+
+  const entries: Array<{ key: string; value: number; color: string }> =
+    props.payload
+      .filter((entry: { value: number }): boolean => {
+        return entry.value > 0;
+      })
+      .map(
+        (entry: {
+          dataKey: string;
+          value: number;
+          color: string;
+        }): { key: string; value: number; color: string } => {
+          return {
+            key: entry.dataKey,
+            value: entry.value,
+            color: entry.color,
+          };
+        },
+      );
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const total: number = entries.reduce(
+    (sum: number, e: { value: number }): number => {
+      return sum + e.value;
+    },
+    0,
+  );
+
+  return (
+    <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
+      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-400">
+        {formatTooltipLabel(props.label)}
+      </p>
+      <div className="space-y-1">
+        {entries.map((entry: { key: string; value: number; color: string }) => {
+          return (
+            <div
+              key={entry.key}
+              className="flex items-center justify-between gap-8"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-[3px]"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-xs text-gray-600">
+                  {props.seriesLabels?.[entry.key] || entry.key}
+                </span>
+              </div>
+              <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
+                {entry.value.toLocaleString()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {entries.length > 1 && (
+        <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
+          <span className="text-[11px] font-medium text-gray-400">Total</span>
+          <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
+            {total.toLocaleString()}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
+  props: LogsAnalyticsViewProps,
+): ReactElement => {
+  const [chartType, setChartType] = useState<AnalyticsChartType>("timeseries");
+  const [aggregation, setAggregation] = useState<AnalyticsAggregation>("count");
+  const [aggregationField, setAggregationField] = useState<string>("");
+  const [groupByFields, setGroupByFields] = useState<Array<string>>([
+    "severityText",
+  ]);
+  const [topListLimit, setTopListLimit] = useState<number>(10);
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [timeseriesData, setTimeseriesData] = useState<
+    Array<AnalyticsTimeseriesRow>
+  >([]);
+  /*
+   * How much time one timeseries bucket covers, as the request that
+   * produced the rows on screen bucketed them. Kept next to the rows so a
+   * refetch in flight cannot pair these bars with another window's width;
+   * it is what lets a click on one bar zoom into that bar.
+   */
+  const [timeseriesBucketMs, setTimeseriesBucketMs] = useState<
+    number | undefined
+  >(undefined);
+  const [topListData, setTopListData] = useState<Array<AnalyticsTopItem>>([]);
+  const [tableData, setTableData] = useState<Array<AnalyticsTableRow>>([]);
+  /*
+   * The group-by the data on screen was fetched with. The picker can move
+   * ahead of the data while a refetch is in flight, and labels must follow
+   * the data (a top list row's value belongs to this dimension).
+   */
+  const [resultGroupByFields, setResultGroupByFields] = useState<Array<string>>(
+    [],
+  );
+
+  /*
+   * Staleness guard. A zoom, its reset and the picker can change the window
+   * faster than an analytics request returns, and a wide window answers
+   * slower than a narrow one: without a sequence check the older response
+   * lands last and paints the window the reader just left under the one
+   * the picker, the list and the histogram show.
+   */
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const allDimensionOptions: Array<{ value: string; label: string }> =
+    useMemo(() => {
+      const attributeOptions: Array<{ value: string; label: string }> =
+        props.logAttributes
+          .filter((attr: string) => {
+            return !DIMENSION_OPTIONS.some((opt: { value: string }) => {
+              return opt.value === attr;
+            });
+          })
+          .map((attr: string) => {
+            return { value: attr, label: attr };
+          });
+
+      return [...DIMENSION_OPTIONS, ...attributeOptions];
+    }, [props.logAttributes]);
+
+  const fetchAnalytics: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const requestSequence: number = ++requestSequenceRef.current;
+      const isStale: () => boolean = (): boolean => {
+        return requestSequence !== requestSequenceRef.current;
+      };
+
+      try {
+        setIsLoading(true);
+
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
+
+        const startTime: Date = dateRange.startValue;
+        const endTime: Date = dateRange.endValue;
+        const bucketSizeInMinutes: number = computeDefaultBucketSize(
+          startTime,
+          endTime,
+        );
+
+        const requestData: JSONObject = {
+          chartType,
+          aggregation,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          bucketSizeInMinutes: bucketSizeInMinutes,
+        } as JSONObject;
+
+        const requestGroupBy: Array<string> =
+          groupByFields.length > 0 &&
+          groupByFields[0] &&
+          groupByFields[0].length > 0
+            ? groupByFields.filter((f: string) => {
+                return f.length > 0;
+              })
+            : [];
+
+        if (requestGroupBy.length > 0) {
+          (requestData as Record<string, unknown>)["groupBy"] = requestGroupBy;
+        }
+
+        if (aggregation === "unique" && aggregationField) {
+          (requestData as Record<string, unknown>)["aggregationField"] =
+            aggregationField;
+        }
+
+        if (chartType === "toplist" || chartType === "table") {
+          (requestData as Record<string, unknown>)["limit"] = topListLimit;
+        }
+
+        if (props.serviceIds) {
+          (requestData as Record<string, unknown>)["serviceIds"] =
+            props.serviceIds;
+        }
+
+        if (props.sessionIds) {
+          (requestData as Record<string, unknown>)["sessionIds"] =
+            props.sessionIds;
+        }
+
+        // Apply facet filters
+        const severityValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("severityText");
+
+        if (severityValues && severityValues.size > 0) {
+          (requestData as Record<string, unknown>)["severityTexts"] =
+            Array.from(severityValues);
+        }
+
+        const serviceFilterValues: Array<string> =
+          collectServiceFacetSelections(props.appliedFacetFilters.entries());
+
+        if (serviceFilterValues.length > 0) {
+          (requestData as Record<string, unknown>)["serviceIds"] =
+            serviceFilterValues;
+        }
+
+        /*
+         * Host / docker / podman / Kubernetes chips ride their own field —
+         * their ids are not `primaryEntityId` values for telemetry that
+         * carries a service.name, so the server resolves them to the
+         * resource's entity key. Without this the analytics tab silently
+         * ignored a cluster the sidebar was filtering by.
+         */
+        const resourceFilters: ResourceEntityFacetSelections =
+          collectResourceEntityFacetSelections(
+            props.appliedFacetFilters.entries(),
+          );
+
+        if (Object.keys(resourceFilters).length > 0) {
+          (requestData as Record<string, unknown>)["resourceFilters"] =
+            resourceFilters;
+        }
+
+        const traceFilterValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("traceId");
+
+        if (traceFilterValues && traceFilterValues.size > 0) {
+          (requestData as Record<string, unknown>)["traceIds"] =
+            Array.from(traceFilterValues);
+        }
+
+        const spanFilterValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("spanId");
+
+        if (spanFilterValues && spanFilterValues.size > 0) {
+          (requestData as Record<string, unknown>)["spanIds"] =
+            Array.from(spanFilterValues);
+        }
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/logs/analytics",
+            ),
+            data: requestData,
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        /*
+         * Superseded: drop it whole, labels included - a stale group-by
+         * would relabel the newer rows.
+         */
+        if (isStale()) {
+          return;
+        }
+
+        const data: unknown = response.data["data"] || [];
+
+        setResultGroupByFields(requestGroupBy);
+
+        if (chartType === "timeseries") {
+          setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
+          setTimeseriesBucketMs(bucketSizeInMinutes * 60 * 1000);
+        } else if (chartType === "toplist") {
+          setTopListData(data as Array<AnalyticsTopItem>);
+        } else {
+          setTableData(data as Array<AnalyticsTableRow>);
+        }
+      } catch {
+        // A late failure of a superseded request must not blank newer data.
+        if (isStale()) {
+          return;
+        }
+
+        // Silently degrade
+        setTimeseriesData([]);
+        setTimeseriesBucketMs(undefined);
+        setTopListData([]);
+        setTableData([]);
+      } finally {
+        // Only the latest request may take the loader down.
+        if (!isStale()) {
+          setIsLoading(false);
+        }
+      }
+    }, [
+      chartType,
+      aggregation,
+      aggregationField,
+      groupByFields,
+      topListLimit,
+      props.timeRange,
+      props.serviceIds,
+      props.sessionIds,
+      props.appliedFacetFilters,
+    ]);
+
+  useEffect(() => {
+    void fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  /*
+   * Group values of an entity dimension (primaryEntityId, hostId, …) are
+   * ids — for a RUM application's logs the RumApplication id. One resolver
+   * request names every id the current result shows. Grouped rows are read
+   * by their own groupValues keys, not resultGroupByFields: after a chart
+   * type switch the rows on screen may predate the last fetch's group-by.
+   */
+  const entityResolutionRequest: LogsEntityResolutionRequest = useMemo(() => {
+    return collectAnalyticsEntityIds({
+      groupByFields: resultGroupByFields,
+      groupedRows:
+        chartType === "timeseries"
+          ? timeseriesData
+          : chartType === "table"
+            ? tableData
+            : [],
+      topListItems: chartType === "toplist" ? topListData : [],
+    });
+  }, [resultGroupByFields, chartType, timeseriesData, tableData, topListData]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityResolutionRequest.ids,
+    { typeHints: entityResolutionRequest.typeHints },
+  );
+
+  const { pivotedData, seriesKeys, seriesLabels } = useMemo(() => {
+    return pivotTimeseriesData(timeseriesData, entityNameMap);
+  }, [timeseriesData, entityNameMap]);
+
+  /*
+   * Only the timeseries has a time axis: a window dragged across a top
+   * list or a table would not be a time range. Handlers the host passes win
+   * over the zoom the enclosing viewer offers.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const zoomHandlers: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+    onTimeRangeSelect: props.onTimeRangeSelect,
+    onTimeRangeReset: props.onTimeRangeReset,
+    isTimeAxis: chartType === "timeseries",
+    pageZoom: pageZoom,
+  });
+
+  /*
+   * The same click-or-drag selection the volume histogram above uses, over
+   * the same bucket-start labels: a drag zooms into every bucket it covered,
+   * a click into one bucket, and a double-click zooms back out.
+   */
+  const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
+    onTimeRangeSelect: zoomHandlers.onTimeRangeSelect,
+    onZoomOut: zoomHandlers.onTimeRangeReset,
+    bucketIntervalMs: timeseriesBucketMs,
+  });
+
+  const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so a
+   * cursor on any element around it never shows over the chart. Left off
+   * entirely when nothing can be dragged, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = canZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
+
+  const renderSelectControl: (
+    label: string,
+    value: string | number,
+    onChange: (val: string) => void,
+    options: Array<{ value: string | number; label: string }>,
+  ) => ReactElement = (
+    label: string,
+    value: string | number,
+    onChange: (val: string) => void,
+    options: Array<{ value: string | number; label: string }>,
+  ): ReactElement => {
+    return (
+      <div className="flex items-center">
+        <span className="mr-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+          {label}
+        </span>
+        <select
+          className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          value={value}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            onChange(e.target.value);
+          }}
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 6px center",
+          }}
+        >
+          {options.map((opt: { value: string | number; label: string }) => {
+            return (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+    );
+  };
+
+  const renderQueryBuilder: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 px-5 py-3">
+        {renderSelectControl(
+          "Chart",
+          chartType,
+          (val: string) => {
+            setChartType(val as AnalyticsChartType);
+          },
+          [
+            { value: "timeseries", label: "Timeseries" },
+            { value: "toplist", label: "Top List" },
+            { value: "table", label: "Table" },
+          ],
+        )}
+
+        <div className="h-4 w-px bg-gray-200" />
+
+        {renderSelectControl(
+          "Measure",
+          aggregation,
+          (val: string) => {
+            setAggregation(val as AnalyticsAggregation);
+          },
+          [
+            { value: "count", label: "Count" },
+            { value: "unique", label: "Unique Count" },
+          ],
+        )}
+
+        {aggregation === "unique" && (
+          <>
+            {renderSelectControl(
+              "of",
+              aggregationField,
+              (val: string) => {
+                setAggregationField(val);
+              },
+              [{ value: "", label: "Select field..." }, ...allDimensionOptions],
+            )}
+          </>
+        )}
+
+        <div className="h-4 w-px bg-gray-200" />
+
+        {renderSelectControl(
+          "Group by",
+          groupByFields[0] || "",
+          (val: string) => {
+            setGroupByFields((prev: Array<string>) => {
+              const next: Array<string> = [...prev];
+              next[0] = val;
+              return next.filter((f: string) => {
+                return f.length > 0;
+              });
+            });
+          },
+          [{ value: "", label: "None" }, ...allDimensionOptions],
+        )}
+
+        {groupByFields[0] &&
+          groupByFields[0].length > 0 &&
+          renderSelectControl(
+            "then by",
+            groupByFields[1] || "",
+            (val: string) => {
+              setGroupByFields((prev: Array<string>) => {
+                const next: Array<string> = [prev[0] || ""];
+
+                if (val.length > 0) {
+                  next.push(val);
+                }
+
+                return next.filter((f: string) => {
+                  return f.length > 0;
+                });
+              });
+            },
+            [
+              { value: "", label: "None" },
+              ...allDimensionOptions.filter((opt: { value: string }) => {
+                return opt.value !== groupByFields[0];
+              }),
+            ],
+          )}
+
+        {(chartType === "toplist" || chartType === "table") && (
+          <>
+            <div className="h-4 w-px bg-gray-200" />
+            {renderSelectControl(
+              "Limit",
+              topListLimit,
+              (val: string) => {
+                setTopListLimit(Number(val));
+              },
+              TOP_LIST_LIMITS.map((limit: number) => {
+                return { value: limit, label: String(limit) };
+              }),
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderZoomHint: () => ReactElement | null = (): ReactElement | null => {
+    if (!canZoom) {
+      return null;
+    }
+
+    return (
+      <span
+        className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400"
+        data-testid={LOGS_ANALYTICS_ZOOM_HINT_TEST_ID}
+      >
+        {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
+        {zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""}
+      </span>
+    );
+  };
+
+  const renderLegend: () => ReactElement = (): ReactElement => {
+    if (seriesKeys.length <= 1) {
+      return canZoom ? (
+        <div className="flex items-center px-5 pb-2">{renderZoomHint()}</div>
+      ) : (
+        <></>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-2">
+        {seriesKeys.map((key: string, index: number) => {
+          return (
+            <div key={key} className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-[3px]"
+                style={{
+                  backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+                }}
+              />
+              <span className="text-[11px] text-gray-500">
+                {seriesLabels[key] || key}
+              </span>
+            </div>
+          );
+        })}
+        {renderZoomHint()}
+      </div>
+    );
+  };
+
+  /*
+   * The band a drag paints across the buckets it covers, in the same colours
+   * the volume histogram uses.
+   */
+  const renderSelectionBand: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!selection.selectionStart || !selection.selectionEnd) {
+        return null;
+      }
+
+      return (
+        <ReferenceArea
+          x1={selection.selectionStart}
+          x2={selection.selectionEnd}
+          fill="rgba(99,102,241,0.12)"
+          stroke="rgba(99,102,241,0.5)"
+          strokeWidth={1}
+          radius={2}
+        />
+      );
+    };
+
+  /*
+   * The tooltip is pinned shut for the length of a drag: it would otherwise
+   * sit over the very buckets the reader is picking. Dropping the prop hands
+   * control back to recharts once the drag ends.
+   */
+  const tooltipDragProps: { active?: boolean } = selection.isDragging
+    ? { active: false }
+    : {};
+
+  const renderTimeseries: () => ReactElement = (): ReactElement => {
+    if (pivotedData.length === 0) {
+      /*
+       * A zoom into a quiet stretch lands here, with no chart left to
+       * double-click; the empty area takes the double-click instead, so the
+       * way back is where the reader's pointer already is. select-none: a
+       * double-click on the message would otherwise also select a word.
+       */
+      return (
+        <div
+          className="select-none"
+          onDoubleClick={zoomHandlers.onTimeRangeReset}
+        >
+          {renderEmptyState()}
+        </div>
+      );
+    }
+
+    const useAreaChart: boolean = seriesKeys.length === 1;
+
+    return (
+      <div className="px-2 pt-4 pb-2">
+        {renderLegend()}
+        <div
+          className="select-none"
+          style={{
+            height: 320,
+            cursor: canZoom ? "crosshair" : "default",
+          }}
+          data-testid={LOGS_ANALYTICS_TIMESERIES_TEST_ID}
+          onDoubleClick={selection.onDoubleClick}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            {useAreaChart ? (
+              <AreaChart
+                data={pivotedData}
+                margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                onMouseDown={selection.onMouseDown}
+                {...selection.chartRootProps}
+                onMouseMove={selection.onMouseMove}
+                onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
+              >
+                <defs>
+                  <linearGradient
+                    id="areaGradient0"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor={CHART_COLORS[0]}
+                      stopOpacity={0.2}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={CHART_COLORS[0]}
+                      stopOpacity={0.02}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="none"
+                  stroke="var(--ou-chart-grid, #f1f5f9)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="time"
+                  tickFormatter={formatTickTime}
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
+                  axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
+                  tickLine={false}
+                  minTickGap={50}
+                  interval="preserveStartEnd"
+                  dy={8}
+                />
+                <YAxis
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={52}
+                  allowDecimals={false}
+                  tickFormatter={formatYAxisTick}
+                />
+                <Tooltip
+                  content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
+                  cursor={{
+                    stroke: "var(--ou-accent-muted, #c7d2fe)",
+                    strokeWidth: 1,
+                    strokeDasharray: "4 4",
+                  }}
+                  {...tooltipDragProps}
+                />
+                <Area
+                  dataKey={seriesKeys[0] || "count"}
+                  stroke={CHART_COLORS[0]!}
+                  strokeWidth={2}
+                  fill="url(#areaGradient0)"
+                  dot={false}
+                  activeDot={{
+                    r: 4,
+                    fill: CHART_COLORS[0]!,
+                    stroke: "var(--ou-chart-marker-ring, #ffffff)",
+                    strokeWidth: 2,
+                  }}
+                  isAnimationActive={false}
+                />
+                {renderSelectionBand()}
+              </AreaChart>
+            ) : (
+              <BarChart
+                data={pivotedData}
+                margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                barCategoryGap="20%"
+                barGap={0}
+                onMouseDown={selection.onMouseDown}
+                {...selection.chartRootProps}
+                onMouseMove={selection.onMouseMove}
+                onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
+              >
+                <CartesianGrid
+                  strokeDasharray="none"
+                  stroke="var(--ou-chart-grid, #f1f5f9)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="time"
+                  tickFormatter={formatTickTime}
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
+                  axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
+                  tickLine={false}
+                  minTickGap={50}
+                  interval="preserveStartEnd"
+                  dy={8}
+                />
+                <YAxis
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={52}
+                  allowDecimals={false}
+                  tickFormatter={formatYAxisTick}
+                />
+                <Tooltip
+                  content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
+                  cursor={{ fill: "rgba(99,102,241,0.04)" }}
+                  {...tooltipDragProps}
+                />
+                {seriesKeys.map((key: string, index: number) => {
+                  return (
+                    <Bar
+                      key={key}
+                      dataKey={key}
+                      stackId="group"
+                      fill={CHART_COLORS[index % CHART_COLORS.length]!}
+                      radius={
+                        index === seriesKeys.length - 1
+                          ? [3, 3, 0, 0]
+                          : [0, 0, 0, 0]
+                      }
+                      isAnimationActive={false}
+                      maxBarSize={40}
+                    />
+                  );
+                })}
+                {renderSelectionBand()}
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTopList: () => ReactElement = (): ReactElement => {
+    if (topListData.length === 0) {
+      return renderEmptyState();
+    }
+
+    const maxCount: number = Math.max(
+      ...topListData.map((item: AnalyticsTopItem) => {
+        return item.count;
+      }),
+      1,
+    );
+
+    const totalCount: number = topListData.reduce(
+      (sum: number, item: AnalyticsTopItem) => {
+        return sum + item.count;
+      },
+      0,
+    );
+
+    return (
+      <div className="p-5">
+        <div className="space-y-1.5">
+          {topListData.map((item: AnalyticsTopItem, index: number) => {
+            const percentage: number = (item.count / maxCount) * 100;
+            const sharePercent: number =
+              totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
+            const color: string =
+              CHART_COLORS[index % CHART_COLORS.length] || CHART_COLORS[0]!;
+            const mutedColor: string =
+              CHART_COLORS_MUTED[index % CHART_COLORS_MUTED.length] ||
+              CHART_COLORS_MUTED[0]!;
+
+            return (
+              <div
+                key={index}
+                className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50/80"
+              >
+                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-300">
+                  {index + 1}
+                </span>
+                <div
+                  className="h-2 w-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+                <div className="w-44 min-w-0 truncate text-sm font-medium text-gray-700">
+                  {getAnalyticsGroupValueLabel(
+                    resultGroupByFields[0],
+                    item.value,
+                    entityNameMap,
+                  ) || "(empty)"}
+                </div>
+                <div className="flex-1">
+                  <div className="relative h-7 w-full overflow-hidden rounded-md bg-gray-50">
+                    <div
+                      className="absolute left-0 top-0 h-full rounded-md transition-all duration-300"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: mutedColor,
+                        borderLeft: `3px solid ${color}`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
+                    {item.count.toLocaleString()}
+                  </span>
+                  <span className="w-10 text-right font-mono text-[11px] tabular-nums text-gray-400">
+                    {sharePercent}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTable: () => ReactElement = (): ReactElement => {
+    if (tableData.length === 0) {
+      return renderEmptyState();
+    }
+
+    const groupKeys: Array<string> = Object.keys(
+      tableData[0]?.groupValues || {},
+    );
+
+    const maxCount: number = Math.max(
+      ...tableData.map((row: AnalyticsTableRow) => {
+        return row.count;
+      }),
+      1,
+    );
+
+    return (
+      <div className="p-5">
+        <div className="overflow-hidden rounded-lg border border-gray-200/80">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-gray-200/80 bg-gray-50/80">
+                <th className="w-10 px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  #
+                </th>
+                {groupKeys.map((key: string) => {
+                  return (
+                    <th
+                      key={key}
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400"
+                    >
+                      {getAnalyticsDimensionLabel(
+                        key,
+                        tableData.map((row: AnalyticsTableRow): string => {
+                          return row.groupValues?.[key] || "";
+                        }),
+                        entityNameMap,
+                      )}
+                    </th>
+                  );
+                })}
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  Count
+                </th>
+                <th className="w-48 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400" />
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.map((row: AnalyticsTableRow, index: number) => {
+                const barWidth: number = (row.count / maxCount) * 100;
+                const color: string =
+                  CHART_COLORS[index % CHART_COLORS.length] || CHART_COLORS[0]!;
+                const mutedColor: string =
+                  CHART_COLORS_MUTED[index % CHART_COLORS_MUTED.length] ||
+                  CHART_COLORS_MUTED[0]!;
+
+                return (
+                  <tr
+                    key={index}
+                    className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
+                  >
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300">
+                      {index + 1}
+                    </td>
+                    {groupKeys.map((key: string) => {
+                      return (
+                        <td
+                          key={key}
+                          className="whitespace-nowrap px-4 py-2.5 text-sm text-gray-700"
+                        >
+                          {getAnalyticsGroupValueLabel(
+                            key,
+                            row.groupValues[key] || "",
+                            entityNameMap,
+                          ) || "(empty)"}
+                        </td>
+                      );
+                    })}
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
+                      {row.count.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-5 w-full overflow-hidden rounded bg-gray-50">
+                        <div
+                          className="h-full rounded transition-all duration-300"
+                          style={{
+                            width: `${barWidth}%`,
+                            backgroundColor: mutedColor,
+                            borderLeft: `2px solid ${color}`,
+                          }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEmptyState: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="flex h-72 flex-col items-center justify-center gap-3">
+        <svg
+          className="h-10 w-10 text-gray-200"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
+          />
+        </svg>
+        <p className="text-sm text-gray-400">
+          No data available for the selected query
+        </p>
+      </div>
+    );
+  };
+
+  const renderChart: () => ReactElement = (): ReactElement => {
+    if (isLoading) {
+      /*
+       * A zoom refetches, and until the new window lands the loader stands
+       * where the timeseries was - just when a reader double-clicks to undo
+       * the zoom (issue #4116). It takes that double-click as the chart
+       * does, even when the chart replaces it mid-double-click (see
+       * placeholderProps).
+       */
+      return (
+        <div
+          className="flex h-72 select-none items-center justify-center"
+          {...(chartType === "timeseries" ? selection.placeholderProps : {})}
+        >
+          <ComponentLoader />
+        </div>
+      );
+    }
+
+    if (chartType === "timeseries") {
+      return renderTimeseries();
+    }
+
+    if (chartType === "toplist") {
+      return renderTopList();
+    }
+
+    return renderTable();
+  };
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-gray-200/80 bg-white shadow-sm">
+      {renderQueryBuilder()}
+      {renderChart()}
+    </div>
+  );
+};
+
+export default LogsAnalyticsView;

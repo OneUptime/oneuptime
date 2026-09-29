@@ -1,0 +1,176 @@
+import PageMap from "../PageMap";
+import { BuildBreadcrumbLinksByTitles } from "./Helper";
+import Dictionary from "Common/Types/Dictionary";
+import Link from "Common/Types/Link";
+
+export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
+  const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS, [
+      "Project",
+      "Project Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MOBILE_APPS, [
+      "Project",
+      "Settings",
+      "Mobile Apps",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS, [
+      "Project",
+      "Settings",
+      "Telemetry Ingestion Keys",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+      ["Project", "Settings", "Telemetry Ingestion Keys", "View Key"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TELEMETRY_SETTINGS, [
+      "Project",
+      "Settings",
+      "Telemetry Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SCIM, [
+      "Project",
+      "Settings",
+      "SCIM",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_LABELS, [
+      "Project",
+      "Settings",
+      "Labels",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SLACK_INTEGRATION, [
+      "Project",
+      "Settings",
+      "Slack Integration",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
+      ["Project", "Settings", "Microsoft Teams Integration"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_SETTINGS, [
+      "Project",
+      "Settings",
+      "Notification Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_LOGS, [
+      "Project",
+      "Settings",
+      "Notification Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LLM_PROVIDERS, [
+      "Project",
+      "Settings",
+      "LLM Providers",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW, [
+      "Project",
+      "Settings",
+      "LLM Providers",
+      "View Provider",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNERS, [
+      "Project",
+      "Settings",
+      "Runners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_VIEW, [
+      "Project",
+      "Settings",
+      "Runners",
+      "View Runner",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_CREDENTIALS, [
+      "Project",
+      "Settings",
+      "Runner Credentials",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_FEATURES, [
+      "Project",
+      "Settings",
+      "AI Features",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_CREDITS, [
+      "Project",
+      "Settings",
+      "AI Credits",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_GUARDRAILS, [
+      "Project",
+      "Settings",
+      "AI Guardrails",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LOGS, [
+      "Project",
+      "Settings",
+      "AI Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MCP_SERVER, [
+      "Project",
+      "Settings",
+      "MCP Server",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DOMAINS, [
+      "Project",
+      "Settings",
+      "Domains",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_APIKEYS, [
+      "Project",
+      "Settings",
+      "API Keys",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_APIKEY_VIEW, [
+      "Project",
+      "Settings",
+      "API Keys",
+      "View API Key",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_FEATURE_FLAGS, [
+      "Project",
+      "Settings",
+      "Feature Flags",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING, [
+      "Project",
+      "Settings",
+      "Billing",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USAGE_HISTORY, [
+      "Project",
+      "Settings",
+      "Usage History",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING_INVOICES, [
+      "Project",
+      "Settings",
+      "Invoices",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SSO, [
+      "Project",
+      "Settings",
+      "SSO",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_OIDC, [
+      "Project",
+      "Settings",
+      "OIDC",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DANGERZONE, [
+      "Project",
+      "Settings",
+      "Danger Zone",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AUDIT_LOGS, [
+      "Project",
+      "Settings",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AUDIT_LOGS_SETTINGS, [
+      "Project",
+      "Settings",
+      "Audit Logs",
+      "Settings",
+    ]),
+  };
+  return breadcrumpLinksMap[path];
+}

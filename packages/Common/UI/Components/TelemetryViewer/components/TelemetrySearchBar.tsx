@@ -1,0 +1,523 @@
+import React, {
+  ReactElement,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+  KeyboardEvent,
+} from "react";
+import Icon from "../../Icon/Icon";
+import IconProp from "../../../../Types/Icon/IconProp";
+import TelemetrySearchSuggestions from "./TelemetrySearchSuggestions";
+import TelemetrySearchHelp from "./TelemetrySearchHelp";
+import { SearchHelpRow } from "../types";
+
+export interface TelemetrySearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  /*
+   * Top-level field names like "service", "name" — used as `field:value`
+   * (no @). Shown when the user types regular text.
+   */
+  suggestions?: Array<string> | undefined;
+  /*
+   * Telemetry attribute keys like "host.name", "container.id" — used as
+   * `@attr:value`. Shown when the user types `@`. Pass plain keys, not
+   * pre-prefixed with `@` — the bar adds it on submit.
+   */
+  attributeSuggestions?: Array<string> | undefined;
+  // field → allowed value completions (resolved field keys).
+  valueSuggestions?: Record<string, Array<string>> | undefined;
+  /*
+   * Called when the user picks a concrete field:value chip from the dropdown.
+   * Return `false` when the field is NOT consumed as a chip (the parent
+   * filters it through the raw search string instead, e.g. `name:` in the
+   * metrics viewer) — the bar then keeps the token in the input and submits
+   * the search as-is rather than clearing the token.
+   */
+  onFieldValueSelect?:
+    | ((fieldKey: string, value: string) => boolean | void)
+    | undefined;
+  // User-facing alias → backing field key (e.g. "service" -> "serviceId").
+  fieldAliasMap?: Record<string, string> | undefined;
+  placeholder?: string | undefined;
+  // Rows rendered in the help popover when the bar is empty + focused.
+  helpRows?: Array<SearchHelpRow> | undefined;
+  helpCombinedExample?: string | undefined;
+  // Loading state for `@attribute` autocomplete (initial fetch of keys).
+  isAttributesLoading?: boolean | undefined;
+  // Loading state for `@attribute:value` autocomplete (per-key value fetch).
+  isValuesLoading?: boolean | undefined;
+  // Loading state for the telemetry results shown by the parent viewer.
+  isLoading?: boolean | undefined;
+}
+
+export interface TelemetrySearchBarRef {
+  focus: () => void;
+}
+
+const TelemetrySearchBar: React.ForwardRefExoticComponent<
+  TelemetrySearchBarProps & React.RefAttributes<TelemetrySearchBarRef>
+> = forwardRef<TelemetrySearchBarRef, TelemetrySearchBarProps>(
+  (
+    props: TelemetrySearchBarProps,
+    ref: React.Ref<TelemetrySearchBarRef>,
+  ): ReactElement => {
+    const [isFocused, setIsFocused] = useState<boolean>(false);
+    const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+    const [showHelp, setShowHelp] = useState<boolean>(false);
+    const [selectedSuggestionIndex, setSelectedSuggestionIndex] =
+      useState<number>(-1);
+    const inputRef: React.RefObject<HTMLInputElement> =
+      useRef<HTMLInputElement>(null!);
+    const containerRef: React.RefObject<HTMLDivElement> =
+      useRef<HTMLDivElement>(null!);
+
+    const fieldAliasMap: Record<string, string> = props.fieldAliasMap || {};
+
+    useImperativeHandle(ref, () => {
+      return {
+        focus: (): void => {
+          inputRef.current?.focus();
+        },
+      };
+    }, []);
+
+    const currentWord: string = extractCurrentWord(props.value);
+
+    /*
+     * A leading `-` negates the whole term. It is stripped before the `@`
+     * check so `-@http.method:GET` still reads as an attribute for the
+     * suggestion dropdown, and remembered so Enter can decline to build a
+     * chip out of it — a chip's key would be the literal "-http.method".
+     */
+    const isNegatedWord: boolean = currentWord.startsWith("-");
+    const unnegatedWord: string = isNegatedWord
+      ? currentWord.substring(1)
+      : currentWord;
+
+    const hasAtPrefix: boolean = unnegatedWord.startsWith("@");
+    const normalizedWord: string = hasAtPrefix
+      ? unnegatedWord.substring(1)
+      : unnegatedWord;
+
+    const colonIndex: number = normalizedWord.indexOf(":");
+    const isValueMode: boolean = colonIndex > 0;
+    /*
+     * Preserve user casing — telemetry attribute keys (e.g. `requestId`,
+     * `http.method`) are case-sensitive in the data, so lowercasing here
+     * would silently break searches against camelCase keys. Alias lookups
+     * via `fieldAliasMap` handle their own case normalisation.
+     */
+    const fieldPrefix: string = isValueMode
+      ? normalizedWord.substring(0, colonIndex)
+      : "";
+    const partialValue: string = isValueMode
+      ? normalizedWord.substring(colonIndex + 1)
+      : "";
+
+    /*
+     * Pick the suggestion list based on whether the user typed `@`.
+     * `@` is the explicit trigger for attribute mode — only show attribute
+     * keys there. Without `@`, only show top-level field names. Mixing the
+     * two led to confusing dropdowns that rendered field names like "name"
+     * as if they were attributes.
+     */
+    const activeSuggestions: Array<string> = hasAtPrefix
+      ? props.attributeSuggestions || []
+      : props.suggestions || [];
+
+    const filteredSuggestions: Array<string> = isValueMode
+      ? getValueSuggestions(
+          fieldPrefix,
+          partialValue,
+          props.valueSuggestions || {},
+          fieldAliasMap,
+        )
+      : activeSuggestions.filter((s: string): boolean => {
+          if (!normalizedWord && !hasAtPrefix) {
+            return false;
+          }
+          if (hasAtPrefix && normalizedWord.length === 0) {
+            return true;
+          }
+          return s.toLowerCase().startsWith(normalizedWord.toLowerCase());
+        });
+
+    /*
+     * Show a loader inside the dropdown while the parent is fetching:
+     *   - attribute keys: `@` was just typed but the keys haven't arrived
+     *   - attribute values: `@key:` was typed but values for that key
+     *     haven't arrived yet
+     */
+    const isLoadingForCurrentMode: boolean = isValueMode
+      ? Boolean(props.isValuesLoading)
+      : hasAtPrefix
+        ? Boolean(props.isAttributesLoading)
+        : false;
+
+    const shouldShowSuggestions: boolean =
+      showSuggestions &&
+      isFocused &&
+      (filteredSuggestions.length > 0 || isLoadingForCurrentMode) &&
+      (isValueMode ? true : currentWord.length > 0);
+
+    const shouldShowHelp: boolean =
+      showHelp &&
+      isFocused &&
+      props.value.length === 0 &&
+      !shouldShowSuggestions &&
+      props.helpRows !== undefined &&
+      props.helpRows.length > 0;
+
+    useEffect(() => {
+      setSelectedSuggestionIndex(-1);
+    }, [currentWord]);
+
+    const handleKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void =
+      useCallback(
+        (e: KeyboardEvent<HTMLInputElement>): void => {
+          if (e.key === "Enter") {
+            if (
+              shouldShowSuggestions &&
+              !isLoadingForCurrentMode &&
+              selectedSuggestionIndex >= 0 &&
+              selectedSuggestionIndex < filteredSuggestions.length
+            ) {
+              applySuggestion(filteredSuggestions[selectedSuggestionIndex]!);
+              e.preventDefault();
+              return;
+            }
+
+            if (
+              isValueMode &&
+              !isNegatedWord &&
+              partialValue.length > 0 &&
+              props.onFieldValueSelect
+            ) {
+              /*
+               * Prefer a match from the suggestion list (so casing matches
+               * what's actually in the data); otherwise accept the typed
+               * value as-is so users aren't blocked when no suggestion exists.
+               */
+              const resolvedField: string =
+                fieldAliasMap[fieldPrefix.toLowerCase()] || fieldPrefix;
+              const availableValues: Array<string> =
+                (props.valueSuggestions || {})[resolvedField] || [];
+              const lowerPartial: string = partialValue.toLowerCase();
+              const exactMatch: string | undefined = availableValues.find(
+                (v: string): boolean => {
+                  return v.toLowerCase() === lowerPartial;
+                },
+              );
+
+              const resolvedMatch: string =
+                exactMatch ||
+                (filteredSuggestions.length === 1
+                  ? filteredSuggestions[0]!
+                  : partialValue);
+
+              const consumed: boolean | void = props.onFieldValueSelect(
+                fieldPrefix,
+                resolvedMatch,
+              );
+
+              if (consumed === false) {
+                /*
+                 * The parent filters this field through the raw search
+                 * string. Keep the token in the input and submit — clearing
+                 * it here would erase the filter the user just typed.
+                 */
+                props.onSubmit();
+                setShowSuggestions(false);
+                setShowHelp(false);
+                e.preventDefault();
+                return;
+              }
+
+              const parts: Array<string> = props.value.split(/\s+/);
+              parts.pop();
+              const remaining: string = parts.join(" ");
+              props.onChange(remaining ? remaining + " " : "");
+              setShowSuggestions(false);
+              setShowHelp(false);
+              e.preventDefault();
+              return;
+            }
+
+            props.onSubmit();
+            setShowSuggestions(false);
+            setShowHelp(false);
+            return;
+          }
+
+          if (e.key === "Escape") {
+            setShowSuggestions(false);
+            setShowHelp(false);
+            return;
+          }
+
+          if (!shouldShowSuggestions || isLoadingForCurrentMode) {
+            return;
+          }
+
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setSelectedSuggestionIndex((prev: number): number => {
+              return Math.min(prev + 1, filteredSuggestions.length - 1);
+            });
+            return;
+          }
+
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSelectedSuggestionIndex((prev: number): number => {
+              return Math.max(prev - 1, 0);
+            });
+          }
+        },
+        [
+          shouldShowSuggestions,
+          selectedSuggestionIndex,
+          filteredSuggestions,
+          isValueMode,
+          isNegatedWord,
+          fieldPrefix,
+          partialValue,
+          props,
+          fieldAliasMap,
+          isLoadingForCurrentMode,
+        ],
+      );
+
+    const applySuggestion: (suggestion: string) => void = useCallback(
+      (suggestion: string): void => {
+        if (isValueMode) {
+          let consumed: boolean | void = undefined;
+          if (props.onFieldValueSelect) {
+            consumed = props.onFieldValueSelect(fieldPrefix, suggestion);
+          }
+
+          const parts: Array<string> = props.value.split(/\s+/);
+          parts.pop();
+
+          if (consumed === false) {
+            /*
+             * Not consumed as a chip — the parent filters this field via
+             * the raw search string, so complete the token in place
+             * instead of clearing it.
+             */
+            const completedToken: string = `${hasAtPrefix ? "@" : ""}${fieldPrefix}:${suggestion}`;
+            props.onChange(
+              parts.length > 0
+                ? `${parts.join(" ")} ${completedToken}`
+                : completedToken,
+            );
+            setShowSuggestions(false);
+            setShowHelp(false);
+            inputRef.current?.focus();
+            return;
+          }
+
+          const remaining: string = parts.join(" ");
+          props.onChange(remaining ? remaining + " " : "");
+          setShowSuggestions(false);
+          setShowHelp(false);
+          inputRef.current?.focus();
+          return;
+        }
+
+        const parts: Array<string> = props.value.split(/\s+/);
+
+        if (parts.length > 0) {
+          /*
+           * Attribute suggestions are stored without `@`; add it back
+           * when filling the bar so the parser recognizes it as an attribute.
+           */
+          parts[parts.length - 1] = hasAtPrefix
+            ? "@" + suggestion + ":"
+            : suggestion + ":";
+        }
+
+        props.onChange(parts.join(" "));
+        setShowSuggestions(false);
+        setShowHelp(false);
+        inputRef.current?.focus();
+      },
+      [props, isValueMode, fieldPrefix, hasAtPrefix],
+    );
+
+    const handleExampleClick: (example: string) => void = useCallback(
+      (example: string): void => {
+        props.onChange(example);
+        setShowHelp(false);
+        inputRef.current?.focus();
+      },
+      [props],
+    );
+
+    useEffect(() => {
+      const handleClickOutside: (e: MouseEvent) => void = (
+        e: MouseEvent,
+      ): void => {
+        if (
+          containerRef.current &&
+          !containerRef.current.contains(e.target as Node)
+        ) {
+          setShowSuggestions(false);
+          setShowHelp(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
+
+    const loadingMessage: string = isValueMode
+      ? `Loading values for ${fieldPrefix}...`
+      : "Loading attributes...";
+
+    const emptyMessage: string | undefined =
+      isValueMode &&
+      !isLoadingForCurrentMode &&
+      filteredSuggestions.length === 0
+        ? `No matching values — press Enter to filter by "${partialValue}"`
+        : undefined;
+
+    return (
+      <div ref={containerRef} className="relative">
+        <div
+          className={`flex items-center gap-2 rounded-lg border bg-white px-3 py-2 transition-colors ${
+            isFocused
+              ? "border-indigo-400 ring-2 ring-indigo-100"
+              : "border-gray-200 hover:border-gray-300"
+          }`}
+          aria-busy={props.isLoading || false}
+        >
+          <Icon
+            icon={IconProp.Search}
+            className="h-4 w-4 flex-none text-gray-400"
+          />
+          <input
+            ref={inputRef}
+            type="text"
+            value={props.value}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              props.onChange(e.target.value);
+              setShowSuggestions(true);
+              setShowHelp(false);
+            }}
+            onFocus={() => {
+              setIsFocused(true);
+              setShowSuggestions(true);
+              if (props.value.length === 0) {
+                setShowHelp(true);
+              }
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={props.placeholder || "Search..."}
+            /*
+             * min-w-0 below md: an input's default minimum is its intrinsic
+             * ~20ch width, so in a narrow box on a phone it overflowed and its
+             * placeholder painted over the toolbar buttons beside it. From md
+             * up it keeps that minimum: there the box can be squeezed to a
+             * sliver by a crowded toolbar, and an input shrunk to fit would
+             * leave nothing to click.
+             */
+            className="min-w-0 flex-1 bg-transparent font-mono text-sm text-gray-900 placeholder-gray-400 outline-none md:min-w-[auto]"
+            spellCheck={false}
+            autoComplete="off"
+          />
+          {props.isLoading && (
+            <div
+              className="flex-none text-indigo-500"
+              role="status"
+              aria-label="Loading results"
+              title="Loading results..."
+            >
+              <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
+            </div>
+          )}
+          {props.value.length > 0 && (
+            <button
+              type="button"
+              className="flex-none rounded-full p-1 text-gray-400 hover:bg-gray-100"
+              onClick={() => {
+                props.onChange("");
+                setShowHelp(true);
+                setShowSuggestions(false);
+                inputRef.current?.focus();
+              }}
+              title="Clear search"
+            >
+              <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {shouldShowSuggestions && (
+          <TelemetrySearchSuggestions
+            suggestions={filteredSuggestions}
+            selectedIndex={selectedSuggestionIndex}
+            onSelect={applySuggestion}
+            fieldContext={isValueMode ? fieldPrefix : undefined}
+            isAttributeMode={hasAtPrefix}
+            isLoading={isLoadingForCurrentMode}
+            loadingMessage={loadingMessage}
+            emptyMessage={emptyMessage}
+          />
+        )}
+
+        {shouldShowHelp && props.helpRows && (
+          <TelemetrySearchHelp
+            rows={props.helpRows}
+            combinedExample={props.helpCombinedExample}
+            onExampleClick={handleExampleClick}
+          />
+        )}
+      </div>
+    );
+  },
+);
+
+function extractCurrentWord(value: string): string {
+  const parts: Array<string> = value.split(/\s+/);
+  return parts[parts.length - 1] || "";
+}
+
+function getValueSuggestions(
+  fieldName: string,
+  partialValue: string,
+  valueSuggestions: Record<string, Array<string>>,
+  aliasMap: Record<string, string>,
+): Array<string> {
+  // Case-insensitive alias lookup, preserve original case as fallback for attributes
+  const resolvedField: string = aliasMap[fieldName.toLowerCase()] || fieldName;
+
+  const values: Array<string> | undefined = valueSuggestions[resolvedField];
+
+  if (!values || values.length === 0) {
+    return [];
+  }
+
+  if (!partialValue || partialValue.length === 0) {
+    return values;
+  }
+
+  const lowerPartial: string = partialValue.toLowerCase();
+  return values.filter((v: string): boolean => {
+    return v.toLowerCase().startsWith(lowerPartial);
+  });
+}
+
+TelemetrySearchBar.displayName = "TelemetrySearchBar";
+
+export default TelemetrySearchBar;

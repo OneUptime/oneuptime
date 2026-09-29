@@ -1,0 +1,760 @@
+import { SIGNUP_API_URL } from "../Utils/ApiPaths";
+import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
+import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import Dictionary from "Common/Types/Dictionary";
+import Email from "Common/Types/Email";
+import HashedString from "Common/Types/HashedString";
+import { getSignupPasswordValidationError } from "Common/Types/Password";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  UtmPropertyKeys,
+  UtmUrlPropertyKey,
+} from "Common/Types/Marketing/Attribution";
+import {
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "Common/Types/Analytics/RevenueEvent";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Link from "Common/UI/Components/Link/Link";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Captcha from "Common/UI/Components/Captcha/Captcha";
+import {
+  BILLING_ENABLED,
+  DASHBOARD_URL,
+  CAPTCHA_ENABLED,
+  CAPTCHA_SITE_KEY,
+} from "Common/UI/Config";
+import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import BaseAPI from "Common/UI/Utils/API/API";
+import UiAnalytics from "Common/UI/Utils/Analytics";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import LoginUtil from "Common/UI/Utils/Login";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import UserUtil from "Common/UI/Utils/User";
+import Reseller from "Common/Models/DatabaseModels/Reseller";
+import User from "Common/Models/DatabaseModels/User";
+import React, { useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import useAsyncEffect from "use-async-effect";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+
+/*
+ * BasicForm wraps password values for submission. Keep validation and retry
+ * feedback on their plaintext value after a request fails.
+ */
+const getFormPasswordValue: (value: unknown) => unknown = (
+  value: unknown,
+): unknown => {
+  return value instanceof HashedString ? value.toString() : value;
+};
+
+const RegisterPage: () => JSX.Element = () => {
+  const { t } = useTranslation();
+  const apiUrl: URL = SIGNUP_API_URL;
+  const passwordRequirementsId: string = useId();
+
+  const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+
+  /*
+   * One visitor is one funnel conversion. A success usually logs the user in
+   * and navigates away, but a hosted signup stops at "verify your email", and
+   * from there "sign up with a different email" brings the form back for a
+   * second account. Both funnel events stay latched across that, so the page
+   * still reports a single attempt and a single completion, and sign_up can
+   * never outrun signup_started. The corrected address is not lost, though:
+   * identifiedEmail remembers who analytics was told about, and a completion
+   * under a different address re-identifies the visitor and records
+   * accounts/register_email_changed instead of a second conversion.
+   */
+  const hasCapturedSignupStart: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const hasCapturedSignupComplete: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const identifiedEmail: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
+  const [error, setError] = useState<string>("");
+
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
+  const [reseller, setResller] = React.useState<Reseller | undefined>(
+    undefined,
+  );
+
+  /*
+   * Set when the address already had an unclaimed invitation behind it and this
+   * request could not prove it owns the mailbox. The API deliberately says the
+   * same thing whether or not that was true, so all this page can do -- and all
+   * it should do -- is repeat it.
+   */
+  const [registrationEmailSent, setRegistrationEmailSent] =
+    React.useState<boolean>(false);
+
+  /*
+   * The address a hosted signup has to verify before it can sign in. Set when
+   * the account was created but the API answered `emailVerificationRequired`
+   * instead of a session. Kept from the submitted form rather than the
+   * response, which deliberately describes no account.
+   */
+  const [emailAwaitingVerification, setEmailAwaitingVerification] =
+    React.useState<string | null>(null);
+
+  const submittedEmail: React.MutableRefObject<Email | null> =
+    useRef<Email | null>(null);
+
+  /*
+   * The resend credential /signup returned with `emailVerificationRequired`,
+   * and how long until the first resend is allowed. Both optional: an older
+   * server, or one that could not mint the token, sends neither, and the
+   * screen falls back to "sign in to get a new link".
+   */
+  const [verificationEmailResendToken, setVerificationEmailResendToken] =
+    React.useState<string | undefined>(undefined);
+
+  const [
+    verificationEmailResendAvailableInSeconds,
+    setVerificationEmailResendAvailableInSeconds,
+  ] = React.useState<number | undefined>(undefined);
+
+  /*
+   * What the visitor typed, kept so "sign up with a different email" can put
+   * the form back the way they left it and only the address needs fixing.
+   * Deliberately never the password, its confirmation or the captcha token:
+   * a secret has no business outliving the request it was typed for, and a
+   * captcha answer is single-use anyway.
+   */
+  const lastSubmittedValues: React.MutableRefObject<JSONObject> =
+    useRef<JSONObject>({});
+
+  /*
+   * True when the address came in on the link (?email=) -- an invitation, or
+   * a marketing page that already asked for it. That address is the one the
+   * link was meant for, so it stays read-only, and the "wrong address?"
+   * escape hatch is not offered for it.
+   */
+  const [isEmailLocked, setIsEmailLocked] = React.useState<boolean>(false);
+
+  const isCaptchaEnabled: boolean =
+    CAPTCHA_ENABLED && Boolean(CAPTCHA_SITE_KEY);
+
+  const [shouldResetCaptcha, setShouldResetCaptcha] =
+    React.useState<boolean>(false);
+  const [captchaResetSignal, setCaptchaResetSignal] = React.useState<number>(0);
+
+  const handleCaptchaReset: () => void = React.useCallback(() => {
+    setCaptchaResetSignal((current: number) => {
+      return current + 1;
+    });
+  }, []);
+
+  /*
+   * "Sign up with a different email" on the verification screen: back to the
+   * form, filled in with what was typed last time minus the secrets, with the
+   * address editable. Nothing is undone on the server -- the account that
+   * was just created cannot be signed into until its address is verified --
+   * and the funnel latches above keep this from counting as a new visitor.
+   */
+  const handleUseDifferentEmail: () => void = (): void => {
+    setInitialValues({ ...lastSubmittedValues.current });
+    setVerificationEmailResendToken(undefined);
+    setVerificationEmailResendAvailableInSeconds(undefined);
+    setEmailAwaitingVerification(null);
+    setShouldResetCaptcha(false);
+  };
+
+  /*
+   * A visitor who is already signed in is sent on to the Dashboard -- once,
+   * as the page mounts. Not on every render: a signup that signs the account
+   * in navigates to the Dashboard itself (LoginUtil.login), and a re-render
+   * after that would navigate again and abort the first.
+   */
+  React.useEffect(() => {
+    if (UserUtil.isLoggedIn()) {
+      Navigation.navigate(DASHBOARD_URL);
+    }
+  }, []);
+
+  type FetchResellerFunction = (resellerId: string) => Promise<void>;
+
+  const fetchReseller: FetchResellerFunction = async (
+    resellerId: string,
+  ): Promise<void> => {
+    setIsLoading(true);
+
+    try {
+      const reseller: ListResult<Reseller> = await ModelAPI.getList<Reseller>({
+        modelType: Reseller,
+        query: {
+          resellerId: resellerId,
+        },
+        limit: 1,
+        skip: 0,
+        select: {
+          hidePhoneNumberOnSignup: true,
+        },
+        sort: {},
+        requestOptions: {},
+      });
+
+      if (reseller.data.length > 0) {
+        setResller(reseller.data[0]);
+      }
+    } catch (err) {
+      setError(BaseAPI.getFriendlyMessage(err));
+    }
+
+    setIsLoading(false);
+  };
+
+  useAsyncEffect(async () => {
+    // if promo code is found, please save it in localstorage.
+    if (Navigation.getQueryStringByName("promoCode")) {
+      LocalStorage.setItem(
+        "promoCode",
+        Navigation.getQueryStringByName("promoCode"),
+      );
+    }
+
+    if (Navigation.getQueryStringByName("email")) {
+      setInitialValues({
+        email: Navigation.getQueryStringByName("email"),
+      });
+      setIsEmailLocked(true);
+    }
+
+    // if promo code is found, please save it in localstorage.
+    if (Navigation.getQueryStringByName("partnerId")) {
+      await fetchReseller(Navigation.getQueryStringByName("partnerId")!);
+    }
+  }, []);
+
+  let formFields: Array<ModelField<User>> = [
+    {
+      field: {
+        email: true,
+      },
+      fieldType: FormFieldSchemaType.Email,
+      sectionTitle: t("Account details"),
+      placeholder: "jeff@example.com",
+      required: true,
+      disabled: isEmailLocked,
+      title: t("common.email"),
+      dataTestId: "email",
+      disableSpellCheck: true,
+    },
+    {
+      field: {
+        name: true,
+      },
+      fieldType: FormFieldSchemaType.Text,
+      placeholder: "Jeff Smith",
+      required: true,
+      title: t("common.fullName"),
+      dataTestId: "name",
+      disableSpellCheck: true,
+    },
+  ];
+
+  if (BILLING_ENABLED) {
+    formFields = formFields.concat([
+      {
+        field: {
+          companyName: true,
+        },
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: "Acme, Inc.",
+        required: true,
+        title: t("common.companyName"),
+        dataTestId: "companyName",
+        disableSpellCheck: true,
+      },
+    ]);
+
+    // If reseller wants to hide phone number on sign up, we hide it.
+    if (!reseller || !reseller.hidePhoneNumberOnSignup) {
+      formFields.push({
+        field: {
+          companyPhoneNumber: true,
+        },
+        fieldType: FormFieldSchemaType.Phone,
+        required: true,
+        placeholder: "+11234567890",
+        title: t("common.phoneNumber"),
+        dataTestId: "companyPhoneNumber",
+      });
+    }
+  }
+
+  if (!BILLING_ENABLED) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          selfHostedCompanyName: true,
+        },
+        overrideFieldKey: "selfHostedCompanyName",
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: "Acme, Inc.",
+        required: false,
+        title: t("common.companyName"),
+        dataTestId: "selfHostedCompanyName",
+        showEvenIfPermissionDoesNotExist: true,
+        disableSpellCheck: true,
+      },
+      {
+        overrideField: {
+          selfHostedPhoneNumber: true,
+        },
+        overrideFieldKey: "selfHostedPhoneNumber",
+        fieldType: FormFieldSchemaType.Phone,
+        required: false,
+        placeholder: "+11234567890",
+        title: t("common.phoneNumber"),
+        dataTestId: "selfHostedPhoneNumber",
+        showEvenIfPermissionDoesNotExist: true,
+      },
+    ]);
+  }
+
+  formFields = formFields.concat([
+    {
+      field: {
+        password: true,
+      },
+      fieldType: FormFieldSchemaType.Password,
+      sectionTitle: t("Secure your account"),
+      spanFullRow: true,
+      errorMessageInFooter: true,
+      customValidation: (values: FormValues<User>): string | null => {
+        const message: string | null = getSignupPasswordValidationError(
+          getFormPasswordValue(values.password),
+        );
+
+        return message
+          ? t(message, {
+              defaultValue: message,
+              keySeparator: false,
+              nsSeparator: false,
+            })
+          : null;
+      },
+      getFooterElement: (
+        values: FormValues<User>,
+        error?: string,
+      ): React.ReactElement => {
+        const password: unknown = getFormPasswordValue(values.password);
+        return (
+          <PasswordRequirements
+            id={passwordRequirementsId}
+            password={typeof password === "string" ? password : ""}
+            error={error}
+          />
+        );
+      },
+      ariaDescribedby: passwordRequirementsId,
+      autoComplete: "new-password",
+      placeholder: t("common.password"),
+      title: t("common.password"),
+      required: true,
+      dataTestId: "password",
+      disableSpellCheck: true,
+    },
+    {
+      field: {
+        confirmPassword: true,
+      } as any,
+      customValidation: (values: FormValues<User>): string | null => {
+        const confirmation: unknown = getFormPasswordValue(
+          (values as JSONObject)["confirmPassword"],
+        );
+
+        if (
+          !confirmation ||
+          confirmation === getFormPasswordValue(values.password)
+        ) {
+          return null;
+        }
+
+        return t("{{field}} should match {{matchField}}", {
+          field: t("common.confirmPassword"),
+          matchField: t("common.password"),
+        });
+      },
+      fieldType: FormFieldSchemaType.Password,
+      spanFullRow: true,
+      autoComplete: "new-password",
+      placeholder: t("common.confirmPassword"),
+      title: t("common.confirmPassword"),
+      overrideFieldKey: "confirmPassword",
+      required: true,
+      showEvenIfPermissionDoesNotExist: true,
+      dataTestId: "confirmPassword",
+      disableSpellCheck: true,
+    },
+  ]);
+
+  if (!IsBillingEnabled) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          notifySelfHosted: true,
+        },
+        overrideFieldKey: "notifySelfHosted",
+
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        defaultValue: true,
+        title: t("register.notifySelfHosted"),
+        dataTestId: "notifySelfHosted",
+        showEvenIfPermissionDoesNotExist: true,
+        spanFullRow: true,
+      },
+    ]);
+  }
+
+  if (isCaptchaEnabled) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          captchaToken: true,
+        },
+        overrideFieldKey: "captchaToken",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        title: t("captcha.title"),
+        description: t("captcha.description"),
+        required: true,
+        showEvenIfPermissionDoesNotExist: true,
+        getCustomElement: (
+          _values: FormValues<User>,
+          customProps: CustomElementProps,
+        ) => {
+          return (
+            <Captcha
+              siteKey={CAPTCHA_SITE_KEY}
+              resetSignal={captchaResetSignal}
+              error={customProps.error}
+              onTokenChange={(token: string) => {
+                customProps.onChange?.(token);
+              }}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      },
+    ]);
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (emailAwaitingVerification !== null) {
+    return (
+      <VerifyEmailPending
+        email={emailAwaitingVerification}
+        resendToken={verificationEmailResendToken}
+        resendAvailableInSeconds={verificationEmailResendAvailableInSeconds}
+        onUseDifferentEmail={
+          isEmailLocked ? undefined : handleUseDifferentEmail
+        }
+      />
+    );
+  }
+
+  if (registrationEmailSent) {
+    return (
+      <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md mx-auto">
+          <img
+            className="mx-auto h-10 w-auto sm:h-12"
+            src={OneUptimeLogo}
+            alt="OneUptime"
+          />
+          <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+            {t("register.checkEmailTitle")}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            {t("register.checkEmailMessage")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <div className="w-full max-w-md mx-auto lg:max-w-2xl">
+        <img
+          className="mx-auto h-10 w-auto sm:h-12"
+          src={OneUptimeLogo}
+          alt="OneUptime"
+        />
+        <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
+          {t("register.title")}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-center text-sm leading-6 text-gray-600">
+          {t("register.subtitle")}
+        </p>
+      </div>
+
+      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto lg:max-w-2xl">
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 shadow-sm sm:px-8 sm:py-8">
+          <ModelForm<User>
+            modelType={User}
+            id="register-form"
+            showAsColumns={reseller ? 1 : 2}
+            name="Register"
+            initialValues={initialValues}
+            maxPrimaryButtonWidth={true}
+            fields={formFields}
+            createOrUpdateApiUrl={apiUrl}
+            onBeforeCreate={(
+              item: User,
+              miscDataProps: JSONObject,
+            ): Promise<User> => {
+              if (!hasCapturedSignupStart.current) {
+                UiAnalytics.captureRevenueEvent(
+                  RevenueEventName.SignupStarted,
+                  { funnel_stage: RevenueFunnelStage.Signup },
+                );
+                hasCapturedSignupStart.current = true;
+              }
+
+              submittedEmail.current = item.email || null;
+
+              /*
+               * Plain strings, so the form can be prefilled with them later.
+               * Never password, confirmPassword or captchaToken -- see
+               * lastSubmittedValues.
+               */
+              const valuesToKeep: Array<[string, string | undefined]> = [
+                ["email", item.email?.toString()],
+                ["name", item.name?.toString()],
+                ["companyName", item.companyName?.toString()],
+                ["companyPhoneNumber", item.companyPhoneNumber?.toString()],
+                [
+                  "selfHostedCompanyName",
+                  miscDataProps["selfHostedCompanyName"]?.toString(),
+                ],
+                [
+                  "selfHostedPhoneNumber",
+                  miscDataProps["selfHostedPhoneNumber"]?.toString(),
+                ],
+              ];
+
+              const keptValues: JSONObject = {};
+
+              for (const [key, value] of valuesToKeep) {
+                if (value) {
+                  keptValues[key] = value;
+                }
+              }
+
+              lastSubmittedValues.current = keptValues;
+              if (isCaptchaEnabled) {
+                const captchaToken: string | undefined = (
+                  miscDataProps["captchaToken"] as string | undefined
+                )
+                  ?.toString()
+                  .trim();
+
+                if (!captchaToken) {
+                  throw new Error(t("captcha.errorOnSignUp"));
+                }
+
+                miscDataProps["captchaToken"] = captchaToken;
+                setShouldResetCaptcha(true);
+              }
+
+              /*
+               * Carried straight through from the invitation link. Read here
+               * rather than held in state so a token that arrives with the URL
+               * cannot be lost to a stale closure, and passed as a miscDataProp
+               * rather than a User field because it authorizes the request --
+               * it is not part of the account being created.
+               */
+              const registrationToken: string | null =
+                Navigation.getQueryStringByName("token");
+
+              if (registrationToken) {
+                miscDataProps["registrationToken"] = registrationToken;
+              }
+
+              const utmParams: Dictionary<string> = UserUtil.getUtmParams();
+
+              if (utmParams && Object.keys(utmParams).length > 0) {
+                /*
+                 * Driven from the shared contract rather than hand-listed. A
+                 * UTM key added to Common/Types/Marketing/Attribution.ts is
+                 * captured by the marketing site, whitelisted by the server
+                 * door and stored here without this file having to be
+                 * remembered — which is how utm_id and its three siblings were
+                 * silently dropped at signup while travelling everywhere else.
+                 */
+                const fields: JSONObject = item as unknown as JSONObject;
+
+                for (const propertyKey of [
+                  ...UtmPropertyKeys,
+                  UtmUrlPropertyKey,
+                ]) {
+                  fields[propertyKey] = utmParams[propertyKey] || "";
+                }
+
+                UiAnalytics.capture("utm_event", utmParams);
+              }
+
+              /*
+               * Ad platform click IDs (gclid, fbclid, ...) for offline
+               * conversion uploads, and the visitor's first attributed touch.
+               */
+              const clickIds: JSONObject | null =
+                UserUtil.getAttributionClickIds();
+
+              if (clickIds) {
+                item.clickIds = clickIds;
+              }
+
+              const firstTouch: JSONObject | null =
+                UserUtil.getFirstTouchAttribution();
+
+              if (firstTouch) {
+                item.firstTouchAttribution = firstTouch;
+              }
+
+              return Promise.resolve(item);
+            }}
+            formType={FormType.Create}
+            submitButtonText={t("register.submitButton")}
+            onLoadingChange={(loading: boolean) => {
+              if (!isCaptchaEnabled) {
+                return;
+              }
+
+              if (!loading && shouldResetCaptcha) {
+                setShouldResetCaptcha(false);
+                handleCaptchaReset();
+              }
+            }}
+            onSuccess={(value: User, miscData: JSONObject | undefined) => {
+              /*
+               * No account was created or claimed: a link went to the address
+               * instead. There is no session to start, and nothing here counts
+               * as a completed signup, so this returns before the analytics and
+               * the login below.
+               */
+              if (miscData && miscData["registrationEmailSent"]) {
+                setRegistrationEmailSent(true);
+                return;
+              }
+
+              /*
+               * The account WAS created, so this is a completed signup for
+               * the funnel. There is just no session yet: the hosted service
+               * holds a new account until its email is verified, and the
+               * response carries no account to read the address from.
+               */
+              const isEmailVerificationRequired: boolean = Boolean(
+                miscData && miscData["emailVerificationRequired"],
+              );
+
+              const signedUpEmail: Email | null =
+                value?.email ||
+                (isEmailVerificationRequired ? submittedEmail.current : null);
+
+              if (signedUpEmail && !hasCapturedSignupComplete.current) {
+                hasCapturedSignupComplete.current = true;
+                identifiedEmail.current = signedUpEmail.toString();
+                UiAnalytics.userAuth(signedUpEmail);
+                UiAnalytics.capture("accounts/register");
+                UiAnalytics.captureRevenueEvent(
+                  RevenueEventName.SignupCompleted,
+                  { funnel_stage: RevenueFunnelStage.Signup },
+                );
+              } else if (
+                signedUpEmail &&
+                identifiedEmail.current !== signedUpEmail.toString()
+              ) {
+                /*
+                 * The same visitor, signing up again under a corrected
+                 * address. Not a second conversion; analytics just follows
+                 * them to the address they actually use.
+                 */
+                identifiedEmail.current = signedUpEmail.toString();
+                UiAnalytics.userAuth(signedUpEmail);
+                UiAnalytics.capture("accounts/register_email_changed");
+              }
+
+              if (isEmailVerificationRequired) {
+                /*
+                 * Only what the screen can use: a non-empty string and a
+                 * finite number. Anything else -- including an older server
+                 * that sends neither -- leaves the screen on its "sign in to
+                 * get a new link" fallback.
+                 */
+                const resendToken: unknown = miscData
+                  ? miscData["verificationEmailResendToken"]
+                  : undefined;
+                const resendAvailableInSeconds: unknown = miscData
+                  ? miscData["verificationEmailResendAvailableInSeconds"]
+                  : undefined;
+
+                setVerificationEmailResendToken(
+                  typeof resendToken === "string" && resendToken
+                    ? resendToken
+                    : undefined,
+                );
+                setVerificationEmailResendAvailableInSeconds(
+                  typeof resendAvailableInSeconds === "number" &&
+                    Number.isFinite(resendAvailableInSeconds)
+                    ? resendAvailableInSeconds
+                    : undefined,
+                );
+                setEmailAwaitingVerification(
+                  submittedEmail.current?.toString() || "",
+                );
+                return;
+              }
+
+              LoginUtil.login({
+                user: value,
+                token: miscData ? miscData["token"] : undefined,
+              });
+            }}
+          />
+          <p className="mt-4 text-center text-xs leading-5 text-gray-500">
+            {t("register.noCreditCard")}
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-5 text-center text-gray-500">
+          <p className="text-sm text-gray-600">
+            {t("register.haveAccountPrompt")}{" "}
+            <Link
+              to={new Route("/accounts/login")}
+              className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+            >
+              {t("register.loginLink")}
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RegisterPage;

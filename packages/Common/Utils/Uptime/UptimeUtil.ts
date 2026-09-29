@@ -1,0 +1,593 @@
+import Event from "./Event";
+import MonitorEvent from "./MonitorEvent";
+import { Green } from "../../Types/BrandColors";
+import OneUptimeDate from "../../Types/Date";
+import ObjectID from "../../Types/ObjectID";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+
+/**
+ * The time period an uptime calculation is reported over. When this is supplied, events are
+ * clipped to it and the denominator of the uptime percentage is the window itself - clipped to
+ * now, and starting no earlier than the first recorded event (so a monitor younger than the
+ * window is measured from its first event, not diluted by time it did not exist). Without it,
+ * events run to the start of the next event (or now) and the denominator is "first event -> now",
+ * which lets an open (endsAt = null) row from months ago leak into an unrelated report.
+ */
+export interface UptimeWindow {
+  startDate: Date;
+  endDate: Date;
+}
+
+export default class UptimeUtil {
+  /**
+   * Chronological order for timeline rows, to the millisecond.
+   *
+   * Not OneUptimeDate.isAfter: that compares at SECOND granularity, so two
+   * rows that start within the same wall-clock second compare as equal and
+   * keep whatever order they arrived in. The server sends rows newest-first,
+   * and a flapping monitor writes most of its transitions within a second of
+   * each other (Offline at 12:47:40.326, back to Operational at .540). Left in
+   * arrival order, the still-open Operational row sorted BEFORE the Offline
+   * row it follows, took that row's start as its own end, and ended before it
+   * began. The monitor's current status then never reached "now", so today's
+   * bar had nothing in it and was painted the no-events colour - grey on a
+   * page whose default bar colour is grey - while the monitor was up.
+   *
+   * On an exact tie a closed row sorts before an open one, so the open row is
+   * the one that runs on to the next row or to now. This is the order
+   * getRollingUptimeTotals and getDailyUptimeAggregate use server-side
+   * (`ORDER BY startsAt, endsAt NULLS LAST`); the zero-length row a backfill
+   * tie leaves behind can then never cut the open row short.
+   */
+  public static compareTimelinesChronologically(
+    a: MonitorStatusTimeline,
+    b: MonitorStatusTimeline,
+  ): number {
+    if (!a.startsAt || !b.startsAt) {
+      return 0;
+    }
+
+    const startDifference: number =
+      OneUptimeDate.fromString(a.startsAt).getTime() -
+      OneUptimeDate.fromString(b.startsAt).getTime();
+
+    if (startDifference !== 0) {
+      return startDifference;
+    }
+
+    if (!a.endsAt && !b.endsAt) {
+      return 0;
+    }
+
+    // closed before open.
+    if (!a.endsAt) {
+      return 1;
+    }
+
+    if (!b.endsAt) {
+      return -1;
+    }
+
+    return (
+      OneUptimeDate.fromString(a.endsAt).getTime() -
+      OneUptimeDate.fromString(b.endsAt).getTime()
+    );
+  }
+
+  /**
+   * This function, `getMonitorEventsForId`, takes a `monitorId` as an argument and returns an array of `MonitorEvent` objects.
+   * @param {ObjectID} monitorId - The ID of the monitor for which events are to be fetched.
+   * @param {UptimeWindow | undefined} window - If supplied, events are clipped to this window and events outside it are dropped.
+   * @returns {Array<MonitorEvent>} - An array of `MonitorEvent` objects.
+   */
+  public static getMonitorEventsForId(
+    monitorId: ObjectID,
+    statusTimelineItems: Array<MonitorStatusTimeline>,
+    window?: UptimeWindow | undefined,
+  ): Array<MonitorEvent> {
+    // Initialize an empty array to store the monitor events.
+
+    // make sure items are sorted by start date - to the millisecond, see compareTimelinesChronologically.
+
+    let items: Array<MonitorStatusTimeline> = [...statusTimelineItems];
+
+    items = items.sort(
+      (a: MonitorStatusTimeline, b: MonitorStatusTimeline): number => {
+        return UptimeUtil.compareTimelinesChronologically(a, b);
+      },
+    );
+
+    const eventList: Array<MonitorEvent> = [];
+
+    const monitorEvents: Array<MonitorStatusTimeline> = items.filter(
+      (item: MonitorStatusTimeline) => {
+        return item.monitorId?.toString() === monitorId.toString();
+      },
+    );
+
+    // Loop through the items in the props object.
+    for (let i: number = 0; i < monitorEvents.length; i++) {
+      // If the current item is null or undefined, skip to the next iteration.
+      if (!monitorEvents[i]) {
+        continue;
+      }
+
+      // Set the start date of the event to the creation date of the current item. If it doesn't exist, use the current date.
+      const startDate: Date =
+        monitorEvents[i]!.startsAt || OneUptimeDate.getCurrentDate();
+
+      // Initialize the end date as the current date.
+      let endDate: Date | undefined = monitorEvents[i]!.endsAt;
+
+      if (!endDate) {
+        // check if there's next event, if there is, set the end date to the start date of the next event.
+        if (i < monitorEvents.length - 1) {
+          endDate = monitorEvents[i + 1]!.startsAt;
+        }
+
+        // if this is the last event, or the next event has no start date, then this event is still open and runs until now.
+        if (!endDate) {
+          endDate = OneUptimeDate.getCurrentDate();
+        }
+      }
+
+      let eventStartDate: Date = startDate;
+      let eventEndDate: Date = endDate;
+
+      if (window) {
+        /*
+         * Clip the event to the reporting window. Without this an open (endsAt = null) row that
+         * started months before the window contributes its entire life to the report.
+         *
+         * The end is also capped at "now", to match the denominator in
+         * getTotalDowntimeInSeconds, which measures the window only up to the
+         * current time (min(window.endDate, now)). If the numerator were allowed
+         * to run to a future window.endDate while the denominator stopped at now,
+         * a closed row ending in the future could make downtime exceed the elapsed
+         * period and drive the raw percentage negative.
+         */
+        eventStartDate = OneUptimeDate.getGreaterDate(
+          eventStartDate,
+          window.startDate,
+        );
+        eventEndDate = OneUptimeDate.getLesserDate(
+          eventEndDate,
+          OneUptimeDate.getLesserDate(
+            window.endDate,
+            OneUptimeDate.getCurrentDate(),
+          ),
+        );
+
+        // if the event does not overlap the window at all, then drop it.
+        if (
+          OneUptimeDate.getSecondsBetweenDates(eventStartDate, eventEndDate) <=
+          0
+        ) {
+          continue;
+        }
+      } else if (
+        OneUptimeDate.fromString(eventEndDate).getTime() <
+        OneUptimeDate.fromString(eventStartDate).getTime()
+      ) {
+        /*
+         * An event that ends before it starts covers nothing. Kept, it counts
+         * negative seconds, which the day bars and the downtime sums then
+         * subtract from real time. A row can only produce one from a corrupt
+         * endsAt now that the rows are sorted to the millisecond.
+         */
+        continue;
+      }
+
+      // Push a new MonitorEvent object to the eventList array with properties from the current item and calculated dates.
+      eventList.push({
+        startDate: eventStartDate,
+        endDate: eventEndDate,
+        label: monitorEvents[i]?.monitorStatus?.name || "Operational",
+        priority: monitorEvents[i]?.monitorStatus?.priority || 0,
+        color: monitorEvents[i]?.monitorStatus?.color || Green,
+        monitorId: monitorEvents[i]!.monitorId!,
+        eventStatusId: monitorEvents[i]!.monitorStatus!.id!,
+      });
+    }
+
+    // Return the populated eventList array.
+    return eventList;
+  }
+
+  /*
+   * Start-date order for events, to the millisecond rather than to the second
+   * OneUptimeDate.isAfter compares at. Ties keep their existing order.
+   */
+  public static compareEventsByStartDate(a: Event, b: Event): number {
+    return (
+      OneUptimeDate.fromString(a.startDate).getTime() -
+      OneUptimeDate.fromString(b.startDate).getTime()
+    );
+  }
+
+  public static getNonOverlappingMonitorEvents(
+    items: Array<MonitorStatusTimeline>,
+    window?: UptimeWindow | undefined,
+  ): Array<Event> {
+    const monitorEventList: Array<MonitorEvent> = this.getMonitorEvents(
+      items,
+      window,
+    );
+
+    const eventList: Array<Event> = [];
+
+    for (let i: number = 0; i < monitorEventList.length; i++) {
+      // if this event starts after the last event, then add it to the list directly.
+
+      const monitorEvent: MonitorEvent = monitorEventList[i]!;
+
+      if (
+        eventList.length === 0 ||
+        OneUptimeDate.isAfter(
+          monitorEvent.startDate,
+          eventList[eventList.length - 1]!.endDate,
+        ) ||
+        OneUptimeDate.isEqualBySeconds(
+          monitorEvent.startDate,
+          eventList[eventList.length - 1]!.endDate,
+        )
+      ) {
+        eventList.push(monitorEvent);
+        continue;
+      }
+
+      // if this event starts before the last event, then we need to check if it ends before the last event. If it does, then we can skip this event if the monitrEvent is of lower priority than the last event. If it is of higher priority, then we need to add it to the list and remove the last event from the list.
+      if (
+        OneUptimeDate.isBefore(
+          monitorEvent.startDate,
+          eventList[eventList.length - 1]!.endDate,
+        )
+      ) {
+        let isEndDateOfCurrenteventAfterLastEvent: boolean = false;
+        if (
+          eventList[eventList.length - 1] &&
+          eventList[eventList.length - 1]?.endDate
+        ) {
+          isEndDateOfCurrenteventAfterLastEvent =
+            OneUptimeDate.isAfter(
+              monitorEvent.endDate,
+              eventList[eventList.length - 1]!.endDate,
+            ) ||
+            OneUptimeDate.isEqualBySeconds(
+              monitorEvent.endDate,
+              eventList[eventList.length - 1]!.endDate,
+            );
+        }
+
+        if (
+          monitorEvent.priority > eventList[eventList.length - 1]!.priority ||
+          isEndDateOfCurrenteventAfterLastEvent
+        ) {
+          // end the last event at the start of this event.
+
+          const tempLastEvent: Event = {
+            ...eventList[eventList.length - 1],
+          } as Event;
+
+          eventList[eventList.length - 1]!.endDate = monitorEvent.startDate;
+          eventList.push(monitorEvent);
+
+          // if the monitorEvent endDate is before the end of the last event, then we need to add the end of the last event to the list.
+
+          if (
+            OneUptimeDate.isBefore(monitorEvent.endDate, tempLastEvent.endDate)
+          ) {
+            eventList.push({
+              startDate: monitorEvent.endDate,
+              endDate: tempLastEvent.endDate,
+              label: tempLastEvent.label,
+              priority: tempLastEvent.priority,
+              color: tempLastEvent.color,
+              eventStatusId: tempLastEvent.eventStatusId,
+            });
+          }
+        }
+
+        continue;
+      }
+    }
+
+    return eventList;
+  }
+
+  public static getMonitorEvents(
+    items: Array<MonitorStatusTimeline>,
+    window?: UptimeWindow | undefined,
+  ): Array<MonitorEvent> {
+    // get all distinct monitor ids.
+    const monitorIds: Array<ObjectID> = [];
+
+    for (let i: number = 0; i < items.length; i++) {
+      if (!items[i]) {
+        continue;
+      }
+
+      const monitorId: string | undefined = items[i]!.monitorId?.toString();
+
+      if (!monitorId) {
+        continue;
+      }
+
+      if (
+        !monitorIds.find((item: ObjectID) => {
+          return item.toString() === monitorId;
+        })
+      ) {
+        monitorIds.push(new ObjectID(monitorId));
+      }
+    }
+
+    const eventList: Array<MonitorEvent> = [];
+    // convert data to events.
+
+    for (const monitorId of monitorIds) {
+      const monitorEvents: Array<MonitorEvent> = this.getMonitorEventsForId(
+        monitorId,
+        items,
+        window,
+      );
+      eventList.push(...monitorEvents);
+    }
+
+    /*
+     * sort event list by start date, to the millisecond. Events from several
+     * monitors (a monitor group) that start within the same second must still
+     * come out in the order they happened - see compareTimelinesChronologically.
+     */
+    eventList.sort((a: MonitorEvent, b: MonitorEvent): number => {
+      return UptimeUtil.compareEventsByStartDate(a, b);
+    });
+
+    return [...eventList];
+  }
+
+  public static getTotalDowntimeInSeconds(
+    monitorStatusTimelines: Array<MonitorStatusTimeline>,
+    downtimeMonitorStatuses: Array<MonitorStatus>,
+    window?: UptimeWindow | undefined,
+  ): {
+    totalDowntimeInSeconds: number;
+    totalSecondsInTimePeriod: number;
+  } {
+    const monitorEvents: Array<Event> = this.getNonOverlappingMonitorEvents(
+      monitorStatusTimelines,
+      window,
+    );
+
+    // sort these by start date, to the millisecond.
+    monitorEvents.sort((a: Event, b: Event): number => {
+      return UptimeUtil.compareEventsByStartDate(a, b);
+    });
+
+    /*
+     * If a window is supplied then the time period is the window itself, and not "first event -> now".
+     * Two clamps apply to the window:
+     *
+     *   - The window end is clipped to now, so a window that reaches into the future does not
+     *     inflate the denominator (which is what made the reported percentage drift upwards
+     *     every day).
+     *
+     *   - The window start is clamped forward to the first event's start, so time from before
+     *     the monitor's first recorded event does not count as uptime. Events are already
+     *     clipped to the window, so this only moves the start when the monitor has NO data for
+     *     the head of the window - i.e. it is younger than the window. Without this a monitor
+     *     created a day ago and Offline ever since would report ~98.9% uptime over a 90 day
+     *     window; with it, it reports 0% - the same answer the windowless
+     *     "first event -> now" denominator always gave.
+     *
+     * When there are no events at all there is nothing to clamp to and the denominator is the
+     * full (now-clipped) window.
+     */
+    let windowSecondsInTimePeriod: number | null = null;
+
+    if (window) {
+      const windowEndDate: Date = OneUptimeDate.getLesserDate(
+        window.endDate,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      const windowStartDate: Date =
+        monitorEvents.length > 0
+          ? OneUptimeDate.getGreaterDate(
+              window.startDate,
+              monitorEvents[0]!.startDate,
+            )
+          : window.startDate;
+
+      windowSecondsInTimePeriod = OneUptimeDate.getSecondsBetweenDates(
+        windowStartDate,
+        windowEndDate,
+      );
+
+      // never let the denominator be zero or negative.
+      if (!windowSecondsInTimePeriod || windowSecondsInTimePeriod < 0) {
+        windowSecondsInTimePeriod = 1;
+      }
+    }
+
+    // calculate number of seconds between start of first event to date time now.
+    let totalSecondsInTimePeriod: number = 0;
+
+    if (monitorEvents.length === 0) {
+      return {
+        totalDowntimeInSeconds: 0,
+        totalSecondsInTimePeriod: windowSecondsInTimePeriod ?? 1,
+      };
+    }
+
+    if (windowSecondsInTimePeriod !== null) {
+      totalSecondsInTimePeriod = windowSecondsInTimePeriod;
+    } else {
+      if (
+        OneUptimeDate.isAfter(
+          monitorEvents[0]!.startDate,
+          OneUptimeDate.getCurrentDate(),
+        )
+      ) {
+        return {
+          totalDowntimeInSeconds: 0,
+          totalSecondsInTimePeriod: 1,
+        };
+      }
+
+      totalSecondsInTimePeriod =
+        OneUptimeDate.getSecondsBetweenDates(
+          monitorEvents[0]!.startDate,
+          OneUptimeDate.getCurrentDate(),
+        ) || 1;
+    }
+
+    // get order of operational state.
+
+    // if the event belongs to less than operationalStatePriority, then add the seconds to the total seconds.
+
+    let totalDowntime: number = 0;
+
+    for (const monitorEvent of monitorEvents) {
+      const isDowntimeEvent: boolean = Boolean(
+        downtimeMonitorStatuses.find((item: MonitorStatus) => {
+          return item.id?.toString() === monitorEvent.eventStatusId.toString();
+        }),
+      );
+
+      if (isDowntimeEvent) {
+        totalDowntime += OneUptimeDate.getSecondsBetweenDates(
+          monitorEvent.startDate,
+          monitorEvent.endDate,
+        );
+      }
+    }
+
+    return {
+      totalDowntimeInSeconds: totalDowntime,
+      totalSecondsInTimePeriod,
+    };
+  }
+
+  public static roundToPrecision(data: {
+    number: number;
+    precision: UptimePrecision;
+  }): number {
+    const { number, precision } = data;
+
+    if (precision === UptimePrecision.NO_DECIMAL) {
+      return Math.floor(number);
+    }
+
+    if (precision === UptimePrecision.ONE_DECIMAL) {
+      return Math.floor(number * 10) / 10;
+    }
+
+    if (precision === UptimePrecision.TWO_DECIMAL) {
+      return Math.floor(number * 100) / 100;
+    }
+
+    if (precision === UptimePrecision.THREE_DECIMAL) {
+      return Math.floor(number * 1000) / 1000;
+    }
+
+    return number;
+  }
+
+  public static calculateUptimePercentage(
+    monitorStatusTimelines: Array<MonitorStatusTimeline>,
+    precision: UptimePrecision,
+    downtimeMonitorStatuses: Array<MonitorStatus>,
+    window?: UptimeWindow | undefined,
+  ): number {
+    // calculate percentage.
+
+    const { totalDowntimeInSeconds, totalSecondsInTimePeriod } =
+      this.getTotalDowntimeInSeconds(
+        monitorStatusTimelines,
+        downtimeMonitorStatuses,
+        window,
+      );
+
+    if (totalSecondsInTimePeriod === 0) {
+      return 100;
+    }
+
+    if (totalDowntimeInSeconds === 0) {
+      return 100;
+    }
+
+    const percentage: number =
+      ((totalSecondsInTimePeriod - totalDowntimeInSeconds) /
+        totalSecondsInTimePeriod) *
+      100;
+
+    /*
+     * clamp before rounding. roundToPrecision floors, so an out of range value would otherwise
+     * escape as is (for example -13.5 stays -13.5 and never becomes 0).
+     */
+    const clampedPercentage: number = Math.min(100, Math.max(0, percentage));
+
+    return this.roundToPrecision({
+      number: clampedPercentage,
+      precision,
+    });
+  }
+
+  /**
+   * Uptime over the seconds that were actually recorded, or null when none
+   * were, so a caller can tell a resource with no data from one that was up.
+   *
+   * Both uncapped figures come through here: a single monitor's, from its
+   * day buckets, and a merged one from getMergedDowntimeSeconds. Measured
+   * over coverage rather than the window, a monitor younger than the window
+   * is measured from its first reading. Clamped to [0, 100], then rounded
+   * down to the precision the way every other uptime figure is.
+   */
+  public static calculateUptimePercentOfCoveredSeconds(data: {
+    coveredSeconds: number;
+    downtimeSeconds: number;
+    precision: UptimePrecision;
+  }): number | null {
+    if (!(data.coveredSeconds > 0)) {
+      return null;
+    }
+
+    const percentage: number =
+      ((data.coveredSeconds - data.downtimeSeconds) / data.coveredSeconds) *
+      100;
+
+    return this.roundToPrecision({
+      number: Math.min(100, Math.max(0, percentage)),
+      precision: data.precision,
+    });
+  }
+
+  public static calculateAvgUptimePercentage(data: {
+    uptimePercentages: Array<number>;
+    precision: UptimePrecision;
+  }): number {
+    // calculate percentage.
+
+    const { uptimePercentages, precision } = data;
+
+    if (uptimePercentages.length === 0) {
+      return 100;
+    }
+
+    let totalUptimePercentage: number = 0;
+
+    for (const uptimePercentage of uptimePercentages) {
+      totalUptimePercentage += uptimePercentage;
+    }
+
+    const percentage: number = totalUptimePercentage / uptimePercentages.length;
+
+    return this.roundToPrecision({
+      number: percentage,
+      precision,
+    });
+  }
+}

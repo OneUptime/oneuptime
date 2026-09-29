@@ -1,0 +1,465 @@
+/* OneUptime Calendar – modern, minimal overrides for react-big-calendar.
+   Scoped via the .oneuptime-calendar wrapper so we don't leak styles. */
+
+.oneuptime-calendar .rbc-calendar {
+  font-family: inherit;
+  color: #111827; /* gray-900 */
+}
+
+/* ---------- Toolbar ---------- */
+.oneuptime-calendar .rbc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.oneuptime-calendar .rbc-toolbar .rbc-toolbar-label {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827; /* gray-900 */
+  letter-spacing: -0.01em;
+}
+
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group {
+  display: inline-flex;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  overflow: hidden;
+}
+
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button {
+  border: none;
+  background-color: transparent;
+  color: #4b5563; /* gray-600 */
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button + button {
+  border-left: 1px solid #e5e7eb;
+}
+
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button:hover,
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button:focus {
+  background-color: #f9fafb; /* gray-50 */
+  color: #111827;
+  outline: none;
+  box-shadow: none;
+}
+
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button.rbc-active,
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button.rbc-active:hover,
+.oneuptime-calendar .rbc-toolbar .rbc-btn-group button.rbc-active:focus {
+  background-color: #4f46e5; /* indigo-600 */
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* ---------- Calendar surface ---------- */
+.oneuptime-calendar .rbc-month-view,
+.oneuptime-calendar .rbc-time-view,
+.oneuptime-calendar .rbc-agenda-view {
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 0.75rem;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.oneuptime-calendar .rbc-month-view {
+  background-color: #ffffff;
+}
+
+/* ---------- Headers ---------- */
+.oneuptime-calendar .rbc-header,
+.oneuptime-calendar .rbc-time-header-content > .rbc-row > .rbc-header,
+.oneuptime-calendar .rbc-time-header .rbc-header {
+  padding: 0.625rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280; /* gray-500 */
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: #f9fafb; /* gray-50 */
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.oneuptime-calendar .rbc-header + .rbc-header,
+.oneuptime-calendar .rbc-time-header-content .rbc-header + .rbc-header {
+  border-left: 1px solid #f3f4f6; /* gray-100 */
+}
+
+.oneuptime-calendar .rbc-time-header.rbc-overflowing {
+  border-right: none;
+}
+
+.oneuptime-calendar .rbc-time-header-content {
+  border-left: 1px solid #e5e7eb;
+}
+
+/* ---------- Month grid ---------- */
+.oneuptime-calendar .rbc-month-row + .rbc-month-row {
+  border-top: 1px solid #f3f4f6; /* gray-100 */
+}
+
+.oneuptime-calendar .rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #f3f4f6;
+}
+
+.oneuptime-calendar .rbc-date-cell {
+  padding: 0.35rem 0.5rem;
+  text-align: right;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151; /* gray-700 */
+}
+
+.oneuptime-calendar .rbc-date-cell.rbc-now {
+  color: #4f46e5; /* indigo-600 */
+  font-weight: 600;
+}
+
+.oneuptime-calendar .rbc-off-range {
+  color: #d1d5db; /* gray-300 */
+}
+
+.oneuptime-calendar .rbc-off-range-bg {
+  background-color: #fafafa;
+}
+
+.oneuptime-calendar .rbc-today {
+  background-color: #eef2ff; /* indigo-50 */
+}
+
+/* ---------- Time view (week/day) ---------- */
+.oneuptime-calendar .rbc-time-view .rbc-time-gutter,
+.oneuptime-calendar .rbc-time-view .rbc-time-content > * + * > * {
+  border-color: #f3f4f6;
+}
+
+.oneuptime-calendar .rbc-time-view .rbc-time-gutter .rbc-timeslot-group {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.oneuptime-calendar .rbc-timeslot-group {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.oneuptime-calendar .rbc-time-content {
+  border-top: 1px solid #e5e7eb;
+}
+
+.oneuptime-calendar .rbc-time-content > * + * > * {
+  border-left: 1px solid #f3f4f6;
+}
+
+/* ---------- Whole day in view ----------
+   react-big-calendar gives every hour at least 40px, so the week view showed
+   about thirteen hours and hid the rest behind a scrollbar. The hours now
+   share the grid's height, so a full day fits without scrolling. The floor
+   applies only when the calendar is too short to fit every hour, where
+   scrolling is better than hours too thin to read. */
+.oneuptime-calendar .rbc-time-view .rbc-timeslot-group {
+  min-height: 1.25rem;
+}
+
+/* Anything that hangs below midnight would bring the scrollbar back: a short
+   block drawn at react-big-calendar's 20px minimum height, or the current-time
+   dot in the last minutes of the day. So the day column clips vertically.
+   - It must be `overflow`: a clip-path hides the overhang but it still scrolls.
+   - It must be `clip`, not `hidden`: `hidden` makes the column a scroll
+     container, so tabbing onto a late block would scroll every block in that
+     column off the hour lines. `clip` also leaves the other axis visible, so
+     the dot can still sit across the column's left edge.
+   The focus ring below is drawn inside the block so the clip cannot cut it
+   off. */
+.oneuptime-calendar .rbc-time-view .rbc-day-slot {
+  overflow-y: clip;
+}
+
+.oneuptime-calendar .rbc-day-slot .rbc-event:focus,
+.oneuptime-calendar .rbc-day-slot .rbc-event.rbc-selected {
+  outline-offset: -2px;
+}
+
+/* The strip above the grid only ever holds all-day events. Calendar.tsx adds
+   this class when there are none, so the empty band does not take height
+   from the day. */
+.oneuptime-calendar.oneuptime-calendar--no-all-day
+  .rbc-time-header-content
+  > .rbc-allday-cell {
+  display: none;
+}
+
+/* ---------- Current time ----------
+   On-call blocks can be any colour in the user palette, red included, and a
+   plain red line vanished into a red shift. The white halo keeps the line
+   visible on red and dark blocks, the red core keeps it visible on light
+   ones and the white grid, and the thin dark outer ring separates the two.
+   The dot at the left edge marks the line even where a narrow column hides
+   most of it. */
+.oneuptime-calendar .rbc-current-time-indicator {
+  background-color: #ef4444; /* red-500 */
+  height: 2px;
+  box-shadow:
+    0 0 0 1px #ffffff,
+    0 0 0 2px rgb(17 24 39 / 0.35);
+}
+
+.oneuptime-calendar .rbc-current-time-indicator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -0.3125rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: -0.3125rem;
+  border-radius: 9999px;
+  background-color: #ef4444; /* red-500 */
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3px rgb(17 24 39 / 0.35);
+}
+
+.oneuptime-calendar .rbc-time-slot {
+  color: #9ca3af; /* gray-400 */
+}
+
+.oneuptime-calendar .rbc-label {
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* ---------- Events ---------- */
+.oneuptime-calendar .rbc-event,
+.oneuptime-calendar .rbc-day-slot .rbc-background-event {
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.oneuptime-calendar .rbc-event:hover,
+.oneuptime-calendar .rbc-day-slot .rbc-background-event:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 4px 10px -2px rgb(0 0 0 / 0.12);
+}
+
+.oneuptime-calendar .rbc-event:focus,
+.oneuptime-calendar .rbc-event.rbc-selected {
+  outline: 2px solid #4f46e5; /* indigo-600 */
+  outline-offset: 1px;
+}
+
+.oneuptime-calendar .rbc-event-label {
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+
+.oneuptime-calendar .rbc-show-more {
+  color: #4f46e5;
+  font-weight: 500;
+  background-color: transparent;
+  padding: 0.125rem 0.375rem;
+}
+
+/* ---------- Agenda view ---------- */
+.oneuptime-calendar .rbc-agenda-view table.rbc-agenda-table {
+  border: none;
+}
+
+.oneuptime-calendar .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  background-color: #f9fafb;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.oneuptime-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  /* react-big-calendar applies the per-event color (set by eventPropGetter) to
+     the agenda <tr>. Inherit it here instead of forcing a fixed dark gray so the
+     agenda view uses the same contrast text (e.g. white on dark event colors)
+     as the month/week/day views. */
+  color: inherit;
+  border-top: 1px solid #f3f4f6;
+}
+
+.oneuptime-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr + tr {
+  border-top: none;
+}
+
+.oneuptime-calendar .rbc-agenda-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* ---------- Background events (uncovered regions) ----------
+   Painted behind the grid to make ABSENCE visible. An on-call schedule with
+   nobody on call used to render as plain whitespace, which reads exactly like a
+   grid that failed to load; the hatch says "we computed this, and it is empty".
+   Kept deliberately low-contrast so real event blocks stay dominant. */
+.oneuptime-calendar .rbc-day-slot .rbc-background-event,
+.oneuptime-calendar .rbc-background-event {
+  background-color: rgba(251, 191, 36, 0.09); /* amber-400 @ 9% */
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.16) 0,
+    rgba(217, 119, 6, 0.16) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+  border: none;
+  border-left: 2px solid rgba(217, 119, 6, 0.35); /* amber-600 */
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  pointer-events: none;
+  opacity: 1;
+}
+
+.oneuptime-calendar .rbc-day-slot .rbc-background-event:hover {
+  filter: none;
+  box-shadow: none;
+}
+
+/* react-big-calendar writes a time label into background events too. On a band
+   that stands for "nobody", a time range reads like a shift, so the band stays
+   textless and the legend names it. */
+.oneuptime-calendar .rbc-background-event .rbc-event-label,
+.oneuptime-calendar .rbc-background-event .rbc-event-content {
+  display: none;
+}
+
+/* Legend swatch that names the hatched bands. Kept in this file so the swatch
+   and the band it describes can never drift apart. */
+.oneuptime-calendar-gap-swatch {
+  background-color: rgba(251, 191, 36, 0.25);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.55) 0,
+    rgba(217, 119, 6, 0.55) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border: 1px solid rgba(217, 119, 6, 0.4);
+}
+
+/* ---------- Override (substituted) events ----------
+   A block that says "somebody else is taking this person's alerts". The colour
+   alone cannot carry that: it is the SUBSTITUTE's colour, and a reader who does
+   not already know the roster cannot tell it from an ordinary shift. Three
+   independent cues, so none of them has to survive on its own:
+
+   1. a stripe down the leading edge in the OVERRIDDEN person's colour, which
+      is what makes the swap readable when the week-view column is too narrow
+      to show any text at all;
+   2. a dotted inner rule beside it, so the distinction still lands in
+      greyscale and for a reader who cannot separate the two hues;
+   3. the label itself, which the caller prefixes.
+
+   --oneuptime-event-accent is set per event by Calendar.tsx's eventPropGetter
+   from CalendarEvent.accentColor; the fallback keeps the stripe visible if a
+   caller sets the class without a colour. */
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--override {
+  position: relative;
+  padding-left: 0.75rem;
+  overflow: hidden;
+}
+
+/* In the week and day grid, react-big-calendar positions every block
+   absolutely, which already anchors the stripe. The `relative` above is for
+   blocks outside the grid (month rows, the all-day strip, the "+N more"
+   popup), which sit in normal flow. Applied in the grid, it put each override
+   block below the override blocks before it in the column, so a hand-off at
+   5:02 PM was drawn well after 5:02, leaving a false gap. */
+.oneuptime-calendar
+  .rbc-day-slot
+  .rbc-event.oneuptime-calendar-event--override {
+  position: absolute;
+}
+
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--override::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.3125rem;
+  background-color: var(--oneuptime-event-accent, #6b7280);
+  /* Sits above the label so a long name cannot paint over the cue. */
+  z-index: 1;
+}
+
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--override::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  left: 0.4375rem;
+  border-left: 1px dotted currentColor;
+  opacity: 0.65;
+  z-index: 1;
+}
+
+/* The agenda view renders events as table rows, where an absolutely positioned
+   stripe has nothing to anchor to. Give that view a plain left border instead
+   so the same event is still marked there. */
+.oneuptime-calendar
+  .rbc-agenda-view
+  table.rbc-agenda-table
+  tbody
+  > tr.oneuptime-calendar-event--override
+  > td:first-child {
+  border-left: 0.25rem solid var(--oneuptime-event-accent, #6b7280);
+}
+
+/* Legend swatch for the override key. The block it names is drawn in two
+   people's colours, so the swatch is too - generic hues here, since the key
+   speaks for every override on the grid rather than for one of them. */
+.oneuptime-calendar-override-swatch {
+  position: relative;
+  overflow: hidden;
+  background-color: #6366f1; /* indigo-500 - stands for the substitute */
+  border: 1px solid rgba(79, 70, 229, 0.35); /* indigo-600 */
+}
+
+.oneuptime-calendar-override-swatch::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  /* Stands for the person who was overridden. */
+  background-color: #9ca3af; /* gray-400 */
+}

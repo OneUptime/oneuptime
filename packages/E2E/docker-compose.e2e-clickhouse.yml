@@ -1,0 +1,24 @@
+# TEST-ONLY overlay for stacks the E2E suite runs against. Never add it to a
+# production install.
+#
+# ExceptionDetailPages.spec.ts seeds an exception occurrence by writing straight
+# to ClickHouse over HTTP (packages/E2E/Tests/Dashboard/Helpers/ExceptionOccurrenceFixture.ts),
+# because the public API deliberately cannot write ExceptionInstance.retentionDate.
+# The e2e service runs with network_mode: host so its browser reaches the ingress
+# on localhost, which means it cannot resolve the compose-network name
+# "clickhouse" - and docker-compose.yml, alone or with
+# packages/E2E/docker-compose.billing.yml, publishes no ClickHouse port. This
+# overlay publishes ClickHouse's HTTP interface on the host's loopback only, on
+# the same host port Scripts/Dev/docker-compose.dev.yml uses, so the fixture finds it at
+# 127.0.0.1:8189 whichever stack is running. Like every compose file in
+# packages/E2E, pass it after docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up -d
+#
+# packages/Common/Tests/Server/Infrastructure/E2EClickHouseFixtureAccess.test.ts pins the
+# loopback binding, the shared port, and that every CI job running the suite
+# starts its stack with this file.
+services:
+  clickhouse:
+    ports:
+      - "127.0.0.1:8189:8123"

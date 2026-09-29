@@ -1,0 +1,87 @@
+import Link from "../Link/Link";
+import { DetailSideLink } from "./Field";
+import useTranslateValue from "../../Utils/Translation";
+import InfoTooltip from "../Tooltip/InfoTooltip";
+import React, { FunctionComponent, ReactElement } from "react";
+
+export enum Size {
+  Normal = "text-sm",
+  Medium = "text-base",
+  Large = "text-lg",
+}
+
+export interface ComponentProps {
+  title?: string | undefined;
+  description?: string | ReactElement | undefined;
+  alignClassName?: string | undefined;
+  sideLink?: DetailSideLink | undefined;
+  size?: Size | undefined;
+  isCardStyle?: boolean | undefined;
+  // What the field means, shown in an (i) tooltip beside the title.
+  tooltip?: string | undefined;
+}
+
+const FieldLabelElement: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const { translateString, translateValue } = useTranslateValue();
+  const translatedTitle: string | undefined = translateString(props.title);
+  const translatedDescription: string | ReactElement | undefined =
+    translateValue(props.description);
+  const translatedSideLinkText: string | undefined = translateString(
+    props.sideLink?.text,
+  );
+  const isCardStyle: boolean = props.isCardStyle || false;
+
+  return (
+    <div className="space-y-1">
+      {translatedTitle && (
+        <label
+          className={`${props.size || "text-xs"} font-semibold uppercase tracking-widest ${
+            isCardStyle ? "text-gray-500" : "text-gray-500"
+          } flex items-center gap-2`}
+        >
+          <span className={`${props.alignClassName} flex items-center gap-1.5`}>
+            {translatedTitle}
+            <InfoTooltip
+              label={translatedTitle}
+              text={props.tooltip}
+              className="relative z-10 normal-case tracking-normal"
+            />
+            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+          </span>
+          {props.sideLink && translatedSideLinkText && props.sideLink?.url && (
+            <Link
+              to={props.sideLink?.url}
+              className="inline-flex items-center gap-1 text-indigo-500 hover:text-indigo-600 transition-all duration-200 font-medium normal-case tracking-normal text-xs hover:underline underline-offset-2"
+            >
+              {translatedSideLinkText}
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </Link>
+          )}
+        </label>
+      )}
+      {translatedDescription && (
+        <p
+          className={`${props.alignClassName} text-xs text-gray-400 leading-relaxed mt-0.5`}
+        >
+          {translatedDescription}
+        </p>
+      )}
+    </div>
+  );
+};
+
+export default FieldLabelElement;

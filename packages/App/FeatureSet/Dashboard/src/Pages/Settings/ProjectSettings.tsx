@@ -1,0 +1,124 @@
+import ProjectUtil from "Common/UI/Utils/Project";
+import PageComponentProps from "../PageComponentProps";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Project from "Common/Models/DatabaseModels/Project";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import DataResidencyUtil from "Common/Utils/Project/DataResidency";
+
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return (
+    <Fragment>
+      {/* Project Settings View  */}
+      <CardModelDetail
+        name="Project Details"
+        cardProps={{
+          title: "Project Details",
+          description: "Here are more details for this Project.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Project Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "Project Name",
+            validation: {
+              minLength: 2,
+            },
+          },
+        ]}
+        onSaveSuccess={() => {
+          Navigation.reload();
+        }}
+        modelDetailProps={{
+          modelType: Project,
+          id: "model-detail-project",
+          fields: [
+            {
+              field: {
+                _id: true,
+              },
+              title: "Project ID",
+              fieldType: FieldType.ObjectID,
+            },
+            {
+              field: {
+                name: true,
+              },
+              title: "Project Name",
+            },
+            {
+              field: {
+                dataResidency: true,
+              },
+              title: "Data Residency",
+              fieldType: FieldType.Text,
+              /*
+               * Set by OneUptime staff from the Admin Dashboard, never here -
+               * which is why it is not in the edit form above. A project with
+               * none shows no row rather than an empty one.
+               */
+              showIf: (project: Project): boolean => {
+                return DataResidencyUtil.shouldShowInProjectSettings({
+                  isBillingEnabled: BILLING_ENABLED,
+                  dataResidency: project.dataResidency,
+                });
+              },
+            },
+          ],
+          modelId: ProjectUtil.getCurrentProjectId()!,
+        }}
+      />
+
+      {/* Project Settings View  */}
+      {BILLING_ENABLED && (
+        <CardModelDetail
+          name="Enable Customer Support Access"
+          cardProps={{
+            title: "Enable Customer Support Access",
+            description:
+              "Enable Customer Support Access to this project. This will allow Customer Support to access this project for troubleshooting purposes.",
+          }}
+          isEditable={true}
+          formFields={[
+            {
+              field: {
+                letCustomerSupportAccessProject: true,
+              },
+              title: "Let Customer Support Access Project",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+          ]}
+          onSaveSuccess={() => {
+            Navigation.reload();
+          }}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project",
+            fields: [
+              {
+                field: {
+                  letCustomerSupportAccessProject: true,
+                },
+                fieldType: FieldType.Boolean,
+                title: "Let Customer Support Access Project",
+                placeholder: "No",
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
+        />
+      )}
+    </Fragment>
+  );
+};
+
+export default Settings;

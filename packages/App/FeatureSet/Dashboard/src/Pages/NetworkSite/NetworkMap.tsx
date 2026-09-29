@@ -1,0 +1,976 @@
+import PageComponentProps from "../PageComponentProps";
+import SiteBreadcrumbs from "../../Components/NetworkSite/SiteBreadcrumbs";
+import SiteCard from "../../Components/NetworkSite/SiteCard";
+import SiteContainerGraph from "../../Components/NetworkSite/SiteContainerGraph";
+import SiteGeoMap from "../../Components/NetworkSite/SiteGeoMap";
+import MapSection from "../../Components/NetworkSite/NetworkMapSection";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
+import {
+  LEGACY_NETWORK_MAP_REGION_PARAM,
+  NETWORK_MAP_SEARCH_PARAM,
+  NetworkMapDrillState,
+  readDrillStateFromUrl,
+} from "../../Components/NetworkSite/NetworkMapDrillState";
+import SiteSearchBox from "../../Components/NetworkSite/SiteSearchBox";
+import {
+  filterLinksBySearch,
+  filterSitesBySearch,
+  normalizeSiteSearchText,
+  siteIdSet,
+} from "../../Components/NetworkSite/SiteSearchUtil";
+import {
+  MapLinkView,
+  MapSiteView,
+  MapUnplacedSiteView,
+  SiteBreadcrumbEntry,
+  SiteChildView,
+  SiteChildrenResponse,
+  SiteLinkView,
+  SiteMapMode,
+  SiteMapResponse,
+  parseSiteChildrenResponse,
+  parseSiteMapResponse,
+} from "../../Components/NetworkSite/SiteHierarchyTypes";
+import {
+  childTypeLabelFor,
+  isUnitLevelFor,
+} from "../../Components/NetworkSite/SiteMapViewModel";
+import StatusChipGroup, {
+  StatusChipOption,
+} from "../../Components/Filters/StatusChipGroup";
+import {
+  SiteHealthFilterMode,
+  SiteHealthState,
+  SiteHealthSummary,
+  buildSiteHealthFilterOptions,
+  buildSiteHealthIndex,
+  filterLinksByVisibleSites,
+  filterSitesByHealth,
+  filterSitesByHealthLookup,
+  isSiteHealthFilterActive,
+  summarizeSiteHealth,
+} from "../../Components/NetworkSite/SiteHealthFilter";
+import NetworkTopologyLiveView from "../../Components/Topology/NetworkTopologyLiveView";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import Dictionary from "Common/Types/Dictionary";
+import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
+import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
+import { Slate500 } from "Common/Types/BrandColors";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import { APP_API_URL } from "Common/UI/Config";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { Location, useLocation } from "react-router-dom";
+
+/*
+ * The drill-down network map — the franchise-network feature's
+ * centerpiece. Three views share one page, keyed by the 'site' query
+ * param:
+ *
+ *   ROOT (no site):   geo map with clustered pins + root-site cards + WAN
+ *                     link strip. The map has no region control: it frames
+ *                     itself to wherever this project's sites are (see
+ *                     Components/NetworkSite/Geo/GeoViewport.ts).
+ *   CONTAINER:        breadcrumbs + a graph of the site's children with
+ *                     the links between them — click to go deeper.
+ *   UNIT:             breadcrumbs + the live device topology of that
+ *                     unit, tiered like a rack diagram.
+ *
+ * The drill position lives in the URL via replaceState so it is shareable
+ * and survives navigation, without flooding browser history. The
+ * children/map endpoints are polled every 60 seconds on the root and
+ * container views; the unit view's embedded topology polls itself.
+ */
+
+const REFRESH_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * How a load ended. "superseded" is not a failure — it means a newer
+ * request (a drill, a refresh) took ownership of the page state while this
+ * one was in flight, and whatever it loads is the right answer.
+ */
+type FetchOutcome = "loaded" | "failed" | "superseded";
+
+// Debounce for mirroring drill state into the URL (see Navigation.setQueryString).
+const QUERY_STRING_DEBOUNCE_MS: number = 200;
+
+const PAGE_TITLE: string = "Network Map";
+const PAGE_DESCRIPTION: string =
+  "Your whole network on one map, framed to wherever your sites are. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
+
+const NetworkSiteMap: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  /*
+   * Lazy: the URL is read at mount, and after that only when a navigation
+   * lands on this route (see the re-seed effect below).
+   */
+  const [currentSiteId, setCurrentSiteId] = useState<string | null>(
+    (): string | null => {
+      return readDrillStateFromUrl().siteId;
+    },
+  );
+  const [childrenData, setChildrenData] = useState<SiteChildrenResponse | null>(
+    null,
+  );
+  const [mapData, setMapData] = useState<SiteMapResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  /*
+   * What the search box holds. Seeded from the URL like the drill position
+   * is, and mirrored back to it, so a filtered map is a link somebody can
+   * send. It narrows the level in view locally; finding a site ELSEWHERE in
+   * the hierarchy is the search box's own job (see SiteSearchBox).
+   */
+  const [searchText, setSearchTextState] = useState<string>((): string => {
+    return readDrillStateFromUrl().searchText;
+  });
+
+  /*
+   * Issue #3261: whether the level is narrowed to what needs attention.
+   * A view preference, and kept out of the URL for the same reason
+   * mapMode below is — the drill position is the shareable part of this
+   * page, and a link should stay a link to a LEVEL rather than to one
+   * reader's filter. Reset on every drill (see changeSite), because
+   * "needs attention" at one level says nothing about the next.
+   */
+  const [healthFilterMode, setHealthFilterMode] =
+    useState<SiteHealthFilterMode>("all");
+
+  /*
+   * How the map groups what it draws. Deliberately NOT in the URL: the
+   * drill state is the shareable part of this page (see
+   * NetworkMapDrillState), and whether one viewer prefers to see regions or
+   * every individual store is a preference, not a place. A link stays a
+   * link to a level.
+   */
+  const [mapMode, setMapMode] = useState<SiteMapMode>("grouped");
+  const mapModeRef: React.MutableRefObject<SiteMapMode> =
+    useRef<SiteMapMode>(mapMode);
+  mapModeRef.current = mapMode;
+
+  /*
+   * Cancel-stale: every fetch takes a sequence number; only the latest
+   * one may write state, so a slow response for the previous drill level
+   * can never clobber the current one. The mounted flag keeps background
+   * polls from touching an unmounted component.
+   */
+  const requestSeq: React.MutableRefObject<number> = useRef<number>(0);
+  const isMounted: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  /*
+   * URL mirror, debounced: rapid drill clicks (or a fast toggle) collapse
+   * into one replaceState — Safari rate-limits replaceState calls.
+   */
+  const pendingQuery: React.MutableRefObject<Dictionary<string | null>> =
+    useRef<Dictionary<string | null>>({});
+  const queryTimer: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queueQueryStringUpdate: (params: Dictionary<string | null>) => void = (
+    params: Dictionary<string | null>,
+  ): void => {
+    pendingQuery.current = { ...pendingQuery.current, ...params };
+    if (queryTimer.current) {
+      clearTimeout(queryTimer.current);
+    }
+    queryTimer.current = setTimeout(() => {
+      Navigation.setQueryString(pendingQuery.current);
+      pendingQuery.current = {};
+    }, QUERY_STRING_DEBOUNCE_MS);
+  };
+  useEffect(() => {
+    return () => {
+      if (queryTimer.current) {
+        clearTimeout(queryTimer.current);
+      }
+    };
+  }, []);
+
+  /*
+   * React state is the source of truth; the URL is a mirror, written through
+   * the same debounced queue the drill position uses (Safari rate-limits
+   * replaceState, and this one is written per keystroke).
+   */
+  const setSearchText: (value: string) => void = (value: string): void => {
+    setSearchTextState(value);
+    queueQueryStringUpdate({ [NETWORK_MAP_SEARCH_PARAM]: value || null });
+  };
+
+  const location: Location = useLocation();
+
+  /*
+   * Reports how the load ended. Only the mode switch acts on it — see the
+   * effect below for why a FAILED switch has to be undone, and why a
+   * SUPERSEDED one (the reader drilled while it was in flight) must not be:
+   * putting the choice back then would fight a newer request that is
+   * already loading the right thing.
+   */
+  const fetchData: (
+    siteId: string | null,
+    mapMode: SiteMapMode,
+    isBackgroundRefresh: boolean,
+  ) => Promise<FetchOutcome> = useCallback(
+    async (
+      siteId: string | null,
+      mapMode: SiteMapMode,
+      isBackgroundRefresh: boolean,
+    ): Promise<FetchOutcome> => {
+      const seq: number = ++requestSeq.current;
+      let outcome: FetchOutcome = "failed";
+      if (!isBackgroundRefresh) {
+        setIsLoading(true);
+        setError("");
+      }
+
+      try {
+        const childrenUrl: URL = URL.fromString(
+          APP_API_URL.toString(),
+        ).addRoute("/network-site/children");
+        const mapUrl: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+          "/network-site/map",
+        );
+
+        /*
+         * Project scoping is attached automatically via the tenantid
+         * header that ModelAPI.getCommonHeaders() sets from the current
+         * project.
+         *
+         * Both endpoints are asked about the SAME level. The map used to be
+         * fetched only at the root, because it answered with every pinned
+         * site in the project however deep you had drilled — which is
+         * exactly why the map and the cards under it described different
+         * networks. It is now scoped like the cards are, so drilling moves
+         * both.
+         */
+        const childrenPromise: Promise<
+          HTTPResponse<JSONObject> | HTTPErrorResponse
+        > = API.post<JSONObject>({
+          url: childrenUrl,
+          data: siteId ? { siteId: siteId } : {},
+          headers: { ...ModelAPI.getCommonHeaders() },
+        });
+        const mapPromise: Promise<
+          HTTPResponse<JSONObject> | HTTPErrorResponse
+        > = API.post<JSONObject>({
+          url: mapUrl,
+          data: siteId ? { siteId: siteId, mode: mapMode } : { mode: mapMode },
+          headers: { ...ModelAPI.getCommonHeaders() },
+        });
+
+        const [childrenResponse, mapResponse]: [
+          HTTPResponse<JSONObject> | HTTPErrorResponse,
+          HTTPResponse<JSONObject> | HTTPErrorResponse,
+        ] = await Promise.all([childrenPromise, mapPromise]);
+
+        if (!isMounted.current || seq !== requestSeq.current) {
+          return "superseded"; // A newer fetch owns the state now.
+        }
+
+        if (childrenResponse instanceof HTTPErrorResponse) {
+          throw childrenResponse;
+        }
+        if (mapResponse instanceof HTTPErrorResponse) {
+          throw mapResponse;
+        }
+
+        setChildrenData(parseSiteChildrenResponse(childrenResponse.data));
+        setMapData(parseSiteMapResponse(mapResponse.data));
+        setError("");
+        outcome = "loaded";
+      } catch (err) {
+        /*
+         * A failed background poll keeps showing the last good view —
+         * only a foreground load surfaces the error state.
+         */
+        if (!isMounted.current || seq !== requestSeq.current) {
+          outcome = "superseded";
+        } else if (!isBackgroundRefresh) {
+          setError(API.getFriendlyMessage(err));
+        }
+      }
+
+      if (
+        isMounted.current &&
+        seq === requestSeq.current &&
+        !isBackgroundRefresh
+      ) {
+        setIsLoading(false);
+      }
+
+      return outcome;
+    },
+    [],
+  );
+
+  /*
+   * The current site is the LAST breadcrumb entry of the loaded data.
+   * While a foreground load is in flight the page shows a loader, so a
+   * stale breadcrumb can never drive the wrong view.
+   */
+  const currentSite: SiteBreadcrumbEntry | null =
+    currentSiteId && childrenData && childrenData.breadcrumb.length > 0
+      ? childrenData.breadcrumb[childrenData.breadcrumb.length - 1]!
+      : null;
+  /*
+   * Which view a drill level opens is decided by the site type row's
+   * isUnitLevel flag, never by its name: site types are per-project rows a
+   * customer can rename ("Unit" → "Store", "Restaurant", "Tower"), so a
+   * string comparison would silently stop opening device topologies the
+   * moment somebody edited the label. The flag travels on every breadcrumb
+   * entry and defaults to false, so an untyped site reads as a container.
+   */
+  const isUnitView: boolean = Boolean(currentSite && currentSite.isUnitLevel);
+
+  // The unit view's embedded topology polls itself — skip our poll there.
+  const isUnitViewRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isUnitView);
+  useEffect(() => {
+    isUnitViewRef.current = isUnitView;
+  }, [isUnitView]);
+
+  useEffect(() => {
+    fetchData(currentSiteId, mapModeRef.current, false).catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+
+    const interval: ReturnType<typeof setInterval> = setInterval(() => {
+      if (isUnitViewRef.current) {
+        return;
+      }
+      fetchData(currentSiteId, mapModeRef.current, true).catch(() => {
+        // Background refresh failures are non-fatal; keep the last view.
+      });
+    }, REFRESH_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [currentSiteId, fetchData]);
+
+  /*
+   * Switching how the map groups reloads quietly — as a background refresh,
+   * not a foreground one. The choice changes one panel; raising the
+   * full-page loader for it would blank the breadcrumbs, the cards and the
+   * link strip the reader is looking at in order to swap the map inside
+   * them. The switch itself is the feedback that something happened.
+   *
+   * The guard makes this effect a no-op on mount and on every drill (the
+   * effect above already loaded that level with this mode), so it fires
+   * only for an actual change of mode.
+   *
+   * A load that does not land puts the choice BACK. Leaving it would strand
+   * the reader on a switch that says "All sites" over a map that is still
+   * grouped, with the obvious remedy — pressing the same option again —
+   * doing nothing, because from the page's point of view nothing changed.
+   */
+  const loadedMapMode: React.MutableRefObject<SiteMapMode> =
+    useRef<SiteMapMode>(mapMode);
+  useEffect(() => {
+    if (loadedMapMode.current === mapMode) {
+      return;
+    }
+    const previousMode: SiteMapMode = loadedMapMode.current;
+    const requestedMode: SiteMapMode = mapMode;
+    loadedMapMode.current = requestedMode;
+
+    const revert: () => void = (): void => {
+      if (!isMounted.current || loadedMapMode.current !== requestedMode) {
+        return; // The reader has already asked for something else.
+      }
+      loadedMapMode.current = previousMode;
+      setMapMode(previousMode);
+    };
+
+    fetchData(currentSiteId, requestedMode, true)
+      .then((outcome: FetchOutcome) => {
+        if (outcome === "failed") {
+          revert();
+        }
+      })
+      .catch(() => {
+        revert();
+      });
+  }, [mapMode, currentSiteId, fetchData]);
+
+  /*
+   * Drill transitions are made atomic here rather than left to fetchData:
+   * the effect that calls it runs after paint, so setting only the site id
+   * would commit one frame in which the id is the new level while
+   * childrenData/mapData are still the previous one's. Going UP that frame
+   * renders the root view over an already-cleared map — the "no sites on
+   * the map yet" empty state — before the loader appears. Raising the
+   * loader in the same batch as the id closes that gap.
+   *
+   * The handler no-ops on an unchanged target: without the guard the
+   * effect would not re-run (its deps are identical) and the loader would
+   * never be lowered again.
+   */
+  const changeSite: (siteId: string | null) => void = (
+    siteId: string | null,
+  ): void => {
+    if (siteId === currentSiteId) {
+      return;
+    }
+    setIsLoading(true);
+    setError("");
+    setCurrentSiteId(siteId);
+    // Text that narrowed THIS level would hide most of the next one.
+    setSearchTextState("");
+    /*
+     * Same argument for health: arriving inside a region with the filter
+     * still on would show a level that is mostly empty, with the reason
+     * two rows up and easy to miss. Drilling INTO a problem is the normal
+     * way this filter gets used, and the whole point of drilling in is to
+     * see the level.
+     */
+    setHealthFilterMode("all");
+    queueQueryStringUpdate({
+      site: siteId,
+      [NETWORK_MAP_SEARCH_PARAM]: null,
+    });
+  };
+
+  /*
+   * Re-seed the drill position from the URL whenever a navigation lands on
+   * this route. The params are otherwise read exactly once, at mount, and our
+   * own mirror writes go through replaceState — which react-router never
+   * observes — so a location change here always means somebody else asked for
+   * a specific view: the sidebar's "Network Map" entry asking for the top
+   * (getNetworkMapRootRoute), "Open in Network Map" from a site's detail page,
+   * or a back/forward. Without this the mount-time seed wins forever and the
+   * page keeps showing whatever level was drilled to, whatever the URL says.
+   *
+   * This only earns its keep because those links carry a query string: a
+   * same-pathname navigation with none is dropped before it reaches the router
+   * (Navigation.navigate's same-page check), and no location change means no
+   * re-seed. Keep the two together — a bare route in the sidebar makes this
+   * effect dead code again.
+   *
+   * Routing it through the same handlers the UI uses is deliberate: they are
+   * what makes the transition atomic, and they no-op when the URL already
+   * agrees with what is on screen — which is every render but a real
+   * navigation.
+   */
+  useEffect(() => {
+    const drillState: NetworkMapDrillState = readDrillStateFromUrl();
+    changeSite(drillState.siteId);
+    /*
+     * After changeSite, never before: a real drill clears the search, and
+     * seeding it first would hand that clear something to throw away. The URL
+     * is the authority on both halves of what is on screen.
+     */
+    setSearchTextState(drillState.searchText);
+    /*
+     * Links from before the map dropped its "United States / World" toggle
+     * still carry that parameter. Nothing reads it any more, so clear it
+     * out of the address bar instead of leaving a dead control name in a
+     * URL the user may well copy again.
+     */
+    queueQueryStringUpdate({ [LEGACY_NETWORK_MAP_REGION_PARAM]: null });
+  }, [location.key, location.search]);
+
+  const refreshButton: {
+    title: string;
+    buttonStyle: ButtonStyleType;
+    icon: IconProp;
+    onClick: () => void;
+  } = {
+    title: "Refresh",
+    buttonStyle: ButtonStyleType.NORMAL,
+    icon: IconProp.Refresh,
+    onClick: () => {
+      fetchData(currentSiteId, mapMode, false).catch((err: Error) => {
+        setError(API.getFriendlyMessage(err));
+      });
+    },
+  };
+
+  /*
+   * Loading and error keep the page's own chrome instead of collapsing to a
+   * bare spinner: the title stays put, so a slow drill level reads as "this
+   * page is working" rather than as a blank screen.
+   */
+  if (isLoading) {
+    return (
+      <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
+        <div className="flex flex-col items-center justify-center gap-3 py-20">
+          {/* Slate reads on both the light and the dark surface; the
+           * default VeryLightGray all but vanishes on white. */}
+          <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
+          <p className="text-sm text-gray-500">Loading your network…</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
+        <ErrorMessage message={error} />
+      </Card>
+    );
+  }
+
+  // UNIT level: the site's live device topology, tiered like a rack diagram.
+  if (currentSiteId && isUnitView) {
+    return (
+      <Fragment>
+        <div className="mb-5">
+          <SiteBreadcrumbs
+            breadcrumb={childrenData?.breadcrumb || []}
+            onNavigate={changeSite}
+          />
+        </div>
+        <NetworkTopologyLiveView siteId={currentSiteId} layoutMode="tiered" />
+      </Fragment>
+    );
+  }
+
+  /*
+   * The map's inputs, shared by every level that draws one. The type label
+   * comes from the CHILD LIST rather than from the markers, so a level whose
+   * children are all Regions still says "regions" while some of them are
+   * missing from the map for want of coordinates.
+   */
+  const allLevelSites: Array<SiteChildView> = childrenData?.children || [];
+  const allLevelLinks: Array<SiteLinkView> = childrenData?.links || [];
+  const allPinnedSites: Array<MapSiteView> = mapData?.sites || [];
+  /*
+   * From the UNFILTERED list on purpose. The label names what the children of
+   * this level ARE — searching for one region does not turn a level of
+   * Regions into a level of something else, and a label that changed under a
+   * filter would rewrite the map's legend and its counts as you type.
+   */
+  const childTypeLabel: string = childTypeLabelFor(allLevelSites);
+
+  /*
+   * Whether this level is the bottom of the hierarchy — every child of it is
+   * a unit, so clicking one opens a device topology and there is no map
+   * below this one. The map draws the threads from a name to its marker only
+   * here; above it they are a web rather than a set of pointers (#3372).
+   *
+   * From the same UNFILTERED list, for the same reason: a level of Regions
+   * does not become the unit level because somebody searched for the one
+   * unit sitting in it, and lines that appeared as you type would read as a
+   * rendering fault.
+   */
+  const isUnitLevel: boolean = isUnitLevelFor(allLevelSites);
+
+  /*
+   * The search narrows the whole level at once — the markers, the cards or
+   * graph, the unplaced list and the WAN links all through the same
+   * predicate, so the halves of this page cannot disagree about what is being
+   * looked at. An empty box is not a filter: every helper here hands back the
+   * input array untouched, which also keeps the map's projection and the
+   * graph's grid layout off the work queue on every unrelated re-render.
+   */
+  const normalizedSearch: string = normalizeSiteSearchText(searchText);
+
+  /*
+   * Health narrows the same three lists the search does, and it narrows
+   * them FIRST — the counts on the chips are a claim about the level, not
+   * about the level as it stands after somebody typed three letters, and
+   * a chip whose number moved every keystroke would be unreadable.
+   *
+   * The summary is built from the CHILD rows rather than from the map
+   * markers: in grouped mode a marker can stand for a whole region, so
+   * counting markers would count regions and stores as the same unit.
+   */
+  const healthSummary: SiteHealthSummary = summarizeSiteHealth(allLevelSites);
+  const isHealthFiltered: boolean = isSiteHealthFilterActive(healthFilterMode);
+  /*
+   * The map's "no location" rows are name-and-type only, so their verdict
+   * has to be looked up from the child rows they were built from.
+   */
+  const healthById: Map<string, SiteHealthState> =
+    buildSiteHealthIndex(allLevelSites);
+
+  const healthySites: Array<SiteChildView> = filterSitesByHealth(
+    allLevelSites,
+    healthFilterMode,
+  );
+  const healthyPinnedSites: Array<MapSiteView> = filterSitesByHealth(
+    allPinnedSites,
+    healthFilterMode,
+  );
+  const healthyUnplacedSites: Array<MapUnplacedSiteView> =
+    filterSitesByHealthLookup(
+      mapData?.unplacedSites || [],
+      healthById,
+      healthFilterMode,
+    );
+
+  const levelSites: Array<SiteChildView> = filterSitesBySearch(
+    healthySites,
+    normalizedSearch,
+  );
+  const pinnedSites: Array<MapSiteView> = filterSitesBySearch(
+    healthyPinnedSites,
+    normalizedSearch,
+  );
+  const unplacedSites: Array<MapUnplacedSiteView> = filterSitesBySearch(
+    healthyUnplacedSites,
+    normalizedSearch,
+  );
+  const levelLinks: Array<SiteLinkView> = filterLinksByVisibleSites(
+    filterLinksBySearch(allLevelLinks, normalizedSearch, siteIdSet(levelSites)),
+    siteIdSet(levelSites),
+    healthFilterMode,
+  );
+  /*
+   * The map draws its own links rather than the graph's: the map endpoint
+   * answers with the links between the markers IT is showing, which in "all"
+   * mode are individual sites rather than this level's children. Narrowed
+   * through the same predicate as everything else on the page, against the
+   * sites still on the map — a search that hides one end of a link hides the
+   * line with it.
+   */
+  const mapLinks: Array<MapLinkView> = filterLinksByVisibleSites(
+    filterLinksBySearch(
+      mapData?.links || [],
+      normalizedSearch,
+      siteIdSet(pinnedSites),
+    ),
+    siteIdSet(pinnedSites),
+    healthFilterMode,
+  );
+
+  const searchBox: ReactElement = (
+    <SiteSearchBox
+      value={searchText}
+      onChange={setSearchText}
+      onSelectSite={changeSite}
+      localMatchCount={levelSites.length}
+      localTotalCount={allLevelSites.length}
+      childTypeLabel={childTypeLabel}
+    />
+  );
+
+  /*
+   * The health row. Under the search box at every level rather than beside
+   * it: "which of these do I search for" and "which of these needs me" are
+   * different questions, and the chips carry counts that make this row the
+   * level's status line as much as its filter.
+   */
+  const healthChipOptions: Array<StatusChipOption> =
+    buildSiteHealthFilterOptions(healthSummary, childTypeLabel);
+  const healthFilterBar: ReactElement = (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <StatusChipGroup
+        dataTestId="network-map-health-filter"
+        ariaLabel="Filter by site health"
+        options={healthChipOptions}
+        value={healthFilterMode}
+        onChange={(value: string) => {
+          setHealthFilterMode(value as SiteHealthFilterMode);
+        }}
+      />
+      <p
+        className="text-xs text-gray-500"
+        data-testid="network-map-health-filter-hint"
+      >
+        {isHealthFiltered
+          ? `Showing ${healthSummary.attention} of ${healthSummary.total} — everything operational is hidden.`
+          : "Narrow this level to what needs a look — a site counts if its own status is down, or if any unit beneath it is."}
+      </p>
+    </div>
+  );
+
+  const geoMap: ReactElement = (
+    <SiteGeoMap
+      sites={pinnedSites}
+      links={mapLinks}
+      mode={mapData?.mode || mapMode}
+      selectedMode={mapMode}
+      onModeChange={setMapMode}
+      unplacedSites={unplacedSites}
+      childTypeLabel={childTypeLabel}
+      isUnitLevel={isUnitLevel}
+      searchText={searchText}
+      isHealthFiltered={isHealthFiltered}
+      onSiteClick={changeSite}
+    />
+  );
+
+  // CONTAINER level: this site's children, on the map and as a linked graph.
+  if (currentSiteId && currentSite) {
+    return (
+      <Fragment>
+        <div className="mb-5">
+          <SiteBreadcrumbs
+            breadcrumb={childrenData?.breadcrumb || []}
+            onNavigate={changeSite}
+          />
+        </div>
+        <Card
+          title={currentSite.name}
+          description={`${currentSite.siteType} — click a site to drill down; a unit opens its device topology.`}
+          buttons={[refreshButton]}
+        >
+          {/*
+           * Above the map, not beside it: the box narrows the map AND the
+           * graph under it, so it has to read as belonging to both rather
+           * than as a control on either one.
+           */}
+          <div className="mb-4 flex flex-col gap-3">
+            <div className="sm:max-w-md">{searchBox}</div>
+            {healthFilterBar}
+          </div>
+
+          {/*
+           * The map comes first at every level, and it is the SAME map:
+           * drilling re-frames it onto this site's children instead of
+           * swapping it out for a diagram. The graph below it is the other
+           * half of the picture — it is where the links between these
+           * children live, which geography cannot show.
+           */}
+          {geoMap}
+
+          <MapSection
+            title="Sites"
+            count={levelSites.length}
+            hint={
+              normalizedSearch
+                ? "Matching sites at this level. Click one to drill in."
+                : "Click a site to drill in; a unit opens its device topology."
+            }
+            /*
+             * The graph's nodes are the same card body as the root grid's.
+             * No cards (an empty level, or a search or health filter that
+             * hid them all) means no numbers to explain.
+             */
+            description={
+              levelSites.length > 0
+                ? NETWORK_SITE_METRIC_DESCRIPTIONS.siteCards
+                : undefined
+            }
+          >
+            <SiteContainerGraph
+              sites={levelSites}
+              links={levelLinks}
+              childrenTruncated={Boolean(childrenData?.childrenTruncated)}
+              descendantCountsTruncated={Boolean(
+                childrenData?.descendantCountsTruncated,
+              )}
+              searchText={searchText}
+              isHealthFiltered={isHealthFiltered}
+              onSiteClick={changeSite}
+            />
+          </MapSection>
+        </Card>
+      </Fragment>
+    );
+  }
+
+  // ROOT level: geo map + root-site cards + WAN link strip.
+  const rootSites: Array<SiteChildView> = levelSites;
+  const rootLinks: Array<SiteLinkView> = levelLinks;
+
+  /*
+   * "No network sites yet" is a claim about the PROJECT, so it is decided on
+   * the unfiltered lists. A search that matches nothing must not tell a
+   * customer with a thousand stores that they have never created one — that
+   * case is the map's own "nothing matches" state, further down.
+   */
+  if (allLevelSites.length === 0 && allPinnedSites.length === 0) {
+    return (
+      <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
+        {/* EmptyState ships 13rem of vertical padding for a full-page
+         * placeholder; inside a card that reads as a hole, so trim it. */}
+        <div className="-my-28">
+          <EmptyState
+            id="network-map-empty"
+            icon={IconProp.Globe}
+            title="No network sites yet"
+            description={
+              <span className="mx-auto block max-w-md">
+                Model your network as a hierarchy — regions, franchisees,
+                markets, units — and this page becomes a drill-down map of all
+                of it, from the whole country down to the switch in one store.
+              </span>
+            }
+            footer={
+              <Link
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.NETWORK_SITES] as Route,
+                )}
+                className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                Create your first network site
+              </Link>
+            }
+          />
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      title={PAGE_TITLE}
+      description={PAGE_DESCRIPTION}
+      buttons={[refreshButton]}
+    >
+      {/*
+       * No region control. The map frames itself to wherever this project's
+       * sites are, and zoom/pan live on the map itself where the geography
+       * is — see Components/NetworkSite/Geo/GeoViewport.ts.
+       */}
+      <div className="mb-4 flex flex-col gap-3">
+        <div className="sm:max-w-md">{searchBox}</div>
+        {healthFilterBar}
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-gray-500">
+          Drag to pan, scroll to zoom, or use the controls on the map.
+        </p>
+        <p className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-500" />
+          Live — updates every minute
+        </p>
+      </div>
+
+      {mapData?.isTruncated || childrenData?.childrenTruncated ? (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <Icon className="mt-px h-4 w-4 flex-shrink-0" icon={IconProp.Alert} />
+          <span>
+            This network is very large, so only part of it is shown. Drill into
+            a site to see the rest.
+          </span>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {geoMap}
+
+      {rootSites.length > 0 ? (
+        <MapSection
+          title="Sites"
+          count={rootSites.length}
+          hint={
+            normalizedSearch
+              ? "Matching top-level sites. Click one to drill in."
+              : "Click a site to drill into its markets and units."
+          }
+          description={NETWORK_SITE_METRIC_DESCRIPTIONS.siteCards}
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {rootSites.map((site: SiteChildView): ReactElement => {
+              return (
+                <SiteCard key={site.id} site={site} onClick={changeSite} />
+              );
+            })}
+          </div>
+        </MapSection>
+      ) : isHealthFiltered ? (
+        /*
+         * The cards section disappearing under a health filter would read
+         * as the level having emptied. An empty level here is good news,
+         * and good news has to be said.
+         */
+        <MapSection
+          title="Sites"
+          count={0}
+          hint="Everything at this level is operational."
+        >
+          <div
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-6 text-center"
+            data-testid="network-map-nothing-needs-attention"
+          >
+            <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-900">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
+                <Icon
+                  className="h-3 w-3 text-green-600"
+                  icon={IconProp.CheckCircle}
+                />
+              </span>
+              Nothing needs attention
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              Every site at this level is operational, and so is every unit
+              beneath them. Switch back to All to see them.
+            </p>
+          </div>
+        </MapSection>
+      ) : (
+        <></>
+      )}
+
+      {rootLinks.length > 0 ? (
+        <MapSection
+          title="WAN links"
+          count={rootLinks.length}
+          hint="Connections between these top-level sites."
+        >
+          <div className="flex flex-wrap gap-2">
+            {rootLinks.map((link: SiteLinkView): ReactElement => {
+              return (
+                <span
+                  key={link.id}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700"
+                  title={
+                    link.monitorStatus
+                      ? `${link.name} — ${link.monitorStatus.name}`
+                      : link.name
+                  }
+                >
+                  <span
+                    className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    style={{
+                      backgroundColor:
+                        (link.monitorStatus && link.monitorStatus.color) ||
+                        "#9ca3af",
+                    }}
+                  />
+                  <span className="truncate font-medium">{link.name}</span>
+                  {link.monitorStatus ? (
+                    <span className="flex-shrink-0 text-gray-400">
+                      {link.monitorStatus.name}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        </MapSection>
+      ) : (
+        <></>
+      )}
+    </Card>
+  );
+};
+
+export default NetworkSiteMap;

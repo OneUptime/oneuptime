@@ -1,0 +1,5453 @@
+import logger, { LogAttributes } from "../Logger";
+import LogAggregationService from "../../Services/LogAggregationService";
+import VMUtil from "../VM/VMAPI";
+import APIRequestCriteria from "./Criteria/APIRequestCriteria";
+import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
+import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
+import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
+import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import { IOT_DEVICE_ID_ATTRIBUTE_KEY } from "./IoTDeviceAbsenceSeries";
+import PerEntityCriteriaFanOut, {
+  FanOutEntity,
+} from "./PerEntityCriteriaFanOut";
+import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
+import CompareCriteria from "./Criteria/CompareCriteria";
+import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
+import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
+import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
+import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
+import MetricMonitorCriteria, {
+  MetricSeriesEvaluationResult,
+} from "./Criteria/MetricMonitorCriteria";
+import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
+import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
+import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
+import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
+import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
+import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
+import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
+import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
+import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
+import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
+import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
+import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
+import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
+import AffectedResourceList, {
+  AffectedResourceListDetail,
+  AffectedResourceListEntry,
+} from "./AffectedResourceList";
+import RootCauseList, {
+  RootCauseListDetail,
+  RootCauseListItem,
+} from "./RootCauseList";
+import DataToProcess from "./DataToProcess";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationCriteriaResult,
+  MonitorEvaluationEvent,
+  MonitorEvaluationFilterResult,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
+import ProbeApiIngestResponse, {
+  MatchedCriteriaResult,
+  PerSeriesCriteriaMatch,
+} from "../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
+import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import SqlMonitorResponse from "../../../Types/Monitor/SqlMonitor/SqlMonitorResponse";
+import DatabaseMonitorResponse, {
+  DatabaseMetricGroupStatus,
+} from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
+import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
+import Dictionary from "../../../Types/Dictionary";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
+import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
+import {
+  CrossSignalQueryParams,
+  TelemetryCrossSignalScope,
+  toLogsExplorerQueryParams,
+  toTracesExplorerQueryParams,
+} from "../../../Utils/Telemetry/CrossSignalScope";
+import ObjectID from "../../../Types/ObjectID";
+import Typeof from "../../../Types/Typeof";
+import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
+import URL from "../../../Types/API/URL";
+import IP from "../../../Types/IP/IP";
+import Hostname from "../../../Types/API/Hostname";
+import Port from "../../../Types/Port";
+import { DashboardClientUrl } from "../../EnvironmentConfig";
+import MetricMonitorResponse, {
+  PlatformResourceBreakdownSource,
+  KubernetesAffectedResource,
+  KubernetesResourceBreakdown,
+  ProxmoxAffectedResource,
+  ProxmoxResourceBreakdown,
+  VMwareAffectedResource,
+  VMwareResourceBreakdown,
+  CephAffectedResource,
+  CephResourceBreakdown,
+  DockerSwarmAffectedResource,
+  DockerSwarmResourceBreakdown,
+} from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
+import MetricCriteriaContext, {
+  MetricBreachingSample,
+  MetricComponent,
+  MetricComponentValue,
+} from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
+import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
+import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
+import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
+import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
+import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
+import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
+import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
+import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
+import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
+import PlatformResourceIdentity, {
+  CephResourceIdentity,
+  DockerSwarmResourceIdentity,
+  KubernetesResourceIdentity,
+  ProxmoxResourceIdentity,
+  VMwareResourceIdentity,
+} from "../../../Utils/Monitor/PlatformResourceIdentity";
+import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
+import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
+
+/**
+ * A cross-signal deep link into a telemetry explorer, plus the scope
+ * fields that could not be carried into that explorer's URL grammar
+ * (so consumers can render a "scope partially carried" hint).
+ */
+export interface TelemetryExplorerDeepLink {
+  url: string;
+  dropped: Array<string>;
+}
+
+/**
+ * Which affected-resources rows breached the matched criteria, and which
+ * end of the value range is the worst.
+ */
+interface AffectedResourceBreachPredicate {
+  matches: (value: number) => boolean;
+  worstIsLowest: boolean;
+  /*
+   * Which end of a raw-scan resource's window to judge it by, when neither
+   * "the highest" nor "the lowest" is right on its own. Absent means:
+   * the lowest when worstIsLowest, else the highest. Receives the two
+   * ends already in the criteria's comparison unit.
+   */
+  pickEnd?:
+    | ((ends: { highest: number; lowest: number }) => "highest" | "lowest")
+    | undefined;
+  /*
+   * What a raw-scan list falls back to when no single row satisfies
+   * `matches` — a criteria that compared an AGGREGATE across resources (a
+   * Sum of in-flight requests over three API servers) can breach while no
+   * one resource crosses the threshold on its own.
+   */
+  fallbackMatches?: ((value: number) => boolean) | undefined;
+}
+
+/*
+ * The platforms whose monitors carry a per-resource breakdown.
+ */
+type PlatformName =
+  | "kubernetes"
+  | "proxmox"
+  | "vmware"
+  | "dockerSwarm"
+  | "ceph";
+
+interface CriteriaMetricTargetComponent {
+  alias: string;
+  metricName: string | undefined;
+}
+
+/**
+ * The query or formula a matched criteria compared against its threshold.
+ */
+interface CriteriaMetricTarget {
+  alias: string;
+  isFormula: boolean;
+  /*
+   * The unit the criteria compared its threshold in: the filter's own
+   * threshold unit, else the query's legendUnit (what the worker converted
+   * the samples into). Undefined means the metric's native unit.
+   */
+  comparisonUnit: string | undefined;
+  /** The query's metric; undefined for a formula. */
+  metricName: string | undefined;
+  /** The legend the user gave the query or formula, when it is not just the alias. */
+  displayName: string | undefined;
+  formulaExpression: string | undefined;
+  /** For a formula: the variable behind each alias it references. */
+  components: Array<CriteriaMetricTargetComponent>;
+}
+
+/**
+ * One row of a platform "Affected Resources" list: the resource, its
+ * worst value (null for a series that matched with no data) and that
+ * value already rendered with its unit (without emphasis — the list
+ * bolds it, a sentence may not).
+ */
+interface PlatformAffectedRow<I> {
+  identity: I;
+  value: number | null;
+  formattedValue: string;
+  /*
+   * Set when the row's value belongs to a DIFFERENT filter than the one
+   * the list is about — a series that matched an "Any" criteria on its
+   * other filter. It names that filter's metric next to the value, and
+   * the row is never ranked against rows in the list's own unit.
+   */
+  valueNote?: string | undefined;
+  /*
+   * The series' labels, when none of them names a platform object (a
+   * monitor grouped by a PVC name, say). The row is then titled by them
+   * instead of as an anonymous "Cluster".
+   */
+  seriesLabels?: JSONObject | undefined;
+}
+
+export default class MonitorCriteriaEvaluator {
+  public static async processMonitorStep(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    evaluationSummary: MonitorEvaluationSummary;
+  }): Promise<ProbeApiIngestResponse> {
+    const criteria: MonitorCriteria | undefined =
+      input.monitorStep.data?.monitorCriteria;
+
+    if (!criteria || !criteria.data) {
+      return input.probeApiIngestResponse;
+    }
+
+    /*
+     * Is this monitor configured to raise one alert/incident per series
+     * (per host, per container, per key) rather than one for the whole
+     * monitor? Answered from the monitor's own configuration, NOT from
+     * whether this tick happened to produce per-series matches — that
+     * distinction is the entire fix for "the second host never alerts".
+     *
+     * When a grouped monitor produced no per-series match, the old code
+     * left `perSeriesMatches` undefined, which the creators read as
+     * "legacy whole-monitor mode" and deduped on criteria id alone. The
+     * first breaching host opened an alert with no series attached and
+     * every host that started breaching afterwards was skipped with
+     * "an active alert exists for this criteria" for as long as that
+     * first alert stayed open.
+     */
+    const isPerSeriesMonitor: boolean =
+      MonitorCriteriaEvaluator.isPerSeriesMonitor({
+        monitor: input.monitor,
+        monitorStep: input.monitorStep,
+        criteriaInstances: criteria.data.monitorCriteriaInstanceArray,
+      });
+
+    /*
+     * Grouped metric monitors additionally evaluate EVERY criteria
+     * rather than stopping at the first match, because their series can
+     * sit in different bands simultaneously.
+     *
+     * Incoming-request grouping is deliberately excluded: a webhook is
+     * event-driven and its criteria pick one interpretation of one
+     * payload, so first-match-wins is the correct reading there and
+     * changing it would alter established webhook behaviour.
+     */
+    const fanOutAcrossCriteria: boolean =
+      isPerSeriesMonitor &&
+      input.monitor.monitorType !== MonitorType.IncomingRequest;
+
+    const matchedCriteria: Array<MatchedCriteriaResult> = [];
+    const evaluatedCriteriaIds: Array<string> = [];
+
+    for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
+      /*
+       * Ungrouped monitors keep the historical semantics exactly: the
+       * first criteria that matches wins and nothing after it is even
+       * looked at. Grouped monitors evaluate every criteria, because
+       * different series can legitimately sit in different bands at the
+       * same time (host A critical, host B warning) and stopping at the
+       * first match silently drops every other band.
+       */
+      if (matchedCriteria.length > 0 && !fanOutAcrossCriteria) {
+        MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({
+          criteriaInstance,
+          evaluationSummary: input.evaluationSummary,
+        });
+        continue;
+      }
+
+      /*
+       * Record disabled criteria in the summary (so the user can see why
+       * nothing happened) but skip evaluation, status changes, incidents,
+       * and alerts.
+       */
+      if (criteriaInstance.data?.isEnabled === false) {
+        const skipReason: string =
+          "This criterion is disabled, so it was not evaluated.";
+        const skippedCriteriaResult: MonitorEvaluationCriteriaResult = {
+          criteriaId: criteriaInstance.data?.id,
+          criteriaName: criteriaInstance.data?.name,
+          filterCondition:
+            criteriaInstance.data?.filterCondition || FilterCondition.All,
+          met: false,
+          message: skipReason,
+          filters: [],
+          skipped: true,
+          skipReason: skipReason,
+          skipCause: "disabled",
+        };
+
+        input.evaluationSummary.criteriaResults.push(skippedCriteriaResult);
+        continue;
+      }
+
+      const criteriaResult: MonitorEvaluationCriteriaResult = {
+        criteriaId: criteriaInstance.data?.id,
+        criteriaName: criteriaInstance.data?.name,
+        filterCondition:
+          criteriaInstance.data?.filterCondition || FilterCondition.All,
+        met: false,
+        message: "",
+        filters: [],
+      };
+
+      input.evaluationSummary.criteriaResults.push(criteriaResult);
+
+      const rootCause: string | null =
+        await MonitorCriteriaEvaluator.processMonitorCriteriaInstance({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaInstance: criteriaInstance,
+          criteriaResult: criteriaResult,
+        });
+
+      if (!criteriaResult.message) {
+        criteriaResult.message = criteriaResult.met
+          ? "Criteria met."
+          : "Criteria was not met.";
+      }
+
+      const criteriaEvent: MonitorEvaluationEvent = {
+        type: criteriaResult.met ? "criteria-met" : "criteria-not-met",
+        title: `${criteriaResult.met ? "Criteria met" : "Criteria not met"}: ${criteriaResult.criteriaName || "Unnamed criteria"}`,
+        message: criteriaResult.message,
+        relatedCriteriaId: criteriaResult.criteriaId,
+        at: OneUptimeDate.getCurrentDate(),
+      };
+
+      input.evaluationSummary.events.push(criteriaEvent);
+
+      if (criteriaInstance.data?.id) {
+        evaluatedCriteriaIds.push(criteriaInstance.data.id.toString());
+      }
+
+      if (!rootCause) {
+        continue;
+      }
+
+      /*
+       * When this is a monitor with per-series results, compute the
+       * per-series match list so MonitorResource can fan out one
+       * incident + one alert per affected series.
+       */
+      const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
+        await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+          dataToProcess: input.dataToProcess,
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+          criteriaInstance,
+        });
+
+      /*
+       * A grouped monitor whose scalar verdict says "met" but which
+       * cannot name a single breaching series is NOT a match.
+       *
+       * The scalar verdict evaluates each filter independently and each
+       * one collapses to its own first breaching series, so under
+       * FilterCondition.All two filters can be satisfied by two
+       * different hosts and report the criteria met even though no
+       * single host satisfies all of them. Honouring that verdict opened
+       * one unattributed whole-monitor alert that then blocked every
+       * real per-host alert. Skip the criteria instead and let the next
+       * one decide.
+       */
+      if (fanOutAcrossCriteria && perSeriesMatches.length === 0) {
+        criteriaResult.met = false;
+        criteriaResult.message =
+          "Criteria was not met: no single series satisfied it. " +
+          "This monitor raises one alert per series, so a criteria that " +
+          "only holds across different series combined does not fire.";
+
+        input.evaluationSummary.events.push({
+          type: "criteria-not-met",
+          title: `Criteria not met: ${criteriaResult.criteriaName || "Unnamed criteria"}`,
+          message: criteriaResult.message,
+          relatedCriteriaId: criteriaResult.criteriaId,
+          at: OneUptimeDate.getCurrentDate(),
+        });
+
+        continue;
+      }
+
+      const isFirstMatch: boolean = matchedCriteria.length === 0;
+
+      const contextBlock: string | null =
+        await MonitorCriteriaEvaluator.buildRootCauseContext({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          criteriaInstance: criteriaInstance,
+          perSeriesMatches: perSeriesMatches,
+        });
+
+      /*
+       * For metric monitors, render the metric identity (name, unit,
+       * filter attrs, breaching series) before the comparison line so
+       * the reader has context when they reach "Filter Conditions Met".
+       */
+      const isMetricMonitor: boolean =
+        input.monitor.monitorType === MonitorType.Metrics;
+
+      let renderedRootCause: string = `
+**Created because the following criteria was met**:
+
+**Criteria Name**: ${criteriaInstance.data?.name}
+`;
+
+      if (contextBlock && isMetricMonitor) {
+        renderedRootCause += `
+${contextBlock}
+`;
+      }
+
+      renderedRootCause += `
+**Filter Conditions Met**: ${rootCause}
+`;
+
+      if (contextBlock && !isMetricMonitor) {
+        renderedRootCause += `
+${contextBlock}
+`;
+      }
+
+      if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
+        renderedRootCause += `
+**Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
+`;
+      }
+
+      /*
+       * The monitor has exactly one status, and the FIRST matching
+       * criteria owns it — unchanged from before this became a list.
+       * `perSeriesMatches` likewise keeps pointing at the first match so
+       * any reader that only knows the scalar fields still behaves the
+       * way it always did.
+       */
+      if (isFirstMatch) {
+        input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
+        input.probeApiIngestResponse.rootCause = renderedRootCause;
+
+        if (perSeriesMatches.length > 0 || isPerSeriesMonitor) {
+          /*
+           * A per-series monitor always publishes an array, even an
+           * empty one: a defined array is what tells the creators
+           * "per-series mode — dedupe on (criteria, series)" instead of
+           * silently degrading to one alert for the whole monitor.
+           */
+          input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
+        }
+      }
+
+      if (criteriaInstance.data?.id) {
+        matchedCriteria.push({
+          criteriaId: criteriaInstance.data.id.toString(),
+          rootCause: renderedRootCause,
+          perSeriesMatches: perSeriesMatches,
+        });
+      }
+    }
+
+    /*
+     * Only grouped monitors fan out across several criteria. Leaving
+     * this undefined for everything else keeps MonitorResource on the
+     * single-criteria path it has always taken.
+     */
+    if (fanOutAcrossCriteria) {
+      input.probeApiIngestResponse.matchedCriteria = matchedCriteria;
+      input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
+    }
+
+    return input.probeApiIngestResponse;
+  }
+
+  /**
+   * Does this monitor raise one alert/incident per series rather than
+   * one for the whole monitor?
+   *
+   * Answered from configuration only — group-by attributes on a
+   * metric-backed step, or incident grouping on an incoming-request
+   * criteria — never from whether this particular tick produced
+   * matches. A tick that produces none must still be treated as
+   * per-series, otherwise the creators fall back to whole-monitor
+   * dedupe and swallow every series after the first.
+   */
+  private static isPerSeriesMonitor(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstances: Array<MonitorCriteriaInstance>;
+  }): boolean {
+    const monitorType: MonitorType | undefined = input.monitor.monitorType;
+
+    if (!monitorType) {
+      return false;
+    }
+
+    if (monitorType === MonitorType.IncomingRequest) {
+      return input.criteriaInstances.some(
+        (criteriaInstance: MonitorCriteriaInstance) => {
+          return IncomingRequestIncidentGrouping.isGroupingConfigured(
+            criteriaInstance,
+          );
+        },
+      );
+    }
+
+    if (MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType)) {
+      return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
+    }
+
+    /*
+     * Monitor types with no group-by concept, whose criteria name one
+     * entity each. They opt into per-entity alerting by naming "*"
+     * instead of a specific disk / interface.
+     */
+    if (monitorType === MonitorType.Server) {
+      return input.criteriaInstances.some(
+        (criteriaInstance: MonitorCriteriaInstance) => {
+          return PerEntityCriteriaFanOut.isServerDiskFanOutConfigured(
+            criteriaInstance,
+          );
+        },
+      );
+    }
+
+    if (monitorType === MonitorType.NetworkDevice) {
+      return input.criteriaInstances.some(
+        (criteriaInstance: MonitorCriteriaInstance) => {
+          return PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
+            criteriaInstance,
+          );
+        },
+      );
+    }
+
+    return false;
+  }
+
+  /**
+   * Record a criteria that the evaluator never got to, so "why did
+   * nothing happen for host B" is answerable from the monitor log
+   * instead of being an unexplained gap in the summary.
+   */
+  private static pushNotEvaluatedCriteriaResult(input: {
+    criteriaInstance: MonitorCriteriaInstance;
+    evaluationSummary: MonitorEvaluationSummary;
+  }): void {
+    const skipReason: string =
+      "An earlier criterion already matched. Criteria are evaluated in order " +
+      "for this monitor, so evaluation stopped at the first match.";
+
+    input.evaluationSummary.criteriaResults.push({
+      criteriaId: input.criteriaInstance.data?.id,
+      criteriaName: input.criteriaInstance.data?.name,
+      filterCondition:
+        input.criteriaInstance.data?.filterCondition || FilterCondition.All,
+      met: false,
+      message: skipReason,
+      filters: [],
+      skipped: true,
+      skipReason: skipReason,
+      skipCause: "earlier-criterion-matched",
+    });
+  }
+
+  /**
+   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/VMware/Ceph)
+   * with per-series aggregated results, re-evaluate the matched criteria
+   * once per series and return one entry per series that breached.
+   * Returns an empty array when the monitor is not series-aware or
+   * no series matched — the caller falls back to the single-incident
+   * path in that case.
+   */
+  private static async collectPerSeriesMatches(input: {
+    dataToProcess: DataToProcess;
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Promise<Array<PerSeriesCriteriaMatch>> {
+    /*
+     * Incoming Request / webhook monitors fan out per payload-derived key
+     * (e.g. one incident per Grafana alert name) when incidentGrouping is
+     * configured. No-op (returns []) when grouping is not configured, so
+     * existing incoming-request monitors keep their single-incident
+     * behaviour.
+     */
+    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      return IncomingRequestIncidentGrouping.collectFiringMatches({
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
+    /*
+     * Server and SNMP monitors observe several independent entities in a
+     * single check — every mounted filesystem, every port on a switch —
+     * but their criteria address one at a time. When a criteria opts in
+     * with the "*" wildcard, evaluate it once per entity so a second
+     * full disk or a second dead port raises its own alert instead of
+     * being swallowed by the first one's.
+     */
+    if (
+      input.monitor.monitorType === MonitorType.Server ||
+      input.monitor.monitorType === MonitorType.NetworkDevice
+    ) {
+      const entities: Array<FanOutEntity> =
+        input.monitor.monitorType === MonitorType.Server
+          ? PerEntityCriteriaFanOut.getServerDiskEntities({
+              dataToProcess: input.dataToProcess,
+              criteriaInstance: input.criteriaInstance,
+            })
+          : PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
+              dataToProcess: input.dataToProcess,
+              criteriaInstance: input.criteriaInstance,
+            });
+
+      return PerEntityCriteriaFanOut.collectMatches({
+        criteriaInstance: input.criteriaInstance,
+        entities: entities,
+        monitorId: input.monitor.id?.toString(),
+        evaluateNarrowedCriteria: (
+          narrowedCriteriaInstance: MonitorCriteriaInstance,
+        ): Promise<string | null> => {
+          return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: {
+              monitorId: input.dataToProcess.monitorId,
+              rootCause: null,
+            },
+            criteriaInstance: narrowedCriteriaInstance,
+            /*
+             * A throwaway result: the per-entity pass must not overwrite
+             * the summary row the whole-criteria evaluation already
+             * wrote for this criteria.
+             */
+            criteriaResult: {
+              criteriaId: narrowedCriteriaInstance.data?.id,
+              criteriaName: narrowedCriteriaInstance.data?.name,
+              filterCondition:
+                narrowedCriteriaInstance.data?.filterCondition ||
+                FilterCondition.All,
+              met: false,
+              message: "",
+              filters: [],
+            },
+          });
+        },
+      });
+    }
+
+    /*
+     * Same list as MonitorCriteriaInstance.isMetricBackedMonitorType,
+     * which is where it now lives so the two cannot drift apart.
+     */
+    if (
+      !input.monitor.monitorType ||
+      !MonitorCriteriaInstance.isMetricBackedMonitorType(
+        input.monitor.monitorType,
+      )
+    ) {
+      return [];
+    }
+
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+      metricResponse.seriesBreakdown;
+
+    if (!seriesBreakdown || seriesBreakdown.length === 0) {
+      return [];
+    }
+
+    const criteriaId: string | undefined = input.criteriaInstance.data?.id;
+    if (!criteriaId) {
+      return [];
+    }
+
+    const filterCondition: FilterCondition =
+      input.criteriaInstance.data?.filterCondition || FilterCondition.All;
+
+    const filters: Array<CriteriaFilter> =
+      input.criteriaInstance.data?.filters || [];
+
+    /*
+     * Evaluate every metric-value filter against every series. We only
+     * handle CheckOn.MetricValue for now — the criteria evaluator's
+     * other filter types don't carry series information.
+     */
+    const metricFilters: Array<CriteriaFilter> = filters.filter(
+      (f: CriteriaFilter) => {
+        return f.checkOn === CheckOn.MetricValue;
+      },
+    );
+
+    if (metricFilters.length === 0) {
+      return [];
+    }
+
+    /*
+     * Key: fingerprint. Value: results of each metric filter for that
+     * series, tracked so we can apply FilterCondition.All/Any per series.
+     */
+    const resultsByFingerprint: Map<
+      string,
+      {
+        labels: JSONObject;
+        filterResults: Array<MetricSeriesEvaluationResult>;
+      }
+    > = new Map();
+
+    for (const criteriaFilter of metricFilters) {
+      const evaluations: Array<MetricSeriesEvaluationResult> =
+        await MetricMonitorCriteria.evaluateAllSeries({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter,
+          monitorStep: input.monitorStep,
+        });
+
+      for (const evaluation of evaluations) {
+        const fingerprint: string | undefined = evaluation.fingerprint;
+        if (!fingerprint) {
+          continue;
+        }
+
+        const existing:
+          | {
+              labels: JSONObject;
+              filterResults: Array<MetricSeriesEvaluationResult>;
+            }
+          | undefined = resultsByFingerprint.get(fingerprint);
+
+        if (existing) {
+          existing.filterResults.push(evaluation);
+        } else {
+          resultsByFingerprint.set(fingerprint, {
+            labels: evaluation.labels,
+            filterResults: [evaluation],
+          });
+        }
+      }
+    }
+
+    const matches: Array<PerSeriesCriteriaMatch> = [];
+
+    for (const [fingerprint, entry] of resultsByFingerprint) {
+      // Were all/any of the metric filters met for this series?
+      const matched: Array<MetricSeriesEvaluationResult> =
+        entry.filterResults.filter((r: MetricSeriesEvaluationResult) => {
+          return r.rootCause !== null;
+        });
+
+      const seriesMatched: boolean =
+        filterCondition === FilterCondition.All
+          ? matched.length === entry.filterResults.length &&
+            entry.filterResults.length > 0
+          : matched.length > 0;
+
+      if (!seriesMatched) {
+        continue;
+      }
+
+      /*
+       * For the per-series rootCause, concatenate the matched filter
+       * messages so the incident message reflects exactly what
+       * breached on this specific series.
+       */
+      const rootCauseLines: Array<string> = matched.map(
+        (r: MetricSeriesEvaluationResult) => {
+          return `- ${r.rootCause}`;
+        },
+      );
+
+      matches.push({
+        criteriaMetId: criteriaId,
+        fingerprint,
+        labels: entry.labels,
+        rootCause: rootCauseLines.join("\n"),
+        metricContext: matched[0]?.context,
+        metricContexts: matched.map((r: MetricSeriesEvaluationResult) => {
+          return r.context;
+        }),
+      });
+    }
+
+    return matches;
+  }
+
+  private static async processMonitorCriteriaInstance(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaInstance: MonitorCriteriaInstance;
+    criteriaResult: MonitorEvaluationCriteriaResult;
+  }): Promise<string | null> {
+    return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+      dataToProcess: input.dataToProcess,
+      monitorStep: input.monitorStep,
+      monitor: input.monitor,
+      probeApiIngestResponse: input.probeApiIngestResponse,
+      criteriaInstance: input.criteriaInstance,
+      criteriaResult: input.criteriaResult,
+    });
+  }
+
+  private static async isMonitorInstanceCriteriaFiltersMet(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaInstance: MonitorCriteriaInstance;
+    criteriaResult: MonitorEvaluationCriteriaResult;
+  }): Promise<string | null> {
+    const filterCondition: FilterCondition =
+      input.criteriaInstance.data?.filterCondition || FilterCondition.All;
+
+    const matchedFilterMessages: Array<string> = [];
+    let hasMatch: boolean = false;
+    let allFiltersMet: boolean = true;
+
+    for (const criteriaFilter of input.criteriaInstance.data?.filters || []) {
+      const rootCause: string | null =
+        await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaInstance: input.criteriaInstance,
+          criteriaFilter: criteriaFilter,
+        });
+
+      const didMeetCriteria: boolean = Boolean(rootCause);
+
+      const filterMessage: string =
+        MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
+          monitor: input.monitor,
+          criteriaFilter: criteriaFilter,
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          didMeetCriteria: didMeetCriteria,
+          matchMessage: rootCause,
+        });
+
+      const filterSummary: MonitorEvaluationFilterResult = {
+        checkOn: criteriaFilter.checkOn,
+        filterType: criteriaFilter.filterType,
+        value: criteriaFilter.value,
+        met: didMeetCriteria,
+        message: filterMessage,
+      };
+
+      input.criteriaResult.filters.push(filterSummary);
+
+      if (didMeetCriteria) {
+        hasMatch = true;
+        matchedFilterMessages.push(filterMessage);
+      } else if (filterCondition === FilterCondition.All) {
+        allFiltersMet = false;
+      }
+    }
+
+    if (filterCondition === FilterCondition.All) {
+      if (allFiltersMet && input.criteriaResult.filters.length > 0) {
+        let message: string = "All filters met.";
+
+        if (matchedFilterMessages.length > 0) {
+          message += matchedFilterMessages
+            .map((item: string) => {
+              return `\n- ${item}`;
+            })
+            .join("");
+        }
+
+        input.criteriaResult.met = true;
+        input.criteriaResult.message = message;
+
+        return message;
+      }
+
+      input.criteriaResult.met = false;
+      input.criteriaResult.message =
+        "One or more filters did not meet the configured conditions.";
+
+      return null;
+    }
+
+    if (filterCondition === FilterCondition.Any) {
+      if (hasMatch) {
+        const firstMatch: string =
+          matchedFilterMessages[0] ||
+          "At least one filter met the configured condition.";
+
+        input.criteriaResult.met = true;
+        input.criteriaResult.message = firstMatch;
+
+        return firstMatch;
+      }
+
+      input.criteriaResult.met = false;
+      input.criteriaResult.message =
+        "No filters met the configured conditions.";
+
+      return null;
+    }
+
+    return null;
+  }
+
+  private static async isMonitorInstanceCriteriaFilterMet(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaInstance: MonitorCriteriaInstance;
+    criteriaFilter: CriteriaFilter;
+  }): Promise<string | null> {
+    if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
+      let storageMap: JSONObject = {};
+
+      if (
+        input.monitor.monitorType === MonitorType.API ||
+        input.monitor.monitorType === MonitorType.Website
+      ) {
+        let responseBody: JSONObject | null = null;
+        try {
+          responseBody = JSON.parse(
+            ((input.dataToProcess as ProbeMonitorResponse)
+              .responseBody as string) || "{}",
+          );
+        } catch (err) {
+          logger.error(err, {
+            projectId: input.monitor.projectId?.toString(),
+          });
+          responseBody = (input.dataToProcess as ProbeMonitorResponse)
+            .responseBody as JSONObject;
+        }
+
+        if (
+          typeof responseBody === Typeof.String &&
+          responseBody?.toString() === ""
+        ) {
+          responseBody = {};
+        }
+
+        storageMap = {
+          responseBody: responseBody,
+          responseHeaders: (input.dataToProcess as ProbeMonitorResponse)
+            .responseHeaders,
+          responseStatusCode: (input.dataToProcess as ProbeMonitorResponse)
+            .responseCode,
+          responseTimeInMs: (input.dataToProcess as ProbeMonitorResponse)
+            .responseTimeInMs,
+          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
+        };
+      }
+
+      if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+        storageMap = {
+          requestBody: (input.dataToProcess as IncomingMonitorRequest)
+            .requestBody,
+          requestHeaders: (input.dataToProcess as IncomingMonitorRequest)
+            .requestHeaders,
+        };
+      }
+
+      if (input.monitor.monitorType === MonitorType.SQLQuery) {
+        const sqlResponse: SqlMonitorResponse | undefined = (
+          input.dataToProcess as ProbeMonitorResponse
+        ).sqlQueryMonitorResponse;
+
+        storageMap = {
+          rowCount: sqlResponse?.rowCount,
+          scalarValue: sqlResponse?.scalarValue,
+          firstRow: sqlResponse?.firstRow,
+          executionTimeInMs: sqlResponse?.responseTimeInMs,
+          queryError: sqlResponse?.queryError,
+          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
+        };
+      }
+
+      if (input.monitor.monitorType === MonitorType.Database) {
+        const databaseResponse: DatabaseMonitorResponse | undefined = (
+          input.dataToProcess as ProbeMonitorResponse
+        ).databaseMonitorResponse;
+
+        /*
+         * metrics is exposed raw, keyed by series name, so an expression can
+         * read any of the catalog's series without a variable per metric:
+         * {{metrics['oneuptime.monitor.database.connections.used.percent']}} > 90
+         *
+         * Connection details are deliberately absent - host, username and
+         * password never travel into an expression sandbox.
+         */
+        storageMap = {
+          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
+          engineVersion: databaseResponse?.engineVersion,
+          connectionError: databaseResponse?.connectionError,
+          collectedGroups: databaseResponse?.collectedGroups,
+          unavailableGroups: (databaseResponse?.unavailableGroups || []).map(
+            (status: DatabaseMetricGroupStatus): JSONObject => {
+              return {
+                group: status.group,
+                reason: status.reason,
+                message: status.message,
+                remediation: status.remediation,
+              };
+            },
+          ),
+          metrics: databaseResponse?.metrics,
+        };
+      }
+
+      let expression: string = input.criteriaFilter.value as string;
+      expression = VMUtil.replaceValueInPlace(storageMap, expression, false);
+
+      const code: string = `return Boolean(${expression});`;
+      let result: ReturnResult | null = null;
+
+      try {
+        result = await VMUtil.runCodeInSandbox({
+          code: code,
+          options: {
+            args: {},
+          },
+        });
+      } catch (err) {
+        logger.error(err, {
+          projectId: input.monitor.projectId?.toString(),
+        });
+        return null;
+      }
+
+      /*
+       * runCodeInSandbox resolves with `scriptError` when the expression threw
+       * or timed out — it no longer rejects. Keep the pre-sandbox outcome
+       * (criteria not met) but retain the error log.
+       */
+      if (result.scriptError) {
+        logger.error(result.scriptError, {
+          projectId: input.monitor.projectId?.toString(),
+        });
+        return null;
+      }
+
+      if (result && result.returnValue) {
+        return `JavaScript Expression - ${expression} - evaluated to true.`;
+      }
+
+      return null;
+    }
+
+    if (
+      input.monitor.monitorType === MonitorType.API ||
+      input.monitor.monitorType === MonitorType.Website ||
+      input.monitor.monitorType === MonitorType.IP ||
+      input.monitor.monitorType === MonitorType.Ping ||
+      input.monitor.monitorType === MonitorType.Port
+    ) {
+      const apiRequestCriteriaResult: string | null =
+        await APIRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (apiRequestCriteriaResult) {
+        return apiRequestCriteriaResult;
+      }
+    }
+
+    if (
+      input.monitor.monitorType === MonitorType.CustomJavaScriptCode &&
+      (input.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
+    ) {
+      const criteriaResult: string | null =
+        await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
+          monitorResponse: (input.dataToProcess as ProbeMonitorResponse)
+            .customCodeMonitorResponse!,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (criteriaResult) {
+        return criteriaResult;
+      }
+    }
+
+    if (
+      input.monitor.monitorType === MonitorType.SyntheticMonitor &&
+      (input.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse
+    ) {
+      const criteriaResult: string | null =
+        await SyntheticMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
+          monitorResponse:
+            (input.dataToProcess as ProbeMonitorResponse)
+              .syntheticMonitorResponse || [],
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (criteriaResult) {
+        return criteriaResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      const incomingRequestResult: string | null =
+        await IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (incomingRequestResult) {
+        return incomingRequestResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.IncomingEmail) {
+      const incomingEmailResult: string | null =
+        await IncomingEmailCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (incomingEmailResult) {
+        return incomingEmailResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.SSLCertificate) {
+      const sslMonitorResult: string | null =
+        await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (sslMonitorResult) {
+        return sslMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Server) {
+      const serverMonitorResult: string | null =
+        await ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (serverMonitorResult) {
+        return serverMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Logs) {
+      const logMonitorResult: string | null =
+        await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
+        });
+
+      if (logMonitorResult) {
+        return logMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.SecurityEvents) {
+      const securityEventsMonitorResult: string | null =
+        await SecurityEventsMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (securityEventsMonitorResult) {
+        return securityEventsMonitorResult;
+      }
+    }
+
+    if (
+      input.monitor.monitorType === MonitorType.Metrics ||
+      input.monitor.monitorType === MonitorType.Kubernetes ||
+      input.monitor.monitorType === MonitorType.Docker ||
+      input.monitor.monitorType === MonitorType.Host ||
+      input.monitor.monitorType === MonitorType.Podman ||
+      input.monitor.monitorType === MonitorType.DockerSwarm ||
+      input.monitor.monitorType === MonitorType.Proxmox ||
+      input.monitor.monitorType === MonitorType.VMware ||
+      input.monitor.monitorType === MonitorType.Ceph ||
+      input.monitor.monitorType === MonitorType.IoTDevice
+    ) {
+      const metricMonitorResult: string | null =
+        await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
+        });
+
+      if (metricMonitorResult) {
+        return metricMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Traces) {
+      const traceMonitorResult: string | null =
+        await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
+        });
+
+      if (traceMonitorResult) {
+        return traceMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Exceptions) {
+      const exceptionMonitorResult: string | null =
+        await ExceptionMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (exceptionMonitorResult) {
+        return exceptionMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Profiles) {
+      const profileMonitorResult: string | null =
+        await ProfileMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (profileMonitorResult) {
+        return profileMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.NetworkDevice) {
+      const snmpMonitorResult: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (snmpMonitorResult) {
+        return snmpMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.DNS) {
+      const dnsMonitorResult: string | null =
+        await DnsMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (dnsMonitorResult) {
+        return dnsMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Domain) {
+      const domainMonitorResult: string | null =
+        await DomainMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (domainMonitorResult) {
+        return domainMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.DNSSEC) {
+      const dnssecMonitorResult: string | null =
+        await DnssecMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (dnssecMonitorResult) {
+        return dnssecMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.SQLQuery) {
+      const sqlMonitorResult: string | null =
+        await SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (sqlMonitorResult) {
+        return sqlMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Database) {
+      const databaseMonitorResult: string | null =
+        await DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (databaseMonitorResult) {
+        return databaseMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.ExternalStatusPage) {
+      const externalStatusPageResult: string | null =
+        await ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet(
+          {
+            dataToProcess: input.dataToProcess,
+            criteriaFilter: input.criteriaFilter,
+            monitoringInterval: input.monitor.monitoringInterval,
+          },
+        );
+
+      if (externalStatusPageResult) {
+        return externalStatusPageResult;
+      }
+    }
+
+    return null;
+  }
+
+  private static async buildRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance;
+    /*
+     * The series this criteria matched, for a grouped monitor. The
+     * platform contexts list exactly these as the affected resources.
+     */
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): Promise<string | null> {
+    // Handle Kubernetes monitors with rich resource context
+    if (input.monitor.monitorType === MonitorType.Kubernetes) {
+      return await MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(
+        input,
+      );
+    }
+
+    // Handle Docker monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Docker) {
+      return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle Host monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Host) {
+      return MonitorCriteriaEvaluator.buildHostRootCauseContext(input);
+    }
+
+    // Handle Podman monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Podman) {
+      return MonitorCriteriaEvaluator.buildPodmanRootCauseContext(input);
+    }
+
+    // Handle IoT device monitors with fleet / device context
+    if (input.monitor.monitorType === MonitorType.IoTDevice) {
+      return MonitorCriteriaEvaluator.buildIoTRootCauseContext(input);
+    }
+
+    // Handle Proxmox monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Proxmox) {
+      return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
+    }
+
+    // Handle VMware monitors with vCenter resource context
+    if (input.monitor.monitorType === MonitorType.VMware) {
+      return MonitorCriteriaEvaluator.buildVMwareRootCauseContext(input);
+    }
+
+    // Handle Docker Swarm monitors with resource context
+    if (input.monitor.monitorType === MonitorType.DockerSwarm) {
+      return MonitorCriteriaEvaluator.buildDockerSwarmRootCauseContext(input);
+    }
+
+    // Handle Ceph monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Ceph) {
+      return MonitorCriteriaEvaluator.buildCephRootCauseContext(input);
+    }
+
+    // Handle generic Metric monitors with metric identity + breaching series
+    if (
+      input.monitor.monitorType === MonitorType.Metrics &&
+      input.criteriaInstance
+    ) {
+      return MonitorCriteriaEvaluator.buildMetricRootCauseContext({
+        criteriaInstance: input.criteriaInstance,
+        monitor: input.monitor,
+        monitorStep: input.monitorStep,
+      });
+    }
+
+    const requestDetails: Array<string> = [];
+    const responseDetails: Array<string> = [];
+    const failureDetails: Array<string> = [];
+
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    const destination: string | null =
+      MonitorCriteriaEvaluator.getMonitorDestinationString({
+        monitorStep: input.monitorStep,
+        probeResponse: probeResponse,
+      });
+
+    if (destination) {
+      requestDetails.push(`- Destination: ${destination}`);
+    }
+
+    const port: string | null = MonitorCriteriaEvaluator.getMonitorPortString({
+      monitorStep: input.monitorStep,
+      probeResponse: probeResponse,
+    });
+
+    if (port) {
+      requestDetails.push(`- Destination Port: ${port}`);
+    }
+
+    const requestMethod: string | null =
+      MonitorCriteriaEvaluator.getRequestMethodString({
+        monitor: input.monitor,
+        monitorStep: input.monitorStep,
+      });
+
+    if (requestMethod) {
+      requestDetails.push(`- Request Method: ${requestMethod}`);
+    }
+
+    if (probeResponse?.responseCode !== undefined) {
+      responseDetails.push(
+        `- Response Status Code: ${probeResponse.responseCode}`,
+      );
+    }
+
+    const responseTime: string | null =
+      MonitorCriteriaEvaluator.formatMilliseconds(
+        probeResponse?.responseTimeInMs,
+      );
+
+    if (responseTime) {
+      responseDetails.push(`- Response Time: ${responseTime}`);
+    }
+
+    if (probeResponse?.isTimeout !== undefined) {
+      responseDetails.push(
+        `- Timed Out: ${probeResponse.isTimeout ? "Yes" : "No"}`,
+      );
+    }
+
+    /*
+     * How many times the probe actually tried matters when reading a failure:
+     * "tried once" and "tried three times" describe very different levels of
+     * confidence, and the count was already collected but never shown.
+     */
+    if (probeResponse?.totalAttempts !== undefined) {
+      responseDetails.push(`- Attempts: ${probeResponse.totalAttempts}`);
+    }
+
+    // Add Request Failed Details if available
+    if (probeResponse?.requestFailedDetails) {
+      const requestFailedDetails: RequestFailedDetails =
+        probeResponse.requestFailedDetails;
+
+      if (requestFailedDetails.failedPhase) {
+        failureDetails.push(
+          `- Failed Phase: ${requestFailedDetails.failedPhase}`,
+        );
+      }
+
+      if (requestFailedDetails.errorCode) {
+        failureDetails.push(`- Error Code: ${requestFailedDetails.errorCode}`);
+      }
+
+      if (requestFailedDetails.errorDescription) {
+        failureDetails.push(
+          `- Error Description: ${requestFailedDetails.errorDescription}`,
+        );
+      }
+
+      if (requestFailedDetails.rawErrorMessage) {
+        failureDetails.push(
+          `- Raw Error Message: ${requestFailedDetails.rawErrorMessage}`,
+        );
+      }
+    }
+
+    const sections: Array<string> = [];
+
+    if (requestDetails.length > 0) {
+      sections.push(`**Request Details**\n${requestDetails.join("\n")}`);
+    }
+
+    if (responseDetails.length > 0) {
+      sections.push(`\n\n**Response Snapshot**\n${responseDetails.join("\n")}`);
+    }
+
+    if (failureDetails.length > 0) {
+      sections.push(
+        `\n\n**Request Failed Details**\n${failureDetails.join("\n")}`,
+      );
+    }
+
+    if (!sections.length) {
+      return null;
+    }
+
+    return sections.join("\n");
+  }
+
+  /*
+   * The first populated metric context across the instance's filters.
+   * Only metric-value filters populate this at evaluation time, so this
+   * effectively returns the context for the filter that ran.
+   */
+  private static getMetricCriteriaContext(
+    criteriaInstance: MonitorCriteriaInstance | undefined,
+  ): MetricCriteriaContext | undefined {
+    return (criteriaInstance?.data?.filters || [])
+      .map((f: CriteriaFilter) => {
+        return f.metricCriteriaContext;
+      })
+      .find(
+        (c: MetricCriteriaContext | undefined): c is MetricCriteriaContext => {
+          return Boolean(c);
+        },
+      );
+  }
+
+  private static buildMetricRootCauseContext(input: {
+    criteriaInstance: MonitorCriteriaInstance;
+    monitor: Monitor;
+    monitorStep?: MonitorStep | undefined;
+  }): string | null {
+    const ctx: MetricCriteriaContext | undefined =
+      MonitorCriteriaEvaluator.getMetricCriteriaContext(input.criteriaInstance);
+
+    if (!ctx) {
+      return null;
+    }
+
+    const unitHeuristicMetricName: string | undefined =
+      MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+        metricName: ctx.metricName,
+        isFormula: ctx.isFormula,
+      });
+
+    const lines: Array<string> = [];
+    lines.push(`- Metric: \`${ctx.metricName}\``);
+    if (ctx.alias) {
+      lines.push(`- Alias: \`${ctx.alias}\``);
+    }
+    /*
+     * Spell the unit out — "Bytes", not the UCUM "By" the exporter wrote —
+     * and drop the line entirely for units that name no dimension, so a
+     * ratio metric no longer reports the bare "Unit: 1".
+     */
+    const readableUnit: string | null = MetricValueFormatter.getReadableUnit(
+      ctx.unit,
+      unitHeuristicMetricName,
+    );
+    if (readableUnit) {
+      lines.push(`- Unit: ${readableUnit}`);
+    }
+    if (ctx.aggregationType) {
+      lines.push(`- Aggregation: ${ctx.aggregationType}`);
+    }
+    if (ctx.isFormula && ctx.formulaExpression) {
+      lines.push(`- Formula: \`${ctx.formulaExpression}\``);
+    }
+    if (ctx.timeWindowMinutes) {
+      lines.push(`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
+    }
+
+    /*
+     * For formulas, enumerate the underlying variables so the on-call
+     * engineer can trace `c = a + b` back to "a is container.cpu.time,
+     * b is container.memory.usage in bytes" without clicking away.
+     */
+    if (ctx.components && ctx.components.length > 0) {
+      const componentLines: Array<string> = ctx.components.map(
+        (component: MetricComponent) => {
+          const componentUnit: string | null =
+            MetricValueFormatter.getReadableUnit(
+              component.unit,
+              MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                metricName: component.name,
+                isFormula: component.isFormula,
+              }),
+            );
+          const unitSuffix: string = componentUnit
+            ? ` — unit: ${componentUnit}`
+            : "";
+          const typeSuffix: string = component.isFormula ? " (formula)" : "";
+          return `  - \`${component.alias}\` = \`${component.name}\`${typeSuffix}${unitSuffix}`;
+        },
+      );
+      lines.push(`- Components:\n${componentLines.join("\n")}`);
+    }
+
+    const filterKeys: Array<string> = Object.keys(ctx.filterAttributes || {});
+    if (filterKeys.length > 0) {
+      const filterLines: Array<string> = filterKeys.map((k: string) => {
+        const v: unknown = (ctx.filterAttributes as Record<string, unknown>)[k];
+        return `  - \`${k}\` = \`${String(v)}\``;
+      });
+      lines.push(`- Filters:\n${filterLines.join("\n")}`);
+    }
+
+    if (ctx.groupBy.length > 0) {
+      lines.push(
+        `- Grouped By: ${ctx.groupBy
+          .map((g: string) => {
+            return `\`${g}\``;
+          })
+          .join(", ")}`,
+      );
+    }
+
+    const sections: Array<string> = [`**Metric Details**\n${lines.join("\n")}`];
+
+    const breachingSamples: Array<MetricBreachingSample> =
+      ctx.breachingSamples && ctx.breachingSamples.length > 0
+        ? ctx.breachingSamples
+        : ctx.breachingSample
+          ? [ctx.breachingSample]
+          : [];
+
+    if (breachingSamples.length > 0) {
+      sections.push(
+        `\n\n${MonitorCriteriaEvaluator.formatBreachingSamplesSection({
+          samples: breachingSamples,
+          totalSamples: ctx.totalSamplesInWindow,
+          unit: ctx.unit,
+          unitHeuristicMetricName: unitHeuristicMetricName,
+          components: ctx.components || [],
+          seriesLabelKeys: [
+            ...ctx.groupBy,
+            ...Object.keys(ctx.seriesLabels || {}),
+          ],
+        })}`,
+      );
+    }
+
+    const deepLink: string | null =
+      MonitorCriteriaEvaluator.buildMetricExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    if (deepLink) {
+      sections.push(`\n\n[Open metric in dashboard](${deepLink})`);
+    }
+
+    /*
+     * Sibling deep links: the same breach window (and, where derivable,
+     * the monitor's service/attribute scope) carried over to the Logs and
+     * Traces explorers, so the on-call engineer can pivot signals without
+     * rebuilding the filter set by hand.
+     */
+    const logsLink: TelemetryExplorerDeepLink | null =
+      MonitorCriteriaEvaluator.buildLogsExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    if (logsLink) {
+      sections.push(
+        `\n\n[Open logs in dashboard](${logsLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
+          logsLink.dropped,
+        )}`,
+      );
+    }
+
+    const tracesLink: TelemetryExplorerDeepLink | null =
+      MonitorCriteriaEvaluator.buildTracesExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    if (tracesLink) {
+      sections.push(
+        `\n\n[Open traces in dashboard](${tracesLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
+          tracesLink.dropped,
+        )}`,
+      );
+    }
+
+    return sections.join("\n");
+  }
+
+  /**
+   * Build the **Breaching Samples** markdown section — a numbered list of
+   * the samples that breached, oldest first. Caps the list so a 30-minute
+   * window at 1-second granularity doesn't dump thousands of lines onto
+   * the root-cause page; the caller can always drill in via the metric
+   * explorer link.
+   *
+   *     1. `2026-08-14T10:30:00.000Z` — **1.07 GB**
+   *        - `a`: 537 MB
+   *        - `b`: 1.5 sec
+   *        - `k8s.pod.name`: `web-1`
+   *
+   * It used to be a table — Timestamp | Metric | Alias | Value, a column
+   * per formula component and one per attribute key — which grew wider
+   * with every attribute and read badly in the email card, in Slack and on
+   * the dashboard (see RootCauseList). Its Metric and Alias columns
+   * repeated the same two values on every row, the ones the Metric
+   * Details list directly above already states, so the list leaves them
+   * out; and a component or attribute a sample has no value for is left
+   * out rather than printed as "-".
+   *
+   * Timestamps are emitted as inline code wrapping ISO 8601 strings so
+   * the client-side markdown viewer can localize them to the viewer's
+   * timezone (without losing the canonical instant).
+   */
+  /**
+   * The attributes worth printing under a breaching sample.
+   *
+   * A grouped monitor's sample does not carry its group-by values at the
+   * top level: the worker nests the datapoint's whole attribute map under
+   * a single `attributes` key. Printed as-is that became
+   * "`attributes`: `[object Object]`" under every sample — the one line
+   * that should have said which host breached. The series' own label keys
+   * are lifted out of it instead; the rest of the datapoint's attributes
+   * (every resource attribute the exporter stamped) are not what the
+   * reader is looking for here.
+   */
+  private static flattenSampleAttributes(input: {
+    attributes: JSONObject;
+    seriesLabelKeys: Set<string>;
+  }): Record<string, unknown> {
+    const flattened: Record<string, unknown> = {};
+
+    for (const key of Object.keys(input.attributes)) {
+      const value: unknown = input.attributes[key];
+
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        for (const nestedKey of Object.keys(value as JSONObject)) {
+          const nestedValue: unknown = (value as JSONObject)[nestedKey];
+
+          if (
+            input.seriesLabelKeys.has(nestedKey) &&
+            flattened[nestedKey] === undefined &&
+            nestedValue !== undefined &&
+            nestedValue !== null &&
+            typeof nestedValue !== "object"
+          ) {
+            flattened[nestedKey] = nestedValue;
+          }
+        }
+        continue;
+      }
+
+      if (flattened[key] === undefined) {
+        flattened[key] = value;
+      }
+    }
+
+    return flattened;
+  }
+
+  private static formatBreachingSamplesSection(input: {
+    samples: Array<MetricBreachingSample>;
+    totalSamples?: number | undefined;
+    unit: string | null;
+    /**
+     * The metric name to reason about, or undefined for a formula.
+     * See MonitorCriteriaEvaluator.metricNameForUnitHeuristics.
+     */
+    unitHeuristicMetricName: string | undefined;
+    components: Array<MetricComponent>;
+    /*
+     * The keys that identify the series (its group-by keys). A grouped
+     * sample carries its datapoint's whole attribute map nested under
+     * `attributes`; only these keys are lifted out of it.
+     */
+    seriesLabelKeys?: Array<string> | undefined;
+  }): string {
+    const MAX_SAMPLES_SHOWN: number = 20;
+
+    // Sort chronologically and de-duplicate any accidental repeats
+    const sorted: Array<MetricBreachingSample> = [...input.samples].sort(
+      (a: MetricBreachingSample, b: MetricBreachingSample) => {
+        return (
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      },
+    );
+
+    const displayedSamples: Array<MetricBreachingSample> = sorted.slice(
+      0,
+      MAX_SAMPLES_SHOWN,
+    );
+
+    /*
+     * Collect attribute keys that appear on any displayed sample, so every
+     * item lists the attributes it has in the same order.
+     */
+    const seriesLabelKeys: Set<string> = new Set<string>(
+      input.seriesLabelKeys || [],
+    );
+    const sampleAttributes: Map<
+      MetricBreachingSample,
+      Record<string, unknown>
+    > = new Map();
+    const attrKeySet: Set<string> = new Set<string>();
+    for (const s of displayedSamples) {
+      const flattened: Record<string, unknown> =
+        MonitorCriteriaEvaluator.flattenSampleAttributes({
+          attributes: s.attributes || {},
+          seriesLabelKeys: seriesLabelKeys,
+        });
+      sampleAttributes.set(s, flattened);
+      for (const k of Object.keys(flattened)) {
+        attrKeySet.add(k);
+      }
+    }
+    const attrKeys: Array<string> = Array.from(attrKeySet);
+
+    const items: Array<RootCauseListItem> = displayedSamples.map(
+      (s: MetricBreachingSample): RootCauseListItem => {
+        const details: Array<RootCauseListDetail> = [];
+
+        /*
+         * What each variable of a formula resolved to at the breach time —
+         * e.g. "when c = a + b breached 100, a was 55, b was 46". Absent
+         * for plain metric criteria.
+         */
+        for (const component of input.components) {
+          const match: MetricComponentValue | undefined = (
+            s.componentValues || []
+          ).find((cv: MetricComponentValue) => {
+            return cv.alias === component.alias;
+          });
+
+          if (!match || typeof match.value !== "number") {
+            continue;
+          }
+
+          /*
+           * Each component keeps its OWN unit. Component values are
+           * indexed off the per-query series and never go through the
+           * sample→threshold-unit conversion the sample's value does, so
+           * they are in the component's legendUnit — which is why each
+           * one names the unit it is in. Its configured unit is in the
+           * Components list of the Metric Details above.
+           */
+          details.push({
+            label: RootCauseList.code(component.alias),
+            value: MetricValueFormatter.format({
+              value: match.value,
+              unit: component.unit,
+              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                metricName: component.name,
+                isFormula: component.isFormula,
+              }),
+            }),
+          });
+        }
+
+        /*
+         * The attributes identify the series the sample came from. Keys
+         * and values are telemetry, so both go in code spans:
+         * RootCauseList.code keeps whatever they contain inside the span.
+         */
+        for (const k of attrKeys) {
+          const v: unknown = sampleAttributes.get(s)?.[k];
+
+          if (v === undefined || v === null) {
+            continue;
+          }
+
+          details.push({
+            label: RootCauseList.code(k),
+            value: RootCauseList.code(String(v)),
+          });
+        }
+
+        return {
+          title: RootCauseList.code(new Date(s.timestamp).toISOString()),
+          value: `**${MetricValueFormatter.format({
+            value: s.value,
+            unit: input.unit,
+            metricName: input.unitHeuristicMetricName,
+          })}**`,
+          details: details,
+        };
+      },
+    );
+
+    const lines: Array<string> = [
+      `**Breaching Samples**`,
+      MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
+        breachingCount: sorted.length,
+        totalSamples: input.totalSamples,
+      }),
+      "",
+      RootCauseList.render(items),
+    ];
+
+    if (sorted.length > displayedSamples.length) {
+      /*
+       * The blank line matters: without it the note is a lazy
+       * continuation of the last item, not a paragraph of its own.
+       */
+      lines.push(
+        "",
+        `_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
+      );
+    }
+
+    return lines.join("\n");
+  }
+
+  private static formatBreachingSamplesSummary(input: {
+    breachingCount: number;
+    totalSamples?: number | undefined;
+  }): string {
+    if (
+      typeof input.totalSamples === "number" &&
+      input.totalSamples > 0 &&
+      input.totalSamples >= input.breachingCount
+    ) {
+      return `${input.breachingCount} of ${input.totalSamples} samples breached the threshold.`;
+    }
+    return `${input.breachingCount} sample${input.breachingCount === 1 ? "" : "s"} breached the threshold.`;
+  }
+
+  private static buildMetricExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): string | null {
+    const projectId: string | undefined = input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    /*
+     * The explorer URL schema (metricQueries/startTime/endTime params)
+     * is owned by MetricExplorerUrl — the same module the explorer uses
+     * for its own URL round-trip — so this deep link can never drift
+     * from what the explorer parses.
+     */
+    let queryConfigs: Array<MetricQueryConfigData> = [
+      {
+        metricQueryData: {
+          filterData: {
+            metricName: input.ctx.metricName,
+            attributes: MetricExplorerUrl.sanitizeAttributes(
+              input.ctx.filterAttributes,
+            ),
+            ...(input.ctx.aggregationType
+              ? { aggegationType: input.ctx.aggregationType }
+              : {}),
+          },
+        },
+      },
+    ];
+    let formulaConfigs: Array<MetricFormulaConfigData> = [];
+
+    /*
+     * A formula's metricName is its EXPRESSION, not a metric the explorer
+     * can chart — linking it as one opened an empty chart. Open the
+     * step's own queries and formulas instead, which is what the formula
+     * was computed from. With no step config to rebuild it from, no link
+     * beats a dead one.
+     */
+    if (input.ctx.isFormula) {
+      const metricViewConfig: MetricsViewConfig | undefined =
+        MonitorStep.getMetricsViewConfig(input.monitorStep);
+
+      if (
+        !metricViewConfig ||
+        !(metricViewConfig.formulaConfigs || []).some(
+          (formula: MetricFormulaConfigData) => {
+            return formula.metricAliasData?.metricVariable === input.ctx.alias;
+          },
+        )
+      ) {
+        return null;
+      }
+
+      queryConfigs = metricViewConfig.queryConfigs || [];
+      formulaConfigs = metricViewConfig.formulaConfigs || [];
+    }
+
+    const breachWindow: { startTime: Date; endTime: Date } =
+      MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
+
+    const urlParams: Dictionary<string> =
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData({
+        queryConfigs: queryConfigs,
+        formulaConfigs: formulaConfigs,
+        startAndEndDate: new InBetween(
+          breachWindow.startTime,
+          breachWindow.endTime,
+        ),
+      });
+
+    const params: URLSearchParams = new URLSearchParams();
+
+    for (const paramName in urlParams) {
+      params.set(paramName, urlParams[paramName] as string);
+    }
+
+    /*
+     * The route that actually reads these URL params is the metric
+     * explorer at /metrics/view — the /metrics index is the metric list.
+     */
+    return `${DashboardClientUrl.toString()}/${projectId}/metrics/view?${params.toString()}`;
+  }
+
+  // Time window: breach moment +- 15 minutes (or fall back to last hour).
+  private static getMetricBreachExplorerWindow(ctx: MetricCriteriaContext): {
+    startTime: Date;
+    endTime: Date;
+  } {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const breachTime: Date | undefined = ctx.breachingSample?.timestamp;
+    const startTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, -30)
+      : OneUptimeDate.addRemoveHours(now, -1);
+    const endTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, 15)
+      : now;
+
+    return { startTime, endTime };
+  }
+
+  /*
+   * The slice of telemetry a metric breach describes, in cross-signal
+   * terms: the breach window, the criteria's metric attribute filters
+   * (overlaid with the per-series labels when per-series alerting
+   * identified a specific series), and the monitor step's telemetry
+   * service scope when one is configured.
+   */
+  private static buildMetricBreachTelemetryScope(input: {
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): TelemetryCrossSignalScope {
+    const breachWindow: { startTime: Date; endTime: Date } =
+      MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
+
+    const attributes: Dictionary<string> = {};
+
+    const attributeSources: Array<JSONObject> = [
+      input.ctx.filterAttributes || {},
+      input.ctx.seriesLabels || {},
+    ];
+
+    for (const source of attributeSources) {
+      for (const key of Object.keys(source)) {
+        const value: unknown = source[key];
+
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
+          attributes[key] = String(value);
+        }
+      }
+    }
+
+    const serviceIds: Array<string> = (
+      input.monitorStep?.data?.metricMonitor?.telemetryServiceIds || []
+    ).map((serviceId: ObjectID): string => {
+      return serviceId.toString();
+    });
+
+    return {
+      ...(serviceIds.length > 0 ? { serviceIds } : {}),
+      ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
+      startTime: breachWindow.startTime,
+      endTime: breachWindow.endTime,
+    };
+  }
+
+  private static buildLogsExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): TelemetryExplorerDeepLink | null {
+    const projectId: string | undefined = input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    const scope: TelemetryCrossSignalScope =
+      MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
+        ctx: input.ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    /*
+     * The URL schema is owned by CrossSignalScope — the same grammar the
+     * logs explorer parses — so this link cannot drift from what the
+     * explorer restores.
+     */
+    const queryParams: CrossSignalQueryParams =
+      toLogsExplorerQueryParams(scope);
+
+    const params: URLSearchParams = new URLSearchParams();
+
+    for (const paramName in queryParams.params) {
+      params.set(paramName, queryParams.params[paramName] as string);
+    }
+
+    return {
+      url: `${DashboardClientUrl.toString()}/${projectId}/logs?${params.toString()}`,
+      dropped: queryParams.dropped,
+    };
+  }
+
+  private static buildTracesExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): TelemetryExplorerDeepLink | null {
+    const projectId: string | undefined = input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    const scope: TelemetryCrossSignalScope =
+      MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
+        ctx: input.ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    const queryParams: CrossSignalQueryParams =
+      toTracesExplorerQueryParams(scope);
+
+    const params: URLSearchParams = new URLSearchParams();
+
+    for (const paramName in queryParams.params) {
+      params.set(paramName, queryParams.params[paramName] as string);
+    }
+
+    return {
+      url: `${DashboardClientUrl.toString()}/${projectId}/traces?${params.toString()}`,
+      dropped: queryParams.dropped,
+    };
+  }
+
+  /**
+   * The metric name to hand a unit heuristic, or undefined when there
+   * isn't one.
+   *
+   * `MetricCriteriaContext.metricName` and `MetricComponent.name` are the
+   * FORMULA EXPRESSION when the criteria (or the component) targets a
+   * formula — MetricMonitorCriteria.buildContext falls back to
+   * `metricFormula`. The only thing a name is used for downstream is
+   * ValueFormatter.isFractionMetric, which asks whether the name ends in
+   * `.utilization` / `_ratio` / `_percent` and multiplies a "1"-unit value
+   * by 100 when it does. A formula written as `a / b_ratio` ends in
+   * `_ratio` and would silently be reported at 100× its real value, so a
+   * formula gets no name at all.
+   */
+  private static metricNameForUnitHeuristics(input: {
+    metricName: string | undefined;
+    isFormula: boolean | undefined;
+  }): string | undefined {
+    return input.isFormula ? undefined : input.metricName;
+  }
+
+  private static formatScopeDroppedHint(dropped: Array<string>): string {
+    if (dropped.length === 0) {
+      return "";
+    }
+
+    return ` _(scope partially carried — not applied: ${dropped.join(", ")})_`;
+  }
+
+  /**
+   * The unit for a value in a per-platform "Affected Resources" list built
+   * from the worker's raw datapoint scan.
+   *
+   * These rows are NOT the same numbers as the criteria's breaching
+   * samples: the worker collects them with a raw `MetricService.findBy`
+   * scan and never runs them through MetricResultUnitConverter, so they
+   * are in the metric's NATIVE unit while the criteria threshold was
+   * compared in the user's chosen display unit. Labelling them with the
+   * query's legendUnit would therefore attach a confidently wrong unit to
+   * a correct number.
+   *
+   * The catalog is the first source precisely because it also declares
+   * the native unit. It is the same lookup, on the same metric name, that
+   * the worker already ran to resolve `metricFriendlyName`, so the unit
+   * shown here can never disagree with the metric name shown beside it.
+   * The unit the worker recorded on the breakdown — the one the exporter
+   * declared — covers every metric the catalog does not know, which is
+   * how k8s.node.allocatable_memory reads "258 GB" instead of the bare
+   * "257760964608" it used to.
+   */
+  private static getPlatformMetricUnit(input: {
+    platform: PlatformName;
+    metricName: string;
+    metricUnit?: string | undefined;
+  }): string | undefined {
+    /*
+     * The vcenter receiver's utilization metrics are already 0–100
+     * percentages (unit "%"), never [0, 1] ratios — the catalog says "%"
+     * and the formatter renders it as-is, so 92.5 reads "92.50%" and
+     * never "9250.00%".
+     */
+    return (
+      PlatformMetricUnitUtil.getCatalogUnit({
+        platform: input.platform,
+        metricName: input.metricName,
+      }) ||
+      input.metricUnit ||
+      undefined
+    );
+  }
+
+  /**
+   * Render the value of one resource from the worker's raw scan, in the
+   * unit getPlatformMetricUnit resolves. Unemphasised: the list bolds it
+   * (it is the one number on the line a reader scans for), a sentence
+   * may not.
+   */
+  private static formatPlatformMetricValue(input: {
+    platform: PlatformName;
+    metricName: string;
+    value: number;
+    metricUnit?: string | undefined;
+  }): string {
+    return MetricValueFormatter.format({
+      value: input.value,
+      unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
+        platform: input.platform,
+        metricName: input.metricName,
+        metricUnit: input.metricUnit,
+      }),
+      metricName: input.metricName,
+    });
+  }
+
+  /**
+   * The catalog's human name for a platform metric, or undefined when the
+   * catalog does not know it.
+   */
+  private static getPlatformMetricFriendlyName(input: {
+    platform: PlatformName;
+    metricName: string;
+  }): string | undefined {
+    switch (input.platform) {
+      case "kubernetes":
+        return getKubernetesMetricByMetricName(input.metricName)?.friendlyName;
+      case "proxmox":
+        return getProxmoxMetricByMetricName(input.metricName)?.friendlyName;
+      case "vmware":
+        return getVMwareMetricByMetricName(input.metricName)?.friendlyName;
+      case "dockerSwarm":
+        return getDockerSwarmMetricByMetricName(input.metricName)?.friendlyName;
+      case "ceph":
+        return getCephMetricByMetricName(input.metricName)?.friendlyName;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * "Node Memory Usage (`k8s.node.memory.usage`)", or just the code-quoted
+   * name when there is no friendlier one. The old line always printed
+   * both, which is how the email came to read
+   * "k8s.node.allocatable_memory (`k8s.node.allocatable_memory`)".
+   */
+  private static describePlatformMetricName(input: {
+    metricName: string;
+    friendlyName?: string | undefined;
+  }): string {
+    const friendlyName: string = (input.friendlyName || "").trim();
+
+    if (!friendlyName || friendlyName === input.metricName) {
+      return `\`${input.metricName}\``;
+    }
+
+    return `${friendlyName} (\`${input.metricName}\`)`;
+  }
+
+  /**
+   * What the matched criteria actually measured: the query or formula its
+   * metric-value filter points at, resolved the same way
+   * MetricMonitorCriteria resolves it (alias match, falling back to the
+   * first query when the alias names nothing).
+   *
+   * Returns null when the criteria has no metric-value filter — the
+   * platform context then falls back to describing the breakdown, as it
+   * always has.
+   */
+  private static resolveCriteriaMetricTarget(input: {
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    monitorStep: MonitorStep;
+    metricResponse: MetricMonitorResponse;
+  }): CriteriaMetricTarget | null {
+    /*
+     * The step's own config, exactly as MetricMonitorCriteria reads it,
+     * so the target named here is the one the criteria was evaluated on.
+     */
+    const stepConfig: MetricsViewConfig | undefined =
+      MonitorStep.getMetricsViewConfig(input.monitorStep);
+    const metricViewConfig: MetricsViewConfig | undefined =
+      stepConfig && stepConfig.queryConfigs?.length > 0
+        ? stepConfig
+        : input.metricResponse.metricViewConfig || stepConfig;
+
+    const metricFilters: Array<CriteriaFilter> = (
+      input.criteriaInstance?.data?.filters || []
+    ).filter((f: CriteriaFilter) => {
+      return f.checkOn === CheckOn.MetricValue;
+    });
+
+    if (metricFilters.length === 0) {
+      return null;
+    }
+
+    /*
+     * The filter that actually fired, when the criteria has several. An
+     * "Any" criteria (ceph-pg-damaged: PG_DAMAGED > 0 OR OSD_SCRUB_ERRORS
+     * > 0) is described — and its list taken from — whichever of them
+     * breached. Following the first filter instead found no scan for an
+     * inactive PG_DAMAGED check and dropped the list the scrub errors had.
+     * The evaluation leaves each filter's context on it; one with
+     * breaching samples is one that fired.
+     */
+    const firedFilter: CriteriaFilter | undefined = metricFilters.find(
+      (f: CriteriaFilter) => {
+        const context: MetricCriteriaContext | undefined =
+          f.metricCriteriaContext;
+
+        return Boolean(
+          (context?.breachingSamples && context.breachingSamples.length > 0) ||
+            context?.breachingSample,
+        );
+      },
+    );
+
+    const filter: CriteriaFilter =
+      firedFilter ||
+      metricFilters.find((f: CriteriaFilter) => {
+        return Boolean(f.metricMonitorOptions?.metricAlias);
+      }) ||
+      metricFilters[0]!;
+
+    const thresholdUnit: string | undefined =
+      filter.metricMonitorOptions?.thresholdUnit || undefined;
+
+    const alias: string = filter.metricMonitorOptions?.metricAlias || "";
+    const queryConfigs: Array<MetricQueryConfigData> =
+      metricViewConfig?.queryConfigs || [];
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      metricViewConfig?.formulaConfigs || [];
+
+    const aliasOf: (config: {
+      metricAliasData?: MetricAliasData | undefined;
+    }) => string = (config: {
+      metricAliasData?: MetricAliasData | undefined;
+    }): string => {
+      return config.metricAliasData?.metricVariable || "";
+    };
+
+    const query: MetricQueryConfigData | undefined = alias
+      ? queryConfigs.find((q: MetricQueryConfigData) => {
+          return aliasOf(q) === alias;
+        })
+      : undefined;
+
+    const formula: MetricFormulaConfigData | undefined =
+      !query && alias
+        ? formulaConfigs.find((f: MetricFormulaConfigData) => {
+            return aliasOf(f) === alias;
+          })
+        : undefined;
+
+    if (formula) {
+      const expression: string = formula.metricFormulaData?.metricFormula || "";
+
+      const components: Array<CriteriaMetricTargetComponent> =
+        MetricFormulaEvaluator.getReferencedVariables(expression).map(
+          (variable: string): CriteriaMetricTargetComponent => {
+            const componentQuery: MetricQueryConfigData | undefined =
+              queryConfigs.find((q: MetricQueryConfigData) => {
+                return aliasOf(q).toLowerCase() === variable.toLowerCase();
+              });
+
+            return {
+              alias: componentQuery ? aliasOf(componentQuery) : variable,
+              metricName:
+                (componentQuery?.metricQueryData?.filterData?.metricName as
+                  | string
+                  | undefined) || undefined,
+            };
+          },
+        );
+
+      return {
+        alias: alias,
+        isFormula: true,
+        comparisonUnit:
+          thresholdUnit || formula.metricAliasData?.legendUnit || undefined,
+        metricName: undefined,
+        displayName: MetricMonitorCriteria.getAliasDisplayName({
+          aliasData: formula.metricAliasData,
+          metricAlias: alias,
+        }),
+        formulaExpression: expression || undefined,
+        components: components,
+      };
+    }
+
+    const matchedQuery: MetricQueryConfigData | undefined =
+      query || queryConfigs[0];
+
+    if (!matchedQuery) {
+      return null;
+    }
+
+    return {
+      alias: aliasOf(matchedQuery) || alias,
+      isFormula: false,
+      comparisonUnit:
+        thresholdUnit || matchedQuery.metricAliasData?.legendUnit || undefined,
+      metricName:
+        (matchedQuery.metricQueryData?.filterData?.metricName as
+          | string
+          | undefined) || undefined,
+      displayName: MetricMonitorCriteria.getAliasDisplayName({
+        aliasData: matchedQuery.metricAliasData,
+        metricAlias: aliasOf(matchedQuery) || alias,
+      }),
+      formulaExpression: undefined,
+      components: [],
+    };
+  }
+
+  /**
+   * The metric the platform's root-cause analysis should reason about. For
+   * a plain query that is the query's metric. A formula has no metric name
+   * of its own, so it is analysed as its first query component — the
+   * numerator of every ratio template (k8s.node.memory.usage for
+   * "used ÷ allocatable"), which is what the analysis branches key on.
+   */
+  private static getAnalysisMetricName(
+    target: CriteriaMetricTarget | null,
+  ): string | undefined {
+    if (!target) {
+      return undefined;
+    }
+
+    if (!target.isFormula) {
+      return target.metricName;
+    }
+
+    return target.components.find(
+      (component: CriteriaMetricTargetComponent) => {
+        return Boolean(component.metricName);
+      },
+    )?.metricName;
+  }
+
+  /**
+   * The "- Metric:" lines of a platform's details block.
+   *
+   * They name what the criteria compared. A formula is named by its
+   * legend and spelled out with the metric behind each variable, because
+   * "Node Memory Utilization (%)" is what the threshold was about and the
+   * two metrics are what an engineer greps for. With no criteria to go on,
+   * the breakdown's own metric is named, as before.
+   */
+  private static describeCriteriaMetric(input: {
+    platform: PlatformName;
+    target: CriteriaMetricTarget | null;
+    breakdown?: { metricName: string; metricFriendlyName: string } | undefined;
+    fallbackMetricName?: string | undefined;
+  }): Array<string> {
+    const target: CriteriaMetricTarget | null = input.target;
+
+    const describeMetric: (metricName: string) => string = (
+      metricName: string,
+    ): string => {
+      const breakdownFriendlyName: string | undefined =
+        input.breakdown?.metricName === metricName
+          ? input.breakdown.metricFriendlyName
+          : undefined;
+
+      return MonitorCriteriaEvaluator.describePlatformMetricName({
+        metricName: metricName,
+        friendlyName:
+          breakdownFriendlyName ||
+          MonitorCriteriaEvaluator.getPlatformMetricFriendlyName({
+            platform: input.platform,
+            metricName: metricName,
+          }),
+      });
+    };
+
+    if (target?.isFormula) {
+      const lines: Array<string> = [
+        `- Metric: ${target.displayName || `\`${target.alias}\``}`,
+      ];
+
+      if (target.formulaExpression) {
+        lines.push(`- Formula: \`${target.formulaExpression}\``);
+      }
+
+      for (const component of target.components) {
+        if (component.metricName) {
+          lines.push(
+            `  - \`${component.alias}\` = ${describeMetric(component.metricName)}`,
+          );
+        }
+      }
+
+      return lines;
+    }
+
+    if (target?.metricName) {
+      return [`- Metric: ${describeMetric(target.metricName)}`];
+    }
+
+    if (input.breakdown) {
+      return [
+        `- Metric: ${MonitorCriteriaEvaluator.describePlatformMetricName({
+          metricName: input.breakdown.metricName,
+          friendlyName: input.breakdown.metricFriendlyName,
+        })}`,
+      ];
+    }
+
+    if (input.fallbackMetricName) {
+      return [`- Metric: \`${input.fallbackMetricName}\``];
+    }
+
+    return [];
+  }
+
+  /**
+   * Pick the raw-scan breakdown that measured what the criteria compared.
+   *
+   * The worker returns one breakdown per query, tagged with the query's
+   * alias. Only the one scanned for the criteria's own query may be shown:
+   * a sibling query's scan is a different quantity (allocatable bytes
+   * under a utilization threshold), and a formula has no raw scan at all
+   * — its per-resource values only exist per series.
+   *
+   * A breakdown built before the tag existed is trusted the way it always
+   * was, unless the criteria targets a formula.
+   */
+  private static selectPlatformBreakdown<
+    B extends PlatformResourceBreakdownSource & { metricName: string },
+  >(input: {
+    breakdowns?: Array<B> | undefined;
+    legacyBreakdown?: B | undefined;
+    target: CriteriaMetricTarget | null;
+  }): B | undefined {
+    const candidates: Array<B> =
+      input.breakdowns && input.breakdowns.length > 0
+        ? input.breakdowns
+        : input.legacyBreakdown
+          ? [input.legacyBreakdown]
+          : [];
+
+    if (candidates.length === 0) {
+      return undefined;
+    }
+
+    const target: CriteriaMetricTarget | null = input.target;
+
+    if (!target) {
+      return candidates.length === 1 ? candidates[0] : undefined;
+    }
+
+    if (target.isFormula) {
+      return undefined;
+    }
+
+    const byAlias: B | undefined = candidates.find((b: B) => {
+      return (
+        Boolean(b.metricAlias) &&
+        b.metricAlias!.toLowerCase() === target.alias.toLowerCase()
+      );
+    });
+
+    if (byAlias) {
+      return byAlias;
+    }
+
+    return candidates.find((b: B) => {
+      return !b.metricAlias;
+    });
+  }
+
+  /**
+   * The "Affected Resources" rows of a GROUPED platform monitor: one per
+   * series that satisfied the matched criteria.
+   *
+   * This is the list the criteria actually produced. Each row is valued
+   * with its series' worst breaching sample, in the same display unit —
+   * and formatted by the same formatter — as the "Filter Conditions Met"
+   * sentence above it, so the node the sentence says "ranged from 86.26%
+   * to 88.82%" is listed at 88.82%, not at its 257760964608 bytes of
+   * allocatable memory. Series that did not breach are not listed at all.
+   *
+   * The resource is named from the series' group-by labels, the same
+   * attribute keys the worker's raw scan reads, then given whatever
+   * context those labels imply but do not carry (a pod's node and
+   * workload) from one of the series' own datapoints.
+   */
+  private static buildSeriesAffectedRows<I>(input: {
+    perSeriesMatches: Array<PerSeriesCriteriaMatch>;
+    worstIsLowest: boolean;
+    toIdentity: (attributes: JSONObject) => I;
+    withContext: (series: I, context: I) => I;
+    seriesContextAttributes: (fingerprint: string) => Array<JSONObject>;
+    targetAlias?: string | undefined;
+    namesObject: (identity: I) => boolean;
+  }): Array<PlatformAffectedRow<I>> {
+    const targetAlias: string = (input.targetAlias || "").toLowerCase();
+
+    const rows: Array<PlatformAffectedRow<I>> = input.perSeriesMatches.map(
+      (match: PerSeriesCriteriaMatch): PlatformAffectedRow<I> => {
+        /*
+         * Value the row with the filter the list is about. Under an "Any"
+         * criteria a series may have matched on another filter only; its
+         * value is then a different metric in a different unit, so it is
+         * shown with that metric named and never ranked against the rest.
+         */
+        const matchedContexts: Array<MetricCriteriaContext> =
+          match.metricContexts && match.metricContexts.length > 0
+            ? match.metricContexts
+            : match.metricContext
+              ? [match.metricContext]
+              : [];
+
+        const targetContext: MetricCriteriaContext | undefined = targetAlias
+          ? matchedContexts.find((c: MetricCriteriaContext) => {
+              return (c.alias || "").toLowerCase() === targetAlias;
+            })
+          : matchedContexts[0];
+
+        const context: MetricCriteriaContext | undefined =
+          targetContext || matchedContexts[0];
+
+        const valueNote: string | undefined =
+          !targetContext && context
+            ? context.displayName || `\`${context.alias}\``
+            : undefined;
+
+        const seriesIdentity: I = input.toIdentity(
+          PlatformResourceIdentity.withBothAttributeSpellings(
+            match.labels || {},
+          ),
+        );
+
+        const sample: MetricBreachingSample | undefined =
+          context?.breachingSamples?.[0] || context?.breachingSample;
+        const sampleAttributes: JSONObject | undefined =
+          MonitorCriteriaEvaluator.getSampleRawAttributes(sample);
+
+        /*
+         * The breaching sample's own datapoint first; then a datapoint of
+         * each of the series' queries, because a FORMULA's sample carries
+         * only the group-by labels — a Proxmox ratio over `id` would
+         * otherwise never learn whether the id is a node or a guest.
+         * with<Platform>Context only ever borrows what the series' labels
+         * guarantee is shared, so a row from any of them is safe.
+         */
+        const contexts: Array<JSONObject> = [
+          ...(sampleAttributes ? [sampleAttributes] : []),
+          ...input.seriesContextAttributes(match.fingerprint),
+        ];
+
+        const identity: I = contexts.reduce(
+          (current: I, attributes: JSONObject): I => {
+            return input.withContext(
+              current,
+              input.toIdentity(
+                PlatformResourceIdentity.withBothAttributeSpellings(attributes),
+              ),
+            );
+          },
+          seriesIdentity,
+        );
+
+        const value: number | null = MonitorCriteriaEvaluator.getWorstValue({
+          context: context,
+          worstIsLowest: input.worstIsLowest,
+        });
+
+        const seriesLabels: JSONObject | undefined = !input.namesObject(
+          identity,
+        )
+          ? MonitorCriteriaEvaluator.getNonEmptyLabels(match.labels)
+          : undefined;
+
+        return {
+          identity: identity,
+          value: value,
+          ...(valueNote ? { valueNote: valueNote } : {}),
+          ...(seriesLabels ? { seriesLabels: seriesLabels } : {}),
+          formattedValue:
+            value === null
+              ? "no data"
+              : MetricValueFormatter.format({
+                  value: value,
+                  unit: context?.unit,
+                  metricName:
+                    MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                      metricName: context?.metricName,
+                      isFormula: context?.isFormula,
+                    }),
+                }),
+        };
+      },
+    );
+
+    return MonitorCriteriaEvaluator.sortAffectedRows({
+      rows: rows,
+      worstIsLowest: input.worstIsLowest,
+    });
+  }
+
+  /**
+   * The "Affected Resources" rows of an UNGROUPED platform monitor, from
+   * the worker's raw datapoint scan of the criteria's own query: every
+   * resource the matched criteria's direction says breached, worst first.
+   */
+  private static buildScanAffectedRows<
+    R extends { metricValue: number; lowestMetricValue?: number | undefined },
+  >(input: {
+    platform: PlatformName;
+    breakdown: {
+      metricName: string;
+      metricUnit?: string | undefined;
+      affectedResources: Array<R>;
+    };
+    breach: AffectedResourceBreachPredicate;
+    comparisonUnit?: string | undefined;
+  }): Array<PlatformAffectedRow<R>> {
+    /*
+     * The scan's values are in the metric's own unit, but the criteria
+     * compared its threshold in the filter's threshold unit (or the
+     * query's legendUnit). Judge each row in that unit — a "< 1 min"
+     * uptime criteria must not test 30 seconds against 1 — and show it in
+     * its own.
+     */
+    const valueUnit: string | undefined = PlatformMetricUnitUtil.getMetricUnit({
+      platform: input.platform,
+      metricName: input.breakdown.metricName,
+      declaredUnit: input.breakdown.metricUnit,
+    });
+
+    const toComparisonUnit: (value: number) => number = (
+      value: number,
+    ): number => {
+      if (
+        !valueUnit ||
+        !input.comparisonUnit ||
+        valueUnit === input.comparisonUnit
+      ) {
+        return value;
+      }
+
+      return MetricUnitUtil.convertToMetricUnit({
+        value: value,
+        fromUnit: valueUnit,
+        metricUnit: input.comparisonUnit,
+      });
+    };
+
+    const collect: (
+      matches: (value: number) => boolean,
+    ) => Array<PlatformAffectedRow<R>> = (
+      matches: (value: number) => boolean,
+    ): Array<PlatformAffectedRow<R>> => {
+      return MonitorCriteriaEvaluator.collectScanRows<R>({
+        platform: input.platform,
+        breakdown: input.breakdown,
+        breach: input.breach,
+        matches: matches,
+        toComparisonUnit: toComparisonUnit,
+      });
+    };
+
+    let rows: Array<PlatformAffectedRow<R>> = collect(input.breach.matches);
+
+    if (rows.length === 0 && input.breach.fallbackMatches) {
+      rows = collect(input.breach.fallbackMatches);
+    }
+
+    return MonitorCriteriaEvaluator.sortAffectedRows({
+      rows: rows,
+      worstIsLowest: input.breach.worstIsLowest,
+    });
+  }
+
+  /*
+   * One pass of buildScanAffectedRows: the resources `matches` accepts,
+   * each judged in the comparison unit and shown in its own.
+   */
+  private static collectScanRows<
+    R extends { metricValue: number; lowestMetricValue?: number | undefined },
+  >(input: {
+    platform: PlatformName;
+    breakdown: {
+      metricName: string;
+      metricUnit?: string | undefined;
+      affectedResources: Array<R>;
+    };
+    breach: AffectedResourceBreachPredicate;
+    matches: (value: number) => boolean;
+    toComparisonUnit: (value: number) => number;
+  }): Array<PlatformAffectedRow<R>> {
+    const toComparisonUnit: (value: number) => number = input.toComparisonUnit;
+    const rows: Array<PlatformAffectedRow<R>> = [];
+
+    for (const resource of input.breakdown.affectedResources) {
+      const highest: number = resource.metricValue;
+      const lowest: number = resource.lowestMetricValue ?? resource.metricValue;
+
+      /*
+       * A fall criteria breached on the resource's lowest sample in the
+       * window, not its highest.
+       */
+      const end: "highest" | "lowest" = input.breach.pickEnd
+        ? input.breach.pickEnd({
+            highest: toComparisonUnit(highest),
+            lowest: toComparisonUnit(lowest),
+          })
+        : input.breach.worstIsLowest
+          ? "lowest"
+          : "highest";
+
+      const value: number = end === "lowest" ? lowest : highest;
+
+      if (!input.matches(toComparisonUnit(value))) {
+        continue;
+      }
+
+      rows.push({
+        identity: resource,
+        value: value,
+        formattedValue: MonitorCriteriaEvaluator.formatPlatformMetricValue({
+          platform: input.platform,
+          metricName: input.breakdown.metricName,
+          metricUnit: input.breakdown.metricUnit,
+          value: value,
+        }),
+      });
+    }
+
+    return rows;
+  }
+
+  /*
+   * Worst first. Rows valued by another filter (valueNote) follow, in the
+   * order they came — their numbers are in another unit and cannot be
+   * ranked against these — and a series with no value (a no-data trigger)
+   * comes last.
+   */
+  private static sortAffectedRows<I>(input: {
+    rows: Array<PlatformAffectedRow<I>>;
+    worstIsLowest: boolean;
+  }): Array<PlatformAffectedRow<I>> {
+    const group: (row: PlatformAffectedRow<I>) => number = (
+      row: PlatformAffectedRow<I>,
+    ): number => {
+      if (row.value === null) {
+        return 2;
+      }
+
+      return row.valueNote ? 1 : 0;
+    };
+
+    return [...input.rows].sort(
+      (a: PlatformAffectedRow<I>, b: PlatformAffectedRow<I>): number => {
+        if (group(a) !== group(b)) {
+          return group(a) - group(b);
+        }
+
+        if (group(a) !== 0 || a.value === null || b.value === null) {
+          return 0;
+        }
+
+        return input.worstIsLowest ? a.value - b.value : b.value - a.value;
+      },
+    );
+  }
+
+  /*
+   * The value cell of a platform list entry: bold, and — for a row valued
+   * by another filter than the list's — followed by that filter's metric.
+   */
+  private static renderAffectedRowValue<I>(
+    row: PlatformAffectedRow<I>,
+  ): string {
+    return row.valueNote
+      ? `**${row.formattedValue}** (${row.valueNote})`
+      : `**${row.formattedValue}**`;
+  }
+
+  private static getNonEmptyLabels(
+    labels: JSONObject | undefined,
+  ): JSONObject | undefined {
+    const result: JSONObject = {};
+
+    for (const key of Object.keys(labels || {})) {
+      const value: unknown = (labels || {})[key];
+
+      if (value !== undefined && value !== null && value !== "") {
+        result[key] = value as JSONObject[string];
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  /*
+   * A list entry for a series whose labels name no platform object: titled
+   * "Series" and named by its labels (their stored `resource.` prefix
+   * dropped), so rows stay distinguishable.
+   */
+  private static getSeriesLabelEntry(input: {
+    labels: JSONObject;
+    value: string;
+  }): AffectedResourceListEntry {
+    const name: string = Object.keys(input.labels)
+      .map((key: string) => {
+        const displayKey: string = key.startsWith("resource.")
+          ? key.substring("resource.".length)
+          : key;
+
+        return AffectedResourceList.code(
+          `${displayKey}=${String(input.labels[key])}`,
+        );
+      })
+      .join(", ");
+
+    return {
+      kind: "Series",
+      name: name,
+      value: input.value,
+      details: [],
+    };
+  }
+
+  /**
+   * A series' worst value in the display unit: its worst breaching sample,
+   * or — when the criteria compared an aggregate no single sample crossed
+   * (a Sum) — its worst sample in the window. Null for a series that
+   * matched with no samples at all (the no-data policy).
+   */
+  private static getWorstValue(input: {
+    context: MetricCriteriaContext | undefined;
+    worstIsLowest: boolean;
+  }): number | null {
+    const breachingValues: Array<number> = (
+      input.context?.breachingSamples ||
+      (input.context?.breachingSample ? [input.context.breachingSample] : [])
+    )
+      .map((sample: MetricBreachingSample) => {
+        return sample.value;
+      })
+      .filter((value: number) => {
+        return typeof value === "number" && Number.isFinite(value);
+      });
+
+    if (breachingValues.length > 0) {
+      return input.worstIsLowest
+        ? Math.min(...breachingValues)
+        : Math.max(...breachingValues);
+    }
+
+    const range: { min: number; max: number } | undefined =
+      input.context?.sampleValueRange;
+
+    if (range) {
+      return input.worstIsLowest ? range.min : range.max;
+    }
+
+    return null;
+  }
+
+  /**
+   * One datapoint's attributes from each QUERY slot of a series (the
+   * formula slots after them carry only group-by labels). Per-series query
+   * rows keep their datapoint's full attribute map under `attributes`.
+   */
+  private static getSeriesQueryRowAttributes(input: {
+    seriesBreakdown: Array<MetricSeriesResult> | undefined;
+    fingerprint: string;
+    queryCount: number;
+  }): Array<JSONObject> {
+    const series: MetricSeriesResult | undefined = (
+      input.seriesBreakdown || []
+    ).find((s: MetricSeriesResult) => {
+      return s.fingerprint === input.fingerprint;
+    });
+
+    if (!series) {
+      return [];
+    }
+
+    const result: Array<JSONObject> = [];
+
+    for (let i: number = 0; i < input.queryCount; i++) {
+      const row: JSONObject | undefined = series.aggregatedResults[i]
+        ?.data?.[0] as unknown as JSONObject | undefined;
+      const attributes: unknown = row?.["attributes"];
+
+      if (attributes && typeof attributes === "object") {
+        result.push(attributes as JSONObject);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * The raw datapoint attributes a breaching sample carries. A sample from
+   * a per-series query row keeps the datapoint's full attribute map under
+   * `attributes`; a formula row carries only its group attributes there.
+   */
+  private static getSampleRawAttributes(
+    sample: MetricBreachingSample | undefined,
+  ): JSONObject | undefined {
+    if (!sample || !sample.attributes) {
+      return undefined;
+    }
+
+    const nested: unknown = sample.attributes["attributes"];
+
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      return nested as JSONObject;
+    }
+
+    return sample.attributes;
+  }
+
+  /**
+   * The rows of a platform's "Affected Resources" list for the matched
+   * criteria, from whichever source measured what the criteria compared:
+   * the per-series matches of a grouped monitor, else the raw scan of the
+   * criteria's own query. Null when neither applies (an ungrouped formula
+   * has no per-resource values to list).
+   */
+  private static getPlatformAffectedRows<
+    I,
+    R extends I & {
+      metricValue: number;
+      lowestMetricValue?: number | undefined;
+    },
+  >(input: {
+    platform: PlatformName;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+    breakdown:
+      | {
+          metricName: string;
+          metricUnit?: string | undefined;
+          affectedResources: Array<R>;
+        }
+      | undefined;
+    breach: AffectedResourceBreachPredicate;
+    toIdentity: (attributes: JSONObject) => I;
+    withContext: (series: I, context: I) => I;
+    /*
+     * Whether an identity names a specific object the platform's list can
+     * title a row with. A series whose labels name none — grouped by a PVC
+     * name, or only by a kind (`pve.type`) — is titled by its labels.
+     */
+    namesObject: (identity: I) => boolean;
+    metricResponse: MetricMonitorResponse;
+    monitorStep: MonitorStep;
+    target: CriteriaMetricTarget | null;
+  }): Array<PlatformAffectedRow<I>> | null {
+    if (input.perSeriesMatches && input.perSeriesMatches.length > 0) {
+      const queryCount: number =
+        MonitorStep.getMetricsViewConfig(input.monitorStep)?.queryConfigs
+          ?.length || 0;
+
+      return MonitorCriteriaEvaluator.buildSeriesAffectedRows<I>({
+        perSeriesMatches: input.perSeriesMatches,
+        worstIsLowest: input.breach.worstIsLowest,
+        toIdentity: input.toIdentity,
+        withContext: input.withContext,
+        namesObject: input.namesObject,
+        targetAlias: input.target?.alias,
+        seriesContextAttributes: (fingerprint: string): Array<JSONObject> => {
+          return MonitorCriteriaEvaluator.getSeriesQueryRowAttributes({
+            seriesBreakdown: input.metricResponse.seriesBreakdown,
+            fingerprint: fingerprint,
+            queryCount: queryCount,
+          });
+        },
+      });
+    }
+
+    if (!input.breakdown || input.breakdown.affectedResources.length === 0) {
+      return null;
+    }
+
+    return MonitorCriteriaEvaluator.buildScanAffectedRows<R>({
+      platform: input.platform,
+      breakdown: input.breakdown,
+      breach: input.breach,
+      comparisonUnit: input.target?.comparisonUnit,
+    });
+  }
+
+  /*
+   * One Kubernetes resource as an "Affected Resources" list item.
+   *
+   * The item is titled by the most specific object the series names —
+   * container, then pod, then workload, then node, then namespace — because
+   * that is the thing that is actually breaching; everything above it in
+   * the hierarchy is listed underneath as context. A series with no
+   * Kubernetes identity at all is a cluster-level series, so it is titled
+   * by the cluster.
+   *
+   * A container is titled together with its pod. Every replica of a
+   * workload runs a container of the same name, so "Container `checkout`"
+   * alone would title three crash-looping replicas identically and leave
+   * the pod that tells them apart buried in the bullets.
+   */
+  private static getKubernetesAffectedResourceEntry(input: {
+    resource: KubernetesResourceIdentity;
+    clusterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: KubernetesResourceIdentity = input.resource;
+
+    // "Deployment", "StatefulSet", ... — the worker only ever sets one of those.
+    const workloadLabel: string = resource.workloadType || "Workload";
+
+    let kind: string = "Cluster";
+    let name: string = AffectedResourceList.code(input.clusterName);
+
+    if (resource.containerName) {
+      kind = "Container";
+      name = resource.podName
+        ? `${AffectedResourceList.code(resource.containerName)} in pod ${AffectedResourceList.code(resource.podName)}`
+        : AffectedResourceList.code(resource.containerName);
+    } else if (resource.podName) {
+      kind = "Pod";
+      name = AffectedResourceList.code(resource.podName);
+    } else if (resource.workloadName) {
+      kind = workloadLabel;
+      name = AffectedResourceList.code(resource.workloadName);
+    } else if (resource.nodeName) {
+      kind = "Node";
+      name = AffectedResourceList.code(resource.nodeName);
+    } else if (resource.namespace) {
+      kind = "Namespace";
+      name = AffectedResourceList.code(resource.namespace);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (resource.namespace && kind !== "Namespace") {
+      details.push({
+        label: "Namespace",
+        value: AffectedResourceList.code(resource.namespace),
+      });
+    }
+
+    const titledByWorkload: boolean =
+      !resource.containerName &&
+      !resource.podName &&
+      Boolean(resource.workloadName);
+
+    if (resource.workloadName && !titledByWorkload) {
+      details.push({
+        label: workloadLabel,
+        value: AffectedResourceList.code(resource.workloadName),
+      });
+    }
+
+    if (resource.nodeName && kind !== "Node") {
+      details.push({
+        label: "Node",
+        value: AffectedResourceList.code(resource.nodeName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static async buildKubernetesRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): Promise<string | null> {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: KubernetesResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.kubernetesResourceBreakdowns,
+        legacyBreakdown: metricResponse.kubernetesResourceBreakdown,
+        target: target,
+      });
+
+    const hasSeries: boolean = Boolean(
+      input.perSeriesMatches && input.perSeriesMatches.length > 0,
+    );
+
+    /*
+     * Nothing to say only when there is neither a list nor a monitor to
+     * describe. An ungrouped formula criteria has no raw scan of its own
+     * and no series, but its cluster and formula are still worth naming.
+     */
+    if (
+      !breakdown &&
+      !hasSeries &&
+      !input.monitorStep.data?.kubernetesMonitor
+    ) {
+      return null;
+    }
+
+    const clusterName: string =
+      breakdown?.clusterName ||
+      input.monitorStep.data?.kubernetesMonitor?.clusterIdentifier ||
+      "Unknown";
+
+    /*
+     * The metric the analysis below reasons about: the criteria's own
+     * query, or a formula's numerator. Without a criteria to go on, the
+     * breakdown's metric, as before.
+     */
+    const analysisMetricName: string =
+      MonitorCriteriaEvaluator.getAnalysisMetricName(target) ||
+      breakdown?.metricName ||
+      "";
+
+    const sections: Array<string> = [];
+
+    // Cluster context
+    const clusterDetails: Array<string> = [];
+    clusterDetails.push(`- Cluster: ${clusterName}`);
+    clusterDetails.push(
+      ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+        platform: "kubernetes",
+        target: target,
+        breakdown: breakdown,
+      }),
+    );
+
+    /*
+     * The worker records the query's attribute filters under the stored,
+     * `resource.`-prefixed key; the bare key never occurs, which is why
+     * this line never rendered.
+     */
+    const namespaceFilter: string | undefined =
+      breakdown?.attributes["resource.k8s.namespace.name"] ||
+      breakdown?.attributes["k8s.namespace.name"] ||
+      input.monitorStep.data?.kubernetesMonitor?.resourceFilters?.namespace;
+
+    if (namespaceFilter) {
+      clusterDetails.push(`- Namespace: ${namespaceFilter}`);
+    }
+
+    sections.push(
+      `**Kubernetes Cluster Details**\n${clusterDetails.join("\n")}`,
+    );
+
+    /*
+     * Keep the rows that satisfy the criteria that just matched, worst
+     * first — NOT simply the non-zero rows. k8s-node-not-ready fires on
+     * `k8s.node.condition_ready = 0`, so the zero rows are the NotReady
+     * nodes; the old hardcoded `> 0` dropped exactly those and named a
+     * healthy node in the analysis below.
+     */
+    const breach: AffectedResourceBreachPredicate =
+      MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+        criteriaInstance: input.criteriaInstance,
+        floorEqualityFiresOnFall: true,
+      });
+
+    const rows: Array<PlatformAffectedRow<KubernetesResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        KubernetesResourceIdentity,
+        KubernetesAffectedResource
+      >({
+        platform: "kubernetes",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: KubernetesResourceIdentity): boolean => {
+          return Boolean(
+            identity.containerName ||
+              identity.podName ||
+              identity.workloadName ||
+              identity.nodeName ||
+              identity.namespace,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: breach,
+        toIdentity: PlatformResourceIdentity.kubernetes,
+        withContext: PlatformResourceIdentity.withKubernetesContext,
+      });
+
+    if (!rows || rows.length === 0) {
+      return sections.join("\n");
+    }
+
+    // Show top 10 affected resources
+    const rowsToShow: Array<PlatformAffectedRow<KubernetesResourceIdentity>> =
+      rows.slice(0, AffectedResourceList.MAX_ENTRIES);
+
+    sections.push(
+      AffectedResourceList.render({
+        heading: "Affected Resources",
+        overflowNoun: "affected resources",
+        totalCount: rows.length,
+        entries: rowsToShow.map(
+          (
+            row: PlatformAffectedRow<KubernetesResourceIdentity>,
+          ): AffectedResourceListEntry => {
+            return row.seriesLabels
+              ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                  labels: row.seriesLabels,
+                  value: MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                })
+              : MonitorCriteriaEvaluator.getKubernetesAffectedResourceEntry({
+                  resource: row.identity,
+                  clusterName: clusterName,
+                  value: MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                });
+          },
+        ),
+      }),
+    );
+
+    const topRow: PlatformAffectedRow<KubernetesResourceIdentity> =
+      rowsToShow[0]!;
+    const topResource: KubernetesAffectedResource = {
+      ...topRow.identity,
+      metricValue: topRow.value ?? 0,
+    };
+
+    /*
+     * Add root cause analysis based on metric type — unless the worst row
+     * is a series that matched with no data at all, or one valued by a
+     * different filter than the one analysed, which no sentence below
+     * ("memory usage is at ...") can describe.
+     */
+    const analysis: string | null =
+      topRow.value === null || topRow.valueNote
+        ? null
+        : MonitorCriteriaEvaluator.buildKubernetesRootCauseAnalysis({
+            breakdown: {
+              clusterName: clusterName,
+              metricName: analysisMetricName,
+              metricFriendlyName:
+                (target?.isFormula ? target.displayName : undefined) ||
+                (breakdown?.metricName === analysisMetricName
+                  ? breakdown.metricFriendlyName
+                  : undefined) ||
+                MonitorCriteriaEvaluator.getPlatformMetricFriendlyName({
+                  platform: "kubernetes",
+                  metricName: analysisMetricName,
+                }) ||
+                analysisMetricName,
+              affectedResources: [],
+              attributes: breakdown?.attributes || {},
+              metricUnit: breakdown?.metricUnit,
+            },
+            topResource: topResource,
+            topResourceValue: topRow.formattedValue,
+            target: target,
+          });
+
+    if (analysis) {
+      sections.push(`\n\n**Root Cause Analysis**\n${analysis}`);
+    }
+
+    // Fetch recent container logs for the top affected resource during CrashLoopBackOff
+    if (
+      (analysisMetricName === "k8s.container.restarts" ||
+        analysisMetricName.includes("restart")) &&
+      input.monitor.projectId
+    ) {
+      try {
+        const logAttributes: Record<string, string> = {};
+
+        if (clusterName) {
+          logAttributes["resource.k8s.cluster.name"] = clusterName;
+        }
+
+        if (topResource.podName) {
+          logAttributes["resource.k8s.pod.name"] = topResource.podName;
+        }
+
+        if (topResource.containerName) {
+          logAttributes["resource.k8s.container.name"] =
+            topResource.containerName;
+        }
+
+        if (topResource.namespace) {
+          logAttributes["resource.k8s.namespace.name"] = topResource.namespace;
+        }
+
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
+          now,
+          -15,
+        );
+
+        const logs: Array<JSONObject> =
+          await LogAggregationService.getExportLogs({
+            projectId: input.monitor.projectId,
+            startTime: fifteenMinutesAgo,
+            endTime: now,
+            limit: 50,
+            attributes: logAttributes,
+          });
+
+        if (logs.length > 0) {
+          const logLines: Array<string> = logs.map((log: JSONObject) => {
+            const timestamp: string = log["time"] ? String(log["time"]) : "";
+            const severity: string = log["severityText"]
+              ? String(log["severityText"])
+              : "INFO";
+            const body: string = log["body"] ? String(log["body"]) : "";
+            return `\`${timestamp}\` **${severity}** ${body}`;
+          });
+
+          sections.push(
+            `\n\n**Recent Container Logs** (${topResource.podName || "unknown pod"} / ${topResource.containerName || "unknown container"}, last 15 minutes)\n\n${logLines.join("\n\n")}`,
+          );
+        }
+      } catch (err) {
+        const k8sLogAttributes: LogAttributes = {
+          projectId: input.monitor.projectId?.toString(),
+        };
+        logger.error(
+          "Failed to fetch container logs for root cause context",
+          k8sLogAttributes,
+        );
+        logger.error(err, k8sLogAttributes);
+      }
+    }
+
+    return sections.join("\n");
+  }
+
+  /**
+   * The "- Metric:" line of a telemetry resource's details block: what
+   * the matched criteria actually compared.
+   *
+   * It used to name `queryConfigs[0]` unconditionally, so a criteria on a
+   * formula — Host CPU busy `(host_cpu_user + host_cpu_system) * 100`,
+   * Docker restarts `max - min` — was reported as its first operand. The
+   * metric context MetricMonitorCriteria records at evaluation time
+   * already says whether the criteria resolved to a query or a formula
+   * (including its fall back to the first query when the alias names
+   * nothing), so the line is read from there.
+   *
+   * A formula is named by its legend, which is what the threshold was
+   * written against ("CPU Busy (%)"); its expression and the metric behind
+   * each variable are spelled out in the Metric Details below. With no
+   * metric context — a criteria with no metric-value filter — the step's
+   * first query is named, as before.
+   */
+  private static describeCriteriaMetricLine(input: {
+    ctx: MetricCriteriaContext | undefined;
+    metricViewConfig: MetricsViewConfig | undefined;
+  }): string | null {
+    const ctx: MetricCriteriaContext | undefined = input.ctx;
+
+    if (ctx?.isFormula) {
+      const formula: MetricFormulaConfigData | undefined = (
+        input.metricViewConfig?.formulaConfigs || []
+      ).find((f: MetricFormulaConfigData) => {
+        return f.metricAliasData?.metricVariable === ctx.alias;
+      });
+
+      const legend: string = (
+        formula?.metricAliasData?.legend ||
+        formula?.metricAliasData?.title ||
+        ""
+      ).trim();
+
+      if (legend && legend !== ctx.alias) {
+        return `- Metric: ${legend}`;
+      }
+
+      return `- Metric: \`${ctx.alias}\` (formula)`;
+    }
+
+    if (ctx?.metricName) {
+      return `- Metric: \`${ctx.metricName}\``;
+    }
+
+    const firstQueryMetricName: string | undefined = input.metricViewConfig
+      ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+      | string
+      | undefined;
+
+    return firstQueryMetricName
+      ? `- Metric: \`${firstQueryMetricName}\``
+      : null;
+  }
+
+  /**
+   * Root-cause context for a telemetry monitor that watches one host,
+   * container set or device fleet: the resource it is scoped to, then the
+   * same Metric Details and Breaching Samples a Metrics monitor gets.
+   *
+   * These monitors used to follow the identity lines with a "Metric
+   * Summary" that only counted the data points in each result — one line
+   * per query AND per formula, so the Host CPU template printed three
+   * identical "- 5 metric data point(s) returned" lines and never the
+   * value that breached. MetricMonitorCriteria fills the filter's metric
+   * context for every metric-backed monitor type, so the unit, formula,
+   * components and unit-formatted samples were there all along.
+   *
+   * `identityLines` is null when the step carries no config for the
+   * monitor type; the metric details are still rendered from the context.
+   */
+  private static buildTelemetryResourceRootCauseContext(input: {
+    heading: string;
+    identityLines: Array<string> | null;
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    const sections: Array<string> = [];
+
+    if (input.identityLines) {
+      const metricLine: string | null =
+        MonitorCriteriaEvaluator.describeCriteriaMetricLine({
+          ctx: MonitorCriteriaEvaluator.getMetricCriteriaContext(
+            input.criteriaInstance,
+          ),
+          metricViewConfig: MonitorStep.getMetricsViewConfig(input.monitorStep),
+        });
+
+      const lines: Array<string> = metricLine
+        ? [...input.identityLines, metricLine]
+        : input.identityLines;
+
+      sections.push(`**${input.heading}**\n${lines.join("\n")}`);
+    }
+
+    const metricDetails: string | null = input.criteriaInstance
+      ? MonitorCriteriaEvaluator.buildMetricRootCauseContext({
+          criteriaInstance: input.criteriaInstance,
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+        })
+      : null;
+
+    if (metricDetails) {
+      sections.push(
+        sections.length > 0 ? `\n\n${metricDetails}` : metricDetails,
+      );
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildDockerRootCauseContext(input: {
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    // Docker host context
+    const dockerMonitor: MonitorStepDockerMonitor | undefined =
+      input.monitorStep.data?.dockerMonitor;
+
+    let hostDetails: Array<string> | null = null;
+
+    if (dockerMonitor) {
+      hostDetails = [`- Host: ${dockerMonitor.hostIdentifier || "Unknown"}`];
+
+      if (dockerMonitor.containerFilters?.containerName) {
+        hostDetails.push(
+          `- Container Name Filter: ${dockerMonitor.containerFilters.containerName}`,
+        );
+      }
+
+      if (dockerMonitor.containerFilters?.containerImage) {
+        hostDetails.push(
+          `- Container Image Filter: ${dockerMonitor.containerFilters.containerImage}`,
+        );
+      }
+    }
+
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "Docker Host Details",
+      identityLines: hostDetails,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
+  }
+
+  private static buildHostRootCauseContext(input: {
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    // Host context
+    const hostMonitor: MonitorStepHostMonitor | undefined =
+      input.monitorStep.data?.hostMonitor;
+
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "Host Details",
+      identityLines: hostMonitor
+        ? [`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`]
+        : null,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
+  }
+
+  private static buildPodmanRootCauseContext(input: {
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    // Podman host context
+    const podmanMonitor: MonitorStepPodmanMonitor | undefined =
+      input.monitorStep.data?.podmanMonitor;
+
+    let hostDetails: Array<string> | null = null;
+
+    if (podmanMonitor) {
+      hostDetails = [`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`];
+
+      if (podmanMonitor.containerFilters?.containerName) {
+        hostDetails.push(
+          `- Container Name Filter: ${podmanMonitor.containerFilters.containerName}`,
+        );
+      }
+
+      if (podmanMonitor.containerFilters?.containerImage) {
+        hostDetails.push(
+          `- Container Image Filter: ${podmanMonitor.containerFilters.containerImage}`,
+        );
+      }
+    }
+
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "Podman Host Details",
+      identityLines: hostDetails,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
+  }
+
+  private static buildIoTRootCauseContext(input: {
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): string | null {
+    // IoT fleet / device context
+    const iotMonitor: MonitorStepIoTMonitor | undefined =
+      input.monitorStep.data?.iotMonitor;
+
+    let deviceDetails: Array<string> | null = null;
+
+    if (iotMonitor) {
+      deviceDetails = [`- Fleet: ${iotMonitor.fleetIdentifier || "Unknown"}`];
+
+      /*
+       * The device that breached. Every IoT template groups by the
+       * `device.id` label, so the matched series names it; an ungrouped
+       * monitor has no series labels and falls back to the step's own
+       * device filter below.
+       */
+      const breachingDeviceId: unknown =
+        MonitorCriteriaEvaluator.getMetricCriteriaContext(
+          input.criteriaInstance,
+        )?.seriesLabels?.[IOT_DEVICE_ID_ATTRIBUTE_KEY];
+
+      if (
+        breachingDeviceId !== undefined &&
+        breachingDeviceId !== null &&
+        String(breachingDeviceId) !== ""
+      ) {
+        deviceDetails.push(
+          `- Device: ${AffectedResourceList.code(String(breachingDeviceId))}`,
+        );
+      }
+
+      if (iotMonitor.resourceFilters?.deviceId) {
+        deviceDetails.push(
+          `- Device ID Filter: ${iotMonitor.resourceFilters.deviceId}`,
+        );
+      }
+
+      if (iotMonitor.resourceFilters?.deviceType) {
+        deviceDetails.push(
+          `- Device Type Filter: ${iotMonitor.resourceFilters.deviceType}`,
+        );
+      }
+
+      if (iotMonitor.resourceFilters?.scope) {
+        deviceDetails.push(
+          `- Scope Filter: ${iotMonitor.resourceFilters.scope}`,
+        );
+      }
+    }
+
+    return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
+      heading: "IoT Device Details",
+      identityLines: deviceDetails,
+      monitor: input.monitor,
+      monitorStep: input.monitorStep,
+      criteriaInstance: input.criteriaInstance,
+    });
+  }
+
+  /*
+   * What a Proxmox resource is, from the `pve.type` / `pve.scope` the
+   * agent's transform/pve-identity processor derives from its `id`
+   * (node/…, qemu/…, lxc/…, storage/…, cluster/…). A value that processor
+   * does not produce is shown as it arrived rather than guessed at.
+   */
+  private static getProxmoxAffectedResourceKind(
+    resource: ProxmoxResourceIdentity,
+  ): string {
+    switch (resource.resourceType) {
+      case "qemu":
+        return "Virtual Machine";
+      case "lxc":
+        return "Container";
+      case "node":
+        return "Node";
+      case "storage":
+        return "Storage";
+      default:
+        break;
+    }
+
+    switch (resource.scope) {
+      case "guest":
+        return "Guest";
+      case "node":
+        return "Node";
+      case "storage":
+        return "Storage";
+      case "cluster":
+        return "Cluster";
+      default:
+        break;
+    }
+
+    return resource.resourceType || resource.scope || "Resource";
+  }
+
+  /*
+   * One Proxmox resource as an "Affected Resources" list item: its kind,
+   * its name next to its `qemu/100`-style id, and the node it runs on.
+   */
+  private static getProxmoxAffectedResourceEntry(input: {
+    resource: ProxmoxResourceIdentity;
+    clusterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: ProxmoxResourceIdentity = input.resource;
+
+    let kind: string =
+      MonitorCriteriaEvaluator.getProxmoxAffectedResourceKind(resource);
+    let name: string = AffectedResourceList.codeWithId({
+      name: resource.resourceName,
+      id: resource.resourceId,
+    });
+
+    if (!name && resource.nodeName) {
+      // A per-node series that carries no id of its own.
+      kind = "Node";
+      name = AffectedResourceList.code(resource.nodeName);
+    }
+
+    if (!name) {
+      // Nothing narrower than the cluster — a cluster-wide series.
+      kind = "Cluster";
+      name = AffectedResourceList.code(input.clusterName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // A node's own row would only repeat its name as "Node: …".
+    if (resource.nodeName && kind !== "Node") {
+      details.push({
+        label: "Node",
+        value: AffectedResourceList.code(resource.nodeName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildProxmoxRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // Proxmox cluster context
+    const proxmoxMonitor: MonitorStepProxmoxMonitor | undefined =
+      input.monitorStep.data?.proxmoxMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: ProxmoxResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.proxmoxResourceBreakdowns,
+        legacyBreakdown: metricResponse.proxmoxResourceBreakdown,
+        target: target,
+      });
+
+    const clusterName: string =
+      breakdown?.clusterName || proxmoxMonitor?.clusterIdentifier || "Unknown";
+
+    const sections: Array<string> = [];
+
+    if (proxmoxMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(`- Cluster: ${clusterName}`);
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "proxmox",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: proxmoxMonitor?.metricViewConfig
+            ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined,
+        }),
+      );
+
+      if (proxmoxMonitor?.resourceFilters?.scope) {
+        clusterDetails.push(
+          `- Scope Filter: ${proxmoxMonitor.resourceFilters.scope}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.pveId) {
+        clusterDetails.push(
+          `- Resource ID Filter: ${proxmoxMonitor.resourceFilters.pveId}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (proxmoxMonitor?.resourceFilters?.guestId) {
+        clusterDetails.push(
+          `- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
+        );
+      }
+
+      sections.push(
+        `**Proxmox Cluster Details**\n${clusterDetails.join("\n")}`,
+      );
+    }
+
+    // Affected resources: a ranked list of kind, name and node
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The resources the matched criteria breached, worst first, top 10 —
+     * NOT simply the non-zero rows. pve-node-offline fires on `pve_up < 1`,
+     * so the zero rows ARE the down nodes; the old `> 0` listed every
+     * healthy node under it instead.
+     */
+    const rows: Array<PlatformAffectedRow<ProxmoxResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        ProxmoxResourceIdentity,
+        ProxmoxAffectedResource
+      >({
+        platform: "proxmox",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: ProxmoxResourceIdentity): boolean => {
+          return Boolean(
+            identity.resourceId || identity.resourceName || identity.nodeName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.proxmox,
+        withContext: PlatformResourceIdentity.withProxmoxContext,
+      });
+
+    /*
+     * Skip the list when no row carries any identity label
+     * (cluster-wide series) — it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<ProxmoxResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.resourceId ||
+            row.identity.resourceName ||
+            row.identity.nodeName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<ProxmoxResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getProxmoxAffectedResourceEntry({
+                      resource: row.identity,
+                      clusterName: clusterName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /*
+   * Which vSphere object one VMware breakdown row describes, resolved
+   * from the identity attributes the vcenter receiver stamped on it —
+   * most specific first, in the same order the ingest inventory scan
+   * uses, so the kind an Affected Resources item is titled with and the
+   * inventory's `kind` never disagree about the same series. A VM row carries its parent host
+   * (and often a resource pool), so the VM check must run before the
+   * host and pool checks.
+   */
+  private static getVMwareAffectedResourceKind(
+    resource: VMwareResourceIdentity,
+  ): string | undefined {
+    if (resource.vmName || resource.vmId) {
+      return "Virtual Machine";
+    }
+
+    if (resource.resourcePoolPath || resource.resourcePoolName) {
+      return "Resource Pool";
+    }
+
+    if (resource.hostName) {
+      return "Host";
+    }
+
+    if (resource.datastoreName) {
+      return "Datastore";
+    }
+
+    if (resource.clusterName) {
+      return "Cluster";
+    }
+
+    if (resource.datacenterName) {
+      return "Datacenter";
+    }
+
+    return undefined;
+  }
+
+  /*
+   * One vSphere object as an "Affected Resources" list item, titled by
+   * the object itself, with the ESXi host and cluster it sits under
+   * listed beneath it.
+   */
+  private static getVMwareAffectedResourceEntry(input: {
+    resource: VMwareResourceIdentity;
+    vcenterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: VMwareResourceIdentity = input.resource;
+
+    const kind: string | undefined =
+      MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(resource);
+
+    let name: string = "";
+    let showHost: boolean = false;
+
+    switch (kind) {
+      case "Virtual Machine":
+        /*
+         * The VM's display name, falling back to its instance UUID
+         * (`vcenter.vm.id`) when the receiver stamped no name. The Host
+         * detail is the ESXi host the VM is running on.
+         */
+        name = AffectedResourceList.code(resource.vmName || resource.vmId);
+        showHost = true;
+        break;
+      case "Resource Pool":
+        /*
+         * Pool names are only unique within a parent, so the inventory
+         * path is shown next to the name. The Host detail is the owner
+         * host for a pool on a standalone ESXi host (pools under a
+         * cluster show the cluster).
+         */
+        name = AffectedResourceList.codeWithId({
+          name: resource.resourcePoolName,
+          id: resource.resourcePoolPath,
+        });
+        showHost = true;
+        break;
+      case "Host":
+        // The host IS the resource; a "Host:" detail would repeat it.
+        name = AffectedResourceList.code(resource.hostName);
+        break;
+      case "Datastore":
+        name = AffectedResourceList.code(resource.datastoreName);
+        break;
+      case "Cluster":
+        name = AffectedResourceList.code(resource.clusterName);
+        break;
+      case "Datacenter":
+        name = AffectedResourceList.code(resource.datacenterName);
+        break;
+      default:
+        break;
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (showHost && resource.hostName) {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (kind !== "Cluster" && resource.clusterName) {
+      details.push({
+        label: "Cluster",
+        value: AffectedResourceList.code(resource.clusterName),
+      });
+    }
+
+    if (!kind || !name) {
+      // No vSphere identity on the series — it describes the vCenter as a whole.
+      return {
+        kind: "vCenter",
+        name: AffectedResourceList.code(input.vcenterName),
+        value: input.value,
+        details: details,
+      };
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildVMwareRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // vCenter context
+    const vmwareMonitor: MonitorStepVMwareMonitor | undefined =
+      input.monitorStep.data?.vmwareMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: VMwareResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.vmwareResourceBreakdowns,
+        legacyBreakdown: metricResponse.vmwareResourceBreakdown,
+        target: target,
+      });
+
+    const vcenterName: string =
+      breakdown?.vcenterName || vmwareMonitor?.vcenterIdentifier || "Unknown";
+
+    const sections: Array<string> = [];
+
+    if (vmwareMonitor || breakdown) {
+      const vcenterDetails: Array<string> = [];
+      vcenterDetails.push(`- vCenter: ${vcenterName}`);
+      vcenterDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "vmware",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: vmwareMonitor?.metricViewConfig?.queryConfigs?.[0]
+            ?.metricQueryData?.filterData?.metricName as string | undefined,
+        }),
+      );
+
+      /*
+       * The worker maps each resource filter to an equality on the
+       * matching `resource.vcenter.*` attribute; surface the same
+       * filters so the incident shows WHAT was scoped.
+       */
+      if (vmwareMonitor?.resourceFilters?.datacenterName) {
+        vcenterDetails.push(
+          `- Datacenter Filter: ${vmwareMonitor.resourceFilters.datacenterName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.clusterName) {
+        vcenterDetails.push(
+          `- Cluster Filter: ${vmwareMonitor.resourceFilters.clusterName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.hostName) {
+        vcenterDetails.push(
+          `- Host Filter: ${vmwareMonitor.resourceFilters.hostName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.vmName) {
+        vcenterDetails.push(
+          `- Virtual Machine Filter: ${vmwareMonitor.resourceFilters.vmName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.datastoreName) {
+        vcenterDetails.push(
+          `- Datastore Filter: ${vmwareMonitor.resourceFilters.datastoreName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.resourcePoolPath) {
+        vcenterDetails.push(
+          `- Resource Pool Filter: ${vmwareMonitor.resourceFilters.resourcePoolPath}`,
+        );
+      }
+
+      sections.push(`**vCenter Details**\n${vcenterDetails.join("\n")}`);
+    }
+
+    // Affected resources: a ranked list of object, host and cluster
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The objects the matched criteria breached, worst first, top 10. For
+     * count metrics filtered to an unhealthy state
+     * (`vcenter.datacenter.host.count{status=red}`) the non-zero rows ARE
+     * the objects with a problem.
+     */
+    const rows: Array<PlatformAffectedRow<VMwareResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        VMwareResourceIdentity,
+        VMwareAffectedResource
+      >({
+        platform: "vmware",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: VMwareResourceIdentity): boolean => {
+          return Boolean(
+            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(identity),
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.vmware,
+        withContext: PlatformResourceIdentity.withVMwareContext,
+      });
+
+    /*
+     * Skip the list when no row carries any identity attribute — it
+     * would add nothing. Every vcenter-receiver series carries at
+     * least `vcenter.datacenter.name`, so this only trips on a
+     * breakdown the worker could not attribute at all.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<VMwareResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(
+              row.identity,
+            ),
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<VMwareResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getVMwareAffectedResourceEntry({
+                      resource: row.identity,
+                      vcenterName: vcenterName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /*
+   * One Docker Swarm task as an "Affected Tasks" list item, with the
+   * service it belongs to and the node it is scheduled on beneath it.
+   */
+  private static getDockerSwarmAffectedResourceEntry(input: {
+    resource: DockerSwarmResourceIdentity;
+    clusterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: DockerSwarmResourceIdentity = input.resource;
+
+    let kind: string = "Cluster";
+    let name: string = AffectedResourceList.code(input.clusterName);
+
+    if (resource.containerName) {
+      kind = "Task";
+      name = AffectedResourceList.code(resource.containerName);
+    } else if (resource.serviceName) {
+      kind = "Service";
+      name = AffectedResourceList.code(resource.serviceName);
+    } else if (resource.nodeName) {
+      kind = "Node";
+      name = AffectedResourceList.code(resource.nodeName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (resource.serviceName && kind !== "Service") {
+      details.push({
+        label: "Service",
+        value: AffectedResourceList.code(resource.serviceName),
+      });
+    }
+
+    if (resource.nodeName && kind !== "Node") {
+      details.push({
+        label: "Node",
+        value: AffectedResourceList.code(resource.nodeName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildDockerSwarmRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // Docker Swarm cluster context
+    const dockerSwarmMonitor: MonitorStepDockerSwarmMonitor | undefined =
+      input.monitorStep.data?.dockerSwarmMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: DockerSwarmResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.dockerSwarmResourceBreakdowns,
+        legacyBreakdown: metricResponse.dockerSwarmResourceBreakdown,
+        target: target,
+      });
+
+    const clusterName: string =
+      breakdown?.clusterName ||
+      dockerSwarmMonitor?.clusterIdentifier ||
+      "Unknown";
+
+    const sections: Array<string> = [];
+
+    if (dockerSwarmMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(`- Cluster: ${clusterName}`);
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "dockerSwarm",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: dockerSwarmMonitor?.metricViewConfig
+            ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined,
+        }),
+      );
+
+      if (dockerSwarmMonitor?.resourceFilters?.serviceName) {
+        clusterDetails.push(
+          `- Service Filter: ${dockerSwarmMonitor.resourceFilters.serviceName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.nodeName) {
+        clusterDetails.push(
+          `- Node Filter: ${dockerSwarmMonitor.resourceFilters.nodeName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.containerName) {
+        clusterDetails.push(
+          `- Container Name Filter: ${dockerSwarmMonitor.resourceFilters.containerName}`,
+        );
+      }
+
+      if (dockerSwarmMonitor?.resourceFilters?.containerImage) {
+        clusterDetails.push(
+          `- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
+        );
+      }
+
+      sections.push(
+        `**Docker Swarm Cluster Details**\n${clusterDetails.join("\n")}`,
+      );
+    }
+
+    // Affected tasks: a ranked list of task, service and node
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The tasks the matched criteria breached, worst first, top 10. The
+     * task-down template fires on `container.uptime < 60`, so the worst
+     * task is the one with the LOWEST uptime; the old `> 0`,
+     * highest-first list put the healthiest, longest-running tasks at the
+     * top and pushed the restarting one off the end.
+     */
+    const rows: Array<PlatformAffectedRow<DockerSwarmResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        DockerSwarmResourceIdentity,
+        DockerSwarmAffectedResource
+      >({
+        platform: "dockerSwarm",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: DockerSwarmResourceIdentity): boolean => {
+          return Boolean(
+            identity.containerName || identity.serviceName || identity.nodeName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.dockerSwarm,
+        withContext: PlatformResourceIdentity.withDockerSwarmContext,
+      });
+
+    /*
+     * Skip the list when no row carries any identity label
+     * (cluster-wide series) — it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<DockerSwarmResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.containerName ||
+            row.identity.serviceName ||
+            row.identity.nodeName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Tasks",
+          overflowNoun: "affected tasks",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<DockerSwarmResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getDockerSwarmAffectedResourceEntry(
+                      {
+                        resource: row.identity,
+                        clusterName: clusterName,
+                        value:
+                          MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                      },
+                    );
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /*
+   * Which rows of an affected-resources list actually BREACHED.
+   *
+   * The blanket `metricValue > 0` below is right for every count- or
+   * level-style criteria ("> 0 active health checks", "> 85 % used"), but
+   * it is exactly backwards for the availability signals: the Ceph OSD
+   * Down / OSD Out / Quorum Degraded criteria fire on `< 1` over
+   * ceph_osd_up / ceph_osd_in / ceph_mon_quorum_status, so the ZERO rows
+   * are the down daemons. Dropping them rendered a list of the HEALTHY
+   * daemons under an incident that tells the reader to "check the root
+   * cause for the affected ceph_daemon label".
+   *
+   * Invert only for a criteria that fires when the metric FALLS.
+   * Everything else — every `> 0` health check, PG count, latency and
+   * capacity ratio, and (by default) every `= 0` recovery criteria —
+   * keeps the existing `> 0`, worst-highest-first list byte for byte.
+   *
+   * `floorEqualityFiresOnFall` additionally counts a FIRING `= 0` (or
+   * below) as a fall. Kubernetes needs it: k8s-node-not-ready and
+   * k8s-etcd-no-leader fire on `= 0` over k8s.node.condition_ready /
+   * etcd_server_has_leader, and zero is the floor of those metrics, so
+   * the only way to reach it is down. It is gated on the criteria opening
+   * an incident or alert because the same `= 0` is also how the restart,
+   * failed-pod and unavailable-replica templates express RECOVERY, and
+   * that all-clear must not become a list of healthy zero rows. Ceph
+   * leaves it off: all of its `= 0` criteria are recoveries.
+   */
+  private static getAffectedResourceBreachPredicate(input: {
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    floorEqualityFiresOnFall?: boolean | undefined;
+  }): AffectedResourceBreachPredicate {
+    /*
+     * Thresholds read exactly as the criteria evaluation reads them. The
+     * dashboard's criteria form saves the threshold as a string ("60"), so
+     * a `typeof === "number"` test dropped every filter a user had edited
+     * and quietly put their criteria back on the `> 0`, highest-first rule.
+     */
+    const metricFilters: Array<{ filter: CriteriaFilter; threshold: number }> =
+      (input.criteriaInstance?.data?.filters || [])
+        .filter((f: CriteriaFilter) => {
+          return f.checkOn === CheckOn.MetricValue;
+        })
+        .map((f: CriteriaFilter) => {
+          return {
+            filter: f,
+            threshold: CompareCriteria.convertMetricThresholdToNumber(
+              f.value,
+            ) as number,
+          };
+        })
+        .filter((f: { filter: CriteriaFilter; threshold: number | null }) => {
+          return f.threshold !== null;
+        });
+
+    const opensIncidentOrAlert: boolean =
+      input.criteriaInstance?.data?.createIncidents === true ||
+      input.criteriaInstance?.data?.createAlerts === true;
+
+    const firesWhenMetricFalls: boolean =
+      metricFilters.length > 0 &&
+      metricFilters.every(
+        (f: { filter: CriteriaFilter; threshold: number }) => {
+          if (
+            f.filter.filterType === FilterType.LessThan ||
+            f.filter.filterType === FilterType.LessThanOrEqualTo
+          ) {
+            return true;
+          }
+
+          return (
+            input.floorEqualityFiresOnFall === true &&
+            opensIncidentOrAlert &&
+            f.filter.filterType === FilterType.EqualTo &&
+            f.threshold <= 0
+          );
+        },
+      );
+
+    /*
+     * A firing criteria that asks for one exact, non-zero value —
+     * k8s-pod-pending fires on phase `= 1` (Pending) — lists exactly the
+     * rows that were at that value. The `> 0` rule below listed every pod
+     * with a phase, which is all of them, led by the one with the highest
+     * code (Unknown), and sent the reader to `kubectl describe` the wrong
+     * pod.
+     *
+     * A row was at the value if either end of its window was: pod-pending
+     * watches the phase at its Min (a pod that has since started Running
+     * still breached), a memory-pressure `= 1` watches the Max. `= 0` stays
+     * with the floor rule above, which each platform opts into.
+     */
+    const exactValues: Array<number> = metricFilters.map(
+      (f: { filter: CriteriaFilter; threshold: number }) => {
+        return f.threshold;
+      },
+    );
+
+    const firesOnExactValue: boolean =
+      !firesWhenMetricFalls &&
+      opensIncidentOrAlert &&
+      metricFilters.length > 0 &&
+      metricFilters.every(
+        (f: { filter: CriteriaFilter; threshold: number }) => {
+          return f.filter.filterType === FilterType.EqualTo && f.threshold > 0;
+        },
+      );
+
+    if (firesOnExactValue) {
+      return {
+        matches: (value: number): boolean => {
+          return exactValues.includes(value);
+        },
+        worstIsLowest: false,
+        pickEnd: (ends: {
+          highest: number;
+          lowest: number;
+        }): "highest" | "lowest" => {
+          return exactValues.includes(ends.highest) ? "highest" : "lowest";
+        },
+      };
+    }
+
+    /*
+     * A criteria that fires when the metric RISES lists the rows past its
+     * threshold. The blanket `> 0` listed every resource with any value at
+     * all — the healthy nodes at 50% under a "> 90%" alert. When no single
+     * row is past it (the criteria compared a sum or an average across
+     * resources) the list still falls back to the non-zero rows.
+     */
+    const firesWhenMetricRises: boolean =
+      metricFilters.length > 0 &&
+      metricFilters.every(
+        (f: { filter: CriteriaFilter; threshold: number }) => {
+          return (
+            f.filter.filterType === FilterType.GreaterThan ||
+            f.filter.filterType === FilterType.GreaterThanOrEqualTo
+          );
+        },
+      );
+
+    const isNonZero: (value: number) => boolean = (value: number): boolean => {
+      return value > 0;
+    };
+
+    if (firesWhenMetricRises && !firesWhenMetricFalls) {
+      return {
+        matches: (value: number): boolean => {
+          return metricFilters.some(
+            (f: { filter: CriteriaFilter; threshold: number }) => {
+              return f.filter.filterType === FilterType.GreaterThan
+                ? value > f.threshold
+                : value >= f.threshold;
+            },
+          );
+        },
+        worstIsLowest: false,
+        fallbackMatches: isNonZero,
+      };
+    }
+
+    if (!firesWhenMetricFalls) {
+      return {
+        matches: isNonZero,
+        worstIsLowest: false,
+      };
+    }
+
+    return {
+      matches: (value: number): boolean => {
+        return metricFilters.some(
+          (f: { filter: CriteriaFilter; threshold: number }) => {
+            if (f.filter.filterType === FilterType.EqualTo) {
+              return value === f.threshold;
+            }
+
+            return f.filter.filterType === FilterType.LessThan
+              ? value < f.threshold
+              : value <= f.threshold;
+          },
+        );
+      },
+      /*
+       * A criteria that fires when the metric falls ranks the smallest
+       * value worst, so "worst first" is ascending here.
+       */
+      worstIsLowest: true,
+    };
+  }
+
+  /*
+   * One Ceph daemon or pool as an "Affected Resources" list item, with
+   * the pool and host it belongs to beneath it.
+   */
+  private static getCephAffectedResourceEntry(input: {
+    resource: CephResourceIdentity;
+    clusterName: string;
+    metricName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: CephResourceIdentity = input.resource;
+
+    /*
+     * The worker stores every series' `name` label as poolName, but only
+     * ceph_pool_metadata's `name` is a pool — and that series always
+     * carries pool_id too. On ceph_health_detail, `name` is the health
+     * check (RECENT_CRASH, OSD_NEARFULL, ...), and titling it "Pool" told
+     * the reader a pool called OSD_NEARFULL was the problem. So a name is
+     * treated as a pool only when it arrives with a pool id.
+     */
+    const pool: string = resource.poolId
+      ? AffectedResourceList.codeWithId({
+          name: resource.poolName,
+          id: resource.poolId,
+        })
+      : "";
+
+    const otherName: string = resource.poolId
+      ? ""
+      : AffectedResourceList.code(resource.poolName);
+
+    const otherNameKind: string =
+      input.metricName === "ceph_health_detail" ? "Health Check" : "Resource";
+
+    let kind: string = "Cluster";
+    let name: string = AffectedResourceList.code(input.clusterName);
+
+    if (resource.daemon) {
+      kind = "Daemon";
+      name = AffectedResourceList.code(resource.daemon);
+    } else if (pool) {
+      kind = "Pool";
+      name = pool;
+    } else if (otherName) {
+      kind = otherNameKind;
+      name = otherName;
+    } else if (resource.hostname) {
+      kind = "Host";
+      name = AffectedResourceList.code(resource.hostname);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (pool && name !== pool) {
+      details.push({ label: "Pool", value: pool });
+    }
+
+    if (otherName && name !== otherName) {
+      details.push({
+        label: otherNameKind === "Resource" ? "Name" : otherNameKind,
+        value: otherName,
+      });
+    }
+
+    if (resource.hostname && kind !== "Host") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostname),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildCephRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // Ceph cluster context
+    const cephMonitor: MonitorStepCephMonitor | undefined =
+      input.monitorStep.data?.cephMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: CephResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.cephResourceBreakdowns,
+        legacyBreakdown: metricResponse.cephResourceBreakdown,
+        target: target,
+      });
+
+    const clusterName: string =
+      breakdown?.clusterName || cephMonitor?.clusterIdentifier || "Unknown";
+
+    const sections: Array<string> = [];
+
+    if (cephMonitor || breakdown) {
+      const clusterDetails: Array<string> = [];
+      clusterDetails.push(`- Cluster: ${clusterName}`);
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "ceph",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: cephMonitor?.metricViewConfig?.queryConfigs?.[0]
+            ?.metricQueryData?.filterData?.metricName as string | undefined,
+        }),
+      );
+
+      if (cephMonitor?.resourceFilters?.osdId) {
+        clusterDetails.push(
+          `- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
+        );
+      }
+
+      if (cephMonitor?.resourceFilters?.poolId) {
+        clusterDetails.push(
+          `- Pool ID Filter: ${cephMonitor.resourceFilters.poolId}`,
+        );
+      }
+
+      sections.push(`**Ceph Cluster Details**\n${clusterDetails.join("\n")}`);
+    }
+
+    // Affected resources: a ranked list of daemon, pool and host
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * Keep the rows that satisfy the criteria that just matched, worst
+     * first, top 10 — NOT simply the non-zero rows. For ceph_osd_up /
+     * ceph_osd_in / ceph_mon_quorum_status the criteria is `< 1`, so
+     * the zero rows are the whole point of the incident.
+     */
+    const rows: Array<PlatformAffectedRow<CephResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        CephResourceIdentity,
+        CephAffectedResource
+      >({
+        platform: "ceph",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: CephResourceIdentity): boolean => {
+          return Boolean(
+            identity.daemon ||
+              identity.poolId ||
+              identity.poolName ||
+              identity.hostname,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.ceph,
+        withContext: PlatformResourceIdentity.withCephContext,
+      });
+
+    /*
+     * Skip the list when no row carries any identity label
+     * (cluster-wide series like ceph_health_status) — it would add
+     * nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<CephResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.daemon ||
+            row.identity.poolId ||
+            row.identity.poolName ||
+            row.identity.hostname,
+        );
+      },
+    );
+
+    /*
+     * Which metric the rows are about, for the entry's "Health Check"
+     * titling: the criteria's own query, else the breakdown's.
+     */
+    const rowsMetricName: string =
+      MonitorCriteriaEvaluator.getAnalysisMetricName(target) ||
+      breakdown?.metricName ||
+      "";
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<CephResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getCephAffectedResourceEntry({
+                      resource: row.identity,
+                      clusterName: clusterName,
+                      metricName: rowsMetricName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  private static buildKubernetesRootCauseAnalysis(input: {
+    breakdown: KubernetesResourceBreakdown;
+    topResource: KubernetesAffectedResource;
+    /*
+     * The top resource's value, already rendered in the unit the criteria
+     * compared it in. Required when the value did not come from the raw
+     * scan of `breakdown.metricName` — a formula's value is a percentage
+     * although its numerator (the metric the branches below key on) is
+     * bytes.
+     */
+    topResourceValue?: string | undefined;
+    target?: CriteriaMetricTarget | null | undefined;
+  }): string | null {
+    const { breakdown, topResource } = input;
+    const metricName: string = breakdown.metricName;
+    const lines: Array<string> = [];
+
+    /*
+     * The top resource's value, in the unit the catalog says the metric
+     * is actually reported in.
+     *
+     * The three "is at N%" sentences below used to hardcode that percent
+     * sign. Two of the three metrics they fire for are not percentages at
+     * all — k8s.node.memory.usage and k8s.node.filesystem.usage are
+     * `bytes`, so a node holding 8 GiB reported "memory usage is at
+     * 8589934592.0%" — and the third, k8s.node.cpu.utilization, is the
+     * kubeletstats cores gauge that four other places in this repo warn
+     * is misnamed, so 1.4 cores in use read as "1.4% CPU utilization".
+     */
+    const topResourceValue: string =
+      input.topResourceValue ||
+      MonitorCriteriaEvaluator.formatPlatformMetricValue({
+        platform: "kubernetes",
+        metricName: metricName,
+        metricUnit: breakdown.metricUnit,
+        value: topResource.metricValue,
+      });
+
+    if (
+      metricName === "k8s.container.restarts" ||
+      metricName.includes("restart")
+    ) {
+      lines.push(
+        `Container restart count is elevated, indicating a potential CrashLoopBackOff condition.`,
+      );
+      if (topResource.containerName) {
+        lines.push(
+          `The container \`${topResource.containerName}\` in pod \`${topResource.podName || "unknown"}\` has restarted **${topResourceValue}** times.`,
+        );
+      }
+      lines.push(
+        `Common causes: application crash on startup, misconfigured environment variables, missing dependencies, OOM (Out of Memory) kills, failed health checks, or missing config maps/secrets.`,
+      );
+      lines.push(
+        `Recommended actions: Check container logs with \`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous\` and inspect events with \`kubectl describe pod ${topResource.podName || "<pod-name>"}\`.`,
+      );
+    } else if (metricName === "k8s.pod.phase") {
+      /*
+       * The second half of this condition used to be
+       * `breakdown.attributes["k8s.pod.phase"] === "Pending"`, which could
+       * never be true. `breakdown.attributes` is the QUERY's attribute map
+       * (MonitorTelemetryMonitor stamps `resource.`-prefixed keys into it),
+       * and no receiver or processor in the shipped agent emits a pod
+       * phase attribute at all — the phase is the metric's VALUE
+       * (1 = Pending ... 5 = Unknown). So this branch never ran and every
+       * pod-phase alert fell through to the generic Kubernetes text.
+       */
+      lines.push(`Pods are stuck in Pending phase and unable to be scheduled.`);
+      lines.push(
+        `Common causes: insufficient CPU/memory resources on nodes, node affinity/taint restrictions preventing scheduling, PersistentVolumeClaim pending, or resource quota exceeded.`,
+      );
+      if (topResource.podName) {
+        lines.push(
+          `Recommended actions: Check scheduling events with \`kubectl describe pod ${topResource.podName}\` and verify node resources with \`kubectl describe nodes\`.`,
+        );
+      }
+    } else if (
+      metricName === "k8s.node.condition_ready" ||
+      (metricName.includes("node") && metricName.includes("condition"))
+    ) {
+      lines.push(`One or more nodes have transitioned to a NotReady state.`);
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` is reporting NotReady (value: ${topResourceValue}).`,
+        );
+      }
+      lines.push(
+        `Common causes: kubelet process failure, node resource exhaustion (disk pressure, memory pressure, PID pressure), network connectivity issues, or underlying VM/hardware failure.`,
+      );
+      lines.push(
+        `Recommended actions: Check node conditions with \`kubectl describe node ${topResource.nodeName || "<node-name>"}\` and verify kubelet status on the node.`,
+      );
+    } else if (
+      metricName === "k8s.node.cpu.utilization" ||
+      /*
+       * The numerator of the "High Node CPU Utilization" ratio template
+       * (k8s.node.cpu.usage ÷ k8s.node.allocatable_cpu × 100), which is
+       * what a formula criteria is analysed as.
+       */
+      metricName === "k8s.node.cpu.usage" ||
+      /*
+       * Node-scoped ONLY. The bare substring test used to swallow every
+       * pod- and container-scoped CPU metric — `k8s.pod.cpu.utilization`,
+       * and now `k8s.pod.cpu_limit_utilization` — and answer them with
+       * "Node X is at N% CPU utilization... consider scaling the cluster",
+       * directly contradicting the pod-limit template's own description,
+       * which tells the reader NOT to add replicas, and naming a node for
+       * a pod-scoped alert.
+       */
+      (metricName.startsWith("k8s.node.") &&
+        metricName.includes("cpu") &&
+        metricName.includes("utilization"))
+    ) {
+      lines.push(`Node CPU utilization has exceeded the configured threshold.`);
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` is at **${topResourceValue}** CPU utilization.`,
+        );
+      }
+      lines.push(
+        `Common causes: resource-intensive workloads, insufficient resource limits on pods, noisy neighbor pods consuming excessive CPU, or insufficient cluster capacity.`,
+      );
+      lines.push(
+        `Recommended actions: Identify top CPU consumers with \`kubectl top pods --all-namespaces --sort-by=cpu\` and consider scaling the cluster or adjusting pod resource limits.`,
+      );
+    } else if (
+      metricName === "k8s.node.memory.usage" ||
+      // Node-scoped only — see the CPU branch above.
+      (metricName.startsWith("k8s.node.") &&
+        metricName.includes("memory") &&
+        metricName.includes("usage"))
+    ) {
+      lines.push(
+        `Node memory utilization has exceeded the configured threshold.`,
+      );
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` memory usage is at **${topResourceValue}**.`,
+        );
+      }
+      lines.push(
+        `Common causes: memory leaks in applications, insufficient memory limits on pods, too many pods scheduled on the node, or growing dataset sizes.`,
+      );
+      lines.push(
+        `Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
+      );
+    } else if (
+      /*
+       * The k8s_cluster receiver has no unavailable-replicas series. The
+       * replica-mismatch template is a formula (`desired - available`),
+       * analysed as its first operand, k8s.deployment.desired, so it lands
+       * in the generic branch below, which names the formula. What still
+       * reaches this one is a custom monitor on an "unavailable" series
+       * such as kube-state-metrics' `kube_deployment_status_replicas_unavailable`.
+       */
+      metricName.includes("unavailable")
+    ) {
+      lines.push(
+        `Deployment has unavailable replicas, indicating a mismatch between desired and available replicas.`,
+      );
+      if (topResource.workloadName) {
+        lines.push(
+          `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResourceValue}** unavailable replica(s).`,
+        );
+      }
+      lines.push(
+        `Common causes: failed rolling update, image pull errors (wrong image tag or missing registry credentials), pod crash loops, insufficient cluster resources to schedule new pods, or PodDisruptionBudget blocking updates.`,
+      );
+      lines.push(
+        `Recommended actions: Check deployment rollout status with \`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}\` and inspect pod events.`,
+      );
+    } else if (
+      metricName === "k8s.job.failed_pods" ||
+      (metricName.includes("job") && metricName.includes("fail"))
+    ) {
+      lines.push(`Kubernetes Job has failed pods.`);
+      if (topResource.workloadName) {
+        lines.push(
+          `Job \`${topResource.workloadName}\` has **${topResourceValue}** failed pod(s).`,
+        );
+      }
+      lines.push(
+        `Common causes: application error or non-zero exit code, resource limits exceeded (OOMKilled), misconfigured command or arguments, missing environment variables, or timeout exceeded.`,
+      );
+      lines.push(
+        `Recommended actions: Check job status with \`kubectl describe job ${topResource.workloadName || "<job-name>"}\` and review pod logs for the failed pod(s).`,
+      );
+    } else if (
+      metricName === "k8s.node.filesystem.usage" ||
+      metricName.includes("disk") ||
+      metricName.includes("filesystem")
+    ) {
+      lines.push(
+        `Node disk/filesystem usage has exceeded the configured threshold.`,
+      );
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` filesystem usage is at **${topResourceValue}**.`,
+        );
+      }
+      lines.push(
+        `Common causes: container image layers consuming disk space, excessive logging, large emptyDir volumes, or accumulation of unused container images.`,
+      );
+      lines.push(
+        `Recommended actions: Clean up unused images with \`docker system prune\` or \`crictl rmi --prune\`, check for large log files, and review PersistentVolumeClaim usage.`,
+      );
+    } else if (
+      metricName === "k8s.daemonset.misscheduled_nodes" ||
+      metricName.includes("daemonset")
+    ) {
+      lines.push(`DaemonSet has misscheduled or unavailable nodes.`);
+      if (topResource.workloadName) {
+        lines.push(
+          `DaemonSet \`${topResource.workloadName}\` has **${topResourceValue}** misscheduled node(s).`,
+        );
+      }
+      lines.push(
+        `Common causes: node taints preventing scheduling, incorrect node selectors, or node affinity rules excluding certain nodes.`,
+      );
+      lines.push(
+        `Recommended actions: Check DaemonSet status with \`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}\` and verify node labels and taints.`,
+      );
+    } else {
+      /*
+       * Generic Kubernetes context. It names what the criteria compared —
+       * a formula by its legend and expression, since the metric the
+       * branches above key on is only its numerator — and the worst
+       * resource's value, so the reader does not have to find it in the
+       * list above.
+       */
+      const target: CriteriaMetricTarget | null | undefined = input.target;
+
+      if (target?.isFormula) {
+        const formulaName: string = target.displayName || `\`${target.alias}\``;
+        const expression: string = target.formulaExpression
+          ? ` (\`${target.formulaExpression}\`)`
+          : "";
+        lines.push(
+          `${formulaName}${expression} has breached the configured threshold.`,
+        );
+      } else {
+        const friendlyName: string =
+          breakdown.metricFriendlyName &&
+          breakdown.metricFriendlyName !== metricName
+            ? ` (${breakdown.metricFriendlyName})`
+            : "";
+        lines.push(
+          `Kubernetes metric \`${metricName}\`${friendlyName} has breached the configured threshold.`,
+        );
+      }
+      if (topResource.podName) {
+        lines.push(
+          `Most affected pod: \`${topResource.podName}\` (**${topResourceValue}**)`,
+        );
+      } else if (topResource.workloadName) {
+        lines.push(
+          `Most affected ${topResource.workloadType || "workload"}: \`${topResource.workloadName}\` (**${topResourceValue}**)`,
+        );
+      }
+      if (topResource.nodeName) {
+        lines.push(
+          topResource.podName
+            ? `Most affected node: \`${topResource.nodeName}\``
+            : `Most affected node: \`${topResource.nodeName}\` (**${topResourceValue}**)`,
+        );
+      }
+      lines.push(
+        `Recommended actions: Investigate the affected resources using \`kubectl describe\` and \`kubectl logs\` commands.`,
+      );
+    }
+
+    return lines.join("\n");
+  }
+
+  private static getMonitorDestinationString(input: {
+    monitorStep: MonitorStep;
+    probeResponse: ProbeMonitorResponse | null;
+  }): string | null {
+    if (input.probeResponse?.monitorDestination) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.probeResponse.monitorDestination,
+      );
+    }
+
+    if (input.monitorStep.data?.monitorDestination) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.monitorStep.data.monitorDestination,
+      );
+    }
+
+    return null;
+  }
+
+  private static getMonitorPortString(input: {
+    monitorStep: MonitorStep;
+    probeResponse: ProbeMonitorResponse | null;
+  }): string | null {
+    if (input.probeResponse?.monitorDestinationPort) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.probeResponse.monitorDestinationPort,
+      );
+    }
+
+    if (input.monitorStep.data?.monitorDestinationPort) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.monitorStep.data.monitorDestinationPort,
+      );
+    }
+
+    return null;
+  }
+
+  private static getRequestMethodString(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+  }): string | null {
+    if (
+      input.monitor.monitorType === MonitorType.API &&
+      input.monitorStep.data
+    ) {
+      return `${input.monitorStep.data.requestType}`;
+    }
+
+    return null;
+  }
+
+  private static formatMilliseconds(value?: number): string | null {
+    if (value === undefined || value === null || isNaN(value)) {
+      return null;
+    }
+
+    const formatted: string | null =
+      MonitorCriteriaMessageFormatter.formatNumber(value, {
+        maximumFractionDigits: value < 100 ? 2 : value < 1000 ? 1 : 0,
+      });
+
+    return `${formatted ?? value} ms`;
+  }
+
+  private static stringifyValue(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    try {
+      // Handle primitive types directly
+      if (typeof value === "string") {
+        return value.trim();
+      }
+
+      if (typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+      }
+
+      // Handle class instances with custom toString method (like URL, IP, Hostname)
+      if (
+        value instanceof URL ||
+        value instanceof IP ||
+        value instanceof Hostname ||
+        value instanceof Port
+      ) {
+        return value.toString().trim();
+      }
+
+      /*
+       * Handle JSON representations of URL, IP, Hostname, Port (e.g., { _type: "URL", value: "https://..." })
+       * This can happen when the value wasn't properly deserialized from JSON
+       */
+      if (typeof value === "object" && value !== null && "_type" in value) {
+        const typedValue: { _type: string; value?: unknown } = value as {
+          _type: string;
+          value?: unknown;
+        };
+        if (
+          (typedValue._type === "URL" ||
+            typedValue._type === "IP" ||
+            typedValue._type === "Hostname" ||
+            typedValue._type === "Port") &&
+          typeof typedValue.value === "string"
+        ) {
+          return typedValue.value.trim();
+        }
+      }
+
+      return String(value).trim();
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
+  }
+}
