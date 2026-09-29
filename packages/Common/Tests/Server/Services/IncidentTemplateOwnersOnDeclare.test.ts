@@ -10,7 +10,9 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
 import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import UpdateByID from "../../../Server/Types/Database/UpdateByID";
 import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
+import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
@@ -105,6 +107,10 @@ let createdOwnerTeams: Array<{
 }> = [];
 let ownerRulesApplied: boolean = false;
 
+// Every update the chain makes to the incident itself.
+let incidentUpdates: Array<UpdateByID<Incident>> = [];
+let incidentUpdateMock: ReturnType<typeof jest.fn>;
+
 function createdIncident(): Incident {
   const incident: Incident = new Incident();
   incident._id = INCIDENT_ID.toString();
@@ -148,10 +154,19 @@ beforeEach(() => {
   createdOwnerUsers = [];
   createdOwnerTeams = [];
   ownerRulesApplied = false;
+  incidentUpdates = [];
 
   jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
     // no analytics in tests
   }) as never);
+
+  incidentUpdateMock = jest
+    .spyOn(IncidentService, "updateOneById")
+    .mockImplementation((async (
+      updateBy: UpdateByID<Incident>,
+    ): Promise<void> => {
+      incidentUpdates.push(updateBy);
+    }) as never) as unknown as ReturnType<typeof jest.fn>;
 
   const reRead: Incident = createdIncident();
   jest.spyOn(IncidentService, "findOneById").mockResolvedValue(reRead as never);
@@ -395,5 +410,157 @@ describe("the template's owners an incident form hands over", () => {
     expect(orderOf(service["createIncidentFeedAsync"])).toBeLessThan(
       firstOwnerAdded,
     );
+  });
+});
+
+/*
+ * The owners' "Incident Created" notification is sent by a job that runs
+ * every minute and takes every incident not yet marked as notified. A form's
+ * create is written marked (IncidentService.onBeforeCreate), so the job
+ * cannot take its incident while the chain is still getting to the owners -
+ * it would find none, and tell the project's owners instead. The chain lets
+ * it go - marks it not notified - once the owners exist, and for no other
+ * create: one the job may already have notified would be notified twice.
+ */
+describe("the Incident Created notification a form's create holds for its owners", () => {
+  const FORM_PROPS: DatabaseCommonInteractionProps = { isRoot: true };
+
+  const RELEASE: JSONObject = {
+    data: { isOwnerNotifiedOfResourceCreation: false },
+    props: { isRoot: true, ignoreHooks: true },
+  };
+
+  // The updates that let the notification go, with the incident's id as text.
+  const releases: () => Array<JSONObject> = (): Array<JSONObject> => {
+    return incidentUpdates
+      .filter((updateBy: UpdateByID<Incident>): boolean => {
+        return (
+          (updateBy.data as JSONObject)["isOwnerNotifiedOfResourceCreation"] ===
+          false
+        );
+      })
+      .map((updateBy: UpdateByID<Incident>): JSONObject => {
+        return {
+          id: updateBy.id.toString(),
+          data: updateBy.data as JSONObject,
+          props: updateBy.props as JSONObject,
+        };
+      });
+  };
+
+  test("is let go once the owners are added, and only then", async () => {
+    await onCreateSuccess(
+      { ownerUsers: [USER_A], ownerTeams: [TEAM_A], notifyOwners: true },
+      FORM_PROPS,
+    );
+
+    expect(releases()).toEqual([{ id: INCIDENT_ID.toString(), ...RELEASE }]);
+
+    const orderOf: (method: unknown) => number = (method: unknown): number => {
+      return (method as { mock: { invocationCallOrder: Array<number> } }).mock
+        .invocationCallOrder[0]!;
+    };
+
+    const released: number =
+      incidentUpdateMock.mock.invocationCallOrder[
+        incidentUpdates.findIndex((updateBy: UpdateByID<Incident>): boolean => {
+          return (
+            (updateBy.data as JSONObject)[
+              "isOwnerNotifiedOfResourceCreation"
+            ] === false
+          );
+        })
+      ]!;
+
+    expect(released).toBeGreaterThan(
+      Math.max(
+        orderOf(IncidentOwnerUserService.create),
+        orderOf(IncidentOwnerTeamService.create),
+      ),
+    );
+    // Before the owner rules, which add owners of their own.
+    expect(released).toBeLessThan(
+      orderOf(IncidentOwnerRuleEngineService.applyRulesToIncident),
+    );
+  });
+
+  // The chain will not try again, so a held notification must not stay held.
+  test("is let go when adding the owners fails", async () => {
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockRejectedValue(
+        new Error("the owner tables are unreachable") as never,
+      );
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      // expected: the failure is logged
+    }) as never);
+
+    await onCreateSuccess(
+      { ownerUsers: [USER_A], notifyOwners: true },
+      FORM_PROPS,
+    );
+
+    expect(releases()).toEqual([{ id: INCIDENT_ID.toString(), ...RELEASE }]);
+  });
+
+  test("a release that fails is logged, and the rest of the chain still runs", async () => {
+    incidentUpdateMock.mockImplementation((async (): Promise<never> => {
+      throw new Error("the incident row is locked");
+    }) as never);
+    const loggedError: ReturnType<typeof jest.fn> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {
+        // expected: the failure is logged
+      }) as never) as unknown as ReturnType<typeof jest.fn>;
+
+    // Waits for the owner rules, after the release: the chain went on.
+    await onCreateSuccess(
+      { ownerUsers: [USER_A], notifyOwners: true },
+      FORM_PROPS,
+    );
+
+    expect(
+      loggedError.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).startsWith(
+          "Releasing the Incident Created notification held for the owners failed",
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    [
+      "a dashboard declare, even one asking for its owners to be notified",
+      { ownerUsers: [USER_A], ownerTeams: [TEAM_A], notifyOwners: true },
+      USER_PROPS,
+    ],
+    [
+      "a root declare that adds its owners quietly",
+      { ownerUsers: [USER_A], ownerTeams: [TEAM_A] },
+      FORM_PROPS,
+    ],
+    [
+      "a root declare asking to notify owners it does not name",
+      { notifyOwners: true },
+      FORM_PROPS,
+    ],
+    ["a root declare with other misc data", { alertIdsToLink: [] }, FORM_PROPS],
+  ])(
+    "is never let go for %s, which held nothing",
+    async (
+      _label: string,
+      miscData: JSONObject,
+      props: DatabaseCommonInteractionProps,
+    ) => {
+      await onCreateSuccess(miscData, props);
+
+      expect(releases()).toEqual([]);
+    },
+  );
+
+  test("is never let go for a create without misc data", async () => {
+    await onCreateSuccess(undefined, FORM_PROPS);
+
+    expect(releases()).toEqual([]);
   });
 });

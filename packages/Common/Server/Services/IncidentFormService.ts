@@ -1223,7 +1223,9 @@ export class Service extends DatabaseService<Model> {
    * channels (added any earlier, they would find no channel to join, and
    * nothing invites an existing owner later). notifyOwners asks for them to
    * be notified - they are the people a report through this form is meant
-   * to reach.
+   * to reach - and IncidentService holds the incident's "Incident Created"
+   * notification until they are its owners, so that it reaches them rather
+   * than the project's owners.
    */
   private async declareIncident(data: {
     form: Model;

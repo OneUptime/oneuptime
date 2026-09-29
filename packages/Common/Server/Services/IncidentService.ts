@@ -2114,6 +2114,23 @@ export class Service extends DatabaseService<Model> {
         false;
     }
 
+    /*
+     * Owners handed over to be notified are added by onCreateSuccess's
+     * chain, once the incident's Slack / Microsoft Teams channels exist -
+     * seconds after the incident is written, with a workspace connected. The
+     * owners' "Incident Created" notification is sent by a job that runs
+     * every minute and takes every incident not yet marked as notified: run
+     * in between, it would find no owners, tell the project's owners
+     * instead, and mark the incident done, and the owners the create named
+     * would hear nothing of it ("owner added" is off by default). So such an
+     * incident is written as notified already, and the chain marks it not
+     * notified once it has added them (releaseCreatedNotificationHeldForOwners):
+     * the job then tells them on its next run.
+     */
+    if (this.isCreatedNotificationHeldForOwners(createBy)) {
+      createBy.data.isOwnerNotifiedOfResourceCreation = true;
+    }
+
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
@@ -2900,6 +2917,15 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        } finally {
+          /*
+           * The owners the create handed over exist now - or could not be
+           * added, and this chain will not try again: either way the
+           * "Incident Created" notification held for them may go out.
+           */
+          if (this.isCreatedNotificationHeldForOwners(onCreate.createBy)) {
+            await this.releaseCreatedNotificationHeldForOwners(createdItem);
+          }
         }
       })
       .then(async () => {
@@ -3320,6 +3346,63 @@ export class Service extends DatabaseService<Model> {
           } as LogAttributes,
         );
       });
+  }
+
+  /*
+   * Whether a create hands owners to its own onCreateSuccess chain to be
+   * notified, and so holds the incident's "Incident Created" notification
+   * until the chain has added them (see onBeforeCreate). Only an internal
+   * (root) caller can ask for owners to be notified - misc data is whatever
+   * a user's request body says - and today only an incident form does, for
+   * its template's owners. Every other create is written and notified as it
+   * always was. One predicate for the hold and the release alike, so the
+   * chain never releases an incident nobody held: the job may already have
+   * notified that one, and would do it again.
+   */
+  private isCreatedNotificationHeldForOwners(
+    createBy: CreateBy<Model>,
+  ): boolean {
+    const miscDataProps: JSONObject | undefined = createBy.miscDataProps;
+
+    return (
+      createBy.props.isRoot === true &&
+      miscDataProps?.["notifyOwners"] === true &&
+      Boolean(miscDataProps["ownerUsers"] || miscDataProps["ownerTeams"])
+    );
+  }
+
+  /*
+   * Marks an incident whose create held its "Incident Created" notification
+   * as not notified, so the owners' job sends it on its next run - to the
+   * owners the chain has just added. Without the update hooks, as the other
+   * notification markers on an incident are written: nothing they react to
+   * changed. It never throws, so the chain's later steps (the owner rules,
+   * on-call) still run; a failure is logged, and leaves the notification
+   * unsent.
+   */
+  private async releaseCreatedNotificationHeldForOwners(
+    incident: Model,
+  ): Promise<void> {
+    try {
+      await this.updateOneById({
+        id: incident.id!,
+        data: {
+          isOwnerNotifiedOfResourceCreation: false,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
   }
 
   @CaptureSpan()
