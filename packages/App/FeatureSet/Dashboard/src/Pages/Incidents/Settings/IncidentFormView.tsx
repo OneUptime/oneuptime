@@ -166,7 +166,14 @@ const IncidentFormView: FunctionComponent<
           });
         }}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          /*
+           * One column, on every card of the page: Detail gives each field
+           * 1/n of the card's width whatever its colSpan (and on a phone
+           * too), so in two columns the description - the card's longest
+           * text - wrapped at half width, and every field was half a phone
+           * wide.
+           */
+          showDetailsInNumberOfColumns: 1,
           modelType: IncidentForm,
           id: "model-detail-incident-form",
           fields: [
@@ -198,7 +205,6 @@ const IncidentFormView: FunctionComponent<
               title: "Description",
               fieldType: FieldType.Markdown,
               placeholder: "No description set.",
-              colSpan: 2,
             },
           ],
           modelId: modelId,
@@ -233,7 +239,8 @@ const IncidentFormView: FunctionComponent<
           getIncidentFormTemplateField(),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          // One column, like the other cards on the page (see Form Details).
+          showDetailsInNumberOfColumns: 1,
           modelType: IncidentForm,
           id: "model-detail-incident-form-incident-settings",
           fields: [
@@ -348,7 +355,8 @@ const IncidentFormView: FunctionComponent<
           getIncidentFormSuccessMessageField(),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          // One column, for the success message (see Form Details).
+          showDetailsInNumberOfColumns: 1,
           modelType: IncidentForm,
           id: "model-detail-incident-form-form-settings",
           fields: [
@@ -384,7 +392,6 @@ const IncidentFormView: FunctionComponent<
               title: IncidentFormCopy.successMessageTitle,
               fieldType: FieldType.Markdown,
               placeholder: "Not set",
-              colSpan: 2,
             },
           ],
           modelId: modelId,

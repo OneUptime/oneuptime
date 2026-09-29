@@ -542,6 +542,12 @@ describe("a form's page", () => {
       expect(detail["modelType"]).toBe(IncidentForm);
       expect(String(detail["modelId"])).toBe(FORM_ID);
       expect(card["isEditable"]).toBe(true);
+      /*
+       * Detail sizes a field at 1/n of the card whatever its colSpan: two
+       * columns squeezed the description and the success message to half
+       * width, and every field to half a phone.
+       */
+      expect(detail["showDetailsInNumberOfColumns"]).toBe(1);
     }
 
     expect(String(last(recordedShareLinkCards)["modelId"])).toBe(FORM_ID);
