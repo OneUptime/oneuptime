@@ -563,7 +563,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       )}
 
       <Card
-        className="group"
+        className="group/zoomhint"
         bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="SLI"
         description="Service Level Indicator over time, with the SLO target as a reference line."
@@ -595,7 +595,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       </Card>
 
       <Card
-        className="group"
+        className="group/zoomhint"
         bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Error Budget Remaining"
         description="Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent."
@@ -616,7 +616,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       </Card>
 
       <Card
-        className="group"
+        className="group/zoomhint"
         bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Burn Rate"
         description={`Error-budget burn measured over the trailing ${burnRateWindowText}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.`}

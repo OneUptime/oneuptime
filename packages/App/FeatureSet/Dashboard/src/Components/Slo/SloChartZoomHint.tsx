@@ -9,10 +9,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME: string = "mt-4 md:mt-0";
 
 /*
- * "Drag to zoom" (and, while zoomed, "· double-click to reset") at the top
+ * "Drag to zoom" (and, while zoomed, "Double-click to reset") at the top
  * right of an SLO chart card's body, shown while the pointer is over the
- * card - the Card needs className="group" - like the hint in a
- * TelemetryResource ChartCard header.
+ * card - the Card needs the named group, className="group/zoomhint" - like
+ * the hint in a TelemetryResource ChartCard header.
  *
  * It is a row of its own rather than a Card rightElement: a right element
  * gets its own margins in the stacked phone header, so an invisible hint

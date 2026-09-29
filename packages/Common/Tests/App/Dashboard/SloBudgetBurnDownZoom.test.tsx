@@ -335,12 +335,12 @@ describe("SloBudgetBurnDownCard: its own zoom", () => {
 
     const hint: HTMLElement = screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID);
     expect(hint).toHaveTextContent("Drag to zoom");
-    expect(hint).toHaveClass("group-hover:opacity-100");
-    expect(hint.closest(".group")).not.toBeNull();
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).not.toBeNull();
     expect(
-      within(hint.closest(".group") as HTMLElement).getByTestId(
-        "slo-burn-down-chart",
-      ),
+      within(
+        hint.closest('[class~="group/zoomhint"]') as HTMLElement,
+      ).getByTestId("slo-burn-down-chart"),
     ).toBeInTheDocument();
     // Above the chart, in place of the body's margin; not shown on a phone.
     expect(hint.parentElement).toHaveClass("hidden", "md:flex", "h-4");
@@ -394,7 +394,7 @@ describe("SloBudgetBurnDownCard: its own zoom", () => {
     ).toBeInTheDocument();
     expect(chart().zoom.onTimeRangeReset).toBeInstanceOf(Function);
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
   });
 

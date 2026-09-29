@@ -589,7 +589,7 @@ describe("Service overview: a drag zooms the page", () => {
     }
 
     for (const hint of screen.getAllByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)) {
-      expect(hint).toHaveTextContent("Drag to zoom · double-click to reset");
+      expect(hint).toHaveTextContent("Double-click to reset");
     }
   });
 

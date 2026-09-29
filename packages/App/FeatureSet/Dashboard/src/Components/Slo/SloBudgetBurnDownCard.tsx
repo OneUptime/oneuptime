@@ -371,7 +371,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
   return (
     <TimeRangeZoomProvider zoom={zoom}>
       <Card
-        className="group"
+        className="group/zoomhint"
         bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Error budget burn-down"
         description={description}

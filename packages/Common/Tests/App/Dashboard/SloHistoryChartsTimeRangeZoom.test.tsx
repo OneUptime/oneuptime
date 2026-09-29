@@ -408,11 +408,11 @@ describe("SLO history charts: one zoom for the three charts", () => {
     expect(hints).toHaveLength(3);
     for (const hint of hints) {
       expect(hint).toHaveTextContent("Drag to zoom");
-      expect(hint).toHaveClass("group-hover:opacity-100");
+      expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
       // The card is the hover group, so the hint shows over its chart.
       const card: HTMLElement | null = hint.closest('[data-testid="card"]');
       expect(card).not.toBeNull();
-      expect(card).toHaveClass("group");
+      expect(card).toHaveClass("group/zoomhint");
       expect(
         within(card as HTMLElement).getByTestId("line-chart"),
       ).toBeInTheDocument();
@@ -498,7 +498,7 @@ describe("SLO history charts: a drag zooms all three", () => {
       expect(chart(name).zoom.onTimeRangeReset).toBe(resetHandler);
     }
     for (const hint of screen.getAllByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)) {
-      expect(hint).toHaveTextContent("Drag to zoom · double-click to reset");
+      expect(hint).toHaveTextContent("Double-click to reset");
     }
   });
 

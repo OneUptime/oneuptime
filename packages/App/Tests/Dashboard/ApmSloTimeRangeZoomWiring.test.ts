@@ -272,7 +272,7 @@ describe("Error Budget History (Components/Slo/SloHistoryCharts.tsx)", () => {
     expect(
       countOf(
         code,
-        '<Card className="group" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
+        '<Card className="group/zoomhint" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
       ),
     ).toBe(3);
     // Not in the header: that squeezed the description beside the picker.
@@ -375,7 +375,7 @@ describe("SLO overview burn-down (Components/Slo/SloBudgetBurnDownCard.tsx)", ()
     expect(header).toContain("<ResetTimeRangeZoomButton />");
     expect(header).toContain('title="Open metrics"');
     expect(code).toContain(
-      '<Card className="group" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
+      '<Card className="group/zoomhint" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
     );
     expect(code).toContain("<SloChartZoomHint /> {getBody()}");
     expect(code).toContain("<div onDoubleClick={resetZoom}>");
