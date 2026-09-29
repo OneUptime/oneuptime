@@ -381,6 +381,28 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
     };
   }, [timeRange, refreshTick, sloIdString]);
 
+  type WithZoomHintFunction = (
+    takesZoomGesture: boolean,
+    body: ReactElement,
+  ) => ReactElement;
+
+  /*
+   * A card's hint row together with its body. The branch below that picks
+   * the body also says whether that body takes a zoom gesture, so the hint
+   * never names a gesture the body does not have.
+   */
+  const withZoomHint: WithZoomHintFunction = (
+    takesZoomGesture: boolean,
+    body: ReactElement,
+  ): ReactElement => {
+    return (
+      <>
+        <SloChartZoomHint isShown={takesZoomGesture} />
+        {body}
+      </>
+    );
+  };
+
   type GetChartFunction = (options: {
     points: Array<DataPoint>;
     seriesName: string;
@@ -406,10 +428,11 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
      * The loader replaces the chart only when there is nothing else to
      * show. A background refresh — or a range change while data from the
      * previous range is still on screen — keeps the existing lines up
-     * instead of flashing a spinner every minute.
+     * instead of flashing a spinner every minute. It takes no gesture,
+     * not even while zoomed.
      */
     if (isLoading && options.points.length === 0) {
-      return <ComponentLoader />;
+      return withZoomHint(false, <ComponentLoader />);
     }
 
     if (options.points.length === 0) {
@@ -420,11 +443,14 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
        *
        * A zoom into a stretch with no history lands here, with no chart
        * left to double-click, so the empty state takes the double-click
-       * and says how to get back.
+       * and says how to get back. Only then does it take a gesture, and
+       * only then is its text not selectable: a double-click on it must
+       * not also select a word.
        */
-      return (
+      return withZoomHint(
+        zoom.isZoomed,
         <div
-          className="-my-16"
+          className={zoom.isZoomed ? "-my-16 select-none" : "-my-16"}
           onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}
         >
           <EmptyState
@@ -437,7 +463,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
                 : "SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently."
             }
           />
-        </div>
+        </div>,
       );
     }
 
@@ -469,7 +495,8 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       },
     ];
 
-    return (
+    return withZoomHint(
+      true,
       <LineChartElement
         data={series}
         xAxis={xAxis}
@@ -480,7 +507,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         sync={true}
         syncid={options.syncId}
         referenceLines={options.referenceLines}
-      />
+      />,
     );
   };
 
@@ -541,7 +568,8 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
   /*
    * Every chart below takes the zoom from here, and so does the "Reset
    * zoom" beside the picker. Each card names the gesture while the pointer
-   * is over it (SloChartZoomHint; the card is its hover `group`).
+   * is over it, whenever its body takes one (SloChartZoomHint, from
+   * getChart; the card is its hover `group`).
    */
   return (
     <TimeRangeZoomProvider zoom={zoom}>
@@ -579,7 +607,6 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           </div>
         }
       >
-        <SloChartZoomHint />
         {getChart({
           points: sliPoints,
           seriesName: "SLI %",
@@ -600,7 +627,6 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         title="Error Budget Remaining"
         description="Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent."
       >
-        <SloChartZoomHint />
         {getChart({
           points: budgetPoints,
           seriesName: "Budget Remaining %",
@@ -621,7 +647,6 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         title="Burn Rate"
         description={`Error-budget burn measured over the trailing ${burnRateWindowText}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.`}
       >
-        <SloChartZoomHint />
         {getChart({
           points: burnRatePoints,
           seriesName: "Burn Rate",

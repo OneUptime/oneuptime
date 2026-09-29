@@ -220,42 +220,71 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     ? `Error budget left over ${windowPhrase}. The faded line spends the budget evenly by the reset — below it, the month is burning too fast.`
     : `Error budget left over ${windowPhrase}, with the at-risk and exhausted lines this SLO is judged against.`;
 
+  type WithZoomHintFunction = (
+    takesZoomGesture: boolean,
+    body: ReactElement,
+  ) => ReactElement;
+
+  /*
+   * The card's hint row together with its body. The branch below that
+   * picks the body also says whether that body takes a zoom gesture, so
+   * the hint never names a gesture the body does not have.
+   */
+  const withZoomHint: WithZoomHintFunction = (
+    takesZoomGesture: boolean,
+    body: ReactElement,
+  ): ReactElement => {
+    return (
+      <>
+        <SloChartZoomHint isShown={takesZoomGesture} />
+        {body}
+      </>
+    );
+  };
+
   type GetBodyFunction = () => ReactElement;
 
   const getBody: GetBodyFunction = (): ReactElement => {
     /*
      * The loader replaces the chart only before the first load. A refresh
      * after the next evaluation keeps the line up instead of flashing.
+     * Neither the error nor the loader takes a gesture.
      */
     if (!series.hasLoaded && series.error) {
-      return (
-        <ErrorMessage message={series.error} onRefreshClick={series.retry} />
+      return withZoomHint(
+        false,
+        <ErrorMessage message={series.error} onRefreshClick={series.retry} />,
       );
     }
 
     if (!series.hasLoaded) {
-      return <ComponentLoader />;
+      return withZoomHint(false, <ComponentLoader />);
     }
 
     if (series.points.length === 0 && zoomedTimeRange) {
       /*
        * A zoom into a stretch with no history leaves no chart to
-       * double-click, so the empty state takes the double-click instead.
+       * double-click, so the empty state takes the double-click instead;
+       * its text is not selectable, or that double-click would also
+       * select a word of it.
        */
-      return (
-        <div onDoubleClick={resetZoom}>
+      return withZoomHint(
+        true,
+        <div className="select-none" onDoubleClick={resetZoom}>
           <SloOverviewEmptyState
             dataTestId="slo-burn-down-empty"
             icon={IconProp.ChartBar}
             title="No budget history in the zoomed window"
             description="Double-click here, or use Reset zoom, to go back to the whole compliance window."
           />
-        </div>
+        </div>,
       );
     }
 
     if (series.points.length === 0) {
-      return (
+      // Nothing to drag, and no zoom to undo.
+      return withZoomHint(
+        false,
         <SloOverviewEmptyState
           dataTestId="slo-burn-down-empty"
           icon={IconProp.ChartBar}
@@ -265,7 +294,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
               : "No budget history yet"
           }
           description={`Each evaluation records the remaining budget, every ${SLO_EVALUATION_CADENCE_MINUTES} minutes. The line appears after the next one.`}
-        />
+        />,
       );
     }
 
@@ -347,7 +376,8 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       },
     ];
 
-    return (
+    return withZoomHint(
+      true,
       <div data-testid="slo-burn-down-chart">
         <LineChartElement
           data={data}
@@ -364,7 +394,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           }
           referenceLines={referenceLines}
         />
-      </div>
+      </div>,
     );
   };
 
@@ -386,7 +416,6 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           </div>
         }
       >
-        <SloChartZoomHint />
         {getBody()}
       </Card>
     </TimeRangeZoomProvider>
