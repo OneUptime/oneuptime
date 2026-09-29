@@ -1,4 +1,6 @@
 import {
+  APIRequestContext,
+  APIResponse,
   Browser,
   BrowserContext,
   Download,
@@ -3383,4 +3385,263 @@ test("a react native recording is captured at its own size without the phone fra
   /* ...where the untouched frame shows the bar alone. */
   expect(withoutDot.dominant[2] - withoutDot.dominant[0]).toBeLessThan(20);
   expect(luminance(withoutDot.dominant)).toBeLessThan(80);
+});
+
+/* ---- A page that loads its own assets from the recorded site. ---- */
+
+/*
+ * ?assets=site (Fixture/Fixture.js): the recorded page's images, a
+ * stylesheet the recorder could not inline and its web fonts come from a
+ * second origin, as on the Power Pages portal in #4119, and the stage loads
+ * them (RecordedAssets.spec.ts). The capture still asks the network for
+ * nothing, so the picture keeps only what the browser lets the page read
+ * back: an image from the other site is a grey box of its size, and what
+ * the other site's stylesheet hides stays hidden.
+ */
+
+/* ReplayFrameCapture's REPLAY_FRAME_IMAGE_PLACEHOLDER: #e5e7eb. */
+const placeholderGrey: Rgb = [229, 231, 235];
+/* The fill of the data: image in Fixture.js: #7c3aed. */
+const dataImagePurple: Rgb = [124, 58, 237];
+
+/* A token no other test shares, for the recorded site's log. */
+const recordedSiteRun: (label: string) => string = (label: string): string => {
+  return `${label}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+};
+
+/* The paths the recorded site has been asked for under a run, in order. */
+const recordedSiteRequests: (
+  request: APIRequestContext,
+  run: string,
+) => Promise<Array<string>> = async (
+  request: APIRequestContext,
+  run: string,
+): Promise<Array<string>> => {
+  const response: APIResponse = await request.get(
+    `/__fixture/asset-log?run=${run}`,
+  );
+
+  expect(response.ok()).toBe(true);
+
+  return ((await response.json()) as Array<{ path: string }>).map(
+    (entry: { path: string }): string => {
+      return entry.path;
+    },
+  );
+};
+
+const naturalWidthOf: (
+  page: Page,
+  selector: string,
+) => Promise<number> = async (
+  page: Page,
+  selector: string,
+): Promise<number> => {
+  return replayFrame(page)
+    .locator(selector)
+    .evaluate((image: HTMLImageElement): number => {
+      return image.naturalWidth;
+    });
+};
+
+/* An element's box in the PNG's pixels, clear of its anti-aliased edges. */
+const insideOf: (box: LiveElement, ratio: number, near?: Rgb) => PixelRegion = (
+  box: LiveElement,
+  ratio: number,
+  near?: Rgb,
+): PixelRegion => {
+  return {
+    x: (box.left + 2) * ratio,
+    y: (box.top + 2) * ratio,
+    width: (box.width - 4) * ratio,
+    height: (box.height - 4) * ratio,
+    near: near,
+  };
+};
+
+test("a frame whose page loaded its images, stylesheet and fonts from the recorded site is captured without a request, keeping hidden what that stylesheet hides", async ({
+  page,
+  context,
+  request,
+}: {
+  page: Page;
+  context: BrowserContext;
+  request: APIRequestContext;
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: fixtureOrigin,
+  });
+
+  const run: string = recordedSiteRun("capture");
+
+  await openPlayer(page, `?assets=site&run=${run}`);
+
+  /* Played until the page has what it asks for, the later image included. */
+  await expect(replayFrame(page).locator("#fixture-asset-late")).toBeAttached({
+    timeout: 15000,
+  });
+  await expect
+    .poll(async (): Promise<number> => {
+      return naturalWidthOf(page, "#fixture-asset-late");
+    })
+    .toBe(30);
+  await expect
+    .poll(async (): Promise<number> => {
+      return naturalWidthOf(page, "#fixture-asset-logo");
+    })
+    .toBe(120);
+  await expect(
+    replayFrame(page).locator("#fixture-offline-banner"),
+  ).toBeHidden();
+  await pausePlayer(page);
+
+  /*
+   * On the stage the offline banner is hidden - by a rule in the stylesheet
+   * from the recorded site, which the capture cannot read - so the header
+   * starts the page.
+   */
+  expect((await liveElement(page, "header")).top).toBe(0);
+
+  const logo: LiveElement = await liveElement(page, "#fixture-asset-logo");
+  const dataImage: LiveElement = await liveElement(page, "#fixture-asset-data");
+  const asksBefore: number = (await recordedSiteRequests(request, run)).length;
+  const requests: Array<string> = [];
+  const recordRequest: (sent: Request) => void = (sent: Request): void => {
+    requests.push(sent.url());
+  };
+
+  page.on("request", recordRequest);
+
+  const saved: SavedScreenshot = await downloadFrame(page);
+
+  await expect(preview(page)).toHaveAttribute("data-action", "download");
+  await copyButton(page).click();
+  await expect(preview(page)).toHaveAttribute("data-action", "copy");
+
+  page.off("request", recordRequest);
+
+  /* Nothing left the browser, and the recorded site heard nothing more. */
+  expect(
+    requests.filter((url: string): boolean => {
+      return !url.startsWith("blob:") && !url.startsWith("data:");
+    }),
+  ).toEqual([]);
+  expect((await recordedSiteRequests(request, run)).length).toBe(asksBefore);
+
+  const ratio: number = await devicePixelRatio(page);
+  const inspection: PngInspection = await inspectPng(page, saved.bytes, {
+    regions: [
+      /* A band across the top: the header's padding, where the banner would be. */
+      {
+        x: 20 * ratio,
+        y: 3 * ratio,
+        width: (recordedWidth - 40) * ratio,
+        height: 18 * ratio,
+      },
+      insideOf(logo, ratio, placeholderGrey),
+      insideOf(dataImage, ratio, dataImagePurple),
+    ],
+  });
+  const band: RegionSummary = inspection.regions[0]!;
+  const logoRegion: RegionSummary = inspection.regions[1]!;
+
+  /* The header's flat colour, as the stage shows - not the dark banner. */
+  expect(band.darkPixels).toBe(0);
+  expect(band.distinctColours).toBe(1);
+  expectColour(
+    band.dominant,
+    await liveBackgroundAt(page, { x: recordedWidth / 2, y: 12 }),
+    "the top of the page",
+  );
+  /* The logo, which the page may not read back: a grey box of its size. */
+  expectColour(
+    logoRegion.dominant,
+    placeholderGrey,
+    "the recorded site's logo",
+  );
+  expect(logoRegion.nearPixels).toBe(logoRegion.total);
+  /* A data: image is the page's own, and is drawn as it is. */
+  expectColour(
+    inspection.regions[2]!.dominant,
+    dataImagePurple,
+    "the data: image",
+  );
+});
+
+test("an image the stage is still loading is left out of the picture rather than drawn broken, and drawn once it has loaded", async ({
+  page,
+  request,
+}: {
+  page: Page;
+  request: APIRequestContext;
+}) => {
+  /* &hold=image: the recorded site answers for this image only when told to. */
+  const run: string = recordedSiteRun("held");
+  const held: Locator = replayFrame(page).locator("#fixture-asset-held");
+
+  await openPlayer(page, `?assets=site&hold=image&run=${run}`);
+  await expect
+    .poll(async (): Promise<Array<string>> => {
+      return recordedSiteRequests(request, run);
+    })
+    .toContain("/replay-assets/held.svg");
+  await expect
+    .poll(async (): Promise<number> => {
+      return naturalWidthOf(page, "#fixture-asset-logo");
+    })
+    .toBe(120);
+  await pausePlayer(page);
+  expect(
+    await held.evaluate((image: HTMLImageElement): boolean => {
+      return image.complete;
+    }),
+  ).toBe(false);
+
+  const box: LiveElement = await liveElement(page, "#fixture-asset-held");
+
+  expect([box.width, box.height]).toEqual([120, 60]);
+
+  const ratio: number = await devicePixelRatio(page);
+  const region: PixelRegion = insideOf(box, ratio);
+  const underneath: Rgb = await liveBackgroundAt(page, {
+    x: box.left + box.width / 2,
+    y: box.top + box.height / 2,
+  });
+  const loading: SavedScreenshot = await downloadFrame(page);
+  const whileLoading: RegionSummary = (
+    await inspectPng(page, loading.bytes, { regions: [region] })
+  ).regions[0]!;
+
+  /*
+   * The stage has drawn nothing there yet, and nor has the picture: the page
+   * shows through, with no broken-image icon and no alt text over it.
+   */
+  expect(whileLoading.darkPixels).toBe(0);
+  expect(whileLoading.distinctColours).toBe(1);
+  expectColour(whileLoading.dominant, underneath, "a still-loading image");
+
+  const released: APIResponse = await request.post(
+    `/__fixture/asset-release?run=${run}`,
+  );
+
+  expect(released.ok()).toBe(true);
+  await expect
+    .poll(async (): Promise<number> => {
+      return naturalWidthOf(page, "#fixture-asset-held");
+    })
+    .toBe(120);
+  await expect(phase(page)).toHaveText("paused");
+
+  const loaded: SavedScreenshot = await downloadFrame(page);
+  const onceLoaded: RegionSummary = (
+    await inspectPng(page, loaded.bytes, {
+      regions: [{ ...region, near: placeholderGrey }],
+    })
+  ).regions[0]!;
+
+  /* Loaded from another site without CORS: a grey box of its size. */
+  expectColour(onceLoaded.dominant, placeholderGrey, "the image once loaded");
+  expect(onceLoaded.nearPixels).toBe(onceLoaded.total);
 });

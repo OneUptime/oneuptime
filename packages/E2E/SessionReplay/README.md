@@ -55,6 +55,44 @@ the policy (`?health=hold`) or reports the project switch off
 (`?project=off`), and saving the edit form must reload the card exactly once.
 The fixture returns a new model instance per read, as the real API does.
 
+The recorded page's own assets are covered against a second origin. With
+`?assets=site` the recording is a page shaped like the Power Pages portal in
+#4119: a logo, an offline banner holding its `web` and `close` icons, and a
+stylesheet on another host that hides the banner. rrweb keeps every image,
+and every stylesheet it could not read, as an address, so the replay has to
+load them from the site the recording was made on. `Fixture/server.js`
+serves that site on `http://localhost:4213` (bound to `127.0.0.1`;
+`SESSION_REPLAY_ASSET_PORT` moves it), which is a different site from the
+page's `127.0.0.1:4212`, as a real recorded site is. It serves only the
+files under `/replay-assets/` that the fixture names; anything else is a 404,
+never the fixture's HTML. `RecordedAssets.spec.ts` pins what the replay
+loads, what still cannot load and what the player says about it, that the
+recorded page still runs, connects to, frames and plays nothing, the
+referrer each request carries, Mask all text, and a seek back.
+`FrameScreenshot.spec.ts` pins the screenshot of such a frame.
+
+- **`&run=<token>`** tags every recorded address. The server logs each
+  request the recorded site receives - path, query, referer,
+  `sec-fetch-dest`, `sec-fetch-site`, status - before it answers, and
+  `/__fixture/asset-log?run=<token>` on the page's origin returns a run's
+  entries, so a spec reads back only its own requests.
+- **`&masking=all`** makes it a recording made under Mask all text, whose
+  replay loads none of the page's images.
+- **`&hold=image`** adds one more image, which the server answers only once
+  a spec posts to `/__fixture/asset-release?run=<token>`: a frame can be
+  captured while the stage is still loading it, with no timing involved.
+
+The page is served with its own policy, `connect-src 'self'; font-src 'self'
+data: http://localhost:4213`. The replay iframe is `about:blank`, so it
+inherits that policy on top of the one the stage injects, and both are
+enforced. That is why `font-src` names the recorded site: without it, the
+page's policy and not the replay's would be what refuses the recorded page's
+web fonts. It is also why the connect probe, `/__fixture/connect-probe`, is
+on the page's own origin: `connect-src 'self'` allows it, so only the
+replay's own `connect-src 'none'` can refuse a fetch to it. The Dashboard
+sends no such header itself, but a reverse proxy in front of a self-hosted
+install can add one, and it then constrains playback in the same way.
+
 Screenshots are written to `output/playwright/session-replay-ui/`. They are
 production UI screenshots with synthetic data, not screenshots of a separate
 mockup. Failure traces and screenshots are under its `test-results` directory.

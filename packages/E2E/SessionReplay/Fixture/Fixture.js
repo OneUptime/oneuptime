@@ -57,6 +57,21 @@ const newerUserSessionId = "f".repeat(32);
 const hasNewerUserSession =
   params.get("neighbour") === "newer" ||
   window.location.pathname.endsWith(newerUserSessionId);
+// ?assets=site: the recorded page loads its own images, a stylesheet and web
+// fonts from the site it was recorded on - the second origin server.js runs
+// (window.__sessionReplayAssetOrigin) - as a real recording does for all
+// rrweb keeps as an address: every <img>, and a cross-origin stylesheet it
+// could not read (#4119). Browser recordings only. &run= tags every address
+// so a spec reads back only its own requests from the server's log, and
+// &hold=image adds an image the server holds back until the spec releases it.
+const siteAssets = params.get("assets") === "site" && !mobileRecording;
+const assetRun = params.get("run") || "default";
+const assetUrl = (name) =>
+  `${window.__sessionReplayAssetOrigin}/replay-assets/${name}?run=${encodeURIComponent(assetRun)}`;
+const holdsAnImage = siteAssets && params.get("hold") === "image";
+// ?masking=all: the browser recording was made under Mask all text, whose
+// replay never loads the recorded page's images (see ReplayStage.tsx).
+const maskAllText = params.get("masking") === "all";
 const now = Date.now();
 const started = now - 7 * 60 * 1000;
 const count = empty ? 0 : Number(params.get("count") || 8);
@@ -241,7 +256,8 @@ const records = Array.from({ length: count }, (_, index) => {
     identifiedUserTraits:
       index % 4 === 2 ? {} : { plan: "Pro", account: "Commerce" },
     tags: { release: "2026.09.11", environment: "production" },
-    maskingMode: mobileRecording ? "MaskAllText" : "MaskInputsOnly",
+    maskingMode:
+      mobileRecording || maskAllText ? "MaskAllText" : "MaskInputsOnly",
     fidelityNotices: mobileRecording
       ? [
           "mobile-images-opaque",
@@ -701,6 +717,8 @@ API.post = async ({ url, data }) => {
 
 let nodeId;
 let recordedScrollNodeId;
+// ?assets=site: the strip the page adds its late image to.
+let assetParentNodeId;
 function textNode(textContent) {
   return { type: 3, id: nodeId++, textContent };
 }
@@ -837,6 +855,174 @@ function mobileSnapshot() {
     ],
   };
 }
+/*
+ * The part of the page that comes from the recorded site (?assets=site),
+ * shaped like the Power Pages portal in #4119: an offline banner at the
+ * top that only a cross-origin stylesheet hides, holding the "web" and
+ * "close" icons, and a logo in the header. rrweb keeps such a stylesheet as
+ * a <link> with no _cssText, and every <img> as its address, so the replay
+ * has to load them from the site.
+ *
+ * The strip under the header holds the rest: a nav the stylesheet colours;
+ * a data: image, a control that draws anywhere; an image that 404s, carrying
+ * an onerror payload that would set a flag on the Dashboard's window and
+ * send a beacon; an image its site serves to itself only (CORP); CSS
+ * background images from a style attribute and from the recorded <style>;
+ * text in each web font; an <audio>, an <iframe> and a <script> that must
+ * never load or run; and, for &hold=image, an image the server answers only
+ * once a spec releases it.
+ */
+function recordedSite() {
+  const banner = element(
+    "div",
+    {
+      id: "fixture-offline-banner",
+      class: "offline-banner",
+      // No inline display: that would beat the stylesheet hiding it.
+      style:
+        "padding:10px 52px;background:#1f2937;color:#ffffff;font-size:14px",
+    },
+    [
+      element(
+        "img",
+        { id: "fixture-asset-web", src: assetUrl("web.svg"), alt: "web" },
+        [],
+      ),
+      textNode("You're offline. This is a read only version of the page."),
+      element(
+        "img",
+        { id: "fixture-asset-close", src: assetUrl("close.svg"), alt: "close" },
+        [],
+      ),
+    ],
+  );
+  const logo = element(
+    "img",
+    {
+      id: "fixture-asset-logo",
+      src: assetUrl("logo.svg"),
+      alt: "logo",
+      style: "vertical-align:middle;margin-right:14px",
+    },
+    [],
+  );
+  const dataImage = `data:image/svg+xml;base64,${btoa(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="#7c3aed"/></svg>',
+  )}`;
+  const strip = element(
+    "div",
+    {
+      id: "fixture-asset-strip",
+      style:
+        "display:flex;flex-wrap:wrap;align-items:center;gap:12px;max-width:1080px;margin:18px auto 0",
+    },
+    [
+      // &hold=image: first in the strip, so it sits where the stage puts it
+      // in a screenshot too. A screenshot draws web-font text in its fallback
+      // font, which moves everything that follows that text along the line.
+      ...(holdsAnImage
+        ? [
+            element(
+              "img",
+              {
+                id: "fixture-asset-held",
+                src: assetUrl("held.svg"),
+                alt: "held product photo",
+                width: "120",
+                height: "60",
+              },
+              [],
+            ),
+          ]
+        : []),
+      element("nav", { id: "fixture-asset-nav" }, [textNode("FAQ'S")]),
+      element(
+        "img",
+        { id: "fixture-asset-data", src: dataImage, alt: "data icon" },
+        [],
+      ),
+      element(
+        "img",
+        {
+          id: "fixture-asset-missing",
+          src: assetUrl("missing.svg"),
+          alt: "missing",
+          onerror: `parent.__replayAssetScript="onerror";new Image().src="${assetUrl("beacon.gif")}&from=onerror"`,
+        },
+        [],
+      ),
+      element(
+        "img",
+        { id: "fixture-asset-corp", src: assetUrl("corp.svg"), alt: "corp" },
+        [],
+      ),
+      element(
+        "div",
+        {
+          id: "fixture-asset-background",
+          style: `width:40px;height:40px;background-image:url("${assetUrl("background.svg")}")`,
+        },
+        [],
+      ),
+      element("div", { id: "fixture-asset-inline-style-bg" }, []),
+      element(
+        "span",
+        { id: "fixture-asset-cors-font", class: "fixture-cors-font" },
+        [textNode("Opening hours")],
+      ),
+      element(
+        "span",
+        { id: "fixture-asset-portal-font", class: "fixture-portal-font" },
+        [textNode("Portal icons")],
+      ),
+      element(
+        "span",
+        { id: "fixture-asset-inline-font", class: "fixture-inline-font" },
+        [textNode("Recorded font")],
+      ),
+      element(
+        "audio",
+        {
+          id: "fixture-asset-audio",
+          src: assetUrl("clip.mp3"),
+          preload: "auto",
+        },
+        [],
+      ),
+      element(
+        "iframe",
+        {
+          id: "fixture-asset-frame",
+          src: assetUrl("frame.html"),
+          style: "width:40px;height:40px;border:0",
+        },
+        [],
+      ),
+      element("script", {}, [textNode('parent.__replayAssetScript="script"')]),
+    ],
+  );
+  assetParentNodeId = strip.id;
+  return {
+    banner,
+    logo,
+    strip,
+    // Recorded inline, as rrweb records a <style>: a background image and a
+    // web font the replay document requests on the page's behalf.
+    css:
+      `#fixture-asset-inline-style-bg{width:40px;height:40px;background-image:url("${assetUrl("inline-style-bg.svg")}")}` +
+      `@font-face{font-family:"FixtureInlineFont";src:url("${assetUrl("font-inline.woff2")}") format("woff2")}` +
+      '.fixture-inline-font{font-family:"FixtureInlineFont",monospace}',
+    stylesheet: element(
+      "link",
+      {
+        id: "fixture-asset-stylesheet",
+        rel: "stylesheet",
+        href: assetUrl("site.css"),
+      },
+      [],
+    ),
+  };
+}
 function snapshot() {
   nodeId = 10;
   const css = `*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#192132;font:16px -apple-system,BlinkMacSystemFont,sans-serif}header{background:white;padding:26px 52px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between}.brand{font-size:22px;font-weight:750;letter-spacing:3px}main{max-width:1080px;margin:38px auto;display:grid;grid-template-columns:1fr 360px;gap:28px}section,aside{background:white;border:1px solid #e3e6eb;border-radius:12px;padding:30px}h1{font-size:28px;margin:0 0 8px;user-select:none}h2{font-size:19px;margin:0 0 20px}.muted{color:#6b7280;font-size:14px}.field{border:1px solid #d1d5db;border-radius:7px;padding:14px;margin:9px 0 18px;background:#fafbfc}.label{font-size:13px;font-weight:600;margin-top:14px}.total{display:flex;justify-content:space-between;margin:20px 0}.product{padding:20px 0;border-bottom:1px solid #eee}button{width:100%;padding:16px;background:#292524;color:white;border:0;border-radius:7px;font-size:15px;font-weight:600}.notice{margin-top:18px;padding:13px;background:#fff7ed;color:#9a3412;border-radius:6px;font-size:13px}.steps{margin:22px 0;color:#78716c;font-size:13px}.swatch{background:#d6cfbf;width:50px;height:60px;float:left;border-radius:4px;margin-right:16px}`;
@@ -860,11 +1046,18 @@ function snapshot() {
     ],
   );
   recordedScrollNodeId = recordedScroll.id;
+  // Built only for ?assets=site, so every other variant's ids are unchanged.
+  const site = siteAssets ? recordedSite() : null;
   const body = element("body", {}, [
+    ...(site ? [site.banner] : []),
     element("header", {}, [
-      element("span", { class: "brand" }, [textNode("FORM & FIELD")]),
+      element("span", { class: "brand" }, [
+        ...(site ? [site.logo] : []),
+        textNode("FORM & FIELD"),
+      ]),
       element("span", { class: "muted" }, [textNode("Secure checkout")]),
     ]),
+    ...(site ? [site.strip] : []),
     element("main", {}, [
       element("section", {}, [
         element("h1", {}, [textNode("Complete your order")]),
@@ -943,7 +1136,10 @@ function snapshot() {
     childNodes: [
       { type: 1, id: 2, name: "html", publicId: "", systemId: "" },
       element("html", {}, [
-        element("head", {}, [element("style", {}, [textNode(css)])]),
+        element("head", {}, [
+          element("style", {}, [textNode(site ? css + site.css : css)]),
+          ...(site ? [site.stylesheet] : []),
+        ]),
         body,
       ]),
     ],
@@ -981,6 +1177,41 @@ function chunkEvents(index, startTime) {
       y: 120,
     },
   });
+  if (siteAssets) {
+    /*
+     * Two seconds in, the page adds one more image of its own: one that
+     * arrives by an incremental mutation, after the rebuild. Its id sits
+     * far above the snapshot's, and each chunk's full snapshot resets the
+     * Replayer's mirror, so every chunk can add it again.
+     */
+    events.push({
+      type: 3,
+      timestamp: timestamp + 2000,
+      data: {
+        source: 0,
+        texts: [],
+        attributes: [],
+        removes: [],
+        adds: [
+          {
+            parentId: assetParentNodeId,
+            nextId: null,
+            node: {
+              type: 2,
+              id: 9001,
+              tagName: "img",
+              attributes: {
+                id: "fixture-asset-late",
+                src: assetUrl("late.svg"),
+                alt: "late",
+              },
+              childNodes: [],
+            },
+          },
+        ],
+      },
+    });
+  }
   for (let at = 1000; at < 30000; at += 2500) {
     const time = offset + at;
     events.push({
