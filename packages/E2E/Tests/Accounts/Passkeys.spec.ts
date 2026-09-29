@@ -4,6 +4,7 @@ import {
   IS_BILLING_ENABLED,
 } from "../../Config";
 import { registerAndCreateProject } from "../Dashboard/Helpers/ProductOnboarding";
+import { clickRowMenuAction } from "../Helpers/RowActions";
 import {
   APIRequestContext,
   APIResponse,
@@ -844,11 +845,11 @@ test.describe("Passkey account lifecycle", () => {
 
   test("revokes a registered passkey while preserving password sign-in", async () => {
     await page.goto(profileUrl);
-    await page
-      .getByRole("row")
-      .filter({ hasText: passkeyName })
-      .getByRole("button", { name: "Delete", exact: true })
-      .click();
+    // Rename is the row's one button; Delete is in its ⋯ menu.
+    await clickRowMenuAction({
+      row: page.getByRole("row").filter({ hasText: passkeyName }),
+      name: "Delete",
+    });
     await page.getByTestId("modal-footer-submit-button").click();
     await expect(
       page.getByRole("row").filter({ hasText: passkeyName }),
