@@ -308,6 +308,8 @@ describe("the share link", () => {
     expect(code).toContain(
       "confirmDescription={IncidentFormCopy.resetLinkConfirmation}",
     );
-    expect(code).toContain("constlink:URL=getIncidentFormShareLink(shareKey);");
+    expect(code).toContain(
+      "constlink:URL=getIncidentFormShareLink(shown.shareKey);",
+    );
   });
 });

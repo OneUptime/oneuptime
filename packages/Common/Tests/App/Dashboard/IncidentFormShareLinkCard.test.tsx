@@ -386,6 +386,158 @@ describe("a form that is turned off", () => {
   });
 });
 
+describe("reading the form again", () => {
+  /*
+   * Each read waits until the test answers it, in any order, with the form
+   * as it is at that moment (storedForm), or with "not found".
+   */
+  type Answer = (form: StoredForm | null) => void;
+
+  const pendingAnswers: Array<Answer> = [];
+
+  function answerReadsByHand(): void {
+    pendingAnswers.length = 0;
+
+    getItemMock.mockImplementation((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        pendingAnswers.push((form: StoredForm | null): void => {
+          if (!form) {
+            resolve(null);
+            return;
+          }
+
+          const model: IncidentForm = new IncidentForm();
+          model._id = FORM_ID;
+
+          if (form.shareKey) {
+            model.shareKey = new ObjectID(form.shareKey);
+          }
+
+          if (form.isEnabled !== undefined) {
+            model.isEnabled = form.isEnabled;
+          }
+
+          resolve(model);
+        });
+      });
+    });
+  }
+
+  async function answer(index: number, form: StoredForm | null): Promise<void> {
+    await act(async (): Promise<void> => {
+      pendingAnswers[index]!(form);
+    });
+  }
+
+  function rerenderWith(
+    result: RenderResult,
+    modelId: string,
+    refresher: boolean,
+  ): Promise<void> {
+    return act(async (): Promise<void> => {
+      result.rerender(
+        <MemoryRouter>
+          <IncidentFormShareLinkCard
+            modelId={new ObjectID(modelId)}
+            refresher={refresher}
+          />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  test("keeps the link on screen meanwhile, with no loader and no blink", async () => {
+    answerReadsByHand();
+
+    const result: RenderResult = await renderCard();
+
+    await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
+
+    expect(shownLink()).toBe(expectedLink(SHARE_KEY));
+
+    await rerenderWith(result, FORM_ID, true);
+
+    expect(pendingAnswers).toHaveLength(2);
+    // The second read has not been answered yet.
+    expect(shownLink()).toBe(expectedLink(SHARE_KEY));
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(cardButtons()).toHaveLength(1);
+
+    await answer(1, { shareKey: SHARE_KEY, isEnabled: false });
+
+    expect(
+      screen.getByTestId("incident-form-share-link-turned-off"),
+    ).toBeInTheDocument();
+  });
+
+  test("shows the latest read, even when an earlier one answers last", async () => {
+    answerReadsByHand();
+
+    const result: RenderResult = await renderCard();
+
+    await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
+    await rerenderWith(result, FORM_ID, true);
+    await rerenderWith(result, FORM_ID, false);
+
+    expect(pendingAnswers).toHaveLength(3);
+
+    // The newest read: the form was turned off.
+    await answer(2, { shareKey: SHARE_KEY, isEnabled: false });
+    // A slower, older read that still saw it on.
+    await answer(1, { shareKey: SHARE_KEY, isEnabled: true });
+
+    expect(
+      screen.getByTestId("incident-form-share-link-turned-off"),
+    ).toBeInTheDocument();
+  });
+
+  test("a read again that finds no form says so, and the old link goes", async () => {
+    answerReadsByHand();
+
+    const result: RenderResult = await renderCard();
+
+    await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
+    await rerenderWith(result, FORM_ID, true);
+    await answer(1, null);
+
+    expect(
+      screen.queryByTestId("incident-form-share-link"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(IncidentFormCopy.shareLinkNotFound),
+    ).toBeInTheDocument();
+    expect(cardButtons()).toHaveLength(0);
+  });
+
+  test("another form's page never shows this form's link while its own loads", async () => {
+    const OTHER_FORM_ID: string = "0e0e0e0e-0000-4000-8000-0000000000ee";
+    const OTHER_SHARE_KEY: string = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+
+    answerReadsByHand();
+
+    const result: RenderResult = await renderCard();
+
+    await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
+    await rerenderWith(result, OTHER_FORM_ID, false);
+
+    expect(
+      screen.queryByTestId("incident-form-share-link"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(cardButtons()).toHaveLength(0);
+
+    const request: { id: ObjectID } = getItemMock.mock.calls[1]![0] as {
+      id: ObjectID;
+    };
+
+    expect(request.id.toString()).toBe(OTHER_FORM_ID);
+
+    await answer(1, { shareKey: OTHER_SHARE_KEY, isEnabled: true });
+
+    expect(shownLink()).toBe(expectedLink(OTHER_SHARE_KEY));
+  });
+});
+
 describe("Reset Link", () => {
   test("is the card's button", async () => {
     await renderLoadedCard();

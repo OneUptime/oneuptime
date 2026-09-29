@@ -16,7 +16,13 @@ import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 import useAsyncEffect from "use-async-effect";
 
 /*
@@ -43,19 +49,39 @@ export interface ComponentProps {
 const LINK_ACTION_CLASS_NAME: string =
   "inline-flex items-center justify-center gap-1 rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-200";
 
+// What the card last read: the form it belongs to, its key and Enabled.
+interface LoadedLink {
+  formId: string;
+  shareKey: ObjectID;
+  isEnabled: boolean;
+}
+
 const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
 
-  const [shareKey, setShareKey] = useState<ObjectID | null>(null);
-  const [isEnabled, setIsEnabled] = useState<boolean>(true);
+  const [loaded, setLoaded] = useState<LoadedLink | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  /*
+   * Reads are numbered so that only the latest one is shown: a slow answer
+   * to an earlier read must not replace a newer one.
+   */
+  const latestReadRef: MutableRefObject<number> = useRef<number>(0);
+
   const load: PromiseVoidFunction = async (): Promise<void> => {
+    const formId: string = props.modelId.toString();
+
+    latestReadRef.current += 1;
+    const read: number = latestReadRef.current;
+
     setIsLoading(true);
     setError("");
+
+    let next: LoadedLink | null = null;
+    let nextError: string = "";
 
     try {
       const form: IncidentForm | null = await ModelAPI.getItem<IncidentForm>({
@@ -68,18 +94,25 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
       });
 
       if (form && form.shareKey) {
-        setShareKey(new ObjectID(form.shareKey.toString()));
-        // The column defaults to on, so only an explicit false is off.
-        setIsEnabled(form.isEnabled !== false);
+        next = {
+          formId: formId,
+          shareKey: new ObjectID(form.shareKey.toString()),
+          // The column defaults to on, so only an explicit false is off.
+          isEnabled: form.isEnabled !== false,
+        };
       } else {
-        setShareKey(null);
-        setError(IncidentFormCopy.shareLinkNotFound);
+        nextError = IncidentFormCopy.shareLinkNotFound;
       }
     } catch (err) {
-      setShareKey(null);
-      setError(API.getFriendlyMessage(err));
+      nextError = API.getFriendlyMessage(err);
     }
 
+    if (read !== latestReadRef.current) {
+      return;
+    }
+
+    setLoaded(next);
+    setError(nextError);
     setIsLoading(false);
   };
 
@@ -88,10 +121,18 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
   }, [props.modelId.toString(), props.refresher]);
 
   /*
+   * Reading the same form again - after it was turned on or off elsewhere on
+   * the page - keeps its link on screen meanwhile, so the card does not
+   * blink. Another form's link is never shown for this one.
+   */
+  const shown: LoadedLink | null =
+    loaded && loaded.formId === props.modelId.toString() ? loaded : null;
+
+  /*
    * Until there is a link to show, there is nothing to copy, open or reset:
    * the card says what it is for and why it is empty, with no button.
    */
-  if (isLoading || error || !shareKey) {
+  if (!shown) {
     return (
       <Card
         title={IncidentFormCopy.shareLinkTitle}
@@ -106,7 +147,7 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const link: URL = getIncidentFormShareLink(shareKey);
+  const link: URL = getIncidentFormShareLink(shown.shareKey);
   const linkText: string = link.toString();
 
   return (
@@ -123,7 +164,11 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
       resultTitle={IncidentFormCopy.newLinkTitle}
       resultDescription={IncidentFormCopy.newLinkDescription}
       onUpdateComplete={(newShareKey: ObjectID) => {
-        setShareKey(newShareKey);
+        // The server stores the key exactly as sent: no need to read it back.
+        setLoaded({
+          ...shown,
+          shareKey: newShareKey,
+        });
       }}
     >
       <div className="space-y-4" data-testid="incident-form-share-link-card">
@@ -164,7 +209,7 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        {isEnabled ? (
+        {shown.isEnabled ? (
           <></>
         ) : (
           <Alert
