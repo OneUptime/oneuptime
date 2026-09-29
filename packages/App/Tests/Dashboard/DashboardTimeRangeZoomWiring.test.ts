@@ -142,11 +142,16 @@ describe("dashboard-wide time range zoom wiring", () => {
     /*
      * Two chart bags are built — one per query chart, one per formula
      * chart. A reset wired to only one of them leaves half a dashboard
-     * unable to undo the zoom.
+     * unable to undo the zoom. The third is the bucket inspector, which
+     * resolves the same reset the charts end up with, for the rest of a
+     * double-click that lands on it (issue #4116).
      */
     const matches: RegExpMatchArray | null = source.match(
       /onTimeRangeReset: props\.onTimeRangeReset,/g,
     );
-    expect(matches?.length).toBe(2);
+    expect(matches?.length).toBe(3);
+    expect(source).toContain(
+      "resolveChartTimeRangeZoom({ onTimeRangeSelect: props.onTimeRangeSelect, onTimeRangeReset: props.onTimeRangeReset, isTimeAxis: true, pageZoom: pageZoom, }).onTimeRangeReset;",
+    );
   });
 });

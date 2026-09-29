@@ -177,8 +177,14 @@ describe("the bucket inspector (Components/Metrics/MetricCharts.tsx)", () => {
       "Investigate this moment",
     );
 
+    /*
+     * ...except that while the charts offer a reset, the second press of
+     * that double-click is still the way back out of the zoom (issue
+     * #4116): a double-click slower than the chart's wait for one opens
+     * the inspector under the pointer, and the press lands on it.
+     */
     expect(inspector).toContain(
-      "onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => { if (event.detail <= 1) { bucketInspectorPressedRef.current = true; return; } if (!bucketInspectorPressedRef.current) { event.preventDefault(); } }}",
+      "onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => { if (event.detail <= 1) { bucketInspectorPressedRef.current = true; return; } if (!bucketInspectorPressedRef.current) { event.preventDefault(); if (event.detail === 2 && chartsTimeRangeReset) { closeBucketInspector(); chartsTimeRangeReset(); } } }}",
     );
     expect(inspector).toContain(
       "onClickCapture={(event: React.MouseEvent<HTMLDivElement>) => { if (event.detail > 1 && !bucketInspectorPressedRef.current) { event.preventDefault(); event.stopPropagation(); } }}",
