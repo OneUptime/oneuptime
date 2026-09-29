@@ -107,6 +107,7 @@ jest.mock(
 import ValueWidgetView, {
   SPARKLINE_SELECTION_TEST_ID,
   SPARKLINE_TEST_ID,
+  Sparkline,
   SparklinePoint,
   ValueWidgetViewProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetView";
@@ -181,10 +182,17 @@ function crashed(): HTMLElement | null {
  * minute: every point reads differently, and differently from any
  * aggregate the tests hand the view.
  */
-function minutePoints(firstMinute: number, count: number): Array<SparklinePoint> {
+function minutePoints(
+  firstMinute: number,
+  count: number,
+): Array<SparklinePoint> {
   const points: Array<SparklinePoint> = [];
 
-  for (let minute: number = firstMinute; minute < firstMinute + count; minute++) {
+  for (
+    let minute: number = firstMinute;
+    minute < firstMinute + count;
+    minute++
+  ) {
     points.push({ timestamp: at(minute), value: 100 + minute });
   }
 
@@ -210,9 +218,9 @@ interface LaidOutSparkline {
 }
 
 function sparklineIn(container: HTMLElement | null): SVGSVGElement {
-  return (
-    container ? within(container) : screen
-  ).getByTestId(SPARKLINE_TEST_ID) as unknown as SVGSVGElement;
+  return (container ? within(container) : screen).getByTestId(
+    SPARKLINE_TEST_ID,
+  ) as unknown as SVGSVGElement;
 }
 
 function pointCountOf(svg: SVGSVGElement): number {
@@ -305,6 +313,123 @@ function windowsOf(mock: MockFunction): Array<[number, number]> {
 
 afterEach(() => {
   cleanup();
+});
+
+/*
+ * What the line tells whoever draws the read-out: the index of the point
+ * under the pointer, and null as soon as that index names no point on the
+ * line as it is now. The view holds only that index, so these are the
+ * moments it must hear about.
+ */
+describe("the Sparkline's word to its host about the point under the pointer", () => {
+  let onHoverIndex: MockFunction;
+  let onSelect: MockFunction;
+
+  function line(points: Array<SparklinePoint>): React.ReactElement {
+    return (
+      <Sparkline
+        data={points}
+        width={120}
+        height={24}
+        color="#6366f1"
+        fillColor="rgba(99, 102, 241, 0.08)"
+        onHoverIndex={onHoverIndex as unknown as (index: number | null) => void}
+        onTimeRangeSelect={
+          onSelect as unknown as (startTime: Date, endTime: Date) => void
+        }
+      />
+    );
+  }
+
+  // Everything the host has been told, in order.
+  function told(): Array<number | null> {
+    return onHoverIndex.mock.calls.map(
+      (call: Array<unknown>): number | null => {
+        return call[0] as number | null;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    onHoverIndex = getJestMockFunction();
+    onSelect = getJestMockFunction();
+  });
+
+  test("a move names the point under the pointer by its index in the data", () => {
+    render(line(minutePoints(0, 6)));
+
+    hoverOver(layOut(), 4);
+
+    expect(told()).toEqual([4]);
+  });
+
+  test("a drag that zooms lets go of the hover before it hands the window up", () => {
+    render(line(minutePoints(0, 6)));
+
+    dragAcross(layOut(), 1, 3);
+
+    expect(windowsOf(onSelect)).toEqual([[at(1).getTime(), at(4).getTime()]]);
+    expect(told()[told().length - 1]).toBeNull();
+    /*
+     * Told first, so nothing the zoom renders on its way in can read the
+     * point the pointer was over in the window being left.
+     */
+    const hoverCalls: Array<number> = onHoverIndex.mock.invocationCallOrder;
+    expect(hoverCalls[hoverCalls.length - 1]!).toBeLessThan(
+      onSelect.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a press and release on one point zooms nothing, so the hover stands", () => {
+    render(line(minutePoints(0, 6)));
+    const sparkline: LaidOutSparkline = layOut();
+
+    hoverOver(sparkline, 2);
+    pressOn(sparkline, 2);
+    releaseOn(sparkline, 2);
+
+    expect(onSelect).not.toHaveBeenCalled();
+    // Never told to let go: the read-out still shows the point.
+    expect(told()).toEqual([2]);
+    expect(hoverMarkerIn(sparkline.svg)).not.toBeNull();
+  });
+
+  test("redrawn with as many points the hover stands; with a different number it is let go of, once", () => {
+    const rendered: RenderResult = render(line(minutePoints(0, 6)));
+    hoverOver(layOut(), 2);
+
+    // A rolling window moved on a minute: six points again.
+    rendered.rerender(line(minutePoints(1, 6)));
+    expect(told()).toEqual([2]);
+    expect(hoverMarkerIn(sparklineIn(null))).not.toBeNull();
+
+    rendered.rerender(line(minutePoints(0, 4)));
+    expect(told()).toEqual([2, null]);
+    expect(hoverMarkerIn(sparklineIn(null))).toBeNull();
+
+    // Nothing more to say while the count holds.
+    rendered.rerender(line(minutePoints(2, 4)));
+    expect(told()).toEqual([2, null]);
+  });
+
+  test("a line cut to one point draws nothing, and lets go of the hover", () => {
+    const rendered: RenderResult = render(line(minutePoints(0, 6)));
+    hoverOver(layOut(), 5);
+
+    rendered.rerender(line(minutePoints(0, 1)));
+
+    expect(told()).toEqual([5, null]);
+    expect(screen.queryByTestId(SPARKLINE_TEST_ID)).toBeNull();
+  });
+
+  test("taken away while hovered, it lets go of the hover", () => {
+    const rendered: RenderResult = render(line(minutePoints(0, 6)));
+    hoverOver(layOut(), 3);
+
+    rendered.unmount();
+
+    expect(told()).toEqual([3, null]);
+  });
 });
 
 describe("the sparkline under a line that changes beneath the pointer", () => {
@@ -530,9 +655,41 @@ describe("the sparkline under a line that changes beneath the pointer", () => {
     });
   });
 
+  describe("the empty state a zoom into a quiet stretch lands on", () => {
+    const NO_DATA: string = "No data for the selected time range";
+
+    // The box that takes the double-click: the message sits directly in it.
+    function emptyState(): HTMLElement {
+      return screen.getByText(NO_DATA).parentElement as HTMLElement;
+    }
+
+    test("while it takes the double-click that resets, the double-click selects none of its words", () => {
+      const onReset: MockFunction = getJestMockFunction();
+      renderView({
+        value: null,
+        points: [],
+        onTimeRangeReset: onReset as unknown as () => void,
+      });
+
+      expect(emptyState()).toHaveClass("select-none");
+
+      fireEvent.doubleClick(screen.getByText(NO_DATA));
+      expect(onReset).toHaveBeenCalledTimes(1);
+    });
+
+    test("with no zoom to undo, its words stay selectable", () => {
+      renderView({ value: null, points: [] });
+
+      expect(emptyState()).not.toHaveClass("select-none");
+    });
+  });
+
   describe("a refresh that lands one point fewer in the middle of a drag", () => {
     // Seven five-minute points, 10:00 to 10:30.
-    function fiveMinutePoints(fromIndex: number, toIndex: number): Array<SparklinePoint> {
+    function fiveMinutePoints(
+      fromIndex: number,
+      toIndex: number,
+    ): Array<SparklinePoint> {
       const points: Array<SparklinePoint> = [];
 
       for (let index: number = fromIndex; index <= toIndex; index++) {
@@ -570,9 +727,7 @@ describe("the sparkline under a line that changes beneath the pointer", () => {
       const svg: SVGSVGElement = sparklineIn(null);
       expect(pointCountOf(svg)).toBe(6);
       // The band runs from the drag's start to the newest point left.
-      expect(Number(band()!.getAttribute("x"))).toBeCloseTo(
-        bandXOf(svg, 3, 6),
-      );
+      expect(Number(band()!.getAttribute("x"))).toBeCloseTo(bandXOf(svg, 3, 6));
       expect(Number(band()!.getAttribute("width"))).toBeCloseTo(
         bandXOf(svg, 5, 6) - bandXOf(svg, 3, 6),
       );
@@ -620,9 +775,7 @@ describe("the sparkline under a line that changes beneath the pointer", () => {
 
       expect(crashed()).toBeNull();
       const svg: SVGSVGElement = sparklineIn(null);
-      expect(Number(band()!.getAttribute("x"))).toBeCloseTo(
-        bandXOf(svg, 2, 6),
-      );
+      expect(Number(band()!.getAttribute("x"))).toBeCloseTo(bandXOf(svg, 2, 6));
       expect(Number(band()!.getAttribute("width"))).toBeCloseTo(
         bandXOf(svg, 5, 6) - bandXOf(svg, 2, 6),
       );
@@ -684,11 +837,7 @@ interface Point {
 function onePerMinute(start: Date, end: Date): Array<Point> {
   const points: Array<Point> = [];
 
-  for (
-    let ms: number = start.getTime();
-    ms < end.getTime();
-    ms += MINUTE_MS
-  ) {
+  for (let ms: number = start.getTime(); ms < end.getTime(); ms += MINUTE_MS) {
     points.push({ timestamp: new Date(ms), value: 1 });
   }
 
@@ -886,7 +1035,10 @@ function BoardShell(props: BoardShellProps): React.ReactElement {
   });
 }
 
-function board(host: HostUnderTest, refreshTick: number = 0): React.ReactElement {
+function board(
+  host: HostUnderTest,
+  refreshTick: number = 0,
+): React.ReactElement {
   return (
     <CrashBoundary>
       <BoardShell host={host} refreshTick={refreshTick} />
@@ -1007,9 +1159,10 @@ describe.each(HOSTS)(
 
       dragAcross(layOut(), 5, 15);
       await lineOf(11);
-      expect(host.fetchedWindows()[host.fetchedWindows().length - 1]).toEqual(
-        [at(25).getTime(), at(36).getTime()],
-      );
+      expect(host.fetchedWindows()[host.fetchedWindows().length - 1]).toEqual([
+        at(25).getTime(),
+        at(36).getTime(),
+      ]);
 
       // Back to the hour in one step, the pointer still on the line.
       fireEvent.doubleClick(sparklineIn(null));

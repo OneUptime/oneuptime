@@ -253,7 +253,9 @@ function answerWith(responder: Responder): void {
     const answer: JSONObject | Promise<never> = responder(
       (args[0] as { data: JSONObject }).data,
     );
-    return answer instanceof Promise ? answer : Promise.resolve({ data: answer });
+    return answer instanceof Promise
+      ? answer
+      : Promise.resolve({ data: answer });
   });
 }
 
@@ -361,6 +363,12 @@ const WIDGETS: Array<WidgetUnderTest> = [
 
 function hint(): HTMLElement | null {
   return screen.queryByTestId(DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID);
+}
+
+// The title a widget was built with, if it has one.
+function titleOf(component: DashboardBaseComponent): string | undefined {
+  return (component.arguments as { title?: string | undefined } | undefined)
+    ?.title;
 }
 
 function hints(): Array<HTMLElement> {
@@ -485,255 +493,294 @@ describe("DashboardWidgetZoomHint names only the gestures the widget has there a
   });
 });
 
-describe.each(WIDGETS)(
-  "the $name widget's hint",
-  (widget: WidgetUnderTest) => {
-    function renderWidget(
-      overrides: Partial<DashboardBaseComponentProps> = {},
-      component: DashboardBaseComponent = widget.titled(),
-    ): RenderResult {
-      return render(widget.element(buildBaseProps(overrides), component));
+describe.each(WIDGETS)("the $name widget's hint", (widget: WidgetUnderTest) => {
+  function renderWidget(
+    overrides: Partial<DashboardBaseComponentProps> = {},
+    component: DashboardBaseComponent = widget.titled(),
+  ): RenderResult {
+    return render(widget.element(buildBaseProps(overrides), component));
+  }
+
+  describe("with no chart to drag across", () => {
+    test("on a public board it never offers a drag over the 'not available' error", async () => {
+      enterPublicBoard();
+      renderWidget();
+
+      await screen.findByText(widget.publicText);
+
+      expect(hint()).toBeNull();
+      expect(apiPostMock).not.toHaveBeenCalled();
+    });
+
+    test("on a zoomed public board it names the double-click the error takes, and the double-click resets", async () => {
+      enterPublicBoard();
+      renderWidget({ isDashboardTimeRangeZoomed: true });
+
+      const error: HTMLElement = await screen.findByText(widget.publicText);
+
+      expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
+
+      fireEvent.doubleClick(error);
+
+      expect(onReset).toHaveBeenCalledTimes(1);
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    test("over an error it offers no drag, and names the reset while zoomed", async () => {
+      answerWith(failing);
+      const rendered: RenderResult = renderWidget();
+
+      await screen.findByText("analytics unavailable");
+      expect(hint()).toBeNull();
+
+      rendered.rerender(
+        widget.element(
+          buildBaseProps({ isDashboardTimeRangeZoomed: true }),
+          widget.titled(),
+        ),
+      );
+
+      await screen.findByText("analytics unavailable");
+      expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
+    });
+
+    test("over the no-data state it offers no drag", async () => {
+      answerWith(empty);
+      renderWidget();
+
+      await screen.findByText(widget.emptyText);
+
+      expect(hint()).toBeNull();
+    });
+
+    test("over the no-data state a zoom landed on, it names the double-click that gets back out", async () => {
+      answerWith(empty);
+      renderWidget({ isDashboardTimeRangeZoomed: true });
+
+      const emptyState: HTMLElement = await screen.findByText(widget.emptyText);
+
+      expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
+
+      fireEvent.doubleClick(emptyState);
+      expect(onReset).toHaveBeenCalledTimes(1);
+    });
+
+    test("while the first load is in flight it offers no drag", async () => {
+      answerNever();
+      renderWidget();
+
+      await waitFor(() => {
+        expect(apiPostMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      expect(hint()).toBeNull();
+    });
+  });
+
+  describe("with a chart drawn", () => {
+    test("it offers the drag, and names the reset once the board is zoomed", async () => {
+      const rendered: RenderResult = renderWidget();
+      await screen.findByTestId(widget.chartTestId);
+
+      expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_ONLY}$`));
+
+      rendered.rerender(
+        widget.element(
+          buildBaseProps({ isDashboardTimeRangeZoomed: true }),
+          widget.titled(),
+        ),
+      );
+
+      expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_AND_RESET}$`));
+    });
+
+    test("a chart that gives way to the no-data state takes the drag hint with it", async () => {
+      const rendered: RenderResult = renderWidget({
+        isDashboardTimeRangeZoomed: true,
+      });
+      await screen.findByTestId(widget.chartTestId);
+      expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_AND_RESET}$`));
+
+      // The next window has nothing in it.
+      answerWith(empty);
+      rendered.rerender(
+        widget.element(
+          buildBaseProps({ isDashboardTimeRangeZoomed: true, refreshTick: 1 }),
+          widget.titled(),
+        ),
+      );
+
+      await screen.findByText(widget.emptyText);
+      expect(screen.queryByTestId(widget.chartTestId)).toBeNull();
+      expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
+    });
+
+    test("edit mode offers no hint at all, chart or not", async () => {
+      renderWidget({ isEditMode: true, isDashboardTimeRangeZoomed: true });
+      await screen.findByTestId(widget.chartTestId);
+
+      expect(hint()).toBeNull();
+    });
+  });
+
+  describe("where the hint sits", () => {
+    test("a titled widget keeps it in its header row, beside the title", async () => {
+      renderWidget();
+      await screen.findByTestId(widget.chartTestId);
+
+      expect(hints()).toHaveLength(1);
+      const titleRow: HTMLElement = hint()!.parentElement!;
+      expect(titleRow).toHaveTextContent(String(titleOf(widget.titled())));
+      expect(hint()).toHaveClass("ml-auto");
+      expect(hint()).not.toHaveClass("absolute");
+    });
+
+    test("an untitled widget, as a new one starts, still names the gesture", async () => {
+      const component: DashboardBaseComponent = widget.untitled();
+      // The premise: a freshly added widget has no title.
+      expect(titleOf(component)).toBeUndefined();
+
+      renderWidget({}, component);
+      await screen.findByTestId(widget.chartTestId);
+
+      expect(hints()).toHaveLength(1);
+      expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_ONLY}$`));
+    });
+
+    test("untitled, it floats over the widget's top corner, revealed on hover, never taking the pointer", async () => {
+      const rendered: RenderResult = renderWidget({}, widget.untitled());
+      await screen.findByTestId(widget.chartTestId);
+
+      const floating: HTMLElement = hint()!;
+      expect(floating).toHaveClass("absolute");
+      expect(floating).toHaveClass("pointer-events-none");
+      expect(floating).toHaveClass("group-hover/zoomhint:opacity-100");
+
+      // Positioned against the widget itself, the named hover group.
+      const root: HTMLElement = rendered.container
+        .firstElementChild as HTMLElement;
+      expect(root).toHaveClass("group/zoomhint");
+      expect(root).toHaveClass("relative");
+      expect(floating.parentElement).toBe(root);
+      // After the chart, so the chart does not paint over it.
+      expect(root.lastElementChild).toBe(floating);
+    });
+
+    test("untitled, a drag across the chart beneath it still zooms", async () => {
+      renderWidget({}, widget.untitled());
+      const chart: HTMLElement = await screen.findByTestId(widget.chartTestId);
+      const buckets: Array<HTMLElement> = Array.from(
+        chart.querySelectorAll('[data-testid^="bucket-"]'),
+      );
+
+      fireEvent.mouseDown(buckets[0]!);
+      fireEvent.mouseMove(buckets[1]!);
+      fireEvent.mouseUp(buckets[1]!);
+
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+
+    test("untitled and zoomed into a quiet stretch, it names the way back", async () => {
+      answerWith(empty);
+      renderWidget({ isDashboardTimeRangeZoomed: true }, widget.untitled());
+
+      await screen.findByText(widget.emptyText);
+
+      expect(hints()).toHaveLength(1);
+      expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
+    });
+
+    test("untitled on a public board, it offers no drag over the error, and names the reset once zoomed", async () => {
+      enterPublicBoard();
+      const component: DashboardBaseComponent = widget.untitled();
+      const rendered: RenderResult = renderWidget({}, component);
+
+      await screen.findByText(widget.publicText);
+      expect(hint()).toBeNull();
+
+      rendered.rerender(
+        widget.element(
+          buildBaseProps({ isDashboardTimeRangeZoomed: true }),
+          component,
+        ),
+      );
+
+      await screen.findByText(widget.publicText);
+      expect(hints()).toHaveLength(1);
+      expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
+      expect(hint()).toHaveClass("absolute");
+    });
+
+    test("untitled, the hint follows the chart: gone with the data, back with it", async () => {
+      const component: DashboardBaseComponent = widget.untitled();
+      const rendered: RenderResult = renderWidget({}, component);
+      await screen.findByTestId(widget.chartTestId);
+      expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_ONLY}$`));
+
+      // An auto-refresh finds nothing in the window.
+      answerWith(empty);
+      rendered.rerender(
+        widget.element(buildBaseProps({ refreshTick: 1 }), component),
+      );
+      await screen.findByText(widget.emptyText);
+      expect(hint()).toBeNull();
+
+      // And the next one finds the data again.
+      answerWith(withData);
+      rendered.rerender(
+        widget.element(buildBaseProps({ refreshTick: 2 }), component),
+      );
+      await screen.findByTestId(widget.chartTestId);
+      expect(hints()).toHaveLength(1);
+      expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_ONLY}$`));
+    });
+
+    test("untitled in edit mode, there is still no hint", async () => {
+      renderWidget(
+        { isEditMode: true, isDashboardTimeRangeZoomed: true },
+        widget.untitled(),
+      );
+      await screen.findByTestId(widget.chartTestId);
+
+      expect(hint()).toBeNull();
+    });
+  });
+
+  describe("the states that take the reset double-click", () => {
+    function doubleClickTarget(text: string): HTMLElement {
+      return screen.getByText(text).closest(".min-h-0") as HTMLElement;
     }
 
-    describe("with no chart to drag across", () => {
-      test("on a public board it never offers a drag over the 'not available' error", async () => {
-        enterPublicBoard();
-        renderWidget();
+    test("while armed, a double-click on the no-data words selects none of them", async () => {
+      answerWith(empty);
+      renderWidget({ isDashboardTimeRangeZoomed: true });
 
-        await screen.findByText(widget.publicText);
+      await screen.findByText(widget.emptyText);
 
-        expect(hint()).toBeNull();
-        expect(apiPostMock).not.toHaveBeenCalled();
-      });
-
-      test("on a zoomed public board it names the double-click the error takes, and the double-click resets", async () => {
-        enterPublicBoard();
-        renderWidget({ isDashboardTimeRangeZoomed: true });
-
-        const error: HTMLElement = await screen.findByText(widget.publicText);
-
-        expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
-
-        fireEvent.doubleClick(error);
-
-        expect(onReset).toHaveBeenCalledTimes(1);
-        expect(onSelect).not.toHaveBeenCalled();
-      });
-
-      test("over an error it offers no drag, and names the reset while zoomed", async () => {
-        answerWith(failing);
-        const rendered: RenderResult = renderWidget();
-
-        await screen.findByText("analytics unavailable");
-        expect(hint()).toBeNull();
-
-        rendered.rerender(
-          widget.element(
-            buildBaseProps({ isDashboardTimeRangeZoomed: true }),
-            widget.titled(),
-          ),
-        );
-
-        await screen.findByText("analytics unavailable");
-        expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
-      });
-
-      test("over the no-data state it offers no drag", async () => {
-        answerWith(empty);
-        renderWidget();
-
-        await screen.findByText(widget.emptyText);
-
-        expect(hint()).toBeNull();
-      });
-
-      test("over the no-data state a zoom landed on, it names the double-click that gets back out", async () => {
-        answerWith(empty);
-        renderWidget({ isDashboardTimeRangeZoomed: true });
-
-        const emptyState: HTMLElement = await screen.findByText(
-          widget.emptyText,
-        );
-
-        expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
-
-        fireEvent.doubleClick(emptyState);
-        expect(onReset).toHaveBeenCalledTimes(1);
-      });
-
-      test("while the first load is in flight it offers no drag", async () => {
-        answerNever();
-        renderWidget();
-
-        await waitFor(() => {
-          expect(apiPostMock).toHaveBeenCalledTimes(1);
-        });
-
-        expect(screen.getByTestId("component-loader")).toBeInTheDocument();
-        expect(hint()).toBeNull();
-      });
+      expect(doubleClickTarget(widget.emptyText)).toHaveClass("select-none");
     });
 
-    describe("with a chart drawn", () => {
-      test("it offers the drag, and names the reset once the board is zoomed", async () => {
-        const rendered: RenderResult = renderWidget();
-        await screen.findByTestId(widget.chartTestId);
+    test("while armed, the same holds over an error", async () => {
+      answerWith(failing);
+      renderWidget({ isDashboardTimeRangeZoomed: true });
 
-        expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_ONLY}$`));
+      await screen.findByText("analytics unavailable");
 
-        rendered.rerender(
-          widget.element(
-            buildBaseProps({ isDashboardTimeRangeZoomed: true }),
-            widget.titled(),
-          ),
-        );
-
-        expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_AND_RESET}$`));
-      });
-
-      test("a chart that gives way to the no-data state takes the drag hint with it", async () => {
-        const rendered: RenderResult = renderWidget({
-          isDashboardTimeRangeZoomed: true,
-        });
-        await screen.findByTestId(widget.chartTestId);
-        expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_AND_RESET}$`));
-
-        // The next window has nothing in it.
-        answerWith(empty);
-        rendered.rerender(
-          widget.element(
-            buildBaseProps({ isDashboardTimeRangeZoomed: true, refreshTick: 1 }),
-            widget.titled(),
-          ),
-        );
-
-        await screen.findByText(widget.emptyText);
-        expect(screen.queryByTestId(widget.chartTestId)).toBeNull();
-        expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
-      });
-
-      test("edit mode offers no hint at all, chart or not", async () => {
-        renderWidget({ isEditMode: true, isDashboardTimeRangeZoomed: true });
-        await screen.findByTestId(widget.chartTestId);
-
-        expect(hint()).toBeNull();
-      });
+      expect(doubleClickTarget("analytics unavailable")).toHaveClass(
+        "select-none",
+      );
     });
 
-    describe("where the hint sits", () => {
-      test("a titled widget keeps it in its header row, beside the title", async () => {
-        renderWidget();
-        await screen.findByTestId(widget.chartTestId);
+    test("unarmed, an error's words stay selectable, to be copied", async () => {
+      answerWith(failing);
+      renderWidget();
 
-        expect(hints()).toHaveLength(1);
-        const titleRow: HTMLElement = hint()!.parentElement!;
-        expect(titleRow).toHaveTextContent(
-          String(widget.titled().arguments["title"]),
-        );
-        expect(hint()).toHaveClass("ml-auto");
-        expect(hint()).not.toHaveClass("absolute");
-      });
+      await screen.findByText("analytics unavailable");
 
-      test("an untitled widget, as a new one starts, still names the gesture", async () => {
-        const component: DashboardBaseComponent = widget.untitled();
-        // The premise: a freshly added widget has no title.
-        expect(component.arguments["title"]).toBeUndefined();
-
-        renderWidget({}, component);
-        await screen.findByTestId(widget.chartTestId);
-
-        expect(hints()).toHaveLength(1);
-        expect(hint()).toHaveTextContent(new RegExp(`^${DRAG_ONLY}$`));
-      });
-
-      test("untitled, it floats over the widget's top corner, revealed on hover, never taking the pointer", async () => {
-        const rendered: RenderResult = renderWidget({}, widget.untitled());
-        await screen.findByTestId(widget.chartTestId);
-
-        const floating: HTMLElement = hint()!;
-        expect(floating).toHaveClass("absolute");
-        expect(floating).toHaveClass("pointer-events-none");
-        expect(floating).toHaveClass("group-hover/zoomhint:opacity-100");
-
-        // Positioned against the widget itself, the named hover group.
-        const root: HTMLElement = rendered.container.firstElementChild as HTMLElement;
-        expect(root).toHaveClass("group/zoomhint");
-        expect(root).toHaveClass("relative");
-        expect(floating.parentElement).toBe(root);
-        // After the chart, so the chart does not paint over it.
-        expect(root.lastElementChild).toBe(floating);
-      });
-
-      test("untitled, a drag across the chart beneath it still zooms", async () => {
-        renderWidget({}, widget.untitled());
-        const chart: HTMLElement = await screen.findByTestId(widget.chartTestId);
-        const buckets: Array<HTMLElement> = Array.from(
-          chart.querySelectorAll('[data-testid^="bucket-"]'),
-        );
-
-        fireEvent.mouseDown(buckets[0]!);
-        fireEvent.mouseMove(buckets[1]!);
-        fireEvent.mouseUp(buckets[1]!);
-
-        expect(onSelect).toHaveBeenCalledTimes(1);
-      });
-
-      test("untitled and zoomed into a quiet stretch, it names the way back", async () => {
-        answerWith(empty);
-        renderWidget({ isDashboardTimeRangeZoomed: true }, widget.untitled());
-
-        await screen.findByText(widget.emptyText);
-
-        expect(hints()).toHaveLength(1);
-        expect(hint()).toHaveTextContent(new RegExp(`^${RESET_ONLY}$`));
-      });
-
-      test("untitled in edit mode, there is still no hint", async () => {
-        renderWidget(
-          { isEditMode: true, isDashboardTimeRangeZoomed: true },
-          widget.untitled(),
-        );
-        await screen.findByTestId(widget.chartTestId);
-
-        expect(hint()).toBeNull();
-      });
+      expect(doubleClickTarget("analytics unavailable")).not.toHaveClass(
+        "select-none",
+      );
     });
-
-    describe("the states that take the reset double-click", () => {
-      function doubleClickTarget(text: string): HTMLElement {
-        return screen.getByText(text).closest(".min-h-0") as HTMLElement;
-      }
-
-      test("while armed, a double-click on the no-data words selects none of them", async () => {
-        answerWith(empty);
-        renderWidget({ isDashboardTimeRangeZoomed: true });
-
-        await screen.findByText(widget.emptyText);
-
-        expect(doubleClickTarget(widget.emptyText)).toHaveClass("select-none");
-      });
-
-      test("while armed, the same holds over an error", async () => {
-        answerWith(failing);
-        renderWidget({ isDashboardTimeRangeZoomed: true });
-
-        await screen.findByText("analytics unavailable");
-
-        expect(doubleClickTarget("analytics unavailable")).toHaveClass(
-          "select-none",
-        );
-      });
-
-      test("unarmed, an error's words stay selectable, to be copied", async () => {
-        answerWith(failing);
-        renderWidget();
-
-        await screen.findByText("analytics unavailable");
-
-        expect(doubleClickTarget("analytics unavailable")).not.toHaveClass(
-          "select-none",
-        );
-      });
-    });
-  },
-);
+  });
+});

@@ -763,7 +763,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   // Past the end of points that have since shrunk, no point is hovered.
   const hoveredPoint: SparklinePoint | null =
-    hoveredIndex !== null ? (sparklineData[hoveredIndex] ?? null) : null;
+    hoveredIndex !== null ? sparklineData[hoveredIndex] ?? null : null;
 
   /*
    * Run the raw aggregate through ValueFormatter so bytes scale to
