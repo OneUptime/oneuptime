@@ -26,6 +26,8 @@ import VMwareVCenterResourcePools from "../Pages/VMware/View/ResourcePools";
 import VMwareVCenterInsights from "../Pages/VMware/View/Insights";
 import VMwareVCenterMetrics from "../Pages/VMware/View/Metrics";
 import VMwareVCenterRecommendations from "../Pages/VMware/View/Recommendations";
+import VMwareVCenterAiInsights from "../Pages/VMware/View/AI/Insights";
+import VMwareVCenterAiAgent from "../Pages/VMware/View/AI/Agent";
 import VMwareVCenterLogs from "../Pages/VMware/View/Logs";
 import VMwareVCenterIncidents from "../Pages/VMware/View/Incidents";
 import VMwareVCenterAlerts from "../Pages/VMware/View/Alerts";
@@ -288,6 +290,37 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+
+        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <VMwareVCenterAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <VMwareVCenterAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_AGENT] as Route
               }
             />
           }

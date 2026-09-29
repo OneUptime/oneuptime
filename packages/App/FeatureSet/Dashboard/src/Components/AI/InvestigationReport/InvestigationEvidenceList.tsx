@@ -8,7 +8,7 @@ import {
   describeClusterEvidenceTool,
   describeClusterToolOutcome,
   getClusterEvidenceNote,
-  isClusterToolName,
+  isLiveInfrastructureToolName,
 } from "../ClusterToolFormat";
 import {
   EvidenceToolDescription,
@@ -705,8 +705,11 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
   const took: string | undefined = formatEvidenceDuration(item.durationInMs);
   const targetRoute: Route | undefined = getRouteForCitationTarget(item.target);
   const detailRows: Array<FormattedEvidenceArgument> = [...argumentsRows];
-  // A kubectl command is run, not queried, and has no rows to load.
-  const isClusterTool: boolean = isClusterToolName(item.toolName);
+  /*
+   * A kubectl command is run, not queried, and has no rows to load.
+   * Infrastructure commands (through a resource's AI agent) likewise.
+   */
+  const isClusterTool: boolean = isLiveInfrastructureToolName(item.toolName);
   const clusterNote: string | null = getClusterEvidenceNote(item.toolName);
 
   if (ranAt) {

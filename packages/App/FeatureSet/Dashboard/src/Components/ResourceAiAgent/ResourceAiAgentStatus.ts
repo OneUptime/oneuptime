@@ -1,0 +1,639 @@
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+  RESOURCE_AI_ACCESS_STATUS_PATH,
+  RESOURCE_AI_ACCESS_TEST_PATH,
+  ResourceAiAccessRequest,
+} from "Common/Types/AI/ResourceAiAccessApi";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+} from "Common/Types/ResourceAiAgent/AiResourceType";
+import {
+  RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+  ResourceAiAccessGap,
+  ResourceAiAccessGapCode,
+  ResourceAiAccessStatus,
+  ResourceAiAgentPosture,
+  ResourceAiAgentSummary,
+  ResourceAiRemediationMode,
+  parseResourceAiRemediationMode,
+} from "Common/Types/ResourceAiAgent/ResourceAiAccess";
+import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+
+/*
+ * What a resource's AI agent page (ResourceAiAgentPage) and AI Insights
+ * page read off the server's access status (POST /resource-ai-access/status)
+ * — which of its three states the agent is in, and the words for each. The
+ * resource twin of Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts,
+ * without the Kubernetes Runner states: a resource is reached through its
+ * resource AI agent or not at all.
+ *
+ * Every decision here is made from the status the server computed
+ * (ResourceAiAccessService): the page never builds a second, client-side
+ * idea of readiness next to the server's gaps.
+ *
+ * Import-clean on purpose (Common types and the descriptors only), so the
+ * suites read it without a browser.
+ */
+
+/*
+ * The custom calls behind a resource's AI pages (served by
+ * Common/Server/API/ResourceAiAccessAPI.ts under /api), by the paths the
+ * server mounts them at. Each takes { resourceType, resourceId }
+ * (getResourceAiAccessRequestBody); settings are ordinary CRUD on the
+ * resource's own model.
+ */
+export const RESOURCE_AI_ACCESS_STATUS_ROUTE: string =
+  RESOURCE_AI_ACCESS_STATUS_PATH;
+export const RESOURCE_AI_ACCESS_TEST_ROUTE: string =
+  RESOURCE_AI_ACCESS_TEST_PATH;
+export const RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE: string =
+  RESOURCE_AI_ACCESS_RESET_AGENT_PATH;
+export const RESOURCE_AI_ACCESS_INSIGHTS_ROUTE: string =
+  RESOURCE_AI_ACCESS_INSIGHTS_PATH;
+
+export function getResourceAiAccessRequestBody(
+  descriptor: ResourceAiAgentDescriptor,
+  resourceId: string,
+): JSONObject {
+  const request: ResourceAiAccessRequest = {
+    resourceType: descriptor.resourceType,
+    resourceId,
+  };
+
+  return { ...request };
+}
+
+// How often the page re-reads the status; the agent heartbeats every 30s.
+export const RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
+
+/*
+ * How long a refused registration stays worth a warning. Another agent
+ * presenting the same identity is either a second install (it keeps trying,
+ * so the warning stays) or a container replaced without a clean shutdown
+ * (it stops once the old one goes quiet, and the warning ages out).
+ */
+export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
+  24 * 60 * 60 * 1000;
+
+// The page's heading, matching the AI Insights page's title and subtitle.
+export const RESOURCE_AI_AGENT_PAGE_TITLE: string = "AI agent";
+
+export const RESOURCE_AI_FIXES_OFF_HINT: string =
+  "Want AI to propose fixes? Choose Ask for approval.";
+
+export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string =
+  "Ask a project owner or admin.";
+
+export function getResourceAiAgentPageSubtitle(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `Whether OneUptime AI can reach this ${descriptor.noun}, and what it may do there.`;
+}
+
+export function getResourceAiAgentReadyText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `Ready — AI will inspect this ${descriptor.noun} with ${descriptor.readOnlyCommandsPhrase} when it investigates an incident or alert here.`;
+}
+
+export function getResourceAiAgentNotInstalledText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `Install the ${descriptor.agentName} — it runs next to this ${descriptor.noun}, read-only by default, with the key its telemetry agent already uses. This page updates within a minute.`;
+}
+
+/*
+ * The three ways the agent can be offline (see
+ * getResourceAiAgentOfflineReason), each ending where the logs command
+ * below it takes over.
+ */
+export function getResourceAiAgentSignedOffText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `The ${descriptor.agentName} signed off or was reset. It reconnects on its own within a few minutes. If it does not, check its logs:`;
+}
+
+export function getResourceAiAgentGoneText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `The ${descriptor.agentName} disconnected and has not come back. Check its logs:`;
+}
+
+export function getResourceAiAgentSilentText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `The ${descriptor.agentName} has not checked in for over ${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes. Check its logs:`;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/*
+ * The status as the route returns it, or null when the body is not one.
+ * Only the fields every render reads are checked and normalized: an unknown
+ * mode reads as Off, a missing allowlist as empty, a missing agent as none.
+ * Everything else is optional in the contract and read defensively where
+ * it is used.
+ */
+export function parseResourceAiAccessStatus(
+  value: unknown,
+): ResourceAiAccessStatus | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  if (
+    typeof value["resourceId"] !== "string" ||
+    !Array.isArray(value["gaps"])
+  ) {
+    return null;
+  }
+
+  const allowlist: unknown = value["aiCommandAllowlist"];
+  const agent: unknown = value["agent"];
+
+  return {
+    ...(value as unknown as ResourceAiAccessStatus),
+    isAiInvestigationEnabled: value["isAiInvestigationEnabled"] === true,
+    aiRemediationMode: parseResourceAiRemediationMode(
+      value["aiRemediationMode"],
+    ),
+    aiCommandAllowlist: Array.isArray(allowlist)
+      ? allowlist.filter((pattern: unknown): pattern is string => {
+          return typeof pattern === "string";
+        })
+      : [],
+    agent: isObject(agent)
+      ? (agent as unknown as ResourceAiAgentSummary)
+      : null,
+    gaps: (value["gaps"] as Array<unknown>).filter(
+      (gap: unknown): gap is ResourceAiAccessGap => {
+        return isObject(gap) && typeof gap["code"] === "string";
+      },
+    ),
+    isInvestigationReady: value["isInvestigationReady"] === true,
+    isRemediationReady: value["isRemediationReady"] === true,
+  };
+}
+
+/*
+ * Which of its states the agent card shows:
+ *
+ * connected:     the agent heartbeated within the alive window.
+ * offline:       an agent registered once, but is not online now.
+ * not_installed: no agent ever registered for this resource.
+ */
+export type ResourceAiAgentCardState =
+  | "connected"
+  | "offline"
+  | "not_installed";
+
+export function getResourceAiAgentCardState(
+  status: ResourceAiAccessStatus,
+): ResourceAiAgentCardState {
+  if (!status.agent) {
+    return "not_installed";
+  }
+
+  return status.agent.isOnline === true ? "connected" : "offline";
+}
+
+/*
+ * An online agent that could not reach the resource at its last probe (the
+ * socket, the API address, its credentials or keyring): it is connected to
+ * OneUptime, but no command can work until that is fixed.
+ */
+export function isResourceUnreachable(status: ResourceAiAccessStatus): boolean {
+  return (
+    getResourceAiAgentCardState(status) === "connected" &&
+    status.agent?.posture?.reachable === false
+  );
+}
+
+export type ResourceAiAgentStatusTone = "success" | "danger" | "neutral";
+
+export interface ResourceAiAgentStatusPill {
+  text: string;
+  tone: ResourceAiAgentStatusTone;
+}
+
+export function getResourceAiAgentStatusPill(
+  status: ResourceAiAccessStatus,
+): ResourceAiAgentStatusPill {
+  switch (getResourceAiAgentCardState(status)) {
+    case "connected":
+      return { text: "Connected", tone: "success" };
+    case "not_installed":
+      return { text: "Not installed", tone: "neutral" };
+    case "offline":
+    default:
+      return { text: "Offline", tone: "danger" };
+  }
+}
+
+/*
+ * Why an offline agent is offline. The server's rule
+ * (ResourceAiAgentService.isOnline) has two halves, and the page must not
+ * blame the wrong one — right after a sign-off the meta line still reads
+ * "last seen a few seconds ago":
+ *
+ * signed_off: it said goodbye or was reset (connectionStatus
+ *             "disconnected") and was heard from within the alive window.
+ *             A restarted container signs off, and "Reset agent" marks the
+ *             row so; either way the agent registers again within a few
+ *             minutes. The expected gap, not yet a fault.
+ * gone:       disconnected and not heard from since the alive window — the
+ *             container did not come back.
+ * silent:     it never signed off but its heartbeats stopped (or it was
+ *             never heard from): over the alive window without a word.
+ */
+export type ResourceAiAgentOfflineReason = "signed_off" | "gone" | "silent";
+
+export function getResourceAiAgentOfflineReason(
+  status: ResourceAiAccessStatus,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): ResourceAiAgentOfflineReason {
+  const agent: ResourceAiAgentSummary | null = status.agent;
+
+  if (!agent || agent.connectionStatus !== "disconnected") {
+    return "silent";
+  }
+
+  const lastAliveAt: Date | null = agent.lastAliveAt
+    ? new Date(agent.lastAliveAt)
+    : null;
+
+  if (!lastAliveAt || Number.isNaN(lastAliveAt.getTime())) {
+    return "gone";
+  }
+
+  return now.getTime() - lastAliveAt.getTime() <=
+    RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES * 60 * 1000
+    ? "signed_off"
+    : "gone";
+}
+
+// The one plain sentence under the pill.
+export function getResourceAiAgentStateSentence(
+  status: ResourceAiAccessStatus,
+  descriptor: ResourceAiAgentDescriptor,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): string {
+  switch (getResourceAiAgentCardState(status)) {
+    case "connected": {
+      if (isResourceUnreachable(status)) {
+        const reachError: string | null | undefined =
+          status.agent?.posture?.reachError;
+
+        return `The ${descriptor.agentName} is running, but it could not reach this ${descriptor.noun} at its last check${
+          reachError ? `: ${reachError}` : "."
+        } Check its logs:`;
+      }
+
+      return `The ${descriptor.agentName} is running next to this ${descriptor.noun}.`;
+    }
+    case "not_installed":
+      return getResourceAiAgentNotInstalledText(descriptor);
+    case "offline":
+    default:
+      switch (getResourceAiAgentOfflineReason(status, now)) {
+        case "signed_off":
+          return getResourceAiAgentSignedOffText(descriptor);
+        case "gone":
+          return getResourceAiAgentGoneText(descriptor);
+        case "silent":
+        default:
+          return getResourceAiAgentSilentText(descriptor);
+      }
+  }
+}
+
+/*
+ * Which command the card shows under its sentence: the install
+ * instructions where installing the agent is the step, the logs command
+ * where the agent is the place to look (offline, or online but unable to
+ * reach the resource), and none otherwise.
+ */
+export type ResourceAiAgentCardCommand = "install" | "logs" | null;
+
+export function getResourceAiAgentCardCommand(
+  status: ResourceAiAccessStatus,
+): ResourceAiAgentCardCommand {
+  switch (getResourceAiAgentCardState(status)) {
+    case "not_installed":
+      return "install";
+    case "offline":
+      return "logs";
+    case "connected":
+    default:
+      return isResourceUnreachable(status) ? "logs" : null;
+  }
+}
+
+/*
+ * What the agent may change, from the posture it reports: "Read-only",
+ * "Can change: web, api" (ONEUPTIME_AI_WRITE_TARGETS) or "Can change any
+ * target" (writes on, no target list). Null without a posture.
+ */
+export function describeResourceAiAgentWriteAccess(
+  posture: ResourceAiAgentPosture | null | undefined,
+): string | null {
+  if (!posture) {
+    return null;
+  }
+
+  if (posture.allowWrites !== true) {
+    return "Read-only";
+  }
+
+  const targets: Array<string> = Array.isArray(posture.writeTargets)
+    ? posture.writeTargets.filter((target: unknown): target is string => {
+        return typeof target === "string" && target.trim().length > 0;
+      })
+    : [];
+
+  return targets.length === 0
+    ? "Can change any target"
+    : `Can change: ${targets.join(", ")}`;
+}
+
+const VERSION_PREFIX_REGEX: RegExp = /^v/i;
+
+// "v14.1.0" and "14.1.0" both read as "v14.1.0".
+function withVersionPrefix(version: string): string {
+  const trimmed: string = version.trim();
+  return VERSION_PREFIX_REGEX.test(trimmed) ? trimmed : `v${trimmed}`;
+}
+
+/*
+ * The resource's own version as the agent reported it: "Docker 27.3.1",
+ * "Proxmox VE 8.2.4". A database's is labelled with its engine when the
+ * agent reported one; a host's is shown as it is.
+ */
+export function formatResourceToolVersion(
+  descriptor: ResourceAiAgentDescriptor,
+  posture: ResourceAiAgentPosture | null | undefined,
+): string | null {
+  const version: string | null =
+    typeof posture?.toolVersion === "string" && posture.toolVersion.trim()
+      ? posture.toolVersion.trim()
+      : null;
+
+  if (!version) {
+    return null;
+  }
+
+  let label: string | null = descriptor.toolVersionLabel;
+
+  if (!label && descriptor.resourceType === AiResourceType.DatabaseServer) {
+    const system: unknown = posture?.details?.["databaseSystem"];
+    label = typeof system === "string" && system.trim() ? system.trim() : null;
+  }
+
+  if (!label || version.toLowerCase().startsWith(label.toLowerCase())) {
+    return version;
+  }
+
+  return `${label} ${version}`;
+}
+
+/*
+ * The card's meta line, part by part (joined with " · "): when the agent
+ * was last seen, its version, the resource's version, and what it may
+ * change. Nothing before an agent ever registered.
+ */
+export function getResourceAiAgentMetaParts(
+  status: ResourceAiAccessStatus,
+  descriptor: ResourceAiAgentDescriptor,
+): Array<string> {
+  const agent: ResourceAiAgentSummary | null = status.agent;
+
+  if (!agent) {
+    return [];
+  }
+
+  const parts: Array<string> = [];
+
+  if (agent.lastAliveAt) {
+    parts.push(
+      `last seen ${OneUptimeDate.fromNow(OneUptimeDate.fromString(agent.lastAliveAt))}`,
+    );
+  }
+
+  const agentVersion: string | null | undefined =
+    agent.agentVersion || agent.posture?.agentVersion;
+
+  if (agentVersion) {
+    parts.push(`agent ${withVersionPrefix(agentVersion)}`);
+  }
+
+  const toolVersion: string | null = formatResourceToolVersion(
+    descriptor,
+    agent.posture,
+  );
+
+  if (toolVersion) {
+    parts.push(toolVersion);
+  }
+
+  const writeAccess: string | null = describeResourceAiAgentWriteAccess(
+    agent.posture,
+  );
+
+  if (writeAccess) {
+    parts.push(writeAccess);
+  }
+
+  return parts;
+}
+
+/*
+ * The warning for a registration the server refused while this agent was
+ * online: another agent presenting this resource's identity (a second
+ * install, or a container replaced without a clean shutdown). Null when
+ * there is nothing recent to say.
+ */
+export function getResourceAiRefusedRegistrationWarning(
+  agent: ResourceAiAgentSummary | null,
+  descriptor: ResourceAiAgentDescriptor,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): string | null {
+  if (!agent?.lastRefusedRegistrationAt) {
+    return null;
+  }
+
+  if (
+    agent.lastRefusedRegistrationReason &&
+    agent.lastRefusedRegistrationReason !== "previous_instance_online"
+  ) {
+    return null;
+  }
+
+  const refusedAt: Date = new Date(agent.lastRefusedRegistrationAt);
+
+  if (Number.isNaN(refusedAt.getTime())) {
+    return null;
+  }
+
+  if (
+    now.getTime() - refusedAt.getTime() >
+    RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS
+  ) {
+    return null;
+  }
+
+  const identityVariables: string =
+    AI_RESOURCE_TYPE_INFO[descriptor.resourceType].identityEnvVars.join(" / ");
+
+  return `Another agent tried to register for this ${descriptor.noun} at ${OneUptimeDate.getDateAsFormattedString(
+    refusedAt,
+  )} while this one was online. If two agents use the same ${identityVariables}, remove one or give each ${descriptor.noun} its own.`;
+}
+
+/*
+ * The gaps the "Needs attention" card lists. Fixes being off is a choice,
+ * not a problem: the "What AI may do" card shows it with its own hint, so
+ * remediation_disabled is left out here (it is still a gap for the server
+ * and the investigation panel).
+ */
+export const RESOURCE_AI_CHOICE_GAP_CODES: ReadonlyArray<ResourceAiAccessGapCode> =
+  ["remediation_disabled"];
+
+export function getResourceAiAttentionGaps(
+  status: ResourceAiAccessStatus,
+): Array<ResourceAiAccessGap> {
+  return status.gaps.filter((gap: ResourceAiAccessGap): boolean => {
+    return !RESOURCE_AI_CHOICE_GAP_CODES.includes(gap.code);
+  });
+}
+
+/*
+ * The one action a "Needs attention" row offers, or null when its next
+ * step is a command already on the page (install, logs, write access).
+ */
+export type ResourceAiAgentGapAction =
+  | "turn_on_investigation"
+  | "open_ai_features"
+  | "open_llm_providers"
+  | "open_ai_credits"
+  | "test_connection";
+
+export function getResourceAiAgentGapAction(
+  gap: ResourceAiAccessGap,
+  status: ResourceAiAccessStatus,
+): ResourceAiAgentGapAction | null {
+  switch (gap.code) {
+    case "investigation_disabled":
+      return "turn_on_investigation";
+    case "ai_disabled_for_project":
+    case "auto_remediation_disabled_for_project":
+      return "open_ai_features";
+    case "llm_provider_missing":
+      return "open_llm_providers";
+    case "ai_balance_insufficient":
+      return "open_ai_credits";
+    case "ai_agent_unreachable_resource":
+      // Once the socket, address or credentials are fixed, prove it.
+      return status.agent ? "test_connection" : null;
+    default:
+      return null;
+  }
+}
+
+/*
+ * Show the write-access instructions? Only when fixes are on and the
+ * agent reports that it runs read-only — never on a default install, and
+ * never before an agent is installed (the install instructions come first).
+ */
+export function shouldShowResourceWriteAccessCommands(
+  status: ResourceAiAccessStatus,
+): boolean {
+  if (
+    parseResourceAiRemediationMode(status.aiRemediationMode) ===
+    ResourceAiRemediationMode.Disabled
+  ) {
+    return false;
+  }
+
+  if (!status.agent) {
+    return false;
+  }
+
+  return status.agent.posture?.allowWrites !== true;
+}
+
+/*
+ * Why the AI Insights page points at the AI agent page, or null when it has
+ * no reason to: AI cannot run commands on the resource right now (the
+ * status's own verdict, gaps included).
+ */
+export function getResourceAiAgentPageHint(
+  status: ResourceAiAccessStatus | null,
+  descriptor: ResourceAiAgentDescriptor,
+): string | null {
+  if (!status) {
+    return null;
+  }
+
+  if (!status.isInvestigationReady) {
+    return `OneUptime AI can't run commands on this ${descriptor.noun} right now.`;
+  }
+
+  return null;
+}
+
+// What POST /resource-ai-access/test answers, as the page reads it.
+export interface ResourceAccessTestResult {
+  ok: boolean;
+  message: string;
+  results: Array<{
+    command: string;
+    succeeded: boolean;
+    exitCode: number | null;
+    output: string;
+    errorMessage: string | null;
+  }>;
+}
+
+/*
+ * The test's answer, read defensively: a missing message is empty, a
+ * missing or malformed result list is empty, and a row's missing exit code
+ * or error is null (the command never ran, or said nothing).
+ */
+export function parseResourceAccessTestResult(
+  value: unknown,
+): ResourceAccessTestResult {
+  const data: Record<string, unknown> = isObject(value) ? value : {};
+  const rows: Array<unknown> = Array.isArray(data["results"])
+    ? (data["results"] as Array<unknown>)
+    : [];
+
+  return {
+    ok: data["ok"] === true,
+    message: typeof data["message"] === "string" ? data["message"] : "",
+    results: rows.map(
+      (row: unknown): ResourceAccessTestResult["results"][number] => {
+        const item: Record<string, unknown> = isObject(row) ? row : {};
+
+        return {
+          command: typeof item["command"] === "string" ? item["command"] : "",
+          succeeded: item["succeeded"] === true,
+          exitCode:
+            typeof item["exitCode"] === "number" &&
+            Number.isFinite(item["exitCode"])
+              ? item["exitCode"]
+              : null,
+          output: typeof item["output"] === "string" ? item["output"] : "",
+          errorMessage:
+            typeof item["errorMessage"] === "string"
+              ? item["errorMessage"]
+              : null,
+        };
+      },
+    ),
+  };
+}

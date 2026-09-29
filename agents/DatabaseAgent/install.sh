@@ -321,7 +321,11 @@ DATABASE_ENDPOINT DATABASE_ENDPOINT_HOST DATABASE_ENDPOINT_PORT \
 DATABASE_ORACLE_SERVICE DATABASE_SERVER_ADDRESS DATABASE_SERVER_PORT \
 DATABASE_USERNAME DATABASE_PASSWORD DATABASE_TLS_INSECURE \
 DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_COLLECTION_INTERVAL \
-DATABASE_QUERY_EVENTS DATABASE_SERVER_ID"
+DATABASE_QUERY_EVENTS DATABASE_SERVER_ID \
+ONEUPTIME_AI_ALLOW_WRITES ONEUPTIME_AI_WRITE_TARGETS \
+ONEUPTIME_AI_PROTECTED_TARGETS ONEUPTIME_AI_DATABASE_USERNAME \
+ONEUPTIME_AI_DATABASE_PASSWORD ONEUPTIME_AI_DATABASE_NAME \
+ONEUPTIME_AI_DATABASE_CA_FILE ONEUPTIME_AI_AGENT_RESOURCE_NAME LOG_LEVEL"
 
 # Re-running the installer (e.g. to pick up a new collector pin) keeps the
 # existing configuration: every value already in .env is reused unless the
@@ -646,6 +650,55 @@ if [ -n "$DATABASE_SERVER_ID" ] && ! [[ "$DATABASE_SERVER_ID" =~ ^[0-9a-fA-F]{8}
     exit 1
 fi
 
+# ----------------------------------------------------------------------------
+# OneUptime AI agent (the oneuptime-database-ai-agent service)
+# ----------------------------------------------------------------------------
+# It runs next to the collector with the same .env and login, and lets
+# OneUptime AI read this database's diagnostics — sessions, long queries,
+# locks, replication, sizes, settings, one operation at a time from a fixed
+# catalog, never SQL — while it investigates an incident or alert. Fixes
+# (cancelling one running query or ending one session) are off unless
+# ONEUPTIME_AI_ALLOW_WRITES=true, and then need a login that may signal
+# other sessions: the monitoring login's grants are the hard limit. SQL
+# Server, Oracle, Elasticsearch / OpenSearch and Memcached have no AI
+# diagnostics yet; the service then runs nothing and says so in OneUptime.
+# The agent's own login is written as it is (no $ doubling: the collector
+# never reads it).
+case "$AGENT_CONFIG" in
+    postgresql|mysql|redis|mongodb) AI_SUPPORTED="true" ;;
+    *) AI_SUPPORTED="" ;;
+esac
+
+if [ -n "$AI_SUPPORTED" ] && [ -z "$ONEUPTIME_AI_ALLOW_WRITES" ] && [ -z "$REUSING_ENV_FILE" ]; then
+    echo ""
+    echo "The OneUptime AI agent (oneuptime-database-ai-agent) lets OneUptime AI read this"
+    echo "database's diagnostics while it investigates incidents and alerts: sessions, long"
+    echo "queries, locks, replication, sizes and settings (read-only, never SQL)."
+    read -rp "Also let it cancel a running query or end a session to fix an incident? [y/N]: " AI_FIXES || true
+    if [[ "$AI_FIXES" =~ ^[Yy] ]]; then
+        ONEUPTIME_AI_ALLOW_WRITES="true"
+    fi
+fi
+
+# Only "true" allows fixes; anything else (unset, a typo) keeps the agent read-only.
+if [ "$(printf '%s' "$ONEUPTIME_AI_ALLOW_WRITES" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+    ONEUPTIME_AI_ALLOW_WRITES="true"
+else
+    ONEUPTIME_AI_ALLOW_WRITES="false"
+fi
+
+if [ -n "$AI_SUPPORTED" ] && [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ] && [ -z "$ONEUPTIME_AI_DATABASE_USERNAME" ] && [ -z "$REUSING_ENV_FILE" ]; then
+    echo "Fixes need a login that may signal other sessions (README.md, \"OneUptime AI agent\":"
+    echo "pg_signal_backend, CONNECTION_ADMIN, the Redis ACL's +client|kill, MongoDB's killop)."
+    echo "Leave it empty to use the monitoring login above; the database then refuses fixes it"
+    echo "does not allow."
+    read -rp "Login for AI fixes (leave empty to use the monitoring login): " ONEUPTIME_AI_DATABASE_USERNAME || true
+    if [ -n "$ONEUPTIME_AI_DATABASE_USERNAME" ] && [ -z "$ONEUPTIME_AI_DATABASE_PASSWORD" ]; then
+        read -rsp "Password for that login: " ONEUPTIME_AI_DATABASE_PASSWORD || true
+        echo ""
+    fi
+fi
+
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
@@ -706,6 +759,15 @@ DATABASE_TLS_INSECURE_SKIP_VERIFY=$DATABASE_TLS_INSECURE_SKIP_VERIFY
 DATABASE_COLLECTION_INTERVAL=$DATABASE_COLLECTION_INTERVAL
 DATABASE_QUERY_EVENTS=$DATABASE_QUERY_EVENTS
 DATABASE_SERVER_ID=$(compose_env_quote "$DATABASE_SERVER_ID")
+ONEUPTIME_AI_ALLOW_WRITES=$ONEUPTIME_AI_ALLOW_WRITES
+ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_WRITE_TARGETS")
+ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_PROTECTED_TARGETS")
+ONEUPTIME_AI_DATABASE_USERNAME=$(compose_env_quote "$ONEUPTIME_AI_DATABASE_USERNAME")
+ONEUPTIME_AI_DATABASE_PASSWORD=$(compose_env_quote "$ONEUPTIME_AI_DATABASE_PASSWORD")
+ONEUPTIME_AI_DATABASE_NAME=$(compose_env_quote "$ONEUPTIME_AI_DATABASE_NAME")
+ONEUPTIME_AI_DATABASE_CA_FILE=$(compose_env_quote "$ONEUPTIME_AI_DATABASE_CA_FILE")
+ONEUPTIME_AI_AGENT_RESOURCE_NAME=$(compose_env_quote "$ONEUPTIME_AI_AGENT_RESOURCE_NAME")
+LOG_LEVEL=$(compose_env_quote "$LOG_LEVEL")
 ENVEOF
 chmod 600 "$ENV_FILE"
 
@@ -738,12 +800,26 @@ echo ""
 echo "The $DATABASE_SYSTEM database $DATABASE_SERVER_ADDRESS:$DATABASE_SERVER_PORT appears under"
 echo "Databases in OneUptime after the first collection (about $DATABASE_COLLECTION_INTERVAL)."
 echo ""
+if [ -z "$AI_SUPPORTED" ]; then
+    echo "The OneUptime AI agent (oneuptime-database-ai-agent) has no AI diagnostics for"
+    echo "$DATABASE_SYSTEM yet, so it runs nothing. Remove its service from docker-compose.yml if"
+    echo "you do not want it running."
+elif [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
+    echo "The OneUptime AI agent (oneuptime-database-ai-agent) may cancel a query or end a"
+    echo "session. Choose on the database's AI -> AI agent page in OneUptime whether a person"
+    echo "approves each fix."
+else
+    echo "The OneUptime AI agent (oneuptime-database-ai-agent) is read-only. To let it apply"
+    echo "fixes, see \"OneUptime AI agent\" in README.md."
+fi
+echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"
 echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "To apply edits:   cd $INSTALL_DIR && docker compose up -d --force-recreate"
 echo "If nothing shows up: curl -fsSL $REPO_BASE/troubleshoot.sh | bash -s -- -d $INSTALL_DIR"
+echo "AI agent status:  cd $INSTALL_DIR && docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status"
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""

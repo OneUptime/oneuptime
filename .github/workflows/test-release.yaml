@@ -787,6 +787,97 @@ jobs:
             --image kubernetes-ai-agent \
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
+  # The resource AI agent, tagged like the Kubernetes AI agent above. Nothing
+  # here runs it, so no job needs this one. It is here for two things: both
+  # architectures are built on every push to master, so an Alpine package
+  # missing for arm64 (docker-cli, govc, ceph19-common, util-linux-misc) fails
+  # now rather than in the release (the Build workflow's PR job is amd64
+  # only); and a test host can run master's agent from the `test` tag
+  # (oneuptime/resource-ai-agent:test in the resource's docker-compose.yml).
+  resource-ai-agent-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image resource-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./agents/ResourceAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+
+  resource-ai-agent-docker-image-merge:
+    needs: [resource-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Merge jobs only run `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke app-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image resource-ai-agent \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
   app-docker-image-build:
     needs: [read-version, generate-build-number]
     strategy:

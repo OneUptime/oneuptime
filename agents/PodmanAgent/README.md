@@ -123,6 +123,33 @@ Then recreate (not just restart) the affected containers — the log driver is b
 
 > **Note:** If you must keep `journald`, the agent can still collect **metrics** and **inventory** (both go through the Docker-API socket); only the container **logs** pipeline depends on the file-based driver. Alternatively, point the filelog receiver at your journald export if you forward it to a file.
 
+## AI agent
+
+`install.sh` and `docker-compose.yml` also run the **OneUptime AI agent** for this host: a second container, `oneuptime-podman-ai-agent` (image `oneuptime/resource-ai-agent`), that runs the `docker` commands OneUptime AI asks for, through Podman's Docker-compatible socket, while it investigates an incident or alert here. It shares the collector's settings (`ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `PODMAN_HOST_NAME`), so it serves exactly the host the collector reports, and it appears on the host's **AI → AI agent** page in OneUptime.
+
+- **Read-only by default.** It runs commands such as `docker ps`, `docker logs --tail 200 NAME`, `docker inspect` and `docker stats --no-stream`, never `exec`, `run`, `rm`, `prune` or docker's global flags (`-H`, `--context`). Environment values in `docker inspect` output are masked before anything leaves the host.
+- **Fixes are opt-in.** Set `ONEUPTIME_AI_ALLOW_WRITES=true` (in `.env`, or re-run `install.sh` with it) to let it restart, start, stop, pause, kill or change the limits of a named container, then choose on the host's AI agent page whether each fix needs approval. `ONEUPTIME_AI_WRITE_TARGETS` (comma-separated globs such as `web-*,api-*`) limits which containers; `ONEUPTIME_AI_PROTECTED_TARGETS` adds containers it must never change. It never changes itself or the collector.
+- It needs the same socket as the collector (`sudo systemctl enable --now podman.socket`) and runs as root because the socket is root-owned. The socket's `:ro` mount does not make the API read-only; the agent's command policy is the limit.
+- To leave it out: `install.sh --no-ai-agent` (or `ONEUPTIME_INSTALL_AI_AGENT=false`), or delete the `oneuptime-podman-ai-agent` service from `docker-compose.yml`. To remove it later: `podman rm -f oneuptime-podman-ai-agent`.
+
+Without the installer:
+
+```bash
+podman run -d \
+  --name oneuptime-podman-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /run/podman/podman.sock:/run/podman/podman.sock:ro \
+  -e ONEUPTIME_URL="https://oneuptime.com" \
+  -e ONEUPTIME_SERVICE_TOKEN="your-service-token" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  oneuptime/resource-ai-agent:release
+```
+
+Logs: `podman logs -f oneuptime-podman-ai-agent`. Every setting is described in the [resource AI agent README](../ResourceAIAgent/README.md).
+
 ## Upgrading
 
 ```bash

@@ -43,6 +43,10 @@ import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
 import KubectlInvestigationToolkit, {
   INVESTIGATION_MAX_WALL_CLOCK_MS,
 } from "../ClusterAccess/KubectlInvestigationToolkit";
+import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
+import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -334,6 +338,7 @@ export default class AIIncidentInvestigationRunner {
 
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
+    let resourceStatuses: Array<ResourceAiAccessStatus> = [];
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
@@ -380,6 +385,29 @@ export default class AIIncidentInvestigationRunner {
 
       contextSummary +=
         ClusterAccessContext.buildContextSection(clusterStatuses);
+
+      /*
+       * Direct infrastructure access (Docker, Podman, Swarm, Proxmox,
+       * VMware, Ceph, databases, hosts) through their resource AI agents.
+       * Enrichment only, like cluster access, and on its own: losing it
+       * never fails the investigation nor takes the cluster access away.
+       */
+      try {
+        const statuses: Array<ResourceAiAccessStatus> =
+          await ResourceAiAccessService.getStatusesForSubject({
+            projectId,
+            incidentId,
+          });
+        const section: string =
+          ResourceAccessContext.buildContextSection(statuses);
+
+        resourceStatuses = statuses;
+        contextSummary += section;
+      } catch (error) {
+        logger.error(
+          `AI: could not resolve infrastructure access for incident ${incidentId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
@@ -426,6 +454,48 @@ export default class AIIncidentInvestigationRunner {
     const extraTools: Array<ObservabilityAssistantExtraTool> =
       kubectlToolkit.buildTools();
 
+    /*
+     * The infrastructure tools, bound to the same run and deadline. Built
+     * on their own so a failure here leaves the kubectl tools (and the
+     * run) as they are.
+     */
+    let resourceAddendum: string = "";
+
+    try {
+      const infrastructureToolkit: InfrastructureInvestigationToolkit =
+        new InfrastructureInvestigationToolkit({
+          projectId,
+          aiRunId,
+          resources: resourceStatuses,
+          runDeadlineAtMs,
+        });
+      const infrastructureTools: Array<ObservabilityAssistantExtraTool> =
+        infrastructureToolkit.buildTools();
+
+      resourceAddendum =
+        resourceStatuses.length > 0
+          ? ResourceAccessContext.buildPersonaAddendum(resourceStatuses)
+          : "";
+      extraTools.push(...infrastructureTools);
+    } catch (error) {
+      logger.error(
+        `AI: could not offer infrastructure access for incident ${incidentId.toString()}; investigating it with OneUptime data only: ${error}`,
+      );
+    }
+
+    // The cluster rules first, exactly as before; the infrastructure rules after.
+    const additionalInstructions: Array<string> = [];
+
+    if (clusterStatuses.length > 0) {
+      additionalInstructions.push(
+        ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
+      );
+    }
+
+    if (resourceAddendum) {
+      additionalInstructions.push(resourceAddendum);
+    }
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -436,11 +506,8 @@ export default class AIIncidentInvestigationRunner {
         incidentId,
         contextSummary,
         maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
-        ...(clusterStatuses.length > 0
-          ? {
-              additionalInstructions:
-                ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
-            }
+        ...(additionalInstructions.length > 0
+          ? { additionalInstructions: additionalInstructions.join("\n\n") }
           : {}),
         ...(extraTools.length > 0 ? { extraTools } : {}),
         persistCodeFixRecommendation: true,

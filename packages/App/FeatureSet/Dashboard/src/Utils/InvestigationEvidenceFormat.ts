@@ -6,6 +6,10 @@ import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+} from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 
 /*
  * Plain-language formatting for the "Evidence checked" list of an AI
@@ -328,6 +332,27 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       description: "Listed the clusters OneUptime AI can inspect",
       icon: IconProp.Cube,
       category: "Kubernetes",
+    },
+  ],
+  /*
+   * The tools that reach any other infrastructure resource (a Docker or
+   * Podman host, a Swarm, Proxmox, VMware or Ceph cluster, a database
+   * server, a host) through its AI agent. Worded like the cluster tools.
+   */
+  [
+    RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    {
+      description: "Ran a read-only infrastructure command",
+      icon: IconProp.Terminal,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+    {
+      description: "Listed the infrastructure OneUptime AI can inspect",
+      icon: IconProp.Server,
+      category: "Infrastructure",
     },
   ],
   [

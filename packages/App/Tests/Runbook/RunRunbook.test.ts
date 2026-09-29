@@ -547,6 +547,32 @@ describe("RunRunbook state machine", () => {
     );
   });
 
+  test("a ResourceCommand step is never run by the Worker", async () => {
+    /*
+     * ResourceCommand belongs to an infrastructure resource's own AI agent.
+     * A runbook row that somehow names it (it is never offered by the
+     * editor) fails instead of reaching any executor.
+     */
+    const resourceStep: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.ResourceCommand),
+    );
+
+    const updateSpy: jest.SpyInstance = await run(
+      makeExecution([resourceStep]),
+    );
+
+    expect(resourceStep.status).toBe(RunbookStepExecutionStatus.Failed);
+    expect(resourceStep.errorMessage).toContain(
+      "Unknown step type: ResourceCommand",
+    );
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+    expect(runAiStepMock).not.toHaveBeenCalled();
+    expect(lastStatusUpdate(updateSpy).status).toBe(
+      RunbookExecutionStatus.Failed,
+    );
+  });
+
   test("AI steps receive the trigger identifiers and everything about earlier steps", async () => {
     runHttpStepMock.mockResolvedValue({ success: true, output: "first out" });
     runAiStepMock.mockResolvedValue({ success: true, output: "analysis" });

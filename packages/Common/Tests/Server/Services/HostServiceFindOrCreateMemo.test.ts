@@ -228,6 +228,50 @@ describe("HostService.findOrCreateByHostIdentifier L1 memo", () => {
     expect(findOneBy).toHaveBeenCalledTimes(2);
   });
 
+  /*
+   * A host deleted within the TTL keeps resolving to its old id from the
+   * memo; a caller that found that id gone (a resource AI agent
+   * registering again right after the delete) asks past the memo, gets the
+   * host created anew, and the memo then holds the new id.
+   */
+  test("bypassMemo looks the host up again and refreshes the memo with what it found", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const deleted: Host = buildHost();
+    const recreated: Host = buildHost();
+    findOneBy.mockResolvedValue(deleted);
+
+    await HostService.findOrCreateByHostIdentifier({
+      projectId,
+      hostIdentifier: "web-01",
+    });
+
+    // The host is deleted: nothing owns the identifier any more.
+    findOneBy.mockResolvedValue(null);
+    create.mockResolvedValue(recreated);
+
+    const memoed: Host = await HostService.findOrCreateByHostIdentifier({
+      projectId,
+      hostIdentifier: "web-01",
+    });
+    expect(memoed._id).toBe(deleted._id);
+
+    const fresh: Host = await HostService.findOrCreateByHostIdentifier({
+      projectId,
+      hostIdentifier: "web-01",
+      bypassMemo: true,
+    });
+    expect(fresh._id).toBe(recreated._id);
+    expect(findOneBy).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(1);
+
+    const afterwards: Host = await HostService.findOrCreateByHostIdentifier({
+      projectId,
+      hostIdentifier: "web-01",
+    });
+    expect(afterwards._id).toBe(recreated._id);
+    expect(findOneBy).toHaveBeenCalledTimes(2);
+  });
+
   test("memoizes a host it just created", async () => {
     const projectId: ObjectID = ObjectID.generate();
     const created: Host = buildHost({ hostIdentifier: "brand-new" });

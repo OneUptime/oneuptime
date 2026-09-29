@@ -682,6 +682,12 @@ export default class RemediationPlanRunner {
           suggestionType: true,
           commandPlan: true,
           verificationWindowMinutes: true,
+          /*
+           * So a resource round's notes name its resource: this sweep's
+           * own (describeStrandedSource) and settleInterruptedExecution's.
+           */
+          resourceType: true,
+          resourceId: true,
         },
         limit: 100,
         skip: 0,
@@ -745,7 +751,7 @@ export default class RemediationPlanRunner {
 
         await this.postFeedItem({
           suggestion,
-          markdown: `⚡ **Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}": AI planning did not complete** (${reason}) — no runbook was proposed.`,
+          markdown: `⚡ **${this.describeStrandedSource(suggestion)}: AI planning did not complete** (${reason}) — no runbook was proposed.`,
           pingWorkspace: false,
         });
       } catch (error) {
@@ -754,6 +760,24 @@ export default class RemediationPlanRunner {
         );
       }
     }
+  }
+
+  /*
+   * How the sweeper's feed note names a stranded round. A resource round
+   * (a Docker host's, a database server's, ...) names its resource —
+   * 'AI remediation for Docker host "web-1"' — as the execution runner's
+   * notes do, never "Auto Remediation Rule ...": only a resource round
+   * carries resourceType and resourceId (a rule round never sets them).
+   * Every other round keeps its label unchanged.
+   */
+  private static describeStrandedSource(
+    suggestion: AutoRemediationSuggestion,
+  ): string {
+    if (suggestion.resourceType && suggestion.resourceId) {
+      return suggestion.ruleNameSnapshot || "AI remediation";
+    }
+
+    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
   }
 
   // Why a Planning suggestion counts as stranded — or null if it does not.

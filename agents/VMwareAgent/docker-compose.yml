@@ -43,3 +43,75 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The VMware AI agent: runs the govc commands OneUptime AI asks for while it
+  # investigates an incident or alert on this vCenter — read-only unless you
+  # set ONEUPTIME_AI_ALLOW_WRITES=true — with this vCenter's own credentials
+  # from the same .env (OneUptime never sends it any). It registers as the
+  # vCenter named VMWARE_VCENTER_NAME, exactly like the collector above, and
+  # shows up on that vCenter's AI -> AI agent page. See README.md
+  # ("OneUptime AI agent"). Remove this service if you do not use OneUptime AI.
+  oneuptime-vmware-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-vmware-ai-agent
+    # It only talks HTTPS to vCenter and OneUptime: no root, no capabilities,
+    # a read-only root filesystem, and its private per-command directories
+    # on a tmpfs.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Uncomment (and set VCENTER_CA_FILE=/etc/oneuptime/vcenter-ca.pem) to
+    # verify vCenter's certificate against its own CA (the VMCA root, from
+    # https://<vcenter>/certs/download.zip) instead of skipping verification.
+    # volumes:
+    #   - ./vcenter-ca.pem:/etc/oneuptime/vcenter-ca.pem:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=vmware
+      # Must match the collector's, so the agent serves the same vCenter.
+      - VMWARE_VCENTER_NAME=${VMWARE_VCENTER_NAME:-vmware-vcenter}
+      - VCENTER_ENDPOINT=${VCENTER_ENDPOINT}
+      # Investigations log in as the collector's read-only user ...
+      - VCENTER_USERNAME=${VCENTER_USERNAME}
+      - VCENTER_PASSWORD=${VCENTER_PASSWORD}
+      # ... or, when set, as this user — one whose role may power VMs on,
+      # off and reset them (VirtualMachine.Interact.PowerOn / PowerOff /
+      # Reset), which fixes need. See README.md.
+      - ONEUPTIME_AI_VCENTER_USERNAME=${ONEUPTIME_AI_VCENTER_USERNAME:-}
+      - ONEUPTIME_AI_VCENTER_PASSWORD=${ONEUPTIME_AI_VCENTER_PASSWORD:-}
+      - VCENTER_INSECURE_SKIP_VERIFY=${VCENTER_INSECURE_SKIP_VERIFY:-false}
+      - VCENTER_CA_FILE=${VCENTER_CA_FILE:-}
+      # The datacenter commands use when they name none (vCenters with
+      # several datacenters).
+      - GOVC_DATACENTER=${GOVC_DATACENTER:-}
+      # Read-only unless exactly "true". Then fixes may touch only the VMs
+      # and hosts ONEUPTIME_AI_WRITE_TARGETS matches (all when empty), and
+      # never ONEUPTIME_AI_PROTECTED_TARGETS or the VM named after
+      # VCENTER_ENDPOINT's host (the vCenter appliance, when it is named so).
+      # With an IP address as the endpoint, or an appliance VM named
+      # otherwise, put the appliance's VM name in ONEUPTIME_AI_PROTECTED_TARGETS.
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides VMWARE_VCENTER_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3877/status/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

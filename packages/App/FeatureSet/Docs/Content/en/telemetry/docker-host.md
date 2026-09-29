@@ -2,7 +2,7 @@
 
 ## Overview
 
-The OneUptime Docker Agent is a pre-built container image that ships with a tuned OpenTelemetry Collector configuration. Run it next to your existing containers and it auto-discovers every container on the host, collects CPU / memory / network / block I/O metrics plus container logs, and forwards everything to OneUptime over OTLP. Single image, single command.
+The OneUptime Docker Agent is a pre-built container image that ships with a tuned OpenTelemetry Collector configuration. Run it next to your existing containers and it auto-discovers every container on the host, collects CPU / memory / network / block I/O metrics plus container logs, and forwards everything to OneUptime over OTLP. Single image, single command — plus, if you want OneUptime AI to look into this host, the [AI agent](#ai-agent) as a second container beside it.
 
 This page is the **installation guide**. For configuring Docker monitors and alerts on top of the data the agent collects, see [Docker Monitor](/docs/monitor/docker-monitor).
 
@@ -108,6 +108,8 @@ docker compose up -d
 
 ```bash
 docker rm -f oneuptime-docker-agent
+# and the AI agent, if you started it
+docker rm -f oneuptime-docker-ai-agent
 ```
 
 If you used Docker Compose:
@@ -187,6 +189,32 @@ docker run -d ... -e DOCKER_API_VERSION= ...
 ### Host Name Shows as a Container ID
 
 Set the `DOCKER_HOST_NAME` environment variable to a friendly name and recreate the container.
+
+## AI agent
+
+The Docker agent's `install.sh` and the `docker-compose.yml` in its [DockerAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) also run the **Docker AI agent**: a second container, `oneuptime-docker-ai-agent` (image `oneuptime/resource-ai-agent:release`), that runs the read-only `docker` commands OneUptime AI asks for while it investigates an incident or alert on this host — `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream` — and, only if you allow it, applies fixes such as restarting a named container. It reads the same `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` and `DOCKER_HOST_NAME` as the collector, so it serves exactly this host, and it shows up on the host's **AI → AI agent** page in OneUptime.
+
+The `docker run` command and the Docker Compose file above start the collector only. To add the AI agent, start it beside the collector with the same values — with Docker Compose, add the `oneuptime-docker-ai-agent` service from that `docker-compose.yml` to yours instead:
+
+```bash
+docker run -d \
+  --name oneuptime-docker-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  oneuptime/resource-ai-agent:release
+```
+
+- It is **read-only** unless you start it with `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (for example `web-*,api-*`) limits which containers a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
+- It runs as root with the Docker socket mounted, because the socket is root-owned — and whoever can use the socket is root on this host, `:ro` or not. The agent's command policy is the limit: it never runs `exec`, `run`, `rm` or `prune`, and it never changes itself, the collector or anything in `ONEUPTIME_AI_PROTECTED_TARGETS` (container name globs).
+- `install.sh --no-ai-agent` leaves it out; `docker rm -f oneuptime-docker-ai-agent` removes it. Upgrade it like the collector: `docker pull oneuptime/resource-ai-agent:release`, remove it, and start it again.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts).
 
 ## Next steps
 

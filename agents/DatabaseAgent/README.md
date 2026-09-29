@@ -2,7 +2,7 @@
 
 Collect engine metrics — connections, throughput, cache hit ratio, locks, replication lag, memory, as far as each engine reports them — from PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, MongoDB, Elasticsearch, OpenSearch and Memcached with OneUptime, using a pre-configured OpenTelemetry Collector.
 
-The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container running the collector's native receiver for your engine, with a config that stamps every batch with the database's identity and ships it to OneUptime over OTLP. No exporter sidecar and nothing installed on the database server.
+The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container running the collector's native receiver for your engine, with a config that stamps every batch with the database's identity and ships it to OneUptime over OTLP. No exporter sidecar and nothing installed on the database server. The compose file also runs the [OneUptime AI agent](#oneuptime-ai-agent), which lets OneUptime AI read the database's diagnostics while it investigates an incident — read-only unless you allow fixes.
 
 **One agent monitors one database server.** The identity (`server.address` / `server.port`) is stamped on everything the agent sends, so a second server added to the same config would merge into the first. Install a second copy in a second directory for a second server.
 
@@ -12,7 +12,7 @@ The full guide — how databases are detected without any agent, what each sourc
 
 | File | What it is |
 | --- | --- |
-| `docker-compose.yml` | The collector container (pinned image) and the environment it reads |
+| `docker-compose.yml` | The collector container (pinned image), the OneUptime AI agent beside it, and the environment they read |
 | `configs/postgresql.yaml` | Collector config for PostgreSQL |
 | `configs/mysql.yaml` | Collector config for MySQL and MariaDB |
 | `configs/sqlserver.yaml` | Collector config for SQL Server |
@@ -200,6 +200,127 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 - Has **no** `resourcedetection` processor on purpose: its `system` detector adds the agent machine's `host.name` / `os.type`, which would make that machine look like the thing being monitored instead of the database.
 - Ships query samples and top queries as logs when `DATABASE_QUERY_EVENTS=true`. The receivers send them with an empty body and the query in `db.query.text`, so the `transform/query_event_body` processor copies the query text into the body — it is the message the Logs tab shows — and keeps the attribute; an event without query text gets its event name (`db.server.query_sample`, `db.server.top_query`), and a record that already has a body keeps it.
 - The PostgreSQL, MySQL, Redis and MongoDB configs have a commented `filelog` receiver for the engine's own log file (mount its directory at `/var/log/database` in `docker-compose.yml`).
+
+## OneUptime AI agent
+
+The compose file also runs `oneuptime-database-ai-agent` (the [`oneuptime/resource-ai-agent`](../ResourceAIAgent/README.md) image). It lets OneUptime AI look at this database while it investigates an incident or alert on it and, only if you allow it, apply a fix. It registers as the database the collector reports — `DATABASE_SERVER_ID`, or `DATABASE_SYSTEM` + `DATABASE_SERVER_ADDRESS` + `DATABASE_SERVER_PORT` — and shows up on the database's **AI → AI agent** page in OneUptime, where you also choose whether fixes need a person's approval. It supports PostgreSQL, MySQL, MariaDB (and Percona Server), Redis (and Valkey, KeyDB, Dragonfly) and MongoDB; for SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached it runs nothing and says so on that page.
+
+It never runs SQL, a Redis command or MongoDB shell code the model wrote. OneUptime AI asks for one operation from a fixed diagnostic catalog, `db <operation> [argument] [--flag value]`, and the agent runs the statements it owns for that operation through the engine's own driver, with the catalog's typed values as bind parameters. It connects to `DATABASE_ENDPOINT` with the collector's login from this same `.env` (OneUptime never sends it a credential), one connection per command, with a time limit on every statement.
+
+**What it reads** — always read-only (a `READ ONLY` transaction on PostgreSQL, a read-only session on MySQL, read commands only on Redis, admin commands on MongoDB):
+
+| Operation | What it shows |
+|-----------|---------------|
+| `db ping`, `db version` | Whether the server answers, its version and uptime |
+| `db sessions [--state …] [--user …] [--database …]` | Sessions (connections, clients, operations) and what each one runs |
+| `db long-queries [--min-seconds N]` | Statements running for at least N seconds, longest first |
+| `db blocking`, `db locks` | Who waits for a lock, and who holds it |
+| `db replication` | The replication role, replicas and lag |
+| `db connections` | Connections by state, user and database against the limit |
+| `db database-sizes`, `db table-sizes [--database …]` | Where the space goes |
+| `db top-statements` | The statements that took the most time (`pg_stat_statements`, `performance_schema`) |
+| `db settings [NAME]` | Server settings — never a credential setting (`requirepass`, passwords) |
+| `db slowlog`, `db info [SECTION]`, `db innodb-status`, `db memory`, `db keyspace` | Engine-specific reports |
+
+Query text in what it sends back is normalized — every string and number literal becomes `?`, as `pg_stat_statements` prints it — and MongoDB commands are sent as their shape (keys kept, values `?`), so customers' data in a statement never reaches OneUptime.
+
+**What it may fix** — only with `ONEUPTIME_AI_ALLOW_WRITES=true` and AI remediation turned on for the database in OneUptime, one session per command:
+
+| Fix | Engines | How it runs |
+|-----|---------|-------------|
+| `db cancel-query ID` — cancel the statement one session is running; the session stays connected | PostgreSQL (`pg_cancel_backend`), MySQL / MariaDB (`KILL QUERY`), MongoDB (`killOp`) | Safe: may run on its own in *Automatic* mode |
+| `db terminate-session ID` — disconnect one session, rolling back its open transaction | PostgreSQL (`pg_terminate_backend`), MySQL / MariaDB (`KILL CONNECTION`), Redis (`CLIENT KILL ID`) | Risky: needs approval unless you allowlisted it or bypass approvals |
+
+`ID` is the number `db sessions` prints. The agent looks the session up first and refuses to touch its own connection, a session that is not there, a server or replication thread, or (for a cancel) a session that is not running anything. It never changes a setting, schema, data, user or replication. `ONEUPTIME_AI_WRITE_TARGETS` and `ONEUPTIME_AI_PROTECTED_TARGETS` take `session:<id>` globs.
+
+### The login is the hard limit
+
+Whatever the catalog allows, the database lets the agent do only what its login may. The collector's monitoring login from [Create a monitoring user](#create-a-monitoring-user) already covers every read. Fixes need a login that may signal other sessions — give the AI agent a login of its own for them, so the collector's stays read-only, and set it in `.env` as `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` (written as it is: unlike the collector's login, its `$` are not doubled).
+
+PostgreSQL — `pg_monitor` for reads, `pg_signal_backend` to cancel and end other sessions (it can never signal a superuser's):
+
+```sql
+CREATE USER oneuptime_ai WITH PASSWORD 'another-strong-password';
+GRANT pg_monitor, pg_signal_backend TO oneuptime_ai;
+```
+
+MySQL / MariaDB — the monitoring grants, plus the right to kill other users' connections (`CONNECTION_ADMIN` on MySQL 8, `CONNECTION ADMIN` on MariaDB 10.5+, `SUPER` before), and `SELECT` on `mysql.slow_log` if you want `db slowlog`:
+
+```sql
+CREATE USER 'oneuptime_ai'@'%' IDENTIFIED BY 'another-strong-password';
+GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'oneuptime_ai'@'%';
+GRANT SELECT ON performance_schema.* TO 'oneuptime_ai'@'%';
+GRANT CONNECTION_ADMIN ON *.* TO 'oneuptime_ai'@'%';
+```
+
+Redis / Valkey / KeyDB / Dragonfly — an ACL user with the read commands the catalog runs, plus `+client|kill` for fixes:
+
+```text
+ACL SETUSER oneuptime_ai on >another-strong-password -@all +ping +info +dbsize +client|id +client|list +client|setname +config|get +slowlog|get +memory|stats +client|kill
+```
+
+MongoDB — `clusterMonitor` for reads, and the `killop` action on the cluster for fixes:
+
+```js
+db.getSiblingDB("admin").createRole({
+  role: "oneuptimeKillOp",
+  privileges: [{ resource: { cluster: true }, actions: ["killop"] }],
+  roles: [],
+});
+db.getSiblingDB("admin").createUser({
+  user: "oneuptime_ai",
+  pwd: "another-strong-password",
+  roles: [
+    { role: "clusterMonitor", db: "admin" },
+    { role: "oneuptimeKillOp", db: "admin" },
+  ],
+});
+```
+
+Then add to `.env` and run `docker compose up -d`:
+
+```bash
+ONEUPTIME_AI_ALLOW_WRITES=true
+ONEUPTIME_AI_DATABASE_USERNAME=oneuptime_ai
+ONEUPTIME_AI_DATABASE_PASSWORD='another-strong-password'
+# Optional: what fixes may touch, and what they never may (session:<id> globs).
+ONEUPTIME_AI_WRITE_TARGETS=
+ONEUPTIME_AI_PROTECTED_TARGETS=
+```
+
+### AI agent variables
+
+The AI agent reads the collector's variables above (the identity, `DATABASE_ENDPOINT`, the login and the TLS switches, with the same meaning) and these of its own:
+
+| Variable | Description |
+| --- | --- |
+| `ONEUPTIME_AI_ALLOW_WRITES` | `true` lets the AI agent apply fixes; anything else keeps it read-only (default: `false`) |
+| `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` | A login of the AI agent's own, used instead of `DATABASE_USERNAME` / `DATABASE_PASSWORD` when either is set. Written as it is (no `$$`) |
+| `ONEUPTIME_AI_DATABASE_NAME` | PostgreSQL: the database the agent connects to (default `postgres`). MongoDB: the login's authentication database (default `admin`) |
+| `ONEUPTIME_AI_DATABASE_CA_FILE` | A PEM CA bundle, mounted into the container (see the commented `volumes` of `oneuptime-database-ai-agent`), to verify the server's certificate against when `DATABASE_TLS_INSECURE=false` |
+| `ONEUPTIME_AI_WRITE_TARGETS` | Comma-separated `session:<id>` globs fixes may touch (default: any session) |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | Comma-separated `session:<id>` globs fixes never touch |
+
+A database that listens on `127.0.0.1` only needs `network_mode: host` on both services (the AI agent's is commented out next to its `extra_hosts`, like the collector's).
+
+### Troubleshooting the AI agent
+
+```bash
+cd /opt/oneuptime-database-agent
+docker compose logs --tail=100 oneuptime-database-ai-agent
+docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status
+```
+
+The status shows whether the agent registered with OneUptime and — in its posture — whether it reaches the database (`reachable`, `reachError`), the server's version, the endpoint, TLS mode and login it uses (never the password). The same reasons appear on the database's **AI → AI agent** page.
+
+| What you see | What to do |
+|--------------|------------|
+| `does not support … for AI diagnostics yet` | The engine has no AI diagnostics; remove the `oneuptime-database-ai-agent` service if you do not want it running. |
+| `nothing accepts connections at …` | Check `DATABASE_ENDPOINT` — inside the container `localhost` is the container itself: use `host.docker.internal:<port>`, or `network_mode: host` on both services. |
+| `refused the login` | Check `DATABASE_USERNAME` / `DATABASE_PASSWORD` (every `$` doubled in `.env`), or the AI agent's own `ONEUPTIME_AI_DATABASE_*` login. |
+| `TLS certificate is not trusted` / `does not speak TLS` | Set `ONEUPTIME_AI_DATABASE_CA_FILE`, `DATABASE_TLS_INSECURE_SKIP_VERIFY=true`, or `DATABASE_TLS_INSECURE` to match the server. |
+| `lacks a privilege` / `may not kill other users' connections` / `NOPERM` | Grant the login what [The login is the hard limit](#the-login-is-the-hard-limit) lists. |
+| `this agent is read-only (ONEUPTIME_AI_ALLOW_WRITES …)` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env`, then `docker compose up -d`. |
 
 ## Alert on the database
 

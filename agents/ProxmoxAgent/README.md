@@ -2,7 +2,7 @@
 
 Monitor Proxmox VE clusters — nodes, QEMU VMs, LXC containers, storage, and HA state — with OneUptime using a pre-configured OpenTelemetry Collector.
 
-The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes [prometheus-pve-exporter](https://github.com/prometheus-pve/prometheus-pve-exporter), stamps the data with your cluster identity, and ships it to OneUptime over OTLP. The compose file optionally runs the exporter for you, so a full install is one `.env` file and one `docker compose up`.
+The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes [prometheus-pve-exporter](https://github.com/prometheus-pve/prometheus-pve-exporter), stamps the data with your cluster identity, and ships it to OneUptime over OTLP. The compose file optionally runs the exporter for you, so a full install is one `.env` file and one `docker compose up`. It also runs the [OneUptime AI agent](#oneuptime-ai-agent), which lets OneUptime AI read the cluster through the Proxmox VE API while it investigates an incident — read-only unless you allow fixes.
 
 ## Prerequisites
 
@@ -80,12 +80,72 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
 | `PROXMOX_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `proxmox-cluster`) |
-| `PVE_HOST` | Yes | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10` |
+| `PVE_HOST` | Yes | Proxmox VE API host (any node of the cluster) the exporter and the AI agent query, e.g. `192.168.1.10` |
+| `PVE_PORT` | No | Proxmox VE API port the AI agent uses when `PVE_HOST` names none (default: `8006`) |
 | `PVE_EXPORTER_URL` | No | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`) |
-| `PVE_API_TOKEN_ID` | Bundled exporter only | Full Proxmox API token id, e.g. `oneuptime@pve!exporter` |
-| `PVE_API_TOKEN_SECRET` | Bundled exporter only | Proxmox API token secret |
+| `PVE_API_TOKEN_ID` | Bundled exporter and AI agent | Full Proxmox API token id, e.g. `oneuptime@pve!exporter` (PVEAuditor, read-only) |
+| `PVE_API_TOKEN_SECRET` | Bundled exporter and AI agent | Proxmox API token secret |
 | `PVE_VERIFY_SSL` | No | Verify the Proxmox API TLS certificate (default: `false` — PVE ships self-signed certificates) |
+| `PVE_CA_FILE` | No | AI agent: a CA certificate (the cluster's `/etc/pve/pve-root-ca.pem`, mounted into the container) to verify the API's certificate against; setting it turns verification on |
+| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes; anything else keeps it read-only (default: `false`) |
+| `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET` | For fixes | A token of the AI agent's own, used instead of `PVE_API_TOKEN_ID` when set — see [The API token](#the-api-token-is-the-hard-limit) |
+| `ONEUPTIME_AI_WRITE_TARGETS` | No | Comma-separated globs of the guests (VMIDs, e.g. `101,2*`) and node services (`pve1/pveproxy`, `*/pveproxy`) fixes may touch (default: all) |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | Comma-separated globs of guests and node services OneUptime AI must never change — at least the VMID of the VM the agent runs in, if it runs on this cluster |
 | `COMPOSE_PROFILES` | No | Set to `pve-exporter` to start the bundled exporter container |
+
+## OneUptime AI agent
+
+The compose file also runs `oneuptime-proxmox-ai-agent` (the [`oneuptime/resource-ai-agent`](../ResourceAIAgent/README.md) image). It lets OneUptime AI look at this cluster while it investigates an incident or alert on it and, only if you allow it, apply a fix. It registers as the cluster named `PROXMOX_CLUSTER_NAME` — the name the collector stamps on your metrics — and shows up on the cluster's **AI → AI agent** page in OneUptime, where you also choose whether fixes need a person's approval.
+
+There is no `pvesh` binary in it. OneUptime AI writes commands in `pvesh` grammar (`pvesh get /cluster/status`, `pvesh create /nodes/pve1/qemu/101/status/start`); the agent checks each one against the same command policy OneUptime already applied, turns it into exactly one call to the Proxmox VE API (`https://PVE_HOST:8006/api2/json/...`) with its own API token, and sends the answer back with secrets (cloud-init passwords, storage keys) redacted. OneUptime never sends it a credential, and it never uses the proxy it reaches OneUptime through to reach Proxmox.
+
+**What it reads** — always read-only: cluster status, resources, HA state, tasks and the cluster log; each node's status, services, storage, disks, network and replication; each guest's status, config (secrets redacted), pending changes, snapshots and usage; QEMU guest-agent information. It never reads anything under `/access` (users, tokens, ACLs), never opens a console, the QEMU monitor or guest-agent exec and file calls, and never runs `pvesh set` or `pvesh delete`.
+
+**What it may fix** — only with `ONEUPTIME_AI_ALLOW_WRITES=true` and AI remediation turned on for the cluster in OneUptime:
+
+| Fix | How it runs |
+|-----|-------------|
+| Start, resume or reboot one guest | Safe: may run on its own in *Automatic* mode |
+| Shut down, stop or suspend one guest; reset one VM; start, restart or reload one of `pveproxy`, `pvedaemon`, `pvestatd`, `pve-ha-lrm`, `pve-ha-crm`, `spiceproxy`, `pvescheduler`, `pve-firewall`, `chrony`, `cron`, `postfix` | Risky: needs approval unless you allowlisted it or bypass approvals |
+| Migrate a guest; start, restart or reload `corosync` or `pve-cluster` | Always a person's decision |
+
+A fix names its node and guest (`/nodes/pve1/qemu/101/...`, never `localhost`). The agent follows the task a fix starts until it stops, so a guest that fails to start is reported as a failure, with the task's log. Allowlist entries on the AI agent page spell each command out in full, e.g. `pvesh create /nodes/pve1/qemu/101/status/reboot`: `*` stands for one whole word only, so write one entry per guest.
+
+### The API token is the hard limit
+
+Whatever the policy allows, Proxmox VE lets the agent do only what its token may.
+
+- **Investigations** use the collector's token, `PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET` — the PVEAuditor token from [Creating the Proxmox API token](#creating-the-proxmox-api-token). If you run your own exporter and have no token in `.env`, create one and add both variables. PVEAuditor reads everything the agent reads except node logs (`/nodes/{node}/syslog` and `/journal` need `Sys.Syslog`) and the QEMU guest agent (`VM.GuestAgent.Audit` on Proxmox VE 9, `VM.Monitor` on 8); grant those only if you want OneUptime AI to read them. If Proxmox answers reads with `403`, grant the role to the token's user too: a token with privilege separation only gets permissions its user also has.
+- **Fixes** need a token of the AI agent's own, so the collector's token stays read-only. On any node, as root:
+
+  ```bash
+  pveum user add oneuptime-ai@pve --comment "OneUptime AI agent"
+  # Read the whole cluster, like the collector's token:
+  pveum acl modify / --roles PVEAuditor --users oneuptime-ai@pve
+  # Start, reboot, shut down and stop guests (VM.PowerMgmt):
+  pveum acl modify /vms --roles PVEVMUser --users oneuptime-ai@pve
+  # A token that carries exactly this user's permissions:
+  pveum user token add oneuptime-ai@pve fixes --privsep 0
+  ```
+
+  Then add to `.env` and run `docker compose up -d`:
+
+  ```bash
+  ONEUPTIME_AI_ALLOW_WRITES=true
+  ONEUPTIME_AI_PVE_API_TOKEN_ID=oneuptime-ai@pve!fixes
+  ONEUPTIME_AI_PVE_API_TOKEN_SECRET=<the secret pveum printed>
+  # Optional: what fixes may touch, and what they never may (VMIDs, <node>/<service>).
+  ONEUPTIME_AI_WRITE_TARGETS=
+  ONEUPTIME_AI_PROTECTED_TARGETS=105
+  ```
+
+  To grant less: give `PVEVMUser` on `/pool/<pool>` or `/vms/<vmid>` instead of `/vms`, so Proxmox only lets it touch those guests. `PVEVMUser` also allows consoles, backups and CD-ROM and cloud-init changes, which the agent never makes; a role with exactly what fixes need works too (`pveum role add OneUptimeAIPower --privs "VM.PowerMgmt VM.Audit"`, granted instead of `PVEVMUser`). Restarting node services needs `Sys.Modify` on `/nodes/<node>` and migrating a guest `VM.Migrate` (the `PVEVMAdmin` role): grant them only if you want those fixes. Without a privilege, Proxmox refuses the call and the agent reports which privilege it needed.
+
+If the agent runs in a VM or container on this cluster, put its VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`.
+
+### TLS
+
+Like the exporter, the AI agent does not verify the API's certificate by default, because Proxmox VE ships a self-signed one — so anything that can intercept the traffic between the agent and `PVE_HOST` could read the token. To verify it, copy `/etc/pve/pve-root-ca.pem` from any node next to `docker-compose.yml`, uncomment the `volumes` of the `oneuptime-proxmox-ai-agent` service, and set `PVE_CA_FILE=/etc/oneuptime/pve-root-ca.pem` in `.env`. If the API has a publicly trusted certificate, set `PVE_VERIFY_SSL=true` instead.
 
 ## Collected Metrics
 
@@ -246,6 +306,25 @@ The API token is wrong or lacks permissions. Re-check the token id format (`user
 
 Guest series (`qemu/*`, `lxc/*` ids) come from the cluster collector. The shipped config enables it (`cluster=1` scrape parameter) — if you customized the config, restore the `cluster: ["1"]` param.
 
+### The AI agent
+
+```bash
+docker logs --tail 100 oneuptime-proxmox-ai-agent
+docker exec oneuptime-proxmox-ai-agent wget -qO- http://127.0.0.1:3877/status
+```
+
+The status shows whether the agent registered with OneUptime and — in its posture — whether it reaches the Proxmox VE API (`reachable`, `reachError`), the Proxmox VE version, how many nodes are online, whether the cluster is quorate, and which token it uses (never the secret). The same reasons appear on the cluster's **AI → AI agent** page.
+
+| What you see | What to do |
+|--------------|------------|
+| `PVE_HOST is not set` | Set `PVE_HOST` in `.env` to any node's address, then `docker compose up -d`. |
+| `No Proxmox VE API token is set` | Set `PVE_API_TOKEN_ID` and `PVE_API_TOKEN_SECRET` (see [The API token](#the-api-token-is-the-hard-limit)). |
+| `Could not connect to the Proxmox VE API ... PVE_HOST is "localhost"` | Inside the agent's container `localhost` is the container itself: set `PVE_HOST` to a node's address. |
+| `The TLS handshake with the Proxmox VE API ... failed` | Set `PVE_CA_FILE` to the cluster's CA (see [TLS](#tls)), or `PVE_VERIFY_SSL=false`. |
+| `HTTP 401 ... did not accept the token` | Check the token id (`user@realm!tokenname`) and secret, and that the token still exists and has not expired. |
+| `HTTP 403 ... typically needs <privilege>` | Grant the token that privilege (see [The API token](#the-api-token-is-the-hard-limit)). |
+| `this agent is read-only (ONEUPTIME_AI_ALLOW_WRITES ...)` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env`, then `docker compose up -d`. |
+
 ### Common Commands
 
 ```bash
@@ -257,6 +336,9 @@ docker logs -f oneuptime-proxmox-agent
 
 # View exporter logs (bundled exporter)
 docker logs -f oneuptime-pve-exporter
+
+# View AI agent logs
+docker logs -f oneuptime-proxmox-ai-agent
 
 # Test the exporter scrape by hand (the bundled exporter does not
 # publish its port on the host, so run curl inside its network namespace)

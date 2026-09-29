@@ -1,0 +1,37 @@
+name: Resource AI Agent Test
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - run: cd agents/ResourceAIAgent && npm install
+      # The agent carries byte-identical copies of the server's resource
+      # command policy and shared types (Common/); a copy that drifted would
+      # let the agent and the server disagree about a command.
+      - run: cd agents/ResourceAIAgent && npm run check-common
+      # `npm test` compiles with tsc first and then runs the node:test suites
+      # against the build output, so this covers type errors as well. The
+      # suites run the resource CLIs as fake scripts, so no Docker socket,
+      # cluster or database is needed.
+      - run: cd agents/ResourceAIAgent && npm run test

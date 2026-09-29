@@ -14,6 +14,11 @@ import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+  isInfrastructureToolName,
+} from "../ResourceAccess/ResourceAccessToolNames";
 import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
@@ -353,6 +358,14 @@ export default class AIInvestigationEngine {
     let clusterToolCallCount: number = 0;
 
     /*
+     * The same for the tools that reach an infrastructure resource through
+     * its AI agent (run_infrastructure_command, list_infrastructure_access):
+     * commands on a host, a container engine, a hypervisor, a storage
+     * cluster or a database — never telemetry queries either.
+     */
+    let infrastructureToolCallCount: number = 0;
+
+    /*
      * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
      * "watch it think" by polling the run's events. Best-effort, ordered.
      */
@@ -364,6 +377,13 @@ export default class AIInvestigationEngine {
         CLUSTER_TOOL_NAMES.includes(step.toolName || "")
       ) {
         clusterToolCallCount++;
+      }
+
+      if (
+        step.type === "tool_started" &&
+        isInfrastructureToolName(step.toolName)
+      ) {
+        infrastructureToolCallCount++;
       }
 
       /*
@@ -599,6 +619,7 @@ export default class AIInvestigationEngine {
         result,
         analysis,
         clusterToolCallCount,
+        infrastructureToolCallCount,
       );
 
       await request.postAnalysis({
@@ -863,11 +884,17 @@ export default class AIInvestigationEngine {
    * model's). So a run that made no cluster call posts exactly what it
    * always has, and a run that did writes its telemetry count only when it
    * is not zero.
+   *
+   * Commands on infrastructure resources (run_infrastructure_command) are
+   * counted the same way, as their own "N infrastructure commands run"
+   * part appended only when a run used those tools — so every footer of a
+   * run that did not stays byte-for-byte what it was.
    */
   public static buildBrandedMarkdown(
     result: ObservabilityAssistantResult,
     analysisMarkdown: string,
     clusterToolCallCount: number = 0,
+    infrastructureToolCallCount: number = 0,
   ): string {
     let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${analysisMarkdown}`;
 
@@ -888,7 +915,7 @@ export default class AIInvestigationEngine {
       }
     }
 
-    if (clusterToolCallCount <= 0) {
+    if (clusterToolCallCount <= 0 && infrastructureToolCallCount <= 0) {
       markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
         result.toolCallCount === 1 ? "y" : "ies"
       } run across your own telemetry${
@@ -900,7 +927,9 @@ export default class AIInvestigationEngine {
 
     const telemetryQueryCount: number = Math.max(
       0,
-      result.toolCallCount - clusterToolCallCount,
+      result.toolCallCount -
+        Math.max(0, clusterToolCallCount) -
+        Math.max(0, infrastructureToolCallCount),
     );
     // Only commands that reached kubectl are cited, so only they are "run".
     const kubectlCommandCount: number = citations.filter(
@@ -926,8 +955,36 @@ export default class AIInvestigationEngine {
       );
     }
 
+    // Only commands that reached a resource are cited, so only they are "run".
+    const infrastructureCommandCount: number = citations.filter(
+      (citation: AIChatCitation): boolean => {
+        return citation.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME;
+      },
+    ).length;
+
+    if (infrastructureCommandCount > 0) {
+      counts.push(
+        `${infrastructureCommandCount} infrastructure ${
+          infrastructureCommandCount === 1 ? "command" : "commands"
+        } run on your infrastructure`,
+      );
+    }
+
+    if (counts.length === 0 && infrastructureToolCallCount > 0) {
+      counts.push(
+        clusterToolCallCount > 0
+          ? "no telemetry queries, kubectl commands or infrastructure commands run"
+          : "no telemetry queries or infrastructure commands run",
+      );
+    }
+
     if (counts.length === 0) {
       counts.push("no telemetry queries or kubectl commands run");
+    }
+
+    // Three parts read "A, B and C"; one or two read exactly as they always have.
+    if (counts.length > 2) {
+      counts.splice(0, counts.length - 1, counts.slice(0, -1).join(", "));
     }
 
     markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
@@ -954,6 +1011,19 @@ export default class AIInvestigationEngine {
 
     if (citation.toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
       return `${citation.rowCount} cluster(s)`;
+    }
+
+    /*
+     * A command on an infrastructure resource: 1 when it completed, 0 when
+     * it ran and the program returned an error; a listing of resources is
+     * the number it listed.
+     */
+    if (citation.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+      return citation.rowCount > 0 ? "succeeded" : "command returned an error";
+    }
+
+    if (citation.toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
+      return `${citation.rowCount} resource(s)`;
     }
 
     return null;

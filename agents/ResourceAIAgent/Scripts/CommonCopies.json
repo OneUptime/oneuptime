@@ -1,0 +1,11 @@
+{
+  "commonPolicyDirectories": [
+    "Types/ResourceAiAgent",
+    "Utils/AiRemediation/Resource"
+  ],
+  "commonPolicyFiles": [
+    "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+    "Types/Runbook/RunnerJobOrigin.ts"
+  ],
+  "otherCopies": []
+}

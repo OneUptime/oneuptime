@@ -1,0 +1,73 @@
+# The OneUptime AI agent for this host. While OneUptime AI investigates an
+# incident or alert it runs read-only commands here (systemctl status,
+# journalctl -u UNIT -n 200, df -h, free -m, ps aux, ss -tulpn, ...), and —
+# only when you set ONEUPTIME_AI_ALLOW_WRITES=true in .env — the fixes you
+# allow (restarting a named systemd unit, signalling a process). See
+# README.md for exactly what it may run.
+#
+# Start it with `docker compose up -d` next to a .env holding ONEUPTIME_URL
+# and the telemetry ingestion key (install.sh writes both).
+services:
+  oneuptime-host-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-host-ai-agent
+    # The agent runs the HOST's own programs, not the container's: every
+    # command is `nsenter --target 1 --mount --uts --ipc --net --pid --
+    # PROGRAM ARGS`, which enters the namespaces of the host's init. That
+    # needs all three settings below — pid: host so that pid 1 is the host's
+    # init (without it, pid 1 is this container's own and the agent refuses
+    # to run anything), privileged so the kernel lets it enter those
+    # namespaces, and root. It is root on the host: the agent's command
+    # policy is the limit (read-only commands unless
+    # ONEUPTIME_AI_ALLOW_WRITES=true, never a shell, never itself, the
+    # collector or ONEUPTIME_AI_PROTECTED_TARGETS).
+    pid: host
+    privileged: true
+    user: "0:0"
+    # The host's network, like the collector's (its commands enter the
+    # host's network namespace either way). The health server listens on
+    # the host's 127.0.0.1:3877 only (PORT in .env to change the port; the
+    # healthcheck below follows it; ONEUPTIME_AI_AGENT_HEALTH_HOST=0.0.0.0
+    # would serve /status on every interface of the host).
+    network_mode: host
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      # The project's telemetry ingestion key (either variable; the first
+      # one set is used).
+      - ONEUPTIME_API_KEY=${ONEUPTIME_API_KEY:-}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY:-}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=host
+      # The host.name your OpenTelemetry collector reports for this host.
+      # Empty: the host's own hostname, which is what the collector reports
+      # unless you set host.name yourself (OTEL_RESOURCE_ATTRIBUTES).
+      - HOST_NAME=${HOST_NAME:-}
+      # "true" lets OneUptime AI apply fixes; anything else keeps it read-only.
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      # Comma-separated unit-name globs fixes may touch (e.g. nginx.service,app-*).
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      # Comma-separated unit-name globs OneUptime AI must never change.
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides HOST_NAME as the name the agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The health server's port on the host's network.
+      - PORT=${PORT:-3877}
+      # debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # With pid: host, tini is not pid 1: register it as a subreaper so it
+      # still reaps what the agent's commands leave behind.
+      - TINI_SUBREAPER=1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${PORT:-3877}/status/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -108,6 +108,20 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
       ["Project", "Databases", "View Database", "Recommendations"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS, [
+      "Project",
+      "Databases",
+      "View Database",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_AI_AGENT, [
+      "Project",
+      "Databases",
+      "View Database",
+      "AI",
+      "AI agent",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_SETTINGS, [
       "Project",
       "Databases",

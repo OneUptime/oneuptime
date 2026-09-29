@@ -66,3 +66,86 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The Proxmox AI agent: runs the `pvesh` commands OneUptime AI asks for
+  # while it investigates an incident or alert on this cluster — read-only
+  # unless you set ONEUPTIME_AI_ALLOW_WRITES=true. There is no pvesh binary
+  # in it: each command becomes one call to the Proxmox VE API
+  # (https://PVE_HOST:8006/api2/json) with an API token from this same .env
+  # (OneUptime never sends it any), so the token's Proxmox permissions are
+  # the hard limit. It registers as the cluster named PROXMOX_CLUSTER_NAME,
+  # exactly like the collector above, and shows up on that cluster's
+  # AI -> AI agent page. See README.md ("OneUptime AI agent"). Remove this
+  # service if you do not use OneUptime AI.
+  oneuptime-proxmox-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-proxmox-ai-agent
+    # It only talks HTTPS to the Proxmox VE API and to OneUptime: no root,
+    # no capabilities, a read-only root filesystem and a tmpfs for /tmp.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Uncomment (and set PVE_CA_FILE=/etc/oneuptime/pve-root-ca.pem) to
+    # verify the API's certificate against the cluster's own CA — copy
+    # /etc/pve/pve-root-ca.pem from any node next to this file.
+    # volumes:
+    #   - ./pve-root-ca.pem:/etc/oneuptime/pve-root-ca.pem:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=proxmox
+      # Must match the collector's, so the agent serves the same cluster.
+      - PROXMOX_CLUSTER_NAME=${PROXMOX_CLUSTER_NAME:-proxmox-cluster}
+      # Any node of the cluster (host or IP; no "localhost": inside this
+      # container that is the container itself).
+      - PVE_HOST=${PVE_HOST:-}
+      # The API port when PVE_HOST names none (8006 when both are empty).
+      - PVE_PORT=${PVE_PORT:-}
+      # Proxmox VE ships a self-signed certificate, so verification is off
+      # unless you set this to true or set PVE_CA_FILE (see volumes above).
+      - PVE_VERIFY_SSL=${PVE_VERIFY_SSL:-false}
+      - PVE_CA_FILE=${PVE_CA_FILE:-}
+      # Investigations use the collector's read-only PVEAuditor token ...
+      - PVE_API_TOKEN_ID=${PVE_API_TOKEN_ID:-}
+      - PVE_API_TOKEN_SECRET=${PVE_API_TOKEN_SECRET:-}
+      # ... or, when set, this token of the AI agent's own — one that may
+      # also start, reboot and shut down guests (VM.PowerMgmt, e.g. the
+      # PVEVMUser role on /vms), which fixes need. See README.md.
+      - ONEUPTIME_AI_PVE_API_TOKEN_ID=${ONEUPTIME_AI_PVE_API_TOKEN_ID:-}
+      - ONEUPTIME_AI_PVE_API_TOKEN_SECRET=${ONEUPTIME_AI_PVE_API_TOKEN_SECRET:-}
+      # Read-only unless exactly "true". Then fixes may touch only the guests
+      # (VMIDs) and node services (<node>/<service>) ONEUPTIME_AI_WRITE_TARGETS
+      # matches (all when empty), and never ONEUPTIME_AI_PROTECTED_TARGETS —
+      # put the VMID of the VM this agent runs in there.
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides PROXMOX_CLUSTER_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:3877/status/live",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
