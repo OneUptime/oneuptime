@@ -18,6 +18,7 @@ import {
 } from "Common/Types/Monitor/RumAlertTemplates";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
 import MetricMonitorResponse, {
   VMwareAffectedResource,
   VMwareResourceBreakdown,
@@ -401,6 +402,96 @@ describe("monitorMetric", () => {
     expect(query["projectId"]).toBe(projectId);
     expect(query["name"]).toBe("web_vital.lcp");
   });
+
+  /*
+   * The session replay budget templates read a series the budget sweep posts
+   * under EVERY recording application's id - the project's daily value is the
+   * same row repeated per application. Only the application scope keeps one
+   * application's monitor on its own rows, and only the Max over a
+   * fifteen-minute window (three of the sweep's five-minute points) keeps
+   * one late sweep from emptying the window and resolving a spent budget.
+   */
+  test.each([
+    {
+      templateId: "rum-session-replay-daily-budget-nearly-spent",
+      metricName: SessionReplayBudgetMetricType.ProjectDailyUsedPercent,
+    },
+    {
+      templateId: "rum-session-replay-daily-budget-spent",
+      metricName: SessionReplayBudgetMetricType.ProjectDailyUsedPercent,
+    },
+    {
+      templateId: "rum-session-replay-monthly-budget-nearly-spent",
+      metricName: SessionReplayBudgetMetricType.ApplicationMonthlyUsedPercent,
+    },
+    {
+      templateId: "rum-session-replay-monthly-budget-spent",
+      metricName: SessionReplayBudgetMetricType.ApplicationMonthlyUsedPercent,
+    },
+  ])(
+    "scopes the $templateId query to its application, by exact name, as the Max over fifteen minutes",
+    async (item: {
+      templateId: string;
+      metricName: SessionReplayBudgetMetricType;
+    }) => {
+      const rumApplicationId: ObjectID = ObjectID.generate();
+      const template: RumAlertTemplate | undefined = getRumAlertTemplateById(
+        item.templateId,
+      );
+
+      expect(template).toBeDefined();
+
+      const step: MonitorStep = template!.getMonitorStep({
+        rumApplicationId: rumApplicationId.toString(),
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "Storefront",
+      });
+
+      await monitorMetric({ monitorStep: step, monitorId, projectId });
+
+      expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+
+      const aggregateArgs: {
+        query: Record<string, unknown>;
+        aggregationType: MetricsAggregationType;
+        startTimestamp: Date;
+        endTimestamp: Date;
+        groupByAttributeKeys?: Array<string> | undefined;
+      } = metricAggregateBy.mock.calls[0]![0];
+      const query: Record<string, unknown> = aggregateArgs.query;
+      const primaryEntityId: Includes = query["primaryEntityId"] as Includes;
+
+      expect(primaryEntityId).toBeInstanceOf(Includes);
+      expect(
+        (primaryEntityId.values as Array<string | ObjectID | number>).map(
+          (id: string | ObjectID | number) => {
+            return id.toString();
+          },
+        ),
+      ).toEqual([rumApplicationId.toString()]);
+      expect(query["projectId"]).toBe(projectId);
+      expect(query["name"]).toBe(item.metricName);
+      // Scoped by the application id alone, never by an attribute filter.
+      expect(query["attributes"]).toBeUndefined();
+
+      expect(aggregateArgs.aggregationType).toBe(MetricsAggregationType.Max);
+      expect(aggregateArgs.groupByAttributeKeys).toBeUndefined();
+
+      const window: InBetween<Date> = query["time"] as InBetween<Date>;
+
+      expect(window).toBeInstanceOf(InBetween);
+      expect(window.endValue.getTime() - window.startValue.getTime()).toBe(
+        15 * 60 * 1000,
+      );
+      expect(
+        aggregateArgs.endTimestamp.getTime() -
+          aggregateArgs.startTimestamp.getTime(),
+      ).toBe(15 * 60 * 1000);
+    },
+  );
 
   test("keeps legacy generic metric monitors project-wide when no scope is configured", async () => {
     const step: MonitorStep = new MonitorStep();
