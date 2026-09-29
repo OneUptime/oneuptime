@@ -15,6 +15,8 @@ import PodmanHostContainers from "../Pages/Podman/View/Containers";
 import PodmanHostContainerDetail from "../Pages/Podman/View/ContainerDetail";
 import PodmanHostMetrics from "../Pages/Podman/View/Metrics";
 import PodmanHostRecommendations from "../Pages/Podman/View/Recommendations";
+import PodmanHostAiInsights from "../Pages/Podman/View/AI/Insights";
+import PodmanHostAiAgent from "../Pages/Podman/View/AI/Agent";
 import PodmanHostLogs from "../Pages/Podman/View/Logs";
 import PodmanHostTraces from "../Pages/Podman/View/Traces";
 import PodmanHostProfiles from "../Pages/Podman/View/Profiles";
@@ -164,6 +166,35 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS] as Route
               }
+            />
+          }
+        />
+
+        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <PodmanHostAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <PodmanHostAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_AI_AGENT] as Route}
             />
           }
         />

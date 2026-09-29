@@ -75,11 +75,19 @@ export function getDockerSwarmBreadcrumbs(
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS,
-      ["Project", "DockerSwarm", "View Cluster", "Insights"],
+      ["Project", "DockerSwarm", "View Cluster", "Resource Usage"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS,
       ["Project", "DockerSwarm", "View Cluster", "Recommendations"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
+      ["Project", "DockerSwarm", "View Cluster", "AI", "Insights"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
+      ["Project", "DockerSwarm", "View Cluster", "AI", "AI agent"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS, [
       "Project",

@@ -55,12 +55,26 @@ export function getProxmoxBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Proxmox",
       "View Cluster",
-      "Insights",
+      "Resource Usage",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS,
       ["Project", "Proxmox", "View Cluster", "Recommendations"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS, [
+      "Project",
+      "Proxmox",
+      "View Cluster",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT, [
+      "Project",
+      "Proxmox",
+      "View Cluster",
+      "AI",
+      "AI agent",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_METRICS, [
       "Project",
       "Proxmox",

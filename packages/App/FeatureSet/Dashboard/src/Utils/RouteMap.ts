@@ -214,6 +214,8 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.DOCKER_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
@@ -240,6 +242,8 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.PODMAN_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
@@ -271,6 +275,8 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
   [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -303,6 +309,8 @@ export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS]: `${RouteParams.ModelID}/resource-pools`,
   [PageMap.VMWARE_VCENTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.VMWARE_VCENTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.VMWARE_VCENTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.VMWARE_VCENTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -361,6 +369,8 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -389,6 +399,8 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_CLUSTER_VIEW_DAEMONS]: `${RouteParams.ModelID}/daemons`,
   [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: `${RouteParams.ModelID}/cluster-log`,
   [PageMap.CEPH_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.CEPH_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -412,6 +424,8 @@ export const CephRoutePath: Dictionary<string> = {
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
   [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
@@ -485,6 +499,8 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
   [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DATABASE_SERVER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -3373,6 +3389,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_METRICS]
@@ -3517,6 +3545,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -3694,6 +3734,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -3877,6 +3929,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/vmware/${
       VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -4207,6 +4271,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]
@@ -4372,6 +4448,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.CEPH_CLUSTER_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_METRICS]
@@ -4488,6 +4576,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -4896,6 +4996,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AI_AGENT]
     }`,
   ),
 
