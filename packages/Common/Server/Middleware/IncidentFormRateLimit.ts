@@ -32,9 +32,13 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  *    per form that no number of addresses gets around, and refuses to serve
  *    at all when it cannot count (see getMiddleware).
  *
- * The per-address counters are middleware, in front of everything, so a
- * flood is refused before it costs a session lookup, a Postgres read or a
- * captcha round trip. The per-form ceiling is not: IncidentFormService
+ * The per-address counters are middleware, so a flood is refused before it
+ * costs a session lookup, a Postgres read or a captcha round trip. Only the
+ * routes' own-page checks come before them (IncidentFormAPI): a request
+ * another site's page had a browser send, or a submission that is not
+ * JSON, is refused without being counted, so such a page cannot use up the
+ * budget its visitors' addresses share. The per-form ceiling is not
+ * middleware at all: IncidentFormService
  * spends it (reserveFormSubmission) only for a submission that has passed
  * every other check - the form, its plan, its IP allowlist, the captcha,
  * the answers, the severity - right before the incident is declared. It
@@ -45,9 +49,9 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  */
 
 /*
- * Which counter rejected a request. Every request consumes the first two, in
- * the middleware; a submission about to declare an incident consumes the
- * third:
+ * Which counter rejected a request. Every request that reaches the
+ * middleware consumes the first two; a submission about to declare an
+ * incident consumes the third:
  *
  *  - FormAndIp, keyed on the form + client address: the budget one reporter
  *    (or one office behind one NAT) gets on one form.

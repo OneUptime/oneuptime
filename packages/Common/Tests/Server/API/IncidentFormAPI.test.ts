@@ -14,9 +14,11 @@ import {
  * The limiter, the service and the real HTTP behaviour each have suites of
  * their own. What this file protects is the part that silently rots:
  *
- *   - the public surface is exactly two routes, and each runs the limiter,
- *     then the ANONYMOUS user middleware, then the handler - so a flood is
- *     refused before it costs anything, and a dead session cookie is
+ *   - the public surface is exactly two routes, and each first refuses a
+ *     request another site's page had a browser send (and submitting, a body
+ *     that is not JSON), then runs the limiter, then the ANONYMOUS user
+ *     middleware, then the handler - so such a page spends nothing, a flood
+ *     is refused before it costs anything, and a dead session cookie is
  *     ignored rather than answered with a 401;
  *   - reading uses the read bucket (fails open) and submitting the submit
  *     bucket (fails closed);
@@ -86,6 +88,7 @@ import IncidentFormAPI, {
   INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH,
   INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE,
   INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE,
+  INCIDENT_FORM_FOREIGN_PAGE_MESSAGE,
   INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
 } from "../../../Server/API/IncidentFormAPI";
 import BaseAPI from "../../../Server/API/BaseAPI";
@@ -99,9 +102,11 @@ import {
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import IncidentFormService from "../../../Server/Services/IncidentFormService";
 import Response from "../../../Server/Utils/Response";
+import SameOriginRequest from "../../../Server/Utils/SameOriginRequest";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import {
   IncidentFormFieldSetting,
@@ -329,25 +334,38 @@ describe("IncidentFormAPI", () => {
     });
 
     /*
-     * Order matters. In front of UserMiddleware a flood is refused before it
-     * costs a session lookup; the anonymous variant turns a dead session
-     * cookie into an anonymous request instead of a 401 that would send the
-     * visitor to the login page. Nothing else stands between them and the
-     * handler.
+     * Order matters. A request another site's page had a browser send is
+     * refused first, so it spends none of the per-address budgets the
+     * limiter keeps, and a submission's body must then be JSON - still
+     * before the limiter. In front of UserMiddleware a flood is refused
+     * before it costs a session lookup; the anonymous variant turns a dead
+     * session cookie into an anonymous request instead of a 401 that would
+     * send the visitor to the login page. Nothing else stands between them
+     * and the handler.
      */
     it.each([
-      ["GET", READ_URI],
-      ["POST", SUBMIT_URI],
+      ["GET", READ_URI, [IncidentFormAPI.refuseForeignPageRequests]],
+      [
+        "POST",
+        SUBMIT_URI,
+        [
+          IncidentFormAPI.refuseForeignPageRequests,
+          IncidentFormAPI.requireJsonBody,
+        ],
+      ],
     ])(
-      "runs %s %s as limiter, anonymous user middleware, handler",
-      (method: string, uri: string) => {
+      "runs %s %s as own-page checks, limiter, anonymous user middleware, handler",
+      (method: string, uri: string, checks: Array<RouterFunction>) => {
         const registered: RegisteredRoute = route(method, uri);
 
-        expect(registered.middlewares).toHaveLength(2);
-        expect(registered.middlewares[1]).toBe(
-          UserMiddleware.getPublicRouteUserMiddleware,
-        );
-        expect(registered.middlewares[0]).not.toBe(
+        expect(registered.middlewares).toHaveLength(checks.length + 2);
+        expect(registered.middlewares.slice(0, checks.length)).toEqual(checks);
+
+        const limiter: RouterFunction = registered.middlewares[checks.length]!;
+
+        expect(checks).not.toContain(limiter);
+        expect(limiter).not.toBe(UserMiddleware.getPublicRouteUserMiddleware);
+        expect(registered.middlewares[checks.length + 1]).toBe(
           UserMiddleware.getPublicRouteUserMiddleware,
         );
         expect(registered.middlewares).not.toContain(
@@ -374,6 +392,101 @@ describe("IncidentFormAPI", () => {
     });
   });
 
+  describe("the own-page checks", () => {
+    const INSTANCE_ORIGIN: string = "https://oneuptime.example.com";
+
+    const runCheck: (
+      check: RouterFunction,
+      headers: Record<string, string>,
+    ) => Promise<boolean> = async (
+      check: RouterFunction,
+      headers: Record<string, string>,
+    ) => {
+      let reachedNext: boolean = false;
+
+      await check(
+        buildRequest({ extra: { headers: headers } }),
+        { setHeader: jest.fn() } as unknown as ExpressResponse,
+        (() => {
+          reachedNext = true;
+        }) as unknown as NextFunction,
+      );
+
+      return reachedNext;
+    };
+
+    beforeEach(() => {
+      jest
+        .spyOn(SameOriginRequest, "getInstanceOrigin")
+        .mockReturnValue(INSTANCE_ORIGIN);
+    });
+
+    it.each([
+      [{ "sec-fetch-site": "cross-site" }],
+      [{ origin: "https://evil.example" }],
+      [{ origin: "null" }],
+      [{ "sec-fetch-site": "same-origin", origin: "https://status.example" }],
+    ])(
+      "refuses %j with a 403, before anything is counted",
+      async (headers: Record<string, string>) => {
+        expect(
+          await runCheck(IncidentFormAPI.refuseForeignPageRequests, headers),
+        ).toBe(false);
+
+        const error: Exception = sendErrorResponseMock.mock
+          .calls[0]![2] as Exception;
+
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect(error.message).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+        expect(setNoCacheHeadersMock).toHaveBeenCalled();
+        expect(client.counters.size).toBe(0);
+      },
+    );
+
+    it.each([
+      [{ "sec-fetch-site": "same-origin", origin: INSTANCE_ORIGIN }],
+      [{ "sec-fetch-site": "none" }],
+      // Not a browser: neither header.
+      [{}],
+    ])("passes %j on", async (headers: Record<string, string>) => {
+      expect(
+        await runCheck(IncidentFormAPI.refuseForeignPageRequests, headers),
+      ).toBe(true);
+      expect(sendErrorResponseMock).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["application/x-www-form-urlencoded"],
+      ["multipart/form-data; boundary=x"],
+      ["text/plain"],
+    ])(
+      "refuses a submission sent as %s with a 400",
+      async (contentType: string) => {
+        expect(
+          await runCheck(IncidentFormAPI.requireJsonBody, {
+            "content-type": contentType,
+          }),
+        ).toBe(false);
+
+        const error: Exception = sendErrorResponseMock.mock
+          .calls[0]![2] as Exception;
+
+        expect(error).toBeInstanceOf(BadDataException);
+        expect(error.message).toBe(INCIDENT_FORM_SUBMISSION_BODY_MESSAGE);
+        expect(client.counters.size).toBe(0);
+      },
+    );
+
+    it("passes the JSON the form's page sends", async () => {
+      expect(
+        await runCheck(IncidentFormAPI.requireJsonBody, {
+          "content-type": "application/json;charset=UTF-8",
+        }),
+      ).toBe(true);
+      expect(sendErrorResponseMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe("the limiters", () => {
     const runLimiter: (
       method: string,
@@ -381,7 +494,10 @@ describe("IncidentFormAPI", () => {
     ) => Promise<boolean> = async (method: string, uri: string) => {
       let reachedNext: boolean = false;
 
-      await route(method, uri).middlewares[0]!(
+      // The limiter runs right before the anonymous user middleware.
+      const middlewares: Array<RouterFunction> = route(method, uri).middlewares;
+
+      await middlewares[middlewares.length - 2]!(
         buildRequest({}),
         { setHeader: jest.fn() } as unknown as ExpressResponse,
         (() => {

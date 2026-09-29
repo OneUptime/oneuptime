@@ -12,9 +12,11 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import SameOriginRequest from "../Utils/SameOriginRequest";
 import BaseAPI from "./BaseAPI";
 import IncidentForm from "../../Models/DatabaseModels/IncidentForm";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import {
   PublicIncidentForm,
   PublicIncidentFormSubmissionData,
@@ -40,14 +42,25 @@ import { JSONObject } from "../../Types/JSON";
  *
  * Each public route runs, in order:
  *
- *  1. IncidentFormRateLimit's per-address counters, before anything else
+ *  1. refuseForeignPageRequests: a request a browser sent from a page that
+ *     is not this instance's own is refused, 403, before it costs or spends
+ *     anything. These routes are anonymous and trust where a request comes
+ *     from - the form's IP allowlist, the per-address counters - so without
+ *     this any website could have its visitors' browsers read a form or
+ *     declare incidents from inside an allowed network, or use up those
+ *     visitors' shared budgets. The submit route then requires a JSON body
+ *     (requireJsonBody, 400): the one kind another site cannot have a
+ *     browser send without a preflight, which carries the Origin the first
+ *     check reads.
+ *
+ *  2. IncidentFormRateLimit's per-address counters, before anything else
  *     costs anything. Reading a form is load control and fails open;
  *     submitting one declares an incident, so its counters fail closed. (The
  *     form's own hourly ceiling is spent later, by IncidentFormService, only
  *     for a submission that passed every check; its 429 carries a
  *     Retry-After this route writes.)
  *
- *  2. UserMiddleware.getPublicRouteUserMiddleware, the anonymous variant: an
+ *  3. UserMiddleware.getPublicRouteUserMiddleware, the anonymous variant: an
  *     access-token cookie that no longer decodes makes the request anonymous
  *     instead of answering 401. The page is served on the same host as the
  *     dashboard, so a visitor's own OneUptime session cookie rides along -
@@ -56,17 +69,26 @@ import { JSONObject } from "../../Types/JSON";
  *     answers 401 (or 405), and the handlers never read who is calling:
  *     forms are anonymous, and a signed-in visitor is just a visitor.
  *
- *  3. The handler, which checks the body's shape and hands everything else -
+ *  4. The handler, which checks the body's shape and hands everything else -
  *     the link, the form's switch, the plan, the IP allowlist, the captcha,
  *     the answers - to IncidentFormService, where it is unit-testable.
  *
  * What the page must handle: 200, 400 (bad answers or captcha, with a
  * message to show), 403 (network not allowed), 404 (one message for every
- * unavailable form), 429 with Retry-After, 500 and 503.
+ * unavailable form), 429 with Retry-After, 500 and 503. (The first check's
+ * 403 never reaches it: the page is served from this instance's own origin.)
  */
 
 export const INCIDENT_FORM_SUBMISSION_BODY_MESSAGE: string =
   'The request must be a JSON object holding the form\'s answers in "data".';
+
+/*
+ * The one answer to a request another page had a browser send, whatever the
+ * form and whether it exists: the refusal comes before the link is looked
+ * at, so it tells that page nothing.
+ */
+export const INCIDENT_FORM_FOREIGN_PAGE_MESSAGE: string =
+  "This form can only be used from its own page.";
 
 export const INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE: string =
   "captchaToken must be a string.";
@@ -115,6 +137,7 @@ export default class IncidentFormAPI extends BaseAPI<
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/public/:shareKey`,
+      IncidentFormAPI.refuseForeignPageRequests,
       readRateLimit,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -146,6 +169,8 @@ export default class IncidentFormAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/public/:shareKey/submit`,
+      IncidentFormAPI.refuseForeignPageRequests,
+      IncidentFormAPI.requireJsonBody,
       submitRateLimit,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -181,6 +206,65 @@ export default class IncidentFormAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  /*
+   * First on both public routes (the rule is SameOriginRequest's): a request
+   * a browser sent from a page that is not this instance's own is refused
+   * before the limiter counts it - so such a page cannot use up its
+   * visitors' budgets either - and before the link is looked at. The form's
+   * own page is served from this instance's origin and never meets it; a
+   * caller that is not a browser sends neither header, passes, and still
+   * faces everything after.
+   */
+  public static refuseForeignPageRequests(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): void {
+    if (
+      SameOriginRequest.isForeignPageRequest({
+        headers: req.headers,
+        instanceOrigin: SameOriginRequest.getInstanceOrigin(),
+      })
+    ) {
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new ForbiddenException(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE),
+      );
+    }
+
+    return next();
+  }
+
+  /*
+   * Second on the submit route, still before the limiter: the body must be
+   * JSON. Another site's page can have a browser send a urlencoded,
+   * multipart or plain text body with no preflight - a plain HTML form does
+   * - and the app's urlencoded parser turns "data[title]=..." into the very
+   * object a JSON body gives. A browser that sends no Origin with such a
+   * form gets past the check above; it cannot get past this. The form's page
+   * always sends JSON.
+   */
+  public static requireJsonBody(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): void {
+    if (!SameOriginRequest.isJsonContentType(req.headers["content-type"])) {
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(INCIDENT_FORM_SUBMISSION_BODY_MESSAGE),
+      );
+    }
+
+    return next();
   }
 
   /*

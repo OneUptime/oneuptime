@@ -22,6 +22,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import IncidentFormAPI, {
+  INCIDENT_FORM_FOREIGN_PAGE_MESSAGE,
   INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
 } from "../../../Server/API/IncidentFormAPI";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
@@ -49,6 +50,7 @@ import CaptchaUtil from "../../../Server/Utils/Captcha";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRouter } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import SameOriginRequest from "../../../Server/Utils/SameOriginRequest";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
@@ -123,6 +125,10 @@ const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 // The client address our proxy would append, and one outside the allowlist.
 const ALLOWED_IP: string = "198.51.100.23";
 const OTHER_IP: string = "203.0.113.7";
+
+// This instance, as HTTP_PROTOCOL and HOST configure it, and another site.
+const INSTANCE_ORIGIN: string = "https://oneuptime.example.com";
+const FOREIGN_ORIGIN: string = "https://evil.example";
 
 const INVALID_ACCESS_TOKEN_MESSAGE: string =
   "AccessToken is invalid or expired. Please refresh your token.";
@@ -309,6 +315,8 @@ function send(data: {
   cookies?: Dictionary<string> | undefined;
   headers?: http.OutgoingHttpHeaders | undefined;
   body?: unknown;
+  // Sent as it is, with the content-type the headers give: not JSON.
+  rawBody?: string | undefined;
 }): Promise<HttpResult> {
   return new Promise<HttpResult>(
     (resolve: (result: HttpResult) => void, reject: (e: Error) => void) => {
@@ -338,6 +346,10 @@ function send(data: {
       if (payload) {
         headers["content-type"] = "application/json";
         headers["content-length"] = Buffer.byteLength(payload);
+      }
+
+      if (data.rawBody !== undefined) {
+        headers["content-length"] = Buffer.byteLength(data.rawBody);
       }
 
       const request: http.ClientRequest = http.request(
@@ -380,6 +392,10 @@ function send(data: {
         request.write(payload);
       }
 
+      if (data.rawBody !== undefined) {
+        request.write(data.rawBody);
+      }
+
       request.end();
     },
   );
@@ -420,6 +436,11 @@ describe("the public incident form routes over HTTP", () => {
     const app: express.Express = express();
     app.use(CookieParser());
     app.use(express.json());
+    /*
+     * As StartServer mounts it: "data[title]=..." from a plain HTML form
+     * becomes the very object a JSON body gives.
+     */
+    app.use(express.urlencoded({ extended: true }));
     app.use("/api", new IncidentFormAPI().getRouter());
     app.use(expressErrorHandler);
 
@@ -473,6 +494,11 @@ describe("the public incident form routes over HTTP", () => {
     onPlan = jest
       .spyOn(IncidentFormService, "isProjectOnPlan")
       .mockResolvedValue(true as never) as unknown as MockedFn;
+
+    // HOST is not configured in a unit run; the instance says it is this.
+    jest
+      .spyOn(SameOriginRequest, "getInstanceOrigin")
+      .mockReturnValue(INSTANCE_ORIGIN);
 
     incidentCreate = jest
       .spyOn(IncidentService, "create")
@@ -726,6 +752,222 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(200);
     });
+  });
+
+  /*
+   * Any website can have a visitor's browser send these requests - the API
+   * answers every origin, and a plain HTML form needs no preflight - from
+   * the visitor's own address: inside the form's IP allowlist, and on the
+   * budget everybody behind that address shares. Such a request is refused
+   * before anything counts it or looks the link up. The form's own page is
+   * served, and so is a caller that is not a browser; a submission's body
+   * must be JSON, whoever sends it.
+   */
+  describe("a request another site's page had a browser send", () => {
+    // What a plain HTML form on another site posts.
+    const FORGED_FORM: string =
+      "data%5Btitle%5D=Forged+outage&data%5BreporterName%5D=CEO&data%5BreporterEmail%5D=ceo%40corp.example";
+
+    const OWN_PAGE: http.OutgoingHttpHeaders = {
+      origin: INSTANCE_ORIGIN,
+      "sec-fetch-site": "same-origin",
+    };
+
+    it("refuses a plain HTML form another site auto-posts from inside the allowlist, before anything counts it", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(LOCKED_SHARE_KEY),
+        clientIp: ALLOWED_IP,
+        headers: {
+          origin: FOREIGN_ORIGIN,
+          "sec-fetch-site": "cross-site",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        rawBody: FORGED_FORM,
+      });
+
+      expect(result.status).toBe(403);
+      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(submitPublicForm).not.toHaveBeenCalled();
+      expect(incidentCreate).not.toHaveBeenCalled();
+      expect(client.counters.size).toBe(0);
+    });
+
+    // A preflighted JSON request carries the same Origin.
+    it("refuses the same request sent as JSON: the body's type is not what stops it", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(LOCKED_SHARE_KEY),
+        clientIp: ALLOWED_IP,
+        headers: { origin: FOREIGN_ORIGIN, "sec-fetch-site": "cross-site" },
+        body: { data: ANSWERS },
+      });
+
+      expect(result.status).toBe(403);
+      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(incidentCreate).not.toHaveBeenCalled();
+      expect(client.counters.size).toBe(0);
+    });
+
+    it.each([
+      ["a cross-site read", { "sec-fetch-site": "cross-site" }],
+      ["a read from another site's page", { origin: FOREIGN_ORIGIN }],
+      ["a read from an opaque origin (a sandboxed frame)", { origin: "null" }],
+      /*
+       * A status page on its owner's domain, or a DNS-rebinding name pointed
+       * at this server: the browser calls it same-origin, but it is not
+       * this instance's page.
+       */
+      [
+        "a read from another host the browser calls same-origin",
+        {
+          origin: "https://status.customer.example",
+          "sec-fetch-site": "same-origin",
+        },
+      ],
+    ])(
+      "refuses %s, before anything counts it",
+      async (_label: string, headers: http.OutgoingHttpHeaders) => {
+        const result: HttpResult = await send({
+          port,
+          method: "GET",
+          path: readPath(SHARE_KEY),
+          headers: headers,
+        });
+
+        expect(result.status).toBe(403);
+        expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+        expect(getPublicForm).not.toHaveBeenCalled();
+        expect(client.counters.size).toBe(0);
+      },
+    );
+
+    /*
+     * Thirty-one posts to a made-up link from another site's page, through
+     * one visitor's browser: counted, they would have used up the 30 per 15
+     * minutes everybody behind that address shares across every form.
+     */
+    it("cannot use up the budget of the address it sends from", async () => {
+      for (let attempt: number = 0; attempt < 31; attempt++) {
+        const refused: HttpResult = await send({
+          port,
+          method: "POST",
+          path: submitPath(ObjectID.generate().toString()),
+          clientIp: ALLOWED_IP,
+          headers: { origin: FOREIGN_ORIGIN, "sec-fetch-site": "cross-site" },
+          body: { data: ANSWERS },
+        });
+
+        expect(refused.status).toBe(403);
+      }
+
+      const colleague: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(SHARE_KEY),
+        clientIp: ALLOWED_IP,
+        headers: OWN_PAGE,
+        body: { data: ANSWERS },
+      });
+
+      expect(seen(colleague)).toEqual({
+        status: 200,
+        body: SUBMISSION_RESULT,
+      });
+
+      /*
+       * Only the colleague's own report was counted: once by address, once
+       * by form and address, and once against the form's ceiling.
+       */
+      expect(
+        client
+          .keysMatching(`:submit:i:${ALLOWED_IP}:`)
+          .map((key: string): number => {
+            return client.counters.get(key)!;
+          }),
+      ).toEqual([1]);
+      expect(Array.from(client.counters.values())).toEqual([1, 1, 1]);
+    });
+
+    it("serves the form's own page: its read and its report", async () => {
+      const read: HttpResult = await send({
+        port,
+        method: "GET",
+        path: readPath(SHARE_KEY),
+        headers: OWN_PAGE,
+      });
+
+      expect(seen(read)).toEqual({ status: 200, body: PUBLIC_FORM });
+
+      const report: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(SHARE_KEY),
+        headers: OWN_PAGE,
+        body: { data: ANSWERS },
+      });
+
+      expect(seen(report)).toEqual({ status: 200, body: SUBMISSION_RESULT });
+      expect(incidentCreate).toHaveBeenCalledTimes(1);
+    });
+
+    it("serves a visit the visitor made themselves (Sec-Fetch-Site: none)", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "GET",
+        path: readPath(SHARE_KEY),
+        headers: { "sec-fetch-site": "none" },
+      });
+
+      expect(seen(result)).toEqual({ status: 200, body: PUBLIC_FORM });
+    });
+
+    it("takes the JSON the page's API client sends, charset and all", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(SHARE_KEY),
+        headers: {
+          ...OWN_PAGE,
+          "content-type": "application/json;charset=UTF-8",
+        },
+        rawBody: JSON.stringify({ data: ANSWERS }),
+      });
+
+      expect(seen(result)).toEqual({ status: 200, body: SUBMISSION_RESULT });
+    });
+
+    it.each([
+      ["from the form's own page", OWN_PAGE],
+      ["from a caller that is not a browser", {}],
+    ])(
+      "refuses a submission that is not JSON %s, before anything counts it",
+      async (_label: string, headers: http.OutgoingHttpHeaders) => {
+        for (const contentType of [
+          "application/x-www-form-urlencoded",
+          "text/plain",
+        ]) {
+          const result: HttpResult = await send({
+            port,
+            method: "POST",
+            path: submitPath(SHARE_KEY),
+            headers: { ...headers, "content-type": contentType },
+            rawBody: FORGED_FORM,
+          });
+
+          expect(result.status).toBe(400);
+          expect(errorMessageOf(result)).toBe(
+            INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
+          );
+        }
+
+        expect(submitPublicForm).not.toHaveBeenCalled();
+        expect(incidentCreate).not.toHaveBeenCalled();
+        expect(client.counters.size).toBe(0);
+      },
+    );
   });
 
   describe("404", () => {
