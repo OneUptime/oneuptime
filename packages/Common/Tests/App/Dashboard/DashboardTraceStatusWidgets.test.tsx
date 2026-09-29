@@ -173,7 +173,8 @@ const DASHBOARD_VIEW_CONFIG: DashboardViewConfig = {
 const FIRST_MINUTE: string = "2026-09-28T10:00:00.000Z";
 const SECOND_MINUTE: string = "2026-09-28T10:01:00.000Z";
 
-const OK_COLOR: string = "#047857";
+// Cyan: it stays apart from Error's red for colorblind readers too.
+const OK_COLOR: string = "#0891b2";
 const UNSET_COLOR: string = "#10b981";
 const ERROR_COLOR: string = "#ef4444";
 
@@ -372,18 +373,17 @@ describe("Trace List widget — span status", () => {
     expect(pill).not.toHaveClass("border-gray-100");
   });
 
-  test("Ok is a deeper green and Error stays red, each with its own hover text", async () => {
+  test("Ok is cyan and Error stays red, each with its own hover text", async () => {
     renderTraceList({ viewMode: "list" });
 
     await screen.findByText("POST /orders");
 
     const ok: HTMLElement = within(rowFor("POST /orders")).getByText("Ok");
     expect(ok).toHaveAttribute("title", OK_DESCRIPTION);
-    expect(ok).toHaveClass(
-      "bg-emerald-50",
-      "text-emerald-800",
-      "border-emerald-100",
-    );
+    expect(ok).toHaveClass("bg-cyan-50", "text-cyan-800", "border-cyan-100");
+    // The border follows the status too, not a green one for "not Error".
+    expect(ok).not.toHaveClass("bg-emerald-50");
+    expect(ok).not.toHaveClass("border-emerald-100");
 
     const error: HTMLElement = within(rowFor("POST /pay")).getByText("Error");
     expect(error).toHaveAttribute("title", ERROR_DESCRIPTION);
@@ -523,6 +523,41 @@ const drawnSeries: (
         ),
       };
     });
+};
+
+interface DrawnArea {
+  key: string | null;
+  // What the tooltip calls the area: recharts falls back to the data key.
+  name: string | null;
+  stroke: string | null;
+  // The soft fill under the line.
+  fill: string | null;
+}
+
+// The Area a duration chart draws in place of Lines when it has one series.
+const drawnAreas: () => Array<DrawnArea> = (): Array<DrawnArea> => {
+  return screen
+    .queryAllByTestId("chart-area")
+    .map((element: HTMLElement): DrawnArea => {
+      return {
+        key: element.getAttribute("data-key"),
+        name:
+          element.getAttribute("data-name") || element.getAttribute("data-key"),
+        stroke: element.getAttribute("data-stroke"),
+        fill: element.getAttribute("data-fill"),
+      };
+    });
+};
+
+type AreaChartRowsFunction = () => Array<Record<string, unknown>>;
+
+// The rows the Area chart is handed, as its probe printed them.
+const areaChartRows: AreaChartRowsFunction = (): Array<
+  Record<string, unknown>
+> => {
+  return JSON.parse(
+    screen.getByTestId("area-chart").getAttribute("data-rows") || "[]",
+  ) as Array<Record<string, unknown>>;
 };
 
 type LastAnalyticsRequestFunction = () => Record<string, unknown>;
@@ -679,6 +714,113 @@ describe("Trace Chart widget — split by span status", () => {
       { label: "Unset (no error)", color: toRgb(UNSET_COLOR) },
       { label: "Error", color: toRgb(ERROR_COLOR) },
     ]);
+  });
+
+  test("REGRESSION: a latency chart split by status with one status left names its area 'Unset (no error)', so the tooltip does not read '0'", async () => {
+    chartRows = [
+      statusRow(FIRST_MINUTE, "0", 120),
+      statusRow(SECOND_MINUTE, "0", 110),
+    ];
+
+    renderTraceChart({ metric: "p95Duration", groupByAttribute: "statusCode" });
+
+    await screen.findByTestId("area-chart");
+
+    // One duration series is drawn as an Area, not as Lines.
+    expect(screen.queryAllByTestId("chart-line")).toEqual([]);
+    /*
+     * The tooltip reads the Area's name. The Area had none, so recharts fell
+     * back to its data key and the tooltip read the stored value "0".
+     */
+    expect(drawnAreas()).toEqual([
+      {
+        key: "0",
+        name: "Unset (no error)",
+        stroke: UNSET_COLOR,
+        // #10b981 at 8%.
+        fill: "rgba(16,185,129,0.08)",
+      },
+    ]);
+    // A single series has no legend, so the tooltip is the only name it gets.
+    expect(legendEntries()).toEqual([]);
+
+    // The data is still keyed by the stored value, so the area finds it.
+    expect(areaChartRows()).toEqual([
+      { time: FIRST_MINUTE, "0": 120 },
+      { time: SECOND_MINUTE, "0": 110 },
+    ]);
+    expect(lastAnalyticsRequest()["metric"]).toBe("p95Duration");
+    expect(lastAnalyticsRequest()["groupBy"]).toEqual(["statusCode"]);
+  });
+
+  test.each([
+    {
+      statusCode: "1",
+      name: "Ok",
+      stroke: OK_COLOR,
+      // #0891b2 at 8%.
+      fill: "rgba(8,145,178,0.08)",
+    },
+    {
+      statusCode: "2",
+      name: "Error",
+      stroke: ERROR_COLOR,
+      // #ef4444 at 8%.
+      fill: "rgba(239,68,68,0.08)",
+    },
+  ])(
+    "REGRESSION: a latency chart with only $name spans left names its area $name and draws it in that status's color",
+    async (areaCase: {
+      statusCode: string;
+      name: string;
+      stroke: string;
+      fill: string;
+    }) => {
+      chartRows = [statusRow(FIRST_MINUTE, areaCase.statusCode, 640)];
+
+      renderTraceChart({
+        metric: "p95Duration",
+        groupByAttribute: "statusCode",
+      });
+
+      await screen.findByTestId("area-chart");
+
+      expect(drawnAreas()).toEqual([
+        {
+          key: areaCase.statusCode,
+          name: areaCase.name,
+          stroke: areaCase.stroke,
+          fill: areaCase.fill,
+        },
+      ]);
+    },
+  );
+
+  test("an unsplit latency chart keeps its area keyed and named by the metric, in the palette's lead color", async () => {
+    // With no split the server sends each bucket with no group values.
+    chartRows = [
+      { time: FIRST_MINUTE, value: 120, groupValues: {} },
+      { time: SECOND_MINUTE, value: 95, groupValues: {} },
+    ];
+
+    renderTraceChart({ metric: "p90Duration" });
+
+    await screen.findByTestId("area-chart");
+
+    // The tooltip names the series after the metric, as it did before.
+    expect(drawnAreas()).toMatchObject([
+      {
+        key: "p90Duration",
+        name: "p90Duration",
+        stroke: TRACE_CHART_PALETTE[0],
+      },
+    ]);
+    expect(areaChartRows()).toEqual([
+      { time: FIRST_MINUTE, p90Duration: 120 },
+      { time: SECOND_MINUTE, p90Duration: 95 },
+    ]);
+    expect(legendEntries()).toEqual([]);
+    expect(lastAnalyticsRequest()["groupBy"]).toBeUndefined();
   });
 
   test("a split by any other attribute keeps its raw values and the palette by position", async () => {

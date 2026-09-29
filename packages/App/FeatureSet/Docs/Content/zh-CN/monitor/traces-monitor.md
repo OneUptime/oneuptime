@@ -39,11 +39,11 @@
 
 - **OK** — 操作已由应用程序代码或追踪管道明确标记为成功
 - **ERROR** — 操作遇到错误
-- **UNSET** — 未记录错误。这是 OpenTelemetry 的默认状态
+- **UNSET** — 未设置错误状态。这是 OpenTelemetry 的默认状态
 
-UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状态设为 ERROR，而让成功的 Span 保持为 UNSET，因此在健康的服务上，大多数 Span 都是 UNSET。OneUptime 会以绿色将它们显示为“Unset (no error)”。若要针对失败发出告警，请按 ERROR 过滤。若要统计所有未失败的 Span，请同时选择 OK 和 UNSET。
+UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状态设为 ERROR，而让成功的 Span 保持为 UNSET，因此在健康的服务上，大多数 Span 都是 UNSET。OneUptime 会以绿色将它们显示为“Unset (no error)”。记录异常不会改变 Span 的状态，因此 UNSET 的 Span 仍可能带有异常；这些异常会与该 Span 一起列出。若要针对失败发出告警，请按 ERROR 过滤。若要统计所有未失败的 Span，请同时选择 OK 和 UNSET。
 
-如果您希望成功的请求显示为 OK，请在 **追踪 > 设置 > 管道** 下添加一个追踪管道，其过滤条件为 **状态 = 未设置**，并包含一个 **状态重映射器**，用于将 `http.response.status_code` 的值（例如 `200`）映射为 Ok。
+如果您希望成功的请求显示为 OK，请在 **追踪 > 设置 > 管道** 下添加一个追踪管道，其过滤条件为 **状态 = 未设置**，并包含一个 **状态重映射器**，用于将 `http.response.status_code` 的值（例如 `200`）映射为“正常 (1)”。
 
 ## 监控标准
 

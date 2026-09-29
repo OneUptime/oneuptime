@@ -13,57 +13,131 @@ import {
 
 /*
  * How the Dashboard names and paints a span status. Unset (0) is
- * OpenTelemetry's default: the span finished and no error was recorded. So
+ * OpenTelemetry's default: the span finished and no error status was set. So
  * it has to read as healthy - green, and "Unset (no error)" where there is
  * room - never the grey that made a healthy service look "mostly unknown"
- * (#4118). The stored codes, the "Unset" name and `status:unset` stay as
+ * (#4118). The wording is about the status field: recording an exception
+ * does not change a span's status, so an Unset span can still carry
+ * exceptions. The stored codes, the "Unset" name and `status:unset` stay as
  * they are.
  *
  * The last two blocks measure the chart colours, with colour math written in
- * this file from the published formulas, in the order the Traces chart
- * stacks them (Ok, Unset, Error), so the pairs checked are series that touch:
+ * this file from the published formulas. They measure every pair of
+ * statuses, not only the neighbours in the chart's stack (Ok, Unset, Error):
+ * Ok and Error touch whenever a bucket has no Unset spans, the Status facet
+ * lists the statuses by span count, and matching a bar to its legend entry
+ * means telling every colour from every other.
  * - Delta E is the OKLab distance between two colours x100; about 2 is just
- *   noticeable. Touching series need 15 with full colour vision, and 8 under
+ *   noticeable. Every pair needs 15 with full colour vision, and 8 under
  *   simulated protanopia and deuteranopia (Machado et al. 2009 at full
  *   severity), the worst case of the red-green colour blindness about 1 man
  *   in 12 has.
  * - OKLCH chroma under 0.10 reads as grey, whatever the hue.
- * - Contrast is WCAG 2's ratio against the card the chart sits on. Those
- *   floors are today's measurements less a small margin. Unset on the light
- *   card and Ok on the dark one sit under the 3:1 WCAG asks of graphics, so
- *   the legend's names carry them: a change can do better, not quietly worse.
+ * - Contrast is WCAG 2's ratio against the surfaces a status sits on, light
+ *   and dark; graphics need 3:1. Ok and Error clear it on every surface.
+ *   Unset's green does not on the light ones, so the legend and facet names
+ *   carry it there. Its floors are today's measurements less a small margin:
+ *   a change can do better, not quietly worse.
  */
 
-// The app's card surfaces: Theme.css --ou-surface-primary, light and dark.
-const LIGHT_CARD: string = "#ffffff";
-const DARK_CARD: string = "#172033";
-const LIGHT_CARD_TOKEN: RegExp =
-  /:root\s*\{[^}]*?--ou-surface-primary:\s*(#[0-9a-fA-F]{6})\s*;/;
-const DARK_CARD_TOKEN: RegExp =
-  /html\.dark\s*\{[^}]*?--ou-surface-primary:\s*(#[0-9a-fA-F]{6})\s*;/;
+type Theme = "light" | "dark";
+
+// A surface a status colour sits on, and the Theme.css token that holds it.
+interface Surface {
+  name: string;
+  theme: Theme;
+  token: string;
+  color: string;
+}
+
+/*
+ * The card holds the chart, the Status facet, the legend and the trace list.
+ * The tertiary surface is what bg-gray-100 is in both themes, so it is also
+ * the track the list's duration bar runs in. The dark secondary surface is
+ * what bg-gray-50 grounds and hovered rows turn to. The light secondary
+ * surface (#f9fafb) lies between the light card and the light tertiary one,
+ * so those two bound it.
+ */
+const LIGHT_CARD: Surface = {
+  name: "light card",
+  theme: "light",
+  token: "--ou-surface-primary",
+  color: "#ffffff",
+};
+const LIGHT_TERTIARY: Surface = {
+  name: "light tertiary",
+  theme: "light",
+  token: "--ou-surface-tertiary",
+  color: "#f3f4f6",
+};
+const DARK_CARD: Surface = {
+  name: "dark card",
+  theme: "dark",
+  token: "--ou-surface-primary",
+  color: "#172033",
+};
+const DARK_SECONDARY: Surface = {
+  name: "dark secondary",
+  theme: "dark",
+  token: "--ou-surface-secondary",
+  color: "#1e293b",
+};
+const DARK_TERTIARY: Surface = {
+  name: "dark tertiary",
+  theme: "dark",
+  token: "--ou-surface-tertiary",
+  color: "#273449",
+};
+
+const SURFACES: Array<Surface> = [
+  LIGHT_CARD,
+  LIGHT_TERTIARY,
+  DARK_CARD,
+  DARK_SECONDARY,
+  DARK_TERTIARY,
+];
+const DARK_SURFACES: Array<Surface> = SURFACES.filter(
+  (surface: Surface): boolean => {
+    return surface.theme === "dark";
+  },
+);
 
 const NORMAL_VISION_FLOOR: number = 15;
 const RED_GREEN_FLOOR: number = 8;
 const CHROMA_FLOOR: number = 0.1;
-const LIGHT_CARD_CONTRAST_FLOOR: number = 2.5;
-const DARK_CARD_CONTRAST_FLOOR: number = 2.9;
+// WCAG 2.1's 3:1 for graphics (1.4.11, non-text contrast).
+const GRAPHICS_CONTRAST: number = 3;
+// Unset on the light surfaces: today's 2.54 and 2.31, less a small margin.
+const UNSET_LIGHT_CARD_FLOOR: number = 2.5;
+const UNSET_LIGHT_TERTIARY_FLOOR: number = 2.25;
 
 // OKLCH hues that read as green: Tailwind's green to emerald, not lime or teal.
 const GREEN_HUE_MIN: number = 140;
 const GREEN_HUE_MAX: number = 175;
 
+// And as cyan: past Tailwind's teal (about 185), short of sky blue (237 up).
+const CYAN_HUE_MIN: number = 200;
+const CYAN_HUE_MAX: number = 235;
+
+// Ok before it was cyan: Tailwind's emerald-700, a darker step of Unset's green.
+const OLD_DARK_GREEN_OK: string = "#047857";
+
 const HEX_COLOR: RegExp = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/;
 
-// One full Tailwind colour utility: kind, colour family, shade.
+// One full Tailwind colour utility: kind, colour family, shade, opacity.
 const TAILWIND_COLOR_CLASS: RegExp =
-  /^(bg|text|ring)-([a-z]+)-(50|[1-9]00|950)$/;
+  /^(bg|text|ring|border)-([a-z]+)-(50|[1-9]00|950)(?:\/(\d{1,3}))?$/;
+
+// At this opacity (%) or under, a class is a faint wash over its surface.
+const FAINT_WASH_MAX_OPACITY: number = 20;
 
 // One or more sentences: a capital, single-spaced words, a full stop.
 const SENTENCE: string = "[A-Z][^\\s.!?]*(?: [^\\s.!?]+)*[.!?]";
 const SENTENCES: RegExp = new RegExp(`^${SENTENCE}(?: ${SENTENCE})*$`);
 
 // A class name built from a template, such as bg-${family}-500.
-const TEMPLATE_CLASS_FRAGMENT: RegExp = /(?:bg|text|ring)-[a-z0-9-]*\$\{/;
+const TEMPLATE_CLASS_FRAGMENT: RegExp =
+  /(?:bg|text|ring|border)-[a-z0-9-]*\$\{/;
 
 const REGEX_SPECIAL_CHARACTERS: RegExp = /[.*+?^${}()|[\]\\]/g;
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
@@ -73,7 +147,9 @@ type ClassField =
   | "ringClassName"
   | "barClassName"
   | "barTrackClassName"
-  | "pillClassName";
+  | "pillClassName"
+  | "pillBorderClassName"
+  | "pillRingClassName";
 
 const CLASS_FIELDS: Array<ClassField> = [
   "dotClassName",
@@ -81,6 +157,8 @@ const CLASS_FIELDS: Array<ClassField> = [
   "barClassName",
   "barTrackClassName",
   "pillClassName",
+  "pillBorderClassName",
+  "pillRingClassName",
 ];
 
 // The slots painted in the status's own colour; the bar track is the empty rail.
@@ -89,13 +167,17 @@ const STATUS_COLORED_FIELDS: Array<ClassField> = [
   "ringClassName",
   "barClassName",
   "pillClassName",
+  "pillBorderClassName",
+  "pillRingClassName",
 ];
 
-// The light tints; the dot and bar are the series colour itself.
+// The tints and washes around the dot and bar, which are the series colour.
 const TINT_FIELDS: Array<ClassField> = [
   "ringClassName",
   "barTrackClassName",
   "pillClassName",
+  "pillBorderClassName",
+  "pillRingClassName",
 ];
 
 // What each slot sets, in order: the pill is a background plus a text colour.
@@ -105,15 +187,18 @@ const FIELD_UTILITIES: Record<ClassField, Array<string>> = {
   barClassName: ["bg"],
   barTrackClassName: ["bg"],
   pillClassName: ["bg", "text"],
+  pillBorderClassName: ["border"],
+  pillRingClassName: ["ring"],
 };
 
 /*
- * Tailwind 3.4's default shades for the dot and bar classes: the Dashboard
- * loads tailwind-3.4.5 with no colour overrides.
+ * Tailwind 3.4's default shades for the dot, bar and track classes: the
+ * Dashboard loads tailwind-3.4.5 with no colour overrides.
  */
 const TAILWIND_SHADES: Record<string, string> = {
+  "bg-cyan-600": "#0891b2",
   "bg-emerald-500": "#10b981",
-  "bg-emerald-700": "#047857",
+  "bg-gray-100": "#f3f4f6",
   "bg-red-500": "#ef4444",
 };
 
@@ -148,32 +233,65 @@ const THEME_CSS: string = fs
   )
   .replace(BLOCK_COMMENT, " ");
 
+interface CssRule {
+  selector: string;
+  body: string;
+}
+
 /*
- * The selector of every rule that applies under html.dark. Splitting on "}"
- * leaves each rule's selector just before its "{", inside @media too.
+ * Every rule that applies under html.dark. Splitting on "}" leaves each
+ * rule's selector and body either side of its last "{", inside @media too.
  */
-const DARK_THEME_SELECTORS: Array<string> = THEME_CSS.split("}")
-  .map((chunk: string): string => {
+const DARK_THEME_RULES: Array<CssRule> = THEME_CSS.split("}")
+  .map((chunk: string): CssRule => {
     const parts: Array<string> = chunk.split("{");
-    return parts.length > 1 ? parts[parts.length - 2]! : "";
+    return parts.length > 1
+      ? { selector: parts[parts.length - 2]!, body: parts[parts.length - 1]! }
+      : { selector: "", body: "" };
   })
-  .filter((selector: string): boolean => {
-    return selector.includes("html.dark");
+  .filter((rule: CssRule): boolean => {
+    return rule.selector.includes("html.dark");
   });
 
 function escapeRegExp(text: string): string {
   return text.replace(REGEX_SPECIAL_CHARACTERS, "\\$&");
 }
 
-function hasDarkThemeRule(className: string): boolean {
-  // Followed by a non-identifier character, so bg-red-50 is not bg-red-500.
-  const classSelector: RegExp = new RegExp(
-    `\\.${escapeRegExp(className)}(?![\\w-])`,
-  );
+function darkThemeRulesFor(className: string): Array<CssRule> {
+  /*
+   * As a class selector, followed by a non-identifier character so bg-red-50
+   * is not bg-red-500, or as a [class~="..."] attribute selector, the way
+   * Theme.css spells a class with a "/" in it.
+   */
+  const selectors: Array<RegExp> = [
+    new RegExp(`\\.${escapeRegExp(className)}(?![\\w-])`),
+    new RegExp(`\\[class~="${escapeRegExp(className)}"\\]`),
+  ];
 
-  return DARK_THEME_SELECTORS.some((selector: string): boolean => {
-    return classSelector.test(selector);
+  return DARK_THEME_RULES.filter((rule: CssRule): boolean => {
+    return selectors.some((selector: RegExp): boolean => {
+      return selector.test(rule.selector);
+    });
   });
+}
+
+function hasDarkThemeRule(className: string): boolean {
+  return darkThemeRulesFor(className).length > 0;
+}
+
+// A colour token's value in Theme.css's light (:root) or dark (html.dark) block.
+function themeToken(theme: Theme, token: string): string | undefined {
+  const block: string = theme === "light" ? ":root" : "html\\.dark";
+  const match: RegExpExecArray | null = new RegExp(
+    `${block}\\s*\\{[^}]*?${escapeRegExp(token)}:\\s*(#[0-9a-fA-F]{6})\\s*;`,
+  ).exec(THEME_CSS);
+
+  return match?.[1]?.toLowerCase();
+}
+
+function isFaintWash(className: string): boolean {
+  const opacity: string | undefined = TAILWIND_COLOR_CLASS.exec(className)?.[4];
+  return opacity !== undefined && Number(opacity) <= FAINT_WASH_MAX_OPACITY;
 }
 
 function isSpelledOutInSource(className: string): boolean {
@@ -214,6 +332,24 @@ function familiesOf(classNames: string): Array<string> {
   return classNames.split(" ").map((className: string): string => {
     return TAILWIND_COLOR_CLASS.exec(className)?.[2] || `?${className}`;
   });
+}
+
+// The distinct colour families of the given slots, in first-seen order.
+function distinctFamiliesOf(
+  presentation: SpanStatusPresentation,
+  fields: Array<ClassField>,
+): Array<string> {
+  return Array.from(
+    new Set(
+      familiesOf(
+        fields
+          .map((field: ClassField): string => {
+            return presentation[field];
+          })
+          .join(" "),
+      ),
+    ),
+  );
 }
 
 /*
@@ -364,6 +500,30 @@ function redGreenDeltaE(first: string, second: string): number {
   );
 }
 
+/*
+ * The lightness, chroma and hue parts of Delta E, x100 like it: they add in
+ * quadrature to the whole. The hue part is CIE's Delta H taken in OKLCH,
+ * 2 sqrt(C1 C2) sin(dh / 2).
+ */
+function lightnessDifference(first: OkLch, second: OkLch): number {
+  return Math.abs(first.lightness - second.lightness) * 100;
+}
+
+function chromaDifference(first: OkLch, second: OkLch): number {
+  return Math.abs(first.chroma - second.chroma) * 100;
+}
+
+function hueDifference(first: OkLch, second: OkLch): number {
+  const halfAngle: number = ((first.hue - second.hue) * Math.PI) / 360;
+
+  return (
+    2 *
+    Math.sqrt(first.chroma * second.chroma) *
+    Math.abs(Math.sin(halfAngle)) *
+    100
+  );
+}
+
 function relativeLuminance(hex: string): number {
   const rgb: Channels = toLinearRgb(hex);
   return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
@@ -382,36 +542,45 @@ function contrastRatio(first: string, second: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-type SeriesPair = [SpanStatusPresentation, SpanStatusPresentation];
+// What the chart-colour checks read from a status: its name and its colour.
+interface Series {
+  label: string;
+  color: string;
+}
 
-// Series that touch in the stacked chart, bottom to top.
-function touchingPairs(): Array<SeriesPair> {
+type SeriesPair = [Series, Series];
+
+// Every two series, in list order: any two statuses can end up side by side.
+function everyPair(series: ReadonlyArray<Series>): Array<SeriesPair> {
   const pairs: Array<SeriesPair> = [];
 
-  for (
-    let index: number = 1;
-    index < SPAN_STATUS_PRESENTATIONS.length;
-    index++
-  ) {
-    pairs.push([
-      SPAN_STATUS_PRESENTATIONS[index - 1]!,
-      SPAN_STATUS_PRESENTATIONS[index]!,
-    ]);
-  }
+  series.forEach((first: Series, index: number): void => {
+    for (const second of series.slice(index + 1)) {
+      pairs.push([first, second]);
+    }
+  });
 
   return pairs;
+}
+
+// Only the series next to each other in the chart's stack, bottom to top.
+function stackNeighbours(series: ReadonlyArray<Series>): Array<SeriesPair> {
+  return series.slice(1).map((second: Series, index: number): SeriesPair => {
+    return [series[index]!, second];
+  });
 }
 
 function pairName(pair: SeriesPair): string {
   return `${pair[0].label}/${pair[1].label}`;
 }
 
-// "Ok/Unset: 7.2" for every touching pair that measures under the floor.
+// "Ok/Error: 2.4" for every pair that measures under the floor.
 function pairsBelow(
+  pairs: Array<SeriesPair>,
   floor: number,
   measure: (first: string, second: string) => number,
 ): Array<string> {
-  return touchingPairs()
+  return pairs
     .filter((pair: SeriesPair): boolean => {
       return measure(pair[0].color, pair[1].color) < floor;
     })
@@ -420,15 +589,19 @@ function pairsBelow(
     });
 }
 
-// "Ok 2.41:1" for every series under the floor on the given card.
-function seriesBelowContrast(card: string, floor: number): Array<string> {
-  return SPAN_STATUS_PRESENTATIONS.filter(
-    (presentation: SpanStatusPresentation): boolean => {
-      return contrastRatio(presentation.color, card) < floor;
-    },
-  ).map((presentation: SpanStatusPresentation): string => {
-    return `${presentation.label} ${contrastRatio(presentation.color, card).toFixed(2)}:1`;
-  });
+// "dark tertiary 2.29:1" for every surface the colour is under the floor on.
+function contrastsBelow(
+  color: string,
+  floor: number,
+  surfaces: ReadonlyArray<Surface>,
+): Array<string> {
+  return surfaces
+    .filter((surface: Surface): boolean => {
+      return contrastRatio(color, surface.color) < floor;
+    })
+    .map((surface: Surface): string => {
+      return `${surface.name} ${contrastRatio(color, surface.color).toFixed(2)}:1`;
+    });
 }
 
 type StatusInput = SpanStatus | number | string | null | undefined;
@@ -525,7 +698,7 @@ describe("SPAN_STATUS_PRESENTATIONS", () => {
     }
   });
 
-  test("REGRESSION: Unset's display label says no error was recorded", () => {
+  test("REGRESSION: Unset's display label says no error", () => {
     // Legends, the Status facet and the trace list tiles used to say "Unset".
     expect(UNSET.displayLabel).toBe("Unset (no error)");
   });
@@ -564,6 +737,29 @@ describe("SPAN_STATUS_PRESENTATIONS", () => {
     // The tooltip is where Unset explains itself.
     expect(UNSET.description).toMatch(/no error/i);
   });
+
+  test("each description speaks of the status field", () => {
+    expect(UNSET.description).toBe(
+      "No error status was set. Unset is the OpenTelemetry default for spans that finish without one.",
+    );
+    expect(OK.description).toBe(
+      "Explicitly marked successful by the application or a trace pipeline.",
+    );
+    expect(ERROR.description).toBe(
+      "The operation failed: the span's status is Error.",
+    );
+  });
+
+  test("REGRESSION: no description says an error was recorded", () => {
+    /*
+     * Unset said "No error was recorded." and Error "The span recorded an
+     * error." But recording an exception does not change a span's status: an
+     * Unset span can still carry exceptions.
+     */
+    for (const presentation of SPAN_STATUS_PRESENTATIONS) {
+      expect(presentation.description).not.toMatch(/\brecorded\b/i);
+    }
+  });
 });
 
 describe("getSpanStatusColorMap and getSpanStatusDisplayLabelMap", () => {
@@ -583,7 +779,7 @@ describe("getSpanStatusColorMap and getSpanStatusDisplayLabelMap", () => {
   test("REGRESSION: the Status facet and the chart paint Unset green, not grey", () => {
     expect(getSpanStatusColorMap()).toEqual({
       "0": "#10b981",
-      "1": "#047857",
+      "1": "#0891b2",
       "2": "#ef4444",
     });
     // Tailwind's gray-400, which made healthy traffic look unknown.
@@ -690,12 +886,34 @@ describe("SpanStatusPresentation colours and Tailwind classes", () => {
     }
   });
 
-  test("REGRESSION: Unset's dot, ring, bar and pill are Ok's green, with no grey", () => {
+  test("each status paints every coloured slot in one family: Ok cyan, Unset emerald, Error red", () => {
+    /*
+     * So the pill, its border and ring, the dot and the bar all match the
+     * chart series. The dashboard trace list used to pick its pill border by
+     * hand: red for Error, emerald for anything else.
+     */
+    const families: Record<string, Array<string>> = {};
+
+    for (const presentation of SPAN_STATUS_PRESENTATIONS) {
+      families[presentation.label] = distinctFamiliesOf(
+        presentation,
+        STATUS_COLORED_FIELDS,
+      );
+    }
+
+    expect(families).toEqual({
+      Ok: ["cyan"],
+      Unset: ["emerald"],
+      Error: ["red"],
+    });
+  });
+
+  test("REGRESSION: Unset's dot, ring, bar and pill are the success green, with no grey", () => {
     // They were bg-gray-300, ring-gray-100, bg-gray-400, bg-gray-50 text-gray-500.
     for (const field of STATUS_COLORED_FIELDS) {
-      expect({ field, families: familiesOf(UNSET[field]) }).toEqual({
+      expect({ field, families: distinctFamiliesOf(UNSET, [field]) }).toEqual({
         field,
-        families: familiesOf(OK[field]),
+        families: ["emerald"],
       });
       expect(familiesOf(UNSET[field])).not.toContain("gray");
     }
@@ -720,28 +938,44 @@ describe("SpanStatusPresentation colours and Tailwind classes", () => {
     }
   });
 
-  test("every tint has a dark theme rule in Theme.css", () => {
+  test("every tint has a dark theme rule in Theme.css, and the pill ring is a faint wash", () => {
     /*
      * A light tint with no html.dark rule keeps its light colour on the dark
-     * card. The dot and bar are the series colour itself, measured against
-     * the dark card below.
+     * card. The pill ring is instead a faint wash of a mid shade
+     * (ring-*-600/10, like the filter builder's other pills): at a tenth of
+     * its colour it takes on the surface under it, so it needs no rule. The
+     * dot and bar are the series colour itself, measured against the dark
+     * surfaces below.
      */
     const unmapped: Array<string> = [];
+    const opaquePillRings: Array<string> = [];
 
     for (const presentation of SPAN_STATUS_PRESENTATIONS) {
       for (const field of TINT_FIELDS) {
         for (const className of presentation[field].split(" ")) {
-          if (!hasDarkThemeRule(className)) {
+          if (!isFaintWash(className) && !hasDarkThemeRule(className)) {
             unmapped.push(`${presentation.label} ${field}: ${className}`);
           }
         }
       }
+
+      if (!isFaintWash(presentation.pillRingClassName)) {
+        opaquePillRings.push(
+          `${presentation.label}: ${presentation.pillRingClassName}`,
+        );
+      }
     }
 
-    // The lookup found the dark rules and matches whole class names only.
-    expect(DARK_THEME_SELECTORS.length).toBeGreaterThan(100);
+    // The lookup found the dark rules and matches whole class names only...
+    expect(DARK_THEME_RULES.length).toBeGreaterThan(100);
     expect(hasDarkThemeRule("bg-emerald-5")).toBe(false);
-    expect(unmapped).toEqual([]);
+    // ...spelled as a class, or with a "/" in it as a [class~=...] selector.
+    expect(hasDarkThemeRule("bg-emerald-50/60")).toBe(true);
+    expect(isFaintWash("bg-emerald-50/60")).toBe(false);
+    expect({ unmapped, opaquePillRings }).toEqual({
+      unmapped: [],
+      opaquePillRings: [],
+    });
   });
 });
 
@@ -772,6 +1006,36 @@ describe("the colour math behind the measurements", () => {
     expect(toOkLch("#ffffff").chroma).toBeCloseTo(0, 5);
   });
 
+  test("Delta E splits exactly into its lightness, chroma and hue parts", () => {
+    // Cyan-600 and emerald-500, emerald-700 and emerald-500, red-500 and green-500.
+    const pairs: Array<[string, string]> = [
+      ["#0891b2", "#10b981"],
+      ["#047857", "#10b981"],
+      ["#ef4444", "#22c55e"],
+    ];
+
+    for (const [first, second] of pairs) {
+      const firstLch: OkLch = toOkLch(first);
+      const secondLch: OkLch = toOkLch(second);
+
+      expect(
+        Math.hypot(
+          lightnessDifference(firstLch, secondLch),
+          chromaDifference(firstLch, secondLch),
+          hueDifference(firstLch, secondLch),
+        ),
+      ).toBeCloseTo(deltaE(first, second), 6);
+    }
+
+    // Opposite hues at equal chroma differ in hue by twice the chroma.
+    expect(
+      hueDifference(
+        { lightness: 0.5, chroma: 0.1, hue: 30 },
+        { lightness: 0.5, chroma: 0.1, hue: 210 },
+      ),
+    ).toBeCloseTo(20, 6);
+  });
+
   test("the colour-vision simulations keep greys and pull red and green together", () => {
     for (const grey of ["#000000", "#808080", "#ffffff"]) {
       for (const vision of [PROTANOPIA, DEUTERANOPIA]) {
@@ -790,27 +1054,102 @@ describe("the colour math behind the measurements", () => {
 });
 
 describe("SpanStatusPresentation chart colours, measured", () => {
-  test("the cards measured against are the app's own card surfaces", () => {
-    const lightCard: RegExpExecArray | null = LIGHT_CARD_TOKEN.exec(THEME_CSS);
-    const darkCard: RegExpExecArray | null = DARK_CARD_TOKEN.exec(THEME_CSS);
+  test("the surfaces measured against are the app's own", () => {
+    for (const surface of SURFACES) {
+      expect({
+        surface: surface.name,
+        color: themeToken(surface.theme, surface.token),
+      }).toEqual({ surface: surface.name, color: surface.color });
+    }
 
-    expect(lightCard?.[1]?.toLowerCase()).toBe(LIGHT_CARD);
-    expect(darkCard?.[1]?.toLowerCase()).toBe(DARK_CARD);
+    /*
+     * Ok's and Unset's duration bar runs in a bg-gray-100 track: Tailwind's
+     * gray-100 in the light theme, the tertiary surface in the dark one.
+     */
+    const tertiaryBackground: RegExp =
+      /background-color:\s*var\(--ou-surface-tertiary\)/;
+
+    expect([OK.barTrackClassName, UNSET.barTrackClassName]).toEqual([
+      "bg-gray-100",
+      "bg-gray-100",
+    ]);
+    expect(TAILWIND_SHADES["bg-gray-100"]).toBe(LIGHT_TERTIARY.color);
+    expect(
+      darkThemeRulesFor("bg-gray-100").some((rule: CssRule): boolean => {
+        return tertiaryBackground.test(rule.body);
+      }),
+    ).toBe(true);
   });
 
-  test("touching series stay apart with full colour vision", () => {
-    expect(touchingPairs().map(pairName)).toEqual(["Ok/Unset", "Unset/Error"]);
-    // Measured: Ok/Unset 19.3, Unset/Error 33.8.
-    expect(pairsBelow(NORMAL_VISION_FLOOR, deltaE)).toEqual([]);
+  test("every pair of statuses is measured, not only the stack's neighbours", () => {
+    /*
+     * The chart stacks Ok, Unset, Error bottom to top, but Ok sits right
+     * under Error in any bucket with no Unset spans, and the Status facet and
+     * the legend show every status against every other.
+     */
+    expect(everyPair(SPAN_STATUS_PRESENTATIONS).map(pairName)).toEqual([
+      "Ok/Unset",
+      "Ok/Error",
+      "Unset/Error",
+    ]);
+    expect(stackNeighbours(SPAN_STATUS_PRESENTATIONS).map(pairName)).toEqual([
+      "Ok/Unset",
+      "Unset/Error",
+    ]);
   });
 
-  test("touching series stay apart under protanopia and deuteranopia", () => {
-    // Measured, the worse of the two: Ok/Unset 18.9, Unset/Error 8.1 (deutan).
-    expect(pairsBelow(RED_GREEN_FLOOR, redGreenDeltaE)).toEqual([]);
+  test("every pair stays apart with full colour vision", () => {
+    // Measured: Ok/Unset 15.9, Ok/Error 31.7, Unset/Error 33.8.
+    expect(
+      pairsBelow(
+        everyPair(SPAN_STATUS_PRESENTATIONS),
+        NORMAL_VISION_FLOOR,
+        deltaE,
+      ),
+    ).toEqual([]);
+  });
+
+  test("every pair stays apart under protanopia and deuteranopia", () => {
+    /*
+     * Measured, the worse of the two: Ok/Unset 15.1 (deutan), Ok/Error 16.8
+     * (protan), Unset/Error 8.1 (deutan).
+     */
+    expect(
+      pairsBelow(
+        everyPair(SPAN_STATUS_PRESENTATIONS),
+        RED_GREEN_FLOOR,
+        redGreenDeltaE,
+      ),
+    ).toEqual([]);
+  });
+
+  test("REGRESSION: the old darker-green Ok fell into Error's red for protanopes, which only an every-pair check catches", () => {
+    const oldPalette: Array<Series> = [
+      { label: "Ok", color: OLD_DARK_GREEN_OK },
+      { label: "Unset", color: UNSET.color },
+      { label: "Error", color: ERROR.color },
+    ];
+
+    // A protanope saw it 2.4 from Error, so checking every pair fails it...
+    expect(deltaE(OLD_DARK_GREEN_OK, ERROR.color, PROTANOPIA)).toBeCloseTo(
+      2.4,
+      1,
+    );
+    expect(
+      pairsBelow(everyPair(oldPalette), RED_GREEN_FLOOR, redGreenDeltaE),
+    ).toEqual(["Ok/Error: 2.4"]);
+    // ...where the stack's neighbours alone passed it (Ok/Unset 18.9, Unset/Error 8.1)...
+    expect(
+      pairsBelow(stackNeighbours(oldPalette), RED_GREEN_FLOOR, redGreenDeltaE),
+    ).toEqual([]);
+    // ...as did full colour vision, which put Ok and Error 32.3 apart.
+    expect(
+      pairsBelow(everyPair(oldPalette), NORMAL_VISION_FLOOR, deltaE),
+    ).toEqual([]);
   });
 
   test("no series reads as grey", () => {
-    // Measured chroma: Ok 0.105, Unset 0.149, Error 0.208.
+    // Measured chroma: Ok 0.111, Unset 0.149, Error 0.208.
     const greyish: Array<string> = SPAN_STATUS_PRESENTATIONS.filter(
       (presentation: SpanStatusPresentation): boolean => {
         return toOkLch(presentation.color).chroma < CHROMA_FLOOR;
@@ -822,38 +1161,85 @@ describe("SpanStatusPresentation chart colours, measured", () => {
     expect(greyish).toEqual([]);
   });
 
-  test("REGRESSION: Unset is a saturated green, like Ok, and Error stays red", () => {
-    // Measured hue: Unset 162.5, Ok 165.6, Error 25.3.
-    for (const presentation of [UNSET, OK]) {
-      const color: OkLch = toOkLch(presentation.color);
+  test("REGRESSION: Unset is a saturated green, and Error stays red", () => {
+    // Measured: Unset hue 162.5 at chroma 0.149, Error hue 25.3.
+    const unset: OkLch = toOkLch(UNSET.color);
 
-      expect(color.chroma).toBeGreaterThanOrEqual(CHROMA_FLOOR);
-      expect(color.hue).toBeGreaterThanOrEqual(GREEN_HUE_MIN);
-      expect(color.hue).toBeLessThanOrEqual(GREEN_HUE_MAX);
-    }
-
+    expect(unset.chroma).toBeGreaterThanOrEqual(CHROMA_FLOOR);
+    expect(unset.hue).toBeGreaterThanOrEqual(GREEN_HUE_MIN);
+    expect(unset.hue).toBeLessThanOrEqual(GREEN_HUE_MAX);
     expect(toOkLch(ERROR.color).hue).toBeLessThan(45);
   });
 
-  test("explicit Ok is the darker green, so it reads as the stronger success", () => {
-    // Measured OKLCH lightness: Ok 0.508, Unset 0.696.
-    expect(toOkLch(OK.color).lightness).toBeLessThan(
-      toOkLch(UNSET.color).lightness,
+  test("Ok is cyan, set apart from Unset's green by hue first and a little lightness", () => {
+    /*
+     * Measured OKLCH: Ok hue 221.7 at chroma 0.111 (cyan-700 would be 0.094,
+     * too grey). Of the 15.9 between Ok and Unset, hue carries 12.7 and
+     * lightness 8.7 (Ok 0.609, Unset 0.696).
+     */
+    const ok: OkLch = toOkLch(OK.color);
+    const unset: OkLch = toOkLch(UNSET.color);
+    const oldOk: OkLch = toOkLch(OLD_DARK_GREEN_OK);
+
+    expect(ok.hue).toBeGreaterThanOrEqual(CYAN_HUE_MIN);
+    expect(ok.hue).toBeLessThanOrEqual(CYAN_HUE_MAX);
+    expect(ok.chroma).toBeGreaterThanOrEqual(CHROMA_FLOOR);
+    expect(hueDifference(ok, unset)).toBeGreaterThan(
+      lightnessDifference(ok, unset),
+    );
+    expect(ok.lightness).toBeLessThan(unset.lightness);
+
+    /*
+     * The old Ok was the other way round: a darker step of the same green
+     * (0.7 of hue, 18.8 of lightness), and that darkness is what took it
+     * into Error's red for protanopes.
+     */
+    expect(hueDifference(oldOk, unset)).toBeLessThan(
+      lightnessDifference(oldOk, unset),
     );
   });
 
-  test("every series stays visible on the light card", () => {
-    // Measured: Unset 2.54, Error 3.76, Ok 5.48.
-    expect(seriesBelowContrast(LIGHT_CARD, LIGHT_CARD_CONTRAST_FLOOR)).toEqual(
-      [],
-    );
+  test("Ok and Error clear 3:1 on every light and dark surface", () => {
+    /*
+     * Measured on the light card and tertiary, then the dark card, secondary
+     * and tertiary: Ok 3.68, 3.35, 4.42, 3.97, 3.41; Error 3.76, 3.42, 4.32,
+     * 3.89, 3.33.
+     */
+    for (const presentation of [OK, ERROR]) {
+      expect({
+        status: presentation.label,
+        below: contrastsBelow(presentation.color, GRAPHICS_CONTRAST, SURFACES),
+      }).toEqual({ status: presentation.label, below: [] });
+    }
   });
 
-  test("every series stays visible on the dark card", () => {
-    // Measured: Ok 2.97, Error 4.32, Unset 6.41.
-    expect(seriesBelowContrast(DARK_CARD, DARK_CARD_CONTRAST_FLOOR)).toEqual(
-      [],
+  test("Unset clears 3:1 on the dark surfaces, and keeps its documented relief on the light ones", () => {
+    // Measured: 6.41 on the dark card, 5.77 on the secondary, 4.95 on the tertiary.
+    expect(
+      contrastsBelow(UNSET.color, GRAPHICS_CONTRAST, DARK_SURFACES),
+    ).toEqual([]);
+
+    /*
+     * Emerald-500 is 2.54 on the light card and 2.31 on the light tertiary,
+     * under 3:1, so the legend and facet names carry it there.
+     */
+    expect(contrastRatio(UNSET.color, LIGHT_CARD.color)).toBeGreaterThanOrEqual(
+      UNSET_LIGHT_CARD_FLOOR,
     );
+    expect(
+      contrastRatio(UNSET.color, LIGHT_TERTIARY.color),
+    ).toBeGreaterThanOrEqual(UNSET_LIGHT_TERTIARY_FLOOR);
+  });
+
+  test("REGRESSION: the old darker-green Ok sat under 3:1 on every dark surface", () => {
+    // It had room to spare on the light ones: 5.48 on the card, 4.98 on the tertiary.
+    expect(
+      contrastsBelow(OLD_DARK_GREEN_OK, GRAPHICS_CONTRAST, SURFACES),
+    ).toEqual([
+      "dark card 2.97:1",
+      "dark secondary 2.67:1",
+      "dark tertiary 2.29:1",
+    ]);
   });
 
   test("REGRESSION: the old grey Unset next to Ok fails the colour-vision and chroma bars", () => {

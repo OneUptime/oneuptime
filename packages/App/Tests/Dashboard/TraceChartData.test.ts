@@ -510,7 +510,7 @@ describe("TraceChartData.resolveTraceSeriesColor", () => {
  */
 describe("TraceChartData.resolveTraceSeriesColor for a status split", () => {
   const UNSET_COLOR: string = "#10b981";
-  const OK_COLOR: string = "#047857";
+  const OK_COLOR: string = "#0891b2";
   const ERROR_COLOR: string = "#ef4444";
   const LEAD_COLOR: string = "#123456";
 
@@ -518,7 +518,7 @@ describe("TraceChartData.resolveTraceSeriesColor for a status split", () => {
     groupByAttribute: "statusCode",
   };
 
-  test("Unset is green, Ok a deeper green and Error red", () => {
+  test("Unset is green, Ok cyan and Error red", () => {
     expect(resolveTraceSeriesColor("0", 0, STATUS_SPLIT)).toBe(UNSET_COLOR);
     expect(resolveTraceSeriesColor("1", 1, STATUS_SPLIT)).toBe(OK_COLOR);
     expect(resolveTraceSeriesColor("2", 2, STATUS_SPLIT)).toBe(ERROR_COLOR);

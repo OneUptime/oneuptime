@@ -6,15 +6,20 @@ import {
   FilterFieldDefinition,
   FilterFieldValueOption,
 } from "../../FeatureSet/Dashboard/src/Components/FilterQueryBuilder/Types";
-import { getSpanStatusPresentation } from "../../FeatureSet/Dashboard/src/Utils/SpanStatusPresentation";
+import {
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../FeatureSet/Dashboard/src/Utils/SpanStatusPresentation";
 
 /*
  * The Status field of the trace filter builder. The stored values and the
  * "Unset" / "Ok" / "Error" names are what saved queries, monitors and the API
  * use, so they stay put. The descriptions and the value pill are presentation,
  * and #4118 changed them: Unset is OpenTelemetry's default for a span that
- * finished without an error, not a missing status, so it reads as a success
- * and not as the grey of an unknown value.
+ * finished without an error status, not a missing status, so it reads as a
+ * success and not as the grey of an unknown value. A review follow-up worded
+ * it by the status field, since recording an exception does not change a
+ * span's status, and gave Ok a cyan pill of its own.
  */
 
 function getStatusField(): FilterFieldDefinition {
@@ -74,7 +79,7 @@ describe("TraceFilterConfig status field", () => {
 
   test("describes each status", () => {
     expect(getStatusOption("0").description).toBe(
-      "No error recorded (OpenTelemetry default)",
+      "No error status set (OpenTelemetry default)",
     );
     expect(getStatusOption("1").description).toBe(
       "Explicitly marked successful",
@@ -87,6 +92,18 @@ describe("TraceFilterConfig status field", () => {
 
     expect(description).not.toBe("No status set");
     expect(description).toMatch(/no error/i);
+  });
+
+  /*
+   * "No error recorded" read as "no exception recorded", yet recording an
+   * exception does not change a span's status: an Unset span can carry one.
+   */
+  test("REGRESSION: Unset is described by its status field, not as no error recorded", () => {
+    const description: string | undefined = getStatusOption("0").description;
+
+    expect(description).not.toBe("No error recorded (OpenTelemetry default)");
+    expect(description).not.toMatch(/recorded/i);
+    expect(description).toMatch(/error status/i);
   });
 
   /*
@@ -116,13 +133,9 @@ describe("TraceFilterConfig.getStatusCodePillClass", () => {
     );
   });
 
-  test("Ok is a deeper emerald pill", () => {
+  test("Ok is a cyan pill", () => {
     expect(pillClasses("1")).toEqual(
-      new Set<string>([
-        "bg-emerald-50",
-        "text-emerald-800",
-        "ring-emerald-600/10",
-      ]),
+      new Set<string>(["bg-cyan-50", "text-cyan-800", "ring-cyan-600/10"]),
     );
   });
 
@@ -142,7 +155,7 @@ describe("TraceFilterConfig.getStatusCodePillClass", () => {
   test("only Error uses red", () => {
     expect(getStatusCodePillClass("0")).not.toMatch(/red/);
     expect(getStatusCodePillClass("1")).not.toMatch(/red/);
-    expect(getStatusCodePillClass("2")).not.toMatch(/emerald|gray/);
+    expect(getStatusCodePillClass("2")).not.toMatch(/emerald|cyan|gray/);
   });
 
   test("a value that is not a stored status stays grey", () => {
@@ -153,13 +166,16 @@ describe("TraceFilterConfig.getStatusCodePillClass", () => {
     }
   });
 
-  test("each status pill carries the classes every other status pill uses", () => {
+  test("each status pill carries the classes every other status pill uses, and its status's ring", () => {
     for (const value of ["0", "1", "2"]) {
-      const shared: Array<string> =
-        getSpanStatusPresentation(value).pillClassName.split(" ");
+      const status: SpanStatusPresentation = getSpanStatusPresentation(value);
 
-      expect(Array.from(pillClasses(value))).toEqual(
-        expect.arrayContaining(shared),
+      // Nothing picked by hand: the module's pill classes plus its ring.
+      expect(pillClasses(value)).toEqual(
+        new Set<string>([
+          ...status.pillClassName.split(" "),
+          status.pillRingClassName,
+        ]),
       );
     }
   });

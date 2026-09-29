@@ -26,7 +26,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Unset is OpenTelemetry's default span status: instrumentation sets Error
  * when an operation fails and leaves every other span Unset. The Traces chart
  * painted Unset grey beside a green Ok, so a healthy service read as "mostly
- * unknown".
+ * unknown". Unset now takes the success green, and the explicit Ok is cyan:
+ * a darker green Ok could not be told from Error's red under protanopia, and
+ * Ok sits right on Error in any bucket that has no Unset spans.
  *
  * The REAL TracesViewer is mounted with the TelemetryViewer shell replaced by
  * a probe that records the props it is handed, against mocked APIs. What is
@@ -200,7 +202,8 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const FIRST_MINUTE: string = "2026-09-28T10:00:00.000Z";
 const SECOND_MINUTE: string = "2026-09-28T10:01:00.000Z";
 
-const OK_COLOR: string = "#047857";
+// Cyan: it stays apart from Error's red for colorblind readers too.
+const OK_COLOR: string = "#0891b2";
 const UNSET_COLOR: string = "#10b981";
 const ERROR_COLOR: string = "#ef4444";
 // What Unset used to be drawn in: a grey that read as "unknown".
@@ -429,7 +432,7 @@ describe("TracesViewer — span status in the chart, the facets and the search h
     }
   });
 
-  test("REGRESSION: the server's ok / unset / error buckets draw green, green and red, each legended with what it means", async () => {
+  test("REGRESSION: the server's ok / unset / error buckets draw cyan, green and red, each legended with what it means", async () => {
     histogramResponse = [
       { time: FIRST_MINUTE, series: "ok", count: 3 },
       { time: FIRST_MINUTE, series: "unset", count: 40 },
@@ -573,7 +576,7 @@ describe("TracesViewer — span status in the chart, the facets and the search h
       }),
     ).toEqual({
       syntax: "status:ok|error|unset",
-      description: "Filter by span status (unset = no error recorded)",
+      description: "Filter by span status (unset = no error status set)",
       example: "status:error",
     });
   });
@@ -610,10 +613,22 @@ describe("TelemetryHistogram — the legend's hover text", () => {
       ERROR_DESCRIPTION,
     );
 
-    // The Unset entry tells a reader that nothing went wrong.
+    /*
+     * Each entry says what its status means. The Unset entry names the status
+     * field, not the span: recording an exception does not change a span's
+     * status, so it cannot promise that nothing went wrong.
+     */
     expect(
       screen.getByText("Unset (no error)").parentElement!.getAttribute("title"),
-    ).toMatch(/^No error was recorded/);
+    ).toBe(
+      "No error status was set. Unset is the OpenTelemetry default for spans that finish without one.",
+    );
+    expect(screen.getByText("Ok").parentElement!.getAttribute("title")).toBe(
+      "Explicitly marked successful by the application or a trace pipeline.",
+    );
+    expect(screen.getByText("Error").parentElement!.getAttribute("title")).toBe(
+      "The operation failed: the span's status is Error.",
+    );
   });
 
   test("a series without a description gets a legend entry with no title", () => {

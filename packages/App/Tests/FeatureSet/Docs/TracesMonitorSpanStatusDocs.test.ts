@@ -10,6 +10,11 @@ import {
   getSpanStatusPresentation,
 } from "../../../FeatureSet/Dashboard/src/Utils/SpanStatusPresentation";
 import { toSpanStatusCode } from "../../../FeatureSet/Dashboard/src/Components/Traces/TracesSearchCompile";
+import TraceFilterConfig from "../../../FeatureSet/Dashboard/src/Components/FilterQueryBuilder/TraceFilterConfig";
+import {
+  FilterFieldDefinition,
+  FilterFieldValueOption,
+} from "../../../FeatureSet/Dashboard/src/Components/FilterQueryBuilder/Types";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -23,18 +28,24 @@ import path from "path";
  * when an operation fails and leaves a successful span UNSET. The page used
  * to say UNSET meant "Status was not explicitly set", next to a Traces chart
  * that painted it grey, so a healthy service read as mostly unknown. The
- * section now says UNSET means no error was recorded, quotes the label the
- * Dashboard gives it, says to filter on ERROR for failures and to select OK
- * and UNSET together for everything that did not fail, and shows the trace
- * pipeline that marks successful HTTP spans Ok. That recipe is run through
- * the real pipeline code in Tests/Telemetry/TraceStatusPipelineRecipe.test.ts;
- * this file checks that all 17 copies of the page say the same things.
+ * section now says UNSET means no error status was set, quotes the label the
+ * Dashboard gives it, notes that recording an exception does not change a
+ * span's status (so an UNSET span can still have exceptions), says to filter
+ * on ERROR for failures and to select OK and UNSET together for everything
+ * that did not fail, and shows the trace pipeline that marks successful HTTP
+ * spans Ok. That recipe is run through the real pipeline code in
+ * Tests/Telemetry/TraceStatusPipelineRecipe.test.ts; this file checks that
+ * all 17 copies of the page say the same things.
  *
  * Markdown is not compiled, so nothing else notices when one copy drifts: a
  * translation that keeps the old bullet, drops a code span or a bold marker,
  * or leaves an English sentence in place. Each copy must have the English
  * section's shape (the three status bullets, then two paragraphs), the same
  * code spans, the same recipe layout, and prose of its own.
+ *
+ * A recipe names the Status Remapper's target as that language's Dashboard
+ * shows it. Where the locale translates the "Ok (1)" option, a reader never
+ * sees "Ok" in the dropdown, so the page names the translated option.
  *
  * Every heading stays exactly as it was. The renderer ids a heading with
  * slugify, so rewording one would move the section's anchor
@@ -83,8 +94,67 @@ const STATUS_NAMES: ReadonlyArray<string> = ["OK", "ERROR", "UNSET"];
 const OLD_UNSET_WORDING: string = "Status was not explicitly set";
 const OLD_OK_WORDING: string = "The operation completed successfully";
 
+/*
+ * The first sentence of each UNSET bullet as #4118 first wrote it: no error
+ * was recorded. Recording an exception does not change a span's status, so
+ * the bullet now says that no error status was set.
+ */
+const RECORDED_UNSET_BULLETS: Readonly<Record<string, string>> = {
+  da: "Der blev ikke registreret nogen fejl",
+  de: "Es wurde kein Fehler erfasst",
+  en: "No error was recorded",
+  es: "No se registró ningún error",
+  fa: "هیچ خطایی ثبت نشد",
+  fr: "Aucune erreur n'a été enregistrée",
+  hi: "कोई error record नहीं हुई",
+  it: "Non è stato registrato alcun errore",
+  ja: "エラーが記録されていない",
+  ko: "기록된 오류가 없음",
+  nl: "Er is geen fout geregistreerd",
+  no: "Ingen feil ble registrert",
+  pt: "Nenhum erro foi registrado",
+  ru: "ошибок не зафиксировано",
+  sv: "Inget fel registrerades",
+  "zh-CN": "未记录错误",
+  "zh-TW": "未記錄錯誤",
+};
+
+// The English sentence that follows the "Unset (no error)" label.
+const EXCEPTIONS_NOTE: string =
+  "Recording an exception does not change a span's status, so an UNSET span can still have exceptions; they are listed with the span.";
+
 const RECIPE_ATTRIBUTE: string = "http.response.status_code";
 const SEARCH_STATUS_VALUES: ReadonlyArray<string> = ["ok", "error", "unset"];
+
+const DASHBOARD_DIR: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src",
+);
+const DASHBOARD_LOCALES_DIR: string = path.join(DASHBOARD_DIR, "Locales");
+const TRACE_PROCESSOR_FORM: string = path.join(
+  DASHBOARD_DIR,
+  "Components/TracePipeline/TraceProcessorForm.tsx",
+);
+
+/*
+ * The Status Remapper's dropdown option for Ok, which is also the key each
+ * locale file translates it under.
+ */
+const OK_OPTION_LABEL: string = "Ok (1)";
+
+/*
+ * The languages whose Dashboard shows that option under a translated label,
+ * e.g. "Correcto (1)" in Spanish. The other translations show it as Ok or OK
+ * (Ок, in Cyrillic, in Russian), and the Persian recipe names the English UI
+ * throughout.
+ */
+const TRANSLATED_OK_OPTION_LANGUAGES: ReadonlyArray<string> = [
+  "es",
+  "hi",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+];
 
 // What the chart legend and the Status facet call an Unset span.
 const UNSET_DISPLAY_LABEL: string = getSpanStatusPresentation(
@@ -103,8 +173,12 @@ const TODO_MARKER: RegExp = /TODO\(i18n\)/;
 const PHRASE_BREAK: RegExp = /[.!?](?:\s+|$)|\s[—–]\s/;
 const MIN_PHRASE_WORDS: number = 4;
 const SEARCH_STATUS_ROW: RegExp = /^\|\s*`status`\s*\|(.*)\|\s*$/;
-/* "(unset = no error recorded, the OpenTelemetry default)", in any language. */
+/* "(unset = no error status set, the OpenTelemetry default)", in any language. */
 const UNSET_EXPLANATION: RegExp = /\(unset\b[^)]*OpenTelemetry[^)]*\)/;
+/* A trailing "(OpenTelemetry default)", with ASCII or full-width parentheses. */
+const TRAILING_PARENTHETICAL: RegExp = /\s*[(（][^)）]*[)）]\s*$/;
+/* A status named in prose, as the bullets name it. */
+const STATUS_MENTION: RegExp = /\b(?:OK|ERROR|UNSET)\b/g;
 
 const LANGUAGES: ReadonlyArray<string> = fs
   .readdirSync(CONTENT_DIR, { withFileTypes: true })
@@ -158,6 +232,17 @@ function headingFor(lang: string): string {
   });
 
   return heading as string;
+}
+
+function recordedUnsetBulletOf(lang: string): string {
+  const bullet: string | undefined = RECORDED_UNSET_BULLETS[lang];
+
+  expect({ lang, recorded: bullet !== undefined }).toEqual({
+    lang,
+    recorded: true,
+  });
+
+  return bullet as string;
 }
 
 /*
@@ -361,13 +446,69 @@ function searchStatusNotesOf(lang: string): string {
   return rows[0]![1]!.trim();
 }
 
+function searchSyntaxLanguages(): Array<string> {
+  return LANGUAGES.filter((lang: string): boolean => {
+    return fs.existsSync(pagePath(lang, SEARCH_SYNTAX_PAGE));
+  });
+}
+
+/* OK, ERROR and UNSET, once for each time the text names one, sorted. */
+function statusMentionsOf(text: string): Array<string> {
+  return Array.from(text.matchAll(STATUS_MENTION))
+    .map((match: RegExpMatchArray): string => {
+      return match[0];
+    })
+    .sort();
+}
+
+/* A string from one of the Dashboard's locale files, which must have it. */
+function dashboardStringOf(lang: string, key: string): string {
+  const strings: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(path.join(DASHBOARD_LOCALES_DIR, `${lang}.json`), "utf8"),
+  ) as Record<string, unknown>;
+  const value: unknown = strings[key];
+
+  expect({ lang, key, type: typeof value }).toEqual({
+    lang,
+    key,
+    type: "string",
+  });
+
+  return value as string;
+}
+
+/*
+ * How the trace filter builder describes an Unset span, in English, which is
+ * also the key each locale file translates it under.
+ */
+function unsetFilterDescription(): string {
+  const statusField: FilterFieldDefinition | undefined =
+    TraceFilterConfig.fields.find((field: FilterFieldDefinition): boolean => {
+      return field.key === "statusCode";
+    });
+  const unsetOption: FilterFieldValueOption | undefined =
+    statusField?.valueOptions?.find(
+      (option: FilterFieldValueOption): boolean => {
+        return option.value === String(SpanStatus.Unset);
+      },
+    );
+
+  expect(unsetOption?.description).toEqual(expect.any(String));
+
+  return unsetOption?.description ?? "";
+}
+
 describe("Traces monitor docs: span status codes (#4118)", (): void => {
   describe("coverage", (): void => {
     test("reads the 17 supported languages from disk, each with a recorded heading", (): void => {
       expect(LANGUAGES).toHaveLength(17);
       expect(LANGUAGES).toEqual([...SUPPORTED_DOCS_LANGUAGE_CODES].sort());
       expect(Object.keys(SECTION_HEADINGS).sort()).toEqual(LANGUAGES);
+      expect(Object.keys(RECORDED_UNSET_BULLETS).sort()).toEqual(LANGUAGES);
       expect(TRANSLATED_LANGUAGES).toHaveLength(16);
+      expect(TRANSLATED_LANGUAGES).toEqual(
+        expect.arrayContaining([...TRANSLATED_OK_OPTION_LANGUAGES]),
+      );
     });
 
     test("is the page the docs navigation links as Traces Monitor", (): void => {
@@ -390,8 +531,9 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
       expect(phrases).toEqual(
         expect.arrayContaining([
           "the operation encountered an error",
-          "no error was recorded",
+          "no error status was set",
           "unset does not mean data is missing",
+          "recording an exception does not change a span's status, so an unset span can still have exceptions; they are listed with the span",
           "to alert on failures, filter on error",
           "to count every span that did not fail, select both ok and unset",
         ]),
@@ -419,16 +561,25 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
       ]);
     });
 
-    test("REGRESSION: UNSET means no error was recorded, the OpenTelemetry default", (): void => {
+    test("REGRESSION: UNSET means no error status was set, the OpenTelemetry default", (): void => {
       const unset: string = descriptionOf(
         statusSectionOf(DEFAULT_DOCS_LANGUAGE),
         "UNSET",
       );
+      const page: string = readPage(DEFAULT_DOCS_LANGUAGE, PAGE);
 
-      expect(unset).toContain("No error was recorded");
+      expect(unset).toContain("No error status was set");
       expect(unset).toContain("OpenTelemetry default");
-      expect(readPage(DEFAULT_DOCS_LANGUAGE, PAGE)).not.toContain(
-        OLD_UNSET_WORDING,
+      expect(page).not.toContain(OLD_UNSET_WORDING);
+      expect(page).not.toContain(recordedUnsetBulletOf(DEFAULT_DOCS_LANGUAGE));
+    });
+
+    test("REGRESSION: right after the label that reads no error, says an UNSET span can still have exceptions", (): void => {
+      const explanation: string =
+        blocksOf(statusSectionOf(DEFAULT_DOCS_LANGUAGE).body)[1] ?? "";
+
+      expect(explanation).toContain(
+        `in green as "${UNSET_DISPLAY_LABEL}". ${EXCEPTIONS_NOTE} To alert on failures`,
       );
     });
 
@@ -508,6 +659,12 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
       );
     });
 
+    test("REGRESSION: no longer says an UNSET span had no error recorded", (): void => {
+      expect(descriptionOf(statusSectionOf(lang), "UNSET")).not.toContain(
+        recordedUnsetBulletOf(lang),
+      );
+    });
+
     test("REGRESSION: quotes the Unset (no error) label and names the attribute the recipe maps", (): void => {
       const body: string = statusSectionOf(lang).body;
 
@@ -563,6 +720,38 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
       test("carries no deferred-translation marker", (): void => {
         expect(TODO_MARKER.test(statusSectionOf(lang).body)).toBe(false);
       });
+
+      /*
+       * Every sentence of the English explanation except the one quoting the
+       * label names a status, so a translation that drops a sentence, such as
+       * the exceptions note, names fewer of them.
+       */
+      test("names OK, ERROR and UNSET in its explanation as often as the English one does", (): void => {
+        const english: string =
+          blocksOf(statusSectionOf(DEFAULT_DOCS_LANGUAGE).body)[1] ?? "";
+        const explanation: string =
+          blocksOf(statusSectionOf(lang).body)[1] ?? "";
+
+        expect({ lang, statuses: statusMentionsOf(explanation) }).toEqual({
+          lang,
+          statuses: statusMentionsOf(english),
+        });
+      });
+    },
+  );
+
+  describe.each(TRANSLATED_OK_OPTION_LANGUAGES)(
+    "%s recipe",
+    (lang: string): void => {
+      test("REGRESSION: names the Status Remapper's target as this language's Dashboard shows it, not Ok", (): void => {
+        const option: string = dashboardStringOf(lang, OK_OPTION_LABEL);
+        const recipe: string = blocksOf(statusSectionOf(lang).body)[2] ?? "";
+
+        expect(option).not.toBe(OK_OPTION_LABEL);
+        expect(option).toContain(`(${SpanStatus.Ok})`);
+        expect(recipe).toContain(option);
+        expect(recipe).not.toMatch(/\bOk\b/);
+      });
     },
   );
 
@@ -585,14 +774,21 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
       expect(unset.displayLabel).toBe("Unset (no error)");
       expect(unset.dotClassName).toMatch(/^bg-(emerald|green)-\d+$/);
     });
+
+    test("offers Ok in the Status Remapper under the label the translated recipes are checked for", (): void => {
+      expect(fs.readFileSync(TRACE_PROCESSOR_FORM, "utf8")).toContain(
+        `{ value: ${SpanStatus.Ok}, label: "${OK_OPTION_LABEL}" }`,
+      );
+    });
   });
 
   describe("search syntax: the status field", (): void => {
-    test("REGRESSION: the English row says unset means no error was recorded", (): void => {
+    test("REGRESSION: the English row says unset means no error status was set", (): void => {
       const notes: string = searchStatusNotesOf(DEFAULT_DOCS_LANGUAGE);
 
-      expect(notes).toContain("unset = no error recorded");
+      expect(notes).toContain("unset = no error status set");
       expect(notes).toContain("the OpenTelemetry default");
+      expect(notes).not.toContain("no error recorded");
     });
 
     test("lists the values trace search resolves to Ok, Error and Unset", (): void => {
@@ -609,11 +805,7 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
     });
 
     test("explains unset in every language that ships the page", (): void => {
-      const shipped: Array<string> = LANGUAGES.filter(
-        (lang: string): boolean => {
-          return fs.existsSync(pagePath(lang, SEARCH_SYNTAX_PAGE));
-        },
-      );
+      const shipped: Array<string> = searchSyntaxLanguages();
 
       expect(shipped).toContain(DEFAULT_DOCS_LANGUAGE);
 
@@ -628,6 +820,32 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
           lang,
           explained: true,
         });
+      }
+    });
+
+    /*
+     * The trace filter builder describes Unset as "No error status set
+     * (OpenTelemetry default)", and each locale file translates that. Every
+     * copy of the row says the same thing in its own language's words.
+     */
+    test("REGRESSION: explains unset in the words of the Dashboard's status filter, in every language that ships the page", (): void => {
+      const description: string = unsetFilterDescription();
+
+      for (const lang of searchSyntaxLanguages()) {
+        const words: string = normalized(
+          dashboardStringOf(lang, description).replace(
+            TRAILING_PARENTHETICAL,
+            "",
+          ),
+        );
+        const notes: string = normalized(searchStatusNotesOf(lang));
+
+        expect({
+          lang,
+          words,
+          worded: words.length > 0,
+          explained: notes.includes(words),
+        }).toEqual({ lang, words, worded: true, explained: true });
       }
     });
   });

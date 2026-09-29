@@ -29,6 +29,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * asserts what a user sees and a screen reader announces for each status: 0,
  * 1, 2, a missing status and a code the UI does not know. The last two read
  * as Unset, the rule the server uses when it buckets the Traces chart.
+ *
+ * "Unset (no error)" speaks about the status field, and recording an
+ * exception does not change a span's status. So where exceptions are in
+ * view the status is named alone, "Unset": in the span panel of a span that
+ * carries exception events, and in SpanStatusElement's plainLabel, which the
+ * exception tables use because each of their rows is an exception.
  */
 
 const analyticsGetListMock: MockFunction = getJestMockFunction();
@@ -95,7 +101,10 @@ import SpanDetailsPanel from "../../../../App/FeatureSet/Dashboard/src/Component
 import SpanStatusElement, {
   ComponentProps as SpanStatusElementProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Span/SpanStatusElement";
-import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
+import Span, {
+  SpanEvent,
+  SpanStatus,
+} from "../../../Models/AnalyticsModels/Span";
 import ObjectID from "../../../Types/ObjectID";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -108,7 +117,7 @@ const MAX_DURATION_NANO: number = 4_000_000;
  * What each status must look like, spelled out here rather than read back
  * from SpanStatusPresentation, so the tests pin what the user sees. The
  * rgb() values are how jsdom reports the inline hex colors (#10b981,
- * #047857, #ef4444).
+ * #0891b2, #ef4444).
  */
 interface ExpectedStatus {
   label: string;
@@ -126,7 +135,7 @@ const UNSET: ExpectedStatus = {
   label: "Unset",
   displayLabel: "Unset (no error)",
   description:
-    "No error was recorded. Unset is the OpenTelemetry default for spans that finish without an error.",
+    "No error status was set. Unset is the OpenTelemetry default for spans that finish without one.",
   rgb: "rgb(16, 185, 129)",
   dotClassName: "bg-emerald-500",
   ringClassName: "ring-emerald-200",
@@ -135,23 +144,28 @@ const UNSET: ExpectedStatus = {
   pillClassNames: ["bg-emerald-50", "text-emerald-700"],
 };
 
+/*
+ * Cyan rather than a darker green: #047857 sat next to Error's red for
+ * protanopes, and Ok meets Error in the Traces chart wherever a bucket has
+ * no Unset spans.
+ */
 const OK: ExpectedStatus = {
   label: "Ok",
   displayLabel: "Ok",
   description:
     "Explicitly marked successful by the application or a trace pipeline.",
-  rgb: "rgb(4, 120, 87)",
-  dotClassName: "bg-emerald-700",
-  ringClassName: "ring-emerald-200",
-  barClassName: "bg-emerald-700",
+  rgb: "rgb(8, 145, 178)",
+  dotClassName: "bg-cyan-600",
+  ringClassName: "ring-cyan-200",
+  barClassName: "bg-cyan-600",
   barTrackClassName: "bg-gray-100",
-  pillClassNames: ["bg-emerald-50", "text-emerald-800"],
+  pillClassNames: ["bg-cyan-50", "text-cyan-800"],
 };
 
 const ERROR: ExpectedStatus = {
   label: "Error",
   displayLabel: "Error",
-  description: "The span recorded an error.",
+  description: "The operation failed: the span's status is Error.",
   rgb: "rgb(239, 68, 68)",
   dotClassName: "bg-red-500",
   ringClassName: "ring-red-100",
@@ -355,6 +369,139 @@ describe("TraceRow status", () => {
       }
     },
   );
+
+  /*
+   * A span whose statusCode reads back as a string ("0" / "1" / "2"), the
+   * form a facet or chart key carries. Span's setter parses a numeric string
+   * (statusCode is a Number column), so the string is put on the instance
+   * itself, where the setter never sees it.
+   */
+  const buildSpanWithStatusText: (
+    statusCode: string,
+    statusMessage: string,
+  ) => Span = (statusCode: string, statusMessage: string): Span => {
+    const span: Span = buildSpan(undefined, statusMessage);
+    Object.defineProperty(span, "statusCode", {
+      configurable: true,
+      value: statusCode as unknown as SpanStatus,
+    });
+    // Still a string when the row reads it.
+    expect(span.statusCode).toBe(statusCode);
+    return span;
+  };
+
+  test('REGRESSION: a status of "2" as a string gets the ERROR pill, the pulse and the red message as well as the red dot', () => {
+    const row: RenderedRow = renderRow(
+      buildSpanWithStatusText("2", "connection refused"),
+    );
+
+    // The dot already read "2" as Error...
+    expect(screen.getByRole("img", { name: "Status: Error" })).toBe(
+      row.indicator,
+    );
+    expect(row.dot).toHaveClass(ERROR.dotClassName, ERROR.ringClassName);
+    expect(row.bar).toHaveClass(ERROR.barClassName);
+
+    /*
+     * ...but the row decided "error" with a strict === against the number 2,
+     * so the pulse, the pill and the message were missing.
+     */
+    expect(row.pulse).toHaveClass("animate-ping", ERROR.dotClassName);
+    expect(screen.getByText("Error")).toHaveClass(
+      "uppercase",
+      ...ERROR.pillClassNames,
+    );
+    const message: HTMLElement = screen.getByText("connection refused");
+    expect(message).toHaveClass("text-red-500");
+    expect(message).toHaveAttribute("title", "connection refused");
+  });
+
+  test.each([
+    { statusCode: "1", expected: OK },
+    { statusCode: "0", expected: UNSET },
+  ])(
+    'a status of "$statusCode" as a string reads as $expected.displayLabel, with no pill, pulse or message',
+    (textCase: { statusCode: string; expected: ExpectedStatus }) => {
+      const expected: ExpectedStatus = textCase.expected;
+      const row: RenderedRow = renderRow(
+        buildSpanWithStatusText(
+          textCase.statusCode,
+          "upstream answered 404 (handled)",
+        ),
+      );
+
+      expect(
+        screen.getByRole("img", { name: `Status: ${expected.displayLabel}` }),
+      ).toBe(row.indicator);
+      expect(row.dot).toHaveClass(
+        expected.dotClassName,
+        expected.ringClassName,
+      );
+      expect(row.bar).toHaveClass(expected.barClassName);
+      expect(row.pulse).not.toHaveClass("animate-ping");
+
+      for (const text of ["Error", "Ok", "Unset", "Unset (no error)"]) {
+        expect(screen.queryByText(text)).not.toBeInTheDocument();
+      }
+      // The row shows a status message only for an error.
+      expect(
+        screen.queryByText("upstream answered 404 (handled)"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  /*
+   * Recording an exception does not change a span's status. The list query
+   * brings hasException along, so the row can say so without "no error".
+   */
+  test("REGRESSION: an Unset span that recorded an exception is announced as a plain 'Status: Unset'", () => {
+    const span: Span = buildSpan(SpanStatus.Unset);
+    span.hasException = true;
+
+    const row: RenderedRow = renderRow(span);
+
+    expect(screen.getByRole("img", { name: "Status: Unset" })).toBe(
+      row.indicator,
+    );
+    // Only the words change: still Unset's green, tooltip and bar.
+    expect(row.indicator).toHaveAttribute(
+      "title",
+      `Unset: ${UNSET.description}`,
+    );
+    expect(row.dot).toHaveClass(UNSET.dotClassName, UNSET.ringClassName);
+    expect(row.bar).toHaveClass(UNSET.barClassName);
+  });
+
+  test.each([
+    { name: "false", hasException: false },
+    { name: "missing", hasException: undefined },
+  ])(
+    "an Unset span whose hasException is $name is still announced as 'Status: Unset (no error)'",
+    (exceptionCase: { name: string; hasException: boolean | undefined }) => {
+      const span: Span = buildSpan(SpanStatus.Unset);
+      if (exceptionCase.hasException !== undefined) {
+        span.hasException = exceptionCase.hasException;
+      }
+
+      renderRow(span);
+
+      expect(
+        screen.getByRole("img", { name: "Status: Unset (no error)" }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test("an Error span that recorded an exception is announced as 'Status: Error', with its pill", () => {
+    const span: Span = buildSpan(SpanStatus.Error);
+    span.hasException = true;
+
+    renderRow(span);
+
+    expect(
+      screen.getByRole("img", { name: "Status: Error" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Error")).toBeInTheDocument();
+  });
 });
 
 describe("SpanDetailsPanel status", () => {
@@ -498,6 +645,155 @@ describe("SpanDetailsPanel status", () => {
       expect(screen.queryByText("Status Message")).not.toBeInTheDocument();
     },
   );
+
+  const EVENT_TIME: Date = new Date("2026-09-28T10:00:00.250Z");
+
+  // An OpenTelemetry exception event, as the lazily fetched full span has it.
+  const exceptionEvent: (message: string) => SpanEvent = (
+    message: string,
+  ): SpanEvent => {
+    return {
+      name: "exception",
+      time: EVENT_TIME,
+      timeUnixNano: EVENT_TIME.getTime() * 1_000_000,
+      attributes: {
+        "exception.type": "TimeoutError",
+        "exception.message": message,
+      },
+    };
+  };
+
+  /*
+   * The lazy full-span read answers with these events. The row's light span
+   * never has events of its own.
+   */
+  const fullSpanWithEvents: (events: Array<SpanEvent>) => void = (
+    events: Array<SpanEvent>,
+  ): void => {
+    analyticsGetListMock.mockImplementation(async () => {
+      const fullSpan: Span = new Span();
+      fullSpan.events = events;
+      return { data: [fullSpan], count: 1 };
+    });
+  };
+
+  test("REGRESSION: an Unset span that carries an exception reads a plain 'Unset', not 'Unset (no error)'", async () => {
+    fullSpanWithEvents([exceptionEvent("upstream timed out after 30s")]);
+
+    await renderPanel(buildSpan(SpanStatus.Unset));
+
+    // The events come from the lazy read, which has to ask for them.
+    expect(analyticsGetListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ events: true }),
+      }),
+    );
+
+    // The exception is listed with the span...
+    expect(screen.getByText("Exceptions (1)")).toBeInTheDocument();
+    expect(
+      screen.getByText("upstream timed out after 30s"),
+    ).toBeInTheDocument();
+
+    /*
+     * ...so "no error" would contradict it. Recording an exception does not
+     * change a span's status: the status is named, not explained.
+     */
+    const pill: HTMLElement = statusPill();
+    expect(pill.textContent).toBe("Unset");
+    expect(overviewValue("Status").textContent).toBe("Unset");
+
+    // Only the words change: the pill keeps Unset's green and its tooltip.
+    expect(pill).toHaveClass(...UNSET.pillClassNames);
+    expect(pill).toHaveAttribute("title", UNSET.description);
+    expect(statusPillDot().style.backgroundColor).toBe(UNSET.rgb);
+    expect(greyClassTokens(pill)).toEqual([]);
+  });
+
+  test.each(STATUS_CASES)(
+    "$name carrying an exception: the header pill and the Overview row read $expected.label",
+    async (statusCase: StatusCase) => {
+      const expected: ExpectedStatus = statusCase.expected;
+      fullSpanWithEvents([exceptionEvent("connection reset by peer")]);
+
+      await renderPanel(buildSpan(statusCase.statusCode));
+
+      expect(screen.getByText("connection reset by peer")).toBeInTheDocument();
+
+      const pill: HTMLElement = statusPill();
+      expect(pill.textContent).toBe(expected.label);
+      expect(pill).toHaveClass(...expected.pillClassNames);
+      expect(pill).toHaveAttribute("title", expected.description);
+      expect(statusPillDot().style.backgroundColor).toBe(expected.rgb);
+
+      expect(overviewValue("Status").textContent).toBe(expected.label);
+    },
+  );
+
+  test("an Unset span whose events hold no exception still reads 'Unset (no error)'", async () => {
+    fullSpanWithEvents([
+      {
+        name: "cache.miss",
+        time: EVENT_TIME,
+        timeUnixNano: EVENT_TIME.getTime() * 1_000_000,
+        attributes: { "cache.key": "orders:42" },
+      },
+    ]);
+
+    await renderPanel(buildSpan(SpanStatus.Unset));
+
+    expect(analyticsGetListMock).toHaveBeenCalled();
+    expect(screen.queryByText(/^Exceptions \(/)).not.toBeInTheDocument();
+
+    const pill: HTMLElement = statusPill();
+    expect(pill.textContent).toBe("Unset (no error)");
+    expect(pill).toHaveClass(...UNSET.pillClassNames);
+    expect(overviewValue("Status").textContent).toBe("Unset (no error)");
+  });
+
+  /*
+   * The row's light span carries hasException, so the panel names the status
+   * plainly from the start — not only once the full span's events arrive.
+   */
+  test("REGRESSION: an Unset span flagged hasException reads 'Unset' while the full span is still loading", async () => {
+    // The lazy read has not answered yet.
+    analyticsGetListMock.mockImplementation(() => {
+      return new Promise<never>(() => {});
+    });
+    const span: Span = buildSpan(SpanStatus.Unset);
+    span.hasException = true;
+
+    await renderPanel(span);
+
+    expect(analyticsGetListMock).toHaveBeenCalled();
+    expect(statusPill().textContent).toBe("Unset");
+    expect(overviewValue("Status").textContent).toBe("Unset");
+    expect(statusPill()).toHaveClass(...UNSET.pillClassNames);
+  });
+
+  test("REGRESSION: an Unset span flagged hasException still reads 'Unset' when the full-span read fails", async () => {
+    analyticsGetListMock.mockImplementation(async () => {
+      throw new Error("span read failed");
+    });
+    const span: Span = buildSpan(SpanStatus.Unset);
+    span.hasException = true;
+
+    await renderPanel(span);
+
+    expect(analyticsGetListMock).toHaveBeenCalled();
+    expect(statusPill().textContent).toBe("Unset");
+    expect(overviewValue("Status").textContent).toBe("Unset");
+  });
+
+  test("an Unset span flagged hasException false reads 'Unset (no error)'", async () => {
+    const span: Span = buildSpan(SpanStatus.Unset);
+    span.hasException = false;
+
+    await renderPanel(span);
+
+    expect(statusPill().textContent).toBe("Unset (no error)");
+    expect(overviewValue("Status").textContent).toBe("Unset (no error)");
+  });
 });
 
 describe("SpanStatusElement", () => {
@@ -533,7 +829,7 @@ describe("SpanStatusElement", () => {
     },
   );
 
-  test("REGRESSION: Unset and Ok get their own greens, and neither is the old brand green", () => {
+  test("REGRESSION: Unset and Ok get colors of their own, and neither is the old brand green", () => {
     renderStatusElement({ spanStatusCode: SpanStatus.Unset });
     renderStatusElement({ spanStatusCode: SpanStatus.Ok });
 
@@ -547,7 +843,8 @@ describe("SpanStatusElement", () => {
 
     // Both were BrandColors Green (#2ab57d), rgb(42, 181, 125).
     expect(unset.style.backgroundColor).toBe("rgb(16, 185, 129)");
-    expect(ok.style.backgroundColor).toBe("rgb(4, 120, 87)");
+    expect(ok.style.backgroundColor).toBe("rgb(8, 145, 178)");
+    expect(ok.style.backgroundColor).not.toBe(unset.style.backgroundColor);
   });
 
   test("REGRESSION: Unset is 0, a falsy value, and still gets its circle", () => {
@@ -570,19 +867,77 @@ describe("SpanStatusElement", () => {
     ).toBe("rgb(239, 68, 68)");
   });
 
+  test.each(CIRCLE_CASES)(
+    "$name with plainLabel: a circle named 'Span Status: $expected.label' in the same color",
+    (statusCase: StatusCase) => {
+      const expected: ExpectedStatus = statusCase.expected;
+      renderStatusElement({
+        spanStatusCode: statusCase.statusCode as SpanStatus,
+        plainLabel: true,
+      });
+
+      const circle: HTMLElement = screen.getByRole("img");
+      expect(circle).toHaveAccessibleName(`Span Status: ${expected.label}`);
+      expect(circle.style.backgroundColor).toBe(expected.rgb);
+    },
+  );
+
+  test("plainLabel names Unset alone; without it, or set to false, the circle says 'Unset (no error)'", () => {
+    /*
+     * The exception tables pass plainLabel: each of their rows is an
+     * exception, which "no error" would contradict.
+     */
+    renderStatusElement({ spanStatusCode: SpanStatus.Unset, plainLabel: true });
+    renderStatusElement({ spanStatusCode: SpanStatus.Unset });
+    renderStatusElement({
+      spanStatusCode: SpanStatus.Unset,
+      plainLabel: false,
+    });
+
+    const names: Array<string | null> = screen
+      .getAllByRole("img")
+      .map((circle: HTMLElement): string | null => {
+        return circle.getAttribute("aria-label");
+      });
+    expect(names).toEqual([
+      "Span Status: Unset",
+      "Span Status: Unset (no error)",
+      "Span Status: Unset (no error)",
+    ]);
+  });
+
   test.each([
     { name: "undefined", value: undefined },
     { name: "null", value: null },
   ])(
-    "a $name status renders no circle",
+    "a $name status renders no circle, with or without plainLabel",
     (missingCase: { name: string; value: undefined | null }) => {
+      renderStatusElement({ spanStatusCode: missingCase.value });
       renderStatusElement({
-        spanStatusCode: missingCase.value as unknown as SpanStatus,
+        spanStatusCode: missingCase.value,
+        plainLabel: true,
       });
 
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
     },
   );
+
+  test("a missing status with a title still links the title to its trace, with no circle", () => {
+    renderStatusElement({
+      spanStatusCode: undefined,
+      title: "GET /api/orders/:id",
+      traceId: TRACE_ID,
+      plainLabel: true,
+    });
+
+    expect(
+      screen.getByRole("link", { name: "GET /api/orders/:id" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/traces/view/${TRACE_ID}`,
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
 
   test("with a title and a trace id, the title links to that trace", () => {
     renderStatusElement({

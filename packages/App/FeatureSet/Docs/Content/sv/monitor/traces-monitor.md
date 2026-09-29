@@ -39,9 +39,9 @@ Välj en eller flera tjänster att övervaka spårningar från. Tjänster måste
 
 - **OK** – Operationen markerades uttryckligen som lyckad av applikationskod eller en spårningspipeline
 - **ERROR** – Operationen stötte på ett fel
-- **UNSET** – Inget fel registrerades. Detta är OpenTelemetrys standardstatus
+- **UNSET** – Ingen felstatus angavs. Detta är OpenTelemetrys standardstatus
 
-UNSET betyder inte att data saknas. OpenTelemetry-instrumentering sätter ERROR när en operation misslyckas och lämnar lyckade spans som UNSET, så hos en frisk tjänst är de flesta spans UNSET. OneUptime visar dem i grönt som "Unset (no error)". Filtrera på ERROR för att varna om fel. Välj både OK och UNSET för att räkna alla spans som inte misslyckades.
+UNSET betyder inte att data saknas. OpenTelemetry-instrumentering sätter ERROR när en operation misslyckas och lämnar lyckade spans som UNSET, så hos en frisk tjänst är de flesta spans UNSET. OneUptime visar dem i grönt som "Unset (no error)". Att registrera ett undantag ändrar inte en spans status, så en UNSET-span kan ändå ha undantag; de listas tillsammans med spanen. Filtrera på ERROR för att varna om fel. Välj både OK och UNSET för att räkna alla spans som inte misslyckades.
 
 Om du vill att lyckade förfrågningar ska visas som OK, lägger du till en spårningspipeline under **Spår > Inställningar > Pipelines** med filtervillkoret **Status = Ej angiven** och en **Status-ommappare** som mappar `http.response.status_code`-värden, till exempel `200`, till Ok.
 

@@ -39,9 +39,9 @@ Selezionare uno o più servizi da cui monitorare le tracce. I servizi devono inv
 
 - **OK** — L'operazione è stata contrassegnata esplicitamente come riuscita, dal codice dell'applicazione o da una pipeline di tracce
 - **ERROR** — L'operazione ha incontrato un errore
-- **UNSET** — Non è stato registrato alcun errore. È lo stato predefinito di OpenTelemetry
+- **UNSET** — Non è stato impostato alcuno stato di errore. È lo stato predefinito di OpenTelemetry
 
-UNSET non significa che manchino dei dati. La strumentazione OpenTelemetry imposta ERROR quando un'operazione non riesce e lascia in UNSET gli span andati a buon fine, quindi su un servizio in salute la maggior parte degli span è UNSET. OneUptime li mostra in verde come «Unset (no error)». Per ricevere avvisi in caso di errore, filtrare per ERROR. Per contare tutti gli span che non sono falliti, selezionare sia OK sia UNSET.
+UNSET non significa che manchino dei dati. La strumentazione OpenTelemetry imposta ERROR quando un'operazione non riesce e lascia in UNSET gli span andati a buon fine, quindi su un servizio in salute la maggior parte degli span è UNSET. OneUptime li mostra in verde come «Unset (no error)». Registrare un'eccezione non modifica lo stato di uno span, quindi uno span in UNSET può comunque avere eccezioni, che vengono elencate insieme allo span. Per ricevere avvisi in caso di errore, filtrare per ERROR. Per contare tutti gli span che non sono falliti, selezionare sia OK sia UNSET.
 
 Se si desidera che le richieste riuscite vengano mostrate come OK, aggiungere una pipeline di tracce in **Tracce > Impostazioni > Pipeline** con la condizione di filtro **Stato = Non impostato** e un **Rimappatore di stato** che mappi su Ok i valori di `http.response.status_code` come `200`.
 

@@ -96,7 +96,7 @@ name:"SELECT wp_options"
 | --- | --- |
 | `service` | نام سرویس |
 | `name` | نام اسپن. واژه‌های خالی هم همین را جستجو می‌کنند |
-| `status` | `ok`، `error`، `unset` (unset یعنی هیچ خطایی ثبت نشده است؛ پیش‌فرض OpenTelemetry) |
+| `status` | `ok`، `error`، `unset` (unset یعنی هیچ وضعیت خطایی تنظیم نشده است؛ پیش‌فرض OpenTelemetry) |
 | `kind` | `server`، `client`، `producer`، `consumer`، `internal` |
 | `duration` | میلی‌ثانیه، برای نمونه `duration:>500` |
 | `statusMessage` | متن پیام وضعیت |
