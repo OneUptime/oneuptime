@@ -1,10 +1,12 @@
 import {
   APIRequestContext,
   APIResponse,
+  BrowserContext,
   ConsoleMessage,
   FrameLocator,
   Locator,
   Page,
+  Route,
   expect,
   test,
 } from "@playwright/test";
@@ -25,13 +27,19 @@ import path from "path";
  * on another host - took over every replay. What only a real browser can
  * say is pinned here:
  *  - what the replay loads: the page's images, the stylesheet the recorder
- *    could not inline, web fonts served with CORS, and an image a later
- *    mutation adds;
- *  - what still cannot load, and that the player names it and links to why;
- *  - what the recorded page still cannot do: run script, connect, or load
- *    a frame or media;
- *  - which referrer each of its requests carries;
- *  - Mask all text, whose replay loads none of the page's images;
+ *    could not inline, web fonts served with CORS, an image a later
+ *    mutation adds, and what the page wrote relative (a poster, a legacy
+ *    background attribute) - from the recorded site, never from the
+ *    Dashboard;
+ *  - what still cannot load, and that the player names it and links to
+ *    why, with nothing counted that never made a request (an empty src);
+ *  - what the recorded page still cannot do: run script, connect, load a
+ *    frame or media, or fire its tracking pixel again;
+ *  - which referrer each of its requests carries, the page's own referrer
+ *    controls (an element's referrerpolicy, a <meta name=referrer> a later
+ *    mutation inserts) notwithstanding;
+ *  - Mask all text, whose replay loads none of the page's images and none
+ *    of its web fonts;
  *  - a seek back, which rebuilds the page in a new Replayer that fails the
  *    same addresses again, without their being counted twice.
  *
@@ -56,11 +64,25 @@ const stageIframeSelector: string = '[data-testid="replay-stage"] iframe';
  */
 const FAILURE_DOCS_PATTERN: RegExp =
   /\/rum\/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay$/;
+/* The same page as a request asks for it: a fragment is never sent. */
+const FAILURE_DOCS_REQUEST_PATTERN: RegExp =
+  /\/rum\/session-replay-troubleshooting$/;
+/*
+ * What both of those links are called: their visible words first, as a
+ * voice control user says them, then a warning only screen readers get.
+ */
+const FAILURE_DOCS_LINK_NAME: RegExp =
+  /^Why they go missing, and how to allow them/;
+const FAILURE_DOCS_LINK_FULL_NAME: RegExp =
+  /^Why they go missing, and how to allow them \(opens in a new tab\)$/;
 const CLOCK_PATTERN: RegExp = /(\d+):(\d+(?:\.\d+)?)\s*\//;
 
 /* One request Fixture/server.js answered, from /__fixture/asset-log. */
 interface LoggedRequest {
-  /* "asset": the recorded site. "dashboard": the connect probe. */
+  /*
+   * "asset": the recorded site. "dashboard": the connect probe, or a
+   * recorded-site path (/replay-assets/...) asked of the Dashboard.
+   */
   origin: string;
   path: string;
   query: string;
@@ -264,10 +286,26 @@ const requestsFor: (
   });
 };
 
+/*
+ * Recorded-site paths the Dashboard's origin was asked for: an address that
+ * resolved against the replay document, which is the player's page.
+ */
+const dashboardAssetRequests: (
+  log: Array<LoggedRequest>,
+) => Array<LoggedRequest> = (
+  log: Array<LoggedRequest>,
+): Array<LoggedRequest> => {
+  return log.filter((entry: LoggedRequest): boolean => {
+    return (
+      entry.origin === "dashboard" && entry.path.startsWith("/replay-assets/")
+    );
+  });
+};
+
 const describeRequest: (entry: LoggedRequest) => string = (
   entry: LoggedRequest,
 ): string => {
-  return `${entry.path} <- ${entry.referer ?? "(no referer)"}`;
+  return `${entry.origin} ${entry.path} <- ${entry.referer ?? "(no referer)"}`;
 };
 
 const imageState: (
@@ -345,6 +383,48 @@ const expectFont: (
       { message: `the ${family} web font` },
     )
     .toBe(status);
+};
+
+/*
+ * A "Why they go missing" link, which the caller finds by its accessible
+ * name: its visible words, then a warning only screen readers get. It is
+ * followed as a viewer follows it. The docs are not part of the fixture,
+ * so their address is answered here: what is pinned is that the click
+ * opens them in a tab of their own and leaves the player where it was.
+ */
+const expectDocsLinkOpensInNewTab: (
+  page: Page,
+  link: Locator,
+) => Promise<void> = async (page: Page, link: Locator): Promise<void> => {
+  const context: BrowserContext = page.context();
+  const playerUrl: string = page.url();
+
+  await expect(link).toHaveAccessibleName(FAILURE_DOCS_LINK_FULL_NAME);
+  await expect(link).toHaveAttribute("href", FAILURE_DOCS_PATTERN);
+  await expect(link).toHaveAttribute("target", "_blank");
+  await context.route(
+    FAILURE_DOCS_REQUEST_PATTERN,
+    async (route: Route): Promise<void> => {
+      await route.fulfill({
+        contentType: "text/html",
+        body: "<!doctype html><title>Session replay troubleshooting</title>",
+      });
+    },
+  );
+
+  try {
+    const [docs]: [Page, void] = await Promise.all([
+      context.waitForEvent("page"),
+      link.click(),
+    ]);
+
+    await docs.waitForURL(FAILURE_DOCS_PATTERN);
+    await docs.close();
+  } finally {
+    await context.unroute(FAILURE_DOCS_REQUEST_PATTERN);
+  }
+
+  expect(page.url()).toBe(playerUrl);
 };
 
 /* Session details, on its Fidelity tab. */
@@ -431,7 +511,7 @@ const addFailingElement: (
 
 /* ---- What the replay loads. ---- */
 
-test("the replay loads the recorded page's images, the stylesheet the recorder could not inline and its web fonts", async ({
+test("the replay loads the recorded page's images, the stylesheet the recorder could not inline, its web fonts and what it wrote relative, all from the recorded site", async ({
   page,
   request,
 }: {
@@ -445,15 +525,57 @@ test("the replay loads the recorded page's images, the stylesheet the recorder c
   await expectImage(frame, "fixture-asset-logo", 120, 32);
   await expectImage(frame, "fixture-asset-web", 16, 16);
   await expectImage(frame, "fixture-asset-close", 16, 16);
+  /* Images whose own referrerpolicy the replay took out load all the same. */
+  await expectImage(frame, "fixture-asset-referrer-unsafe", 18, 18);
+  await expectImage(frame, "fixture-asset-referrer-downgrade", 18, 18);
 
   /*
    * The stylesheet on the recorded site applies: the offline banner it
-   * hides stays hidden, and the nav has the colour it gives it.
+   * hides stays hidden, the tooltip it hides with visibility keeps its box
+   * but not its paint, and the nav has the colour it gives it.
    */
   await expect(frame.locator("#fixture-offline-banner")).toBeHidden();
+  await expect(frame.locator("#fixture-asset-hidden-tooltip")).toHaveCSS(
+    "visibility",
+    "hidden",
+  );
+  await expect(frame.locator("#fixture-asset-tooltip-mark")).toHaveCSS(
+    "visibility",
+    "visible",
+  );
   await expect(frame.locator("#fixture-asset-nav")).toHaveCSS(
     "color",
     "rgb(1, 2, 3)",
+  );
+
+  /*
+   * What the page wrote as a relative address and rrweb keeps as written -
+   * a video's poster, a table row's legacy background attribute: each is
+   * asked of the recorded site, resolved against the recorded page (the
+   * Meta event's address), and not of the Dashboard, whose player page is
+   * the replay document's own address.
+   */
+  for (const relativePath of [
+    "/replay-assets/poster.svg",
+    "/replay-assets/row-background.svg",
+  ]) {
+    await expect
+      .poll(
+        async (): Promise<Array<string>> => {
+          return requestsFor(await readLog(request, site), relativePath).map(
+            (entry: LoggedRequest): string => {
+              return entry.origin;
+            },
+          );
+        },
+        { message: `the origins ${relativePath} was asked of` },
+      )
+      .toContain("asset");
+  }
+
+  await expect(frame.locator("#fixture-asset-video")).toHaveAttribute(
+    "poster",
+    assetUrl(site, "poster.svg"),
   );
 
   /* An image the page added after the rebuild, by an incremental mutation. */
@@ -469,7 +591,7 @@ test("the replay loads the recorded page's images, the stylesheet the recorder c
   await expectFont(frame, "FixtureCorsFont", "loaded");
   await expectFont(frame, "FixtureInlineFont", "loaded");
 
-  /* Every one of them came from the recorded site. */
+  /* Every one of them came from the recorded site, the poster included... */
   await expect
     .poll(async (): Promise<Array<string>> => {
       return requestedPaths(request, site);
@@ -483,10 +605,19 @@ test("the replay loads the recorded page's images, the stylesheet the recorder c
         "/replay-assets/inline-style-bg.svg",
         "/replay-assets/late.svg",
         "/replay-assets/logo.svg",
+        "/replay-assets/poster.svg",
+        "/replay-assets/referrer-downgrade.svg",
+        "/replay-assets/referrer-unsafe-url.svg",
+        "/replay-assets/row-background.svg",
         "/replay-assets/site.css",
         "/replay-assets/web.svg",
       ]),
     );
+
+  /* ...and nothing the recording holds was asked of the Dashboard. */
+  expect(
+    dashboardAssetRequests(await readLog(request, site)).map(describeRequest),
+  ).toEqual([]);
 
   await page.getByTestId("replay-play-pause").click();
   await expect(phase(page)).toHaveText("paused");
@@ -495,7 +626,7 @@ test("the replay loads the recorded page's images, the stylesheet the recorder c
 
 /* ---- What still cannot load, and what the player says about it. ---- */
 
-test("what the recorded site will not serve stays missing, and the player names it and links to why", async ({
+test("what the recorded site will not serve stays missing, and the player names it - and only it - and links to why", async ({
   page,
   request,
 }: {
@@ -529,8 +660,17 @@ test("what the recorded site will not serve stays missing, and the player names 
 
   /*
    * The capture notes lead with them, by count and by site. A font is not
-   * among them: nothing on the page fails when a font does.
+   * among them: nothing on the page fails when a font does. Nor is the
+   * page's <img src="">, which fails at once, without a request: it failed
+   * before either of these did, so a count that took it in would have it
+   * here and in the list below. (Taken in, it would name the Dashboard's
+   * own player page, the address an empty src resolves to.)
    */
+  await expect(frame.locator("#fixture-asset-empty")).toHaveAttribute(
+    "src",
+    "",
+  );
+
   const notes: Locator = page.getByTestId("replay-capture-notes");
   const summary: Locator = page.getByTestId("replay-capture-notes-summary");
 
@@ -546,11 +686,12 @@ test("what the recorded site will not serve stays missing, and the player names 
   await expect(note).toContainText(
     `These, from ${new URL(site.assetOrigin).host}, did not load in your browser`,
   );
-
-  const docs: Locator = note.getByTestId("replay-capture-note-assets-docs");
-
-  await expect(docs).toHaveAttribute("href", FAILURE_DOCS_PATTERN);
-  await expect(docs).toHaveAttribute("target", "_blank");
+  /* The viewer's own browser is one of the reasons it names. */
+  await expect(note).toContainText("or something in your browser");
+  await expectDocsLinkOpensInNewTab(
+    page,
+    note.getByRole("link", { name: FAILURE_DOCS_LINK_NAME }),
+  );
   /* A Mask inputs recording loads its images: nothing says they are off. */
   await expect(notes.getByTestId("replay-capture-note-images-off")).toHaveCount(
     0,
@@ -564,9 +705,10 @@ test("what the recorded site will not serve stays missing, and the player names 
       return listedMissingAssets(page);
     })
     .toEqual([assetUrl(site, "corp.svg"), assetUrl(site, "missing.svg")]);
-  await expect(
-    page.getByTestId("replay-details-missing-assets-docs"),
-  ).toHaveAttribute("href", FAILURE_DOCS_PATTERN);
+  await expectDocsLinkOpensInNewTab(
+    page,
+    dialog.getByRole("link", { name: FAILURE_DOCS_LINK_NAME }),
+  );
   /* The tab counts them: this recording has no gaps or notices of its own. */
   await expect(
     dialog
@@ -619,7 +761,7 @@ test("a recording that loads nothing from its site has no asset notes, and a Rea
 
 /* ---- What the recorded page still cannot do. ---- */
 
-test("the recorded page still runs nothing, connects nowhere and loads no frame or media", async ({
+test("the recorded page still runs nothing, connects nowhere, loads no frame or media and fires no tracking pixel", async ({
   page,
   request,
 }: {
@@ -682,17 +824,36 @@ test("the recorded page still runs nothing, connects nowhere and loads no frame 
     );
   });
 
-  /* The <audio> and the <iframe>: the browser tried, the policy refused. */
+  /*
+   * The <audio>, the <video> and the <iframe>: the browser tried, the
+   * policy refused. (The video's poster is an image, and loads.)
+   */
   await hasConsoleMessage(consoleMessages, (message: string): boolean => {
     return message.includes("clip.mp3") && message.includes("media-src 'none'");
+  });
+  await hasConsoleMessage(consoleMessages, (message: string): boolean => {
+    return message.includes("clip.mp4") && message.includes("media-src 'none'");
   });
   await hasConsoleMessage(consoleMessages, (message: string): boolean => {
     return message.startsWith("Framing") && message.includes(site.assetOrigin);
   });
 
   /*
-   * So the recorded site never heard of them, nor of the beacon, and the
-   * probe arrived from the Dashboard's window only.
+   * The conversion pixel - a 1 x 1 image with the order in its address -
+   * is on the replayed page, and never requested: every watch would count
+   * the sale again. It is in the snapshot, so its request would have gone
+   * out with the rebuild's, seconds before the page added the image waited
+   * for here.
+   */
+  await expect(frame.locator("#fixture-asset-pixel")).toBeAttached();
+  await expect(frame.locator("#fixture-asset-after-meta")).toBeAttached({
+    timeout: 15000,
+  });
+  await expectImage(frame, "fixture-asset-after-meta", 26, 26);
+
+  /*
+   * So the recorded site never heard of any of them, nor of the beacon,
+   * and the probe arrived from the Dashboard's window only.
    */
   const log: Array<LoggedRequest> = await readLog(request, site);
 
@@ -702,7 +863,9 @@ test("the recorded page still runs nothing, connects nowhere and loads no frame 
         return [
           "/replay-assets/beacon.gif",
           "/replay-assets/clip.mp3",
+          "/replay-assets/clip.mp4",
           "/replay-assets/frame.html",
+          "/replay-assets/pixel.gif",
         ].includes(entry.path);
       })
       .map(describeRequest),
@@ -716,7 +879,7 @@ test("the recorded page still runs nothing, connects nowhere and loads no frame 
   ).toEqual(["dashboard"]);
 });
 
-test("no request the replay makes carries the player's address, and the page's own elements send no referrer", async ({
+test("no request the replay makes carries the player's address, and the page's own elements send no referrer, whatever referrer policy the page set", async ({
   page,
   request,
 }: {
@@ -725,6 +888,19 @@ test("no request the replay makes carries the player's address, and the page's o
 }) => {
   const site: RecordedSite = await openRecordedSite(page, "referrer");
   const frame: FrameLocator = replayFrame(page);
+  /*
+   * The page's own referrer controls, each of which would beat the replay
+   * document's no-referrer and hand over its address - the player's, with
+   * the project, application and session ids in it: an element's
+   * referrerpolicy (unsafe-url, and a tracking snippet's usual
+   * no-referrer-when-downgrade), and a <meta name=referrer> that a later
+   * mutation inserts, ahead of the image added after it.
+   */
+  const referrerControlledRequests: Array<string> = [
+    "/replay-assets/after-meta.svg",
+    "/replay-assets/referrer-downgrade.svg",
+    "/replay-assets/referrer-unsafe-url.svg",
+  ];
   /* Requested by an element of the page: <img> and <link>. */
   const elementRequests: Array<string> = [
     "/replay-assets/close.svg",
@@ -734,6 +910,7 @@ test("no request the replay makes carries the player's address, and the page's o
     "/replay-assets/missing.svg",
     "/replay-assets/site.css",
     "/replay-assets/web.svg",
+    ...referrerControlledRequests,
   ];
   /* Requested by CSS the recording inlined: a style attribute, a <style>. */
   const inlinedCssRequests: Array<string> = [
@@ -751,6 +928,19 @@ test("no request the replay makes carries the player's address, and the page's o
     timeout: 15000,
   });
   await expectImage(frame, "fixture-asset-late", 30, 30);
+  await expectImage(frame, "fixture-asset-referrer-unsafe", 18, 18);
+  await expectImage(frame, "fixture-asset-referrer-downgrade", 18, 18);
+  /*
+   * The page's own <meta name=referrer content=unsafe-url> is in the
+   * replayed <head>, and the image the page added after it has loaded.
+   */
+  await expect(frame.locator('head meta[content="unsafe-url"]')).toBeAttached({
+    timeout: 15000,
+  });
+  await expect(frame.locator("#fixture-asset-after-meta")).toBeAttached({
+    timeout: 15000,
+  });
+  await expectImage(frame, "fixture-asset-after-meta", 26, 26);
   await expectFont(frame, "FixtureCorsFont", "loaded");
   await expectFont(frame, "FixturePortalFont", "error");
   await expectFont(frame, "FixtureInlineFont", "loaded");
@@ -766,24 +956,32 @@ test("no request the replay makes carries the player's address, and the page's o
       ]),
     );
 
-  const log: Array<LoggedRequest> = (await readLog(request, site)).filter(
+  /* Everything this run asked of either origin. */
+  const everyRequest: Array<LoggedRequest> = await readLog(request, site);
+  const log: Array<LoggedRequest> = everyRequest.filter(
     (entry: LoggedRequest): boolean => {
       return entry.origin === "asset";
     },
   );
 
-  /* Nothing carries the player's path, or the session id in it. */
+  /*
+   * Nothing, anywhere, carries the player's path or the session id in it:
+   * not in its Referer, and not in the address it asked for.
+   */
   expect(
-    log
+    everyRequest
       .filter((entry: LoggedRequest): boolean => {
-        const referer: string = entry.referer ?? "";
+        const said: string = `${entry.path}${entry.query} ${entry.referer ?? ""}`;
 
-        return referer.includes("/dashboard/") || referer.includes(sessionId);
+        return said.includes("/dashboard/") || said.includes(sessionId);
       })
       .map(describeRequest),
   ).toEqual([]);
 
-  /* The page's own <img> and <link> requests carry no Referer at all. */
+  /*
+   * The page's own <img> and <link> requests carry no Referer at all -
+   * those its referrer controls governed included.
+   */
   expect(
     log
       .filter((entry: LoggedRequest): boolean => {
@@ -828,7 +1026,7 @@ test("no request the replay makes carries the player's address, and the page's o
 
 /* ---- Mask all text. ---- */
 
-test("a Mask all text recording loads none of the page's images, keeps its stylesheet and fonts, and says why", async ({
+test("a Mask all text recording loads none of the page's images and none of its web fonts, keeps its stylesheet, and says why", async ({
   page,
   request,
 }: {
@@ -843,13 +1041,35 @@ test("a Mask all text recording loads none of the page's images, keeps its style
   );
   const frame: FrameLocator = replayFrame(page);
 
-  /* The page's chrome still loads: its stylesheet, and its web fonts. */
+  /* The stylesheet still loads and applies: the wireframe keeps its layout. */
   await expect(frame.locator("#fixture-offline-banner")).toBeHidden();
   await expect(frame.locator("#fixture-asset-nav")).toHaveCSS(
     "color",
     "rgb(1, 2, 3)",
   );
-  await expectFont(frame, "FixtureCorsFont", "loaded");
+
+  /*
+   * No web font does - served with CORS or not, declared by the stylesheet
+   * or by the recorded <style>. With images refused, a font is the one
+   * request a stylesheet in the recording could make depend on what the
+   * page shows. The replay's policy refused each, so none was asked for.
+   */
+  await expectFont(frame, "FixtureCorsFont", "error");
+  await expectFont(frame, "FixturePortalFont", "error");
+  await expectFont(frame, "FixtureInlineFont", "error");
+
+  for (const font of [
+    "font-cors.woff2",
+    "font-inline.woff2",
+    "font-portal.woff2",
+  ]) {
+    await hasConsoleMessage(consoleMessages, (message: string): boolean => {
+      return (
+        message.includes(assetUrl(site, font)) &&
+        message.includes('"font-src data:"')
+      );
+    });
+  }
 
   /* No recorded image does, the later one included; a data: image draws. */
   await expect(frame.locator("#fixture-asset-late")).toBeAttached({
@@ -882,25 +1102,30 @@ test("a Mask all text recording loads none of the page's images, keeps its style
   expect(paths).toContain("/replay-assets/site.css");
   expect(
     paths.filter((requestedPath: string): boolean => {
-      return requestedPath.endsWith(".svg");
+      return requestedPath.endsWith(".svg") || requestedPath.endsWith(".woff2");
     }),
   ).toEqual([]);
 
-  /* The player says why the page has no images... */
+  /* The player says why the page has neither... */
   const summary: Locator = page.getByTestId("replay-capture-notes-summary");
 
-  await expect(summary).toHaveText("1 capture note: images are not loaded");
+  await expect(summary).toHaveText(
+    "1 capture note: images and web fonts are not loaded",
+  );
   await summary.click();
 
   const imagesOff: Locator = page.getByTestId("replay-capture-note-images-off");
 
   await expect(imagesOff).toBeVisible();
-  await expect(imagesOff).toContainText("Images are not loaded");
+  await expect(imagesOff).toContainText("Images and web fonts are not loaded");
   await expect(imagesOff).toContainText("recorded under Mask all text");
+  /* ...and that an image the page held as a data: URL still shows. */
+  await expect(imagesOff).toContainText("data: URL");
 
   /*
-   * ...and reports none of the refused images as a failure. A stylesheet
-   * that fails now is reported, and alone: every refusal came before it.
+   * It reports none of the refused images as a failure. A stylesheet that
+   * fails now is reported, and alone: every refusal came before it. Its
+   * note says what failed, and not that this replay loads images.
    */
   await addFailingElement(page, {
     tagName: "link",
@@ -908,8 +1133,13 @@ test("a Mask all text recording loads none of the page's images, keeps its style
     url: assetUrl(site, "missing.css"),
   });
   await expect(summary).toHaveText(
-    "2 capture notes: 1 stylesheet didn't load in this replay, images are not loaded",
+    "2 capture notes: 1 stylesheet didn't load in this replay, images and web fonts are not loaded",
   );
+
+  const failed: Locator = page.getByTestId("replay-capture-note-assets");
+
+  await expect(failed).toContainText("1 stylesheet didn't load in this replay");
+  await expect(failed).not.toContainText(/image/i);
   await openFidelityDetails(page);
   await expect
     .poll(async (): Promise<Array<string>> => {

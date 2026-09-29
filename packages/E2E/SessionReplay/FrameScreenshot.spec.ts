@@ -3396,13 +3396,17 @@ test("a react native recording is captured at its own size without the phone fra
  * them (RecordedAssets.spec.ts). The capture still asks the network for
  * nothing, so the picture keeps only what the browser lets the page read
  * back: an image from the other site is a grey box of its size, and what
- * the other site's stylesheet hides stays hidden.
+ * the other site's stylesheet hides - with display: none or with
+ * visibility - stays hidden, while what it shows again inside a hidden box
+ * is drawn.
  */
 
 /* ReplayFrameCapture's REPLAY_FRAME_IMAGE_PLACEHOLDER: #e5e7eb. */
 const placeholderGrey: Rgb = [229, 231, 235];
 /* The fill of the data: image in Fixture.js: #7c3aed. */
 const dataImagePurple: Rgb = [124, 58, 237];
+/* The mark inside Fixture.js's hidden tooltip, which site.css shows: #dc2626. */
+const tooltipMarkRed: Rgb = [220, 38, 38];
 
 /* A token no other test shares, for the recorded site's log. */
 const recordedSiteRun: (label: string) => string = (label: string): string => {
@@ -3495,6 +3499,9 @@ test("a frame whose page loaded its images, stylesheet and fonts from the record
   await expect(
     replayFrame(page).locator("#fixture-offline-banner"),
   ).toBeHidden();
+  await expect(
+    replayFrame(page).locator("#fixture-asset-hidden-tooltip"),
+  ).toHaveCSS("visibility", "hidden");
   await pausePlayer(page);
 
   /*
@@ -3506,6 +3513,27 @@ test("a frame whose page loaded its images, stylesheet and fonts from the record
 
   const logo: LiveElement = await liveElement(page, "#fixture-asset-logo");
   const dataImage: LiveElement = await liveElement(page, "#fixture-asset-data");
+  /*
+   * The same stylesheet hides the dark tooltip with visibility, so on the
+   * stage it keeps its box and paints nothing - but the red mark inside it,
+   * which the stylesheet shows again.
+   */
+  const tooltip: LiveElement = await liveElement(
+    page,
+    "#fixture-asset-hidden-tooltip",
+  );
+  const tooltipMark: LiveElement = await liveElement(
+    page,
+    "#fixture-asset-tooltip-mark",
+  );
+  const underTooltip: Rgb = await liveBackgroundAt(page, {
+    x: tooltip.left + 4,
+    y: tooltip.top + tooltip.height / 2,
+  });
+
+  expect(tooltip.width).toBeGreaterThan(100);
+  expect(tooltipMark.left).toBeGreaterThan(tooltip.left + 40);
+
   const asksBefore: number = (await recordedSiteRequests(request, run)).length;
   const requests: Array<string> = [];
   const recordRequest: (sent: Request) => void = (sent: Request): void => {
@@ -3542,10 +3570,20 @@ test("a frame whose page loaded its images, stylesheet and fonts from the record
       },
       insideOf(logo, ratio, placeholderGrey),
       insideOf(dataImage, ratio, dataImagePurple),
+      /* The tooltip, up to its mark: its text and dark fill, if drawn. */
+      {
+        x: (tooltip.left + 2) * ratio,
+        y: (tooltip.top + 2) * ratio,
+        width: (tooltipMark.left - tooltip.left - 4) * ratio,
+        height: (tooltip.height - 4) * ratio,
+      },
+      insideOf(tooltipMark, ratio, tooltipMarkRed),
     ],
   });
   const band: RegionSummary = inspection.regions[0]!;
   const logoRegion: RegionSummary = inspection.regions[1]!;
+  const tooltipRegion: RegionSummary = inspection.regions[3]!;
+  const markRegion: RegionSummary = inspection.regions[4]!;
 
   /* The header's flat colour, as the stage shows - not the dark banner. */
   expect(band.darkPixels).toBe(0);
@@ -3568,6 +3606,16 @@ test("a frame whose page loaded its images, stylesheet and fonts from the record
     dataImagePurple,
     "the data: image",
   );
+  /*
+   * The tooltip the stylesheet hides with visibility: the page shows
+   * through where it stands, as on the stage - no dark fill, no text...
+   */
+  expect(tooltipRegion.darkPixels).toBe(0);
+  expect(tooltipRegion.distinctColours).toBe(1);
+  expectColour(tooltipRegion.dominant, underTooltip, "the hidden tooltip");
+  /* ...and the mark inside it that the stylesheet shows again is drawn. */
+  expectColour(markRegion.dominant, tooltipMarkRed, "the tooltip's mark");
+  expect(markRegion.nearPixels).toBe(markRegion.total);
 });
 
 test("an image the stage is still loading is left out of the picture rather than drawn broken, and drawn once it has loaded", async ({

@@ -69,8 +69,17 @@ const assetRun = params.get("run") || "default";
 const assetUrl = (name) =>
   `${window.__sessionReplayAssetOrigin}/replay-assets/${name}?run=${encodeURIComponent(assetRun)}`;
 const holdsAnImage = siteAssets && params.get("hold") === "image";
+// The page a recording was made on, as its Meta event reports it. For
+// ?assets=site that is an address on the recorded site, scrubbed to origin
+// and path as the recorder sends it: the player resolves what rrweb left
+// relative (a poster) against it, and never against the Dashboard's own
+// address, which is the replay document's.
+const recordedPageUrl = siteAssets
+  ? `${window.__sessionReplayAssetOrigin}/checkout`
+  : "https://shop.example.com/checkout";
 // ?masking=all: the browser recording was made under Mask all text, whose
-// replay never loads the recorded page's images (see ReplayStage.tsx).
+// replay never loads the recorded page's images or web fonts (see
+// REPLAY_MASKED_DOCUMENT_CSP in ReplayStage.tsx).
 const maskAllText = params.get("masking") === "all";
 const now = Date.now();
 const started = now - 7 * 60 * 1000;
@@ -717,8 +726,10 @@ API.post = async ({ url, data }) => {
 
 let nodeId;
 let recordedScrollNodeId;
-// ?assets=site: the strip the page adds its late image to.
+// ?assets=site: the strip the page adds its later images to, and the <head>
+// it adds a referrer policy to.
 let assetParentNodeId;
+let headNodeId;
 function textNode(textContent) {
   return { type: 3, id: nodeId++, textContent };
 }
@@ -863,14 +874,25 @@ function mobileSnapshot() {
  * a <link> with no _cssText, and every <img> as its address, so the replay
  * has to load them from the site.
  *
- * The strip under the header holds the rest: a nav the stylesheet colours;
- * a data: image, a control that draws anywhere; an image that 404s, carrying
- * an onerror payload that would set a flag on the Dashboard's window and
- * send a beacon; an image its site serves to itself only (CORP); CSS
- * background images from a style attribute and from the recorded <style>;
- * text in each web font; an <audio>, an <iframe> and a <script> that must
- * never load or run; and, for &hold=image, an image the server answers only
- * once a spec releases it.
+ * The strip under the header holds the rest: for &hold=image, an image the
+ * server answers only once a spec releases it; a tooltip the stylesheet
+ * hides with visibility rather than display, and the mark inside it that
+ * the stylesheet shows again; a nav the stylesheet colours; a data: image,
+ * a control that draws anywhere; an image that 404s, carrying an onerror
+ * payload that would set a flag on the Dashboard's window and send a
+ * beacon; an image its site serves to itself only (CORP); CSS background
+ * images from a style attribute and from the recorded <style>; text in
+ * each web font; an <audio>, an <iframe> and a <script> that must never
+ * load or run. Then what the player has to take out of the recording
+ * before it loads anything (prepareRecordedEventsForPlayback): two images
+ * with a referrerpolicy of their own, which would beat the replay's
+ * no-referrer and send the player's address; a <video>, whose media stays
+ * refused and whose poster the page wrote relative - rrweb records a
+ * poster as written, so unresolved it would be asked of the Dashboard;
+ * an <img src=""> (a template's placeholder for a missing avatar), which
+ * fails without a request; a conversion pixel, which would count another
+ * sale on every watch; and a table row whose legacy background attribute
+ * is relative, like the poster.
  */
 function recordedSite() {
   const banner = element(
@@ -909,6 +931,29 @@ function recordedSite() {
   const dataImage = `data:image/svg+xml;base64,${btoa(
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="#7c3aed"/></svg>',
   )}`;
+  // Dark on purpose: drawn when the stage hides it, it cannot be missed.
+  const hiddenTooltip = element(
+    "div",
+    {
+      id: "fixture-asset-hidden-tooltip",
+      class: "fixture-tooltip",
+      // No inline visibility: that would beat the stylesheet hiding it.
+      style:
+        "display:flex;align-items:center;gap:8px;width:132px;height:28px;padding:0 8px;background:#111827;color:#ffffff;font-size:12px",
+    },
+    [
+      textNode("Hidden tooltip"),
+      element(
+        "span",
+        {
+          id: "fixture-asset-tooltip-mark",
+          class: "fixture-tooltip-mark",
+          style: "width:12px;height:12px;background:#dc2626",
+        },
+        [],
+      ),
+    ],
+  );
   const strip = element(
     "div",
     {
@@ -935,6 +980,9 @@ function recordedSite() {
             ),
           ]
         : []),
+      // At the front as well, for the same reason: a screenshot spec looks
+      // for it in the picture where the stage has it.
+      hiddenTooltip,
       element("nav", { id: "fixture-asset-nav" }, [textNode("FAQ'S")]),
       element(
         "img",
@@ -999,6 +1047,75 @@ function recordedSite() {
         [],
       ),
       element("script", {}, [textNode('parent.__replayAssetScript="script"')]),
+      // Last, so nothing a spec measures moves with them.
+      element(
+        "img",
+        {
+          id: "fixture-asset-referrer-unsafe",
+          referrerpolicy: "unsafe-url",
+          src: assetUrl("referrer-unsafe-url.svg"),
+          alt: "unsafe-url",
+        },
+        [],
+      ),
+      element(
+        "img",
+        {
+          id: "fixture-asset-referrer-downgrade",
+          // A tracking snippet's usual policy.
+          referrerpolicy: "no-referrer-when-downgrade",
+          src: assetUrl("referrer-downgrade.svg"),
+          alt: "no-referrer-when-downgrade",
+        },
+        [],
+      ),
+      element(
+        "video",
+        {
+          id: "fixture-asset-video",
+          src: assetUrl("clip.mp4"),
+          poster: `/replay-assets/poster.svg?run=${encodeURIComponent(assetRun)}`,
+          preload: "auto",
+          width: "64",
+          height: "36",
+          style: "width:64px;height:36px",
+        },
+        [],
+      ),
+      element("img", { id: "fixture-asset-empty", src: "", alt: "" }, []),
+      element(
+        "img",
+        {
+          id: "fixture-asset-pixel",
+          width: "1",
+          height: "1",
+          alt: "",
+          src: `${assetUrl("pixel.gif")}&order=ORD-1001&amount=129.00`,
+        },
+        [],
+      ),
+      // The legacy background attribute, written relative on a table row:
+      // rrweb makes a table's, a cell's and a header cell's absolute, but
+      // not a row's, so it needs the same resolving as the poster.
+      element(
+        "table",
+        {
+          id: "fixture-asset-legacy-table",
+          style: "border-collapse:collapse",
+        },
+        [
+          element("tbody", {}, [
+            element(
+              "tr",
+              {
+                id: "fixture-asset-legacy-row",
+                background: `/replay-assets/row-background.svg?run=${encodeURIComponent(assetRun)}`,
+              },
+              [element("td", { style: "width:40px;height:20px;padding:0" })],
+            ),
+          ]),
+        ],
+      ),
     ],
   );
   assetParentNodeId = strip.id;
@@ -1130,18 +1247,17 @@ function snapshot() {
       ]),
     ]),
   ]);
+  const head = element("head", {}, [
+    element("style", {}, [textNode(site ? css + site.css : css)]),
+    ...(site ? [site.stylesheet] : []),
+  ]);
+  headNodeId = head.id;
   return {
     type: 0,
     id: 1,
     childNodes: [
       { type: 1, id: 2, name: "html", publicId: "", systemId: "" },
-      element("html", {}, [
-        element("head", {}, [
-          element("style", {}, [textNode(site ? css + site.css : css)]),
-          ...(site ? [site.stylesheet] : []),
-        ]),
-        body,
-      ]),
+      element("html", {}, [head, body]),
     ],
   };
 }
@@ -1153,7 +1269,7 @@ function chunkEvents(index, startTime) {
       type: 4,
       timestamp,
       data: {
-        href: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
+        href: mobileRecording ? "/alerts" : recordedPageUrl,
         width: mobileRecording ? 390 : 1200,
         height: mobileRecording ? 844 : 760,
       },
@@ -1204,6 +1320,65 @@ function chunkEvents(index, startTime) {
                 id: "fixture-asset-late",
                 src: assetUrl("late.svg"),
                 alt: "late",
+              },
+              childNodes: [],
+            },
+          },
+        ],
+      },
+    });
+    /*
+     * Later, the page's head manager inserts a referrer policy of its own,
+     * as an SPA does after load; half a second on, it adds one more image,
+     * which that policy would govern: unsafe-url sends the document's full
+     * address, and the replay document's address is the player's. Both
+     * come seconds after the moment FrameScreenshot.spec.ts pauses at (as
+     * soon as the late image has loaded), so no request of theirs is in
+     * flight while a frame is captured.
+     */
+    events.push({
+      type: 3,
+      timestamp: timestamp + 4500,
+      data: {
+        source: 0,
+        texts: [],
+        attributes: [],
+        removes: [],
+        adds: [
+          {
+            parentId: headNodeId,
+            nextId: null,
+            node: {
+              type: 2,
+              id: 9002,
+              tagName: "meta",
+              attributes: { name: "referrer", content: "unsafe-url" },
+              childNodes: [],
+            },
+          },
+        ],
+      },
+    });
+    events.push({
+      type: 3,
+      timestamp: timestamp + 5000,
+      data: {
+        source: 0,
+        texts: [],
+        attributes: [],
+        removes: [],
+        adds: [
+          {
+            parentId: assetParentNodeId,
+            nextId: null,
+            node: {
+              type: 2,
+              id: 9003,
+              tagName: "img",
+              attributes: {
+                id: "fixture-asset-after-meta",
+                src: assetUrl("after-meta.svg"),
+                alt: "after meta",
               },
               childNodes: [],
             },

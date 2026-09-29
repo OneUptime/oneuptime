@@ -65,11 +65,51 @@ serves that site on `http://localhost:4213` (bound to `127.0.0.1`;
 `SESSION_REPLAY_ASSET_PORT` moves it), which is a different site from the
 page's `127.0.0.1:4212`, as a real recorded site is. It serves only the
 files under `/replay-assets/` that the fixture names; anything else is a 404,
-never the fixture's HTML. `RecordedAssets.spec.ts` pins what the replay
-loads, what still cannot load and what the player says about it, that the
-recorded page still runs, connects to, frames and plays nothing, the
-referrer each request carries, Mask all text, and a seek back.
-`FrameScreenshot.spec.ts` pins the screenshot of such a frame.
+never the fixture's HTML. The recording's Meta event names a page on that
+site (`http://localhost:4213/checkout`), as a real recording names the page
+it was made on, scrubbed to origin and path. `RecordedAssets.spec.ts` pins
+what the replay loads, what still cannot load and what the player says
+about it, that the recorded page still runs, connects to, frames, plays and
+tracks nothing, the referrer each request carries, Mask all text, and a
+seek back. `FrameScreenshot.spec.ts` pins the screenshot of such a frame.
+
+Besides the portal's pieces, the page holds what the player has to take
+out of the recording before rrweb builds anything from it:
+
+- **The page's own referrer controls.** Two images carry a
+  `referrerpolicy` of their own (`unsafe-url`, and a tracking snippet's
+  usual `no-referrer-when-downgrade`), and 4.5 seconds into each chunk a
+  mutation inserts `<meta name="referrer" content="unsafe-url">` into the
+  `<head>`, with one more image (`after-meta.svg`) half a second later.
+  Each would beat the replay document's `no-referrer` and send the
+  player's address - project, application and session ids - with the
+  request. Both mutations come seconds after the moment the screenshot
+  specs pause at, so no request of theirs is in flight while a frame is
+  captured.
+- **Relative addresses rrweb records as written.** A `<video>` whose media
+  (`clip.mp4`) the replay's policy refuses, and whose poster is written
+  relative (`/replay-assets/poster.svg`); and a table row whose legacy
+  `background` attribute is written the same way
+  (`/replay-assets/row-background.svg`) - rrweb makes a table's, a cell's
+  and a header cell's absolute, but not a row's. Resolved against the
+  replay document they would be asked of the Dashboard, whose address that
+  document has; they must come from the recorded site, resolved against
+  the Meta event's page.
+- **A conversion pixel.** A `1 x 1` image with an order and an amount in
+  its query (`pixel.gif`), which must never be requested: every watch
+  would count the sale again.
+- **An empty `src`,** as a template renders one for a missing avatar. It
+  fails without a request and must not be reported as a failed image.
+- **A tooltip hidden with `visibility`** by the unreadable stylesheet, with
+  a red mark inside it that the stylesheet shows again, for the
+  screenshot's fallback: the tooltip stays out of the picture and the mark
+  is drawn.
+
+The page's origin logs every recorded-site path it is asked for
+(`/replay-assets/*`) into the same log, as `origin: "dashboard"`, and
+answers it with a 404: that is how a spec shows that nothing the recording
+holds - a relative poster above all - was ever requested from the
+Dashboard.
 
 - **`&run=<token>`** tags every recorded address. The server logs each
   request the recorded site receives - path, query, referer,
@@ -77,7 +117,8 @@ referrer each request carries, Mask all text, and a seek back.
   `/__fixture/asset-log?run=<token>` on the page's origin returns a run's
   entries, so a spec reads back only its own requests.
 - **`&masking=all`** makes it a recording made under Mask all text, whose
-  replay loads none of the page's images.
+  replay loads none of the page's images and none of its web fonts; its
+  stylesheet still loads.
 - **`&hold=image`** adds one more image, which the server answers only once
   a spec posts to `/__fixture/asset-release?run=<token>`: a frame can be
   captured while the stage is still loading it, with no timing involved.

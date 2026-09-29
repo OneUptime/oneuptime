@@ -66,6 +66,11 @@ const fontBytes = fs.readFileSync(
   ),
 );
 const allowAnyOrigin = { "Access-Control-Allow-Origin": "*" };
+const onePixelGif = () =>
+  Buffer.from(
+    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+    "base64",
+  );
 /*
  * Everything the recorded site serves, under /replay-assets/<name>, and
  * nothing else: an unknown name is a 404, never the fixture's HTML, so an
@@ -73,18 +78,40 @@ const allowAnyOrigin = { "Access-Control-Allow-Origin": "*" };
  * site. Images are flat SVGs with an explicit size, so a spec tells one
  * that loaded by its natural size. site.css is the stylesheet the recorder
  * could not read (kept as a <link>): it hides the offline banner, as the
- * Power Pages sheet in #4119 does, colours the nav and declares one web
+ * Power Pages sheet in #4119 does, hides a tooltip with visibility (and
+ * shows the mark inside it again), colours the nav and declares one web
  * font served with CORS and one served without it. corp.svg is served to
- * its own site only. The media clip, the framed page and the beacon are
- * what the replay must never fetch; they exist, as they would on a real
- * site, so a request for one would succeed - the log is what shows that
- * none was made.
+ * its own site only. The two referrer-*.svg images carry a referrerpolicy
+ * of their own, after-meta.svg is added after the page inserts a
+ * <meta name=referrer>, and poster.svg and row-background.svg are the
+ * poster and the legacy background attribute the page wrote as relative
+ * addresses. The media clips, the framed page, the beacon and the
+ * conversion pixel are what the replay must never fetch; they exist, as
+ * they would on a real site, so a request for one would succeed - the log
+ * is what shows that none was made.
  */
 const assets = new Map([
   ["logo.svg", { type: "image/svg+xml", body: () => svg(120, 32, "#1d4ed8") }],
   ["web.svg", { type: "image/svg+xml", body: () => svg(16, 16, "#111827") }],
   ["close.svg", { type: "image/svg+xml", body: () => svg(16, 16, "#374151") }],
   ["late.svg", { type: "image/svg+xml", body: () => svg(30, 30, "#16a34a") }],
+  [
+    "referrer-unsafe-url.svg",
+    { type: "image/svg+xml", body: () => svg(18, 18, "#b91c1c") },
+  ],
+  [
+    "referrer-downgrade.svg",
+    { type: "image/svg+xml", body: () => svg(18, 18, "#c2410c") },
+  ],
+  [
+    "after-meta.svg",
+    { type: "image/svg+xml", body: () => svg(26, 26, "#4d7c0f") },
+  ],
+  ["poster.svg", { type: "image/svg+xml", body: () => svg(64, 36, "#6d28d9") }],
+  [
+    "row-background.svg",
+    { type: "image/svg+xml", body: () => svg(40, 20, "#0891b2") },
+  ],
   [
     "background.svg",
     { type: "image/svg+xml", body: () => svg(40, 40, "#f59e0b") },
@@ -120,6 +147,8 @@ const assets = new Map([
           `@font-face{font-family:"FixtureCorsFont";src:url("font-cors.woff2?run=${tag}") format("woff2")}` +
           `@font-face{font-family:"FixturePortalFont";src:url("font-portal.woff2?run=${tag}") format("woff2")}` +
           ".offline-banner{display:none}" +
+          ".fixture-tooltip{visibility:hidden}" +
+          ".fixture-tooltip-mark{visibility:visible}" +
           "#fixture-asset-nav{color:rgb(1, 2, 3)}" +
           '.fixture-cors-font{font-family:"FixtureCorsFont",monospace}' +
           '.fixture-portal-font{font-family:"FixturePortalFont",monospace}'
@@ -137,24 +166,17 @@ const assets = new Map([
     { type: "font/woff2", body: () => fontBytes, headers: allowAnyOrigin },
   ],
   ["clip.mp3", { type: "audio/mpeg", body: () => Buffer.alloc(64) }],
+  ["clip.mp4", { type: "video/mp4", body: () => Buffer.alloc(64) }],
   [
     "frame.html",
     { type: "text/html", body: () => "<!doctype html><p>framed</p>" },
   ],
-  [
-    "beacon.gif",
-    {
-      type: "image/gif",
-      body: () =>
-        Buffer.from(
-          "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-          "base64",
-        ),
-    },
-  ],
+  ["beacon.gif", { type: "image/gif", body: onePixelGif }],
+  ["pixel.gif", { type: "image/gif", body: onePixelGif }],
 ]);
 /*
- * Every request the recorded site received, and every connect probe, for
+ * Every request the recorded site received, every connect probe, and every
+ * recorded-site path the Dashboard's origin was asked for, for
  * /__fixture/asset-log. An entry is written before its response goes out,
  * so an image that has loaded or failed in the page is already in here.
  * Specs tag their addresses with &run= and read back only their own.
@@ -269,6 +291,19 @@ function serveFixture(request, response) {
   response.setHeader("Content-Security-Policy", pageContentSecurityPolicy);
   if (url.pathname.startsWith("/__fixture/")) {
     serveFixtureEndpoint(request, response, url);
+    return;
+  }
+  /*
+   * A recorded-site path asked of the Dashboard's origin: an address that
+   * resolved against the replay document - whose address is the player's
+   * page - instead of against the recorded page, as a relative poster
+   * would. Logged, so a spec can show that none was, and answered with a
+   * 404 rather than the fixture's HTML.
+   */
+  if (url.pathname.startsWith("/replay-assets/")) {
+    logRequest(request, url, "dashboard", 404);
+    response.writeHead(404, { "Content-Type": "text/plain" });
+    response.end("Not found");
     return;
   }
   if (url.pathname === "/tailwind.js") {
