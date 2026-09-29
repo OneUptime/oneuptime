@@ -620,6 +620,84 @@ describe("Kubernetes AI agent", () => {
   });
 });
 
+/*
+ * The resource AI agent runs next to the collector of every Docker, Podman,
+ * Swarm, Proxmox, VMware, Ceph, database and host agent, and for the socket
+ * and host kinds as root, with the engine socket or the host's namespaces.
+ * So it ships only node, tini, the CA store and the programs its executors
+ * spawn, each from Alpine's own signed packages: the docker CLI, govc, the
+ * ceph CLI and nsenter. No download stage and no download tool; Proxmox and
+ * the databases are reached from Node itself.
+ */
+describe("Resource AI agent", () => {
+  const template = "agents/ResourceAIAgent/Dockerfile.tpl";
+
+  function shippedLines(environment) {
+    const stages = stagesOf(template, environment);
+    const [chain] = shippedStages(stages);
+    return {
+      stages,
+      lines: [...chain].reverse().flatMap((stage) => {
+        return stage.instructions;
+      }),
+    };
+  }
+
+  test("is a template the repository builds", () => {
+    expect(TEMPLATES).toContain(template);
+  });
+
+  test.each(ENVIRONMENTS)(
+    "%s: installs nothing from the OS beyond the CA store, tini and the four programs its executors run",
+    (environment) => {
+      const { lines } = shippedLines(environment);
+      expect(lines.flatMap(installedPackagesIn).sort()).toEqual([
+        "ca-certificates",
+        "ceph19-common",
+        "docker-cli",
+        "govc",
+        "tini",
+        "util-linux-misc",
+      ]);
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: is one stage, and copies nothing in from another image",
+    (environment) => {
+      const { stages, lines } = shippedLines(environment);
+      expect(stages).toHaveLength(1);
+      expect(
+        lines.filter((line) => {
+          return /^COPY --from=/.test(line);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(ENVIRONMENTS)(
+    "%s: runs as the image's non-root node user by default (UID 1000; the compose files run the socket and host kinds as root)",
+    (environment) => {
+      const users = shippedLines(environment).lines.filter((line) => {
+        return /^USER /.test(line);
+      });
+      expect(users[users.length - 1]).toBe("USER node");
+    },
+  );
+
+  test("production starts the compiled agent under tini, not ts-node", () => {
+    const { lines } = shippedLines("production");
+    const commands = lines.filter((line) => {
+      return /^CMD /.test(line);
+    });
+    expect(commands[commands.length - 1]).toMatch(
+      /^CMD \[ ?"node", "build\/dist\/Index\.js" ?\]$/,
+    );
+    expect(lines).toContain('ENTRYPOINT ["/sbin/tini", "--"]');
+    expect(lines).toContain("RUN npm run compile");
+  });
+});
+
 describe("E2E", () => {
   const template = "packages/E2E/Dockerfile.tpl";
   const lines = stagesOf(template, "production").flatMap((stage) => {

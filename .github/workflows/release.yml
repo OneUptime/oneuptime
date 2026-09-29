@@ -1266,6 +1266,97 @@ jobs:
             --image kubernetes-ai-agent \
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
+  # The resource AI agent is tagged like the Kubernetes AI agent above (the
+  # Runner's pattern): build and merge publish only <version> and
+  # enterprise-<version>, and `release` / `enterprise-release` move in
+  # push-release-tags, after the e2e jobs pass. The Docker, Podman, Swarm,
+  # Proxmox, VMware, Ceph, database and host agents run it at `release` next
+  # to their collector, it registers with this release's server API
+  # (/resource-ai-agent-ingest), and it re-checks every command against its
+  # copy of the server's resource command policy, so its `release` must not
+  # get ahead of the App's.
+  resource-ai-agent-docker-image-build:
+    needs: [generate-build-number, read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image resource-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./agents/ResourceAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}"
+
+  resource-ai-agent-docker-image-merge:
+    needs: [resource-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image resource-ai-agent \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
+
   app-docker-image-build:
     needs: [generate-build-number, read-version]
     strategy:
@@ -1493,6 +1584,9 @@ jobs:
   # own release tags at build time instead. kubernetes-ai-agent is here, not
   # there, because the kubernetes-agent chart runs it at `release` and it must
   # match the server it talks to (see kubernetes-ai-agent-docker-image-build).
+  # resource-ai-agent is here for the same reason: every resource agent's
+  # docker-compose.yml runs it at `release` (see
+  # resource-ai-agent-docker-image-build).
   push-release-tags:
     name: Push release tags before GitHub release
     needs:
@@ -1506,6 +1600,7 @@ jobs:
       - probe-docker-image-merge
       - runner-docker-image-merge
       - kubernetes-ai-agent-docker-image-merge
+      - resource-ai-agent-docker-image-merge
       - app-docker-image-merge
       - test-e2e-release-saas
       - test-e2e-release-self-hosted
@@ -1523,6 +1618,7 @@ jobs:
           "probe",
           "runner",
           "kubernetes-ai-agent",
+          "resource-ai-agent",
           "app"
         ]
     steps:
@@ -2403,10 +2499,10 @@ jobs:
   # Ordering matters: this runs after draft-github-release so there is a release
   # to attach to, and finalize-github-release depends on it so the release is
   # never published without its SBOMs.
-  # The needs list is not just ordering sugar. This job scans twelve of the
-  # thirteen published images (home is deliberately skipped — see
+  # The needs list is not just ordering sugar. This job scans thirteen of the
+  # fourteen published images (home is deliberately skipped — see
   # SKIPPED_IMAGES in generate_sboms.sh), and the unsuffixed tag it scans is
-  # created only by the corresponding *-docker-image-merge job. Eight of those
+  # created only by the corresponding *-docker-image-merge job. Nine of those
   # merges are reached transitively via draft-github-release (it needs
   # push-release-tags, which needs them); docker-agent, podman-agent,
   # kubernetes-log-tailer and kubernetes-cost-agent are leaves that nothing
@@ -2414,9 +2510,10 @@ jobs:
   # in any of the four would let this job run against a tag that was never
   # pushed, fail on MANIFEST_UNKNOWN, and — since finalize-github-release now
   # needs this job — strand the release as a permanent draft after the images
-  # and tags had already gone out. kubernetes-ai-agent is one of the eight, but
-  # it is named as well: it would become a leaf too if it ever moved its
-  # release tags at build time like the other Kubernetes agents.
+  # and tags had already gone out. kubernetes-ai-agent and resource-ai-agent
+  # are among the nine, but they are named as well: either would become a
+  # leaf too if it ever moved its release tags at build time like the
+  # collector-based agents.
   generate-sboms:
     name: Generate CycloneDX SBOMs
     needs:
@@ -2427,6 +2524,7 @@ jobs:
       - kubernetes-log-tailer-docker-image-merge
       - kubernetes-cost-agent-docker-image-merge
       - kubernetes-ai-agent-docker-image-merge
+      - resource-ai-agent-docker-image-merge
     runs-on: ubuntu-latest
     permissions:
       contents: write
