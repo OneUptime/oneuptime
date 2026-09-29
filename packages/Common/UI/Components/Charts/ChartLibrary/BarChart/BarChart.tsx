@@ -773,15 +773,30 @@ const BarChart: React.ForwardRefExoticComponent<
       constructCategoryColors(categories, colors);
 
     /*
-     * Drag-to-select a time window; see useChartRangeSelection. It needs
-     * the category axis to be the time axis, which is only true in
-     * horizontal layout.
+     * Every click on the plot waits out the double-click window while a
+     * reset is on offer; see useDeferredChartClick.
+     */
+    const deferredClick: DeferredChartClick = useDeferredChartClick(
+      Boolean(onTimeRangeReset),
+    );
+
+    /*
+     * Drag-to-select a time window, and the double-click that undoes a
+     * zoom, dropping the clicks it was made of; see useChartRangeSelection.
+     * A drag needs the category axis to be the time axis, which is only
+     * true in horizontal layout; the double-click works in either.
      */
     const rangeSelection: ChartRangeSelection = useChartRangeSelection({
       data: data,
       index: index,
       onTimeRangeSelect: onTimeRangeSelect,
       enabled: layout !== "vertical",
+      onTimeRangeReset: onTimeRangeReset
+        ? (): void => {
+            deferredClick.cancel();
+            onTimeRangeReset();
+          }
+        : undefined,
     });
 
     /*
@@ -826,13 +841,6 @@ const BarChart: React.ForwardRefExoticComponent<
         onValueChange?.(null);
       }
     });
-    /*
-     * Every click on the plot waits out the double-click window while a
-     * reset is on offer; see useDeferredChartClick.
-     */
-    const deferredClick: DeferredChartClick = useDeferredChartClick(
-      Boolean(onTimeRangeReset),
-    );
     const yAxisDomain: AxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
@@ -960,14 +968,6 @@ const BarChart: React.ForwardRefExoticComponent<
               {...(hasOnValueChange && (activeLegend || activeBar)
                 ? {
                     onClick: handleChartClick,
-                  }
-                : {})}
-              {...(onTimeRangeReset
-                ? {
-                    onDoubleClick: () => {
-                      deferredClick.cancel();
-                      onTimeRangeReset();
-                    },
                   }
                 : {})}
               margin={{

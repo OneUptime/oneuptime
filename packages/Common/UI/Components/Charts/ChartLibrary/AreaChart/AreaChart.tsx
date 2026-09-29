@@ -720,12 +720,6 @@ const AreaChart: React.ForwardRefExoticComponent<
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    // Drag-to-select a time window; see useChartRangeSelection.
-    const rangeSelection: ChartRangeSelection = useChartRangeSelection({
-      data: data,
-      index: index,
-      onTimeRangeSelect: onTimeRangeSelect,
-    });
     /*
      * Every click on the plot waits out the double-click window while a
      * reset is on offer; see useDeferredChartClick.
@@ -733,6 +727,21 @@ const AreaChart: React.ForwardRefExoticComponent<
     const deferredClick: DeferredChartClick = useDeferredChartClick(
       Boolean(onTimeRangeReset),
     );
+    /*
+     * Drag-to-select a time window, and the double-click that undoes a
+     * zoom, dropping the clicks it was made of; see useChartRangeSelection.
+     */
+    const rangeSelection: ChartRangeSelection = useChartRangeSelection({
+      data: data,
+      index: index,
+      onTimeRangeSelect: onTimeRangeSelect,
+      onTimeRangeReset: onTimeRangeReset
+        ? (): void => {
+            deferredClick.cancel();
+            onTimeRangeReset();
+          }
+        : undefined,
+    });
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
 
@@ -938,14 +947,6 @@ const AreaChart: React.ForwardRefExoticComponent<
                   handleChartClick(chartState);
                 });
               }}
-              {...(onTimeRangeReset
-                ? {
-                    onDoubleClick: () => {
-                      deferredClick.cancel();
-                      onTimeRangeReset();
-                    },
-                  }
-                : {})}
               margin={{
                 bottom: (xAxisLabel
                   ? 40

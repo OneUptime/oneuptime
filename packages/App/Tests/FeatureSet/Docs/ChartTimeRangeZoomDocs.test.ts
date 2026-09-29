@@ -811,6 +811,50 @@ describe("Zooming Into a Time Range docs: what a click does", () => {
       "While a zoom is active, a click on a chart's plot takes effect a moment later, so that it can be told apart from the double-click that resets.",
     );
   });
+
+  it("says a double-click resets a zoom while the charts are still loading, as every chart's double-click does (issue #4116)", () => {
+    /*
+     * Right after a zoom the charts refetch, and new data landing during a
+     * double-click used to cost it the browser's dblclick. Both selection
+     * hooks reset from the double-click's second press instead (see
+     * useDoubleClickReset), and the loaders and empty boxes that stand in
+     * for a chart while its window loads, or holds nothing, take the
+     * double-click too. The gestures themselves are rendered in Common's
+     * DoubleClickReset, HistogramRangeSelectionDataChange and
+     * ViewerDoubleClickResetUnderDataChange tests.
+     */
+    for (const hook of [
+      `${COMMON_UI}/Components/Charts/Utils/useHistogramRangeSelection.ts`,
+      `${COMMON_UI}/Components/Charts/ChartLibrary/Utils/UseChartRangeSelection.ts`,
+    ]) {
+      expect(readCode(hook)).toContain("useDoubleClickReset(");
+    }
+
+    for (const placeholderHost of [
+      `${COMMON_UI}/Components/TelemetryViewer/components/TelemetryHistogram.tsx`,
+      `${COMMON_UI}/Components/LogsViewer/components/LogsHistogram.tsx`,
+      `${COMMON_UI}/Components/LogsViewer/components/LogsAnalyticsView.tsx`,
+      `${DASHBOARD_SRC}/Components/Traces/TracesAnalyticsView.tsx`,
+      `${DASHBOARD_SRC}/Components/Exceptions/ExceptionOccurrenceTrend.tsx`,
+    ]) {
+      const code: string = readCode(placeholderHost);
+      const loader: number = code.indexOf("<ComponentLoader />");
+
+      /*
+       * The loader's own box, the markup just before it, takes the
+       * double-click - its second press as well as the dblclick, since the
+       * chart can replace the loader in the middle of it.
+       */
+      expect(loader).toBeGreaterThan(-1);
+      expect(code.slice(Math.max(0, loader - 400), loader)).toContain(
+        "selection.placeholderProps",
+      );
+    }
+
+    expect(readProse(ZOOM_PAGE)).toContain(
+      "**You don't have to wait for the charts to load to go back.** Right after a zoom, while the charts are still fetching the window you dragged out, or when that window turns out to be empty, a double-click on a chart resets the zoom straight away.",
+    );
+  });
 });
 
 describe("Zooming Into a Time Range docs: the zoom rules, run for real", () => {

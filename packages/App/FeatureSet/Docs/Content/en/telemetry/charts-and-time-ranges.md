@@ -37,6 +37,10 @@ back for keyboard users and on touch screens.
 - **A zoom never runs past now.** The newest bucket of a chart is usually still
   filling up; a drag that ends on it is cut at the current time.
 - **You can let go of the mouse outside the chart** — the drag still counts.
+- **You don't have to wait for the charts to load to go back.** Right after a
+  zoom, while the charts are still fetching the window you dragged out, or
+  when that window turns out to be empty, a double-click on a chart resets the
+  zoom straight away.
 - **Double-clicking a page that isn't zoomed does nothing.**
 
 ### Clicks and drags
