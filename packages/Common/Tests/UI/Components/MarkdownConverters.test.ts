@@ -1,5 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import DOMPurify from "dompurify";
+import fs from "fs";
+import path from "path";
 import { marked, Token, Tokens } from "marked";
 import AffectedResourceList, {
   AffectedResourceListEntry,
@@ -115,6 +117,66 @@ describe("markdownToHtml", () => {
       expect(markdownToHtml("press <kbd>K</kbd>")).toBe(
         "<p>press <kbd>K</kbd></p>",
       );
+    });
+  });
+
+  /*
+   * Every finished inline element is stashed under a NUL-delimited numbered
+   * token and put back at the end. The delimiter is written as an escape in
+   * the source now, so these pin that the tokens still come back where they
+   * were, in order, past the single digits, and never confused with digits
+   * in the text around them.
+   */
+  describe("inline placeholder tokens", () => {
+    it("puts a dozen stashed spans back in their own places", () => {
+      const spans: Array<string> = [];
+      for (let index: number = 0; index < 12; index++) {
+        spans.push(`\`c${index}\``);
+      }
+
+      const expected: string = spans
+        .map((_span: string, index: number): string => {
+          return `<code>c${index}</code>`;
+        })
+        .join(" ");
+
+      expect(markdownToHtml(spans.join(" "))).toBe(`<p>${expected}</p>`);
+    });
+
+    it("does not read the digits next to a token as part of it", () => {
+      expect(markdownToHtml("1 **a** 2 `b` 30")).toBe(
+        "<p>1 <strong>a</strong> 2 <code>b</code> 30</p>",
+      );
+    });
+
+    it("round trips a line that mixes every stashed kind", () => {
+      const markdown: string =
+        "a **b** *c* ~~d~~ `e` [f](https://x.test) ![g](https://x.test/g.png) <u>h</u>";
+
+      expect(htmlToMarkdown(markdownToHtml(markdown))).toBe(markdown);
+    });
+
+    /*
+     * A literal NUL byte in the source made git treat the whole file as
+     * binary, so no change to it could be reviewed as a diff.
+     */
+    it("keeps the converter source free of NUL bytes so git diffs it", () => {
+      const source: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "UI",
+          "Components",
+          "Markdown.tsx",
+          "MarkdownConverters.ts",
+        ),
+        "utf8",
+      );
+
+      expect(source).toContain("PLACEHOLDER_OPEN");
+      expect(source.includes("\u0000")).toBe(false);
     });
   });
 
