@@ -10,7 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -160,6 +160,7 @@ import {
   Backlog,
   expectRefreshSettled,
   expectRefreshSpinning,
+  refreshButton,
 } from "./SlowLoadHarness";
 import {
   chartWindows,
@@ -167,6 +168,7 @@ import {
   doubleClick,
   dragAcross,
   flush,
+  pickPreset,
   pickerLabel,
   presetLabel,
   windowOf,
@@ -176,6 +178,7 @@ import {
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
 const CHARTS: number = 4; // CPU, Memory, Storage, Network
+const REFRESH_STORAGE_KEY: string = "proxmox-overview-auto-refresh-interval";
 
 // The golden load's aggregates; replication's are anchored to now.
 const GOLDEN_METRICS: Array<string> = [
@@ -472,6 +475,97 @@ describe("Proxmox cluster overview: golden loads that outlast the auto-refresh",
     );
     expect(cpuTile()).toHaveTextContent("60.0%");
     expect(pickerLabel()).toBe(presetLabel(TimeRange.PAST_THIRTY_MINS));
+    expectRefreshSettled();
+  });
+
+  test("Refresh pressed shortly before a tick paints when its own answer lands", async () => {
+    await mountPainted();
+
+    await advance(25_000);
+    fireEvent.click(refreshButton());
+    await flush();
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+    expectRefreshSpinning();
+
+    // 12:00:30: the tick leaves the Refresh's golden load alone...
+    await advance(5_000);
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+
+    // ...which lands at 12:00:35 and is drawn.
+    await advance(5_000);
+    await backlog.release(endsAt(at("12:00:25")));
+    expect(chartWindows()).toEqual(
+      same(windowOf(at("11:30:25"), at("12:00:25")), CHARTS),
+    );
+    expectRefreshSettled();
+  });
+
+  test("a drag shortly before a tick paints when its own answer lands", async () => {
+    await mountPainted();
+
+    await advance(25_000);
+    await dragAcross(zoomCharts()[3]!, at("11:36"), at("11:44"));
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+
+    // 12:00:30: the tick would load the zoomed window again; it waits.
+    await advance(5_000);
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+
+    await advance(5_000);
+    await backlog.release(endsAt(at("11:44")));
+    expect(chartWindows()).toEqual(
+      same(windowOf(at("11:36"), at("11:44")), CHARTS),
+    );
+    expect(cpuTile()).toHaveTextContent("10.0%");
+    expectRefreshSettled();
+  });
+
+  test("the picker during a slow auto-refresh load wins over it", async () => {
+    await mountPainted();
+
+    await advance(AUTO_REFRESH_MS);
+    await advance(2_000);
+    await pickPreset("Past 1 Hour");
+    expect(backlog.calls()).toHaveLength(2 * GOLDEN_METRICS.length);
+
+    await backlog.release(endsAt(at("12:00:32")));
+    await backlog.release(endsAt(at("12:00:30")));
+
+    expect(chartWindows()).toEqual(
+      same(windowOf(at("11:00:32"), at("12:00:32")), CHARTS),
+    );
+    expect(pickerLabel()).toBe(presetLabel(TimeRange.PAST_ONE_HOUR));
+    expectRefreshSettled();
+  });
+
+  test("on a remembered 10-second interval, a golden load that outlasts two ticks still lands, and the ticks go on after it", async () => {
+    window.localStorage.setItem(REFRESH_STORAGE_KEY, "10s");
+    await mount();
+
+    // The ticks at 12:00:10 and 12:00:20 leave the first golden load alone.
+    await advance(25_000);
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+    expectRefreshSpinning();
+
+    await backlog.release(endsAt(NOW));
+    expect(chartWindows()).toEqual(same(windowOf(at("11:30"), NOW), CHARTS));
+    expectRefreshSettled();
+
+    // 12:00:30: nothing is running, so the tick loads the slid window.
+    await advance(5_000);
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+    expect(backlog.calls().every(endsAt(at("12:00:30")))).toBe(true);
+  });
+
+  test("with auto-refresh off, nothing ticks, and a slow golden load still lands", async () => {
+    window.localStorage.setItem(REFRESH_STORAGE_KEY, "off");
+    await mount();
+
+    await advance(5 * AUTO_REFRESH_MS);
+    expect(backlog.calls()).toHaveLength(GOLDEN_METRICS.length);
+
+    await backlog.release(endsAt(NOW));
+    expect(chartWindows()).toEqual(same(windowOf(at("11:30"), NOW), CHARTS));
     expectRefreshSettled();
   });
 

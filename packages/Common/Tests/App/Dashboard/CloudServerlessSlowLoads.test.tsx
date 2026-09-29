@@ -35,7 +35,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - a zoom, its reset and Refresh still replace a running load, and the
  *     newest window wins whichever answer lands first;
  *   - the replaced load's answer landing does not let a tick replace the
- *     zoom's load while that one still runs.
+ *     zoom's load while that one still runs;
+ *   - a Refresh or a drag just before a tick is drawn when its load lands,
+ *     and a remembered 10-second interval waits for a load the same way.
  */
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
@@ -226,6 +228,8 @@ interface OverviewCase {
   countTile: string;
   // Calls that refresh the page's live figures on every refresh.
   liveCalls: () => number;
+  // Where the page remembers the reader's auto-refresh interval.
+  storageKey: string;
 }
 
 const OVERVIEWS: Array<[string, OverviewCase]> = [
@@ -247,6 +251,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       liveCalls: (): number => {
         return getListMock.mock.calls.length; // the instance list
       },
+      storageKey: "cloud-overview-auto-refresh-interval",
     },
   ],
   [
@@ -267,6 +272,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       liveCalls: (): number => {
         return countMock.mock.calls.length; // the instance count
       },
+      storageKey: "serverless-overview-auto-refresh-interval",
     },
   ],
 ];
@@ -512,13 +518,83 @@ describe.each(OVERVIEWS)(
       );
     });
 
-    test("with auto-refresh off, a slow metrics load lands as it always did", async () => {
-      window.localStorage.setItem(
-        overview.countTile === "Requests"
-          ? "cloud-overview-auto-refresh-interval"
-          : "serverless-overview-auto-refresh-interval",
-        "off",
+    test("Refresh pressed shortly before a tick: the tick leaves the Refresh's metrics load alone, and it lands", async () => {
+      await mountPainted(overview);
+
+      await advance(25_000);
+      fireEvent.click(screen.getByTitle("Refresh now"));
+      await flush();
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+      expect(backlog.calls().every(endsAt(at("12:00:25")))).toBe(true);
+
+      // 12:00:30: the tick reloads the model and leaves the metrics alone...
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+
+      // ...whose answer lands at 12:00:35 and is drawn.
+      await advance(5_000);
+      await backlog.release(endsAt(at("12:00:25")));
+      expect(tileOf(overview.countTile)).toHaveTextContent("590");
+      expect(chartWindows()).toEqual(
+        same(windowOf(at("11:00:25"), at("12:00:25")), 2),
       );
+      expectRefreshSettled();
+    });
+
+    test("a drag shortly before a tick: the tick leaves the zoom's metrics load alone, and it lands", async () => {
+      await mountPainted(overview);
+
+      await advance(25_000);
+      await dragAcross(zoomCharts()[0]!, at("11:20"), at("11:30"));
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+
+      // 12:00:30: the tick would load the zoomed window again; it waits.
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+
+      await advance(5_000);
+      await backlog.release(endsAt(at("11:30")));
+      expect(tileOf(overview.countTile)).toHaveTextContent("110");
+      expect(chartWindows()).toEqual(
+        same(windowOf(at("11:20"), at("11:30")), 2),
+      );
+      expect(pickerLabel()).toBe(customRangeLabel(at("11:20"), at("11:30")));
+    });
+
+    test("on a remembered 10-second interval, a metrics load that outlasts two ticks still lands, and the ticks go on after it", async () => {
+      window.localStorage.setItem(overview.storageKey, "10s");
+      await mount(overview);
+
+      // The ticks at 12:00:10 and 12:00:20 leave the first metrics load alone.
+      await advance(25_000);
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+
+      await backlog.release(endsAt(NOW));
+      expect(tileOf(overview.countTile)).toHaveTextContent("600");
+      expect(chartWindows()).toEqual(same(windowOf(at("11:00"), NOW), 2));
+
+      // 12:00:30: nothing is running, so the tick reloads the slid hour.
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+      expect(backlog.calls().every(endsAt(at("12:00:30")))).toBe(true);
+    });
+
+    test("failed aggregates settle the load too: the charts leave their skeletons, and the next tick loads again", async () => {
+      await mount(overview);
+      await advance(5_000);
+
+      await backlog.fail(endsAt(NOW), new Error("Analytics is down"));
+      // The metric helpers answer a failure with an empty result.
+      expect(screen.getAllByText("No data in this time range")).toHaveLength(2);
+
+      // 12:00:30: nothing is running any more, so the tick loads again.
+      await advance(AUTO_REFRESH_MS - 5_000);
+      expect(backlog.calls()).toHaveLength(overview.metricsPerLoad);
+      expect(backlog.calls().every(endsAt(at("12:00:30")))).toBe(true);
+    });
+
+    test("with auto-refresh off, a slow metrics load lands as it always did", async () => {
+      window.localStorage.setItem(overview.storageKey, "off");
       await mount(overview);
 
       await advance(5 * AUTO_REFRESH_MS);

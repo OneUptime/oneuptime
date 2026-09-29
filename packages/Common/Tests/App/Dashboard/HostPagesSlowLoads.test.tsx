@@ -28,7 +28,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * with the slow calls parked until a test answers them:
  *
  *   - a tick while a load runs leaves it alone; the load lands, paints the
- *     page and stops the spinner, and auto-refresh carries on after it;
+ *     page and stops the spinner, and auto-refresh carries on after it -
+ *     on the default 30 seconds and on a remembered 10;
+ *   - a Refresh or a drag just before a tick is drawn when its load lands;
  *   - a zoom, its reset and the picker still replace a running load, and
  *     whichever answer lands first, the newest window wins;
  *   - the replaced load's answer landing does not let the timer replace the
@@ -152,6 +154,7 @@ import {
   Backlog,
   expectRefreshSettled,
   expectRefreshSpinning,
+  refreshButton,
 } from "./SlowLoadHarness";
 import {
   chartWindows,
@@ -367,6 +370,8 @@ interface HostPageCase {
   Page: React.FunctionComponent<PageComponentProps>;
   // The pid, service or unit the route names.
   lastParam: string;
+  // Where the page remembers the reader's auto-refresh interval.
+  storageKey: string;
   // The calls that are slow, and how many one load makes.
   slowKind: SlowKind;
   callsPerLoad: number;
@@ -388,6 +393,7 @@ const HOST_PAGES: Array<[string, HostPageCase]> = [
     {
       Page: HostOverview,
       lastParam: "",
+      storageKey: "host-overview-auto-refresh-interval",
       slowKind: "aggregate",
       callsPerLoad: 9,
       charts: 5, // Availability, CPU, Memory, Disk space, Network
@@ -401,6 +407,7 @@ const HOST_PAGES: Array<[string, HostPageCase]> = [
     {
       Page: HostProcessView,
       lastParam: "4321",
+      storageKey: "host-process-view-auto-refresh-interval",
       slowKind: "aggregate",
       callsPerLoad: 6,
       charts: 3, // CPU, Memory (RSS), Disk I/O
@@ -414,6 +421,7 @@ const HOST_PAGES: Array<[string, HostPageCase]> = [
     {
       Page: HostServiceView,
       lastParam: "Spooler",
+      storageKey: "host-service-view-auto-refresh-interval",
       slowKind: "list",
       callsPerLoad: 1,
       charts: 1, // the status timeline
@@ -427,6 +435,7 @@ const HOST_PAGES: Array<[string, HostPageCase]> = [
     {
       Page: HostSystemdUnitView,
       lastParam: "nginx.service",
+      storageKey: "host-systemd-unit-view-auto-refresh-interval",
       slowKind: "list",
       callsPerLoad: 1,
       charts: 1, // the state timeline
@@ -452,7 +461,10 @@ function serve(pageCase: HostPageCase): void {
     };
 
     if (slow && pageCase.slowKind === "aggregate") {
-      return backlog.park({ kind: "aggregate", start: start, end: end }, answer);
+      return backlog.park(
+        { kind: "aggregate", start: start, end: end },
+        answer,
+      );
     }
 
     return Promise.resolve(answer);
@@ -599,6 +611,70 @@ describe.each(HOST_PAGES)(
       expect(backlog.calls()[0]!.end).toEqual(at("12:01:30"));
     });
 
+    test("Refresh pressed shortly before a tick paints when its own answer lands", async () => {
+      await mountPainted(pageCase);
+
+      await advance(25_000);
+      fireEvent.click(refreshButton());
+      await flush();
+      expect(backlog.calls()).toHaveLength(pageCase.callsPerLoad);
+      expectRefreshSpinning();
+
+      // 12:00:30: the tick leaves the Refresh's load alone...
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(pageCase.callsPerLoad);
+
+      // ...which lands at 12:00:35 and is drawn.
+      await advance(5_000);
+      await backlog.release(endsAt(at("12:00:25")));
+      expect(chartWindows()).toEqual(
+        same(windowOf(at("11:30:25"), at("12:00:25")), pageCase.charts),
+      );
+      expectRefreshSettled();
+    });
+
+    test("a drag shortly before a tick paints when its own answer lands", async () => {
+      await mountPainted(pageCase);
+      const [zoomStart, zoomEnd] = pageCase.zoom;
+
+      await advance(25_000);
+      await dragAcross(zoomCharts()[0]!, zoomStart, zoomEnd);
+      expect(backlog.calls()).toHaveLength(pageCase.callsPerLoad);
+
+      // 12:00:30: the tick would load the zoomed window again; it waits.
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(pageCase.callsPerLoad);
+
+      await advance(5_000);
+      await backlog.release(endsAt(zoomEnd));
+      expect(chartWindows()).toEqual(
+        same(windowOf(zoomStart, zoomEnd), pageCase.charts),
+      );
+      expect(pickerLabel()).toBe(customRangeLabel(zoomStart, zoomEnd));
+      expectRefreshSettled();
+    });
+
+    test("on a remembered 10-second interval, a load that outlasts two ticks still lands, and the ticks go on after it", async () => {
+      window.localStorage.setItem(pageCase.storageKey, "10s");
+      await mount(pageCase);
+
+      // The ticks at 12:00:10 and 12:00:20 leave the first load alone.
+      await advance(25_000);
+      expect(backlog.calls()).toHaveLength(pageCase.callsPerLoad);
+      expectRefreshSpinning();
+
+      await backlog.release(endsAt(NOW));
+      expect(chartWindows()).toEqual(
+        same(windowOf(at("11:30"), NOW), pageCase.charts),
+      );
+      expectRefreshSettled();
+
+      // 12:00:30: nothing is running, so the tick loads the slid window.
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(pageCase.callsPerLoad);
+      expect(backlog.calls().every(endsAt(at("12:00:30")))).toBe(true);
+    });
+
     test("a drag while an auto-refresh load runs wins when its answer lands first", async () => {
       await mountPainted(pageCase);
       const [zoomStart, zoomEnd] = pageCase.zoom;
@@ -693,9 +769,9 @@ describe.each(HOST_PAGES)(
       await advance(5_000);
       await backlog.fail(endsAt(NOW), new Error("Analytics is down"));
 
-      expect(
-        screen.getAllByText("Analytics is down").length,
-      ).toBeGreaterThan(0);
+      expect(screen.getAllByText("Analytics is down").length).toBeGreaterThan(
+        0,
+      );
       expectRefreshSettled();
 
       // 12:01:00: nothing is running any more, so the tick loads again.

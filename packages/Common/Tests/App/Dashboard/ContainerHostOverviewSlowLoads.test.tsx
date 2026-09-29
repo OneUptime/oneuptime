@@ -13,7 +13,7 @@ import React, { ReactElement } from "react";
  * the interval was then superseded by the tick's before it landed; when
  * every fetch did, none ever landed - the tiles on their loader, the six
  * charts as skeletons, Refresh disabled and spinning - and even a fast
- * Refresh pressed just before a tick was thrown away by the tick.
+ * Refresh or drag just before a tick was thrown away by the tick.
  *
  * The pages are rendered for real (the hero's AutoRefreshControl too) over
  * an analytics server that answers only when a test says so. Only the
@@ -71,6 +71,7 @@ import Route from "../../../Types/API/Route";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import ObjectID from "../../../Types/ObjectID";
+import TimeRange from "../../../Types/Time/TimeRange";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -90,7 +91,12 @@ import {
   expectRefreshSettled,
   expectRefreshSpinning,
 } from "./SlowLoadHarness";
-import { flush } from "./TimeRangeZoomPageHarness";
+import {
+  flush,
+  pickPreset,
+  pickerLabel,
+  presetLabel,
+} from "./TimeRangeZoomPageHarness";
 
 const NOW: Date = new Date("2026-09-24T12:00:00.000Z");
 const HOST_ID: string = "5a1b2c3d-4e5f-4061-8273-94a5b6c7d8e9";
@@ -253,9 +259,7 @@ function tileValue(title: string): string {
 
 function detailsRefresher(): string {
   return (
-    screen
-      .getByTestId("stub-host-details")
-      .getAttribute("data-refresher") || ""
+    screen.getByTestId("stub-host-details").getAttribute("data-refresher") || ""
   );
 }
 
@@ -381,6 +385,25 @@ describe.each(RUNTIME_CASES)(
       expectRefreshSettled();
     });
 
+    test("a drag shortly before a tick paints when its own answer lands", async () => {
+      await mountPainted(runtimeCase);
+
+      await advance(25_000);
+      dragAcrossChart(charts()[1]!, at("11:40"), at("11:50"));
+      await flush();
+      expect(backlog.calls()).toHaveLength(FETCHES);
+
+      // 12:00:30: the tick would fetch the zoomed window again; it waits.
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(FETCHES);
+
+      await advance(5_000);
+      await backlog.release(endsAt(at("11:50")));
+      expect(pageWindow()).toBe(windowText(at("11:40"), at("11:50")));
+      expect(tileValue("Avg CPU")).toBe("80.0%");
+      expectRefreshSettled();
+    });
+
     test("a drag during a slow auto-refresh fetch wins when its answer lands first", async () => {
       await mountPainted(runtimeCase);
 
@@ -455,6 +478,41 @@ describe.each(RUNTIME_CASES)(
         ).trim(),
       ).toBe("Past 30 Minutes");
       expectRefreshSettled();
+    });
+
+    test("the picker during a slow auto-refresh fetch wins over it", async () => {
+      await mountPainted(runtimeCase);
+
+      await advance(AUTO_REFRESH_MS);
+      await advance(2_000);
+      await pickPreset("Past 1 Hour");
+      expect(backlog.calls()).toHaveLength(2 * FETCHES);
+
+      await backlog.release(endsAt(at("12:00:32")));
+      await backlog.release(endsAt(at("12:00:30")));
+
+      expect(pageWindow()).toBe(windowText(at("11:00:32"), at("12:00:32")));
+      expect(pickerLabel()).toBe(presetLabel(TimeRange.PAST_ONE_HOUR));
+      expectRefreshSettled();
+    });
+
+    test("on a remembered 10-second interval, a fetch that outlasts two ticks still lands, and the ticks go on after it", async () => {
+      window.localStorage.setItem(runtimeCase.refreshStorageKey, "10s");
+      await mount(runtimeCase);
+
+      // The ticks at 12:00:10 and 12:00:20 leave the first fetch alone.
+      await advance(25_000);
+      expect(backlog.calls()).toHaveLength(FETCHES);
+      expectRefreshSpinning();
+
+      await backlog.release(endsAt(NOW));
+      expect(pageWindow()).toBe(windowText(at("11:30"), NOW));
+      expectRefreshSettled();
+
+      // 12:00:30: nothing is running, so the tick fetches the slid window.
+      await advance(5_000);
+      expect(backlog.calls()).toHaveLength(FETCHES);
+      expect(backlog.calls().every(endsAt(at("12:00:30")))).toBe(true);
     });
 
     test("a failed fetch lets the timer go on: the next tick fetches again", async () => {
