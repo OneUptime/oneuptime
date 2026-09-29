@@ -474,6 +474,43 @@ const removeEmptiedLine: (line: Node, editable: HTMLElement) => void = (
 };
 
 /*
+ * What a list item joined to another held below its own text -- its nested
+ * items, a code block -- goes to the item it joins, in the same place in the
+ * text. For an item nested in that one, the place is right after the join,
+ * ahead of what is left of the nested list the item was in, all of which
+ * came after it; its own nested items take its place in that list. Added at
+ * the end of the item instead, "deep" under "beta" came out after "gamma"
+ * when "al|pha".."be|ta" was pasted over in "alpha > beta > deep, gamma".
+ */
+const moveBelowJoin: (startLine: Node, endLine: Node) => void = (
+  startLine: Node,
+  endLine: Node,
+): void => {
+  let place: Node | null = null;
+  if (startLine.contains(endLine)) {
+    place = endLine;
+    while (place.parentNode && place.parentNode !== startLine) {
+      place = place.parentNode;
+    }
+  }
+  while (endLine.firstChild) {
+    const child: ChildNode = endLine.firstChild;
+    if (
+      place &&
+      endLine.parentNode === place &&
+      tagOf(child) === tagOf(place)
+    ) {
+      while (child.firstChild) {
+        place.insertBefore(child.firstChild, endLine);
+      }
+      endLine.removeChild(child);
+    } else {
+      startLine.insertBefore(child, place);
+    }
+  }
+};
+
+/*
  * What is left of the line a selection ended in joins the line it started
  * in, at the caret -- as when the selection is typed over. Only its own text
  * moves: a list nested in a list item goes along to the item it joins, and
@@ -501,9 +538,7 @@ const joinLineAtCaret: (
     range.collapse(true);
   }
   if (tagOf(startLine) === "li" && tagOf(endLine) === "li") {
-    while (endLine.firstChild) {
-      startLine.appendChild(endLine.firstChild);
-    }
+    moveBelowJoin(startLine, endLine);
   }
   removeEmptiedLine(endLine, editable);
 };

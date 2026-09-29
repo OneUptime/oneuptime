@@ -403,6 +403,35 @@ describe("deleteSelectionForInsert", () => {
     expect(htmlToMarkdown(root.innerHTML)).toBe("- alb\n  - deep\n- beta");
   });
 
+  /*
+   * A nested item joined to its parent keeps its place in the text: what it
+   * held comes right after the join, ahead of the nested items that followed
+   * it. Added at the end of the parent, "deep" came out after "gamma".
+   */
+  it("keeps what a nested item held ahead of the items that followed it", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "- alpha\n  - beta\n    - deep\n  - gamma\n- omega",
+    );
+
+    deleteSelectionForInsert(root, rangeBetween(root, "alpha", 2, "beta", 2));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- alta\n  - deep\n  - gamma\n- omega",
+    );
+  });
+
+  it("keeps a code block a nested item held ahead of the items that followed it", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "- alpha\n  - beta\n\n    ```\n    code\n    ```\n  - gamma",
+    );
+
+    deleteSelectionForInsert(root, rangeBetween(root, "alpha", 2, "beta", 2));
+
+    const markdown: string = htmlToMarkdown(root.innerHTML);
+    expect(markdown.indexOf("code")).toBeLessThan(markdown.indexOf("gamma"));
+    expect(markdown.startsWith("- alta\n")).toBe(true);
+  });
+
   it("removes the list item it empties, and the list with it", () => {
     const root: HTMLDivElement = mountMarkdown("first para\n\n- alpha");
 

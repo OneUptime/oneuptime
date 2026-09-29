@@ -1149,6 +1149,29 @@ describe("MarkdownEditor paste in the visual editor", () => {
     );
   });
 
+  // The joined item's own nested items stay where they were in the text.
+  test("keeps the text order when the paste runs into a nested item", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n  - beta\n    - deep\n  - gamma\n- omega"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "beta", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": '<a href="https://x.test/">L</a>',
+        "text/plain": "L",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- al[L](https://x.test/)ta\n  - deep\n  - gamma\n- omega",
+    );
+  });
+
   test("Ctrl+Z takes back such a paste, selection and all", () => {
     const onChange: jest.Mock = jest.fn();
     render(
