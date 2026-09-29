@@ -228,6 +228,45 @@ export const widenCostZoomWindow: (data: {
   return { startTime: new Date(startMs), endTime: new Date(endMs) };
 };
 
+/**
+ * The window a drag across a cost chart zooms the page to: the buckets
+ * dragged across, widened to at least an hour (widenCostZoomWindow), and
+ * ending one millisecond before the end of the last of them.
+ *
+ * The chart hands over [start of the first bucket, end of the last): its
+ * rows carry the start of the bucket each bar draws, so both edges sit on
+ * the grid the bars show. But every cost query reads its window
+ * inclusively at BOTH ends (windowStart between start and end), and the
+ * hour after the selection starts exactly at its end - a drag across the
+ * 10:00 and 11:00 bars would also sum the noon hour nobody selected, in the
+ * tiles, both tables and right-sizing. Ending a millisecond early leaves it
+ * out. The millisecond comes off after the widening: an hour less a
+ * millisecond would otherwise be widened back to a whole, inclusive hour,
+ * which holds two hourly rows.
+ */
+export const getCostZoomWindow: (data: {
+  startTime: Date;
+  endTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+}) => CostZoomWindow = (data: {
+  startTime: Date;
+  endTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+}): CostZoomWindow => {
+  const widened: CostZoomWindow = widenCostZoomWindow(data);
+  const startMs: number = widened.startTime.getTime();
+  const endMs: number = widened.endTime.getTime();
+
+  // Nothing inside it to leave out; the page's zoom rejects such a window.
+  if (!(endMs - startMs > 1)) {
+    return widened;
+  }
+
+  return { startTime: widened.startTime, endTime: new Date(endMs - 1) };
+};
+
 type BuildAggregateBy = (data: {
   params: FetchCostParams;
   aggregateColumnName: keyof KubernetesCostAllocation;

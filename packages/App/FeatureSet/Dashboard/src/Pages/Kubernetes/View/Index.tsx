@@ -1952,8 +1952,29 @@ const KubernetesClusterOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            {/*
+             * The cluster's name keeps its room; the controls give way.
+             * They used to keep their whole width and squeeze the name
+             * instead, and a zoom widens them - a custom range in the
+             * picker and Reset zoom beside it - so zooming truncated the
+             * name ("Production (eu-..."), and narrower windows lost it
+             * altogether.
+             *
+             * - The name column never shrinks below its own content (the
+             *   automatic minimum of a flex item; min-w-0 is what let it),
+             *   capped at the row by w-full, so a name longer than the
+             *   whole row still truncates.
+             * - The controls take the rest of the row up to their full
+             *   width (basis 0, max-w-max, and a grow that outweighs the
+             *   name's), and wrap onto a second line of their own when
+             *   squeezed, still aligned right.
+             * - When that rest is narrower than 24rem - about a custom
+             *   range and Reset zoom side by side, so the picker's label
+             *   never has to wrap - they move under the name as one
+             *   block, kept on the right.
+             */}
+            <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between">
+              <div className="flex items-start gap-4 md:w-full md:flex-1">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-violet-200 shadow-sm">
                   <Icon
                     icon={IconProp.Kubernetes}
@@ -1994,7 +2015,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div className="md:ml-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end">
                 {renderRefreshControl()}
               </div>
             </div>

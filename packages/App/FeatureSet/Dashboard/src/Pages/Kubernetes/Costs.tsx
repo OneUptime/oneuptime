@@ -26,7 +26,6 @@ import React, {
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -99,7 +98,7 @@ const KubernetesCosts: FunctionComponent<
     }),
   );
 
-  // Bumped by the table's Refresh button to re-run the load effect.
+  // Bumped by every Refresh (and a retry) to re-run the load effect.
   const [refreshToggle, setRefreshToggle] = useState<number>(0);
 
   const handleTimeRangeChange: (
@@ -109,6 +108,18 @@ const KubernetesCosts: FunctionComponent<
     setStartAndEndDate(
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
     );
+  }, []);
+
+  /*
+   * Loads the page's window again. A window alone cannot ask for that: a
+   * Custom window, and every zoom is one, re-resolves to the same instants,
+   * so the Spend card's Refresh changed nothing the load effect could see
+   * while zoomed - an error included.
+   */
+  const reload: () => void = useCallback((): void => {
+    setRefreshToggle((toggle: number) => {
+      return toggle + 1;
+    });
   }, []);
 
   const startMs: number = startAndEndDate.startValue.getTime();
@@ -193,6 +204,12 @@ const KubernetesCosts: FunctionComponent<
   );
   const idlePercent: number | null =
     totalSpend > 0 ? (idleSpend / totalSpend) * 100 : null;
+
+  /*
+   * After a failed load the rows still hold the previous window's figures,
+   * which the picker no longer shows: the tiles read "—" rather than those.
+   */
+  const showFigures: boolean = !isLoading && !error;
 
   const sortedRows: Array<ClusterCostRow> = useMemo(() => {
     return sortCostRows<ClusterCostRow>(clusterRows, sortBy, sortOrder);
@@ -282,28 +299,30 @@ const KubernetesCosts: FunctionComponent<
       title: "",
       buttonStyle: ButtonStyleType.ICON,
       className: "py-0 pr-0 pl-1 mt-1",
-      onClick: () => {
-        setRefreshToggle((toggle: number) => {
-          return toggle + 1;
-        });
-      },
+      onClick: reload,
       icon: IconProp.Refresh,
     },
   ];
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   const clusterCountLabel: string = `${clusterRows.length} cluster${
     clusterRows.length === 1 ? "" : "s"
   }`;
+
+  const totalSpendSublabel: string = isLoading
+    ? "loading"
+    : error
+      ? "could not load"
+      : `across ${clusterCountLabel}`;
 
   /*
    * Issue #4105: a drag across the spend chart narrows the page to the
    * window dragged out - the tiles and the cluster table are read for the
    * page's window, so they follow - and a double-click on the chart (or
    * Reset zoom beside the card's picker) puts the range back.
+   *
+   * A failed load is shown where the chart and the table were, not in
+   * place of the page: the zoom, the picker, Reset zoom and every Refresh
+   * stay, so a zoom whose load fails can still be retried or undone.
    */
   return (
     <TimeRangeZoomScope
@@ -320,6 +339,7 @@ const KubernetesCosts: FunctionComponent<
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
+        onRefresh={reload}
       >
         <div>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -327,15 +347,15 @@ const KubernetesCosts: FunctionComponent<
               title="Total Spend"
               icon={IconProp.CurrencyDollar}
               iconColor="emerald"
-              value={isLoading ? "—" : formatCost(totalSpend)}
-              sublabel={isLoading ? "loading" : `across ${clusterCountLabel}`}
+              value={showFigures ? formatCost(totalSpend) : "—"}
+              sublabel={totalSpendSublabel}
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetTotalSpend}
             />
             <GoldenMetricTile
               title="Workload Spend"
               icon={IconProp.Cube}
               iconColor="blue"
-              value={isLoading ? "—" : formatCost(totalSpend - idleSpend)}
+              value={showFigures ? formatCost(totalSpend - idleSpend) : "—"}
               sublabel="attributed to workloads"
               description={
                 KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetWorkloadSpend
@@ -345,7 +365,7 @@ const KubernetesCosts: FunctionComponent<
               title="Idle Spend"
               icon={IconProp.Clock}
               iconColor="amber"
-              value={isLoading ? "—" : formatCost(idleSpend)}
+              value={showFigures ? formatCost(idleSpend) : "—"}
               sublabel="provisioned but unused"
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetIdleSpend}
             />
@@ -354,12 +374,12 @@ const KubernetesCosts: FunctionComponent<
               icon={IconProp.ChartPie}
               iconColor="slate"
               value={
-                isLoading || idlePercent === null
+                !showFigures || idlePercent === null
                   ? "—"
                   : `${Math.round(idlePercent)}%`
               }
               sublabel="share of total spend"
-              percent={isLoading ? null : idlePercent}
+              percent={showFigures ? idlePercent : null}
               thresholds={{ warn: 25, danger: 40 }}
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetIdlePercent}
             />
@@ -367,6 +387,8 @@ const KubernetesCosts: FunctionComponent<
           <KubernetesCostTrendChart
             trend={trend}
             isLoading={isLoading}
+            error={error}
+            onRetry={reload}
             startAndEndDate={startAndEndDate}
             syncid="k8s-project-costs"
           />
@@ -385,7 +407,8 @@ const KubernetesCosts: FunctionComponent<
           singularLabel="Cluster"
           pluralLabel="Clusters"
           isLoading={isLoading}
-          error=""
+          error={error}
+          onRefreshClick={error ? reload : undefined}
           currentPageNumber={currentPage}
           totalItemsCount={sortedRows.length}
           itemsOnPage={COST_ROWS_PER_PAGE}

@@ -26,6 +26,7 @@ import {
   ChartTimeRangeZoomContextValue,
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { useEmbeddedMetricCardRefreshNonce } from "../../../Components/Metrics/EmbeddedMetricCardRefresh";
 
 export interface ComponentProps {
   clusterIdentifier: string;
@@ -48,6 +49,15 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
   const [series, setSeries] = useState<Array<SeriesPoint>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Refresh on the card around the chart (the Insights Network card, a
+   * node's Metrics tab). The window alone cannot ask for a reload: a Custom
+   * window, and every zoom is one, re-resolves to the same instants, so
+   * Refresh used to leave the chart - and an error it could have retried -
+   * as it was.
+   */
+  const refreshNonce: number = useEmbeddedMetricCardRefreshNonce();
 
   const startMs: number = props.startDate.getTime();
   const endMs: number = props.endDate.getTime();
@@ -96,26 +106,35 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-    // startMs/endMs track the date props by value so identical ranges don't refetch.
-  }, [props.clusterIdentifier, props.nodeName, startMs, endMs]);
+    /*
+     * startMs/endMs track the date props by value so identical ranges don't
+     * refetch; only the card's Refresh reloads the same window.
+     */
+  }, [props.clusterIdentifier, props.nodeName, startMs, endMs, refreshNonce]);
 
   if (isLoading) {
     return <div className="h-48 animate-pulse rounded-md bg-gray-50" />;
   }
 
+  /*
+   * A zoom into a quiet stretch, or one whose load failed, lands on a
+   * message with no chart to double-click. The message takes the
+   * double-click instead, so the way back is where the reader's pointer
+   * already is - select-none, or that double-click would also select a
+   * word of it.
+   */
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <div className="select-none" onDoubleClick={zoom?.onTimeRangeReset}>
+        <ErrorMessage message={error} />
+      </div>
+    );
   }
 
   if (series.length === 0) {
-    /*
-     * A zoom into a quiet stretch lands here, with no chart to
-     * double-click. The empty plot area takes the double-click instead, so
-     * the way back is where the reader's pointer already is.
-     */
     return (
       <div
-        className="flex h-48 items-center justify-center text-sm text-gray-400"
+        className="flex h-48 select-none items-center justify-center text-sm text-gray-400"
         onDoubleClick={zoom?.onTimeRangeReset}
       >
         No network traffic reported for the selected time range.
