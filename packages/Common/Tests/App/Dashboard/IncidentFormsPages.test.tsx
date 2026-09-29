@@ -433,7 +433,17 @@ describe("the Incident Forms list", () => {
     const warning: string = String(template["description"]);
 
     expect(warning).toBe(IncidentFormCopy.templateDescription);
-    expect(warning).toContain("everything the template sets applies");
+    /*
+     * In the server's order: the form's severity (or the reporter's) and the
+     * reporter's answers win, and the template fills in the rest - not
+     * "everything the template sets applies", which its severity never does
+     * while the form has its own.
+     */
+    expect(warning).toContain(
+      "The form's severity (or the one the reporter chooses) and the reporter's title, description and answers come first",
+    );
+    expect(warning).toContain("the template fills in everything else");
+    expect(warning).not.toContain("everything the template sets applies");
     expect(warning).toContain("monitors");
     expect(warning).toContain("on-call policies");
     expect(warning).toContain("a monitor status change");
@@ -702,6 +712,16 @@ describe("a form's page", () => {
 
       expect(cardDescription).toBe(
         IncidentFormCopy.incidentSettingsDescription,
+      );
+      // Which comes first, next to the severity the card shows.
+      expect(cardDescription).toContain(
+        "the form's severity (or the one the reporter chooses) and the reporter's title, description and answers come first",
+      );
+      expect(cardDescription).toContain(
+        "the template fills in everything else",
+      );
+      expect(cardDescription).not.toContain(
+        "everything the template sets applies",
       );
       expect(cardDescription).toContain(
         "including its monitors, on-call policies and a monitor status change",

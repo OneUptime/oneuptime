@@ -32,7 +32,12 @@ export const IncidentFormCopy: {
   descriptionDescription: string;
   enabledDescription: string;
 
-  // What the incidents start with.
+  /*
+   * What the incidents start with. With a template, the form's severity (or
+   * the reporter's) and the reporter's answers come first and the template
+   * fills in the rest - the order the server applies them in
+   * (IncidentFormService, then IncidentService's template branch).
+   */
   incidentSettingsDescription: string;
   editIncidentSettings: string;
   severityDescription: string;
@@ -105,7 +110,7 @@ export const IncidentFormCopy: {
     "While the form is turned off, its link shows a 'not available' message and nothing can be submitted.",
 
   incidentSettingsDescription:
-    "What the incidents reported through this form start with. With an incident template, everything the template sets applies too, including its monitors, on-call policies and a monitor status change.",
+    "What the incidents reported through this form start with. With an incident template, the form's severity (or the one the reporter chooses) and the reporter's title, description and answers come first, and the template fills in everything else, including its monitors, on-call policies and a monitor status change.",
   editIncidentSettings: "Edit Incident Settings",
   severityDescription:
     "The severity of every incident reported through this form, unless you let the reporter choose one.",
@@ -113,7 +118,7 @@ export const IncidentFormCopy: {
   letReporterChooseSeverityDescription:
     "Ask the reporter to choose one of your project's incident severities, starting with the form's own. Leave it off when reporters should not decide how urgently you are paged.",
   templateDescription:
-    "Every incident reported through this form is declared from this template, and everything the template sets applies, including its monitors, on-call policies and a monitor status change. Anyone with the link can set these off, and a monitor on the incident is not checked until the incident is resolved.",
+    "Every incident reported through this form is declared from this template. The form's severity (or the one the reporter chooses) and the reporter's title, description and answers come first, and the template fills in everything else, including its monitors, on-call policies and a monitor status change. Anyone with the link can set these off, and a monitor on the incident is not checked until the incident is resolved.",
 
   formSettingsTitle: "Form Settings",
   formSettingsDescription:

@@ -249,6 +249,24 @@ describe("the glossary's words", () => {
     ]);
   });
 
+  /*
+   * A form's incident template fills in what the form and the reporter
+   * leave: the form's severity (or the reporter's choice) and the
+   * reporter's title, description and answers come first, as the server
+   * applies them. The two places that say so must say it the same way.
+   */
+  test("what an incident template does to a form's incidents", () => {
+    for (const text of [
+      IncidentFormCopy.incidentSettingsDescription,
+      IncidentFormCopy.templateDescription,
+    ]) {
+      expect(text).toContain(
+        "form's severity (or the one the reporter chooses) and the reporter's title, description and answers come first, and the template fills in everything else, including its monitors, on-call policies and a monitor status change.",
+      );
+      expect(text).not.toContain("everything the template sets applies");
+    }
+  });
+
   test("the Submissions table", () => {
     expect([
       IncidentFormCopy.submittedAt,
