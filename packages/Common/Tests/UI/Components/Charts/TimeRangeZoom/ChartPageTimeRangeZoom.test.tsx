@@ -51,9 +51,10 @@ type ChartRootHandlers = {
 const mockChartRoots: Map<string, ChartRootHandlers> = new Map();
 
 jest.mock("recharts", () => {
-  const actual: Record<string, any> = jest.requireActual(
-    "recharts",
-  ) as Record<string, any>;
+  const actual: Record<string, any> = jest.requireActual("recharts") as Record<
+    string,
+    any
+  >;
   const react: typeof React = jest.requireActual("react") as typeof React;
 
   const makeRoot: (kind: string) => (props: Record<string, any>) => any = (
