@@ -263,6 +263,46 @@ const placeCaret: (text: string, offset: number) => void = (
   window.getSelection()?.addRange(range);
 };
 
+// The first text node in the editor holding `text`.
+const textNodeWith: (text: string) => Text = (text: string): Text => {
+  const walker: TreeWalker = document.createTreeWalker(
+    editableOf(),
+    NodeFilter.SHOW_TEXT,
+  );
+  let node: Node | null = walker.nextNode();
+  while (node && !(node.textContent || "").includes(text)) {
+    node = walker.nextNode();
+  }
+  if (!node) {
+    throw new Error(`no text "${text}" in the editor`);
+  }
+  return node as Text;
+};
+
+// Selects from `startOffset` into the text `start` to `endOffset` into the text `end`.
+const selectText: (
+  start: string,
+  startOffset: number,
+  end: string,
+  endOffset: number,
+) => void = (
+  start: string,
+  startOffset: number,
+  end: string,
+  endOffset: number,
+): void => {
+  act(() => {
+    editableOf().focus();
+  });
+  const startNode: Text = textNodeWith(start);
+  const endNode: Text = textNodeWith(end);
+  const range: Range = document.createRange();
+  range.setStart(startNode, startNode.data.indexOf(start) + startOffset);
+  range.setEnd(endNode, endNode.data.indexOf(end) + endOffset);
+  window.getSelection()?.removeAllRanges();
+  window.getSelection()?.addRange(range);
+};
+
 const selectAllInEditor: () => void = (): void => {
   const range: Range = document.createRange();
   range.selectNodeContents(editableOf());
@@ -868,6 +908,162 @@ describe("MarkdownEditor paste in the visual editor", () => {
     });
 
     expect(lastChange(onChange)).toBe("hello big world");
+  });
+
+  /*
+   * A selection across two list items, deleted on its own, left both items
+   * and the caret between them, straight inside the <ul> -- the pasted link
+   * showed in the editor but the serializer, which reads only a list's
+   * items, saved "- al\n- ta\n- gamma".
+   */
+  test("keeps a link pasted over part of two list items, joining them", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "beta", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": '<a href="https://oneuptime.com/docs">the docs</a>',
+        "text/plain": "the docs",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- al[the docs](https://oneuptime.com/docs)ta\n- gamma",
+    );
+  });
+
+  // Ctrl+A in a note that is only a list, as Chromium selects it.
+  test("keeps formatted words pasted over a whole list", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"- alpha\n- beta"} onChange={onChange} />,
+    );
+    selectText("alpha", 0, "beta", 4);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<p>see <b>this</b></p>",
+        "text/plain": "see this",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("- see **this**");
+  });
+
+  /*
+   * A triple click selects an item up to the very start of the next: the
+   * paste replaces that item, and the next one is left as it was.
+   */
+  test("replaces a triple-clicked list item and leaves the next alone", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    act(() => {
+      editableOf().focus();
+    });
+    const items: NodeListOf<HTMLLIElement> =
+      editableOf().querySelectorAll("li");
+    const range: Range = document.createRange();
+    range.setStart(textNodeWith("beta"), 0);
+    range.setEnd(items[2] as Node, 0);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<p>see <b>this</b></p>",
+        "text/plain": "see this",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("- alpha\n- see **this**\n- gamma");
+  });
+
+  test("joins two paragraphs a formatted paste runs across", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"first para\n\nsecond para"}
+        onChange={onChange}
+      />,
+    );
+    selectText("first", 2, "second", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<b>X</b>",
+        "text/plain": "X",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("fi**X**cond para");
+  });
+
+  // What the browser's own insertText does with the same selection.
+  test("joins two list items a plain word is pasted over", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "beta", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "X" }),
+    });
+
+    expect(lastChange(onChange)).toBe("- alXta\n- gamma");
+  });
+
+  test("keeps a code block pasted over part of two list items", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "beta", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "```\nnpm ci\n```" }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- al\n\n  ```\n  npm ci\n  ```\n\n  ta\n- gamma",
+    );
+  });
+
+  test("the Code button keeps code made over part of two list items", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "alpha", 5);
+
+    fireEvent.click(screen.getByTitle("Code"));
+    expect(lastChange(onChange)).toBe("- al`pha`\n- beta\n- gamma");
+
+    selectText("beta", 2, "gamma", 2);
+    fireEvent.click(screen.getByTitle("Code"));
+    expect(editableOf().querySelectorAll("ul > li")).toHaveLength(2);
+    expect(lastChange(onChange)).toContain("`ta");
+    expect(lastChange(onChange)).toContain("ga`mma");
   });
 
   test("pastes into a code block as the plain text it is", () => {

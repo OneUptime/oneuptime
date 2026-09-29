@@ -364,3 +364,196 @@ export const caretAtEndOf: (node: Node) => Range = (node: Node): Range => {
   caret.collapse(true);
   return caret;
 };
+
+/*
+ * ---------------------------------------------------------------------------
+ * Deleting a selection before an insert
+ * ---------------------------------------------------------------------------
+ */
+
+// Elements that hold a line of text: where what is typed or pasted can go.
+const LINE_TAGS: Set<string> = new Set<string>([
+  ...Array.from(SPLITTABLE_LINE_TAGS),
+  ...Array.from(BLOCK_HOLDER_TAGS),
+  "pre",
+  "dt",
+  "dd",
+]);
+
+// Elements whose children are only rows, cells or items -- never text.
+const STRUCTURE_ONLY_TAGS: Set<string> = new Set<string>([
+  "ul",
+  "ol",
+  "table",
+  "thead",
+  "tbody",
+  "tfoot",
+  "tr",
+]);
+
+const nodeLength: (node: Node) => number = (node: Node): number => {
+  if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.COMMENT_NODE) {
+    return (node as CharacterData).length;
+  }
+  return node.childNodes.length;
+};
+
+/*
+ * The line `node` is in: its nearest paragraph, heading, <div> line, list
+ * item, table cell, code block or quote -- or the editor itself.
+ */
+const lineOf: (editable: HTMLElement, node: Node) => Node = (
+  editable: HTMLElement,
+  node: Node,
+): Node => {
+  let current: Node | null = node;
+  while (current && current !== editable) {
+    if (LINE_TAGS.has(tagOf(current))) {
+      return current;
+    }
+    current = current.parentNode;
+  }
+  return editable;
+};
+
+/*
+ * Whether the range takes any of `line` -- not merely reaches its start, as
+ * a triple click or Shift+Down that stops at the next line does.
+ */
+const selectsIntoLine: (range: Range, line: Node) => boolean = (
+  range: Range,
+  line: Node,
+): boolean => {
+  const head: Range = (line.ownerDocument as Document).createRange();
+  head.setStart(line, 0);
+  head.setEnd(range.endContainer, range.endOffset);
+  return !holdsNothing(head.cloneContents());
+};
+
+/*
+ * Removes `line` when it is left with nothing in it, and the lists its
+ * removal leaves without an item.
+ */
+const removeEmptiedLine: (line: Node, editable: HTMLElement) => void = (
+  line: Node,
+  editable: HTMLElement,
+): void => {
+  if (!holdsNothing(line)) {
+    return;
+  }
+  let parent: Node | null = line.parentNode;
+  line.parentNode?.removeChild(line);
+  while (
+    parent &&
+    parent !== editable &&
+    STRUCTURE_ONLY_TAGS.has(tagOf(parent)) &&
+    (parent as Element).children.length === 0
+  ) {
+    const empty: Node = parent;
+    parent = parent.parentNode;
+    parent?.removeChild(empty);
+  }
+};
+
+/*
+ * What is left of the line a selection ended in joins the line it started
+ * in, at the caret -- as when the selection is typed over. Only its own text
+ * moves: a list nested in a list item goes along to the item it joins, and
+ * the line, left empty, goes.
+ */
+const joinLineAtCaret: (
+  range: Range,
+  startLine: Node,
+  endLine: Node,
+  editable: HTMLElement,
+) => void = (
+  range: Range,
+  startLine: Node,
+  endLine: Node,
+  editable: HTMLElement,
+): void => {
+  const text: DocumentFragment = (
+    endLine.ownerDocument as Document
+  ).createDocumentFragment();
+  while (endLine.firstChild && !isBlock(endLine.firstChild)) {
+    text.appendChild(endLine.firstChild);
+  }
+  if (text.firstChild) {
+    range.insertNode(text);
+    range.collapse(true);
+  }
+  if (tagOf(startLine) === "li" && tagOf(endLine) === "li") {
+    while (endLine.firstChild) {
+      startLine.appendChild(endLine.firstChild);
+    }
+  }
+  removeEmptiedLine(endLine, editable);
+};
+
+/*
+ * A caret straight inside a list or a table, between its items or rows,
+ * moved into the item or cell next to it -- the serializer reads only a
+ * list's items and a table's cells, so nothing inserted between them would
+ * be saved.
+ */
+const moveCaretIntoLine: (range: Range) => void = (range: Range): void => {
+  let container: Node = range.startContainer;
+  let offset: number = range.startOffset;
+  while (STRUCTURE_ONLY_TAGS.has(tagOf(container))) {
+    const after: ChildNode | undefined = container.childNodes[offset];
+    const before: ChildNode | undefined = container.childNodes[offset - 1];
+    if (after && after.nodeType === Node.ELEMENT_NODE) {
+      container = after;
+      offset = 0;
+    } else if (before && before.nodeType === Node.ELEMENT_NODE) {
+      container = before;
+      offset = nodeLength(before);
+    } else {
+      return;
+    }
+  }
+  range.setStart(container, offset);
+  range.collapse(true);
+};
+
+/*
+ * Deletes what the range selects, the way typing over it does: when the
+ * selection runs from one line into another -- two list items, two
+ * paragraphs -- what is left of the second line joins the first, and the
+ * caret ends up at the join, inside a line. Range.deleteContents on its own
+ * leaves both lines and puts the caret between them -- straight inside the
+ * <ul> when they were list items, where the serializer, which reads only a
+ * list's items, never saw what was pasted next: a link pasted over part of
+ * two items showed in the editor and was lost from the saved note. A
+ * selection that stops at the very start of a line -- a triple click,
+ * Shift+Down -- takes none of that line, and it stays as it is.
+ */
+export const deleteSelectionForInsert: (
+  editable: HTMLElement,
+  range: Range,
+) => void = (editable: HTMLElement, range: Range): void => {
+  if (range.collapsed) {
+    return;
+  }
+  const startNode: Node = range.startContainer;
+  const startOffset: number = range.startOffset;
+  const startLine: Node = lineOf(editable, startNode);
+  const endLine: Node = lineOf(editable, range.endContainer);
+  const joins: boolean =
+    startLine !== endLine &&
+    startLine !== editable &&
+    endLine !== editable &&
+    !endLine.contains(startLine) &&
+    selectsIntoLine(range, endLine);
+  range.deleteContents();
+  /*
+   * The start of a selection is never removed by the delete (only cut short),
+   * so the caret goes back there: inside the line the selection started in.
+   */
+  range.setStart(startNode, Math.min(startOffset, nodeLength(startNode)));
+  range.collapse(true);
+  if (joins && endLine.isConnected && startLine.isConnected) {
+    joinLineAtCaret(range, startLine, endLine, editable);
+  }
+  moveCaretIntoLine(range);
+};

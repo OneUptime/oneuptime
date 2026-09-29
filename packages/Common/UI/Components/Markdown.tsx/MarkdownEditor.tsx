@@ -24,6 +24,7 @@ import {
 import { clipboardToMarkdown } from "./MarkdownPaste";
 import {
   caretAtEndOf,
+  deleteSelectionForInsert,
   insertBlocksAtCaret,
   isCaretOnEmptyLine,
 } from "./MarkdownVisualEditing";
@@ -360,7 +361,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         // Fall through to the insert by hand.
       }
     }
-    range.deleteContents();
+    deleteSelectionForInsert(editable, range);
     const fragment: DocumentFragment = range.createContextualFragment(contents);
     let caret: Range | null = null;
     if (inline) {
@@ -625,12 +626,13 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const insertPlainTextInEditable: (value: string) => void = (
     value: string,
   ): void => {
+    const editable: HTMLDivElement | null = editableRef.current;
     const selection: Selection | null = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
+    if (!editable || !selection || selection.rangeCount === 0) {
       return;
     }
     const range: Range = selection.getRangeAt(0);
-    range.deleteContents();
+    deleteSelectionForInsert(editable, range);
     const textNode: Text = document.createTextNode(value);
     range.insertNode(textNode);
     const after: Range = document.createRange();
@@ -1052,7 +1054,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     const selected: string = selection.toString() || fallbackText;
     const wrapper: HTMLElement = document.createElement(tagName);
     wrapper.textContent = selected;
-    range.deleteContents();
+    deleteSelectionForInsert(editable, range);
     range.insertNode(wrapper);
     const newRange: Range = document.createRange();
     newRange.selectNodeContents(wrapper);

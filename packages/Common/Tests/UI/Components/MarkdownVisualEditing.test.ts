@@ -5,6 +5,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
 import {
   caretAtEndOf,
+  deleteSelectionForInsert,
   insertBlocksAtCaret,
   isCaretOnEmptyLine,
 } from "../../../UI/Components/Markdown.tsx/MarkdownVisualEditing";
@@ -319,5 +320,117 @@ describe("caretAtEndOf", () => {
 
     expect(caret.startContainer).toBe(line);
     expect(caret.startOffset).toBe(0);
+  });
+});
+
+// A range from `startOffset` into the text holding `start` to `endOffset` into the text holding `end`.
+const rangeBetween: (
+  root: HTMLElement,
+  start: string,
+  startOffset: number,
+  end: string,
+  endOffset: number,
+) => Range = (
+  root: HTMLElement,
+  start: string,
+  startOffset: number,
+  end: string,
+  endOffset: number,
+): Range => {
+  const range: Range = caretAt(root, start, startOffset);
+  const endPoint: Range = caretAt(root, end, endOffset);
+  range.setEnd(endPoint.startContainer, endPoint.startOffset);
+  return range;
+};
+
+// What the caret is next to: the text before it in its text node, and its line.
+const caretText: (range: Range) => string = (range: Range): string => {
+  return (range.startContainer.textContent || "").slice(0, range.startOffset);
+};
+
+describe("deleteSelectionForInsert", () => {
+  /*
+   * Range.deleteContents alone left both items and the caret between them,
+   * straight inside the <ul>: a link pasted there showed in the editor and
+   * never reached the saved markdown.
+   */
+  it("joins what is left of the second list item to the first, with the caret at the join", () => {
+    const root: HTMLDivElement = mountMarkdown("- alpha\n- beta\n- gamma");
+    const range: Range = rangeBetween(root, "alpha", 2, "beta", 2);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(root.innerHTML).toBe("<ul><li>alta</li><li>gamma</li></ul>");
+    expect(range.collapsed).toBe(true);
+    expect(range.startContainer.parentElement?.tagName).toBe("LI");
+    expect(caretText(range)).toBe("al");
+  });
+
+  it("joins two paragraphs the same way", () => {
+    const root: HTMLDivElement = mountMarkdown("first para\n\nsecond para");
+    const range: Range = rangeBetween(root, "first", 2, "second", 2);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(root.innerHTML).toBe("<p>ficond para</p>");
+    expect(caretText(range)).toBe("fi");
+  });
+
+  /*
+   * A triple click selects an item up to the very start of the next one; a
+   * paste then replaces that item and leaves the next alone.
+   */
+  it("leaves the next line alone when the selection stops at its start", () => {
+    const root: HTMLDivElement = mountMarkdown("- alpha\n- beta\n- gamma");
+    const items: NodeListOf<HTMLLIElement> = root.querySelectorAll("li");
+    const range: Range = document.createRange();
+    range.setStart(items[1]?.firstChild as Node, 0);
+    range.setEnd(items[2] as Node, 0);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- alpha\n- \n- gamma");
+    expect(range.startContainer.parentElement).toBe(items[1]);
+  });
+
+  it("takes the joined item's nested list along to the item it joins", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "- alpha\n  - sub\n    - deep\n- beta",
+    );
+
+    deleteSelectionForInsert(root, rangeBetween(root, "alpha", 2, "sub", 2));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- alb\n  - deep\n- beta");
+  });
+
+  it("removes the list item it empties, and the list with it", () => {
+    const root: HTMLDivElement = mountMarkdown("first para\n\n- alpha");
+
+    deleteSelectionForInsert(root, rangeBetween(root, "first", 2, "alpha", 5));
+
+    expect(root.innerHTML).toBe("<p>fi</p>");
+  });
+
+  it("moves a caret that starts between list items into the item after it", () => {
+    const root: HTMLDivElement = mountMarkdown("- alpha\n- beta");
+    const list: Element = root.querySelector("ul") as Element;
+    const selection: Range = document.createRange();
+    selection.setStart(list, 1);
+    selection.setEnd(list.lastElementChild?.firstChild as Node, 2);
+
+    deleteSelectionForInsert(root, selection);
+
+    expect(selection.startContainer.nodeName).toBe("LI");
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- alpha\n- ta");
+  });
+
+  it("does nothing to a caret", () => {
+    const root: HTMLDivElement = mountMarkdown("- alpha\n- beta");
+    const range: Range = caretAt(root, "alpha", 2);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- alpha\n- beta");
+    expect(caretText(range)).toBe("al");
   });
 });
