@@ -973,6 +973,28 @@ describe("editing an incident form's questions", () => {
     expect(settingShownFor("category")).toBe("Not Asked");
   });
 
+  test("drops the question of a field that is gone, so a field made again with its key is not asked at once", async () => {
+    // "customer" was a field the form asked; it has since been deleted.
+    storedSettings = { customer: "Required", impact: "Optional" };
+
+    await renderFormCard();
+
+    await openEditor("Edit Questions");
+
+    choose("Category", "Optional");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({
+      impact: "Optional",
+      category: "Optional",
+    });
+  });
+
   test("the gate is an update of the form", async () => {
     await renderFormCard();
 

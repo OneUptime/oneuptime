@@ -43,7 +43,8 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
  *   - how a stored setting reads back in each mode;
  *   - what is saved: compacted, with Default (and on a form Not Asked) left
  *     out, a cleared dropdown meaning the same, and the settings of fields
- *     the form did not show kept as they were;
+ *     the form did not show kept as they were on a template - and dropped on
+ *     a form, whose public page must not ask a field nobody put there;
  *   - the inputs never travel as misc data, and never under a bare key.
  */
 
@@ -526,6 +527,42 @@ describe("what is saved", () => {
         mode: "template",
       }),
     ).toEqual({ impact: "Required", deleted_field: "Required" });
+  });
+
+  /*
+   * A form's settings are the questions on its public page. The question of
+   * a field deleted since would be asked of the next field that gets its key
+   * - made again under the same name, or any field whose name has no Latin
+   * letters, which all start from the key "field" - so a form keeps the
+   * questions of the fields it lists, and no others.
+   */
+  test("a form drops the question of a field no longer listed, whatever it was", () => {
+    expect(
+      packCustomFieldSettingsFormValues({
+        definitions: [IMPACT, CATEGORY],
+        formValues: { [key("impact")]: "Required" },
+        startingSettings: {
+          deleted_field: "Required",
+          field: "Optional",
+          category: "Optional",
+        },
+        mode: "form",
+      }),
+    ).toEqual({ impact: "Required", category: "Optional" });
+  });
+
+  test("a form keeps the stored question of a listed field it holds no value for", () => {
+    expect(
+      packCustomFieldSettingsFormValues({
+        definitions: [IMPACT, DURATION],
+        formValues: null,
+        startingSettings: {
+          estimated_duration: "Required",
+          deleted_field: "Optional",
+        },
+        mode: "form",
+      }),
+    ).toEqual({ estimated_duration: "Required" });
   });
 
   test("stored entries the server would refuse are dropped", () => {

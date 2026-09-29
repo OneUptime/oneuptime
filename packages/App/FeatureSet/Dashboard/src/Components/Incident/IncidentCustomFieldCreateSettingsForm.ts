@@ -354,9 +354,10 @@ export type PackCustomFieldSettingsFormValuesFunction = (data: {
   // Every value the form submitted.
   formValues: JSONObject | null | undefined;
   /*
-   * The settings stored before the edit. Kept for every key the form did not
-   * ask about - a field deleted since, whose key a field of the same name
-   * would get back.
+   * The settings stored before the edit. A template keeps them for every key
+   * the form did not ask about - a field deleted since, whose key a field of
+   * the same name gets back, gets its setting back with it (as the settings
+   * docs promise). A form keeps only the fields it asked about: see below.
    */
   startingSettings?: unknown;
   mode: IncidentCustomFieldSettingsMode;
@@ -368,6 +369,14 @@ export type PackCustomFieldSettingsFormValuesFunction = (data: {
  * and is left out, and so, on a form, is Not Asked (Hidden). A dropdown
  * somebody cleared means the same as those. Invalid stored entries are
  * dropped too, so what is saved is always a value the server accepts.
+ *
+ * A form's settings are its questions on a page anyone with the link can
+ * open, and a field is not asked until an admin adds it there. So a form
+ * keeps the stored setting of the fields it lists and of no other: the
+ * question for a field deleted since would otherwise stay, and put any new
+ * field that gets the same key - one made again with the same name, or any
+ * field whose name has no Latin letters ("field") - on the public page the
+ * moment it is created, name, description, options and all.
  */
 export const packCustomFieldSettingsFormValues: PackCustomFieldSettingsFormValuesFunction =
   (data: {
@@ -378,11 +387,30 @@ export const packCustomFieldSettingsFormValues: PackCustomFieldSettingsFormValue
   }): CustomFieldCreateSettings => {
     const formValues: JSONObject = data.formValues || {};
 
-    const settings: CustomFieldCreateSettings = readCustomFieldCreateSettings(
-      data.startingSettings,
-    );
+    const definitions: Array<KeyedIncidentCustomFieldDefinition> =
+      getKeyedCustomFieldDefinitions(data.definitions);
 
-    for (const definition of getKeyedCustomFieldDefinitions(data.definitions)) {
+    const storedSettings: CustomFieldCreateSettings =
+      readCustomFieldCreateSettings(data.startingSettings);
+
+    let settings: CustomFieldCreateSettings = storedSettings;
+
+    if (data.mode === "form") {
+      settings = {};
+
+      for (const definition of definitions) {
+        const stored: CustomFieldCreateSetting = getCustomFieldCreateSetting(
+          storedSettings,
+          definition.variableKey,
+        );
+
+        if (stored !== CustomFieldCreateSetting.Default) {
+          settings[definition.variableKey] = stored;
+        }
+      }
+    }
+
+    for (const definition of definitions) {
       const formKey: string = getCustomFieldSettingFormKey(
         definition.variableKey,
       );

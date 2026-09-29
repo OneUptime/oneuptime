@@ -65,8 +65,11 @@ import useAsyncEffect from "use-async-effect";
  *     reason when they cannot be read.
  *
  * Saving writes the compacted settings (Default and, on a form, Not Asked
- * are left out) with the record's other columns untouched. The settings of
- * fields the card does not list - a field deleted since - are kept.
+ * are left out) with the record's other columns untouched. A template keeps
+ * the settings of fields the card does not list - a field deleted since gets
+ * its setting back when it is made again. A form does not: a question for a
+ * field that is gone would be asked, on its public page, of any new field
+ * that gets the same key (packCustomFieldSettingsFormValues).
  */
 
 interface CommonProps {
