@@ -4,8 +4,9 @@ import {
   getSloBurnDownZoomRange,
   getSloIdealBurnPointsInWindow,
 } from "./SloBurnDownZoom";
-import SloChartZoomHint, {
+import {
   SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+  withSloChartZoomHint,
 } from "./SloChartZoomHint";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
@@ -226,36 +227,43 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     /*
      * The loader replaces the chart only before the first load. A refresh
      * after the next evaluation keeps the line up instead of flashing.
+     * Neither the error nor the loader takes a gesture.
      */
     if (!series.hasLoaded && series.error) {
-      return (
-        <ErrorMessage message={series.error} onRefreshClick={series.retry} />
+      return withSloChartZoomHint(
+        false,
+        <ErrorMessage message={series.error} onRefreshClick={series.retry} />,
       );
     }
 
     if (!series.hasLoaded) {
-      return <ComponentLoader />;
+      return withSloChartZoomHint(false, <ComponentLoader />);
     }
 
     if (series.points.length === 0 && zoomedTimeRange) {
       /*
        * A zoom into a stretch with no history leaves no chart to
-       * double-click, so the empty state takes the double-click instead.
+       * double-click, so the empty state takes the double-click instead;
+       * its text is not selectable, or that double-click would also
+       * select a word of it.
        */
-      return (
-        <div onDoubleClick={resetZoom}>
+      return withSloChartZoomHint(
+        true,
+        <div className="select-none" onDoubleClick={resetZoom}>
           <SloOverviewEmptyState
             dataTestId="slo-burn-down-empty"
             icon={IconProp.ChartBar}
             title="No budget history in the zoomed window"
             description="Double-click here, or use Reset zoom, to go back to the whole compliance window."
           />
-        </div>
+        </div>,
       );
     }
 
     if (series.points.length === 0) {
-      return (
+      // Nothing to drag, and no zoom to undo.
+      return withSloChartZoomHint(
+        false,
         <SloOverviewEmptyState
           dataTestId="slo-burn-down-empty"
           icon={IconProp.ChartBar}
@@ -265,7 +273,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
               : "No budget history yet"
           }
           description={`Each evaluation records the remaining budget, every ${SLO_EVALUATION_CADENCE_MINUTES} minutes. The line appears after the next one.`}
-        />
+        />,
       );
     }
 
@@ -347,7 +355,8 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       },
     ];
 
-    return (
+    return withSloChartZoomHint(
+      true,
       <div data-testid="slo-burn-down-chart">
         <LineChartElement
           data={data}
@@ -364,7 +373,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           }
           referenceLines={referenceLines}
         />
-      </div>
+      </div>,
     );
   };
 
@@ -386,7 +395,6 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           </div>
         }
       >
-        <SloChartZoomHint />
         {getBody()}
       </Card>
     </TimeRangeZoomProvider>

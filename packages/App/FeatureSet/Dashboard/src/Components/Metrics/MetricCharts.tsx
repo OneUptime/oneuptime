@@ -1760,6 +1760,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     setIsComponentVisible: setIsBucketInspectorVisible,
   } = useComponentOutsideClick(false);
 
+  /*
+   * Whether the inspector has been pressed since it opened. The click that
+   * opens it can be the first half of a double-click: with no zoom to
+   * reset, a chart acts on a click at once (see useDeferredChartClick).
+   * Clamped into the viewport, the inspector then opens under the pointer,
+   * and the rest of that double-click landed on it: the second press
+   * selected the word under the pointer, and its click pressed whatever
+   * button was there ("Investigate this moment" opened the drawer). Until
+   * a press of its own, the inspector ignores presses and clicks counted
+   * past the first (event.detail), which can only be that rest.
+   */
+  const bucketInspectorPressedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   const closeBucketInspector: VoidFunction = useCallback((): void => {
     setIsBucketInspectorVisible(false);
     setBucketInspector(null);
@@ -1812,6 +1826,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         BUCKET_INSPECTOR_HEIGHT_PX -
         EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
 
+      bucketInspectorPressedRef.current = false;
       setBucketInspector({
         title: input.title,
         bucketStart: input.bucketStart,
@@ -3547,11 +3562,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         : null}
       {bucketInspector && isBucketInspectorVisible
         ? ReactDOM.createPortal(
+            /*
+             * The chrome (title, row numbers, notes, buttons) is not
+             * selectable; the values are (select-text), so the window, a
+             * series name or a number can still be copied.
+             */
             <div
               ref={bucketInspectorRef}
               role="dialog"
               aria-label={`Values at ${OneUptimeDate.getDateAsFormattedString(bucketInspector.bucketStart)}`}
-              className="fixed z-50 w-[300px] rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              className="fixed z-50 w-[300px] select-none rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"
               style={{
                 left: `${bucketInspector.position.x}px`,
                 top: `${bucketInspector.position.y}px`,
@@ -3562,6 +3582,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   closeBucketInspector();
                 }
               }}
+              onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => {
+                if (event.detail <= 1) {
+                  bucketInspectorPressedRef.current = true;
+                  return;
+                }
+                if (!bucketInspectorPressedRef.current) {
+                  // The chart's double-click: select no word of this card.
+                  event.preventDefault();
+                }
+              }}
+              onClickCapture={(event: React.MouseEvent<HTMLDivElement>) => {
+                if (event.detail > 1 && !bucketInspectorPressedRef.current) {
+                  // Nor press the button it happens to land on.
+                  event.preventDefault();
+                  event.stopPropagation();
+                }
+              }}
             >
               <div className="border-b border-gray-100 px-3 py-2">
                 <p
@@ -3570,7 +3607,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 >
                   {bucketInspector.title}
                 </p>
-                <p className="mt-0.5 text-[11px] tabular-nums text-gray-500">
+                <p className="mt-0.5 select-text text-[11px] tabular-nums text-gray-500">
                   {OneUptimeDate.getInBetweenDatesAsFormattedString(
                     new InBetween<Date>(
                       bucketInspector.bucketStart,
@@ -3592,13 +3629,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                           key={entry.name}
                           className="flex items-baseline justify-between gap-3"
                         >
-                          <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
-                            <span className="mr-1.5 tabular-nums text-gray-400">
+                          <span className="min-w-0 flex-1 select-text truncate text-xs text-gray-700">
+                            <span className="mr-1.5 select-none tabular-nums text-gray-400">
                               {index + 1}.
                             </span>
                             {entry.name}
                           </span>
-                          <span className="shrink-0 text-xs font-medium tabular-nums text-gray-900">
+                          <span className="shrink-0 select-text text-xs font-medium tabular-nums text-gray-900">
                             {bucketInspector.formatValue(entry.value)}
                           </span>
                         </div>
