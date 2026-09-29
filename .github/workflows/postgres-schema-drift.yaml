@@ -157,6 +157,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentAlertPostgres.test.ts --forceExit
 
+      # Clones the migrated IncidentForm and IncidentFormSubmission tables
+      # (their foreign keys and the link key's unique constraint) into an
+      # isolated schema, so it must run after the registered migrations.
+      - name: Test incident forms on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INCIDENT_FORM_TESTS: "true"
+          INCIDENT_FORM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INCIDENT_FORM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INCIDENT_FORM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentFormPostgres.test.ts --forceExit
+
       # Clones the migrated UserProjectSsoConsent table (and its unique index)
       # into an isolated schema: two racing confirmations must leave one row.
       - name: Test project SSO consent records on migrated Postgres

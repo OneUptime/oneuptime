@@ -624,6 +624,12 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
+import IncidentFormService, {
+  Service as IncidentFormServiceType,
+} from "Common/Server/Services/IncidentFormService";
+import IncidentFormSubmissionService, {
+  Service as IncidentFormSubmissionServiceType,
+} from "Common/Server/Services/IncidentFormSubmissionService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -1287,6 +1293,8 @@ import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentForm from "Common/Models/DatabaseModels/IncidentForm";
+import IncidentFormSubmission from "Common/Models/DatabaseModels/IncidentFormSubmission";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 
@@ -4086,6 +4094,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
         IncidentNoteTemplate,
         IncidentNoteTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentForm, IncidentFormServiceType>(
+        IncidentForm,
+        IncidentFormService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentFormSubmission, IncidentFormSubmissionServiceType>(
+        IncidentFormSubmission,
+        IncidentFormSubmissionService,
       ).getRouter(),
     );
 

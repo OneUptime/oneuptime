@@ -1389,4 +1389,63 @@ export default class IncidentTemplate extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
+
+  /*
+   * Which custom fields the Declare Incident form asks for when an incident
+   * is declared from this template, and which of them it requires (issue
+   * #4114; see Types/CustomField/CustomFieldCreateSettings). Keyed by each
+   * field's template variable key rather than its name, so renaming a field
+   * keeps its setting.
+   *
+   * The same access as customFields: whoever may fill in a template's values
+   * may decide which of them are asked. IncidentTemplateService refuses a
+   * value that is not a valid settings object, and stores a valid one exactly
+   * as sent.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Custom Field Settings",
+    description:
+      "How the Declare Incident form treats each incident custom field when an incident is declared from this template, keyed by the field's template variable key (variableKey). Each value is Required (asked, must be filled in), Optional (asked, may be left empty), Hidden (not asked; the field keeps this template's value) or Default. A field that is not listed, or is Default, follows its own Show on Create and Required on Create settings. Only the dashboard's Declare Incident form applies these settings: incidents created through the API are not checked against them.",
+    example: {
+      impact: "Required",
+      affected_location: "Optional",
+      additional_information: "Hidden",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public customFieldSettings?: JSONObject = undefined;
 }

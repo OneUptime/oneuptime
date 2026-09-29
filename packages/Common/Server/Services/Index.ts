@@ -28,6 +28,8 @@ import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateServi
 import IncidentNoteTemplateService from "./IncidentNoteTemplateService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import IncidentFormService from "./IncidentFormService";
+import IncidentFormSubmissionService from "./IncidentFormSubmissionService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -506,6 +508,8 @@ const services: Array<BaseService> = [
   IncidentTemplateService,
   IncidentTemplateOwnerTeamService,
   IncidentTemplateOwnerUserService,
+  IncidentFormService,
+  IncidentFormSubmissionService,
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,
