@@ -788,3 +788,101 @@ describe("deleteSelectionForInsert", () => {
     expect(caretText(range)).toBe("al");
   });
 });
+
+/*
+ * A selection that runs from one table cell into another is deleted the way
+ * typing over it does: both cells stay, and every row keeps its columns.
+ * Joined like two lines, the second cell's text moved into the first, the
+ * emptied cell went, and the cells after it each moved a column left.
+ */
+describe("deleteSelectionForInsert across table cells", () => {
+  const TABLE: string =
+    "| A | B | C |\n| --- | --- | --- |\n| Cell 1 | Cell 2 | Cell 3 |\n| Cell 4 | Cell 5 | Cell 6 |";
+
+  // The text of each row's cells.
+  const rowsOf: (root: HTMLElement) => Array<Array<string>> = (
+    root: HTMLElement,
+  ): Array<Array<string>> => {
+    return Array.from(root.querySelectorAll("tr")).map(
+      (row: HTMLTableRowElement): Array<string> => {
+        return Array.from(row.children).map((cell: Element): string => {
+          return cell.textContent || "";
+        });
+      },
+    );
+  };
+
+  it("keeps both cells of a selection from one cell into the next", () => {
+    const root: HTMLDivElement = mountMarkdown(TABLE);
+    const range: Range = rangeBetween(root, "Cell 1", 2, "Cell 2", 2);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(rowsOf(root)).toEqual([
+      ["A", "B", "C"],
+      ["Ce", "ll 2", "Cell 3"],
+      ["Cell 4", "Cell 5", "Cell 6"],
+    ]);
+    expect(range.startContainer.parentElement?.tagName).toBe("TD");
+    expect(caretText(range)).toBe("Ce");
+  });
+
+  it("keeps every column of a selection from the header into the body", () => {
+    const root: HTMLDivElement = mountMarkdown(TABLE);
+
+    deleteSelectionForInsert(root, rangeBetween(root, "C", 0, "Cell 1", 4));
+
+    expect(rowsOf(root)).toEqual([
+      ["A", "B", ""],
+      [" 1", "Cell 2", "Cell 3"],
+      ["Cell 4", "Cell 5", "Cell 6"],
+    ]);
+  });
+
+  it("keeps every column of a selection from one row into the next", () => {
+    const root: HTMLDivElement = mountMarkdown(TABLE);
+
+    deleteSelectionForInsert(
+      root,
+      rangeBetween(root, "Cell 3", 2, "Cell 4", 2),
+    );
+
+    expect(rowsOf(root)).toEqual([
+      ["A", "B", "C"],
+      ["Cell 1", "Cell 2", "Ce"],
+      ["ll 4", "Cell 5", "Cell 6"],
+    ]);
+  });
+
+  it("keeps a table a selection from the line above it ends in", () => {
+    const root: HTMLDivElement = mountMarkdown(`intro\n\n${TABLE}`);
+
+    deleteSelectionForInsert(root, rangeBetween(root, "intro", 2, "Cell 1", 4));
+
+    expect(root.querySelector("p")?.textContent).toBe("in");
+    expect(rowsOf(root)).toContainEqual([" 1", "Cell 2", "Cell 3"]);
+  });
+
+  /*
+   * Ctrl+A in Chromium and Safari ends the selection inside the last cell's
+   * text: the table it empties goes, rather than being saved empty.
+   */
+  it("removes a table the selection empties, when the caret is not in it", () => {
+    const root: HTMLDivElement = mountMarkdown(`intro\n\n${TABLE}`);
+
+    deleteSelectionForInsert(root, rangeBetween(root, "intro", 0, "Cell 6", 6));
+
+    expect(root.querySelector("table")).toBeNull();
+    expect(root.textContent).toBe("");
+  });
+
+  // Chromium's own rule: a cell's text joins the line after the table.
+  it("still joins the line after a table to the cell a selection starts in", () => {
+    const root: HTMLDivElement = mountMarkdown(`${TABLE}\n\nafter`);
+
+    deleteSelectionForInsert(root, rangeBetween(root, "Cell 6", 2, "after", 2));
+
+    expect(rowsOf(root)[2]).toEqual(["Cell 4", "Cell 5", "Ceter"]);
+    expect(root.querySelector("p")).toBeNull();
+  });
+});

@@ -1353,6 +1353,62 @@ describe("MarkdownEditor paste in the visual editor", () => {
     expect(lastChange(onChange)).toContain("ga`mma");
   });
 
+  /*
+   * Typed over, a selection from one table cell into the next keeps both
+   * cells. The paste joined them like two lines: the emptied cell went, and
+   * "Cell 3" moved under column B.
+   */
+  test("keeps both cells of a table a formatted paste runs across", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={
+          "| A | B | C |\n| --- | --- | --- |\n| Cell 1 | Cell 2 | Cell 3 |"
+        }
+        onChange={onChange}
+      />,
+    );
+    selectText("Cell 1", 2, "Cell 2", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": '<a href="https://x.test/">L</a>',
+        "text/plain": "L",
+      }),
+    });
+
+    const rows: Array<string> = lastChange(onChange).split("\n");
+    expect(rows).toHaveLength(3);
+    expect(
+      (rows[2] || "").split("|").map((cell: string): string => {
+        return cell.trim();
+      }),
+    ).toEqual(["", "Ce[L](https://x.test/)", "ll 2", "Cell 3", ""]);
+  });
+
+  test("the Code button keeps both cells of a table it runs across", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={
+          "| A | B | C |\n| --- | --- | --- |\n| Cell 1 | Cell 2 | Cell 3 |"
+        }
+        onChange={onChange}
+      />,
+    );
+    selectText("Cell 1", 2, "Cell 2", 2);
+
+    fireEvent.click(screen.getByTitle("Code"));
+
+    const cells: Array<string> = Array.from(
+      editableOf().querySelectorAll("tbody td"),
+    ).map((cell: Element): string => {
+      return cell.textContent || "";
+    });
+    expect(cells).toHaveLength(3);
+    expect(cells.slice(1)).toEqual(["ll 2", "Cell 3"]);
+  });
+
   test("pastes into a code block as the plain text it is", () => {
     const onChange: jest.Mock = jest.fn();
     render(

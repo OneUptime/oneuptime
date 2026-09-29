@@ -617,6 +617,22 @@ const lineOf: (editable: HTMLElement, node: Node) => Node = (
   return editable;
 };
 
+// The table cell `node` is in, if it is in one inside the editor.
+const cellOf: (editable: HTMLElement, node: Node) => Element | null = (
+  editable: HTMLElement,
+  node: Node,
+): Element | null => {
+  let current: Node | null = node;
+  while (current && current !== editable) {
+    const tag: string = tagOf(current);
+    if (tag === "td" || tag === "th") {
+      return current as Element;
+    }
+    current = current.parentNode;
+  }
+  return null;
+};
+
 /*
  * Whether the range takes any of `line` -- not merely reaches its start, as
  * a triple click or Shift+Down that stops at the next line does.
@@ -653,6 +669,29 @@ const removeEmptiedLine: (line: Node, editable: HTMLElement) => void = (
     const empty: Node = parent;
     parent = parent.parentNode;
     parent?.removeChild(empty);
+  }
+};
+
+/*
+ * The table a selection ended in, removed when the selection emptied all of
+ * it -- Ctrl+A over a note that ends in a table, which Chromium and Safari
+ * end inside the last cell's text -- so it is not saved as an empty table.
+ * Only the whole table goes, and only when the caret is not in it: a cell
+ * on its own never does, or every cell after it would move a column left.
+ */
+const removeEmptiedTable: (cell: Element, range: Range) => void = (
+  cell: Element,
+  range: Range,
+): void => {
+  const table: Element | null = cell.closest("table");
+  if (
+    table &&
+    table.isConnected &&
+    !table.contains(range.startContainer) &&
+    !RE_SHOWN_TEXT.test(table.textContent || "") &&
+    table.querySelector(CONTENT_ELEMENT_SELECTOR) === null
+  ) {
+    table.parentNode?.removeChild(table);
   }
 };
 
@@ -775,10 +814,21 @@ export const deleteSelectionForInsert: (
   const startOffset: number = range.startOffset;
   const startLine: Node = lineOf(editable, startNode);
   const endLine: Node = lineOf(editable, range.endContainer);
+  /*
+   * A table cell the selection ends in is never joined to where it started:
+   * typed over, a selection from one cell into the next keeps both, and the
+   * row keeps its columns. Joined, the cell's text moved into the first one,
+   * the emptied cell went, and every cell after it moved a column left --
+   * under the wrong header.
+   */
+  const endCell: Element | null = cellOf(editable, range.endContainer);
+  const endsInAnotherCell: boolean =
+    endCell !== null && !endCell.contains(startNode);
   const joins: boolean =
     startLine !== endLine &&
     startLine !== editable &&
     endLine !== editable &&
+    !endsInAnotherCell &&
     !endLine.contains(startLine) &&
     selectsIntoLine(range, endLine);
   range.deleteContents();
@@ -790,6 +840,8 @@ export const deleteSelectionForInsert: (
   range.collapse(true);
   if (joins && endLine.isConnected && startLine.isConnected) {
     joinLineAtCaret(range, startLine, endLine, editable);
+  } else if (endsInAnotherCell && endCell) {
+    removeEmptiedTable(endCell, range);
   }
   moveCaretIntoLine(range);
 };
