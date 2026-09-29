@@ -261,6 +261,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
           data={pivotedData}
           margin={margin}
           onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
           onMouseMove={selection.onMouseMove}
           onMouseUp={selection.onMouseUp}
           {...chartCursor}
@@ -290,6 +291,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
           data={pivotedData}
           margin={margin}
           onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
           onMouseMove={selection.onMouseMove}
           onMouseUp={selection.onMouseUp}
           {...chartCursor}
@@ -324,6 +326,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
         barCategoryGap="18%"
         barGap={0}
         onMouseDown={selection.onMouseDown}
+        {...selection.chartRootProps}
         onMouseMove={selection.onMouseMove}
         onMouseUp={selection.onMouseUp}
         {...chartCursor}

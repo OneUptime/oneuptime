@@ -830,6 +830,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   data={pivotedData}
                   margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
                   onMouseDown={selection.onMouseDown}
+                  {...selection.chartRootProps}
                   onMouseMove={selection.onMouseMove}
                   onMouseUp={selection.onMouseUp}
                   {...chartRootCursorProps}
@@ -875,6 +876,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   data={pivotedData}
                   margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
                   onMouseDown={selection.onMouseDown}
+                  {...selection.chartRootProps}
                   onMouseMove={selection.onMouseMove}
                   onMouseUp={selection.onMouseUp}
                   {...chartRootCursorProps}
@@ -903,6 +905,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 barCategoryGap="20%"
                 barGap={0}
                 onMouseDown={selection.onMouseDown}
+                {...selection.chartRootProps}
                 onMouseMove={selection.onMouseMove}
                 onMouseUp={selection.onMouseUp}
                 {...chartRootCursorProps}

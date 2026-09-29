@@ -165,8 +165,13 @@ describe("LogsHistogram — dragging out a time range", () => {
     test("is held shut for the length of the drag", () => {
       renderHistogram();
 
+      /*
+       * A press alone is still a click: it renders nothing (a render under
+       * the press could take its dblclick away), so the tooltip stays
+       * until the drag leaves the pressed bar.
+       */
       fireEvent.mouseDown(bucketAt(FIRST_BUCKET));
-      expect(isTooltipSuppressed()).toBe(true);
+      expect(tooltipActiveProp()).toBe("undefined");
 
       fireEvent.mouseMove(bucketAt(MIDDLE_BUCKET));
       expect(isTooltipSuppressed()).toBe(true);
@@ -240,15 +245,22 @@ describe("LogsHistogram — dragging out a time range", () => {
       expect(selectionBand()?.getAttribute("data-x2")).toBe(LAST_BUCKET);
     });
 
-    test("follows the pointer back and forth across the chart", () => {
+    test("follows the pointer back and forth across the chart, always in time order", () => {
       renderHistogram();
 
+      /*
+       * recharts draws a band's x1 from the left edge of its bar and x2 to
+       * the right edge of its own, so the band runs earlier bar to later
+       * bar whichever way the drag goes.
+       */
       fireEvent.mouseDown(bucketAt(LAST_BUCKET));
       fireEvent.mouseMove(bucketAt(FIRST_BUCKET));
-      expect(selectionBand()?.getAttribute("data-x2")).toBe(FIRST_BUCKET);
+      expect(selectionBand()?.getAttribute("data-x1")).toBe(FIRST_BUCKET);
+      expect(selectionBand()?.getAttribute("data-x2")).toBe(LAST_BUCKET);
 
       fireEvent.mouseMove(bucketAt(MIDDLE_BUCKET));
-      expect(selectionBand()?.getAttribute("data-x2")).toBe(MIDDLE_BUCKET);
+      expect(selectionBand()?.getAttribute("data-x1")).toBe(MIDDLE_BUCKET);
+      expect(selectionBand()?.getAttribute("data-x2")).toBe(LAST_BUCKET);
     });
 
     test("is cleared once the range has been handed to the parent", () => {

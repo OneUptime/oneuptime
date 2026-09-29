@@ -4,6 +4,8 @@ import {
   getHistogramSelectionWindow,
 } from "./HistogramSelection";
 import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "../ChartLibrary/Utils/DoubleClick";
+import { RANGE_SELECTION_THROTTLED_EVENTS } from "../ChartLibrary/Utils/UseChartRangeSelection";
+import OneUptimeDate from "../../../../Types/Date";
 
 /*
  * The part of recharts' chart state the handlers read. `activeLabel` is the
@@ -24,18 +26,44 @@ export interface HistogramRangeSelectionOptions {
 }
 
 export interface HistogramRangeSelectionState {
-  /** Bucket labels the selection band spans, or null while there is none. */
+  /*
+   * Labels of the first and last bar (in time order) the selection band
+   * spans, or null while there is none.
+   */
   selectionStart: string | null;
   selectionEnd: string | null;
-  /** True between the press and the release of a selection. */
+  /*
+   * True while a selection drags across bars - from the move that leaves
+   * the pressed bar to the release. A press that stays put is a click.
+   */
   isDragging: boolean;
   /** Whether a click on a single bar zooms into it. */
   canClickToZoom: boolean;
+  /*
+   * Spread onto the host's recharts chart root. recharts works out the bar
+   * under the pointer a frame after each mousemove by default, but hands
+   * mousedown and mouseup over at once, with the bar it last worked out -
+   * so a quick drag started a bar early or lost its last bars; a
+   * selectable histogram takes mousemove unthrottled (see
+   * RANGE_SELECTION_THROTTLED_EVENTS). Empty when nothing can be selected,
+   * which leaves recharts' default alone.
+   */
+  chartRootProps: HistogramChartRootProps;
   onMouseDown: (state?: HistogramPointerState | null) => void;
   onMouseMove: (state?: HistogramPointerState | null) => void;
   onMouseUp: (state?: HistogramPointerState | null) => void;
   onDoubleClick: () => void;
 }
+
+export interface HistogramChartRootProps {
+  throttledEvents?: ReadonlyArray<keyof GlobalEventHandlersEventMap>;
+}
+
+const SELECTABLE_CHART_ROOT_PROPS: HistogramChartRootProps = {
+  throttledEvents: RANGE_SELECTION_THROTTLED_EVENTS,
+};
+
+const INERT_CHART_ROOT_PROPS: HistogramChartRootProps = {};
 
 export type UseHistogramRangeSelectionFunction = (
   options: HistogramRangeSelectionOptions,
@@ -51,6 +79,27 @@ function toLabel(state?: HistogramPointerState | null): string | null {
   return String(label);
 }
 
+/*
+ * Two bars' labels in time order. recharts draws a band's x1 from the left
+ * edge of its bar and x2 to the right edge of its own, so a band in drag
+ * order shaded neither end bar of a right-to-left drag (and nothing at all
+ * across two neighbours). Labels that are not dates keep their order.
+ */
+function inTimeOrder(first: string, second: string): [string, string] {
+  const firstMs: number = OneUptimeDate.fromString(first).getTime();
+  const secondMs: number = OneUptimeDate.fromString(second).getTime();
+
+  if (
+    Number.isFinite(firstMs) &&
+    Number.isFinite(secondMs) &&
+    secondMs < firstMs
+  ) {
+    return [second, first];
+  }
+
+  return [first, second];
+}
+
 /**
  * Click-or-drag range selection on a time histogram.
  *
@@ -63,12 +112,16 @@ function toLabel(state?: HistogramPointerState | null): string | null {
  *   double-click cancels it. An unzoomed chart has no double-click gesture
  *   and zooms at once.
  *
- * The release is resolved against refs rather than render state. Recharts
- * delivers `mousemove` on the next animation frame but `mousedown` and
- * `mouseup` straight away, so a quick drag is routinely released before its
- * last move has been rendered - or before any move has arrived at all. The
- * bar under the pointer at release time, which recharts hands to the
- * `mouseup` handler, is the most current answer and wins.
+ * The release is resolved against refs rather than render state, from the
+ * bar recharts hands the `mouseup` handler, falling back to the last move.
+ * That bar is the one under the pointer now only if the host spreads
+ * `chartRootProps` onto its chart root (see the field).
+ *
+ * A press renders nothing until the pointer leaves its bar. A render under
+ * a press can take away the node it landed on (a band repainted under the
+ * pointer, say), and a press whose node is gone by the release gets no
+ * click and no dblclick - the second click of a double-click lands on the
+ * band the first one painted.
  */
 const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   options: HistogramRangeSelectionOptions,
@@ -76,6 +129,13 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  // Whether the pointer has left the pressed bar (a drag, not a click).
+  const hasLeftPressedBar: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  // The page-wide mouseup listener of the press in progress, if any.
+  const releaseListener: React.MutableRefObject<(() => void) | null> = useRef<
+    (() => void) | null
+  >(null);
 
   /*
    * The ref stays the authority on whether a selection is in progress, so a
@@ -114,6 +174,13 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     setSelectionEnd(null);
   }, []);
 
+  const stopListeningForRelease: () => void = useCallback((): void => {
+    if (releaseListener.current) {
+      window.removeEventListener("mouseup", releaseListener.current);
+      releaseListener.current = null;
+    }
+  }, []);
+
   const cancelPendingClick: () => boolean = useCallback((): boolean => {
     if (pendingClick.current === null) {
       return false;
@@ -127,8 +194,17 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   useEffect(() => {
     return () => {
       cancelPendingClick();
+      stopListeningForRelease();
     };
-  }, [cancelPendingClick]);
+  }, [cancelPendingClick, stopListeningForRelease]);
+
+  /*
+   * The page-wide release listener is added by a press and calls the
+   * newest onMouseUp, whatever the host re-rendered with meanwhile.
+   */
+  const onMouseUpRef: React.MutableRefObject<
+    (state?: HistogramPointerState | null) => void
+  > = useRef<(state?: HistogramPointerState | null) => void>(() => {});
 
   const onMouseDown: (state?: HistogramPointerState | null) => void =
     useCallback(
@@ -139,29 +215,56 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
           return;
         }
 
-        // A second press before the first click zoomed replaces it.
+        /*
+         * A second press before the first click zoomed replaces it. The
+         * band that click painted stays until this press ends: this may be
+         * the second click of a double-click, landing on that band.
+         */
         cancelPendingClick();
 
         isSelecting.current = true;
+        hasLeftPressedBar.current = false;
         startLabel.current = label;
         endLabel.current = null;
-        setIsDragging(true);
-        setSelectionStart(label);
-        setSelectionEnd(null);
+
+        /*
+         * Readers routinely drag past the edge of a 120px-tall chart and
+         * let go outside it, where the chart's own mouseup never fires.
+         * Listen on the page until the press ends; a release over the chart
+         * reaches the chart's handler first, which removes this listener
+         * before the page hears it.
+         */
+        stopListeningForRelease();
+        const finishPressOutsideChart: () => void = (): void => {
+          onMouseUpRef.current(null);
+        };
+        releaseListener.current = finishPressOutsideChart;
+        window.addEventListener("mouseup", finishPressOutsideChart);
       },
-      [canSelect, cancelPendingClick],
+      [canSelect, cancelPendingClick, stopListeningForRelease],
     );
 
   const onMouseMove: (state?: HistogramPointerState | null) => void =
     useCallback((state?: HistogramPointerState | null): void => {
       const label: string | null = toLabel(state);
+      const from: string | null = startLabel.current;
 
-      if (!isSelecting.current || !label) {
+      if (!isSelecting.current || !label || !from) {
         return;
       }
 
       endLabel.current = label;
-      setSelectionEnd(label);
+
+      // Still on the pressed bar: a click so far, so paint nothing.
+      if (!hasLeftPressedBar.current && label === from) {
+        return;
+      }
+
+      hasLeftPressedBar.current = true;
+      const [first, last]: [string, string] = inTimeOrder(from, label);
+      setSelectionStart(first);
+      setSelectionEnd(last);
+      setIsDragging(true);
     }, []);
 
   const onMouseUp: (state?: HistogramPointerState | null) => void = useCallback(
@@ -171,6 +274,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       }
 
       isSelecting.current = false;
+      stopListeningForRelease();
       setIsDragging(false);
 
       const from: string | null = startLabel.current;
@@ -209,6 +313,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
        * to open.
        */
       endLabel.current = to;
+      setSelectionStart(from);
       setSelectionEnd(to);
 
       pendingClick.current = setTimeout(() => {
@@ -217,8 +322,9 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
         onTimeRangeSelectRef.current?.(selected.startTime, selected.endTime);
       }, DOUBLE_CLICK_DISAMBIGUATION_MS);
     },
-    [bucketIntervalMs, clearSelection, onZoomOut],
+    [bucketIntervalMs, clearSelection, onZoomOut, stopListeningForRelease],
   );
+  onMouseUpRef.current = onMouseUp;
 
   const onDoubleClick: () => void = useCallback((): void => {
     if (cancelPendingClick()) {
@@ -227,28 +333,6 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
 
     onZoomOut?.();
   }, [cancelPendingClick, clearSelection, onZoomOut]);
-
-  /*
-   * Readers routinely drag past the edge of a 120px-tall chart and let go
-   * outside it, where the chart's own mouseup never fires. Without this the
-   * drag would never end: the selection band would stay painted and the
-   * tooltip would stay suppressed until the next click.
-   */
-  useEffect(() => {
-    if (!isDragging) {
-      return undefined;
-    }
-
-    const finishDragOutsideChart: () => void = (): void => {
-      onMouseUp(null);
-    };
-
-    window.addEventListener("mouseup", finishDragOutsideChart);
-
-    return () => {
-      window.removeEventListener("mouseup", finishDragOutsideChart);
-    };
-  }, [isDragging, onMouseUp]);
 
   return {
     selectionStart: selectionStart,
@@ -259,6 +343,9 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       typeof bucketIntervalMs === "number" &&
       Number.isFinite(bucketIntervalMs) &&
       bucketIntervalMs > 0,
+    chartRootProps: canSelect
+      ? SELECTABLE_CHART_ROOT_PROPS
+      : INERT_CHART_ROOT_PROPS,
     onMouseDown: onMouseDown,
     onMouseMove: onMouseMove,
     onMouseUp: onMouseUp,

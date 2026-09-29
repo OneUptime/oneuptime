@@ -449,6 +449,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
               margin={{ top: 4, right: 4, bottom: 0, left: -12 }}
               barCategoryGap="20%"
               onMouseDown={selection.onMouseDown}
+              {...selection.chartRootProps}
               onMouseMove={selection.onMouseMove}
               onMouseUp={selection.onMouseUp}
               style={{ cursor: "crosshair" }}

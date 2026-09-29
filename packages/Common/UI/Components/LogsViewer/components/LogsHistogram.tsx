@@ -181,6 +181,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             data={pivotedData}
             margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
             onMouseDown={selection.onMouseDown}
+            {...selection.chartRootProps}
             onMouseMove={selection.onMouseMove}
             onMouseUp={selection.onMouseUp}
             barCategoryGap="15%"

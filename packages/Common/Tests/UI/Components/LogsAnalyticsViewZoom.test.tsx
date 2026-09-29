@@ -474,7 +474,18 @@ describe("the timeseries zooms the viewer it sits in", () => {
       "undefined",
     );
 
+    /*
+     * A press alone is still a click: it renders nothing (a render under
+     * the press could take its dblclick away), so the tooltip stays.
+     */
     fireEvent.mouseDown(screen.getByTestId(`bucket-${BUCKET_A}`));
+    expect(screen.getByTestId("tooltip")).toHaveAttribute(
+      "data-active",
+      "undefined",
+    );
+
+    // The drag leaves the pressed bar: the tooltip is held shut.
+    fireEvent.mouseMove(screen.getByTestId(`bucket-${BUCKET_B}`));
     expect(screen.getByTestId("tooltip")).toHaveAttribute(
       "data-active",
       "false",

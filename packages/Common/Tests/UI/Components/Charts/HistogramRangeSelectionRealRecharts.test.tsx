@@ -13,18 +13,14 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  * in for, and the pointer goes to the plot at the x recharts drew each
  * bar's tick label at.
  *
- * The histogram hosts hand recharts none of the settings the chart cores
- * do, so recharts still holds every mousemove for the next animation frame
- * while it hands mousedown and mouseup over at once, with the bar its store
- * last worked out. A drag whose moves each get a frame works; the cases
- * marked "known bug" do not, and are kept as `test.failing` until the
- * source is fixed - when one starts passing, drop its `.failing`:
- *
- * - a quick flick released in the frame of its last move ends where the
- *   previous move landed;
- * - a press in the frame the pointer arrived starts on the bar before;
- * - the live band runs in drag order, so a right-to-left drag shades
- *   neither end bar (and nothing at all across two bars).
+ * By default recharts holds every mousemove for the next animation frame
+ * but hands mousedown and mouseup over at once, with the bar its store last
+ * worked out. The histogram hosts now pass the hook's throttledEvents to
+ * their chart roots, as the chart cores do, so the last three cases hold -
+ * each failed before (a quick flick released in the frame of its last move
+ * ended where the previous move landed; a press in the frame the pointer
+ * arrived started on the bar before; the live band ran in drag order, so a
+ * right-to-left drag shaded neither end bar).
  */
 
 jest.mock("recharts", () => {
@@ -421,6 +417,64 @@ for (const histogram of HISTOGRAMS) {
       expect(onTimeRangeSelect).not.toHaveBeenCalled();
     });
 
+    /*
+     * The first click of a double-click on a zoomed chart paints its bar's
+     * band while it waits, so the second press lands on that band. A press
+     * used to repaint the band (it reset the selection), which took the node
+     * the press landed on out of the page: the browser then sends that click
+     * no dblclick, and the chart stayed zoomed.
+     */
+    test("while zoomed, the second press of a double-click leaves the band it lands on in place", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      const onZoomOut: MockFunction = getJestMockFunction();
+      renderHistogram(histogram, {
+        onTimeRangeSelect: onTimeRangeSelect,
+        onZoomOut: onZoomOut,
+        bucketIntervalMs: MINUTE_MS,
+      });
+
+      restOn("10:04");
+      press("10:04");
+      releaseAt("10:04");
+      const band: Element | null = chartContainer().querySelector(
+        ".recharts-reference-area-rect",
+      );
+      expect(band).not.toBeNull();
+
+      press("10:04");
+      expect(band!.isConnected).toBe(true);
+      releaseAt("10:04");
+      expect(band!.isConnected).toBe(true);
+      fireEvent.doubleClick(plotSurface(), {
+        clientX: tickX("10:04"),
+        clientY: PLOT_Y,
+        button: 0,
+        detail: 2,
+      });
+      act(() => {
+        jest.advanceTimersByTime(DOUBLE_CLICK_DISAMBIGUATION_MS * 2);
+      });
+
+      expect(onZoomOut).toHaveBeenCalledTimes(1);
+      expect(onTimeRangeSelect).not.toHaveBeenCalled();
+    });
+
+    test("a press alone paints no band; the drag's first move to another bar does", () => {
+      renderHistogram(histogram, {
+        onTimeRangeSelect: getJestMockFunction(),
+        bucketIntervalMs: MINUTE_MS,
+      });
+
+      restOn("10:04");
+      press("10:04");
+      nextFrame();
+      expect(drawnBand()).toBeNull();
+
+      dragTo("10:05");
+      nextFrame();
+      expect(drawnBand()).not.toBeNull();
+    });
+
     test("while zoomed, a single click on a bar zooms into it once the double-click window has passed", () => {
       const onTimeRangeSelect: MockFunction = getJestMockFunction();
       renderHistogram(histogram, {
@@ -442,74 +496,65 @@ for (const histogram of HISTOGRAMS) {
       ]);
     });
 
-    test.failing(
-      "a quick flick released in the frame of its last move covers the bar it was released on [known bug: mousemove held a frame; selects 10:02-10:04]",
-      () => {
-        const onTimeRangeSelect: MockFunction = getJestMockFunction();
-        renderHistogram(histogram, {
-          onTimeRangeSelect: onTimeRangeSelect,
-          bucketIntervalMs: MINUTE_MS,
-        });
+    test("a quick flick released in the frame of its last move covers the bar it was released on", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      renderHistogram(histogram, {
+        onTimeRangeSelect: onTimeRangeSelect,
+        bucketIntervalMs: MINUTE_MS,
+      });
 
-        restOn("10:02");
-        press("10:02");
-        nextFrame();
-        dragTo("10:03");
-        nextFrame();
-        // The last move and the release land in the same frame.
-        dragTo("10:06");
-        releaseAt("10:06");
+      restOn("10:02");
+      press("10:02");
+      nextFrame();
+      dragTo("10:03");
+      nextFrame();
+      // The last move and the release land in the same frame.
+      dragTo("10:06");
+      releaseAt("10:06");
 
-        expect(selections(onTimeRangeSelect)).toEqual([
-          zoomWindow("10:02", "10:07"),
-        ]);
-      },
-    );
+      expect(selections(onTimeRangeSelect)).toEqual([
+        zoomWindow("10:02", "10:07"),
+      ]);
+    });
 
-    test.failing(
-      "a press in the frame the pointer arrived starts on the bar it arrived at [known bug: mousemove held a frame; starts on 10:01]",
-      () => {
-        const onTimeRangeSelect: MockFunction = getJestMockFunction();
-        renderHistogram(histogram, {
-          onTimeRangeSelect: onTimeRangeSelect,
-          bucketIntervalMs: MINUTE_MS,
-        });
+    test("a press in the frame the pointer arrived starts on the bar it arrived at", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      renderHistogram(histogram, {
+        onTimeRangeSelect: onTimeRangeSelect,
+        bucketIntervalMs: MINUTE_MS,
+      });
 
-        restOn("10:01");
-        // The pointer darts to 10:02 and presses in the same frame.
-        hover("10:02");
-        press("10:02");
-        nextFrame();
-        dragTo("10:05");
-        nextFrame();
-        releaseAt("10:05");
+      restOn("10:01");
+      // The pointer darts to 10:02 and presses in the same frame.
+      hover("10:02");
+      press("10:02");
+      nextFrame();
+      dragTo("10:05");
+      nextFrame();
+      releaseAt("10:05");
 
-        expect(selections(onTimeRangeSelect)).toEqual([
-          zoomWindow("10:02", "10:06"),
-        ]);
-      },
-    );
+      expect(selections(onTimeRangeSelect)).toEqual([
+        zoomWindow("10:02", "10:06"),
+      ]);
+    });
 
-    test.failing(
-      "a right-to-left drag's band covers both end bars [known bug: band drawn in drag order]",
-      () => {
-        renderHistogram(histogram, {
-          onTimeRangeSelect: getJestMockFunction(),
-          bucketIntervalMs: MINUTE_MS,
-        });
+    test("a right-to-left drag's band covers both end bars", () => {
+      renderHistogram(histogram, {
+        onTimeRangeSelect: getJestMockFunction(),
+        bucketIntervalMs: MINUTE_MS,
+      });
 
-        restOn("10:06");
-        press("10:06");
-        nextFrame();
-        dragTo("10:03");
-        nextFrame();
+      restOn("10:06");
+      press("10:06");
+      nextFrame();
+      dragTo("10:03");
+      nextFrame();
 
-        const halfBar: number = (tickX("10:01") - tickX("10:00")) / 2;
-        const band: BandEdges | null = drawnBand();
-        expect(band).not.toBeNull();
-        expect(band!.left).toBeCloseTo(tickX("10:03") - halfBar, 1);
-        expect(band!.right).toBeCloseTo(tickX("10:06") + halfBar, 1);
-      },
-    );
+      const halfBar: number = (tickX("10:01") - tickX("10:00")) / 2;
+      const band: BandEdges | null = drawnBand();
+      expect(band).not.toBeNull();
+      expect(band!.left).toBeCloseTo(tickX("10:03") - halfBar, 1);
+      expect(band!.right).toBeCloseTo(tickX("10:06") + halfBar, 1);
+    });
   });
 }

@@ -289,6 +289,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             data={pivotedData}
             margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
             onMouseDown={selection.onMouseDown}
+            {...selection.chartRootProps}
             onMouseMove={selection.onMouseMove}
             onMouseUp={selection.onMouseUp}
             {...chartCursor}
@@ -312,6 +313,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           data={pivotedData}
           margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
           onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
           onMouseMove={selection.onMouseMove}
           onMouseUp={selection.onMouseUp}
           {...chartCursor}
@@ -342,6 +344,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
         barCategoryGap="18%"
         barGap={0}
         onMouseDown={selection.onMouseDown}
+        {...selection.chartRootProps}
         onMouseMove={selection.onMouseMove}
         onMouseUp={selection.onMouseUp}
         {...chartCursor}

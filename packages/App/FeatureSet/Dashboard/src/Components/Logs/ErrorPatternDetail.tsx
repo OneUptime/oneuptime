@@ -303,6 +303,7 @@ const Timeline: FunctionComponent<TimelineProps> = (
           barCategoryGap="10%"
           barGap={0}
           onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
           onMouseMove={selection.onMouseMove}
           onMouseUp={selection.onMouseUp}
           {...chartRootCursorProps}
