@@ -776,6 +776,7 @@ const FormField: <T extends GenericObject>(
               dataTestId={props.field.dataTestId}
               tabIndex={0}
               disableSpellCheck={props.field.disableSpellCheck}
+              allowImageUpload={props.field.allowImageUpload}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
