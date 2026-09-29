@@ -22,13 +22,24 @@ import {
   CostTrendPoint,
   CostZoomWindow,
   formatCost,
-  widenCostZoomWindow,
+  getCostZoomWindow,
 } from "../Utils/KubernetesCostUtils";
 import { noCostDataMessage } from "../Utils/KubernetesCostTableCells";
+
+const CHART_HEIGHT_IN_PX: number = 300;
 
 export interface ComponentProps {
   trend: Array<CostTrendPoint>;
   isLoading: boolean;
+  /*
+   * Why the page's cost load failed, if it did. It is shown where the chart
+   * was, so the card around the chart - its picker, Reset zoom and Refresh -
+   * stays: a load that a zoom set off can fail too, and must not take the
+   * way back with it.
+   */
+  error?: string | undefined;
+  // Loads the page's window again; offered beside the error.
+  onRetry?: (() => void) | undefined;
   // The window the page is showing; the chart's x-axis is pinned to it.
   startAndEndDate: InBetween<Date>;
   syncid: string;
@@ -39,10 +50,12 @@ export interface ComponentProps {
  *
  * A drag across it zooms the page (issue #4105): the tiles and tables
  * under it follow, since they are all read for the page's window. The
- * page's zoom is taken from its TimeRangeZoomScope, with one change: a
- * selection narrower than an hour is widened to one first (see
- * widenCostZoomWindow), because cost rows are hourly and a narrower
- * window would usually hold none of them.
+ * page's zoom is taken from its TimeRangeZoomScope, with two changes (see
+ * getCostZoomWindow): a selection narrower than an hour is widened to one
+ * first, because cost rows are hourly and a narrower window would usually
+ * hold none of them; and the zoom ends a millisecond before the last
+ * bucket does, because the cost queries also count a row that starts
+ * exactly at a window's end.
  */
 const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,7 +67,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
     | ((startTime: Date, endTime: Date) => void)
     | undefined = pageZoom
     ? (startTime: Date, endTime: Date): void => {
-        const zoomWindow: CostZoomWindow = widenCostZoomWindow({
+        const zoomWindow: CostZoomWindow = getCostZoomWindow({
           startTime: startTime,
           endTime: endTime,
           windowStart: props.startAndEndDate.startValue,
@@ -65,18 +78,39 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
     : undefined;
 
   const getContent: () => ReactElement = (): ReactElement => {
+    /*
+     * Every zoom, reset and refresh reloads the page, and the skeleton
+     * stands in for the chart meanwhile: at the chart's own height, or
+     * the tables below would jump up and back down on every one of them.
+     */
     if (props.isLoading) {
-      return <div className="h-48 animate-pulse rounded-md bg-gray-50" />;
+      return (
+        <div
+          data-testid="chart-loading-skeleton"
+          className="animate-pulse rounded-md bg-gray-50"
+          style={{ height: `${CHART_HEIGHT_IN_PX}px` }}
+        />
+      );
+    }
+
+    /*
+     * A zoom into a stretch with no cost rows, or one whose load failed,
+     * lands on a message with no chart left to double-click. The message
+     * takes the double-click instead, so the way back is where the
+     * reader's pointer already is - select-none, or that double-click
+     * would also select a word of it.
+     */
+    if (props.error) {
+      return (
+        <div className="select-none" onDoubleClick={pageZoom?.onTimeRangeReset}>
+          <ErrorMessage message={props.error} onRefreshClick={props.onRetry} />
+        </div>
+      );
     }
 
     if (props.trend.length === 0) {
-      /*
-       * A zoom into a stretch with no cost rows lands here, with no chart
-       * left to double-click. The message takes the double-click instead,
-       * so the way back is where the reader's pointer already is.
-       */
       return (
-        <div onDoubleClick={pageZoom?.onTimeRangeReset}>
+        <div className="select-none" onDoubleClick={pageZoom?.onTimeRangeReset}>
           <ErrorMessage message={noCostDataMessage} />
         </div>
       );
@@ -118,7 +152,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
         xAxis={xAxis}
         yAxis={yAxis}
         curve={ChartCurve.MONOTONE}
-        heightInPx={300}
+        heightInPx={CHART_HEIGHT_IN_PX}
         showLegend={false}
         sync={false}
         syncid={props.syncid}
