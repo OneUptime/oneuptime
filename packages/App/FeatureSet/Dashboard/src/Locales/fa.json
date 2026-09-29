@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "ویرایش فهرست IPهای مجاز به طرح Scale نیاز دارد.",
   "Edit IP Allowlist": "ویرایش فهرست IPهای مجاز",
   "IP Allowlist": "فهرست IPهای مجاز",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "در هر خط یک نشانی IP یا یک بازه CIDR، مانند 203.0.113.7 یا 10.0.0.0/8. برای مجاز کردن همه شبکه‌ها آن را خالی بگذارید.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "در هر خط یک نشانی IP یا یک بازه CIDR از نوع IPv4، مانند 203.0.113.7، 2001:db8::1 یا 10.0.0.0/8. بازه‌های IPv6 پشتیبانی نمی‌شوند. برای مجاز کردن همه شبکه‌ها آن را خالی بگذارید.",
   "Any network": "هر شبکه‌ای",
   "Submissions": "ارسال‌ها",
   "Every report made through this form, newest first, with the incident it declared.": "همه گزارش‌هایی که از طریق این فرم ارسال شده‌اند، از جدیدترین، همراه با حادثه‌ای که هر کدام اعلام کرده است.",

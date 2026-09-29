@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "Voor het bewerken van de IP-toelatingslijst is het Scale-abonnement nodig.",
   "Edit IP Allowlist": "IP-toelatingslijst bewerken",
   "IP Allowlist": "IP-toelatingslijst",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "Eén IP-adres of CIDR-bereik per regel, zoals 203.0.113.7 of 10.0.0.0/8. Laat leeg om alle netwerken toe te staan.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "Eén IP-adres of IPv4-CIDR-bereik per regel, zoals 203.0.113.7, 2001:db8::1 of 10.0.0.0/8. IPv6-bereiken worden niet ondersteund. Laat leeg om alle netwerken toe te staan.",
   "Any network": "Elk netwerk",
   "Submissions": "Inzendingen",
   "Every report made through this form, newest first, with the incident it declared.": "Elke melding via dit formulier, de nieuwste eerst, met het incident dat daarmee is gemeld.",

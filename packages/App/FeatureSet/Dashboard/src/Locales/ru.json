@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "Для изменения списка разрешённых IP нужен тариф Scale.",
   "Edit IP Allowlist": "Изменить список разрешённых IP",
   "IP Allowlist": "Список разрешённых IP",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "Один IP-адрес или диапазон CIDR в строке, например 203.0.113.7 или 10.0.0.0/8. Оставьте пустым, чтобы разрешить любую сеть.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "Один IP-адрес или диапазон CIDR IPv4 в строке, например 203.0.113.7, 2001:db8::1 или 10.0.0.0/8. Диапазоны IPv6 не поддерживаются. Оставьте пустым, чтобы разрешить любую сеть.",
   "Any network": "Любая сеть",
   "Submissions": "Отправки",
   "Every report made through this form, newest first, with the incident it declared.": "Все сообщения, отправленные через эту форму, начиная с новых, с инцидентом, объявленным по каждому из них.",

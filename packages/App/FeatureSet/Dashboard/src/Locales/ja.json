@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "IP 許可リストの編集には Scale プランが必要です。",
   "Edit IP Allowlist": "IP 許可リストを編集",
   "IP Allowlist": "IP 許可リスト",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "1 行に 1 つの IP アドレスまたは CIDR 範囲を入力します（例: 203.0.113.7、10.0.0.0/8）。空欄にするとすべてのネットワークを許可します。",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "1 行に 1 つの IP アドレスまたは IPv4 の CIDR 範囲を入力します（例: 203.0.113.7、2001:db8::1、10.0.0.0/8）。IPv6 の範囲には対応していません。空欄にするとすべてのネットワークを許可します。",
   "Any network": "すべてのネットワーク",
   "Submissions": "送信履歴",
   "Every report made through this form, newest first, with the incident it declared.": "このフォームから行われたすべての報告を新しい順に、それぞれが宣言したインシデントとともに表示します。",

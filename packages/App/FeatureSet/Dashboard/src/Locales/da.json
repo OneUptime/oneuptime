@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "Redigering af IP-tilladelseslisten kræver Scale-abonnementet.",
   "Edit IP Allowlist": "Rediger IP-tilladelsesliste",
   "IP Allowlist": "IP-tilladelsesliste",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "Én IP-adresse eller ét CIDR-interval pr. linje, fx 203.0.113.7 eller 10.0.0.0/8. Lad den være tom for at tillade alle netværk.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "Én IP-adresse eller ét IPv4-CIDR-interval pr. linje, fx 203.0.113.7, 2001:db8::1 eller 10.0.0.0/8. IPv6-intervaller understøttes ikke. Lad den være tom for at tillade alle netværk.",
   "Any network": "Alle netværk",
   "Submissions": "Indsendelser",
   "Every report made through this form, newest first, with the incident it declared.": "Hver rapport, der er indsendt via denne formular, nyeste først, med den hændelse, den erklærede.",

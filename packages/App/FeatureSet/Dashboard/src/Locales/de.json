@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "Zum Bearbeiten der IP-Zulassungsliste ist der Scale-Tarif erforderlich.",
   "Edit IP Allowlist": "IP-Zulassungsliste bearbeiten",
   "IP Allowlist": "IP-Zulassungsliste",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "Eine IP-Adresse oder ein CIDR-Bereich pro Zeile, etwa 203.0.113.7 oder 10.0.0.0/8. Leer lassen, um alle Netzwerke zuzulassen.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "Eine IP-Adresse oder ein IPv4-CIDR-Bereich pro Zeile, etwa 203.0.113.7, 2001:db8::1 oder 10.0.0.0/8. IPv6-Bereiche werden nicht unterstützt. Leer lassen, um alle Netzwerke zuzulassen.",
   "Any network": "Jedes Netzwerk",
   "Submissions": "Einreichungen",
   "Every report made through this form, newest first, with the incident it declared.": "Jede über dieses Formular abgegebene Meldung, die neueste zuerst, mit dem Vorfall, den sie ausgelöst hat.",

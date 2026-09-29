@@ -156,7 +156,7 @@ export const IncidentFormCopy: {
   editIpAllowlist: "Edit IP Allowlist",
   ipAllowlistTitle: "IP Allowlist",
   ipAllowlistDescription:
-    "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.",
+    "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.",
   ipAllowlistEmpty: "Any network",
 
   submissionsTitle: "Submissions",

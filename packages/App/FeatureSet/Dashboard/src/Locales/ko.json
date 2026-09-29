@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "IP 허용 목록을 편집하려면 Scale 요금제가 필요합니다.",
   "Edit IP Allowlist": "IP 허용 목록 편집",
   "IP Allowlist": "IP 허용 목록",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "한 줄에 하나의 IP 주소 또는 CIDR 범위를 입력합니다(예: 203.0.113.7 또는 10.0.0.0/8). 비워 두면 모든 네트워크를 허용합니다.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "한 줄에 하나의 IP 주소 또는 IPv4 CIDR 범위를 입력합니다(예: 203.0.113.7, 2001:db8::1 또는 10.0.0.0/8). IPv6 범위는 지원하지 않습니다. 비워 두면 모든 네트워크를 허용합니다.",
   "Any network": "모든 네트워크",
   "Submissions": "제출 내역",
   "Every report made through this form, newest first, with the incident it declared.": "이 양식으로 이루어진 모든 보고를 최신순으로, 각 보고가 선언한 인시던트와 함께 표시합니다.",

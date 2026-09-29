@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "Att redigera IP-tillåtelselistan kräver Scale-planen.",
   "Edit IP Allowlist": "Redigera IP-tillåtelselista",
   "IP Allowlist": "IP-tillåtelselista",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "En IP-adress eller ett CIDR-intervall per rad, till exempel 203.0.113.7 eller 10.0.0.0/8. Lämna tomt för att tillåta alla nätverk.",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "En IP-adress eller ett IPv4-CIDR-intervall per rad, till exempel 203.0.113.7, 2001:db8::1 eller 10.0.0.0/8. IPv6-intervall stöds inte. Lämna tomt för att tillåta alla nätverk.",
   "Any network": "Alla nätverk",
   "Submissions": "Inlämningar",
   "Every report made through this form, newest first, with the incident it declared.": "Varje rapport som gjorts via det här formuläret, nyaste först, med incidenten den deklarerade.",

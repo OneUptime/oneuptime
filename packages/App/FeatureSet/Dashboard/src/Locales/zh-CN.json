@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "编辑 IP 允许列表需要 Scale 套餐。",
   "Edit IP Allowlist": "编辑 IP 允许列表",
   "IP Allowlist": "IP 允许列表",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "每行一个 IP 地址或 CIDR 范围，例如 203.0.113.7 或 10.0.0.0/8。留空则允许所有网络。",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "每行一个 IP 地址或 IPv4 CIDR 范围，例如 203.0.113.7、2001:db8::1 或 10.0.0.0/8。不支持 IPv6 范围。留空则允许所有网络。",
   "Any network": "任意网络",
   "Submissions": "提交记录",
   "Every report made through this form, newest first, with the incident it declared.": "通过此表单提交的所有报告，按时间从新到旧排列，并附带其声明的事件。",

@@ -6674,7 +6674,7 @@
   "Editing the IP allowlist needs the Scale plan.": "IP अनुमति सूची संपादित करने के लिए Scale प्लान चाहिए।",
   "Edit IP Allowlist": "IP अनुमति सूची संपादित करें",
   "IP Allowlist": "IP अनुमति सूची",
-  "One IP address or CIDR range per line, such as 203.0.113.7 or 10.0.0.0/8. Leave it empty to allow every network.": "हर पंक्ति में एक IP पता या CIDR रेंज, जैसे 203.0.113.7 या 10.0.0.0/8। सभी नेटवर्क की अनुमति देने के लिए इसे खाली छोड़ें।",
+  "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.": "हर पंक्ति में एक IP पता या IPv4 CIDR रेंज, जैसे 203.0.113.7, 2001:db8::1 या 10.0.0.0/8। IPv6 रेंज समर्थित नहीं हैं। सभी नेटवर्क की अनुमति देने के लिए इसे खाली छोड़ें।",
   "Any network": "कोई भी नेटवर्क",
   "Submissions": "सबमिशन",
   "Every report made through this form, newest first, with the incident it declared.": "इस फ़ॉर्म से की गई हर रिपोर्ट, सबसे नई पहले, उस घटना के साथ जिसे उसने घोषित किया।",
