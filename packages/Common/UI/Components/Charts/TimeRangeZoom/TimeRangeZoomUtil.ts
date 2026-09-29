@@ -135,4 +135,29 @@ export default class TimeRangeZoomUtil {
       firstEndMs === secondEndMs
     );
   }
+
+  /**
+   * A range's value as a string, for an effect to depend on: a page that
+   * re-states its range in a new but equal object must not look like a
+   * move. Two ranges isSameRange calls the same get the same key: a
+   * relative range is keyed by its preset alone, whatever it last resolved
+   * to, and a custom one by the instants of its edges.
+   */
+  public static getRangeKey(
+    range: RangeStartAndEndDateTime | null | undefined,
+  ): string {
+    if (!range) {
+      return "";
+    }
+
+    if (range.range !== TimeRange.CUSTOM) {
+      return range.range;
+    }
+
+    return [
+      range.range,
+      toEpochMs(range.startAndEndDate?.startValue),
+      toEpochMs(range.startAndEndDate?.endValue),
+    ].join("|");
+  }
 }

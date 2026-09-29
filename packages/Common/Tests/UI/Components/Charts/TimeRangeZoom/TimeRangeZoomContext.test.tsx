@@ -27,7 +27,10 @@ import {
 import ResetTimeRangeZoomButton, {
   RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID,
 } from "../../../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
-import TelemetryTimeRangePicker from "../../../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import TelemetryTimeRangePicker, {
+  TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX,
+} from "../../../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { getTimeRangeButtonLabel } from "../../../../../UI/Components/Date/TimeRangePickerDropdown";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime from "../../../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../../../Types/Time/TimeRange";
@@ -657,5 +660,186 @@ describe("isTimeRangeZoomFor", () => {
         { range: TimeRange.PAST_ONE_DAY },
       ),
     ).toBe(true);
+  });
+});
+
+/*
+ * The metric explorer's saved views, on the page plumbing every zoomable
+ * page shares: a reader zooms, saves the view (it keeps the zoomed window,
+ * pinned), picks another range in the picker, and later loads the view.
+ * Loading it is a fresh start on that window. The zoom that produced it
+ * ended with the pick; it must not wake up and offer "Reset zoom" back to a
+ * range from before it, nor hold every chart's single clicks for a
+ * double-click that has nothing to undo.
+ */
+describe("TimeRangeZoomScope: a view saved while zoomed, loaded after a pick", () => {
+  const SAVED_WINDOW: string =
+    "2026-09-28T11:10:00.000Z/2026-09-28T11:25:00.000Z";
+
+  // What a saved view stores and hands back: the window, through JSON.
+  function saveView(range: RangeStartAndEndDateTime): string {
+    return JSON.stringify({
+      startTime: range.startAndEndDate?.startValue,
+      endTime: range.startAndEndDate?.endValue,
+    });
+  }
+
+  function loadView(savedView: string): void {
+    const stored: { startTime: string; endTime: string } = JSON.parse(
+      savedView,
+    ) as { startTime: string; endTime: string };
+
+    act(() => {
+      setPageRangeFromOutside?.({
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(
+          new Date(stored.startTime),
+          new Date(stored.endTime),
+        ),
+      });
+    });
+  }
+
+  function pickPreset(range: TimeRange): void {
+    fireEvent.click(
+      screen.getByTestId(
+        `${TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}-button`,
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: getTimeRangeButtonLabel({ range: range }),
+      }),
+    );
+  }
+
+  function resetButton(): HTMLElement | null {
+    return screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID);
+  }
+
+  // Zoom with the probe's drag, save the view, then pick a preset.
+  function zoomSaveAndPick(): string {
+    fireEvent.click(screen.getByTestId("cpu-drag"));
+    expect(text("page-range")).toBe(SAVED_WINDOW);
+    expect(resetButton()).not.toBeNull();
+
+    const zoomedTo: RangeStartAndEndDateTime = onPageRangeChange.mock
+      .calls[0]![0] as RangeStartAndEndDateTime;
+    const savedView: string = saveView(zoomedTo);
+
+    pickPreset(TimeRange.PAST_THREE_HOURS);
+    expect(text("page-range")).toBe(TimeRange.PAST_THREE_HOURS);
+    expect(resetButton()).toBeNull();
+
+    return savedView;
+  }
+
+  test("loading the view offers no Reset zoom, and no chart holds its clicks for a reset", () => {
+    render(
+      <Page>
+        <ContextProbe id="cpu" />
+        <ContextProbe id="memory" />
+      </Page>,
+    );
+    const savedView: string = zoomSaveAndPick();
+
+    loadView(savedView);
+
+    expect(text("page-range")).toBe(SAVED_WINDOW);
+    expect(resetButton()).toBeNull();
+    expect(text("cpu-is-zoomed")).toBe("false");
+    expect(text("cpu-can-reset")).toBe("false");
+    expect(text("memory-can-reset")).toBe("false");
+    expect(latestContext?.rangeBeforeZoom).toBeNull();
+  });
+
+  test("a double-click on a chart then leaves the loaded view where it is", () => {
+    render(
+      <Page>
+        <ContextProbe id="cpu" />
+      </Page>,
+    );
+    const savedView: string = zoomSaveAndPick();
+    loadView(savedView);
+    onPageRangeChange.mockReset();
+
+    fireEvent.click(screen.getByTestId("cpu-double-click"));
+
+    expect(text("page-range")).toBe(SAVED_WINDOW);
+    expect(onPageRangeChange).not.toHaveBeenCalled();
+  });
+
+  test("a zoom inside the loaded view resets to the saved window, not to the range before the old zoom", () => {
+    render(
+      <Page>
+        <ContextProbe id="cpu" />
+        <ContextProbe id="memory" />
+      </Page>,
+    );
+    const savedView: string = zoomSaveAndPick();
+    loadView(savedView);
+
+    act(() => {
+      latestContext?.onTimeRangeSelect(
+        new Date("2026-09-28T11:15:00.000Z"),
+        new Date("2026-09-28T11:20:00.000Z"),
+      );
+    });
+
+    expect(text("page-range")).toBe(
+      "2026-09-28T11:15:00.000Z/2026-09-28T11:20:00.000Z",
+    );
+    const reset: HTMLElement | null = resetButton();
+    expect(reset).not.toBeNull();
+    // The way back is a custom window now, so it is named plainly.
+    expect(reset).toHaveAttribute(
+      "title",
+      "Go back to the time range before the zoom",
+    );
+
+    fireEvent.click(screen.getByTestId("memory-double-click"));
+
+    expect(text("page-range")).toBe(SAVED_WINDOW);
+    expect(resetButton()).toBeNull();
+  });
+
+  test("Reset zoom beside the picker takes the reader back to the saved window too", () => {
+    render(
+      <Page>
+        <ContextProbe id="cpu" />
+      </Page>,
+    );
+    const savedView: string = zoomSaveAndPick();
+    loadView(savedView);
+
+    act(() => {
+      latestContext?.onTimeRangeSelect(
+        new Date("2026-09-28T11:15:00.000Z"),
+        new Date("2026-09-28T11:20:00.000Z"),
+      );
+    });
+    fireEvent.click(resetButton()!);
+
+    expect(text("page-range")).toBe(SAVED_WINDOW);
+    expect(text("cpu-can-reset")).toBe("false");
+  });
+
+  test("while the view is still zoomed, loading it again (the same window) keeps the zoom", () => {
+    render(
+      <Page>
+        <ContextProbe id="cpu" />
+      </Page>,
+    );
+    fireEvent.click(screen.getByTestId("cpu-drag"));
+    const savedView: string = saveView(
+      onPageRangeChange.mock.calls[0]![0] as RangeStartAndEndDateTime,
+    );
+
+    // Re-applying the window the page is already on is not a move.
+    loadView(savedView);
+
+    expect(resetButton()).not.toBeNull();
+    fireEvent.click(resetButton()!);
+    expect(text("page-range")).toBe(TimeRange.PAST_ONE_HOUR);
   });
 });
