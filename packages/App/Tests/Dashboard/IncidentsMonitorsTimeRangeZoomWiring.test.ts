@@ -313,7 +313,9 @@ describe("charts whose host round-trips the window zoom through MetricView's own
     expect(source).toContain(
       "setZoomedWindow( getZoomedWindow({ shownWindow: data.startAndEndDate, rollingWindow: startAndEndDate, }), );",
     );
-    expect(source).toContain("zoomedWindow ? `${OneUptimeDate");
+    expect(source).toContain(
+      "zoomedWindow ? getZoomedWindowLabel(zoomedWindow) : `${rollingTime}`",
+    );
     expect(source).toContain(
       "if (zoomedWindow && modalTempRollingTime === rollingTime) { setStartAndEndDate(",
     );

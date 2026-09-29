@@ -27,6 +27,30 @@ export interface ComponentProps {
   monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined;
 }
 
+/**
+ * The zoomed window, as the explorers' time pickers name a custom range:
+ * "Sep 29, 05:12 - 05:34", the day named once when both ends share it. The
+ * full date on both ends ("Sep 29 2026, 05:12:00 AM GMT - Sep 29 2026,
+ * 05:34:00 AM GMT") was wide enough to wrap the card's description onto a
+ * second line, moving the chart on every zoom and reset.
+ */
+export function getZoomedWindowLabel(window: InBetween<Date>): string {
+  const isSameDay: boolean =
+    OneUptimeDate.getDateAsLocalDayMonthString(window.startValue) ===
+    OneUptimeDate.getDateAsLocalDayMonthString(window.endValue);
+
+  const start: string = OneUptimeDate.getDateAsLocalShortDateTimeString(
+    window.startValue,
+  );
+  const end: string = isSameDay
+    ? OneUptimeDate.getLocalTimeString(window.endValue, {
+        use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+      })
+    : OneUptimeDate.getDateAsLocalShortDateTimeString(window.endValue);
+
+  return `${start} - ${end}`;
+}
+
 interface ZoomedWindowInput {
   // The window the chart shows.
   shownWindow: InBetween<Date> | null;
@@ -142,15 +166,7 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
             }}
             title={
               zoomedWindow
-                ? `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    zoomedWindow.startValue,
-                    false,
-                    true,
-                  )} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    zoomedWindow.endValue,
-                    false,
-                    true,
-                  )}`
+                ? getZoomedWindowLabel(zoomedWindow)
                 : `${rollingTime}`
             }
             alertType={HeaderAlertType.INFO}
