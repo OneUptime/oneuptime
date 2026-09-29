@@ -752,6 +752,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     setPage(1);
   }, [props.timeRangeOverride, pinnedTimeRange]);
 
+  /*
+   * A new pinned window is the host describing a different moment - the
+   * investigation drawer zooming its window (issue #4105), an incident page
+   * re-reading its snapshot - so follow it, the way the logs viewer does.
+   * Only a pin that differs by value from the one it replaces counts: a host
+   * rebuilding an equal query neither refetches nor undoes a zoom the reader
+   * made inside this view.
+   */
+  const lastPinnedTimeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(pinnedTimeRange);
+
+  useEffect(() => {
+    const previousPin: RangeStartAndEndDateTime | null =
+      lastPinnedTimeRangeRef.current;
+    lastPinnedTimeRangeRef.current = pinnedTimeRange;
+
+    if (
+      !pinnedTimeRange ||
+      TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin)
+    ) {
+      return;
+    }
+
+    setTimeRange(pinnedTimeRange);
+    setPage(1);
+  }, [pinnedTimeRange]);
+
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
   );
