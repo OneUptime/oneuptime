@@ -647,51 +647,137 @@ const selectsIntoLine: (range: Range, line: Node) => boolean = (
   return !holdsNothing(head.cloneContents());
 };
 
+// A table's rows and cells, which only ever go with the whole table.
+const TABLE_PART_TAGS: Set<string> = new Set<string>([
+  "thead",
+  "tbody",
+  "tfoot",
+  "tr",
+  "td",
+  "th",
+]);
+
 /*
- * Removes `line` when it is left with nothing in it, and the lists its
- * removal leaves without an item.
+ * Whether `node` is left with nothing in it: no text but whitespace, and no
+ * image, rule, list, code block or other content inside it -- whatever it is
+ * itself. holdsNothing counts a code block or a quote as content even when
+ * it is empty, which is right for what a line holds, and wrong for a code
+ * block or quote a selection has emptied.
  */
-const removeEmptiedLine: (line: Node, editable: HTMLElement) => void = (
+const isLeftEmpty: (node: Node) => boolean = (node: Node): boolean => {
+  if (RE_SHOWN_TEXT.test(node.textContent || "")) {
+    return false;
+  }
+  return (
+    node.nodeType !== Node.ELEMENT_NODE ||
+    (node as Element).querySelector(CONTENT_ELEMENT_SELECTOR) === null
+  );
+};
+
+/*
+ * Removes `line` when a selection has left it with nothing in it, and each
+ * element around it that its removal leaves with nothing: the list it was the
+ * only item of, the quote it was the only paragraph of -- and the item that
+ * list was nested in, whose own text the selection took, which stayed as an
+ * empty bullet ("- ") when "al|pha".."de|ep" was pasted over in
+ * "alpha, beta > deep, gamma". Nothing that holds the caret goes: after
+ * Ctrl+A, the line the selection started in is empty too, and the paste
+ * goes into it. A table's cells and rows go only with the whole table.
+ */
+const removeEmptiedLine: (
   line: Node,
   editable: HTMLElement,
-): void => {
-  if (!holdsNothing(line)) {
-    return;
-  }
-  let parent: Node | null = line.parentNode;
-  line.parentNode?.removeChild(line);
+  caret: Node,
+) => void = (line: Node, editable: HTMLElement, caret: Node): void => {
+  let node: Node | null = line;
   while (
-    parent &&
-    parent !== editable &&
-    STRUCTURE_ONLY_TAGS.has(tagOf(parent)) &&
-    (parent as Element).children.length === 0
+    node &&
+    node !== editable &&
+    node.parentNode &&
+    !node.contains(caret) &&
+    isLeftEmpty(node)
   ) {
-    const empty: Node = parent;
-    parent = parent.parentNode;
-    parent?.removeChild(empty);
+    if (TABLE_PART_TAGS.has(tagOf(node))) {
+      const table: Element | null = (node as Element).closest("table");
+      if (!table || table === node) {
+        return;
+      }
+      node = table;
+      continue;
+    }
+    const parent: Node = node.parentNode;
+    parent.removeChild(node);
+    node = parent;
   }
 };
 
 /*
- * The table a selection ended in, removed when the selection emptied all of
- * it -- Ctrl+A over a note that ends in a table, which Chromium and Safari
- * end inside the last cell's text -- so it is not saved as an empty table.
- * Only the whole table goes, and only when the caret is not in it: a cell
- * on its own never does, or every cell after it would move a column left.
+ * Takes the first line of a code block's text out of it -- up to its first
+ * line break, which goes too -- and returns it as text.
  */
-const removeEmptiedTable: (cell: Element, range: Range) => void = (
-  cell: Element,
-  range: Range,
+const takeFirstCodeLine: (pre: Element) => string = (pre: Element): string => {
+  const doc: Document = pre.ownerDocument;
+  const first: Range = doc.createRange();
+  first.selectNodeContents(pre);
+  const lineBreak: Range = doc.createRange();
+  let found: boolean = false;
+  const walker: TreeWalker = doc.createTreeWalker(
+    pre,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+  );
+  let node: Node | null = walker.nextNode();
+  while (node && !found) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const at: number = (node as Text).data.indexOf("\n");
+      if (at !== -1) {
+        first.setEnd(node, at);
+        lineBreak.setStart(node, at);
+        lineBreak.setEnd(node, at + 1);
+        found = true;
+      }
+    } else if (tagOf(node) === "br") {
+      first.setEndBefore(node);
+      lineBreak.selectNode(node);
+      found = true;
+    }
+    node = walker.nextNode();
+  }
+  const text: string = first.toString();
+  // The line break first: it comes after the line, whose range it would move.
+  if (found) {
+    lineBreak.deleteContents();
+  }
+  first.deleteContents();
+  return text;
+};
+
+/*
+ * The formatting a selection ended inside, when the delete left it with
+ * nothing in it -- "Run **this** then" with "un **this" selected keeps an
+ * empty <strong> -- removed, up to the line. Nothing shows it, but the
+ * serializer wrote it: "Rsee **that****** then". What holds the caret stays:
+ * typing there carries on in that formatting.
+ */
+const removeEmptiedFormatting: (end: Node, caret: Node) => void = (
+  end: Node,
+  caret: Node,
 ): void => {
-  const table: Element | null = cell.closest("table");
-  if (
-    table &&
-    table.isConnected &&
-    !table.contains(range.startContainer) &&
-    !RE_SHOWN_TEXT.test(table.textContent || "") &&
-    table.querySelector(CONTENT_ELEMENT_SELECTOR) === null
+  let node: Node | null = end;
+  while (
+    node &&
+    node.parentNode &&
+    node.isConnected &&
+    (node.nodeType === Node.TEXT_NODE ||
+      (node.nodeType === Node.ELEMENT_NODE &&
+        !isBlock(node) &&
+        !LINE_TAGS.has(tagOf(node)) &&
+        !SHOWN_EMPTY_TAGS.has(tagOf(node)))) &&
+    !node.contains(caret) &&
+    isLeftEmpty(node)
   ) {
-    table.parentNode?.removeChild(table);
+    const parent: Node = node.parentNode;
+    parent.removeChild(node);
+    node = parent;
   }
 };
 
@@ -737,6 +823,12 @@ const moveBelowJoin: (startLine: Node, endLine: Node) => void = (
  * in, at the caret -- as when the selection is typed over. Only its own text
  * moves: a list nested in a list item goes along to the item it joins, and
  * the line, left empty, goes.
+ *
+ * Of a code block, only what is left of the line the selection ended in
+ * joins, as text, and its other lines stay a code block -- what typing over
+ * the selection does in Chromium and Safari. Moved whole, the <code> was
+ * inline code in the line joined ("in` line`", and every line after it in
+ * one span), and the emptied code block stayed as an empty fence.
  */
 const joinLineAtCaret: (
   range: Range,
@@ -749,20 +841,26 @@ const joinLineAtCaret: (
   endLine: Node,
   editable: HTMLElement,
 ): void => {
-  const text: DocumentFragment = (
-    endLine.ownerDocument as Document
-  ).createDocumentFragment();
-  while (endLine.firstChild && !isBlock(endLine.firstChild)) {
-    text.appendChild(endLine.firstChild);
+  const doc: Document = endLine.ownerDocument as Document;
+  const text: DocumentFragment = doc.createDocumentFragment();
+  if (tagOf(endLine) === "pre") {
+    const line: string = takeFirstCodeLine(endLine as Element);
+    if (line) {
+      text.appendChild(doc.createTextNode(line));
+    }
+  } else {
+    while (endLine.firstChild && !isBlock(endLine.firstChild)) {
+      text.appendChild(endLine.firstChild);
+    }
   }
-  if (text.firstChild) {
+  if (!holdsNothing(text)) {
     range.insertNode(text);
     range.collapse(true);
   }
   if (tagOf(startLine) === "li" && tagOf(endLine) === "li") {
     moveBelowJoin(startLine, endLine);
   }
-  removeEmptiedLine(endLine, editable);
+  removeEmptiedLine(endLine, editable, range.startContainer);
 };
 
 /*
@@ -812,8 +910,9 @@ export const deleteSelectionForInsert: (
   }
   const startNode: Node = range.startContainer;
   const startOffset: number = range.startOffset;
+  const endNode: Node = range.endContainer;
   const startLine: Node = lineOf(editable, startNode);
-  const endLine: Node = lineOf(editable, range.endContainer);
+  const endLine: Node = lineOf(editable, endNode);
   /*
    * A table cell the selection ends in is never joined to where it started:
    * typed over, a selection from one cell into the next keeps both, and the
@@ -838,10 +937,16 @@ export const deleteSelectionForInsert: (
    */
   range.setStart(startNode, Math.min(startOffset, nodeLength(startNode)));
   range.collapse(true);
+  removeEmptiedFormatting(endNode, range.startContainer);
   if (joins && endLine.isConnected && startLine.isConnected) {
     joinLineAtCaret(range, startLine, endLine, editable);
   } else if (endsInAnotherCell && endCell) {
-    removeEmptiedTable(endCell, range);
+    /*
+     * Ctrl+A over a note that ends in a table, which Chromium and Safari end
+     * inside the last cell's text: the table the selection emptied goes,
+     * rather than being saved as an empty one.
+     */
+    removeEmptiedLine(endCell, editable, range.startContainer);
   }
   moveCaretIntoLine(range);
 };

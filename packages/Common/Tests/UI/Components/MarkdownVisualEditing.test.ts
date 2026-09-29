@@ -787,6 +787,111 @@ describe("deleteSelectionForInsert", () => {
     expect(htmlToMarkdown(root.innerHTML)).toBe("- alpha\n- beta");
     expect(caretText(range)).toBe("al");
   });
+
+  /*
+   * The item whose text the selection took, above the nested item it ended
+   * in, stayed as an empty bullet: "- alep\n- \n- gamma".
+   */
+  it("removes the item a selection into its nested item emptied", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "- alpha\n- beta\n  - deep\n- gamma",
+    );
+
+    deleteSelectionForInsert(root, rangeBetween(root, "alpha", 2, "deep", 2));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- alep\n- gamma");
+  });
+
+  it("removes the quote a selection into its first line emptied", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "intro\n\n> quoted text\n\nafter",
+    );
+
+    deleteSelectionForInsert(root, rangeBetween(root, "intro", 2, "quoted", 3));
+
+    expect(root.querySelector("blockquote")).toBeNull();
+    expect(htmlToMarkdown(root.innerHTML)).toBe("inted text\n\nafter");
+  });
+
+  /*
+   * What is left of the code block's line joins as text, as typing over the
+   * selection does; its other lines stay a code block. Its <code> moved
+   * whole, the rest was inline code -- every line after it in one span --
+   * and the emptied block an empty fence.
+   */
+  it("joins what is left of a code block's line as text, and keeps its other lines", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "intro\n\n```\ncode line\nsecond\n```",
+    );
+    const range: Range = rangeBetween(root, "intro", 2, "code line", 4);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("in line\n\n```\nsecond\n```");
+    expect(root.querySelector("p code")).toBeNull();
+    expect(caretText(range)).toBe("in");
+  });
+
+  it("removes a one-line code block the selection runs into", () => {
+    const root: HTMLDivElement = mountMarkdown("intro\n\n```\ncode line\n```");
+
+    deleteSelectionForInsert(
+      root,
+      rangeBetween(root, "intro", 2, "code line", 4),
+    );
+
+    expect(root.querySelector("pre")).toBeNull();
+    expect(htmlToMarkdown(root.innerHTML)).toBe("in line");
+  });
+
+  it("removes a code block the selection takes all of", () => {
+    const root: HTMLDivElement = mountMarkdown("intro\n\n```\ncode line\n```");
+
+    deleteSelectionForInsert(
+      root,
+      rangeBetween(root, "intro", 2, "code line", 9),
+    );
+
+    expect(root.innerHTML).toBe("<p>in</p>");
+  });
+
+  /*
+   * Ctrl+A in Chromium and Safari selects from the first text to the last:
+   * the line it starts in is emptied too, and stays, holding the caret.
+   */
+  it("keeps the line holding the caret when it empties everything", () => {
+    const root: HTMLDivElement = mountMarkdown("- alpha\n- beta\n  - deep");
+    const range: Range = rangeBetween(root, "alpha", 0, "deep", 4);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(root.innerHTML).toBe("<ul><li></li></ul>");
+    expect(root.querySelector("li")?.contains(range.startContainer)).toBe(true);
+  });
+
+  /*
+   * A selection ending at the end of a bold word leaves the <strong> empty:
+   * pasted into, the line saved as "Rsee **that****** then check".
+   */
+  it("removes the formatting a selection ended in when it empties it", () => {
+    const root: HTMLDivElement = mountMarkdown("Run **this** then check");
+
+    deleteSelectionForInsert(root, rangeBetween(root, "Run", 1, "this", 4));
+
+    expect(root.innerHTML).toBe("<p>R then check</p>");
+  });
+
+  // What is typed next carries on in the formatting the caret is in.
+  it("keeps emptied formatting the caret is in", () => {
+    const root: HTMLDivElement = mountMarkdown("Run **this** then check");
+    const range: Range = rangeBetween(root, "this", 0, "this", 4);
+
+    deleteSelectionForInsert(root, range);
+
+    expect(root.querySelector("strong")?.contains(range.startContainer)).toBe(
+      true,
+    );
+  });
 });
 
 /*

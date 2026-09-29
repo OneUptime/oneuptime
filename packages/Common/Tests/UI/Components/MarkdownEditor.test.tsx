@@ -1354,6 +1354,71 @@ describe("MarkdownEditor paste in the visual editor", () => {
   });
 
   /*
+   * Ctrl+A in Chromium and Safari ends inside the last code line's text.
+   * The emptied code block stayed, saved as an empty fence under the paste.
+   */
+  test("leaves no empty code block behind a paste over everything", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"Steps:\n\n```\nkubectl get pods\n```"}
+        onChange={onChange}
+      />,
+    );
+    stubBlinkExecCommand();
+    selectText("Steps:", 0, "kubectl get pods", 16);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<p>Service <b>down</b></p><p>Rolled back.</p>",
+        "text/plain": "Service down\n\nRolled back.",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("Service **down**\n\nRolled back.");
+  });
+
+  test("leaves no empty item behind a paste into a nested item", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n  - deep\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "deep", 2);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<b>X</b>",
+        "text/plain": "X",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("- al**X**ep\n- gamma");
+  });
+
+  test("leaves no emptied bold behind words pasted over its end", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue="Run **this** then check"
+        onChange={onChange}
+      />,
+    );
+    selectText("Run", 2, "this", 4);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "see <b>that</b>",
+        "text/plain": "see that",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("Rusee **that** then check");
+  });
+
+  /*
    * Typed over, a selection from one table cell into the next keeps both
    * cells. The paste joined them like two lines: the emptied cell went, and
    * "Cell 3" moved under column B.
