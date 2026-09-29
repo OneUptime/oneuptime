@@ -121,6 +121,10 @@ export const RANGE_SELECTION_THROTTLED_EVENTS: ReadonlyArray<
   keyof GlobalEventHandlersEventMap
 > = ["touchmove", "pointermove", "scroll", "wheel"];
 
+const RANGE_SELECTION_ROOT_STYLE: React.CSSProperties = {
+  cursor: "crosshair",
+};
+
 export interface ChartRangeSelectionRootProps {
   onMouseDown?: (
     chartState: RangeSelectionChartState,
@@ -132,12 +136,16 @@ export interface ChartRangeSelectionRootProps {
   ) => void;
   onMouseUp?: (chartState?: RangeSelectionChartState | null) => void;
   throttledEvents?: ReadonlyArray<keyof GlobalEventHandlersEventMap>;
+  style?: React.CSSProperties;
 }
 
 export interface ChartRangeSelection {
   /** Whether the chart offers drag-to-select at all. */
   canSelect: boolean;
-  /** Labels of the buckets the live selection band spans, or null. */
+  /*
+   * Labels of the first and last bucket (in row order) the live selection
+   * band spans, or null.
+   */
   selectionStartLabel: string | null;
   selectionEndLabel: string | null;
   /*
@@ -286,25 +294,33 @@ const useChartRangeSelection: (
       if (rowIndex === null) {
         return;
       }
-      const rowLabel: string | null = getLabel(rowIndex);
-      if (rowLabel === null) {
+      const startIndex: number | null = startIndexRef.current;
+      if (startIndex === null || getLabel(rowIndex) === null) {
         return;
       }
       endIndexRef.current = rowIndex;
-      if (!isBandShownRef.current) {
-        // Still on the pressed bucket: a click so far, so paint nothing.
-        const startIndex: number | null = startIndexRef.current;
-        if (startIndex === null || rowIndex === startIndex) {
-          return;
-        }
-        const startLabel: string | null = getLabel(startIndex);
-        if (startLabel === null) {
-          return;
-        }
-        isBandShownRef.current = true;
-        setSelectionStartLabel(startLabel);
+      // Still on the pressed bucket: a click so far, so paint nothing.
+      if (!isBandShownRef.current && rowIndex === startIndex) {
+        return;
       }
-      setSelectionEndLabel(rowLabel);
+      /*
+       * The band runs between its buckets in row order, whichever way the
+       * drag goes: a bar chart draws x1 from the left edge of its bar and
+       * x2 to the right edge of its own, so a right-to-left drag in drag
+       * order left both end bars unshaded (and two neighbours none).
+       */
+      const lowerLabel: string | null = getLabel(
+        Math.min(startIndex, rowIndex),
+      );
+      const upperLabel: string | null = getLabel(
+        Math.max(startIndex, rowIndex),
+      );
+      if (lowerLabel === null || upperLabel === null) {
+        return;
+      }
+      isBandShownRef.current = true;
+      setSelectionStartLabel(lowerLabel);
+      setSelectionEndLabel(upperLabel);
     },
     [clearSelection, getLabel],
   );
@@ -432,6 +448,14 @@ const useChartRangeSelection: (
           onMouseMove: onMouseMove,
           onMouseUp: onMouseUp,
           throttledEvents: RANGE_SELECTION_THROTTLED_EVENTS,
+          /*
+           * The crosshair that says the plot can be dragged. It has to be
+           * on the chart root: recharts gives its wrapper, which fills the
+           * plot, an inline cursor: default that a class outside can't
+           * beat. Left off entirely otherwise - an explicit undefined
+           * would drop recharts' default too.
+           */
+          style: RANGE_SELECTION_ROOT_STYLE,
         }
       : {},
   };

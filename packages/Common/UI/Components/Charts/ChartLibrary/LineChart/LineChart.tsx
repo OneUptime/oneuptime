@@ -47,7 +47,11 @@ import useChartAnnotations, {
   UseChartAnnotationsResult,
 } from "../Annotations/UseChartAnnotations";
 import { cx } from "../Utils/Cx";
-import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "../Utils/DoubleClick";
+import {
+  DeferredChartClick,
+  useDeferredChartClick,
+} from "../Utils/DoubleClick";
+import useChartBucketsChange from "../Utils/UseChartBucketsChange";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
 import {
@@ -731,25 +735,15 @@ const LineChart: React.ForwardRefExoticComponent<
       index: index,
       onTimeRangeSelect: onTimeRangeSelect,
     });
-    const hasOnTimeRangeReset: boolean = Boolean(onTimeRangeReset);
     /*
-     * A pending single-click, held open long enough for a second click to
-     * cancel it. Only armed when onTimeRangeReset is supplied.
+     * Every click on the plot waits out the double-click window while a
+     * reset is on offer; see useDeferredChartClick.
      */
-    const pendingClickTimeoutRef: React.MutableRefObject<ReturnType<
-      typeof setTimeout
-    > | null> = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const deferredClick: DeferredChartClick = useDeferredChartClick(
+      Boolean(onTimeRangeReset),
+    );
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
-
-    React.useEffect(() => {
-      return () => {
-        if (pendingClickTimeoutRef.current !== null) {
-          clearTimeout(pendingClickTimeoutRef.current);
-          pendingClickTimeoutRef.current = null;
-        }
-      };
-    }, []);
 
     /*
      * Annotations are drawn onto the categorical axis, so the layer needs
@@ -764,6 +758,20 @@ const LineChart: React.ForwardRefExoticComponent<
         },
       );
     }, [data, index]);
+
+    /*
+     * A clicked dot names its row by index, and after a zoom, a reset or a
+     * new range that index holds another bucket: drop it, with the series
+     * highlight it brought. A series picked from the legend still exists,
+     * so it stays picked.
+     */
+    useChartBucketsChange(categoryLabels, (): void => {
+      if (activeDot) {
+        setActiveDot(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      }
+    });
 
     const annotations: UseChartAnnotationsResult = useChartAnnotations({
       formattedTimeReferenceLines,
@@ -797,6 +805,12 @@ const LineChart: React.ForwardRefExoticComponent<
       if (!hasOnValueChange) {
         return;
       }
+      deferredClick.run((): void => {
+        toggleDot(itemData);
+      });
+    }
+
+    function toggleDot(itemData: any): void {
       if (
         (itemData.index === activeDot?.index &&
           itemData.dataKey === activeDot?.dataKey) ||
@@ -921,32 +935,20 @@ const LineChart: React.ForwardRefExoticComponent<
                 if (rangeSelection.isClickSuppressed()) {
                   return;
                 }
-                if (!hasOnTimeRangeReset) {
-                  handleChartClick(chartState);
-                  return;
-                }
                 /*
-                 * Reset is on, so hold the click open: both clicks of a
-                 * double-click arrive before dblclick does, and neither
-                 * may pin a bucket. The second click re-arms the timer,
-                 * dblclick clears it.
+                 * With reset on, both clicks of a double-click arrive
+                 * before dblclick does, and neither may pin a bucket: the
+                 * second click re-arms the wait, dblclick drops it.
                  */
-                if (pendingClickTimeoutRef.current !== null) {
-                  clearTimeout(pendingClickTimeoutRef.current);
-                }
-                pendingClickTimeoutRef.current = setTimeout(() => {
-                  pendingClickTimeoutRef.current = null;
+                deferredClick.run((): void => {
                   handleChartClick(chartState);
-                }, DOUBLE_CLICK_DISAMBIGUATION_MS);
+                });
               }}
-              {...(hasOnTimeRangeReset
+              {...(onTimeRangeReset
                 ? {
                     onDoubleClick: () => {
-                      if (pendingClickTimeoutRef.current !== null) {
-                        clearTimeout(pendingClickTimeoutRef.current);
-                        pendingClickTimeoutRef.current = null;
-                      }
-                      onTimeRangeReset?.();
+                      deferredClick.cancel();
+                      onTimeRangeReset();
                     },
                   }
                 : {})}
@@ -1286,8 +1288,14 @@ const LineChart: React.ForwardRefExoticComponent<
                           isAnimationActive={false}
                           onClick={(props: any, event: any) => {
                             event.stopPropagation();
+                            // A drag's trailing click toggles nothing.
+                            if (rangeSelection.isClickSuppressed()) {
+                              return;
+                            }
                             const { name } = props;
-                            onCategoryClick(name);
+                            deferredClick.run((): void => {
+                              onCategoryClick(name);
+                            });
                           }}
                         />
                       );
