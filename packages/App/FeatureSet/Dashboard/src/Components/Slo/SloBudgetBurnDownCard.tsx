@@ -1,5 +1,12 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  getSloBurnDownZoomRange,
+  getSloIdealBurnPointsInWindow,
+} from "./SloBurnDownZoom";
+import SloChartZoomHint, {
+  SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+} from "./SloChartZoomHint";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
 import useSloHistorySeries, {
@@ -32,6 +39,9 @@ import YAxis, {
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
@@ -40,12 +50,18 @@ import { getSloWindowPhrase } from "Common/Utils/Slo/SloOverviewText";
 import {
   getSloChartBucketSeconds,
   getSloComplianceWindowRange,
-  getSloIdealBurnPoints,
   SloComplianceWindowRange,
   SloIdealBurnPoint,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export const BURN_DOWN_BUDGET_SERIES_NAME: string = "Budget remaining";
 export const BURN_DOWN_IDEAL_SERIES_NAME: string = "Even burn";
@@ -82,6 +98,12 @@ export interface ComponentProps {
  *
  * The full SLI, budget and burn history with a range picker lives on the
  * Metrics page, linked from the header.
+ *
+ * Drag-to-zoom (issue #4105): a drag across the chart narrows the card to
+ * the window dragged out, fetched at a finer bucket size, and a
+ * double-click (or "Reset zoom" in the header) returns to the whole
+ * compliance window. The zoom is the card's own: the overview has no time
+ * range for it to change.
  */
 const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -111,7 +133,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
    * start-to-now span would pick five-minute buckets and then have to stretch
    * them across a month-long axis.
    */
-  const timeRange: RangeStartAndEndDateTime =
+  const complianceTimeRange: RangeStartAndEndDateTime =
     useMemo((): RangeStartAndEndDateTime => {
       return {
         range: TimeRange.CUSTOM,
@@ -122,10 +144,58 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       };
     }, [complianceWindow]);
 
+  /*
+   * The zoomed window, or null for the live compliance window. A reset
+   * returns to the window as it is NOW - re-resolved on every evaluation -
+   * rather than to a snapshot of it taken when the zoom was made, which is
+   * why this is not useTimeRangeZoom over a copy of the window.
+   */
+  const [zoomedTimeRange, setZoomedTimeRange] =
+    useState<RangeStartAndEndDateTime | null>(null);
+
+  // Read by the identity-stable zoom callback below, so it never goes stale.
+  const complianceWindowStartRef: React.MutableRefObject<Date> = useRef<Date>(
+    complianceWindow.startDate,
+  );
+  complianceWindowStartRef.current = complianceWindow.startDate;
+
+  const zoomToTimeRange: (startTime: Date, endTime: Date) => void = useCallback(
+    (startTime: Date, endTime: Date): void => {
+      const zoomed: RangeStartAndEndDateTime | null = getSloBurnDownZoomRange({
+        startTime: startTime,
+        endTime: endTime,
+        complianceWindowStart: complianceWindowStartRef.current,
+        now: OneUptimeDate.getCurrentDate(),
+      });
+
+      if (zoomed) {
+        setZoomedTimeRange(zoomed);
+      }
+    },
+    [],
+  );
+
+  const resetZoom: () => void = useCallback((): void => {
+    setZoomedTimeRange(null);
+  }, []);
+
+  /*
+   * Offered to everything in the card: the chart (drag and double-click),
+   * the header's "Reset zoom" and the drag hint. It also shadows any zoom
+   * a page around the card might offer, so a drag here never retimes
+   * anything else.
+   */
+  const zoom: TimeRangeZoom = {
+    isZoomed: zoomedTimeRange !== null,
+    rangeBeforeZoom: zoomedTimeRange ? complianceTimeRange : null,
+    zoomToTimeRange: zoomToTimeRange,
+    resetZoom: resetZoom,
+  };
+
   const series: UseSloHistorySeriesResult = useSloHistorySeries({
     sloId: props.sloId,
     metricName: SloHistoryMetricName.ErrorBudgetRemainingPercent,
-    timeRange: timeRange,
+    timeRange: zoomedTimeRange || complianceTimeRange,
     refreshToken: props.refreshToken,
   });
 
@@ -167,6 +237,23 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       return <ComponentLoader />;
     }
 
+    if (series.points.length === 0 && zoomedTimeRange) {
+      /*
+       * A zoom into a stretch with no history leaves no chart to
+       * double-click, so the empty state takes the double-click instead.
+       */
+      return (
+        <div onDoubleClick={resetZoom}>
+          <SloOverviewEmptyState
+            dataTestId="slo-burn-down-empty"
+            icon={IconProp.ChartBar}
+            title="No budget history in the zoomed window"
+            description="Double-click here, or use Reset zoom, to go back to the whole compliance window."
+          />
+        </div>
+      );
+    }
+
     if (series.points.length === 0) {
       return (
         <SloOverviewEmptyState
@@ -182,12 +269,16 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * The window the history was fetched for - the compliance window, or
+     * the zoom - which also sets the bucket size: finer for a zoom.
+     */
     const xAxis: ChartXAxis = {
       legend: "Time",
       options: {
         type: XAxisType.Time,
-        min: complianceWindow.startDate,
-        max: complianceWindow.axisEndDate,
+        min: series.startDate,
+        max: series.endDate,
         aggregateType: XAxisAggregateType.Average,
         /*
          * Pinned to the bucket size the data was actually aggregated at, so
@@ -223,11 +314,16 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     ];
 
     if (isCalendarMonth) {
-      const idealPoints: Array<SloIdealBurnPoint> = getSloIdealBurnPoints({
-        startDate: complianceWindow.startDate,
-        endDate: complianceWindow.axisEndDate,
-        stepSeconds: getSloChartBucketSeconds(series.aggregationInterval) || 0,
-      });
+      // The month's own line, over whatever part of the month is shown.
+      const idealPoints: Array<SloIdealBurnPoint> =
+        getSloIdealBurnPointsInWindow({
+          budgetStartDate: complianceWindow.startDate,
+          budgetResetDate: complianceWindow.axisEndDate,
+          windowStartDate: series.startDate,
+          windowEndDate: series.endDate,
+          stepSeconds:
+            getSloChartBucketSeconds(series.aggregationInterval) || 0,
+        });
 
       data.push({
         seriesName: BURN_DOWN_IDEAL_SERIES_NAME,
@@ -273,19 +369,27 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card
-      title="Error budget burn-down"
-      description={description}
-      rightElement={
-        <SloOverviewActionLink
-          title="Open metrics"
-          icon={IconProp.ChartBar}
-          to={metricsRoute}
-        />
-      }
-    >
-      {getBody()}
-    </Card>
+    <TimeRangeZoomProvider zoom={zoom}>
+      <Card
+        className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
+        title="Error budget burn-down"
+        description={description}
+        rightElement={
+          <div className="flex items-center gap-2">
+            <ResetTimeRangeZoomButton />
+            <SloOverviewActionLink
+              title="Open metrics"
+              icon={IconProp.ChartBar}
+              to={metricsRoute}
+            />
+          </div>
+        }
+      >
+        <SloChartZoomHint />
+        {getBody()}
+      </Card>
+    </TimeRangeZoomProvider>
   );
 };
 
