@@ -575,6 +575,100 @@ test.describe("writing a note", () => {
     await expect(page.getByTestId("note-composer")).toHaveCount(0);
     await expect(page.getByTestId("note-composer-prompt")).toBeVisible();
   });
+
+  /*
+   * Chromium's insertHTML folds a code block inserted after text on a line
+   * into that line, as a monospace <span> the note saved as plain text: the
+   * Code Block button after "Run:" posted "Run:code blocknpm ci", and a
+   * fenced block pasted there "Run:npm install". jsdom has no execCommand,
+   * so only a real browser shows it.
+   */
+  test("a code block started at the end of a line is posted as a code block", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run:");
+
+    await composer.getByTitle("Code Block").click();
+    // The block's placeholder is selected, so the command replaces it.
+    await page.keyboard.type("npm ci");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "npm ci")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "Run:\n```\nnpm ci\n```",
+    );
+  });
+
+  test("a fenced block pasted at the end of a line is posted as a code block", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run:");
+
+    // The paste event a real paste of that text delivers to the editor.
+    const pasted: boolean = await composer
+      .locator('[contenteditable="true"]')
+      .evaluate((editable: HTMLElement): boolean => {
+        const data: DataTransfer = new DataTransfer();
+        data.setData("text/plain", "```\nnpm install\n```");
+        const event: ClipboardEvent = new ClipboardEvent("paste", {
+          clipboardData: data,
+          bubbles: true,
+          cancelable: true,
+        });
+        editable.dispatchEvent(event);
+        return event.defaultPrevented;
+      });
+    expect(pasted).toBe(true);
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "npm install")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "Run:\n```\nnpm install\n```",
+    );
+  });
+
+  /*
+   * Tab moves list items by hand, which the browser's undo stack never hears
+   * of: Ctrl+Z after Tab undid the typing before it and left the indent.
+   */
+  test("Ctrl+Z takes back a Tab indent in a list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await composer.getByTitle("Bullet List").click();
+    await page.keyboard.type("alpha");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("beta");
+
+    await page.keyboard.press("Tab");
+    await expect(composer.locator('[contenteditable="true"] li li')).toHaveText(
+      "beta",
+    );
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(
+      composer.locator('[contenteditable="true"] li li'),
+    ).toHaveCount(0);
+
+    // The caret is back in the item: what is typed next goes on after it.
+    await page.keyboard.type(" gamma");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "beta gamma")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "- alpha\n- beta gamma",
+    );
+  });
 });
 
 /*
