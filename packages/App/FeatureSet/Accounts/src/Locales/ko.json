@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}은(는) {{maxLength}}자 이하여야 합니다.",
   "Email is not valid.": "이메일이 유효하지 않습니다.",
   "{{field}} must be checked.": "{{field}}을(를) 선택해야 합니다.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "이 시간은 사용자의 시간대 기준입니다 - {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "이 시간은 사용자의 시간대 기준입니다 - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "여기에 내용을 입력하세요...",
+  "Type your markdown here...": "여기에 Markdown을 입력하세요...",
+  "Formatting help": "서식 도움말"
 }

@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} må ikke være mere end {{maxLength}} tegn.",
   "Email is not valid.": "E-mailen er ugyldig.",
   "{{field}} must be checked.": "{{field}} skal være markeret.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunkt er i din tidszone - {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunkt er i din tidszone - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Skriv dit indhold her...",
+  "Type your markdown here...": "Skriv din Markdown her...",
+  "Formatting help": "Hjælp til formatering"
 }

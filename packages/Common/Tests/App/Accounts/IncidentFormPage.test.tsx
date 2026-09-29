@@ -1897,6 +1897,84 @@ describe("the page speaks the reporter's language", () => {
     expect(screen.getByText("Ihr Name ist erforderlich.")).toBeInTheDocument();
   });
 
+  /*
+   * An empty Markdown box says what to type in it. The editor's own words
+   * are English, so the page hands every Markdown box - the description and
+   * each Markdown question - the words in the reporter's language.
+   */
+  test("in German, every Markdown box says what to type in German", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+
+    serveForm({
+      status: 200,
+      data: {
+        ...MINIMAL_FORM,
+        descriptionSetting: IncidentFormFieldSetting.Optional,
+        customFields: [
+          {
+            name: "Notes",
+            customFieldType: CustomFieldType.Markdown,
+            isRequired: false,
+          },
+        ],
+      } as unknown as JSONObject,
+    });
+    await renderPage();
+
+    const placeholder: string = i18n.t("Type your content here...", {
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    expect(placeholder).toBe("Geben Sie hier Ihren Inhalt ein...");
+    expect(descriptionEditor()).toHaveAttribute(
+      "data-placeholder",
+      placeholder,
+    );
+    expect(screen.getByRole("textbox", { name: /^Notes/ })).toHaveAttribute(
+      "data-placeholder",
+      placeholder,
+    );
+
+    // The source mode's box says it too.
+    fireEvent.click(
+      within(screen.getByTestId("incident-form-description")).getByTitle(
+        "Switch to markdown source",
+      ),
+    );
+
+    expect(
+      within(screen.getByTestId("incident-form-description")).getByRole(
+        "textbox",
+      ),
+    ).toHaveAttribute("placeholder", placeholder);
+  });
+
+  test("in English, the Markdown boxes keep the editor's own words", async () => {
+    await renderForm({
+      ...MINIMAL_FORM,
+      descriptionSetting: IncidentFormFieldSetting.Optional,
+      customFields: [
+        {
+          name: "Notes",
+          customFieldType: CustomFieldType.Markdown,
+          isRequired: false,
+        },
+      ],
+    });
+
+    expect(descriptionEditor()).toHaveAttribute(
+      "data-placeholder",
+      "Type your content here...",
+    );
+    expect(screen.getByRole("textbox", { name: /^Notes/ })).toHaveAttribute(
+      "data-placeholder",
+      "Type your content here...",
+    );
+  });
+
   test("switching language mid-report relabels the form and keeps the answers", async () => {
     await renderForm(MINIMAL_FORM);
 

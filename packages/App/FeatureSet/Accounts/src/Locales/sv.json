@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} får inte vara mer än {{maxLength}} tecken.",
   "Email is not valid.": "E-postadressen är ogiltig.",
   "{{field}} must be checked.": "{{field}} måste vara markerad.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Den här tiden anges i din tidszon - {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Den här tiden anges i din tidszon - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Skriv ditt innehåll här...",
+  "Type your markdown here...": "Skriv din Markdown här...",
+  "Formatting help": "Hjälp med formatering"
 }

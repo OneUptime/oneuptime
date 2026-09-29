@@ -273,6 +273,28 @@ describe("what the page asks", () => {
     ).toContain("customField.allowImageUpload = false;");
   });
 
+  test("every Markdown box says what to type in the reporter's language", () => {
+    // The editor's own words, looked up by the page as a flat key...
+    expect(pageSource).toContain(
+      'const MARKDOWN_PLACEHOLDER: string = "Type your content here...";',
+    );
+    expect(pageSource).toMatch(
+      /const markdownPlaceholder: string = t\( ?MARKDOWN_PLACEHOLDER, FLAT_KEY_OPTIONS,? ?\);/,
+    );
+    // ...and handed to the description and to every Markdown question.
+    expect(
+      countOccurrences(pageSource, "placeholder: markdownPlaceholder,"),
+    ).toBe(1);
+    expect(
+      sliceBetween(
+        pageSource,
+        "if (customField.fieldType === FormFieldSchemaType.Markdown) {",
+        "}",
+      ),
+    ).toContain("customField.placeholder = markdownPlaceholder;");
+    expect(MARKDOWN_EDITOR_SENTENCES).toContain("Type your content here...");
+  });
+
   test("custom fields are built by the shared builder, required where the form says", () => {
     const builder: string = sliceBetween(
       pageSource,
@@ -338,9 +360,21 @@ const SHARED_FORM_SENTENCES: Array<string> = [
   "This is in your timezone - {{abbreviation}} ({{timezone}}).",
 ];
 
+/*
+ * The Markdown editor's own words on the page - what an empty box says, in
+ * each of its two modes, and the help under it. Flat keys, as the editor
+ * looks them up; the page hands the first to every Markdown box itself.
+ */
+const MARKDOWN_EDITOR_SENTENCES: Array<string> = [
+  "Type your content here...",
+  "Type your markdown here...",
+  "Formatting help",
+];
+
 const FLAT_SENTENCES: Array<string> = [
   ...(Object.values(IncidentFormMessage) as Array<string>),
   ...SHARED_FORM_SENTENCES,
+  ...MARKDOWN_EDITOR_SENTENCES,
 ];
 
 /*

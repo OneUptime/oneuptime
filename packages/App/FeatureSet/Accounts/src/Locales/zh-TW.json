@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}不能超過 {{maxLength}} 個字元。",
   "Email is not valid.": "電子郵件無效。",
   "{{field}} must be checked.": "必須勾選 {{field}}。",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "此時間以您的時區為準 - {{abbreviation}} ({{timezone}})。"
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "此時間以您的時區為準 - {{abbreviation}} ({{timezone}})。",
+  "Type your content here...": "在此輸入內容...",
+  "Type your markdown here...": "在此輸入 Markdown...",
+  "Formatting help": "格式說明"
 }

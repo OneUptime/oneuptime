@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} نمی‌تواند بیشتر از {{maxLength}} کاراکتر باشد.",
   "Email is not valid.": "ایمیل معتبر نیست.",
   "{{field}} must be checked.": "{{field}} باید علامت بخورد.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "این زمان بر اساس منطقه زمانی شماست — {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "این زمان بر اساس منطقه زمانی شماست — {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "محتوای خود را اینجا بنویسید...",
+  "Type your markdown here...": "Markdown خود را اینجا بنویسید...",
+  "Formatting help": "راهنمای قالب‌بندی"
 }

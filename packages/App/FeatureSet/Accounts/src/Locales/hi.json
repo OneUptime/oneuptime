@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} {{maxLength}} वर्णों से अधिक नहीं हो सकता।",
   "Email is not valid.": "ईमेल मान्य नहीं है।",
   "{{field}} must be checked.": "{{field}} पर टिक करना आवश्यक है।",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "यह समय आपके टाइमज़ोन में है - {{abbreviation}} ({{timezone}})।"
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "यह समय आपके टाइमज़ोन में है - {{abbreviation}} ({{timezone}})।",
+  "Type your content here...": "अपनी सामग्री यहाँ लिखें...",
+  "Type your markdown here...": "अपना Markdown यहाँ लिखें...",
+  "Formatting help": "फ़ॉर्मेटिंग सहायता"
 }

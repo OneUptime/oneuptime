@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} mag niet meer dan {{maxLength}} tekens bevatten.",
   "Email is not valid.": "E-mailadres is ongeldig.",
   "{{field}} must be checked.": "{{field}} moet aangevinkt zijn.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Deze tijd is in uw tijdzone - {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Deze tijd is in uw tijdzone - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Typ hier uw inhoud...",
+  "Type your markdown here...": "Typ hier uw Markdown...",
+  "Formatting help": "Hulp bij opmaak"
 }

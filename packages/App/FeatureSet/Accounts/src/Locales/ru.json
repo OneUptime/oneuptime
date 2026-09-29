@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} не может содержать более {{maxLength}} символов.",
   "Email is not valid.": "Электронная почта недействительна.",
   "{{field}} must be checked.": "Поле «{{field}}» должно быть отмечено.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Время указано в вашем часовом поясе — {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Время указано в вашем часовом поясе — {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Введите текст здесь...",
+  "Type your markdown here...": "Введите Markdown здесь...",
+  "Formatting help": "Справка по форматированию"
 }

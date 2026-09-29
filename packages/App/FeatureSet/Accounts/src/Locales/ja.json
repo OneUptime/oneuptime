@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}は{{maxLength}}文字以下で入力してください。",
   "Email is not valid.": "メールアドレスが無効です。",
   "{{field}} must be checked.": "{{field}} をオンにする必要があります。",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "この時刻はお使いのタイムゾーンで表示されています - {{abbreviation}} ({{timezone}})。"
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "この時刻はお使いのタイムゾーンで表示されています - {{abbreviation}} ({{timezone}})。",
+  "Type your content here...": "ここに内容を入力してください...",
+  "Type your markdown here...": "ここに Markdown を入力してください...",
+  "Formatting help": "書式設定のヘルプ"
 }

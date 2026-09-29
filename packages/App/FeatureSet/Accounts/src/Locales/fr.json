@@ -252,5 +252,8 @@
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} ne peut pas contenir plus de {{maxLength}} caractères.",
   "Email is not valid.": "L'e-mail n'est pas valide.",
   "{{field}} must be checked.": "{{field}} doit être coché.",
-  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Cette heure est exprimée dans votre fuseau horaire - {{abbreviation}} ({{timezone}})."
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Cette heure est exprimée dans votre fuseau horaire - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Saisissez votre contenu ici...",
+  "Type your markdown here...": "Saisissez votre Markdown ici...",
+  "Formatting help": "Aide à la mise en forme"
 }
