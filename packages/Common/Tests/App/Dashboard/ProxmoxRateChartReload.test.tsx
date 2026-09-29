@@ -218,12 +218,18 @@ import {
   chartWindows,
   doubleClick,
   dragAcross,
+  expectRevealedOnHoverOf,
   flush,
   metricViews,
   resetZoomButtons,
   windowOf,
   zoomCharts,
+  zoomHints,
 } from "./TimeRangeZoomPageHarness";
+import {
+  TIME_RANGE_ZOOM_HINT_RESET_TEXT,
+  TIME_RANGE_ZOOM_HINT_TEXT,
+} from "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -792,6 +798,76 @@ describe("Proxmox guest detail, Metrics tab", () => {
 
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
     expect(chartWindows()).toEqual(same(ZOOM, 2));
+  });
+});
+
+/*
+ * The rate charts name the drag the way the Ceph ones do (issue #4105
+ * review): a hint revealed while the pointer is over that chart, in a named
+ * group holding exactly its heading and the chart. The Insights Network
+ * card holds nothing but its rate chart, so without it nothing in the card
+ * said the chart could be dragged at all.
+ */
+function expectOneHintPerRateChart(titles: Array<string | null>): void {
+  const hints: Array<HTMLElement> = zoomHints();
+  expect(hints).toHaveLength(titles.length);
+  hints.forEach((hint: HTMLElement, index: number) => {
+    const group: HTMLElement = expectRevealedOnHoverOf(hint);
+    const title: string | null = titles[index]!;
+    if (title) {
+      expect(group).toHaveTextContent(title);
+    }
+    const charts: NodeListOf<Element> = group.querySelectorAll(
+      '[data-testid="zoom-chart"]',
+    );
+    expect(charts).toHaveLength(1);
+    expect(charts[0]).toBe(zoomCharts()[index]);
+  });
+}
+
+describe("Proxmox rate charts name the drag and the way back", () => {
+  test("Insights: a hint over the Storage card's Disk Throughput and over the Network card's chart", async () => {
+    await renderLoadedInsights();
+
+    expectOneHintPerRateChart(["Disk Throughput", null]);
+    for (const hint of zoomHints()) {
+      expect(hint).toHaveTextContent(TIME_RANGE_ZOOM_HINT_TEXT);
+    }
+  });
+
+  test("Insights: zoomed, both hints name the double-click back; reset, the drag again", async () => {
+    const charts: Array<HTMLElement> = await renderLoadedInsights();
+
+    await dragAcross(charts[1]!, at("11:20"), at("11:40"));
+    expect(zoomHints()).toHaveLength(2);
+    for (const hint of zoomHints()) {
+      expect(hint).toHaveTextContent(TIME_RANGE_ZOOM_HINT_RESET_TEXT);
+    }
+
+    await doubleClick(zoomCharts()[0]!);
+    for (const hint of zoomHints()) {
+      expect(hint).toHaveTextContent(TIME_RANGE_ZOOM_HINT_TEXT);
+    }
+  });
+
+  test("node Metrics tab: a hint in each rate chart's heading", async () => {
+    await renderNodeMetrics();
+
+    expectOneHintPerRateChart(["Network Throughput", "Disk Throughput"]);
+    for (const hint of zoomHints()) {
+      // The heading's own weight stays off the hint.
+      expect(hint).toHaveClass("ml-auto", "font-normal");
+    }
+  });
+
+  test("guest Metrics tab: a hint in each rate chart's heading", async () => {
+    mockLastParam = "qemu%2F100";
+    render(<ProxmoxClusterGuestDetail {...PAGE_PROPS} />);
+    await flush();
+    fireEvent.click(screen.getByRole("tab", { name: "Metrics" }));
+    await flush();
+
+    expectOneHintPerRateChart(["Network Throughput", "Disk Throughput"]);
   });
 });
 

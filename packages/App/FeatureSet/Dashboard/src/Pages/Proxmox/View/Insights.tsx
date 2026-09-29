@@ -20,6 +20,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import { formatBytes } from "../Utils/ProxmoxResourceUtils";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import RangeStartAndEndDateTime, {
@@ -331,12 +332,16 @@ const ProxmoxClusterInsights: FunctionComponent<
         startAndEndDate={startAndEndDate}
         renderExtraCharts={(dateRange: InBetween<Date>) => {
           return (
-            <div>
+            <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                 Disk Throughput
                 <InfoTooltip
                   label="Disk Throughput"
                   text={PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
                 />
               </div>
               <ProxmoxRateChart
@@ -370,16 +375,25 @@ const ProxmoxClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       >
-        <ProxmoxRateChart
-          clusterName={clusterName}
-          series={[
-            { metricName: "pve_network_receive_bytes", label: "Receive" },
-            { metricName: "pve_network_transmit_bytes", label: "Transmit" },
-          ]}
-          startDate={startAndEndDate.startValue}
-          endDate={startAndEndDate.endValue}
-          syncId={`proxmox-insights-${modelId.toString()}`}
-        />
+        {/*
+         * The card holds only this rate chart, so nothing else in it names
+         * the drag: the hint does, revealed while the pointer is over it.
+         */}
+        <div className="group/zoomhint">
+          <div className="mb-2 flex justify-end text-sm">
+            <TimeRangeZoomHint revealOnHover={true} />
+          </div>
+          <ProxmoxRateChart
+            clusterName={clusterName}
+            series={[
+              { metricName: "pve_network_receive_bytes", label: "Receive" },
+              { metricName: "pve_network_transmit_bytes", label: "Transmit" },
+            ]}
+            startDate={startAndEndDate.startValue}
+            endDate={startAndEndDate.endValue}
+            syncId={`proxmox-insights-${modelId.toString()}`}
+          />
+        </div>
       </EmbeddedMetricCard>
     </TimeRangeZoomScope>
   );
