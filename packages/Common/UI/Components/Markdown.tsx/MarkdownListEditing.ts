@@ -335,8 +335,12 @@ export const sinkListItems: (root: HTMLElement) => boolean = (
  * Outdent: the selected items move out of their list to sit right after the
  * item that held it. The items that followed them in that list stay below
  * them, so they become the last moved item's children -- as in Google Docs
- * and Word, the text keeps its order. A top-level item has nowhere to go, so
- * this returns false for it (and never lifts an item out of `root` itself).
+ * and Word, the text keeps its order -- and so does whatever that item held
+ * after the list: a paragraph that goes on below the nested items, or a
+ * nested list of the other kind. Left in place, those came out above the
+ * moved items. The markdown-source outdent keeps the same order. A top-level
+ * item has nowhere to go, so this returns false for it (and never lifts an
+ * item out of `root` itself).
  */
 export const liftListItems: (root: HTMLElement) => boolean = (
   root: HTMLElement,
@@ -378,6 +382,17 @@ export const liftListItems: (root: HTMLElement) => boolean = (
     for (const item of trailing) {
       sublist.appendChild(item);
     }
+  }
+  /*
+   * After the items that followed, not before: a nested list of the other
+   * kind moved in first would be taken for the last item's own sublist, and
+   * the followers would go into it.
+   */
+  let after: ChildNode | null = list.nextSibling;
+  while (after) {
+    const following: ChildNode | null = after.nextSibling;
+    last.appendChild(after);
+    after = following;
   }
 
   let anchor: Node = parentItem;

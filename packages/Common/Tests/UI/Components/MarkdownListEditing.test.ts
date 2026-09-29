@@ -803,6 +803,43 @@ describe("liftListItems", () => {
     expect(root.innerHTML).toBe("<ul><li>a</li><li>b</li></ul>");
   });
 
+  /*
+   * What the parent item held after the nested list came after the moved
+   * item as well. Left in the parent, it came out above the moved item --
+   * "a, more text, b, c" -- where the markdown source's outdent kept the
+   * order, so the two modes saved different text for the same Shift+Tab.
+   */
+  it("keeps a paragraph the parent item goes on with below the moved item", () => {
+    const markdown: string = "- a\n  - b\n\n  more text of a\n- c";
+    const root: HTMLDivElement = mountEditable(markdown);
+    caretIn(itemContaining(root, "b"), 0);
+
+    expect(liftListItems(root)).toBe(true);
+    expect(markdownOf(root)).toBe("- a\n- b\n\n  more text of a\n- c");
+    const caret: number = markdown.indexOf("- b") + 2;
+    expect(outdentMarkdownLines(markdown, caret, caret)?.text).toBe(
+      markdownOf(root),
+    );
+  });
+
+  it("keeps a nested list of the other kind below the moved item", () => {
+    const root: HTMLDivElement = mountEditable("- a\n  - b\n  1. c");
+    caretIn(itemContaining(root, "b"), 0);
+
+    expect(liftListItems(root)).toBe(true);
+    expect(markdownOf(root)).toBe("- a\n- b\n  1. c");
+  });
+
+  it("keeps the order with both following items and a paragraph after them", () => {
+    const root: HTMLDivElement = mountEditable(
+      "- a\n  - b\n  - c\n\n  tail para of a\n- d",
+    );
+    caretIn(itemContaining(root, "b"), 0);
+
+    expect(liftListItems(root)).toBe(true);
+    expect(markdownOf(root)).toBe("- a\n- b\n  - c\n\n  tail para of a\n- d");
+  });
+
   it("moves an item into a numbered parent list as a numbered item", () => {
     const root: HTMLDivElement = mountEditable("1. a\n   - b\n2. c");
     caretIn(itemContaining(root, "b"), 0);
