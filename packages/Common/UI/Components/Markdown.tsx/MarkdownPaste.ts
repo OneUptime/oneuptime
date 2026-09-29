@@ -1188,6 +1188,28 @@ const listsType: (
   return false;
 };
 
+const RE_STARTS_WITH_SPACE: RegExp = /^[ \t]/;
+const RE_ENDS_WITH_SPACE: RegExp = /[ \t]$/;
+
+/*
+ * A few words copied out of a line ("very " with its space) are pasted into
+ * the middle of another, where the space between them and the next word
+ * matters -- but as HTML the space sits at the edge of the document, where
+ * it is trimmed like any block's. When the converted text is a single line,
+ * the spaces at the plain text's edges are put back.
+ */
+const withEdgeSpacesOf: (plain: string, markdown: string) => string = (
+  plain: string,
+  markdown: string,
+): string => {
+  if (!markdown || markdown.includes("\n")) {
+    return markdown;
+  }
+  const leading: string = RE_STARTS_WITH_SPACE.test(plain) ? " " : "";
+  const trailing: string = RE_ENDS_WITH_SPACE.test(plain) ? " " : "";
+  return `${leading}${markdown}${trailing}`;
+};
+
 /*
  * The markdown to paste, or null to leave the paste to the caller -- to
  * upload the image files on the clipboard, or to let the browser do what it
@@ -1209,11 +1231,16 @@ export const clipboardToMarkdown: (
 ): string | null => {
   const preferFiles: boolean =
     options?.hasImageFiles ?? listsType(clipboard.types, "Files");
+  // Line breaks as a textarea holds them, so a caller can compare the two.
+  const plain: string = readClipboard(clipboard, "text/plain").replace(
+    RE_LINE_BREAKS,
+    "\n",
+  );
 
   const html: string = readClipboard(clipboard, "text/html");
   const body: HTMLElement | null = cleanPastedHtml(html);
   if (body && hasRichContent(body)) {
-    const markdown: string = domToMarkdown(body);
+    const markdown: string = withEdgeSpacesOf(plain, domToMarkdown(body));
     if (hasText(body)) {
       return markdown;
     }
@@ -1226,7 +1253,6 @@ export const clipboardToMarkdown: (
     return null;
   }
 
-  const plain: string = readClipboard(clipboard, "text/plain");
   if (plain) {
     return normalizePlainTextListMarkers(plain);
   }

@@ -742,6 +742,52 @@ describe("clipboardToMarkdown", () => {
     ).toBe("- Service down\n  - Users");
   });
 
+  /*
+   * A textarea holds "\n" line breaks. The editor's source mode compares
+   * this result with the clipboard's plain text to decide whether the
+   * browser's own paste would insert the same thing; Windows' "\r\n" made
+   * every multi-line paste look different, and took it off the undo stack.
+   */
+  it("writes line breaks as a textarea holds them", () => {
+    expect(
+      clipboardToMarkdown(clipboard({ "text/plain": "one\r\ntwo\rthree" })),
+    ).toBe("one\ntwo\nthree");
+  });
+
+  /*
+   * Words copied out of a line keep their space: as HTML it sits at the
+   * edge of the document and is trimmed, and "very" pasted before "world"
+   * came out as "**very**world".
+   */
+  it("keeps the space at either edge of a one-line rich paste", () => {
+    expect(
+      clipboardToMarkdown(
+        clipboard({ "text/html": "<b>very</b> ", "text/plain": "very " }),
+      ),
+    ).toBe("**very** ");
+    expect(
+      clipboardToMarkdown(
+        clipboard({ "text/html": " <i>so</i>", "text/plain": "\tso" }),
+      ),
+    ).toBe(" *so*");
+  });
+
+  it("adds no edge spaces to a paste of several lines, or for a trailing newline", () => {
+    expect(
+      clipboardToMarkdown(
+        clipboard({
+          "text/html": "<ul><li>a</li><li>b</li></ul>",
+          "text/plain": " a\nb ",
+        }),
+      ),
+    ).toBe("- a\n- b");
+    expect(
+      clipboardToMarkdown(
+        clipboard({ "text/html": "<b>line</b>", "text/plain": "line\n" }),
+      ),
+    ).toBe("**line**");
+  });
+
   it("takes plain text alone", () => {
     expect(clipboardToMarkdown(clipboard({ "text/plain": "just text" }))).toBe(
       "just text",
