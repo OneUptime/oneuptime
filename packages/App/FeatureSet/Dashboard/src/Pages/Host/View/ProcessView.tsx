@@ -192,12 +192,20 @@ const HostProcessView: FunctionComponent<
     });
 
   /*
-   * A chart zoom, its reset, the picker and the auto-refresh timer can each
-   * start a fetch while another is still in flight. Only the most recently
-   * started one may commit, or a slow response for the window the reader
-   * just left would repaint the charts, tiles and process identity with it.
+   * A chart zoom, its reset, the picker and Refresh can each start a fetch
+   * while another is still in flight. Only the most recently started one
+   * may commit, or a slow response for the window the reader just left
+   * would repaint the charts, tiles and process identity with it.
    */
   const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its tick then instead of superseding that fetch with one for the
+   * same window: were every fetch to outlast the interval, none would ever
+   * land, and the page would sit on skeletons with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
     const seq: number = ++fetchSeqRef.current;
@@ -205,6 +213,7 @@ const HostProcessView: FunctionComponent<
       return seq !== fetchSeqRef.current;
     };
 
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -654,6 +663,11 @@ const HostProcessView: FunctionComponent<
         return;
       }
       setStatsError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
     }
     // A superseded fetch leaves the spinner to the fetch that replaced it.
     if (isStale()) {
@@ -679,6 +693,10 @@ const HostProcessView: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (fetchInFlightRef.current) {
+        return;
+      }
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });

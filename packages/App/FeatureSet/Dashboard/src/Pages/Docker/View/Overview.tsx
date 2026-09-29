@@ -192,13 +192,21 @@ const DockerHostOverview: FunctionComponent<
     });
 
   /*
-   * A chart zoom, its reset, the picker, the auto-refresh timer and the
-   * Refresh button each start a fetch, and they overlap: a drag straight
-   * followed by a double-click is two range changes in a second. Only the
-   * most recently started fetch may commit, or a slow response for the
-   * window just left would land last and be drawn under the new range.
+   * A chart zoom, its reset, the picker and the Refresh button each start a
+   * fetch, and they overlap: a drag straight followed by a double-click is
+   * two range changes in a second. Only the most recently started fetch may
+   * commit, or a slow response for the window just left would land last and
+   * be drawn under the new range.
    */
   const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its fetch then instead of superseding that one with a fetch for
+   * the same window: were every fetch to outlast the interval, none would
+   * ever land, and the page would sit on skeletons with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
     const seq: number = ++fetchSeqRef.current;
@@ -206,6 +214,7 @@ const DockerHostOverview: FunctionComponent<
       return seq !== fetchSeqRef.current;
     };
 
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -795,6 +804,11 @@ const DockerHostOverview: FunctionComponent<
         return;
       }
       setStatsError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
     }
     setIsRefreshing(false);
     setIsInitialLoading(false);
@@ -816,9 +830,12 @@ const DockerHostOverview: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchStatsRef.current().catch((err: Error) => {
-        setStatsError(API.getFriendlyMessage(err));
-      });
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (!fetchInFlightRef.current) {
+        fetchStatsRef.current().catch((err: Error) => {
+          setStatsError(API.getFriendlyMessage(err));
+        });
+      }
       setDetailsRefresher((prev: boolean) => {
         return !prev;
       });
