@@ -1488,6 +1488,29 @@ async function handleApi(method, options) {
     return ok(INVENTORY_SUMMARY);
   }
 
+  /*
+   * The Overview's "AI agent" card reads whether OneUptime AI can reach
+   * the cluster. Not part of the zoom; answered "not installed" so the card
+   * settles and the page makes no other call.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/kubernetes-cluster/ai-access/status")
+  ) {
+    if (body.clusterId !== CLUSTER_ID) {
+      throw fail(404, "Kubernetes cluster not found.");
+    }
+    return ok({
+      clusterId: CLUSTER_ID,
+      clusterName: "Production (eu-west-1)",
+      runner: null,
+      accessMethod: "none",
+      aiAgent: null,
+      automaticInvestigation: {},
+      gaps: [],
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({});
 }
