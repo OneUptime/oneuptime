@@ -15,10 +15,14 @@ import {
 import {
   CHROME_CODE_VIEW_TABLE_COPY_HTML,
   CHROME_VIEWER_CODE_LINES_COPY_HTML,
+  CHROME_VIEWER_CODE_PART_OF_LINE_COPY_HTML,
+  CHROME_VIEWER_CODE_WORD_COPY_HTML,
   CHROME_VIEWER_COPY_HTML,
-  CODE_VIEW_TABLE_COPY_TEXT,
   CHROME_VIEWER_COPY_TEXT,
+  CODE_VIEW_TABLE_COPY_TEXT,
   FIREFOX_VIEWER_CODE_LINES_COPY_HTML,
+  FIREFOX_VIEWER_CODE_PART_OF_LINE_COPY_HTML,
+  FIREFOX_VIEWER_CODE_WORD_COPY_HTML,
   FIREFOX_VIEWER_COPY_HTML,
   FIREFOX_VIEWER_COPY_TEXT,
   GOOGLE_DOCS_LIST_COPY_HTML,
@@ -27,6 +31,8 @@ import {
   VIEWER_CODE_LINES_COPY_TEXT,
   VIEWER_COPY_SOURCE_MARKDOWN,
   WEBKIT_CODE_VIEW_TABLE_COPY_HTML,
+  WEBKIT_VIEWER_CODE_PART_OF_LINE_COPY_HTML,
+  WEBKIT_VIEWER_CODE_WORD_COPY_HTML,
   WORD_OUTLOOK_ISSUE_4114_HTML,
 } from "./fixtures/MarkdownPasteFixtures";
 
@@ -446,6 +452,67 @@ describe("pastedHtmlToMarkdown", () => {
           ),
         ).toBe("```yaml\nreplicas: 3\nimage: api_server:v2\n```");
       }
+    });
+
+    /*
+     * Every browser keeps the viewer's hinted <pre> around even a word it
+     * copies. As a fenced block, a pod name copied out of a note split the
+     * sentence it was pasted into, and in the markdown source ran into the
+     * rest of the line.
+     */
+    it("comes back as inline code when less than a line of a code block was copied", () => {
+      for (const html of [
+        CHROME_VIEWER_CODE_WORD_COPY_HTML,
+        FIREFOX_VIEWER_CODE_WORD_COPY_HTML,
+        WEBKIT_VIEWER_CODE_WORD_COPY_HTML,
+      ]) {
+        expect(
+          clipboardToMarkdown(
+            clipboard({ "text/html": html, "text/plain": "api_server" }),
+          ),
+        ).toBe("`api_server`");
+      }
+      for (const html of [
+        CHROME_VIEWER_CODE_PART_OF_LINE_COPY_HTML,
+        FIREFOX_VIEWER_CODE_PART_OF_LINE_COPY_HTML,
+        WEBKIT_VIEWER_CODE_PART_OF_LINE_COPY_HTML,
+      ]) {
+        expect(
+          clipboardToMarkdown(
+            clipboard({ "text/html": html, "text/plain": "kubectl get pods" }),
+          ),
+        ).toBe("`kubectl get pods`");
+      }
+    });
+
+    it("takes a line copied with its line break as less than a line", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<pre data-markdown-code-block="true" data-language="bash"><code>npm install\n</code></pre>',
+        ),
+      ).toBe("`npm install`");
+    });
+
+    /*
+     * A copy that carries the block's root -- all of a one-line block, or a
+     * line Chromium and Safari triple-click -- is the block, language and
+     * all.
+     */
+    it("keeps a one-line block copied whole a fenced block", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<div data-markdown-code-block="true" data-language="bash"><div data-markdown-ignore="true"><span>Bash</span><button>Copy</button></div><pre data-markdown-code-block="true" data-language="bash"><code>npm install</code></pre></div>',
+        ),
+      ).toBe("```bash\nnpm install\n```");
+    });
+
+    // Inline code has no way to hold a backtick of its own.
+    it("keeps less than a line holding a backtick a fenced block", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<pre data-markdown-code-block="true" data-language="bash"><code>echo `date`</code></pre>',
+        ),
+      ).toBe("```bash\necho `date`\n```");
     });
 
     /*

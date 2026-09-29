@@ -12,11 +12,14 @@ import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import {
+  CHROME_VIEWER_CODE_LINES_COPY_HTML,
+  CHROME_VIEWER_CODE_WORD_COPY_HTML,
   CHROME_VIEWER_COPY_HTML,
   CHROME_VIEWER_COPY_TEXT,
   GOOGLE_DOCS_LIST_COPY_HTML,
   GOOGLE_DOCS_LIST_COPY_MARKDOWN,
   GOOGLE_DOCS_LIST_COPY_TEXT,
+  VIEWER_CODE_LINES_COPY_TEXT,
   VIEWER_COPY_SOURCE_MARKDOWN,
   WORD_OUTLOOK_ISSUE_4114_HTML,
 } from "./fixtures/MarkdownPasteFixtures";
@@ -1033,6 +1036,30 @@ describe("MarkdownEditor paste in the visual editor", () => {
     expect(lastChange(onChange)).toBe("hello **very** world");
   });
 
+  /*
+   * Every browser keeps a note's code block <pre> around a word copied out
+   * of it; pasted as a fenced block, the word split the sentence in three.
+   */
+  test("pastes a word copied out of a note's code block into the line as inline code", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue="Restart the pod now" onChange={onChange} />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("pod", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": CHROME_VIEWER_CODE_WORD_COPY_HTML,
+        "text/plain": "api_server",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("Restart the `api_server`pod now");
+    expect(editableOf().querySelectorAll("p")).toHaveLength(1);
+    expect(editableOf().querySelector("pre")).toBeNull();
+  });
+
   test("keeps the paragraph when pasting into an empty editor", () => {
     render(<MarkdownEditor initialValue="" />);
     const range: Range = document.createRange();
@@ -1782,6 +1809,118 @@ describe("MarkdownEditor paste in the markdown source", () => {
       }),
     ).toBe(false);
     expect(lastChange(onChange)).toBe("```\nx\n```\n\n- a\n  - b");
+  });
+
+  /*
+   * A pod name double-clicked in a note's code block: as a fenced block in
+   * the middle of the line, its closing fence was followed by the rest of the
+   * line -- an opening fence, which turned the rest of the note into code.
+   */
+  test("pastes a word copied out of a note's code block into the line as inline code", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"Restart the  pod now\n\nNext paragraph."}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(12, 12);
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({
+          "text/html": CHROME_VIEWER_CODE_WORD_COPY_HTML,
+          "text/plain": "api_server",
+        }),
+      }),
+    ).toBe(false);
+    expect(lastChange(onChange)).toBe(
+      "Restart the `api_server` pod now\n\nNext paragraph.",
+    );
+  });
+
+  /*
+   * What the visual editor does with a block pasted into the middle of a
+   * line -- split the line -- in the source: the block on lines of its own,
+   * a blank line either side, and the spaces at the split gone.
+   */
+  test("puts code lines pasted into the middle of a line on lines of their own", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"Restart the  pod now\n\nNext paragraph."}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(12, 12);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": CHROME_VIEWER_CODE_LINES_COPY_HTML,
+        "text/plain": VIEWER_CODE_LINES_COPY_TEXT,
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "Restart the\n\n```yaml\nreplicas: 3\nimage: api_server:v2\n```\n\npod now\n\nNext paragraph.",
+    );
+  });
+
+  test("puts a list pasted over part of a line on lines of its own", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"Steps: TODO later"} onChange={onChange} />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(7, 11);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>restart api</li><li>check logs</li></ul>",
+        "text/plain": "restart api\ncheck logs",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "Steps:\n\n- restart api\n- check logs\n\nlater",
+    );
+  });
+
+  // A block at the start or end of its line is already on lines of its own.
+  test("adds no lines around a block pasted on a line of its own", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"Steps:\n\nlater"} onChange={onChange} />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(7, 7);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>restart api</li></ul>",
+        "text/plain": "restart api",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("Steps:\n- restart api\nlater");
+  });
+
+  test("still pastes formatted words into the middle of a line", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue={"hello world"} onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(6, 6);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<b>very</b> ",
+        "text/plain": "very ",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("hello **very** world");
   });
 
   test("still uploads an image pasted inside a fence", async () => {

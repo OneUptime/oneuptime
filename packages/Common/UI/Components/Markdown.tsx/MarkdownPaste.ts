@@ -335,6 +335,7 @@ const RE_WORD_ORDERED_MARKER: RegExp = /^\(?[0-9a-zA-Z]{1,5}[.)]/;
 const RE_WORD_MARKER_SPAN: RegExp = /mso-list:\s*ignore/i;
 const RE_HIDDEN_STYLE: RegExp = /mso-hide:\s*all/i;
 const RE_LANGUAGE: RegExp = /^[\w-]+$/;
+const RE_TRAILING_LINE_BREAK: RegExp = /\n$/;
 const RE_VIEWER_TIMESTAMP: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
 const RE_DOCS_GUID: RegExp = /^docs-internal-guid/;
@@ -766,11 +767,38 @@ const restoreViewerMarkup: (body: HTMLElement) => void = (
     }
     const language: string = (block.getAttribute("data-language") || "").trim();
     const source: Element = block.querySelector("code") || block;
+    const text: string = preformattedText(source);
+    /*
+     * Only the <pre> the code is in reached the clipboard -- the copy began
+     * and ended inside the code -- and it is less than a line: a
+     * double-clicked word, part of a command. Every browser keeps that <pre>
+     * around even a word, and as a fenced block the word split the sentence
+     * it was pasted into (the visual editor) or ran into the rest of the
+     * line (the markdown source), where the closing fence opened a new one
+     * that swallowed the rest of the note. It is inline code instead. Copies
+     * that span lines, and copies that carry the block's own root -- all of
+     * a block, a triple-clicked line in Chromium or Safari -- stay fenced
+     * blocks; so does a line holding a backtick, which inline code would
+     * cut short.
+     */
+    const line: string = text.replace(RE_TRAILING_LINE_BREAK, "");
+    if (
+      tagOf(block) === "pre" &&
+      !line.includes("\n") &&
+      !line.includes("`") &&
+      RE_NOT_WHITESPACE.test(line)
+    ) {
+      const inline: HTMLElement = doc.createElement("code");
+      inline.textContent = line;
+      block.parentNode?.insertBefore(inline, block);
+      block.remove();
+      continue;
+    }
     const code: HTMLElement = doc.createElement("code");
     if (language && language !== "text" && RE_LANGUAGE.test(language)) {
       code.className = `language-${language}`;
     }
-    code.textContent = preformattedText(source);
+    code.textContent = text;
     const pre: HTMLElement = doc.createElement("pre");
     pre.appendChild(code);
     block.parentNode?.insertBefore(pre, block);

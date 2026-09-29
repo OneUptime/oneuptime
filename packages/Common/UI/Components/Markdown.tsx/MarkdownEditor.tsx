@@ -107,6 +107,9 @@ const sanitizeHtml: (html: string) => string = (html: string): string => {
 
 const RE_SINGLE_PARAGRAPH: RegExp = /^<p>([\s\S]*)<\/p>$/;
 const RE_LINE_BREAKS: RegExp = /\r\n?/g;
+const RE_SHOWN_CHARACTER: RegExp = /\S/;
+const RE_BLANKS_AT_END: RegExp = /[ \t]*$/;
+const RE_BLANKS_AT_START: RegExp = /^[ \t]*/;
 
 /*
  * The inside of `html` when it is exactly one paragraph -- which is what
@@ -121,6 +124,51 @@ const singleParagraphContents: (html: string) => string | null = (
     return null;
   }
   return inner;
+};
+
+/*
+ * Markdown made of blocks -- a fenced code block, a list, a heading, more
+ * than one paragraph -- pasted into the middle of a line of the markdown
+ * source goes on lines of its own, with a blank line between it and the
+ * text either side of it on that line: the split the visual editor makes
+ * for a block. Put in the middle of the line as it was, a code block's
+ * closing fence had the rest of the line after it, which made it an opening
+ * fence instead -- the block never closed, and everything after it in the
+ * note rendered as code. The spaces at the split go, as in the visual
+ * editor. Returns the text to insert, having widened the textarea's
+ * selection over those spaces.
+ */
+const onLinesOfItsOwn: (
+  textarea: HTMLTextAreaElement,
+  markdown: string,
+) => string = (textarea: HTMLTextAreaElement, markdown: string): string => {
+  if (
+    !RE_SHOWN_CHARACTER.test(markdown) ||
+    singleParagraphContents(markdownToHtml(markdown)) !== null
+  ) {
+    return markdown;
+  }
+  const value: string = textarea.value;
+  const start: number = textarea.selectionStart;
+  const end: number = textarea.selectionEnd;
+  const lineStart: number = value.lastIndexOf("\n", start - 1) + 1;
+  const lineEndAt: number = value.indexOf("\n", end);
+  const lineEnd: number = lineEndAt === -1 ? value.length : lineEndAt;
+  const before: string = value.slice(lineStart, start);
+  const after: string = value.slice(end, lineEnd);
+  const textBefore: boolean = RE_SHOWN_CHARACTER.test(before);
+  const textAfter: boolean = RE_SHOWN_CHARACTER.test(after);
+  if (!textBefore && !textAfter) {
+    return markdown;
+  }
+  const spacesBefore: number = textBefore
+    ? (before.match(RE_BLANKS_AT_END)?.[0] || "").length
+    : 0;
+  const spacesAfter: number = textAfter
+    ? (after.match(RE_BLANKS_AT_START)?.[0] || "").length
+    : 0;
+  textarea.setSelectionRange(start - spacesBefore, end + spacesAfter);
+  return `${textBefore ? "\n\n" : ""}${markdown}${textAfter ? "\n\n" : ""}`;
 };
 
 const RE_MARKUP: RegExp = /<[a-z!/]/i;
@@ -772,7 +820,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       return;
     }
     e.preventDefault();
-    insertTextInTextarea(markdown);
+    insertTextInTextarea(onLinesOfItsOwn(textarea, markdown));
   };
 
   // The code block the caret is in, if it is in one.
