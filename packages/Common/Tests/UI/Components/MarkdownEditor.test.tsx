@@ -12,6 +12,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import {
   CHROME_VIEWER_COPY_HTML,
   CHROME_VIEWER_COPY_TEXT,
+  GOOGLE_DOCS_LIST_COPY_HTML,
+  GOOGLE_DOCS_LIST_COPY_MARKDOWN,
+  GOOGLE_DOCS_LIST_COPY_TEXT,
   VIEWER_COPY_SOURCE_MARKDOWN,
   WORD_OUTLOOK_ISSUE_4114_HTML,
 } from "./fixtures/MarkdownPasteFixtures";
@@ -946,6 +949,21 @@ describe("MarkdownEditor paste in the visual editor", () => {
     expect(
       editableOf().querySelector("li > ul > li")?.textContent,
     ).toBeTruthy();
+  });
+
+  // Its plain text is bare lines: no bullets, no nesting, no links.
+  test("keeps the list, links and formatting of a Google Docs copy", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": GOOGLE_DOCS_LIST_COPY_HTML,
+        "text/plain": GOOGLE_DOCS_LIST_COPY_TEXT,
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(GOOGLE_DOCS_LIST_COPY_MARKDOWN);
   });
 
   test("turns a copied note back into the markdown it was written in", () => {

@@ -17,6 +17,9 @@ import {
   CHROME_VIEWER_COPY_TEXT,
   FIREFOX_VIEWER_COPY_HTML,
   FIREFOX_VIEWER_COPY_TEXT,
+  GOOGLE_DOCS_LIST_COPY_HTML,
+  GOOGLE_DOCS_LIST_COPY_MARKDOWN,
+  GOOGLE_DOCS_LIST_COPY_TEXT,
   VIEWER_COPY_SOURCE_MARKDOWN,
   WORD_OUTLOOK_ISSUE_4114_HTML,
 } from "./fixtures/MarkdownPasteFixtures";
@@ -135,8 +138,9 @@ describe("normalizePlainTextListMarkers", () => {
   });
 
   /*
-   * Google Docs' bullets are "●", "○", "■" by level; a dash or an arrow says
-   * nothing about the level, so it is a top-level item.
+   * "●", "○", "■" are the bullets of three levels (the ones Google Docs
+   * draws, though its own plain text has no bullets at all); a dash or an
+   * arrow says nothing about the level, so it is a top-level item.
    */
   it("reads the other bullets and dashes people use", () => {
     expect(normalizePlainTextListMarkers("● one\n○ two\n■ three")).toBe(
@@ -358,6 +362,52 @@ describe("pastedHtmlToMarkdown", () => {
       expect(markdownToHtml(pastedHtmlToMarkdown(GOOGLE_DOCS_HTML))).toContain(
         "<em><strong>Both</strong></em>",
       );
+    });
+
+    /*
+     * Docs puts "white-space:pre" on every list item it copies, and the
+     * paste took that for a code editor's copy (VS Code's white-space:pre
+     * <div>) and used the plain text instead -- the lines alone, with no
+     * bullets -- so every Docs copy with a list lost its lists, links and
+     * formatting. These go through the editor's own entry point.
+     */
+    it("counts a Docs copy with a list in it as rich", () => {
+      expect(isRichClipboardHtml(GOOGLE_DOCS_HTML)).toBe(true);
+      expect(isRichClipboardHtml(GOOGLE_DOCS_LIST_COPY_HTML)).toBe(true);
+    });
+
+    it("pastes a Docs list as the list it is, not as its plain text", () => {
+      expect(
+        clipboardToMarkdown(
+          clipboard({
+            "text/html": GOOGLE_DOCS_HTML,
+            "text/plain": "Bold and italic\nrunbook gone\nBoth",
+          }),
+        ),
+      ).toBe(
+        "- **Bold** and *italic*\n  - [runbook](https://example.com/runbook) ~~gone~~\n- ***Both***",
+      );
+      expect(
+        clipboardToMarkdown(
+          clipboard({
+            "text/html": GOOGLE_DOCS_LIST_COPY_HTML,
+            "text/plain": GOOGLE_DOCS_LIST_COPY_TEXT,
+          }),
+        ),
+      ).toBe(GOOGLE_DOCS_LIST_COPY_MARKDOWN);
+    });
+
+    // Chromium, Safari and Docs write a tab as a white-space:pre <span>.
+    it("counts a Docs paragraph with a tab in it as rich", () => {
+      const html: string =
+        '<b style="font-weight:normal;" id="docs-internal-guid-2"><p dir="ltr"><span style="font-weight:700;white-space:pre;white-space:pre-wrap;">Owner:</span><span style="font-weight:400;white-space:pre;white-space:pre-wrap;"><span class="Apple-tab-span" style="white-space:pre;">\t</span>Jane</span></p></b>';
+
+      expect(isRichClipboardHtml(html)).toBe(true);
+      expect(
+        clipboardToMarkdown(
+          clipboard({ "text/html": html, "text/plain": "Owner:\tJane" }),
+        ),
+      ).toBe("**Owner:** Jane");
     });
 
     it("counts plain Docs text as plain, so its plain text is pasted", () => {

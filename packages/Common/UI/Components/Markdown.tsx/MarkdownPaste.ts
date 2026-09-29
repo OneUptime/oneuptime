@@ -1074,21 +1074,25 @@ const tidyInlineFormatting: (body: HTMLElement) => void = (
  */
 
 /*
- * An element that keeps its whitespace ("white-space: pre") without being a
- * <pre> is what code editors put on the clipboard -- VS Code writes one <div>
- * of coloured spans per line. Its plain text is the real content (often
- * markdown source itself), so that is what gets pasted, as before.
+ * A <div> that keeps its whitespace ("white-space: pre") is what code
+ * editors put on the clipboard -- VS Code writes one such <div> holding a
+ * <div> of coloured spans per line. Its plain text is the real content
+ * (often markdown source itself), so that is what gets pasted, as before.
+ *
+ * Only that <div> counts, and not inside a <pre> or a list item. Google Docs
+ * puts "white-space:pre" on every list item it copies, and Chromium, Safari
+ * and Docs wrap each tab in a <span class="Apple-tab-span"> styled the same
+ * way; taken for a code editor's copy, any Docs copy with a list or a tab
+ * lost its lists, links and formatting to its plain text -- bare lines.
  */
 const isCodeEditorCopy: (body: HTMLElement) => boolean = (
   body: HTMLElement,
 ): boolean => {
-  return elementsOf(body, "[style]").some((element: HTMLElement): boolean => {
-    return (
-      element.style.whiteSpace === "pre" &&
-      tagOf(element) !== "pre" &&
-      !element.closest("pre")
-    );
-  });
+  return elementsOf(body, "div[style]").some(
+    (element: HTMLElement): boolean => {
+      return element.style.whiteSpace === "pre" && !element.closest("pre, li");
+    },
+  );
 };
 
 const parseInertly: (html: string) => HTMLElement | null = (

@@ -342,3 +342,50 @@ export const VIEWER_COPY_SOURCE_MARKDOWN: string = [
   "",
   "- [x] done item",
 ].join("\n");
+
+// The inline styles Google Docs writes on every list item and text run.
+const DOCS_ITEM_STYLE: string =
+  "list-style-type:disc;font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;";
+const docsRun: (overrides: string) => string = (overrides: string): string => {
+  return `font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;${overrides}white-space:pre;white-space:pre-wrap;`;
+};
+const DOCS_PARAGRAPH: string =
+  '<p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">';
+
+/*
+ * A bulleted list as Google Docs puts it on the clipboard, modelled on a
+ * live copy from Docs in Chromium 153 (September 2026); the text is made
+ * up. The whole copy sits in a docs-internal-guid <b>; every <li> ends its
+ * style with "white-space:pre;", each item's text is in a <p>, formatting
+ * is written as span styles, a nested list sits straight inside its parent
+ * <ul>, and a tab is Chromium's <span class="Apple-tab-span">.
+ */
+export const GOOGLE_DOCS_LIST_COPY_HTML: string = [
+  '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-6a0c3f1e-7fff-4d21-9c3b-0e5d2a8b7c41">',
+  '<p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;">',
+  `<span style="${docsRun("font-weight:700;")}">Owner:</span>`,
+  `<span style="${docsRun("")}"><span class="Apple-tab-span" style="white-space:pre;">\t</span>Payments on-call</span></p>`,
+  '<ul style="margin-top:0;margin-bottom:0;padding-inline-start:48px;">',
+  `<li dir="ltr" style="${DOCS_ITEM_STYLE}" aria-level="1">${DOCS_PARAGRAPH}`,
+  `<span style="${docsRun("")}">Checkout errors from 09:40 UTC, see </span>`,
+  `<a href="https://status.example.com/incidents/42" style="text-decoration:none;"><span style="${docsRun("color:#1155cc;text-decoration:underline;")}">the status page</span></a></p></li>`,
+  '<ul style="margin-top:0;margin-bottom:0;padding-inline-start:48px;">',
+  `<li dir="ltr" style="${DOCS_ITEM_STYLE.replace("disc", "circle")}" aria-level="2">${DOCS_PARAGRAPH}`,
+  `<span style="${docsRun("font-style:italic;")}">Card payments only</span></p></li></ul>`,
+  `<li dir="ltr" style="${DOCS_ITEM_STYLE}" aria-level="1">${DOCS_PARAGRAPH}`,
+  `<span style="${docsRun("text-decoration:line-through;")}">Rolled back release 3.2</span></p></li></ul>`,
+  "</b>",
+].join("");
+
+// Docs' plain text for the same copy: the lines alone, no bullets, no indent.
+export const GOOGLE_DOCS_LIST_COPY_TEXT: string =
+  "Owner:\tPayments on-call\nCheckout errors from 09:40 UTC, see the status page\nCard payments only\nRolled back release 3.2";
+
+// The markdown that copy is.
+export const GOOGLE_DOCS_LIST_COPY_MARKDOWN: string = [
+  "**Owner:** Payments on-call",
+  "",
+  "- Checkout errors from 09:40 UTC, see [the status page](https://status.example.com/incidents/42)",
+  "  - *Card payments only*",
+  "- ~~Rolled back release 3.2~~",
+].join("\n");
