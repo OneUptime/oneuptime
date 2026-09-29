@@ -36,7 +36,11 @@ import {
  *
  * Cost rows are hourly, so a selection under an hour is widened to an hour
  * around it before the page zooms - otherwise the window would usually hold
- * no cost row at all and every figure on the page would read $0.
+ * no cost row at all and every figure on the page would read $0. And the
+ * zoom ends a millisecond before the selection does: the cost queries count
+ * a row whose hour starts exactly at a window's end, which is where the
+ * next, unselected hour starts (KubernetesCostsZoomExactHours drags real
+ * bars on a clock off the hour).
  *
  * The pages, their EmbeddedMetricCard and the cost chart are real; the cost
  * fetches are stubbed and answer with one $1 row per hour of exactly the
@@ -197,6 +201,7 @@ import KubernetesCostTrendChart from "../../../../App/FeatureSet/Dashboard/src/P
 import {
   CostZoomWindow,
   MIN_COST_ZOOM_SPAN_IN_MS,
+  getCostZoomWindow,
   widenCostZoomWindow,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesCostUtils";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -221,8 +226,11 @@ const NOW: Date = new Date("2026-09-28T12:30:00.000Z");
 const ONE_WEEK_AGO: Date = new Date(NOW.getTime() - 7 * DAY_MS);
 
 /*
- * Two whole days inside the week. 49 hourly rows start in it - 00:00 on
- * the 24th through 00:00 on the 26th - so "$49.00" spent.
+ * Two whole days inside the week: the chart hands the page [00:00 on the
+ * 24th, 00:00 on the 26th). The page reads them to a millisecond before
+ * the 26th, so 48 hourly rows start in the window - "$48.00" spent - and
+ * not the 49th, the first hour of the 26th, which starts exactly where the
+ * selection ends.
  */
 const DRAG_START: Date = new Date("2026-09-24T00:00:00.000Z");
 const DRAG_END: Date = new Date("2026-09-26T00:00:00.000Z");
@@ -230,12 +238,20 @@ const DRAG_END: Date = new Date("2026-09-26T00:00:00.000Z");
 const NESTED_DRAG_START: Date = new Date("2026-09-25T06:00:00.000Z");
 const NESTED_DRAG_END: Date = new Date("2026-09-25T12:00:00.000Z");
 
+// A millisecond before `end`: where a zoom to [start, end) ends.
+function justBefore(end: Date): Date {
+  return new Date(end.getTime() - 1);
+}
+
 const WEEK_WINDOW: string = windowKey(ONE_WEEK_AGO, NOW);
-const DRAG_WINDOW: string = windowKey(DRAG_START, DRAG_END);
+const DRAG_WINDOW: string = windowKey(DRAG_START, justBefore(DRAG_END));
 const NESTED_DRAG_WINDOW: string = windowKey(
   NESTED_DRAG_START,
-  NESTED_DRAG_END,
+  justBefore(NESTED_DRAG_END),
 );
+// A sub-hour drag at 10:10-10:40 is widened to the hour around it.
+const WIDENED_HOUR_WINDOW: string =
+  "2026-09-25T09:55:00.000Z/2026-09-25T10:54:59.999Z";
 
 const NO_COST_DATA: string =
   "No cost data reported for the selected time range.";
@@ -418,13 +434,13 @@ describe("widenCostZoomWindow", () => {
       "2026-09-25T10:00:00.000Z/2026-09-25T11:00:00.000Z",
     );
     expect(widen("2026-09-24T00:00:00.000Z", "2026-09-26T00:00:00.000Z")).toBe(
-      DRAG_WINDOW,
+      windowKey(DRAG_START, DRAG_END),
     );
   });
 
   test("puts a right-to-left selection the right way round", () => {
     expect(widen("2026-09-26T00:00:00.000Z", "2026-09-24T00:00:00.000Z")).toBe(
-      DRAG_WINDOW,
+      windowKey(DRAG_START, DRAG_END),
     );
   });
 
@@ -493,6 +509,191 @@ describe("widenCostZoomWindow", () => {
 
     expect(windowKey(widened.startTime, widened.endTime)).toBe(
       "2026-09-28T11:40:00.000Z/2026-09-28T11:45:00.000Z",
+    );
+  });
+});
+
+describe("getCostZoomWindow: the window a drag zooms the page to", () => {
+  const WINDOW_START: Date = ONE_WEEK_AGO;
+  const WINDOW_END: Date = NOW;
+
+  function zoomTo(
+    start: string,
+    end: string,
+    window?: { start: Date; end: Date } | undefined,
+  ): CostZoomWindow {
+    return getCostZoomWindow({
+      startTime: new Date(start),
+      endTime: new Date(end),
+      windowStart: window ? window.start : WINDOW_START,
+      windowEnd: window ? window.end : WINDOW_END,
+    });
+  }
+
+  function keyOf(zoomWindow: CostZoomWindow): string {
+    return windowKey(zoomWindow.startTime, zoomWindow.endTime);
+  }
+
+  function hoursOf(zoomWindow: CostZoomWindow): Array<string> {
+    return hourStartsWithin(zoomWindow.startTime, zoomWindow.endTime).map(
+      (time: number): string => {
+        return new Date(time).toISOString();
+      },
+    );
+  }
+
+  test("ends a millisecond before the selection does, so the hour starting at its end is not read", () => {
+    const zoomed: CostZoomWindow = zoomTo(
+      "2026-09-25T10:00:00.000Z",
+      "2026-09-25T12:00:00.000Z",
+    );
+
+    expect(keyOf(zoomed)).toBe(
+      "2026-09-25T10:00:00.000Z/2026-09-25T11:59:59.999Z",
+    );
+    expect(hoursOf(zoomed)).toEqual([
+      "2026-09-25T10:00:00.000Z",
+      "2026-09-25T11:00:00.000Z",
+    ]);
+    // What the selection itself reads: the noon hour nobody dragged across.
+    expect(
+      hourStartsWithin(
+        new Date("2026-09-25T10:00:00.000Z"),
+        new Date("2026-09-25T12:00:00.000Z"),
+      ),
+    ).toHaveLength(3);
+  });
+
+  test("a right-to-left selection is the same window", () => {
+    expect(
+      keyOf(zoomTo("2026-09-25T12:00:00.000Z", "2026-09-25T10:00:00.000Z")),
+    ).toBe("2026-09-25T10:00:00.000Z/2026-09-25T11:59:59.999Z");
+  });
+
+  test("any run of whole hours reads exactly those hours", () => {
+    for (const [first, count] of [
+      ["2026-09-21T13:00:00.000Z", 1],
+      ["2026-09-24T00:00:00.000Z", 2],
+      ["2026-09-25T07:00:00.000Z", 5],
+      ["2026-09-26T23:00:00.000Z", 24],
+      ["2026-09-22T00:00:00.000Z", 72],
+    ] as Array<[string, number]>) {
+      const start: Date = new Date(first);
+      const end: Date = new Date(start.getTime() + count * HOUR_MS);
+      const expected: Array<string> = [];
+
+      for (let hour: number = 0; hour < count; hour++) {
+        expected.push(new Date(start.getTime() + hour * HOUR_MS).toISOString());
+      }
+
+      expect({
+        selection: windowKey(start, end),
+        hours: hoursOf(zoomTo(start.toISOString(), end.toISOString())),
+      }).toEqual({ selection: windowKey(start, end), hours: expected });
+    }
+  });
+
+  test("a selection of exactly one hour keeps that one hour: the millisecond comes off after the widening", () => {
+    const zoomed: CostZoomWindow = zoomTo(
+      "2026-09-25T10:00:00.000Z",
+      "2026-09-25T11:00:00.000Z",
+    );
+
+    expect(keyOf(zoomed)).toBe(
+      "2026-09-25T10:00:00.000Z/2026-09-25T10:59:59.999Z",
+    );
+    expect(hoursOf(zoomed)).toEqual(["2026-09-25T10:00:00.000Z"]);
+
+    // Taken off first, the hour would be widened back out over two rows.
+    const shortenedThenWidened: CostZoomWindow = widenCostZoomWindow({
+      startTime: new Date("2026-09-25T10:00:00.000Z"),
+      endTime: new Date("2026-09-25T10:59:59.999Z"),
+      windowStart: WINDOW_START,
+      windowEnd: WINDOW_END,
+    });
+    expect(
+      hourStartsWithin(
+        shortenedThenWidened.startTime,
+        shortenedThenWidened.endTime,
+      ),
+    ).toHaveLength(2);
+  });
+
+  test("a sub-hour selection is widened to the hour around it, and reads the one hour in it", () => {
+    const zoomed: CostZoomWindow = zoomTo(
+      "2026-09-25T10:15:00.000Z",
+      "2026-09-25T10:45:00.000Z",
+    );
+
+    expect(keyOf(zoomed)).toBe(
+      "2026-09-25T10:00:00.000Z/2026-09-25T10:59:59.999Z",
+    );
+    expect(hoursOf(zoomed)).toEqual(["2026-09-25T10:00:00.000Z"]);
+  });
+
+  test("a sub-hour selection over the start of an hour reads that hour", () => {
+    for (const [start, end] of [
+      ["2026-09-25T09:45:00.000Z", "2026-09-25T10:15:00.000Z"],
+      ["2026-09-25T09:59:00.000Z", "2026-09-25T10:01:00.000Z"],
+      ["2026-09-25T10:00:00.000Z", "2026-09-25T10:30:00.000Z"],
+      ["2026-09-25T09:30:00.000Z", "2026-09-25T10:15:00.000Z"],
+    ] as Array<[string, string]>) {
+      expect({
+        selection: `${start}/${end}`,
+        hours: hoursOf(zoomTo(start, end)),
+      }).toEqual({
+        selection: `${start}/${end}`,
+        hours: ["2026-09-25T10:00:00.000Z"],
+      });
+    }
+  });
+
+  test("never reaches past the end of the window on screen, and stops a millisecond short of it", () => {
+    const tenMinutesAgo: string = new Date(
+      NOW.getTime() - 10 * 60 * 1000,
+    ).toISOString();
+
+    expect(keyOf(zoomTo(tenMinutesAgo, NOW.toISOString()))).toBe(
+      windowKey(new Date(NOW.getTime() - HOUR_MS), justBefore(NOW)),
+    );
+  });
+
+  test("never reaches before the start of the window on screen", () => {
+    const tenMinutesIn: string = new Date(
+      ONE_WEEK_AGO.getTime() + 10 * 60 * 1000,
+    ).toISOString();
+
+    expect(keyOf(zoomTo(ONE_WEEK_AGO.toISOString(), tenMinutesIn))).toBe(
+      windowKey(
+        ONE_WEEK_AGO,
+        justBefore(new Date(ONE_WEEK_AGO.getTime() + HOUR_MS)),
+      ),
+    );
+  });
+
+  test("on a window under an hour, a drag keeps the whole window, less the millisecond", () => {
+    const thirtyMinutesAgo: Date = new Date(NOW.getTime() - 30 * 60 * 1000);
+
+    expect(
+      keyOf(
+        zoomTo(
+          new Date(NOW.getTime() - 20 * 60 * 1000).toISOString(),
+          new Date(NOW.getTime() - 15 * 60 * 1000).toISOString(),
+          { start: thirtyMinutesAgo, end: NOW },
+        ),
+      ),
+    ).toBe(windowKey(thirtyMinutesAgo, justBefore(NOW)));
+  });
+
+  test("a window a millisecond wide has nothing to take off, and is left as it is", () => {
+    const zoomed: CostZoomWindow = zoomTo(
+      "2026-09-28T11:40:00.000Z",
+      "2026-09-28T11:40:00.001Z",
+      { start: NOW, end: NOW },
+    );
+
+    expect(keyOf(zoomed)).toBe(
+      "2026-09-28T11:40:00.000Z/2026-09-28T11:40:00.001Z",
     );
   });
 });
@@ -566,7 +767,7 @@ describe("KubernetesCostTrendChart", () => {
         zoomTo.mock.calls[0]![0] as Date,
         zoomTo.mock.calls[0]![1] as Date,
       ),
-    ).toBe("2026-09-25T09:55:00.000Z/2026-09-25T10:55:00.000Z");
+    ).toBe(WIDENED_HOUR_WINDOW);
   });
 
   test("offers the page's reset only while the page is zoomed", () => {
@@ -689,6 +890,120 @@ describe("KubernetesCostTrendChart", () => {
     fireEvent.doubleClick(screen.getByText(NO_COST_DATA));
     expect(resetZoom).toHaveBeenCalledTimes(1);
   });
+
+  test("the no-cost message is not selectable, so the double-click that resets does not select a word of it", () => {
+    render(
+      <TimeRangeZoomProvider
+        zoom={zoom(
+          true,
+          () => {},
+          () => {},
+        )}
+      >
+        <KubernetesCostTrendChart
+          trend={[]}
+          isLoading={false}
+          startAndEndDate={WINDOW}
+          syncid="costs"
+        />
+      </TimeRangeZoomProvider>,
+    );
+
+    expect(screen.getByText(NO_COST_DATA).closest(".select-none")).not.toBe(
+      null,
+    );
+  });
+
+  test("a failed load is shown where the chart was, with a retry, and the hint row stays", () => {
+    const onRetry: MockFunction = getJestMockFunction();
+    render(
+      <TimeRangeZoomProvider
+        zoom={zoom(
+          false,
+          () => {},
+          () => {},
+        )}
+      >
+        <KubernetesCostTrendChart
+          trend={TREND}
+          isLoading={false}
+          error="Could not load"
+          onRetry={onRetry as unknown as () => void}
+          startAndEndDate={WINDOW}
+          syncid="costs"
+        />
+      </TimeRangeZoomProvider>,
+    );
+
+    // The error, not the previous window's trend.
+    expect(screen.queryByTestId("line-chart")).toBeNull();
+    expect(screen.getByText("Could not load")).toBeInTheDocument();
+    expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId("refresh-button"));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  test("the failed-load message resets a zoom on a double-click, only while zoomed, and is not selectable", () => {
+    const resetZoom: MockFunction = getJestMockFunction();
+    const chart: (isZoomed: boolean) => React.ReactElement = (
+      isZoomed: boolean,
+    ): React.ReactElement => {
+      return (
+        <TimeRangeZoomProvider
+          zoom={zoom(isZoomed, () => {}, resetZoom as unknown as () => void)}
+        >
+          <KubernetesCostTrendChart
+            trend={[]}
+            isLoading={false}
+            error="Could not load"
+            startAndEndDate={WINDOW}
+            syncid="costs"
+          />
+        </TimeRangeZoomProvider>
+      );
+    };
+    const { rerender } = render(chart(false));
+
+    fireEvent.doubleClick(screen.getByText("Could not load"));
+    expect(resetZoom).not.toHaveBeenCalled();
+
+    rerender(chart(true));
+
+    const message: HTMLElement = screen.getByText("Could not load");
+    expect(message.closest(".select-none")).not.toBe(null);
+    fireEvent.doubleClick(message);
+    expect(resetZoom).toHaveBeenCalledTimes(1);
+  });
+
+  test("while the page loads, the skeleton is the chart's height, so the tables below do not jump", () => {
+    const { rerender } = render(
+      <KubernetesCostTrendChart
+        trend={TREND}
+        isLoading={true}
+        startAndEndDate={WINDOW}
+        syncid="costs"
+      />,
+    );
+
+    expect(screen.getByTestId("chart-loading-skeleton")).toHaveStyle({
+      height: "300px",
+    });
+
+    rerender(
+      <KubernetesCostTrendChart
+        trend={TREND}
+        isLoading={false}
+        startAndEndDate={WINDOW}
+        syncid="costs"
+      />,
+    );
+
+    expect(screen.queryByTestId("chart-loading-skeleton")).toBeNull();
+    expect(
+      chartZoomStandIns.lineCharts[chartZoomStandIns.lineCharts.length - 1],
+    ).toBeTruthy();
+  });
 });
 
 describe("the cluster Costs page", () => {
@@ -723,7 +1038,7 @@ describe("the cluster Costs page", () => {
     expect(windowOf(spendChart())).toBe(DRAG_WINDOW);
     expectEveryFetchFor(DRAG_WINDOW);
     expect(picker()).toBe(TimeRange.CUSTOM);
-    expect(totalSpendTile()).toContain("$49.00");
+    expect(totalSpendTile()).toContain("$48.00");
     expect(resetZoomButton()).toBeVisible();
   });
 
@@ -775,10 +1090,8 @@ describe("the cluster Costs page", () => {
       new Date("2026-09-25T10:40:00.000Z"),
     );
 
-    const hour: string = "2026-09-25T09:55:00.000Z/2026-09-25T10:55:00.000Z";
-
-    expect(windowOf(spendChart())).toBe(hour);
-    expectEveryFetchFor(hour);
+    expect(windowOf(spendChart())).toBe(WIDENED_HOUR_WINDOW);
+    expectEveryFetchFor(WIDENED_HOUR_WINDOW);
     expect(totalSpendTile()).toContain("$1.00");
   });
 
@@ -791,7 +1104,9 @@ describe("the cluster Costs page", () => {
       NOW,
     );
 
-    expectEveryFetchFor(windowKey(new Date(NOW.getTime() - HOUR_MS), NOW));
+    expectEveryFetchFor(
+      windowKey(new Date(NOW.getTime() - HOUR_MS), justBefore(NOW)),
+    );
   });
 
   test("a zoom into a stretch with no cost rows shows the message, and a double-click on it goes back", async () => {
@@ -866,7 +1181,7 @@ describe("the project Costs page", () => {
     expect(latestWindowOf(mockFetchCostTrend)).toBe(DRAG_WINDOW);
     expect(latestWindowOf(mockFetchClusterBreakdown)).toBe(DRAG_WINDOW);
     expect(mockGetClusterList.mock.calls.length).toBe(clusterListsBefore + 1);
-    expect(totalSpendTile()).toContain("$49.00");
+    expect(totalSpendTile()).toContain("$48.00");
     expect(picker()).toBe(TimeRange.CUSTOM);
     expect(resetZoomButton()).toBeVisible();
   });
@@ -894,8 +1209,6 @@ describe("the project Costs page", () => {
       new Date("2026-09-25T10:40:00.000Z"),
     );
 
-    expect(latestWindowOf(mockFetchClusterBreakdown)).toBe(
-      "2026-09-25T09:55:00.000Z/2026-09-25T10:55:00.000Z",
-    );
+    expect(latestWindowOf(mockFetchClusterBreakdown)).toBe(WIDENED_HOUR_WINDOW);
   });
 });

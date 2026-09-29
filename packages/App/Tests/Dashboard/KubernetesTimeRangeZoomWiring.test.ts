@@ -384,21 +384,35 @@ describe("the Costs pages: the spend chart zooms the page", () => {
       );
       expectCode(
         source,
-        "<KubernetesCostTrendChart trend={trend} isLoading={isLoading} startAndEndDate={startAndEndDate}",
+        "<KubernetesCostTrendChart trend={trend} isLoading={isLoading} error={error} onRetry={reload} startAndEndDate={startAndEndDate}",
       );
       // The old inline chart is gone, so there is one chart to keep right.
       expectNoCode(source, "<LineChartElement");
     },
   );
 
-  test("the spend chart zooms through the page's zoom, widened to at least an hour", () => {
+  test("the spend chart zooms through the page's zoom, widened to at least an hour and ending a millisecond early", () => {
     expectCode(
       COST_TREND_CHART,
       "const pageZoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();",
     );
     expectCode(
       COST_TREND_CHART,
-      "const zoomWindow: CostZoomWindow = widenCostZoomWindow({ startTime: startTime, endTime: endTime, windowStart: props.startAndEndDate.startValue, windowEnd: props.startAndEndDate.endValue, }); pageZoom.onTimeRangeSelect(zoomWindow.startTime, zoomWindow.endTime);",
+      "const zoomWindow: CostZoomWindow = getCostZoomWindow({ startTime: startTime, endTime: endTime, windowStart: props.startAndEndDate.startValue, windowEnd: props.startAndEndDate.endValue, }); pageZoom.onTimeRangeSelect(zoomWindow.startTime, zoomWindow.endTime);",
+    );
+    // The cost queries count a row starting at a window's end: widen, then end a millisecond early.
+    const costZoomWindow: string = between(
+      COST_UTILS,
+      "export const getCostZoomWindow:",
+      "type BuildAggregateBy",
+    );
+    expectCode(
+      costZoomWindow,
+      "const widened: CostZoomWindow = widenCostZoomWindow(data);",
+    );
+    expectCode(
+      costZoomWindow,
+      "return { startTime: widened.startTime, endTime: new Date(endMs - 1) };",
     );
     expectCode(
       COST_TREND_CHART,
@@ -413,7 +427,7 @@ describe("the Costs pages: the spend chart zooms the page", () => {
   test("the spend chart's empty state takes the double-click, and a hint names the drag", () => {
     expectCode(
       COST_TREND_CHART,
-      "<div onDoubleClick={pageZoom?.onTimeRangeReset}> <ErrorMessage message={noCostDataMessage} /> </div>",
+      '<div className="select-none" onDoubleClick={pageZoom?.onTimeRangeReset} > <ErrorMessage message={noCostDataMessage} /> </div>',
     );
     const chartReturn: string = between(
       COST_TREND_CHART,

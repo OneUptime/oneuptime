@@ -26,6 +26,8 @@ import {
 } from "../Utils/KubernetesCostUtils";
 import { noCostDataMessage } from "../Utils/KubernetesCostTableCells";
 
+const CHART_HEIGHT_IN_PX: number = 300;
+
 export interface ComponentProps {
   trend: Array<CostTrendPoint>;
   isLoading: boolean;
@@ -76,8 +78,19 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
     : undefined;
 
   const getContent: () => ReactElement = (): ReactElement => {
+    /*
+     * Every zoom, reset and refresh reloads the page, and the skeleton
+     * stands in for the chart meanwhile: at the chart's own height, or
+     * the tables below would jump up and back down on every one of them.
+     */
     if (props.isLoading) {
-      return <div className="h-48 animate-pulse rounded-md bg-gray-50" />;
+      return (
+        <div
+          data-testid="chart-loading-skeleton"
+          className="animate-pulse rounded-md bg-gray-50"
+          style={{ height: `${CHART_HEIGHT_IN_PX}px` }}
+        />
+      );
     }
 
     /*
@@ -89,10 +102,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
      */
     if (props.error) {
       return (
-        <div
-          className="select-none"
-          onDoubleClick={pageZoom?.onTimeRangeReset}
-        >
+        <div className="select-none" onDoubleClick={pageZoom?.onTimeRangeReset}>
           <ErrorMessage message={props.error} onRefreshClick={props.onRetry} />
         </div>
       );
@@ -100,10 +110,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
 
     if (props.trend.length === 0) {
       return (
-        <div
-          className="select-none"
-          onDoubleClick={pageZoom?.onTimeRangeReset}
-        >
+        <div className="select-none" onDoubleClick={pageZoom?.onTimeRangeReset}>
           <ErrorMessage message={noCostDataMessage} />
         </div>
       );
@@ -145,7 +152,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
         xAxis={xAxis}
         yAxis={yAxis}
         curve={ChartCurve.MONOTONE}
-        heightInPx={300}
+        heightInPx={CHART_HEIGHT_IN_PX}
         showLegend={false}
         sync={false}
         syncid={props.syncid}
