@@ -965,6 +965,41 @@ describe("htmlToMarkdown", () => {
       expect(htmlToMarkdown("<div>a</div>")).toBe("a");
     });
 
+    /*
+     * Chromium leaves the first line typed into an empty editor as bare
+     * text and puts each later line in a <div>. The <div> wrote its line
+     * break only after itself, so "abc", Enter, "def" saved as "abcdef".
+     */
+    it("keeps the line break before a div line, as Chromium writes typed lines", () => {
+      expect(htmlToMarkdown("abc<div>def</div>")).toBe("abc\ndef");
+      expect(htmlToMarkdown("abc<div>def</div><div>ghi</div>")).toBe(
+        "abc\ndef\nghi",
+      );
+      expect(htmlToMarkdown("<b>x</b><div>y</div>")).toBe("**x**\ny");
+    });
+
+    it("writes Firefox's div per line the same way", () => {
+      expect(htmlToMarkdown("<div>abc</div><div>def</div>")).toBe("abc\ndef");
+    });
+
+    it("adds no break where the text before the div already ended its line", () => {
+      expect(htmlToMarkdown("<p>a</p><div>b</div>")).toBe("a\n\nb");
+      expect(htmlToMarkdown("a<br><div>b</div>")).toBe("a\nb");
+    });
+
+    it("keeps the line break before a div inside a list item", () => {
+      expect(htmlToMarkdown("<ul><li>a<div>b</div></li></ul>")).toBe(
+        "- a\n  b",
+      );
+    });
+
+    it("reads the typed lines back as the same lines", () => {
+      const saved: string = htmlToMarkdown("abc<div>def</div>");
+
+      expect(markdownToHtml(saved)).toBe("<p>abc<br>def</p>");
+      expect(htmlToMarkdown(markdownToHtml(saved))).toBe(saved);
+    });
+
     it("drops a comment node", () => {
       expect(htmlToMarkdown("<p>a<!-- note --></p>")).toBe("a");
     });

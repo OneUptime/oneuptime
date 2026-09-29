@@ -1130,6 +1130,23 @@ describe("MarkdownEditor without image upload", () => {
   });
 });
 
+/*
+ * What Chromium does to an empty editor as "abc", Enter, "def" is typed:
+ * the first line stays bare text and the second goes in a <div>. That used
+ * to save as "abcdef".
+ */
+describe("MarkdownEditor typing lines into an empty editor", () => {
+  test("saves each line Chromium writes as a line", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    editableOf().innerHTML = "abc<div>def</div>";
+    fireEvent.input(editableOf());
+
+    expect(lastChange(onChange)).toBe("abc\ndef");
+  });
+});
+
 describe("MarkdownEditor help text", () => {
   test("explains Tab and Shift+Tab, and plain-text paste", () => {
     render(<MarkdownEditor initialValue="" />);

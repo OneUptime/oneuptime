@@ -685,6 +685,25 @@ const collapseBlankLines: (s: string) => string = (s: string): string => {
   return s.replace(/\n{3,}/g, "\n\n");
 };
 
+/*
+ * A <div> is a line of its own. Chromium leaves the first line typed into an
+ * empty editor as bare text and puts each line after it in a <div>, and the
+ * <div> only writes the line break after itself -- so "abc", Enter, "def"
+ * saved as "abcdef". Text still open before a <div> ends its line first.
+ */
+const breakBeforeDiv: (out: string, child: Node) => string = (
+  out: string,
+  child: Node,
+): string => {
+  const isDiv: boolean =
+    child.nodeType === Node.ELEMENT_NODE &&
+    (child as HTMLElement).tagName.toLowerCase() === "div";
+  if (isDiv && out.length > 0 && !out.endsWith("\n")) {
+    return `${out}\n`;
+  }
+  return out;
+};
+
 const serializeChildren: (node: Node) => string = (node: Node): string => {
   let out: string = "";
   for (let i: number = 0; i < node.childNodes.length; i++) {
@@ -694,6 +713,7 @@ const serializeChildren: (node: Node) => string = (node: Node): string => {
     if (!child) {
       continue;
     }
+    out = breakBeforeDiv(out, child);
     out += serializeNode(child);
   }
   return out;
@@ -763,6 +783,7 @@ const serializeListItemChildren: (li: HTMLElement) => string = (
       out = out.replace(/\n*$/, "\n\n");
       part = part.replace(/^\n+/, "");
     }
+    out = breakBeforeDiv(out, child);
     out += part;
   }
   return out;
