@@ -1010,6 +1010,24 @@ jobs:
           set -euo pipefail
           npm run prerun
           bash ./Tests/Scripts/enable-billing-env-var.sh
+      # The e2e container this job runs is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim. public.ecr.aws
+      # serves anonymous pullers from one shared data quota that a busy CI
+      # window exhausts, and then that build dies on "429 Too Many Requests ...
+      # Data limit exceeded" with the whole stack already up. So seed the base
+      # image into the local image store first, from Docker Hub if ECR will not
+      # serve it, as the Build workflow does: compose builds through
+      # `docker buildx bake` on the runner's default builder (the docker driver;
+      # nothing in this job sets up another), which resolves FROM from the
+      # daemon's image store without asking any registry. Preinstall has just
+      # rendered the Dockerfile this reads. The Ops test
+      # Tests/Ops/KubernetesAiAgentRelease.test.js fails any job that builds
+      # from the dev compose file, with `docker compose -f` or `npm run dev`,
+      # without warming exactly the Dockerfiles it builds, after rendering them
+      # and before building them.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       - name: Inject billing (Stripe) config for SaaS e2e
         env:
           # Secret Stripe credentials (private key + webhook secret must not be
@@ -1175,6 +1193,14 @@ jobs:
         run: |
           set -euo pipefail
           npm run prerun
+      # The e2e container this job runs is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim, and public.ecr.aws
+      # runs out of anonymous data quota in busy CI windows. Seed the base image
+      # into the local image store first, from Docker Hub if ECR will not serve
+      # it; see the same step in test-e2e-test-saas for why that is enough.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       - name: Pin APP_TAG to test release
         run: |
           set -euo pipefail
@@ -1293,6 +1319,14 @@ jobs:
         run: |
           set -euo pipefail
           npm run prerun
+      # Both phases below run the e2e container, which is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim, and public.ecr.aws
+      # runs out of anonymous data quota in busy CI windows. Seed the base image
+      # into the local image store first, from Docker Hub if ECR will not serve
+      # it; see the same step in test-e2e-test-saas for why that is enough.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       # Billing is off, so the Enterprise Edition is requested through the image
       # tag alone - the enterprise- tag of the App, same one the SaaS job boots.
       - name: Pin APP_TAG to the enterprise test release

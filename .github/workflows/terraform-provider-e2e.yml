@@ -320,6 +320,41 @@ jobs:
       - name: Set up gomplate
         uses: ./.github/actions/setup-gomplate
 
+      # public.ecr.aws mirrors Docker's official images, and serves anonymous
+      # pullers from one shared data quota that a busy CI window exhausts. Both
+      # images the bring-up below builds start FROM
+      # public.ecr.aws/docker/library/node:26-alpine3.24 (`app`'s base stage and
+      # `ingress`'s Node donor stage), so when the quota is gone the compose
+      # build dies on "429 Too Many Requests ... Data limit exceeded" before it
+      # has built anything. Retrying does not help: a data quota does not clear
+      # in the minutes three attempts span, which is how run 36471665086 spent
+      # all three, each followed by five minutes of status-check seeing nothing.
+      #
+      # So seed the base images into the local image store first, from Docker
+      # Hub if ECR will not serve them, as the Build workflow does. That works
+      # for a compose build too: `docker compose up` hands the build to
+      # `docker buildx bake`, and with no builder set up in this job bake runs
+      # on the runner's default one -- the docker driver, dockerd's own
+      # BuildKit -- which resolves FROM from the daemon's image store without
+      # asking any registry.
+      #
+      # The Dockerfiles are rendered from their templates by `npm run dev`
+      # itself (config-to-dev, then prerun), and a fresh checkout has none, so
+      # they are rendered here the same way for the warm script to read the
+      # FROM lines the build will use; `npm run dev` then renders them again,
+      # identically. Name the Dockerfile of every service the bring-up builds.
+      # The harness self-test fails if one that builds FROM public.ecr.aws is
+      # missing or is warmed only after the bring-up, or if prerun no longer
+      # renders them before the warm-up, and
+      # Tests/Ops/KubernetesAiAgentRelease.test.js reads `npm run dev` the same
+      # way, with what the services depend_on, for every Dockerfile it builds.
+      - name: Warm base images
+        run: |
+          set -euo pipefail
+          npm run config-to-dev
+          npm run prerun
+          bash ./Scripts/GHA/warm_base_images.sh ./packages/App/Dockerfile ./packages/Nginx/Dockerfile
+
       # Infra bring-up is the only step that legitimately flakes (image pulls,
       # slow service boot), so it is the only step that gets retried. The test
       # suite itself runs exactly once — retrying it would mask real provider
@@ -343,14 +378,25 @@ jobs:
       # so the readiness gate below still means exactly what it did before.
       # (`/` proxies to `home` only when BILLING_ENABLED=true; config.env
       # defaults it to false, which is what this job runs with.)
+      #
+      # The two commands are chained with && and not written on two lines.
+      # nick-fields/retry runs `command` with `bash -c`, without the -e a `run:`
+      # step gets, so on two lines a failed `npm run dev` went straight on to
+      # status-check anyway: in run 36471665086 each attempt whose build had
+      # died on a 429 then spent five minutes on HTTP 000, and ended on that
+      # rather than on the build error. Chained, a failed build fails the
+      # attempt at once, with its own error last in the log. The harness
+      # self-test runs this command against a failing `npm run dev` to hold it.
+      # That also means the status-check timeout no longer spaces attempts out,
+      # so the wait between them is set here: the action's default of ten
+      # seconds is shorter than most registry or network hiccups.
       - name: Start OneUptime services
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: |
-            npm run dev --services="app ingress"
-            npm run status-check
+          retry_wait_seconds: 60
+          command: npm run dev --services="app ingress" && npm run status-check
 
       - name: Set up test account
         run: |
@@ -373,12 +419,12 @@ jobs:
       #
       # It reuses the stack and test project the Terraform run just used rather
       # than getting its own job. Bring-up (disk cleanup, npm install, provider
-      # generation, docker compose, account setup) dominates this job's runtime,
-      # and duplicating all of it to re-run the same fixtures would roughly
-      # double CI cost for no extra coverage. Re-running against a used project
-      # is safe because every test destroys what it created and the runner fails
-      # the build if deletion cannot be verified — a leak cannot silently carry
-      # over into this run.
+      # generation, base-image warm-up, docker compose, account setup)
+      # dominates this job's runtime, and duplicating all of it to re-run the
+      # same fixtures would roughly double CI cost for no extra coverage.
+      # Re-running against a used project is safe because every test destroys
+      # what it created and the runner fails the build if deletion cannot be
+      # verified — a leak cannot silently carry over into this run.
       - name: Run OpenTofu E2E tests
         env:
           TF_CLI: tofu
