@@ -35,15 +35,19 @@ export const TAB_ONLY_BULLET_GLYPHS: string = "o§";
 
 /*
  * A marker at the start of a list item's own text that the list itself now
- * draws: a bullet character, Word's "o" / "§" before a tab, a "- " left
- * behind as text, or a number the way Word and Outlook write one into plain
- * text -- "1." followed by a tab or a run of spaces. A number followed by a
- * single space is left alone: "2021. was a good year" is a sentence.
+ * draws: a bullet character followed by a space or tab (or on its own),
+ * Word's "o" / "§" before a tab, a "- " left behind as text, or a number the
+ * way Word and Outlook write one into plain text -- "1." followed by a tab
+ * or a run of spaces. A number followed by a single space is left alone:
+ * "2021. was a good year" is a sentence. So is a line whose text merely
+ * starts with one of the characters -- the dash in "–5°C overnight low" is a
+ * minus sign, and "—Mark Twain" an attribution -- which the paste's own
+ * bullet rule (MarkdownPaste) leaves alone too.
  * \u00a0 is included because Word and browsers write the space after a
  * marker as a non-breaking one.
  */
 const RE_LEADING_TEXT_MARKER: RegExp = new RegExp(
-  `^[ \\t\\u00a0]*(?:[${TEXT_BULLET_GLYPHS}][ \\t\\u00a0]*|[${TAB_ONLY_BULLET_GLYPHS}]\\t[ \\t\\u00a0]*|[-*+][ \\t\\u00a0]+|\\d{1,9}[.)](?:\\t|[ \\u00a0]{2,})[ \\t\\u00a0]*)`,
+  `^[ \\t\\u00a0]*(?:[${TEXT_BULLET_GLYPHS}](?:[ \\t\\u00a0]+|$)|[${TAB_ONLY_BULLET_GLYPHS}]\\t[ \\t\\u00a0]*|[-*+][ \\t\\u00a0]+|\\d{1,9}[.)](?:\\t|[ \\u00a0]{2,})[ \\t\\u00a0]*)`,
 );
 
 // A tab advances to the next multiple of four columns, as in CommonMark.
@@ -1151,8 +1155,13 @@ export type MarkdownListKind = "bullet" | "ordered" | "task";
 const RE_TASK_LINE: RegExp = /^[-*+][ \t]+\[([ xX])\](?:[ \t]|$)/;
 const RE_BULLET_LINE: RegExp = /^[-*+](?:[ \t]|$)/;
 const RE_ORDERED_LINE: RegExp = /^\d{1,9}[.)](?:[ \t]|$)/;
+/*
+ * A marker at the start of a source line's text. As in the visual editor, a
+ * bullet character only counts before a space or tab (or on its own):
+ * "–5°C" keeps its minus sign, and "- –5°C" is an item, not a double bullet.
+ */
 const RE_SOURCE_MARKER: RegExp = new RegExp(
-  `^(?:[-*+][ \\t]+(?:\\[[ xX]\\][ \\t]+)?|\\d{1,9}[.)][ \\t]+|[${TEXT_BULLET_GLYPHS}][ \\t\\u00a0]*|[${TAB_ONLY_BULLET_GLYPHS}]\\t[ \\t]*)`,
+  `^(?:[-*+][ \\t]+(?:\\[[ xX]\\][ \\t]+)?|\\d{1,9}[.)][ \\t]+|[${TEXT_BULLET_GLYPHS}](?:[ \\t\\u00a0]+|$)|[${TAB_ONLY_BULLET_GLYPHS}]\\t[ \\t]*)`,
 );
 
 /*

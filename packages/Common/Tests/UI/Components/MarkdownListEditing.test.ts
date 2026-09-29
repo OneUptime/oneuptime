@@ -446,6 +446,37 @@ describe("toggleMarkdownList", () => {
     );
   });
 
+  /*
+   * A dash or dot glued to the text is part of it, not a bullet: the list
+   * buttons used to strip it, and "–5°C" lost its minus sign.
+   */
+  it("keeps a dash or dot the text starts with, when no space follows it", () => {
+    const text: string = "–5°C overnight low\n—not ours\n·NET";
+
+    expect(textOf(toggleMarkdownList(text, 0, text.length, "bullet"))).toBe(
+      "- –5°C overnight low\n- —not ours\n- ·NET",
+    );
+    expect(textOf(toggleMarkdownList("—Mark Twain", 0, 11, "ordered"))).toBe(
+      "1. —Mark Twain",
+    );
+  });
+
+  it("takes the list off an item whose text starts with a dash, rather than 'repairing' it", () => {
+    const text: string = "- –5°C overnight low";
+
+    expect(textOf(toggleMarkdownList(text, 0, text.length, "bullet"))).toBe(
+      "–5°C overnight low",
+    );
+  });
+
+  it("still replaces a dash, a dot or a lone bullet used as a bullet", () => {
+    const text: string = "– a\n— b\n· c\n•";
+
+    expect(textOf(toggleMarkdownList(text, 0, text.length, "bullet"))).toBe(
+      "- a\n- b\n- c\n- ",
+    );
+  });
+
   it("numbers the selected lines 1, 2, 3, replacing their bullets", () => {
     const text: string = "- a\n- b\n* c";
 
@@ -942,6 +973,18 @@ describe("stripTextListMarkers", () => {
 
     expect(stripTextListMarkers(root)).toBe(false);
     expect(root.innerHTML).toBe(before);
+  });
+
+  it("leaves a dash or dot glued to the text, and strips one followed by a space", () => {
+    const root: HTMLDivElement = mountEditable("");
+    root.innerHTML =
+      "<ul><li>–5°C overnight low</li><li>—Mark Twain</li><li>– with space</li><li>•</li></ul>";
+    selectAll(root);
+
+    expect(stripTextListMarkers(root)).toBe(true);
+    expect(markdownOf(root)).toBe(
+      "- –5°C overnight low\n- —Mark Twain\n- with space\n-",
+    );
   });
 
   it("only touches the items the selection reaches", () => {
