@@ -29,6 +29,7 @@ import Route from "Common/Types/API/Route";
 import Service from "Common/Models/DatabaseModels/Service";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getSeverityTheme } from "Common/UI/Components/LogsViewer/components/severityTheme";
 import AppLink from "../AppLink/AppLink";
 import ErrorPatternDetail from "./ErrorPatternDetail";
@@ -387,12 +388,60 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   }, [loadInsights]);
 
   /*
+   * Set by a zoom (or its reset) and read by the effect below. The zoom is
+   * made from the error drawer's own timeline — the reader digging into
+   * that error — so the drawer stays open and follows the new window.
+   */
+  const isZoomChangeRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  /*
+   * Drag-to-zoom (issue #4105). A drag across the error drawer's timeline
+   * retimes the whole page — stat cards, severity split, top errors,
+   * sources and the drawer — and a double-click or "Reset zoom" beside the
+   * picker puts the page back. The picker keeps setting the range itself:
+   * a pick is a new starting point, and it still closes the drawer.
+   */
+  const handleZoomTimeRangeChange: (next: RangeStartAndEndDateTime) => void =
+    useCallback((next: RangeStartAndEndDateTime): void => {
+      isZoomChangeRef.current = true;
+      setTimeRange(next);
+    }, []);
+
+  /*
    * A drawer opened against the previous scope would keep describing a
-   * window the page has moved on from, so close it when the scope changes.
+   * window the page has moved on from, so close it when the scope changes —
+   * unless the change is a zoom, which the drawer follows.
    */
   useEffect(() => {
+    if (isZoomChangeRef.current) {
+      isZoomChangeRef.current = false;
+      return;
+    }
+
     setSelectedPattern(null);
   }, [scope]);
+
+  /*
+   * After a zoom the list reloads for the new window; the open drawer takes
+   * its row from it, so its header (first and last seen, sources) describes
+   * the window it is now showing rather than the one before the zoom.
+   */
+  useEffect(() => {
+    setSelectedPattern(
+      (current: TopErrorPatternRow | null): TopErrorPatternRow | null => {
+        if (!current) {
+          return current;
+        }
+
+        return (
+          errorPatterns.find((row: TopErrorPatternRow): boolean => {
+            return row.pattern === current.pattern;
+          }) || current
+        );
+      },
+    );
+  }, [errorPatterns]);
 
   const serviceById: Map<string, Service> = useMemo(() => {
     const map: Map<string, Service> = new Map();
@@ -629,37 +678,72 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     </div>
   );
 
-  if (isLoading && !volume) {
+  const patternDrawer: ReactElement | null = selectedPattern ? (
+    <ErrorPatternDetail
+      /*
+       * Keyed on the pattern so switching rows REMOUNTS the drawer.
+       * SideOver is deliberately non-modal, so the list stays clickable
+       * behind it; without the key an in-flight correlation for the
+       * previous pattern could resolve last and pair its timeline,
+       * attributes and traces with the new pattern's header.
+       */
+      key={selectedPattern.pattern}
+      pattern={selectedPattern}
+      scope={scope}
+      serviceNameById={serviceById}
+      onClose={() => {
+        setSelectedPattern(null);
+      }}
+    />
+  ) : null;
+
+  /*
+   * Every state of the page renders through here, under one zoom scope
+   * with the header (whose picker shows "Reset zoom" while zoomed) and the
+   * drawer at the same places. A zoom reloads the page, and the loading
+   * state must not unmount the zoom it came from or the drawer it was made
+   * in.
+   */
+  type RenderPageFunction = (content: ReactElement) => ReactElement;
+  const renderPage: RenderPageFunction = (
+    content: ReactElement,
+  ): ReactElement => {
     return (
-      <Fragment>
+      <TimeRangeZoomScope
+        timeRange={timeRange}
+        onTimeRangeChange={handleZoomTimeRangeChange}
+      >
         {headerBar}
-        <div className="rounded-xl border border-gray-200 bg-white p-12">
-          <ComponentLoader />
-        </div>
-      </Fragment>
+        {content}
+        {patternDrawer}
+      </TimeRangeZoomScope>
+    );
+  };
+
+  if (isLoading && !volume) {
+    return renderPage(
+      <div className="rounded-xl border border-gray-200 bg-white p-12">
+        <ComponentLoader />
+      </div>,
     );
   }
 
   if (error) {
-    return (
-      <Fragment>
-        {headerBar}
-        <ErrorMessage
-          message={error}
-          onRefreshClick={() => {
-            void loadInsights();
-          }}
-        />
-      </Fragment>
+    return renderPage(
+      <ErrorMessage
+        message={error}
+        onRefreshClick={() => {
+          void loadInsights();
+        }}
+      />,
     );
   }
 
   const total: number = volume?.total || 0;
 
   if (total === 0) {
-    return (
+    return renderPage(
       <Fragment>
-        {headerBar}
         <div className="rounded-2xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-16 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50">
             <Icon icon={IconProp.List} className="h-7 w-7 text-indigo-500" />
@@ -691,7 +775,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             </AppLink>
           </div>
         </div>
-      </Fragment>
+      </Fragment>,
     );
   }
 
@@ -731,10 +815,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     1,
   );
 
-  return (
+  return renderPage(
     <Fragment>
-      {headerBar}
-
       {/* Hero stat cards */}
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -961,26 +1043,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             );
           })}
       </div>
-
-      {selectedPattern && (
-        <ErrorPatternDetail
-          /*
-           * Keyed on the pattern so switching rows REMOUNTS the drawer.
-           * SideOver is deliberately non-modal, so the list stays clickable
-           * behind it; without the key an in-flight correlation for the
-           * previous pattern could resolve last and pair its timeline,
-           * attributes and traces with the new pattern's header.
-           */
-          key={selectedPattern.pattern}
-          pattern={selectedPattern}
-          scope={scope}
-          serviceNameById={serviceById}
-          onClose={() => {
-            setSelectedPattern(null);
-          }}
-        />
-      )}
-    </Fragment>
+    </Fragment>,
   );
 };
 

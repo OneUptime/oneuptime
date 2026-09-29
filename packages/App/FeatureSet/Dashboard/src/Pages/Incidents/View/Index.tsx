@@ -1022,8 +1022,13 @@ const IncidentView: FunctionComponent<
                           hideQueryElements={true}
                           chartCssClass="rounded-lg border border-gray-200 shadow-sm"
                           hideStartAndEndDate={true}
-                          // Read-only host: onChange is a no-op, so zoom can't apply.
-                          disableChartZoom={true}
+                          /*
+                           * The snapshot window is pinned and nobody's to
+                           * change (onChange is a no-op): a drag zooms this
+                           * chart alone, and a double-click (or Reset zoom)
+                           * returns to the snapshot window.
+                           */
+                          localChartZoom={true}
                           onChange={(_data: MetricViewData) => {
                             // do nothing!
                           }}

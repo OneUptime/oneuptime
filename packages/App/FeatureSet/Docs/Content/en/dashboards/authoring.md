@@ -69,8 +69,10 @@ is on — that's deliberate, since a window that slid out from under you
 mid-investigation would be worse. Reset the zoom to start rolling again.
 
 Zooming works in View mode only; in Edit mode dragging moves and resizes
-widgets instead. Bar charts can't originate a zoom (there's nothing to drag
-across), but double-clicking one still resets the dashboard.
+widgets instead. Bar charts zoom the same way — drag across the bars — and
+double-clicking one resets the dashboard like any other chart. The same
+gestures work on the charts throughout OneUptime; see
+[Zooming Into a Time Range](/docs/telemetry/charts-and-time-ranges).
 
 ## Saving
 

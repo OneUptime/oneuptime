@@ -49,6 +49,7 @@ import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefres
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1510,7 +1511,19 @@ const CephClusterOverview: FunctionComponent<
   }
 
   return (
-    <Fragment>
+    /*
+     * The Golden Signals card is the page's only time series, and its range
+     * is the page's (chartTimeRange): a drag on any of its charts - the
+     * capacity and latency panels or the two rate charts - zooms that
+     * range, and a double-click on any of them, or "Reset zoom" beside the
+     * card's picker, puts it back. A zoom is a Custom range, so the
+     * auto-refresh leaves it pinned (see fetchAll) and a reset returns to
+     * the sliding preset.
+     */
+    <TimeRangeZoomScope
+      timeRange={chartTimeRange}
+      onTimeRangeChange={handleChartTimeRangeChange}
+    >
       {renderHero()}
       {renderHealthChecks()}
       {renderGoldenTiles()}
@@ -1625,7 +1638,7 @@ const CephClusterOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

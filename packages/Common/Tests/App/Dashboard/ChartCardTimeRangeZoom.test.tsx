@@ -87,8 +87,8 @@ describe("ChartCard on a page that zooms", () => {
 
     const hint: HTMLElement = screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID);
     expect(hint).toHaveTextContent("Drag to zoom");
-    expect(hint).toHaveClass("group-hover:opacity-100");
-    expect(hint.closest(".group")).not.toBeNull();
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).not.toBeNull();
   });
 
   test("names the reset too while the page is zoomed", () => {
@@ -97,7 +97,7 @@ describe("ChartCard on a page that zooms", () => {
     );
 
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
   });
 

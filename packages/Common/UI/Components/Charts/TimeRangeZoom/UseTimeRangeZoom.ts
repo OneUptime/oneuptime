@@ -12,6 +12,14 @@ export interface UseTimeRangeZoomOptions {
 export interface TimeRangeZoom {
   /** True while the page is on a window a chart drag zoomed it to. */
   isZoomed: boolean;
+  /*
+   * The range this zoom works over right now: the page's current range.
+   * Lets a picker or a card tell the zoom of ITS range apart from one an
+   * enclosing page or chart offers over a different range. Optional so a
+   * zoom that cannot say (a hand-built one) is still usable; it is then
+   * taken to be the range's.
+   */
+  timeRange?: RangeStartAndEndDateTime | undefined;
   /** The range a reset returns to; null while the page is not zoomed. */
   rangeBeforeZoom: RangeStartAndEndDateTime | null;
   /** A drag-selection on any chart: zooms the whole page to that window. */
@@ -147,6 +155,7 @@ const useTimeRangeZoom: UseTimeRangeZoomFunction = (
 
   return {
     isZoomed: activeZoom !== null,
+    timeRange: options.timeRange,
     rangeBeforeZoom: activeZoom ? activeZoom.rangeBeforeZoom : null,
     zoomToTimeRange: zoomToTimeRange,
     resetZoom: resetZoom,

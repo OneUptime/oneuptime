@@ -691,8 +691,13 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-            // onChange below drops startAndEndDate, so drag-zoom can't apply.
-            disableChartZoom={true}
+            /*
+             * The preview charts the monitor's rolling window, which the
+             * form saves with the monitor. A drag zooms the preview alone
+             * and never reaches the form; a double-click (or Reset zoom)
+             * brings the rolling window back.
+             */
+            localChartZoom={true}
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepKubernetesMonitor,

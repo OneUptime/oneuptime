@@ -29,6 +29,7 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import {
   ChartTimeRangeZoomContextValue,
   TimeRangeZoomProvider,
+  isTimeRangeZoomFor,
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTimeRangeZoom, {
@@ -58,8 +59,9 @@ import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/
  * card's range, and a double-click on any of them (or "Reset zoom" beside
  * the picker) puts the range it had before back.
  * - A card whose range the page controls, inside a page that zooms
- *   (TimeRangeZoomScope), zooms the PAGE: every card and chart sharing
- *   that range follows, and a double-click on any of them resets it.
+ *   (TimeRangeZoomScope) over that same range, zooms the PAGE: every card
+ *   and chart sharing the range follows, and a double-click on any of
+ *   them resets it.
  * - Otherwise the card keeps the zoom itself, over its own range, and
  *   hands it to everything it renders — the extra charts included.
  */
@@ -196,7 +198,13 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     timeRange: effectiveTimeRange,
     onTimeRangeChange: handleTimeRangeChange,
   });
-  const followsPageZoom: boolean = isControlledTimeRange && pageZoom !== null;
+  /*
+   * Only a zoom over the range this card is showing: a card in a drawer
+   * or tab with a range of its own keeps its own zoom even when the page
+   * around it zooms.
+   */
+  const followsPageZoom: boolean =
+    isControlledTimeRange && isTimeRangeZoomFor(pageZoom, effectiveTimeRange);
   const onChartTimeRangeSelect: (startTime: Date, endTime: Date) => void =
     followsPageZoom && pageZoom
       ? pageZoom.onTimeRangeSelect
@@ -278,13 +286,13 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   }, [dateRange, effectiveQueryConfigs, props.formulaConfigs]);
 
   const headerControls: ReactElement = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {props.rightElement}
       <RangeStartAndEndDateView
         dashboardStartAndEndDate={effectiveTimeRange}
         onChange={handleTimeRangeChange}
       />
-      <ResetTimeRangeZoomButton />
+      <ResetTimeRangeZoomButton forTimeRange={effectiveTimeRange} />
       <Tooltip text="Refresh">
         <button
           type="button"

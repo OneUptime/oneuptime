@@ -449,6 +449,60 @@ describe("EmbeddedMetricCards whose range the page controls", () => {
     );
   });
 
+  test("a controlled card over a DIFFERENT range than the zooming page keeps its own zoom", () => {
+    /*
+     * A tab or drawer that owns a range of its own (the incident companion
+     * metrics tab, the investigation drawer) rendered inside a page that
+     * zooms: its drag must narrow its own range, and the page's reset must
+     * not appear on it.
+     */
+    const PageWithOwnRangeTab: React.FunctionComponent =
+      (): React.ReactElement => {
+        const [pageRange, setPageRange] =
+          React.useState<RangeStartAndEndDateTime>({
+            range: TimeRange.PAST_ONE_HOUR,
+          });
+        const [tabRange, setTabRange] =
+          React.useState<RangeStartAndEndDateTime>({
+            range: TimeRange.PAST_ONE_DAY,
+          });
+        return (
+          <TimeRangeZoomScope
+            timeRange={pageRange}
+            onTimeRangeChange={setPageRange}
+          >
+            <span data-testid="page-range">{pageRange.range}</span>
+            <span data-testid="tab-range">{tabRange.range}</span>
+            <EmbeddedMetricCard
+              title="Tab metrics"
+              queryConfigs={QUERY_CONFIGS}
+              timeRange={tabRange}
+              onTimeRangeChange={setTabRange}
+            />
+          </TimeRangeZoomScope>
+        );
+      };
+
+    render(<PageWithOwnRangeTab />);
+
+    act(() => {
+      latestMetricView().onTimeRangeSelect?.(ZOOM_START, ZOOM_END);
+    });
+
+    expect(screen.getByTestId("page-range")).toHaveTextContent(
+      TimeRange.PAST_ONE_HOUR,
+    );
+    expect(screen.getByTestId("tab-range")).toHaveTextContent(TimeRange.CUSTOM);
+
+    // Its own reset puts its own range back.
+    act(() => {
+      latestMetricView().onTimeRangeReset?.();
+    });
+    expect(screen.getByTestId("tab-range")).toHaveTextContent(
+      TimeRange.PAST_ONE_DAY,
+    );
+  });
+
   test("a controlled window card (the page resolves the dates) asks the page to zoom", () => {
     const onTimeRangeChange: MockFunction = getJestMockFunction();
     render(

@@ -1,3 +1,6 @@
+import SloChartZoomHint, {
+  SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+} from "./SloChartZoomHint";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -46,8 +49,12 @@ import {
 import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -122,6 +129,19 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_MONTH,
   });
+
+  /*
+   * Drag-to-zoom (issue #4105) over this view's range: a drag across any of
+   * the three charts narrows all three to the window dragged out, and a
+   * double-click on any of them - or "Reset zoom" beside the picker - puts
+   * the range from before the zoom back. Held here, not in a
+   * TimeRangeZoomScope, because the empty states below need it too.
+   */
+  const zoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: timeRange,
+    onTimeRangeChange: setTimeRange,
+  });
+
   const [refreshTick, setRefreshTick] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -397,14 +417,25 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
        * The negative margin is the established way to fit EmptyState
        * inside a Card without the card growing to the empty state's own
        * generous padding.
+       *
+       * A zoom into a stretch with no history lands here, with no chart
+       * left to double-click, so the empty state takes the double-click
+       * and says how to get back.
        */
       return (
-        <div className="-my-16">
+        <div
+          className="-my-16"
+          onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}
+        >
           <EmptyState
             id={`slo-chart-empty-${options.seriesName}`}
             icon={IconProp.Graph}
             title="No history in this range"
-            description="SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently."
+            description={
+              zoom.isZoomed
+                ? "Nothing was recorded in the window you zoomed into. Double-click here, or use Reset zoom, to go back."
+                : "SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently."
+            }
           />
         </div>
       );
@@ -507,8 +538,13 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
     SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
   );
 
+  /*
+   * Every chart below takes the zoom from here, and so does the "Reset
+   * zoom" beside the picker. Each card names the gesture while the pointer
+   * is over it (SloChartZoomHint; the card is its hover `group`).
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomProvider zoom={zoom}>
       {/*
        * The error sits ABOVE the cards rather than replacing them: the
        * range picker lives on the first card, and hiding it on a transient
@@ -527,17 +563,23 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       )}
 
       <Card
+        className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="SLI"
         description="Service Level Indicator over time, with the SLO target as a reference line."
         rightElement={
-          <RangeStartAndEndDateView
-            dashboardStartAndEndDate={timeRange}
-            onChange={(newRange: RangeStartAndEndDateTime) => {
-              setTimeRange(newRange);
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <RangeStartAndEndDateView
+              dashboardStartAndEndDate={timeRange}
+              onChange={(newRange: RangeStartAndEndDateTime) => {
+                setTimeRange(newRange);
+              }}
+            />
+            <ResetTimeRangeZoomButton />
+          </div>
         }
       >
+        <SloChartZoomHint />
         {getChart({
           points: sliPoints,
           seriesName: "SLI %",
@@ -553,9 +595,12 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       </Card>
 
       <Card
+        className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Error Budget Remaining"
         description="Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent."
       >
+        <SloChartZoomHint />
         {getChart({
           points: budgetPoints,
           seriesName: "Budget Remaining %",
@@ -571,9 +616,12 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       </Card>
 
       <Card
+        className="group"
+        bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Burn Rate"
         description={`Error-budget burn measured over the trailing ${burnRateWindowText}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.`}
       >
+        <SloChartZoomHint />
         {getChart({
           points: burnRatePoints,
           seriesName: "Burn Rate",
@@ -587,7 +635,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           syncId: syncId,
         })}
       </Card>
-    </Fragment>
+    </TimeRangeZoomProvider>
   );
 };
 

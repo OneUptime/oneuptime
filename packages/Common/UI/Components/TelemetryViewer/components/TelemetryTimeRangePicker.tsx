@@ -20,7 +20,9 @@ const TelemetryTimeRangePicker: FunctionComponent<
   /*
    * Inside a page that zooms (TimeRangeZoomScope), a drag on any chart
    * retimes the page; the reset button beside the picker is the way back
-   * for anyone who does not know to double-click a chart.
+   * for anyone who does not know to double-click a chart. It shows only
+   * for a zoom of this picker's range, so a viewer nested in a zoomed page
+   * does not offer to reset the page.
    */
   return (
     <div className="inline-flex items-center gap-1.5">
@@ -30,7 +32,7 @@ const TelemetryTimeRangePicker: FunctionComponent<
         dataTestIdPrefix={TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}
         dropdownWidthInPx={TIME_RANGE_DROPDOWN_WIDTH_IN_PX}
       />
-      <ResetTimeRangeZoomButton />
+      <ResetTimeRangeZoomButton forTimeRange={props.value} />
     </div>
   );
 };

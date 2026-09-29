@@ -16,6 +16,7 @@ import {
   CartesianGrid,
   AreaChart,
   Area,
+  ReferenceArea,
 } from "recharts";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -44,6 +45,15 @@ import {
   getAnalyticsSeriesLabel,
   LogsEntityResolutionRequest,
 } from "../LogsEntityNames";
+import useHistogramRangeSelection, {
+  HistogramRangeSelectionState,
+} from "../../Charts/Utils/useHistogramRangeSelection";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "../../Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 type AnalyticsAggregation = "count" | "unique";
@@ -74,7 +84,20 @@ export interface LogsAnalyticsViewProps {
   sessionIds?: Array<string> | undefined;
   appliedFacetFilters: Map<string, Set<string>>;
   logAttributes: Array<string>;
+  /*
+   * Drag-to-zoom for the timeseries chart. Without these the chart zooms
+   * whatever the enclosing viewer offers (the logs viewer hands it the same
+   * zoom its volume histogram uses), so a drag here retimes the viewer.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Set only while there is a zoom to undo: it holds single clicks open.
+  onTimeRangeReset?: (() => void) | undefined;
 }
+
+export const LOGS_ANALYTICS_TIMESERIES_TEST_ID: string =
+  "logs-analytics-timeseries";
+export const LOGS_ANALYTICS_ZOOM_HINT_TEST_ID: string =
+  "logs-analytics-zoom-hint";
 
 const CHART_COLORS: Array<string> = [
   "#6366f1", // indigo
@@ -330,6 +353,15 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   const [timeseriesData, setTimeseriesData] = useState<
     Array<AnalyticsTimeseriesRow>
   >([]);
+  /*
+   * How much time one timeseries bucket covers, as the request that
+   * produced the rows on screen bucketed them. Kept next to the rows so a
+   * refetch in flight cannot pair these bars with another window's width;
+   * it is what lets a click on one bar zoom into that bar.
+   */
+  const [timeseriesBucketMs, setTimeseriesBucketMs] = useState<
+    number | undefined
+  >(undefined);
   const [topListData, setTopListData] = useState<Array<AnalyticsTopItem>>([]);
   const [tableData, setTableData] = useState<Array<AnalyticsTableRow>>([]);
   /*
@@ -367,13 +399,17 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
         const startTime: Date = dateRange.startValue;
         const endTime: Date = dateRange.endValue;
+        const bucketSizeInMinutes: number = computeDefaultBucketSize(
+          startTime,
+          endTime,
+        );
 
         const requestData: JSONObject = {
           chartType,
           aggregation,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          bucketSizeInMinutes: computeDefaultBucketSize(startTime, endTime),
+          bucketSizeInMinutes: bucketSizeInMinutes,
         } as JSONObject;
 
         const requestGroupBy: Array<string> =
@@ -479,6 +515,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
         if (chartType === "timeseries") {
           setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
+          setTimeseriesBucketMs(bucketSizeInMinutes * 60 * 1000);
         } else if (chartType === "toplist") {
           setTopListData(data as Array<AnalyticsTopItem>);
         } else {
@@ -487,6 +524,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       } catch {
         // Silently degrade
         setTimeseriesData([]);
+        setTimeseriesBucketMs(undefined);
         setTopListData([]);
         setTableData([]);
       } finally {
@@ -536,6 +574,33 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   const { pivotedData, seriesKeys, seriesLabels } = useMemo(() => {
     return pivotTimeseriesData(timeseriesData, entityNameMap);
   }, [timeseriesData, entityNameMap]);
+
+  /*
+   * Only the timeseries has a time axis: a window dragged across a top
+   * list or a table would not be a time range. Handlers the host passes win
+   * over the zoom the enclosing viewer offers.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const zoomHandlers: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+    onTimeRangeSelect: props.onTimeRangeSelect,
+    onTimeRangeReset: props.onTimeRangeReset,
+    isTimeAxis: chartType === "timeseries",
+    pageZoom: pageZoom,
+  });
+
+  /*
+   * The same click-or-drag selection the volume histogram above uses, over
+   * the same bucket-start labels: a drag zooms into every bucket it covered,
+   * a click into one bucket, and a double-click zooms back out.
+   */
+  const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
+    onTimeRangeSelect: zoomHandlers.onTimeRangeSelect,
+    onZoomOut: zoomHandlers.onTimeRangeReset,
+    bucketIntervalMs: timeseriesBucketMs,
+  });
+
+  const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
 
   const renderSelectControl: (
     label: string,
@@ -682,9 +747,29 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     );
   };
 
+  const renderZoomHint: () => ReactElement | null = (): ReactElement | null => {
+    if (!canZoom) {
+      return null;
+    }
+
+    return (
+      <span
+        className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400"
+        data-testid={LOGS_ANALYTICS_ZOOM_HINT_TEST_ID}
+      >
+        {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
+        {zoomHandlers.onTimeRangeReset ? " · double-click to zoom out" : ""}
+      </span>
+    );
+  };
+
   const renderLegend: () => ReactElement = (): ReactElement => {
     if (seriesKeys.length <= 1) {
-      return <></>;
+      return canZoom ? (
+        <div className="flex items-center px-5 pb-2">{renderZoomHint()}</div>
+      ) : (
+        <></>
+      );
     }
 
     return (
@@ -704,13 +789,54 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             </div>
           );
         })}
+        {renderZoomHint()}
       </div>
     );
   };
 
+  /*
+   * The band a drag paints across the buckets it covers, in the same colours
+   * the volume histogram uses.
+   */
+  const renderSelectionBand: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!selection.selectionStart || !selection.selectionEnd) {
+        return null;
+      }
+
+      return (
+        <ReferenceArea
+          x1={selection.selectionStart}
+          x2={selection.selectionEnd}
+          fill="rgba(99,102,241,0.12)"
+          stroke="rgba(99,102,241,0.5)"
+          strokeWidth={1}
+          radius={2}
+        />
+      );
+    };
+
+  /*
+   * The tooltip is pinned shut for the length of a drag: it would otherwise
+   * sit over the very buckets the reader is picking. Dropping the prop hands
+   * control back to recharts once the drag ends.
+   */
+  const tooltipDragProps: { active?: boolean } = selection.isDragging
+    ? { active: false }
+    : {};
+
   const renderTimeseries: () => ReactElement = (): ReactElement => {
     if (pivotedData.length === 0) {
-      return renderEmptyState();
+      /*
+       * A zoom into a quiet stretch lands here, with no chart left to
+       * double-click; the empty area takes the double-click instead, so the
+       * way back is where the reader's pointer already is.
+       */
+      return (
+        <div onDoubleClick={zoomHandlers.onTimeRangeReset}>
+          {renderEmptyState()}
+        </div>
+      );
     }
 
     const useAreaChart: boolean = seriesKeys.length === 1;
@@ -718,12 +844,23 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     return (
       <div className="px-2 pt-4 pb-2">
         {renderLegend()}
-        <div style={{ height: 320 }}>
+        <div
+          className="select-none"
+          style={{
+            height: 320,
+            cursor: canZoom ? "crosshair" : "default",
+          }}
+          data-testid={LOGS_ANALYTICS_TIMESERIES_TEST_ID}
+          onDoubleClick={selection.onDoubleClick}
+        >
           <ResponsiveContainer width="100%" height="100%">
             {useAreaChart ? (
               <AreaChart
                 data={pivotedData}
                 margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                onMouseDown={selection.onMouseDown}
+                onMouseMove={selection.onMouseMove}
+                onMouseUp={selection.onMouseUp}
               >
                 <defs>
                   <linearGradient
@@ -781,6 +918,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     strokeWidth: 1,
                     strokeDasharray: "4 4",
                   }}
+                  {...tooltipDragProps}
                 />
                 <Area
                   dataKey={seriesKeys[0] || "count"}
@@ -796,6 +934,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   }}
                   isAnimationActive={false}
                 />
+                {renderSelectionBand()}
               </AreaChart>
             ) : (
               <BarChart
@@ -803,6 +942,9 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
                 barCategoryGap="20%"
                 barGap={0}
+                onMouseDown={selection.onMouseDown}
+                onMouseMove={selection.onMouseMove}
+                onMouseUp={selection.onMouseUp}
               >
                 <CartesianGrid
                   strokeDasharray="none"
@@ -836,6 +978,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 <Tooltip
                   content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
                   cursor={{ fill: "rgba(99,102,241,0.04)" }}
+                  {...tooltipDragProps}
                 />
                 {seriesKeys.map((key: string, index: number) => {
                   return (
@@ -854,6 +997,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     />
                   );
                 })}
+                {renderSelectionBand()}
               </BarChart>
             )}
           </ResponsiveContainer>

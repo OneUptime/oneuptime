@@ -62,6 +62,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -564,10 +566,22 @@ const VMwareVCenterOverview: FunctionComponent<
    * powered-on VMs. Every series is a gauge — no counter-rate math. Host
    * / datastore / VM identity rides the `resource.vcenter.*` attributes
    * the vcenter receiver stamps on each resource.
+   *
+   * A chart zoom, its reset, the picker and the auto-refresh timer can each
+   * start a load while another is in flight; only the most recently started
+   * one may commit, or a slow response for the window the reader just left
+   * would repaint the charts and tiles with it.
    */
+  const goldenLoadSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const loadGoldenMetrics: (vcenterName: string) => Promise<void> = async (
     vcenterName: string,
   ): Promise<void> => {
+    const seq: number = ++goldenLoadSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== goldenLoadSeqRef.current;
+    };
+
     setIsRefreshing(true);
     setGoldenError("");
     try {
@@ -697,6 +711,10 @@ const VMwareVCenterOverview: FunctionComponent<
           ),
         }),
       ]);
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -1015,10 +1033,15 @@ const VMwareVCenterOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
-      setGoldenError(API.getFriendlyMessage(err));
+      if (!isStale()) {
+        setGoldenError(API.getFriendlyMessage(err));
+      }
     } finally {
-      setIsRefreshing(false);
-      setIsGoldenLoading(false);
+      // A superseded load leaves the spinner to the load that replaced it.
+      if (!isStale()) {
+        setIsRefreshing(false);
+        setIsGoldenLoading(false);
+      }
     }
   };
 
@@ -1744,9 +1767,14 @@ const VMwareVCenterOverview: FunctionComponent<
       },
     };
 
+    /*
+     * Drag-to-zoom is named once, at the right of the section heading,
+     * while the pointer is over the section: four cards share a row, too
+     * narrow to hold the hint beside a title and the icon without wrapping.
+     */
     return (
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="group/zoomhint mb-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
               vCenter resource usage
@@ -1756,6 +1784,7 @@ const VMwareVCenterOverview: FunctionComponent<
               and powered-on VMs (CPU ready) over the selected time range
             </p>
           </div>
+          <TimeRangeZoomHint revealOnHover={true} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {renderChartCard({
@@ -2265,8 +2294,15 @@ const VMwareVCenterOverview: FunctionComponent<
     );
   };
 
+  /*
+   * Issue #4105: a drag on any chart sets the page's range to the window
+   * dragged out (the charts and the Host CPU / Memory / CPU Ready tiles
+   * reload for it); a double-click on any chart, or Reset zoom beside the
+   * hero's picker, puts the range from before the zoom back. Inventory,
+   * health and top consumers are the current state and stay as they are.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
 
       {/* Golden metrics — at-a-glance vCenter health */}
@@ -2538,7 +2574,7 @@ const VMwareVCenterOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

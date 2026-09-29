@@ -57,6 +57,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -189,7 +191,21 @@ const DockerHostOverview: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
+  /*
+   * A chart zoom, its reset, the picker, the auto-refresh timer and the
+   * Refresh button each start a fetch, and they overlap: a drag straight
+   * followed by a double-click is two range changes in a second. Only the
+   * most recently started fetch may commit, or a slow response for the
+   * window just left would land last and be drawn under the new range.
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
+    const seq: number = ++fetchSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== fetchSeqRef.current;
+    };
+
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -206,6 +222,10 @@ const DockerHostOverview: FunctionComponent<
           osVersion: true,
         },
       });
+
+      if (isStale()) {
+        return;
+      }
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
@@ -392,6 +412,10 @@ const DockerHostOverview: FunctionComponent<
           aggregateBy: heartbeatAgg,
         }),
       ]);
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -767,6 +791,9 @@ const DockerHostOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
       setStatsError(API.getFriendlyMessage(err));
     }
     setIsRefreshing(false);
@@ -1162,6 +1189,11 @@ const DockerHostOverview: FunctionComponent<
       },
     };
 
+    /*
+     * No zoom handlers of its own: the chart takes the page's zoom
+     * (TimeRangeZoomScope below), so a drag retimes every card, tile and
+     * list on the page and a double-click puts the range back.
+     */
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
@@ -1243,10 +1275,18 @@ const DockerHostOverview: FunctionComponent<
         </span>
       );
 
+    /*
+     * Each section names the drag-to-zoom gesture on the right of its
+     * heading, while the pointer is over the section (its `group`). Not in
+     * the cards' own headers: four resource cards share a row, and a hint
+     * there - invisible, yet still taking its width - pushed their titles
+     * onto two lines. Below lg the hint would wrap the subtitles when it
+     * grows to name the double-click, and tablets rarely hover anyway.
+     */
     return (
       <Fragment>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 Availability
@@ -1256,6 +1296,7 @@ const DockerHostOverview: FunctionComponent<
                 selected time range
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           {renderChartCard({
             title: "Availability",
@@ -1268,8 +1309,8 @@ const DockerHostOverview: FunctionComponent<
             description: CONTAINER_HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 Container resource usage
@@ -1278,6 +1319,7 @@ const DockerHostOverview: FunctionComponent<
                 Aggregated across containers over the selected time range
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {renderChartCard({
@@ -1310,14 +1352,15 @@ const DockerHostOverview: FunctionComponent<
             })}
           </div>
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Network</h2>
               <p className="text-xs text-gray-500">
                 Aggregate receive / transmit rate across all containers
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
           </div>
           {renderChartCard({
             title: "Network",
@@ -1463,8 +1506,15 @@ const DockerHostOverview: FunctionComponent<
     );
   };
 
+  /*
+   * Drag-to-zoom (issue #4105): a drag on any chart sets the page's range
+   * to the window dragged out, so every chart, tile, consumer list and the
+   * uptime badge refetch for it; a double-click on any chart, or Reset
+   * zoom beside the hero's picker, puts back the range from before the
+   * first zoom. Picking a range in the picker simply ends the zoom.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryCards()}
       <ResourceActivityCards
@@ -1623,7 +1673,7 @@ const DockerHostOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

@@ -56,6 +56,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -202,7 +204,21 @@ const HostOverview: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
+  /*
+   * A chart zoom, its reset, the picker and the auto-refresh timer can each
+   * start a fetch while another is still in flight. Only the most recently
+   * started one may commit: a slow response for the window the reader just
+   * left would otherwise repaint the charts, tiles and Filesystems table
+   * with it (a double-click right after a drag is exactly that race).
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
+    const seq: number = ++fetchSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== fetchSeqRef.current;
+    };
+
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -229,6 +245,10 @@ const HostOverview: FunctionComponent<
           agentVersion: true,
         },
       });
+
+      if (isStale()) {
+        return;
+      }
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
@@ -464,6 +484,10 @@ const HostOverview: FunctionComponent<
           aggregateBy: heartbeatAggregate,
         }),
       ]);
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -984,7 +1008,14 @@ const HostOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
       setStatsError(API.getFriendlyMessage(err));
+    }
+    // A superseded fetch leaves the spinner to the fetch that replaced it.
+    if (isStale()) {
+      return;
     }
     setIsRefreshing(false);
     setIsInitialLoading(false);
@@ -1694,10 +1725,16 @@ const HostOverview: FunctionComponent<
         </span>
       );
 
+    /*
+     * Drag-to-zoom is named once per section, at the right of its heading,
+     * while the pointer is anywhere over the section: the chart cards are a
+     * few hundred pixels wide, too narrow to hold the hint beside a title
+     * and the icon without wrapping the title.
+     */
     return (
       <Fragment>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 Availability
@@ -1707,6 +1744,7 @@ const HostOverview: FunctionComponent<
                 range
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} />
           </div>
           {renderChartCard({
             title: "Availability",
@@ -1719,8 +1757,8 @@ const HostOverview: FunctionComponent<
             description: HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="group/zoomhint mb-6">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
                 Resource usage
@@ -1729,6 +1767,7 @@ const HostOverview: FunctionComponent<
                 Aggregated over the selected time range
               </p>
             </div>
+            <TimeRangeZoomHint revealOnHover={true} />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {renderChartCard({
@@ -1823,8 +1862,15 @@ const HostOverview: FunctionComponent<
     return <IpAddressList text={(item.hostIpAddresses as string) || ""} />;
   };
 
+  /*
+   * Issue #4105: a drag on any chart sets the page's range to the window
+   * dragged out, so every chart, tile and the Filesystems table refetch for
+   * it; a double-click on any chart (or Reset zoom beside the picker in the
+   * hero, which is why the scope wraps the whole page) puts the range from
+   * before the zoom back. The existing [timeRange] effect does the refetch.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryCards()}
       <ResourceActivityCards
@@ -2071,7 +2117,7 @@ const HostOverview: FunctionComponent<
           </div>
         </div>
       )}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

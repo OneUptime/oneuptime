@@ -104,7 +104,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
 
   if (props.loading || !props.windowStart || !props.windowEnd) {
     return (
-      <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div className="h-44 animate-pulse rounded-md bg-gray-50" />
       </div>
@@ -118,7 +118,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
      * the way back is where the reader's pointer already is.
      */
     return (
-      <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div
           className="flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400"
@@ -158,7 +158,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   };
 
   return (
-    <div className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
         data={props.series}

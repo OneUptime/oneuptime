@@ -22,6 +22,10 @@ import API from "Common/UI/Utils/API/API";
 import KubernetesNetworkUtils, {
   NetworkThroughputSeries,
 } from "../Utils/KubernetesNetworkUtils";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface ComponentProps {
   clusterIdentifier: string;
@@ -32,9 +36,15 @@ export interface ComponentProps {
   syncId?: string | undefined;
 }
 
+/*
+ * The chart zooms whatever range its host shares (issue #4105) - the
+ * Insights page's, or the node Metrics tab's card - by taking the zoom the
+ * host offers: it is handed no zoom handlers of its own.
+ */
 const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
   const [series, setSeries] = useState<Array<SeriesPoint>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -98,8 +108,16 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
   }
 
   if (series.length === 0) {
+    /*
+     * A zoom into a quiet stretch lands here, with no chart to
+     * double-click. The empty plot area takes the double-click instead, so
+     * the way back is where the reader's pointer already is.
+     */
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+      <div
+        className="flex h-48 items-center justify-center text-sm text-gray-400"
+        onDoubleClick={zoom?.onTimeRangeReset}
+      >
         No network traffic reported for the selected time range.
       </div>
     );
