@@ -158,7 +158,8 @@ const ServerlessFunctionOverview: FunctionComponent<
     (serverlessFunction?.functionIdentifier as string | undefined) || "";
 
   useEffect(() => {
-    if (!functionIdentifier) {
+    const fn: ServerlessFunction | null = serverlessFunction;
+    if (!fn?.functionIdentifier) {
       return;
     }
     setMetricsLoading(true);
@@ -177,7 +178,7 @@ const ServerlessFunctionOverview: FunctionComponent<
     let ignore: boolean = false;
     metricsInFlightRef.current = true;
     fetchSpanMetrics({
-      attributes: { "resource.faas.name": functionIdentifier },
+      attributes: { "resource.faas.name": fn.functionIdentifier as string },
       start,
       end,
     })
