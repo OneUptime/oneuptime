@@ -7,11 +7,13 @@ import {
   TRACE_CHART_PALETTE,
   TimeseriesRow,
   TraceChartArguments,
+  TraceSeriesColorOptions,
   buildTraceAnalyticsRequest,
   computeBucketSizeInMinutes,
   formatCount,
   formatDurationMs,
   formatTickTime,
+  formatTraceSeriesLabel,
   hexToRgba,
   isDurationMetric,
   parseAttributeFilters,
@@ -497,6 +499,183 @@ describe("TraceChartData.resolveTraceSeriesColor", () => {
         colorsByGroup: { "url.host=api.example.com": "#10b981" },
       }),
     ).toBe(TRACE_CHART_PALETTE[0]);
+  });
+});
+
+/*
+ * A widget split by span status gets one series per stored value, "0" / "1" /
+ * "2" (the server's toString(statusCode)). Each status keeps its own color
+ * wherever it lands in the series order, the same colors the Traces explorer
+ * uses (#4118). Every other split still goes by palette position.
+ */
+describe("TraceChartData.resolveTraceSeriesColor for a status split", () => {
+  const UNSET_COLOR: string = "#10b981";
+  const OK_COLOR: string = "#0891b2";
+  const ERROR_COLOR: string = "#ef4444";
+  const LEAD_COLOR: string = "#123456";
+
+  const STATUS_SPLIT: TraceSeriesColorOptions = {
+    groupByAttribute: "statusCode",
+  };
+
+  test("Unset is green, Ok cyan and Error red", () => {
+    expect(resolveTraceSeriesColor("0", 0, STATUS_SPLIT)).toBe(UNSET_COLOR);
+    expect(resolveTraceSeriesColor("1", 1, STATUS_SPLIT)).toBe(OK_COLOR);
+    expect(resolveTraceSeriesColor("2", 2, STATUS_SPLIT)).toBe(ERROR_COLOR);
+  });
+
+  /*
+   * By position alone, Error got whatever the palette held at its index, and
+   * index 2 is green (#10b981): a chart whose third series was Error drew its
+   * failures in the success color.
+   */
+  test("REGRESSION: Error is red at every series position (#4118)", () => {
+    for (let index: number = 0; index <= 12; index++) {
+      expect(resolveTraceSeriesColor("2", index, STATUS_SPLIT)).toBe(
+        ERROR_COLOR,
+      );
+    }
+  });
+
+  test("Unset and Ok keep their colors at every series position", () => {
+    for (let index: number = 0; index <= 12; index++) {
+      expect(resolveTraceSeriesColor("0", index, STATUS_SPLIT)).toBe(
+        UNSET_COLOR,
+      );
+      expect(resolveTraceSeriesColor("1", index, STATUS_SPLIT)).toBe(OK_COLOR);
+    }
+  });
+
+  test("a lead color neither shifts nor replaces the status colors", () => {
+    const options: TraceSeriesColorOptions = {
+      ...STATUS_SPLIT,
+      color: LEAD_COLOR,
+    };
+    for (let index: number = 0; index <= 12; index++) {
+      expect(resolveTraceSeriesColor("0", index, options)).toBe(UNSET_COLOR);
+      expect(resolveTraceSeriesColor("1", index, options)).toBe(OK_COLOR);
+      expect(resolveTraceSeriesColor("2", index, options)).toBe(ERROR_COLOR);
+    }
+  });
+
+  test("whitespace around the split attribute is ignored", () => {
+    const options: TraceSeriesColorOptions = {
+      groupByAttribute: " statusCode ",
+    };
+    expect(resolveTraceSeriesColor("0", 2, options)).toBe(UNSET_COLOR);
+    expect(resolveTraceSeriesColor("1", 0, options)).toBe(OK_COLOR);
+    expect(resolveTraceSeriesColor("2", 2, options)).toBe(ERROR_COLOR);
+  });
+
+  test("a per-series pin still wins over the status color", () => {
+    const options: TraceSeriesColorOptions = {
+      ...STATUS_SPLIT,
+      color: LEAD_COLOR,
+      colorsByGroup: { "statusCode=2": "#f59e0b" },
+    };
+    expect(resolveTraceSeriesColor("2", 0, options)).toBe("#f59e0b");
+    // The unpinned statuses keep their own colors, not the palette's.
+    expect(resolveTraceSeriesColor("0", 1, options)).toBe(UNSET_COLOR);
+    expect(resolveTraceSeriesColor("1", 2, options)).toBe(OK_COLOR);
+    // Pins are keyed by the trimmed attribute, like every other split.
+    expect(
+      resolveTraceSeriesColor("2", 0, {
+        groupByAttribute: " statusCode ",
+        colorsByGroup: { "statusCode=2": "#f59e0b" },
+      }),
+    ).toBe("#f59e0b");
+  });
+
+  test("a pin under another split attribute does not recolor a status", () => {
+    expect(
+      resolveTraceSeriesColor("2", 2, {
+        ...STATUS_SPLIT,
+        colorsByGroup: { "kind=2": "#f59e0b" },
+      }),
+    ).toBe(ERROR_COLOR);
+  });
+
+  test("keys that are not a stored status go by palette position as before", () => {
+    for (const seriesKey of ["7", "", "0 / api"]) {
+      expect(resolveTraceSeriesColor(seriesKey, 0, STATUS_SPLIT)).toBe(
+        TRACE_CHART_PALETTE[0],
+      );
+      expect(resolveTraceSeriesColor(seriesKey, 3, STATUS_SPLIT)).toBe(
+        TRACE_CHART_PALETTE[3],
+      );
+      // The lead color still heads the palette for them.
+      expect(
+        resolveTraceSeriesColor(seriesKey, 0, {
+          ...STATUS_SPLIT,
+          color: LEAD_COLOR,
+        }),
+      ).toBe(LEAD_COLOR);
+      expect(
+        resolveTraceSeriesColor(seriesKey, 1, {
+          ...STATUS_SPLIT,
+          color: LEAD_COLOR,
+        }),
+      ).toBe(TRACE_CHART_PALETTE[0]);
+    }
+  });
+
+  test("other splits go by palette position, even for status-like keys", () => {
+    for (const groupByAttribute of ["kind", "name", "statusMessage"]) {
+      for (let index: number = 0; index <= 12; index++) {
+        expect(resolveTraceSeriesColor("2", index, { groupByAttribute })).toBe(
+          TRACE_CHART_PALETTE[index % TRACE_CHART_PALETTE.length],
+        );
+      }
+      expect(
+        resolveTraceSeriesColor("2", 0, {
+          groupByAttribute,
+          color: LEAD_COLOR,
+        }),
+      ).toBe(LEAD_COLOR);
+    }
+  });
+
+  test("an unsplit chart is not a status split", () => {
+    expect(resolveTraceSeriesColor("2", 1, {})).toBe(TRACE_CHART_PALETTE[1]);
+    expect(resolveTraceSeriesColor("0", 1, { groupByAttribute: "  " })).toBe(
+      TRACE_CHART_PALETTE[1],
+    );
+  });
+});
+
+describe("TraceChartData.formatTraceSeriesLabel", () => {
+  // The legend used to print the raw stored value: "0", "1", "2".
+  test("REGRESSION: a status split names each status instead of 0 / 1 / 2 (#4118)", () => {
+    expect(formatTraceSeriesLabel("0", "statusCode")).toBe("Unset (no error)");
+    expect(formatTraceSeriesLabel("1", "statusCode")).toBe("Ok");
+    expect(formatTraceSeriesLabel("2", "statusCode")).toBe("Error");
+  });
+
+  test("whitespace around the split attribute is ignored", () => {
+    expect(formatTraceSeriesLabel("0", " statusCode ")).toBe(
+      "Unset (no error)",
+    );
+    expect(formatTraceSeriesLabel("2", " statusCode ")).toBe("Error");
+  });
+
+  test("keys that are not a stored status are shown verbatim", () => {
+    for (const seriesKey of ["7", "", "0 / api"]) {
+      expect(formatTraceSeriesLabel(seriesKey, "statusCode")).toBe(seriesKey);
+    }
+  });
+
+  test("other splits show the key verbatim, even status-like ones", () => {
+    expect(formatTraceSeriesLabel("2", "kind")).toBe("2");
+    expect(formatTraceSeriesLabel("0", "name")).toBe("0");
+    expect(formatTraceSeriesLabel("api.example.com", "url.host")).toBe(
+      "api.example.com",
+    );
+  });
+
+  test("an unsplit chart shows the key verbatim", () => {
+    expect(formatTraceSeriesLabel("count", undefined)).toBe("count");
+    expect(formatTraceSeriesLabel("2", undefined)).toBe("2");
+    expect(formatTraceSeriesLabel("0", "")).toBe("0");
   });
 });
 

@@ -115,6 +115,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     {
       title: "AI",
       items: [
+        /*
+         * First, and outside the billing-only items below: the project's AI
+         * switches must be reachable on every install.
+         */
+        {
+          link: {
+            title: "AI Features",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
         {
           link: {
             title: "LLM Providers",

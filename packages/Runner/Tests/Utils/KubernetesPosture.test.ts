@@ -66,11 +66,30 @@ interface AgentModeModule {
 }
 
 // Pretend the process runs in a pod: service host set, token mounted.
-function pretendInPod(): void {
+/*
+ * What kubectl's own in-cluster detection reads: the service host AND port,
+ * and a mounted token that is a file.
+ */
+function pretendInPod(options?: { tokenIsDirectory?: boolean }): void {
   process.env["KUBERNETES_SERVICE_HOST"] = "10.0.0.1";
-  jest.spyOn(fs, "existsSync").mockImplementation((target: fs.PathLike) => {
-    return String(target) === SERVICE_ACCOUNT_TOKEN_PATH;
-  });
+  process.env["KUBERNETES_SERVICE_PORT"] = "443";
+  const realStatSync: typeof fs.statSync = fs.statSync;
+  jest.spyOn(fs, "statSync").mockImplementation(((
+    target: fs.PathLike,
+    ...rest: Array<unknown>
+  ) => {
+    if (String(target) === SERVICE_ACCOUNT_TOKEN_PATH) {
+      return {
+        isFile: (): boolean => {
+          return options?.tokenIsDirectory !== true;
+        },
+      } as fs.Stats;
+    }
+    return (realStatSync as (...args: Array<unknown>) => unknown)(
+      target,
+      ...rest,
+    );
+  }) as typeof fs.statSync);
 }
 
 function loadIsolated(env: Record<string, string | undefined>): {
@@ -115,6 +134,58 @@ describe("KubernetesPosture in project mode (jest.setup defaults)", () => {
 
     pretendInPod();
     expect(KubernetesPosture.isInCluster()).toBe(true);
+  });
+
+  /*
+   * kubectl's own rule (client-go inClusterClientConfig.Possible) needs the
+   * port too, and a token that is a file. Reporting "in cluster" on less
+   * would send credential-less jobs to a Runner whose kubectl cannot find
+   * the API server.
+   */
+  test("isInCluster needs the service port as well as the host, as kubectl does", () => {
+    pretendInPod();
+    delete process.env["KUBERNETES_SERVICE_PORT"];
+
+    expect(KubernetesPosture.isInCluster()).toBe(false);
+    expect(KubernetesPosture.getInClusterApiServer()).toBeNull();
+  });
+
+  test("isInCluster is false when the token path is a directory", () => {
+    pretendInPod({ tokenIsDirectory: true });
+
+    expect(KubernetesPosture.isInCluster()).toBe(false);
+  });
+
+  test("getInClusterApiServer reads the service host and port the kubelet sets", () => {
+    pretendInPod();
+
+    expect(KubernetesPosture.getInClusterApiServer()).toEqual({
+      host: "10.0.0.1",
+      port: "443",
+    });
+  });
+
+  test("getOwnPodNamespace prefers the chart's value and falls back to the ServiceAccount mount", () => {
+    jest
+      .spyOn(KubernetesPosture, "getPodNamespace")
+      .mockReturnValue("agent-ns");
+    expect(KubernetesPosture.getOwnPodNamespace()).toBe("agent-ns");
+
+    (KubernetesPosture.getPodNamespace as jest.Mock).mockReturnValue(null);
+    jest.spyOn(fs, "readFileSync").mockImplementation(((
+      target: fs.PathOrFileDescriptor,
+    ): string => {
+      if (String(target).endsWith("/serviceaccount/namespace")) {
+        return "from-mount\n";
+      }
+      throw new Error("ENOENT");
+    }) as typeof fs.readFileSync);
+    expect(KubernetesPosture.getOwnPodNamespace()).toBe("from-mount");
+
+    (fs.readFileSync as unknown as jest.Mock).mockImplementation(() => {
+      throw new Error("ENOENT");
+    });
+    expect(KubernetesPosture.getOwnPodNamespace()).toBeNull();
   });
 
   test("a project Runner that merely runs in a pod may NOT use its ServiceAccount", () => {

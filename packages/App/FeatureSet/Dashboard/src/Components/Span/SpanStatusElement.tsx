@@ -1,16 +1,27 @@
-import { Green, Red } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import ColorCircle from "Common/UI/Components/ColorCircle/ColorCircle";
 import AppLink from "../AppLink/AppLink";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import {
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 export interface ComponentProps {
-  spanStatusCode: SpanStatus;
+  // No status (null / undefined) draws no dot.
+  spanStatusCode: SpanStatus | null | undefined;
   title?: string | undefined;
   titleClassName?: string | undefined;
   traceId?: string | undefined;
+  /*
+   * Name the status alone ("Unset") rather than "Unset (no error)". For rows
+   * that are themselves an exception: recording one does not change the
+   * span's status, so "no error" would contradict the row.
+   */
+  plainLabel?: boolean | undefined;
 }
 
 const SpanStatusElement: FunctionComponent<ComponentProps> = (
@@ -18,22 +29,23 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { spanStatusCode } = props;
 
+  // Unset is 0, so test for a missing value rather than a falsy one.
+  const hasStatus: boolean =
+    spanStatusCode !== null && spanStatusCode !== undefined;
+
+  const status: SpanStatusPresentation =
+    getSpanStatusPresentation(spanStatusCode);
+
   return (
     <div className="flex space-x-2">
       <div className="mt-1">
-        {(spanStatusCode !== null || spanStatusCode !== undefined) &&
-        spanStatusCode === SpanStatus.Unset ? (
-          <ColorCircle color={Green} tooltip="Span Status: Unset" />
-        ) : (
-          <></>
-        )}
-        {spanStatusCode && spanStatusCode === SpanStatus.Ok ? (
-          <ColorCircle color={Green} tooltip="Span Status: Ok" />
-        ) : (
-          <></>
-        )}
-        {spanStatusCode && spanStatusCode === SpanStatus.Error ? (
-          <ColorCircle color={Red} tooltip="Span Status: Error" />
+        {hasStatus ? (
+          <ColorCircle
+            color={new Color(status.color)}
+            tooltip={`Span Status: ${
+              props.plainLabel ? status.label : status.displayLabel
+            }`}
+          />
         ) : (
           <></>
         )}

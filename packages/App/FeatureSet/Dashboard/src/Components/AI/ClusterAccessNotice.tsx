@@ -93,27 +93,39 @@ function toCount(value: number | undefined): number {
 }
 
 /*
+ * What ran a cluster's kubectl commands, named without guessing which: the
+ * cluster's Kubernetes AI agent, the chart's previous in-cluster Runner, or
+ * an advanced Runner an operator bound. A run's events do not record which
+ * one took its commands, and the cluster's current target (clusterAccess)
+ * may not be the one the run had.
+ */
+export const CLUSTER_KUBECTL_RUNNER_NAME: string =
+  "the cluster's AI agent or Runner";
+
+/*
  * Why commands that did not run and commands whose result never came back
- * produced nothing, for a run where no command ran: "the cluster's Runner
- * took it but never reported back, so whether it ran is unknown".
+ * produced nothing, for a run where no command ran: "the cluster's AI agent
+ * or Runner took it but never reported back, so whether it ran is unknown".
  */
 function describeCommandsWithoutResult(
   notRun: number,
   unknown: number,
 ): string {
   if (notRun === 0) {
-    return `the cluster's Runner took ${
+    return `${CLUSTER_KUBECTL_RUNNER_NAME} took ${
       unknown === 1 ? "it" : "them"
     } but never reported back, so whether ${
       unknown === 1 ? "it" : "they"
     } ran is unknown`;
   }
 
-  return `${notRun.toLocaleString()} could not run (the cluster's Runner did not pick ${
+  return `${notRun.toLocaleString()} could not run (${CLUSTER_KUBECTL_RUNNER_NAME} did not pick ${
     notRun === 1 ? "it" : "them"
   } up, or ${
     notRun === 1 ? "it was" : "they were"
-  } refused), and the Runner took ${unknown.toLocaleString()} more but never reported back`;
+  } refused), and ${unknown.toLocaleString()} more ${
+    unknown === 1 ? "was" : "were"
+  } picked up but never reported back`;
 }
 
 /*
@@ -122,9 +134,9 @@ function describeCommandsWithoutResult(
  * not been loaded) — never guessed from the current configuration.
  *
  * "Ran" is only ever said of commands that reached kubectl. Commands that
- * returned an error, commands that never ran (the cluster's Runner did
- * not pick them up, or they were refused) and commands a Runner took but
- * never reported back on (whether they ran is unknown) are named
+ * returned an error, commands that never ran (the cluster's AI agent or
+ * Runner did not pick them up, or they were refused) and commands it took
+ * but never reported back on (whether they ran is unknown) are named
  * separately, so an unreachable cluster is never reported as inspected
  * and a command that may have run is never reported as never run.
  */
@@ -161,7 +173,7 @@ export function describeFinishedRunKubectlUsage(
     return {
       text: `OneUptime AI tried ${pluralizeCommands(
         notRun,
-      )}, but none ran on the cluster — the cluster's Runner did not pick ${
+      )}, but none ran on the cluster — ${CLUSTER_KUBECTL_RUNNER_NAME} did not pick ${
         notRun === 1 ? "it" : "them"
       } up, or ${
         notRun === 1 ? "it was" : "they were"
@@ -269,12 +281,20 @@ export function getClusterAccessSignature(
   });
 }
 
-function getClusterAiPageRoute(clusterId: string): Route {
+/*
+ * Where a reader goes to fix a cluster's AI access: its AI agent page
+ * (AI → Agent), which shows the connection, the server's gaps and what AI
+ * may do there.
+ */
+export function getClusterAiAgentPageRoute(clusterId: string): Route {
   return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route,
+    RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT] as Route,
     { modelId: new ObjectID(clusterId) },
   );
 }
+
+export const CLUSTER_AI_AGENT_PAGE_LINK_TEXT: string =
+  "Open the cluster's AI agent page";
 
 function describeRemediation(status: ClusterAccessNoticeRow): string {
   if (status.remediationMode === KubernetesAiRemediationMode.Disabled) {
@@ -379,7 +399,7 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
                 <span key={status.clusterId}>
                   {index > 0 ? ", " : ""}
                   <Link
-                    to={getClusterAiPageRoute(status.clusterId)}
+                    to={getClusterAiAgentPageRoute(status.clusterId)}
                     className="font-medium underline decoration-emerald-300 hover:text-emerald-950"
                   >
                     {status.clusterName}
@@ -432,17 +452,17 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
                   <span className="font-semibold">What to do: </span>
                   {first.nextStep}
                   {blocking.length > 1
-                    ? ` (${blocking.length - 1} more to fix on the cluster's AI page.)`
+                    ? ` (${blocking.length - 1} more to fix on the cluster's AI agent page.)`
                     : ""}
                 </p>
               ) : (
                 <></>
               )}
               <Link
-                to={getClusterAiPageRoute(status.clusterId)}
+                to={getClusterAiAgentPageRoute(status.clusterId)}
                 className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 hover:text-indigo-900"
               >
-                <span>Give OneUptime AI access to this cluster</span>
+                <span>{CLUSTER_AI_AGENT_PAGE_LINK_TEXT}</span>
                 <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
               </Link>
             </div>

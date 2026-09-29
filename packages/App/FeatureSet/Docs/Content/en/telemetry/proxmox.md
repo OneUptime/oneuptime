@@ -78,7 +78,7 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | Variable                            | Required              | Description                                                                                                                                                                                                   |
 | ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                     | Yes                   | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                                  |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                          |
 | `PROXMOX_CLUSTER_NAME`              | Yes                   | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
 | `PVE_HOST`                          | Yes                   | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10`                                                                                                                       |
 | `PVE_EXPORTER_URL`                  | No                    | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
@@ -187,12 +187,46 @@ Proxmox VE 9.0 and later ship a built-in **OpenTelemetry metric server** that pu
 | Path     | `/otlp/v1/metrics`                                                   |
 | Headers  | `{"x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"}`            |
 
-Two trade-offs to be aware of:
+Add it once — every node of the cluster pushes its own metrics. Nothing else to configure: OneUptime recognizes the native push and translates it into the same `pve_*` series the agent sends, so:
 
-1. **Cluster discovery.** The agent path is what powers cluster auto-registration in OneUptime, because it stamps the `proxmox.cluster.name` resource attribute on every metric. With the native push, set the metric server's _Resource Attributes_ option to `proxmox.cluster.name=my-proxmox-cluster` so the cluster registers itself — without it the metrics ingest into your project but no Proxmox cluster appears.
-2. **Different metric names.** The native push emits `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series, while the agent emits pve-exporter's `pve_*` series. OneUptime's built-in Proxmox metric catalog and alert templates target the `pve_*` names, so the agent path is recommended; the native push is great as a zero-install way to get raw metrics into [Metrics Explorer](/docs/monitor/metrics-monitor) and custom dashboards.
+- the cluster registers itself under your Proxmox cluster name (a standalone node registers under its node name),
+- the Nodes, Guests and Storage pages, the overview charts, the metric catalog and the CPU / memory / storage alert templates work the same as with the agent,
+- the original `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series stay available in [Metrics Explorer](/docs/monitor/metrics-monitor) for anything else PVE reports (load average, swap, pressure stall, per-NIC traffic, …).
 
-You can also run both: native push for low-latency raw metrics, agent for discovery, the Proxmox dashboard pages, and alert templates.
+If you set `proxmox.cluster.name` under _Resource Attributes_ before, it keeps being used — the cluster keeps its name.
+
+### When a node stops reporting
+
+Each node pushes only its own status, so a node that goes down cannot say so itself. The nodes that are still alive report it for it:
+
+- About 2 minutes after its last report, the node shows **Offline** on the Nodes page. **Last Seen** on the node's own page keeps the time of its own last report.
+- After about 5 minutes, **Node Offline** fires for it. **Cluster Quorum at Risk** counts it as offline too; because that template needs a full 5-minute window of reports, it fires about 7–9 minutes after the node went quiet.
+- With its next report it is **Online** again and its alert recovers.
+
+Offline here means the node **stopped reporting**, not necessarily that it is down. A node that is up but whose `pvestatd` is hung or killed, whose cluster file system (`pmxcfs`) is down, or whose network to OneUptime is cut is reported the same way.
+
+What it cannot cover:
+
+- **A standalone host, or a whole cluster going silent at once.** Nobody is left to report it, so no per-node alert fires. The cluster turns **Disconnected** instead, the same as when the agent stops.
+- **A node silent for more than 7 days** is no longer reported. Its alert resolves and it drops off the Nodes page.
+- **A node you take out of the cluster** looks the same as a dead one. Use **Remove Node** on its page: it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days.
+- **The node's guests and storage.** Only the node itself is kept as Offline; its VMs, containers and storage drop off their pages about 15 minutes after its last report. Guests that HA restarts on another node come back under that node.
+
+After a OneUptime ingest outage, a node that newly went quiet is only reported once one of the others has pushed again for 2 minutes, so the outage itself never pages for every node. A node that was already Offline stays Offline through a short outage and keeps its alert; after an outage longer than 5 minutes it is reported again once the others have pushed for 2 minutes.
+
+In [Metrics Explorer](/docs/monitor/metrics-monitor) these reports are the `pve_up` = 0 points labelled `oneuptime.proxmox.inferred` = `not-reporting`, so you can always tell them apart from what a node said about itself.
+
+### What the native push cannot do
+
+The native push only sends what each node knows about itself, so part of what the agent collects has no native equivalent:
+
+| Needs the agent                 | Why                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| HA state                        | Not pushed — the **HA State Error** template needs the agent.                                                |
+| Start-on-boot flag              | Not pushed — the **Guest Down** template, which only pages for guests set to start on boot, needs the agent. |
+| Backup coverage and replication | Not pushed — the **Guest Not Backed Up** and **Replication Failing** templates need the agent.               |
+
+If you need those, run the agent instead. Use one or the other for a cluster: running both reports every resource twice.
 
 ## Run as a systemd Service
 

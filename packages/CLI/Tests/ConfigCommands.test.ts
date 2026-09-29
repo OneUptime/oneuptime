@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { registerConfigCommands } from "../Commands/ConfigCommands";
+import { buildProgram } from "../Program";
 import * as ConfigManager from "../Core/ConfigManager";
 import * as fs from "fs";
 import * as path from "path";
@@ -147,6 +148,93 @@ describe("ConfigCommands", () => {
       const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "list"]);
       expect(consoleLogSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("context list output format through the CLI entry point", () => {
+    const originalIsTTY: boolean | undefined = process.stdout.isTTY;
+
+    function setStdoutIsTTY(value: boolean | undefined): void {
+      Object.defineProperty(process.stdout, "isTTY", {
+        value,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    beforeEach(() => {
+      ConfigManager.addContext({
+        name: "a",
+        apiUrl: "https://a.com",
+        apiKey: "secret-key-a",
+      });
+      ConfigManager.addContext({
+        name: "b",
+        apiUrl: "https://b.com",
+        apiKey: "secret-key-b",
+      });
+    });
+
+    afterEach(() => {
+      setStdoutIsTTY(originalIsTTY);
+    });
+
+    it.each([
+      { argv: ["context", "list", "-o", "json"], tty: true },
+      { argv: ["--output", "json", "context", "list"], tty: true },
+      { argv: ["context", "list"], tty: false },
+    ])(
+      "prints JSON without API keys for $argv, tty=$tty",
+      async ({ argv, tty }: { argv: string[]; tty: boolean }) => {
+        setStdoutIsTTY(tty);
+
+        await buildProgram().parseAsync(["node", "test", ...argv]);
+
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        const output: string = consoleLogSpy.mock.calls[0][0];
+        expect(JSON.parse(output)).toEqual([
+          { name: "a", apiUrl: "https://a.com", isCurrent: true },
+          { name: "b", apiUrl: "https://b.com", isCurrent: false },
+        ]);
+        expect(output).not.toContain("secret-key");
+      },
+    );
+
+    it.each([
+      { argv: ["context", "list", "-o", "table"], tty: false },
+      { argv: ["-o", "wide", "context", "list"], tty: false },
+      { argv: ["context", "list"], tty: true },
+    ])(
+      "prints the table for $argv, tty=$tty",
+      async ({ argv, tty }: { argv: string[]; tty: boolean }) => {
+        setStdoutIsTTY(tty);
+
+        await buildProgram().parseAsync(["node", "test", ...argv]);
+
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        const output: string = consoleLogSpy.mock.calls[0][0];
+        expect(output).toContain("─");
+        expect(output).toContain("https://a.com");
+        expect(output).not.toContain("secret-key");
+      },
+    );
+
+    it("prints an empty JSON array when no contexts exist", async () => {
+      ConfigManager.removeContext("a");
+      ConfigManager.removeContext("b");
+      setStdoutIsTTY(true);
+
+      await buildProgram().parseAsync([
+        "node",
+        "test",
+        "context",
+        "list",
+        "-o",
+        "json",
+      ]);
+
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([]);
     });
   });
 

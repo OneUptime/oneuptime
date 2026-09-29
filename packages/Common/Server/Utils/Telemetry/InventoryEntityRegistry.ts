@@ -31,7 +31,9 @@ import {
   INVENTORY_ENTITY_IDENTITY_ATTRIBUTE,
   keyForInventoryEntity,
 } from "../../../Utils/Telemetry/EntityKey";
+import { normalizeMac } from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import logger from "../Logger";
+import { truncateDescriptiveAttributeValue } from "./TelemetryEntity";
 
 /*
  * Mirrors OneUptime's inventory tables into the InventoryItem registry.
@@ -141,6 +143,122 @@ export function compactAttributes(
 }
 
 /**
+ * A MAC in the form OpenTelemetry's `host.mac` prescribes — IEEE RA
+ * hexadecimal, upper case, hyphen-separated (`AC-DE-48-23-45-67`) — which
+ * is exactly what the collector's `system` detector emits for a host.
+ *
+ * NetworkDevice stores its MAC lower-case and colon-separated, so without
+ * this the same NIC would be spelled two ways in one CMDB column depending
+ * on whether it was a server or a switch. A value that is not a 48-bit MAC
+ * is passed through rather than dropped: a strange spelling of a real value
+ * beats no value.
+ */
+export function toOtelMacAddress(
+  value: string | undefined | null,
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized: string | undefined = normalizeMac(value);
+
+  if (!normalized) {
+    return value;
+  }
+
+  return normalized.toUpperCase().replace(/:/g, "-");
+}
+
+/**
+ * The Attributes card of a mirrored network device (issue #4107).
+ *
+ * Until this, the mirror carried the hostname and nothing else, although
+ * the SNMP poller already fills vendor, model, serial and firmware from
+ * ENTITY-MIB, and ARP learning fills the MAC. A CMDB sync reading
+ * `/api/inventory-item` had to follow `resourceId` to the Network Device
+ * record for every one of them.
+ *
+ * The keys are the ones a host's card uses for the same facts (see the
+ * `host` entry of descriptiveAttributeKeysByType in
+ * Common/Server/Utils/Telemetry/TelemetryEntity), so one CMDB column holds
+ * the serial number whether the row is a server or a switch:
+ *
+ *   make / model   device.manufacturer / device.model.name
+ *   serial number  host.serial_number
+ *   firmware       device.firmware.version  (entPhysicalFirmwareRev; also
+ *                                            the IoT device key)
+ *   software / OS  os.version               (entPhysicalSoftwareRev,
+ *                                            e.g. IOS 15.2(4)E10)
+ *   sysDescr       os.description           (semconv: "human readable OS
+ *                                            version information")
+ *   MAC            host.mac                 (IEEE RA form, as hosts send)
+ *
+ * The addressing keys stay under `net.device.*`, where `hostname` has
+ * always been.
+ *
+ * `sysDescr` and `dnsName` are LongText columns, so they are bounded to the
+ * length of any other descriptive value; the rest are ShortText columns and
+ * already bounded by the table.
+ *
+ * There is no "available upgrade" version: nothing standard in SNMP
+ * reports one, and deriving it from a vendor feed is a different feature.
+ */
+export function describeNetworkDevice(row: NetworkDevice): Dictionary<string> {
+  type BoundedFunction = (value: string | undefined | null) => string | null;
+
+  const bounded: BoundedFunction = (
+    value: string | undefined | null,
+  ): string | null => {
+    const text: string = String(value || "").trim();
+    return text ? truncateDescriptiveAttributeValue(text) : null;
+  };
+
+  return compactAttributes({
+    "net.device.hostname": row.hostname,
+    "net.device.dns_name": bounded(row.dnsName),
+    "host.mac": toOtelMacAddress(row.macAddress),
+    "device.manufacturer": row.vendor,
+    "device.model.name": row.deviceModel,
+    "host.serial_number": row.serialNumber,
+    "device.firmware.version": row.firmwareVersion,
+    "os.version": row.softwareVersion,
+    "os.description": bounded(row.sysDescr),
+  });
+}
+
+/**
+ * Key-order-insensitive equality for two attribute bags.
+ *
+ * The drift check used to compare `JSON.stringify` of the two bags, but
+ * `descriptiveAttributes` is a `jsonb` column, and jsonb does not keep
+ * insertion order — it stores keys shortest-first. So the bag read back
+ * from Postgres serialized differently from the freshly built one as soon
+ * as it held two keys of different lengths: every such row counted as
+ * drifted, and every reconcile rewrote all of them. The cloud-resource and
+ * serverless mirrors have been doing that since they shipped; the
+ * network-device bag would have joined them.
+ */
+export function attributeBagsEqual(
+  left: JSONObject | undefined | null,
+  right: JSONObject | undefined | null,
+): boolean {
+  const a: JSONObject = left || {};
+  const b: JSONObject = right || {};
+  const aKeys: Array<string> = Object.keys(a);
+
+  if (aKeys.length !== Object.keys(b).length) {
+    return false;
+  }
+
+  return aKeys.every((key: string): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(b, key) &&
+      JSON.stringify(a[key]) === JSON.stringify(b[key])
+    );
+  });
+}
+
+/**
  * Builds the registry row for one inventory row. Pure: same inputs, same
  * output, no database — this is the part worth testing exhaustively, since
  * an identity mistake here is what would mint duplicate entities.
@@ -211,9 +329,9 @@ export function inventoryEntityNeedsUpdate(data: {
     return true;
   }
 
-  return (
-    JSON.stringify(existing.descriptiveAttributes || {}) !==
-    JSON.stringify(desired.descriptiveAttributes || {})
+  return !attributeBagsEqual(
+    existing.descriptiveAttributes,
+    desired.descriptiveAttributes,
   );
 }
 
@@ -361,11 +479,19 @@ export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
     entityType: EntityType.NetworkDevice,
     resourceType: "NetworkDevice",
     service: NetworkDeviceService,
-    select: { hostname: true },
-    query: { isArchived: false },
-    describe: (row: NetworkDevice): Dictionary<string> => {
-      return compactAttributes({ "net.device.hostname": row.hostname });
+    select: {
+      hostname: true,
+      dnsName: true,
+      macAddress: true,
+      vendor: true,
+      deviceModel: true,
+      serialNumber: true,
+      firmwareVersion: true,
+      softwareVersion: true,
+      sysDescr: true,
     },
+    query: { isArchived: false },
+    describe: describeNetworkDevice,
   }),
   defineInventorySource<CloudResource>({
     entityType: EntityType.CloudResource,

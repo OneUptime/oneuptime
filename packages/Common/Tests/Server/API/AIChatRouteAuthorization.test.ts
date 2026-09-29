@@ -17,6 +17,7 @@ import {
 import PositiveNumber from "../../../Types/PositiveNumber";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import { AI_DISABLED_MESSAGE } from "../../../Server/Services/AIService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -1104,5 +1105,62 @@ describe("POST /ai-chat/send-message page context contract", () => {
     expect(ChatAgentRunner.runTurn).toHaveBeenCalledWith(
       expect.objectContaining({ pageContext: undefined }),
     );
+  });
+});
+
+/*
+ * Ask AI refuses a turn on a project with AI switched off using the SAME
+ * sentence as every other AI surface (AIService.AI_DISABLED_MESSAGE), so
+ * the chat, Slack, runbook steps and "Generate with AI" all name the one
+ * settings page that turns AI back on.
+ */
+describe("POST /ai-chat/send-message on a project with AI switched off", () => {
+  beforeEach(() => {
+    withProps(memberOfVictimProject());
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue(new AIRun(ObjectID.generate()));
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(AIConversationService, "create")
+      .mockResolvedValue(new AIConversation(CONVERSATION_ID));
+    jest.spyOn(AIConversationService, "updateOneById").mockResolvedValue(1);
+    jest
+      .spyOn(AIConversationMessageService, "create")
+      .mockResolvedValue(new AIConversationMessage(MESSAGE_ID));
+    jest.spyOn(ChatAgentRunner, "runTurn").mockResolvedValue(undefined);
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithAI(false));
+  });
+
+  test("refuses with the shared kill-switch sentence, before a conversation or run is created", async () => {
+    const call: RouteCall = await callRoute({
+      uri: "/ai-chat/send-message",
+      body: { content: "What changed?" },
+    });
+
+    expect(call.thrown).toBeInstanceOf(BadDataException);
+    expect((call.thrown as BadDataException).message).toBe(AI_DISABLED_MESSAGE);
+    expect(AIConversationService.create).not.toHaveBeenCalled();
+    expect(AIRunService.create).not.toHaveBeenCalled();
+    expect(ChatAgentRunner.runTurn).not.toHaveBeenCalled();
+  });
+
+  test("negative control: the same turn goes through with AI on", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithAI(true));
+
+    const call: RouteCall = await callRoute({
+      uri: "/ai-chat/send-message",
+      body: { content: "What changed?" },
+    });
+
+    expect(call.thrown).toBeUndefined();
+    expect(ChatAgentRunner.runTurn).toHaveBeenCalledTimes(1);
   });
 });

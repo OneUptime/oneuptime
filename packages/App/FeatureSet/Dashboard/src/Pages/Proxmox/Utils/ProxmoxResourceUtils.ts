@@ -150,6 +150,7 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   maxDiskBytes: true,
   metricsUpdatedAt: true,
   lastSeenAt: true,
+  isNativePush: true,
 };
 
 /**

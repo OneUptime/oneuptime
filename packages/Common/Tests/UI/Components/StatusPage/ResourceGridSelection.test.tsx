@@ -112,6 +112,7 @@ const renderGrid: RenderGridFunction = (
       onAddToCell={() => {}}
       onEdit={() => {}}
       onDelete={() => {}}
+      onShowId={() => {}}
     />,
   );
 };
@@ -224,9 +225,10 @@ describe("ResourceGrid - selecting resources", () => {
 
     /*
      * The boxes are not the only controls on a chip, and the ones that were
-     * there before still have to work.
+     * there before still have to work. Edit is still on the chip; remove now
+     * waits behind the chip's ⋯, as it does on a list row.
      */
-    test("the per-chip edit and remove buttons are still there", () => {
+    test("the per-chip edit and remove actions are still there", () => {
       renderGrid();
 
       expect(
@@ -234,10 +236,17 @@ describe("ResourceGrid - selecting resources", () => {
           "status-page-resource-grid-edit",
         ),
       ).toBeInTheDocument();
-      expect(
+
+      fireEvent.click(
         within(chipByName("Auth US")).getByTestId(
-          "status-page-resource-grid-delete",
+          "status-page-resource-grid-more",
         ),
+      );
+
+      expect(
+        within(screen.getByRole("menu")).getByRole("menuitem", {
+          name: "Remove from status page",
+        }),
       ).toBeInTheDocument();
     });
 
@@ -261,6 +270,7 @@ describe("ResourceGrid - selecting resources", () => {
           onAddToCell={() => {}}
           onEdit={() => {}}
           onDelete={() => {}}
+          onShowId={() => {}}
         />,
       );
 

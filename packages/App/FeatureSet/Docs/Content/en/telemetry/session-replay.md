@@ -525,7 +525,7 @@ Each row shows:
 | **Activity** | Duration, pages, clicks and the idle share ("idle 40%"). Counts are only shown once they have been measured; a session that is not finalized yet reads "counting". |
 | **Signals** | Errors, rage / dead / error clicks, refresh rage, traces, exception groups and _Slow_ (a performance budget fired). Each badge opens the player on the matching rail tab. A finalized session with nothing to report reads _Clean_; one that is not finalized yet _Not counted yet_. |
 | **Recording** | One badge that says honestly whether there is footage to watch, plus the trigger reason ("Always-on", "Sampled (25%)", "Error", "Frustration", "Slow page", "Manual"). |
-| **Actions** | **Watch**, and **from 1st error** when the session had one — it opens the player at the first error with the Errors tab selected. **Watch** is offered only where footage exists; otherwise the row reads _Signals only_. Click anywhere on a row to open it; Cmd/Ctrl-click opens a new tab. |
+| **Actions** | **Watch** is the row's button. When the session had an error, the row's **⋯** menu has **Watch from first error**, which opens the player at the first error with the Errors tab selected. **Watch** is offered only where footage exists; otherwise the row reads _Signals only_. Click anywhere on a row to open it; Cmd/Ctrl-click opens a new tab. |
 
 The Recording badge states:
 
@@ -578,7 +578,7 @@ A visitor row counts only the sessions in which nobody was identified; opening i
 | **Last seen** | When their newest session started. |
 | **Time** | Recorded time summed over their sessions, and the total number of pages. |
 | **Signals** | Error and frustration totals across their sessions (the error badge says how many sessions they fell in); _Clean_ when there are none. |
-| **Actions** | **Sessions** opens the session list filtered to that person, on the same time range — for an identified user the list shows `user:<reference>` in the search box, for a visitor `visitor:`, and the pseudonymous key when the label is hidden from you. The reference itself never travels in the URL: the link carries only the pseudonymous key, and the list looks the name up from your own browser tab. **Watch latest** opens their newest session in the player. |
+| **Actions** | **Sessions** opens the session list filtered to that person, on the same time range — for an identified user the list shows `user:<reference>` in the search box, for a visitor `visitor:`, and the pseudonymous key when the label is hidden from you. The reference itself never travels in the URL: the link carries only the pseudonymous key, and the list looks the name up from your own browser tab. **Watch latest** opens their newest session in the player — from the row's **⋯** menu when **Sessions** is offered, or as the row's own link when it is not. |
 
 Identified users are grouped by the pseudonymous key the server stores the reference under, so the rollup works for roles that cannot read identity; the label and traits are only sent to roles that can, and the row reads _Hidden_ otherwise. Visitors are grouped by visitor id. That is also the honest limit of the page: a person who browsed anonymously and then signed in on the same browser is counted under their visitor row for the sessions before `identify()` and under their user row after it. The player's other-sessions menu joins the two; the rollup does not. The **Unlinked sessions** row offers no **Sessions** filter — nothing on those sessions can select them as a group — though **Watch latest** still opens the newest of them.
 

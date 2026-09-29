@@ -18,6 +18,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -1417,6 +1418,7 @@ const IncidentView: FunctionComponent<
                 "Monitors, services, infrastructure and SLOs this incident affects.",
               headerLayout: "stacked",
             }}
+            createEditModalWidth={ModalWidth.Medium}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {

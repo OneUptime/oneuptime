@@ -18,6 +18,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
+import AIService from "../../../Services/AIService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
@@ -205,10 +206,10 @@ export interface InvestigationRequest {
 
 export default class AIInvestigationEngine {
   /*
-   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, and an
-   * LLM provider configured. Incidents and alerts each have their own opt-in so
-   * they can be enabled independently. Runs before any (subject-specific)
-   * context assembly.
+   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, an
+   * LLM provider configured, and AI credits to pay for it. Incidents and
+   * alerts each have their own opt-in so they can be enabled independently.
+   * Runs before any (subject-specific) context assembly.
    */
   @CaptureSpan()
   public static async isEnabledForProject(
@@ -249,14 +250,56 @@ export default class AIInvestigationEngine {
       return "automatic_investigation_disabled";
     }
 
+    return this.getProviderOrBalanceReason(projectId);
+  }
+
+  /*
+   * The half of the gate that is not a switch: a model to call, and AI
+   * credits to pay for it. Shared with the other autonomous AI work that
+   * has its own switch (the postmortem draft on resolve), so the two can
+   * never disagree about whether AI can run at all.
+   *
+   * The balance check is the same predicate as the Kubernetes cluster's
+   * ai_balance_insufficient gap (AIService.getAiBalanceBlocker): on
+   * OneUptime's own billed provider, with no credits left and auto-recharge
+   * off, every model call would be refused with "Insufficient AI balance" —
+   * so a run started now would only fail, be retried, and fail again, and
+   * nobody would see why. It fails OPEN: a balance that cannot be read
+   * never blocks, because the model call itself still enforces the balance.
+   */
+  public static async getProviderOrBalanceReason(
+    projectId: ObjectID,
+  ): Promise<"provider_missing" | "insufficient_ai_balance" | null> {
     const llmProvider: LlmProvider | null =
       await LlmProviderService.getLLMProviderForProject(projectId);
 
     if (!llmProvider) {
       logger.debug(
-        `AI: skipping investigation for project ${projectId.toString()} — no LLM provider configured.`,
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — no LLM provider configured.`,
       );
       return "provider_missing";
+    }
+
+    let balanceBlocker: string | null = null;
+
+    try {
+      balanceBlocker = await AIService.getAiBalanceBlocker({
+        projectId,
+        // Already resolved above — spares the predicate a second lookup.
+        llmProvider,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not check the AI balance for project ${projectId.toString()}; not blocking on it: ${error}`,
+      );
+      balanceBlocker = null;
+    }
+
+    if (balanceBlocker) {
+      logger.debug(
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — ${balanceBlocker}`,
+      );
+      return "insufficient_ai_balance";
     }
 
     return null;

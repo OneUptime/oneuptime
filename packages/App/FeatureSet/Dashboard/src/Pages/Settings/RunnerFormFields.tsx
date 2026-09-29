@@ -58,8 +58,19 @@ export function getRunnerFormRestrictions(
 }
 
 /*
- * The one line the form shows on a kubernetes-agent row, naming exactly
- * what it left out. Null when nothing is left out.
+ * The chart no longer installs this Runner: the Kubernetes AI agent (its
+ * own identity, never a Runner row) replaced it, and the server refuses the
+ * legacy Runner's registration while that agent is online. Said on every
+ * kubernetes-agent row so an operator knows the row is on its way out and
+ * what retires it.
+ */
+export const KUBERNETES_AGENT_RUNNER_SUPERSEDED_NOTE: string =
+  "It is superseded by the Kubernetes AI agent — upgrade the Kubernetes agent chart; this Runner can be deleted once the AI agent is connected.";
+
+/*
+ * The note the form shows on a kubernetes-agent row: what it is, exactly
+ * what it left out, and that the Kubernetes AI agent supersedes it. Null
+ * when nothing is left out.
  */
 export function getKubernetesAgentRunnerFormNote(
   restrictions: RunnerFormRestrictions,
@@ -80,7 +91,7 @@ export function getKubernetesAgentRunnerFormNote(
 
   return `This is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, so it cannot be ${locked.join(
     " or ",
-  )} — OneUptime refuses those changes, so they are not offered here.`;
+  )} — OneUptime refuses those changes, so they are not offered here. ${KUBERNETES_AGENT_RUNNER_SUPERSEDED_NOTE}`;
 }
 
 /*

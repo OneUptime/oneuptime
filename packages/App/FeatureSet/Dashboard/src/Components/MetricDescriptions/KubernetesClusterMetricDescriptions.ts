@@ -43,6 +43,7 @@ export type KubernetesClusterMetric =
   | "pods"
   | "namespaces"
   | "agentStatus"
+  | "aiAgent"
   | "memoryPressure"
   | "diskPressure"
   | "pidPressure"
@@ -100,6 +101,8 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "Namespaces in the latest inventory. A namespace is a named group that keeps one team's or app's resources separate from the rest of the cluster.",
   agentStatus:
     "Connected while the Kubernetes agent keeps sending data to OneUptime; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While disconnected, inventory counts on this page keep their last reported values.",
+  aiAgent:
+    "Whether OneUptime AI can reach this cluster: Connected, Offline (signed off or not checked in for over 5 minutes) or Not installed. This is the Kubernetes AI agent that runs kubectl for OneUptime AI, not the telemetry agent in Agent Status. Opens AI → Agent.",
 
   // Node pressure banner - nodes reporting each condition right now.
   memoryPressure:

@@ -182,6 +182,72 @@ describe("Toggle", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
   });
 
+  /*
+   * A caller that saves the value the switch shows disables it while the
+   * save is in flight. A press it then refuses used to flip the switch's own
+   * copy of its value anyway (handleChange runs before onChange), and with
+   * `value` unchanged nothing flipped it back: the switch showed ON beside a
+   * paused rule. A disabled switch ignores the press before it flips.
+   */
+  test("a disabled switch ignores presses and keeps showing its value", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onChange={onChange} value={false} disabled={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(toggle).toHaveClass("cursor-not-allowed");
+  });
+
+  test("a disabled switch keeps keyboard focus: it is aria-disabled, not disabled", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} value={true} disabled={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    toggle.focus();
+
+    expect(toggle).not.toBeDisabled();
+    expect(toggle).toHaveFocus();
+  });
+
+  test("once enabled again, the switch answers presses from the value it shows", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole, rerender } = render(
+      <Toggle onChange={onChange} value={false} disabled={true} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    fireEvent.click(toggle);
+
+    rerender(<Toggle onChange={onChange} value={false} disabled={false} />);
+
+    expect(toggle).not.toHaveAttribute("aria-disabled");
+    expect(toggle).toHaveClass("cursor-pointer");
+
+    fireEvent.click(toggle);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("an enabled switch says nothing about being disabled", () => {
+    const { getByRole } = render(
+      <Toggle onChange={() => {}} initialValue={false} />,
+    );
+
+    expect(getByRole("switch")).not.toHaveAttribute("aria-disabled");
+  });
+
   test("styles toggle correctly", () => {
     const { getByRole } = render(
       <Toggle onChange={() => {}} initialValue={false} />,

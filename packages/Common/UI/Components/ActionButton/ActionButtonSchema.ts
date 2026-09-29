@@ -3,6 +3,26 @@ import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 
+/*
+ * A row shows one action as a button and puts every other action in a ⋯ menu
+ * beside it (see SplitActionButtons). Most actions never need to say where they
+ * go - the split reads it off their style - so this is only for the ones whose
+ * style tells the wrong story.
+ */
+export enum ActionButtonPlacement {
+  /*
+   * The row's button, ahead of anything the style would have picked. The first
+   * visible Primary action wins; any other Primary action goes in the menu.
+   */
+  Primary = "Primary",
+  /*
+   * Always in the ⋯ menu, never the row's button - even when it is the only
+   * action the row has. For utilities like "Show ID" that every row carries
+   * but nobody reaches for first.
+   */
+  MoreMenu = "MoreMenu",
+}
+
 interface ActionButtonSchema<T extends GenericObject> {
   title: string;
   icon?: undefined | IconProp;
@@ -17,6 +37,7 @@ interface ActionButtonSchema<T extends GenericObject> {
    */
   disabled?: boolean | undefined;
   tooltip?: string | undefined;
+  placement?: ActionButtonPlacement | undefined;
   onClick: (
     item: T,
     onCompleteAction: VoidFunction,

@@ -197,6 +197,78 @@ describe("RunnerJobService.pollUntilTerminal words a timeout for the job it is",
   });
 });
 
+/*
+ * A kubectl job for the cluster's Kubernetes AI agent (targetKubernetesAiAgentId)
+ * names the agent, never "the cluster's Runner" — the row's reason is what the
+ * AI Insights page and the investigation show.
+ */
+describe("a timed-out kubectl job for the Kubernetes AI agent names the agent", () => {
+  it.each(["unclaimed", "lease_expired", "overall"] as const)(
+    "%s",
+    (kind: "unclaimed" | "lease_expired" | "overall") => {
+      const reason: string = describeRunnerJobTimeout({
+        kind,
+        wasClaimed: kind !== "unclaimed",
+        origin: RunnerJobOrigin.AiInvestigation,
+        stepType: RunbookStepType.Kubectl,
+        claimTimeoutInMs: CLAIM_TIMEOUT_MS,
+        executionTimeoutInMs: EXECUTION_TIMEOUT_MS,
+        isForKubernetesAiAgent: true,
+      });
+
+      expect(reason.startsWith("The cluster's Kubernetes AI agent")).toBe(true);
+      expect(reason).not.toContain("Runner");
+    },
+  );
+
+  it("negative control: a Runner's job keeps the Runner wording", () => {
+    expect(
+      describeRunnerJobTimeout({
+        kind: "unclaimed",
+        origin: RunnerJobOrigin.AiInvestigation,
+        stepType: RunbookStepType.Kubectl,
+        claimTimeoutInMs: CLAIM_TIMEOUT_MS,
+        executionTimeoutInMs: EXECUTION_TIMEOUT_MS,
+      }),
+    ).toMatch(/^The cluster's Runner did not pick up/);
+  });
+
+  it("pollUntilTerminal reads the target off the row and words it", async () => {
+    jest.spyOn(RunnerJobService, "findOneById").mockResolvedValue({
+      status: RunnerJobStatus.Pending,
+      origin: RunnerJobOrigin.AiRemediation,
+      stepType: RunbookStepType.Kubectl,
+      targetKubernetesAiAgentId: ObjectID.generate(),
+      claimDeadlineAt: new Date(Date.now() - 1000),
+      leaseExpiresAt: new Date(Date.now() + 60_000),
+    } as unknown as RunnerJob);
+    const timeoutSpy: jest.SpyInstance = jest
+      .spyOn(RunnerJobService, "timeoutJob")
+      .mockResolvedValue({
+        status: RunnerJobStatus.TimedOut,
+      } as unknown as RunnerJob);
+
+    try {
+      await RunnerJobService.pollUntilTerminal({
+        jobId: JOB_ID,
+        claimTimeoutInMs: CLAIM_TIMEOUT_MS,
+        executionTimeoutInMs: EXECUTION_TIMEOUT_MS,
+      });
+
+      const select: Record<string, unknown> = (
+        (RunnerJobService.findOneById as unknown as jest.SpyInstance).mock
+          .calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["targetKubernetesAiAgentId"]).toBe(true);
+      expect(
+        (timeoutSpy.mock.calls[0]![0] as { reason: string }).reason,
+      ).toMatch(/^The cluster's Kubernetes AI agent did not pick up/);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+});
+
 describe("RunnerJobService.timeoutJob hands back whether any Runner claimed the job", () => {
   afterEach(() => {
     jest.restoreAllMocks();

@@ -390,6 +390,40 @@ describe("Aligned pages state the governed numbers", () => {
     expect(contents).not.toContain("99.95% SLA");
   });
 
+  /*
+   * Paid plans are priced per user per month. Pages may say there is no cap
+   * on team members, but not that members come free.
+   */
+  test("the enterprise overview does not sell team members as free", () => {
+    const contents: string = readView("enterprise-overview.ejs");
+
+    expect(contents).not.toContain("Unlimited team members");
+    expect(contents).toContain("No cap on team members");
+    expect(contents).toContain("Plans are priced per user");
+  });
+
+  test("the pricing comparison prices a team of 10 with seats", () => {
+    const contents: string = readView("pricing-compare.ejs");
+
+    expect(contents).toContain("10 users on Growth at $22/user");
+    expect(contents).not.toContain("/mo to start");
+  });
+
+  test.each([
+    ["product-compare.ejs", "per-seat"],
+    ["observability.ejs", "not per seat"],
+    ["security-events.ejs", "no per-seat analyst license"],
+  ])("%s does not deny per-seat pricing", (file: string, retired: string) => {
+    expect(readView(file)).not.toContain(retired);
+  });
+
+  test("the data residency page names Amazon Web Services", () => {
+    const contents: string = readView("data-residency.ejs");
+
+    expect(contents).toContain("Amazon Web Services");
+    expect(contents).not.toContain("Aamazon");
+  });
+
   test("the demo page points self-hosting buyers at the canonical page", () => {
     expect(readView("demo.ejs")).toContain("/enterprise/self-hosted");
   });

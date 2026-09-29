@@ -1582,7 +1582,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable AI Command Execution",
     description:
-      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else). Off by default.",
+      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else), and AI may fix Kubernetes clusters reached through a Runner with a Kubernetes credential. Fixes on a cluster through its in-cluster Kubernetes AI agent do not need it: that cluster's AI agent page and the agent's write access decide. Off by default.",
     defaultValue: false,
     example: false,
   })
@@ -1593,8 +1593,19 @@ export default class Project extends TenantModel {
   })
   public enableAiCommandExecution?: boolean = undefined;
 
+  /*
+   * The automatic-investigation opt-ins are ON for projects created from now
+   * on, and the column default stays OFF on purpose. ProjectService's
+   * onBeforeCreate turns both on when the create request leaves them unset
+   * (every project created in the dashboard), which is why a creator may
+   * set them (create ACL): a create that says false keeps false. The column
+   * default and defaultValue stay false so existing projects are not
+   * switched on (that would start spending their AI budget), and so the
+   * generated Terraform provider's static default does not flip existing
+   * Terraform-managed projects on their next apply.
+   */
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1612,7 +1623,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Incident Investigation",
     description:
-      "When enabled, OneUptime's AI SRE automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE automatically investigates every new incident and posts a cited root cause analysis to the incident timeline; any auto-remediation for the incident waits until that investigation settles. On for new projects created in OneUptime; projects that existed before keep their setting. Drafting a postmortem when an incident resolves is a separate setting (Enable Automatic Postmortem Draft). Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1623,8 +1634,9 @@ export default class Project extends TenantModel {
   })
   public enableAutomaticIncidentInvestigation?: boolean = undefined;
 
+  // On for new projects; see enableAutomaticIncidentInvestigation above.
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1642,7 +1654,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Alert Investigation",
     description:
-      "When enabled, OneUptime's AI SRE automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1652,6 +1664,44 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableAutomaticAlertInvestigation?: boolean = undefined;
+
+  /*
+   * Drafting a postmortem when an incident resolves used to ride on
+   * enableAutomaticIncidentInvestigation. It is its own switch now, off by
+   * default, so turning investigations on for new projects does not also
+   * start writing postmortem notes. The migration that added it copied each
+   * existing project's investigation flag into it, so nothing changed for
+   * projects that already had the behaviour.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Postmortem Draft",
+    description:
+      "When enabled, OneUptime's AI SRE drafts a postmortem from the incident's timeline and telemetry when an incident is resolved, for a human to review and edit. It never overwrites a postmortem that already exists. Off by default. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticPostmortemDraft?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

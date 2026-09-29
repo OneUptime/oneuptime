@@ -987,6 +987,8 @@ describe("RemediationVerifier.resumeInterruptedRollbacks — the follow-up after
           canRunAiCommands: true,
         },
         accessMethod: "in_cluster",
+        aiAgent: null,
+        automaticInvestigation: { incidents: false, alerts: false },
         kubectlAllowlist: [],
         isInvestigationEnabled: true,
         isInvestigationReady: true,

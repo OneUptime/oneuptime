@@ -111,6 +111,8 @@ function cluster(
       posture: posture || undefined,
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -233,7 +235,7 @@ describe("RemediationCommandToolkit.getRunnerScopeRefusal — the Runner's repor
     expect(
       refusalFor("kubectl rollout restart deployment/pay -n payments"),
     ).toContain(
-      'It only lets OneUptime AI change "web", "api" (aiAccess.remediation.namespaces on the Kubernetes agent chart).',
+      'It only lets OneUptime AI change "web", "api" (aiAccess.remediation.namespaces on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.namespaces).',
     );
     expect(refusalFor("kubectl rollout restart deployment/web")).toContain(
       "Name the target namespace with -n <namespace>.",
@@ -1061,5 +1063,127 @@ describe("RemediationCommandToolkit tells the model the Runner's scope as the Ru
     ]) {
       expect(summary).toMatch(NODE_OPERATION_WORDS_REGEX);
     }
+  });
+});
+
+/*
+ * The Kubernetes AI agent as the cluster's access target (runner.kind
+ * "ai_agent", accessMethod "in_cluster"): the same rule as the in-cluster
+ * Runner — a write with no -n lands in the agent pod's own namespace — in
+ * the agent's words, naming the aiAgent.* chart values. The previous
+ * in-cluster Runner's refusals say how to move to the agent; a credential
+ * Runner's name its own environment.
+ */
+describe("RemediationCommandToolkit.getRunnerScopeRefusal — who sets the scope, three ways", () => {
+  const AGENT_POSTURE: KubernetesRunnerPosture = {
+    inCluster: true,
+    allowWrites: true,
+    clusterIdentifier: "prod-us",
+    writeNamespaces: ["web", "api"],
+    podNamespace: "oneuptime-agent",
+    allowNodeOperations: false,
+  };
+
+  function agentCluster(): KubernetesClusterAiAccessStatus {
+    return cluster(AGENT_POSTURE, {
+      runner: {
+        id: RUNNER_ID.toString(),
+        name: "Kubernetes AI agent",
+        kind: "ai_agent",
+        isOnline: true,
+        canRunAiCommands: true,
+        posture: AGENT_POSTURE,
+      },
+    });
+  }
+
+  it("names the agent and aiAgent.remediation.namespaces for a write outside its scope", () => {
+    const refusal: string | null = refusalFor(
+      "kubectl rollout restart deployment/pay -n payments",
+      agentCluster(),
+    );
+
+    expect(refusal).toContain(
+      'outside the namespaces the Kubernetes AI agent of cluster "prod-us" may change',
+    );
+    expect(refusal).toContain(
+      "(aiAgent.remediation.namespaces on the Kubernetes agent chart)",
+    );
+    expect(refusal).not.toContain("aiAccess");
+    expect(refusal).not.toContain("the Runner of cluster");
+  });
+
+  it("names aiAgent.remediation.nodeOperations for a node operation", () => {
+    const refusal: string | null = refusalFor(
+      "kubectl cordon n1",
+      agentCluster(),
+    );
+
+    expect(refusal).toContain(
+      "aiAgent.remediation.nodeOperations=false on the Kubernetes agent chart",
+    );
+    expect(refusal).not.toContain("aiAccess");
+  });
+
+  it("judges a write with no -n against the agent pod's own namespace, as the agent does", () => {
+    const refusal: string | null = refusalFor(
+      "kubectl rollout restart deployment/web",
+      agentCluster(),
+    );
+
+    expect(refusal).toContain(
+      'names no namespace, so kubectl would run it in "oneuptime-agent"',
+    );
+    expect(refusal).toContain("never changes its own namespace");
+  });
+
+  it("negative control: a write inside the agent's scope is not refused", () => {
+    expect(
+      refusalFor(
+        "kubectl rollout restart deployment/web -n web",
+        agentCluster(),
+      ),
+    ).toBeNull();
+  });
+
+  it("getRunnerScopeSettings: the agent, the previous in-cluster Runner and a credential Runner each name their own setting", () => {
+    expect(
+      RemediationCommandToolkit.getRunnerScopeSettings(agentCluster()),
+    ).toEqual({
+      namespaces:
+        "aiAgent.remediation.namespaces on the Kubernetes agent chart",
+      nodeOperations:
+        "aiAgent.remediation.nodeOperations=false on the Kubernetes agent chart",
+    });
+
+    const legacy: { namespaces: string; nodeOperations: string } =
+      RemediationCommandToolkit.getRunnerScopeSettings(cluster(AGENT_POSTURE));
+
+    expect(legacy.namespaces).toContain(
+      "aiAccess.remediation.namespaces on the Kubernetes agent chart",
+    );
+    expect(legacy.namespaces).toContain(
+      "after upgrading to the Kubernetes AI agent, aiAgent.remediation.namespaces",
+    );
+    expect(legacy.nodeOperations).toContain(
+      "after upgrading to the Kubernetes AI agent, aiAgent.remediation.nodeOperations",
+    );
+
+    expect(
+      RemediationCommandToolkit.getRunnerScopeSettings(credentialCluster()),
+    ).toEqual({
+      namespaces: "ONEUPTIME_KUBECTL_WRITE_NAMESPACES on the Runner's host",
+      nodeOperations:
+        "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on the Runner's host",
+    });
+  });
+
+  it("the agent is told apart by kind only: a posture alone reads as the previous in-cluster Runner", () => {
+    const withoutKind: KubernetesClusterAiAccessStatus = agentCluster();
+    delete withoutKind.runner!.kind;
+
+    expect(
+      RemediationCommandToolkit.getRunnerScopeSettings(withoutKind).namespaces,
+    ).toContain("aiAccess.remediation.namespaces");
   });
 });

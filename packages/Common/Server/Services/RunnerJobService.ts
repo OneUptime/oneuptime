@@ -28,15 +28,22 @@ import {
   KubernetesAiRemediationMode,
   KubernetesRunnerPosture,
   isInClusterPostureForCluster,
+  parseKubernetesAgentPosture,
   parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
+import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
 import AIRunService from "./AIRunService";
+import KubernetesClusterAiAccessService, {
+  KubernetesAiAccessExecutorKind,
+  LoadedKubernetesAiAccessTarget,
+  getKubernetesAiAccessTargetId,
+} from "./KubernetesClusterAiAccessService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import RunbookCredentialService from "./RunbookCredentialService";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
@@ -188,6 +195,11 @@ export function describeRunnerJobTimeout(data: {
   stepType: RunbookStepType | undefined;
   claimTimeoutInMs: number;
   executionTimeoutInMs: number;
+  /*
+   * The job was for the cluster's Kubernetes AI agent
+   * (targetKubernetesAiAgentId) rather than a Runner, so the text names it.
+   */
+  isForKubernetesAiAgent?: boolean | undefined;
 }): string {
   const isAiKubectl: boolean =
     data.stepType === RunbookStepType.Kubectl &&
@@ -218,15 +230,19 @@ export function describeRunnerJobTimeout(data: {
       ? "unclaimed"
       : data.kind;
 
+  const executor: string = data.isForKubernetesAiAgent
+    ? "The cluster's Kubernetes AI agent"
+    : "The cluster's Runner";
+
   switch (kind) {
     case "unclaimed":
-      return `The cluster's Runner did not pick up this kubectl command within ${describeSeconds(
+      return `${executor} did not pick up this kubectl command within ${describeSeconds(
         data.claimTimeoutInMs,
       )} — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`;
     case "lease_expired":
-      return `The cluster's Runner stopped responding while this kubectl command was running — it may have restarted or lost its connection. What the command did is unknown.${checkFirst}`;
+      return `${executor} stopped responding while this kubectl command was running — it may have restarted or lost its connection. What the command did is unknown.${checkFirst}`;
     default:
-      return `The cluster's Runner did not report a result for this kubectl command in time — kubectl may have outlived its ${describeSeconds(
+      return `${executor} did not report a result for this kubectl command in time — kubectl may have outlived its ${describeSeconds(
         data.executionTimeoutInMs,
       )} timeout. What the command did is unknown.${checkFirst}`;
   }
@@ -238,6 +254,12 @@ function describeSeconds(milliseconds: number): string {
 
 // Where a Runner's write scope is set, as a refusal words it.
 interface RunnerWriteScopeSettings {
+  // Who runs the command, as a refusal names it ("the cluster's Runner").
+  executor: string;
+  // The same, where it is the one living in the cluster.
+  inClusterExecutor: string;
+  // The same, short ("the Runner"), for "so ... would refuse it".
+  executorShort: string;
   // Why the Runner refuses node operations (a clause).
   nodeOperationsOff: string;
   // How to let it change nodes (a clause, after "To let OneUptime AI change nodes, ").
@@ -285,6 +307,13 @@ export class Service extends DatabaseService<Model> {
     policy: KubectlPolicyResult;
     posture: KubernetesRunnerPosture | undefined;
     usesCredential: boolean;
+    /*
+     * Who runs the command, for the wording only (the rule is the same):
+     * the Kubernetes AI agent, the previous in-cluster Runner or a Runner
+     * with a credential. Absent reads from usesCredential, as before the
+     * agent existed: in-cluster means the previous in-cluster Runner.
+     */
+    executorKind?: KubernetesAiAccessExecutorKind | undefined;
   }): string | null {
     const { policy, posture } = data;
 
@@ -308,26 +337,36 @@ export class Service extends DatabaseService<Model> {
     return refusal
       ? Service.describeRunnerWriteScopeRefusal(
           refusal,
-          Service.getRunnerWriteScopeSettings(data.usesCredential),
+          Service.getRunnerWriteScopeSettings(
+            data.executorKind ||
+              (data.usesCredential ? "credential_runner" : "legacy_runner"),
+          ),
         )
       : null;
   }
 
   /*
-   * Where the target Runner's write scope is set, in the words a refusal
-   * uses. The in-cluster Runner is the Kubernetes agent's: its chart sets
-   * the scope (and the environment variables behind it), and an upgrade
-   * changes it. A Runner that reaches the cluster through a Kubernetes
-   * credential is an ordinary Runner no chart configures: it reports what
-   * it was started with — ONEUPTIME_KUBECTL_WRITE_NAMESPACES and
-   * ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on its own host — and a
-   * restart picks up a change.
+   * Where the target's write scope is set, in the words a refusal uses —
+   * three ways, by who runs the command:
+   *
+   * - the Kubernetes AI agent: the chart's aiAgent.remediation.* values;
+   * - the previous in-cluster Runner an older chart installed: its values
+   *   are aiAccess.remediation.*, and the way to change them now is to
+   *   upgrade the chart to the AI agent, which replaces the Runner;
+   * - a Runner that reaches the cluster through a Kubernetes credential: an
+   *   ordinary Runner no chart configures, which reports what it was
+   *   started with — ONEUPTIME_KUBECTL_WRITE_NAMESPACES and
+   *   ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on its own host — and picks
+   *   up a change on restart.
    */
   private static getRunnerWriteScopeSettings(
-    usesCredential: boolean,
+    executorKind: KubernetesAiAccessExecutorKind,
   ): RunnerWriteScopeSettings {
-    if (usesCredential) {
+    if (executorKind === "credential_runner") {
       return {
+        executor: "the cluster's Runner",
+        inClusterExecutor: "the cluster's in-cluster Runner",
+        executorShort: "the Runner",
         nodeOperationsOff: `it was started with ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV} (or ${KUBECTL_ALLOW_WRITES_ENV}) set to something other than true on its host`,
         allowNodeOperations: `set ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}=true on that Runner's host and restart it`,
         namespaces: `${KUBECTL_WRITE_NAMESPACES_ENV} on that Runner's host`,
@@ -335,13 +374,30 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
+    if (executorKind === "ai_agent") {
+      return {
+        executor: "the cluster's Kubernetes AI agent",
+        inClusterExecutor: "the cluster's Kubernetes AI agent",
+        executorShort: "the AI agent",
+        nodeOperationsOff: `it was installed with aiAgent.remediation.nodeOperations=false (${KUBECTL_ALLOW_NODE_OPERATIONS_ENV})`,
+        allowNodeOperations:
+          "upgrade the Kubernetes agent chart with --set aiAgent.remediation.nodeOperations=true",
+        namespaces: `aiAgent.remediation.namespaces on the Kubernetes agent chart, ${KUBECTL_WRITE_NAMESPACES_ENV}`,
+        addNamespace:
+          "add it to aiAgent.remediation.namespaces and upgrade the Kubernetes agent chart",
+      };
+    }
+
     return {
+      executor: "the cluster's Runner",
+      inClusterExecutor: "the cluster's in-cluster Runner",
+      executorShort: "the Runner",
       nodeOperationsOff: `its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (${KUBECTL_ALLOW_NODE_OPERATIONS_ENV})`,
       allowNodeOperations:
-        "upgrade the agent with --set aiAccess.remediation.nodeOperations=true",
+        "upgrade the Kubernetes agent chart to the Kubernetes AI agent (it replaces the in-cluster Runner) with --set aiAgent.remediation.nodeOperations=true",
       namespaces: `aiAccess.remediation.namespaces on the Kubernetes agent chart, ${KUBECTL_WRITE_NAMESPACES_ENV}`,
       addNamespace:
-        "add it to aiAccess.remediation.namespaces and upgrade the agent",
+        "upgrade the Kubernetes agent chart to the Kubernetes AI agent (it replaces the in-cluster Runner) and add it to aiAgent.remediation.namespaces",
     };
   }
 
@@ -351,8 +407,9 @@ export class Service extends DatabaseService<Model> {
     settings: RunnerWriteScopeSettings,
   ): string {
     const command: string = `"${refusal.displayCommand}"`;
-    const wouldRefuse: string =
-      "so the Runner would refuse it. It was not enqueued.";
+    const wouldRefuse: string = `so ${settings.executorShort} would refuse it. It was not enqueued.`;
+    const executor: string = settings.executor;
+    const Executor: string = `${executor.charAt(0).toUpperCase()}${executor.slice(1)}`;
     const scopeList: string = `${refusal.writeNamespaces
       .map((allowed: string) => {
         return `"${allowed}"`;
@@ -366,17 +423,17 @@ export class Service extends DatabaseService<Model> {
         return `${
           refusal.uncertainty === null
             ? `${command} changes a node`
-            : `The cluster's Runner cannot tell for certain whether ${command} changes a node (${refusal.uncertainty})`
-        }, and the cluster's Runner does not allow node operations (cordon, uncordon, drain, taint, or labelling, annotating or patching a Node): ${settings.nodeOperationsOff}, ${wouldRefuse}${fix} To let OneUptime AI change nodes, ${settings.allowNodeOperations}.`;
+            : `${Executor} cannot tell for certain whether ${command} changes a node (${refusal.uncertainty})`
+        }, and ${executor} does not allow node operations (cordon, uncordon, drain, taint, or labelling, annotating or patching a Node): ${settings.nodeOperationsOff}, ${wouldRefuse}${fix} To let OneUptime AI change nodes, ${settings.allowNodeOperations}.`;
       case "objects_uncertain":
       case "namespace_uncertain":
-        return `The cluster's Runner cannot tell for certain which ${
+        return `${Executor} cannot tell for certain which ${
           refusal.code === "namespace_uncertain" ? "namespace" : "objects"
         } ${command} changes (${refusal.uncertainty}), ${wouldRefuse}${fix}`;
       case "verb_mismatch":
-        return `The cluster's Runner reads the verb of ${command} as "${refusal.readVerb}", but the kubectl policy read "${refusal.policyVerb}", so it cannot tell for certain what the command changes, ${wouldRefuse}`;
+        return `${Executor} reads the verb of ${command} as "${refusal.readVerb}", but the kubectl policy read "${refusal.policyVerb}", so it cannot tell for certain what the command changes, ${wouldRefuse}`;
       case "unnamed_namespace_objects":
-        return `${command} would change Namespace objects without naming them (a selector, --all or no name at all), so the cluster's Runner cannot tell whether one of them is ${
+        return `${command} would change Namespace objects without naming them (a selector, --all or no name at all), so ${executor} cannot tell whether one of them is ${
           refusal.podNamespace
             ? `"${refusal.podNamespace}", the namespace it runs in`
             : "outside the namespaces it lets OneUptime AI change"
@@ -384,19 +441,19 @@ export class Service extends DatabaseService<Model> {
       case "cluster_scoped":
         return `${command} changes ${refusal.clusterScopedKinds.join(
           ", ",
-        )} objects, which are cluster-scoped: they live outside every namespace, so outside the namespaces the cluster's Runner lets OneUptime AI change (${scopeList}) whatever -n says, ${wouldRefuse}`;
+        )} objects, which are cluster-scoped: they live outside every namespace, so outside the namespaces ${executor} lets OneUptime AI change (${scopeList}) whatever -n says, ${wouldRefuse}`;
       case "all_namespaces":
-        return `${command} would change every namespace, including ones the cluster's Runner may not change, ${wouldRefuse}${fix}`;
+        return `${command} would change every namespace, including ones ${executor} may not change, ${wouldRefuse}${fix}`;
       case "no_namespace":
-        return `${command} names no namespace, and the cluster's Runner reported no namespace of its own for kubectl to use there, ${wouldRefuse}${fix}`;
+        return `${command} names no namespace, and ${executor} reported no namespace of its own for kubectl to use there, ${wouldRefuse}${fix}`;
       case "own_namespace":
         return refusal.namespaceSource === "namespace_object"
-          ? `${command} would change the Namespace object "${namespace}", the namespace the cluster's in-cluster Runner itself runs in. OneUptime AI never changes it — a change there could reconfigure the Kubernetes agent or the Runner — ${wouldRefuse}`
+          ? `${command} would change the Namespace object "${namespace}", the namespace ${settings.inClusterExecutor} itself runs in. OneUptime AI never changes it — a change there could reconfigure the Kubernetes agent or ${settings.executorShort} — ${wouldRefuse}`
           : `${command} would change namespace "${namespace}"${
               refusal.namespaceSource === "default_namespace"
                 ? " (the command names none, so kubectl would use that one)"
                 : ""
-            }, the namespace the cluster's in-cluster Runner itself runs in. OneUptime AI never changes it — a change there could scale away the Kubernetes agent or the Runner — ${wouldRefuse} Name the namespace of the workload to fix with -n <namespace>.`;
+            }, the namespace ${settings.inClusterExecutor} itself runs in. OneUptime AI never changes it — a change there could scale away the Kubernetes agent or ${settings.executorShort} — ${wouldRefuse} Name the namespace of the workload to fix with -n <namespace>.`;
       case "outside_scope":
         return `${command} would change ${
           refusal.namespaceSource === "namespace_object"
@@ -406,7 +463,7 @@ export class Service extends DatabaseService<Model> {
                   ? " (the command names none, so kubectl would use that one)"
                   : ""
               }`
-        }, which is outside the namespaces the cluster's Runner lets OneUptime AI change (${scopeList}), ${wouldRefuse} To let OneUptime AI change "${namespace}", ${settings.addNamespace}.`;
+        }, which is outside the namespaces ${executor} lets OneUptime AI change (${scopeList}), ${wouldRefuse} To let OneUptime AI change "${namespace}", ${settings.addNamespace}.`;
       default: {
         const unhandled: never = refusal.code;
         return unhandled;
@@ -651,17 +708,24 @@ export class Service extends DatabaseService<Model> {
    * the cluster), and the payload carries the cluster's identifier so the
    * claim path and the Runner can refuse a job that reaches the wrong pod.
    * A credential is never sent to a kubernetes-agent Runner (its identity
-   * is minted with the project's telemetry ingestion key).
+   * is minted with the project's telemetry ingestion key), nor to the
+   * cluster's Kubernetes AI agent.
+   *
+   * The target may be the cluster's Kubernetes AI agent (a KubernetesAiAgent
+   * row, never a Runner): targetAgentId then names the agent row, and the
+   * job is written with targetKubernetesAiAgentId instead, so only that
+   * agent can claim it and no Runner ever sees it.
    *
    * It also re-reads the cluster's CURRENT AI access configuration, because
    * every caller acts on a snapshot (an investigation reads the cluster's
    * status once when it starts, a remediation run when it composes): the
-   * target must still be the cluster's bound Runner, a credential must still
-   * be its bound Kubernetes credential, an investigation's reads need "Let
-   * AI investigate with kubectl" still on, and a remediation run's commands
-   * (its reads included) need the cluster's remediation still enabled. An
-   * operator who revokes or re-points access therefore stops an in-flight
-   * run at its next command.
+   * target must still be the cluster's access target as resolved now
+   * (KubernetesClusterAiAccessService.loadAccessTarget), a credential must
+   * still be its bound Kubernetes credential, an investigation's reads need
+   * "Investigate with kubectl" still on, and a remediation run's commands
+   * (its reads included) need the cluster's fixes still enabled. An
+   * operator who revokes or re-points access — or an agent that takes over
+   * from a Runner — therefore stops an in-flight run at its next command.
    */
   @CaptureSpan()
   public async enqueueAiKubectlCommand(data: {
@@ -676,6 +740,10 @@ export class Service extends DatabaseService<Model> {
     autoRemediationSuggestionId?: ObjectID | undefined;
     kubernetesClusterId: ObjectID;
     stepId: string;
+    /*
+     * The cluster's access target: a Runner id, or the id of the cluster's
+     * Kubernetes AI agent row (the status's runner.id either way).
+     */
     targetAgentId: ObjectID;
     credentialId?: string | undefined;
     command: string;
@@ -817,6 +885,7 @@ export class Service extends DatabaseService<Model> {
         },
         select: {
           _id: true,
+          projectId: true,
           name: true,
           clusterIdentifier: true,
           aiAccessRunnerId: true,
@@ -837,9 +906,18 @@ export class Service extends DatabaseService<Model> {
     const clusterLabel: string =
       cluster.name || clusterIdentifier || data.kubernetesClusterId.toString();
 
+    /*
+     * The cluster's access target as it resolves NOW. A target that is not
+     * it — a Runner the cluster was re-pointed away from, or a Runner after
+     * the cluster's Kubernetes AI agent came online — is refused below.
+     */
+    const loaded: LoadedKubernetesAiAccessTarget =
+      await KubernetesClusterAiAccessService.loadAccessTarget({ cluster });
+
     const bindingRefusal: string | null = Service.getClusterBindingRefusal({
       cluster,
       clusterLabel,
+      resolvedTargetId: getKubernetesAiAccessTargetId(loaded.target),
       targetAgentId: data.targetAgentId,
       credentialId: data.credentialId,
       requiredSwitch: await this.getRequiredClusterSwitch({
@@ -854,92 +932,138 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(bindingRefusal);
     }
 
-    const targetRunner: Runner | null = await RunnerService.findOneBy({
-      query: {
-        _id: data.targetAgentId.toString(),
-        projectId: data.projectId,
-      },
-      select: { _id: true, name: true, hostInfo: true },
-      props: { isRoot: true },
-    });
+    let posture: KubernetesRunnerPosture | undefined = undefined;
+    let executorKind: KubernetesAiAccessExecutorKind;
+    let targetKubernetesAiAgentId: ObjectID | undefined = undefined;
 
-    if (!targetRunner) {
-      throw new BadDataException(
-        "The target Runner was not found or it does not belong to this project.",
-      );
-    }
+    if (loaded.target.type === "ai_agent") {
+      const agent: KubernetesAiAgent = loaded.target.agent;
 
-    if (data.credentialId) {
       /*
-       * A kubernetes-agent Runner is never handed credential material: its
-       * identity is issued with the project's telemetry ingestion key, so
-       * anyone holding that key could come to hold the credential too. The
-       * claim path refuses it as well (by the same name-or-posture rule);
-       * refusing here keeps the job from ever existing.
+       * The agent row was read by (project, cluster), so it is this
+       * cluster's: checked again here so the rule reads in one place.
        */
-      if (RunnerServiceClass.isKubernetesAgentRunnerRow(targetRunner)) {
-        throw new BadDataException(
-          `Runner "${targetRunner.name}" is a cluster's in-cluster Runner and is never given a credential, so a kubectl command for cluster "${clusterLabel}" that needs one cannot run on it. Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on the cluster's AI page.`,
-        );
-      }
-
-      const credential: RunbookCredential | null = ObjectID.isValidUUID(
-        data.credentialId,
-      )
-        ? await RunbookCredentialService.findOneBy({
-            query: {
-              _id: data.credentialId,
-              projectId: data.projectId,
-            },
-            select: { _id: true, name: true, credentialType: true },
-            props: { isRoot: true },
-          })
-        : null;
-
       if (
-        !credential ||
-        credential.credentialType !== RunbookCredentialType.Kubernetes
+        agent.projectId?.toString() !== data.projectId.toString() ||
+        agent.kubernetesClusterId?.toString() !==
+          data.kubernetesClusterId.toString()
       ) {
         throw new BadDataException(
-          `The credential this kubectl command names is not a Kubernetes credential of this project, so it was not enqueued for cluster "${clusterLabel}".`,
+          `The Kubernetes AI agent this kubectl command names is not cluster "${clusterLabel}"'s, so it was not enqueued.`,
         );
       }
-    }
 
-    const posture: KubernetesRunnerPosture | undefined =
-      parseKubernetesRunnerPosture(targetRunner.hostInfo);
+      /*
+       * The agent runs kubectl with its own ServiceAccount only and is
+       * never handed credential material: its identity is issued with the
+       * project's telemetry ingestion key.
+       */
+      if (data.credentialId) {
+        throw new BadDataException(
+          `Cluster "${clusterLabel}" is reached through its Kubernetes AI agent, which runs kubectl with its own ServiceAccount and is never given a credential, so a kubectl command that needs one was not enqueued.`,
+        );
+      }
 
-    if (!data.credentialId) {
+      posture = parseKubernetesAgentPosture(agent.posture);
+      executorKind = "ai_agent";
+      targetKubernetesAiAgentId = agent.id!;
+
       if (!isInClusterPostureForCluster(posture, clusterIdentifier)) {
         throw new BadDataException(
-          `A kubectl command without a Kubernetes credential can only run on the in-cluster Runner of cluster "${
+          `The Kubernetes AI agent has not reported that it runs in cluster "${
             clusterIdentifier || cluster.name || cluster.id?.toString()
-          }", and Runner "${targetRunner.name}" ${
-            posture?.inCluster
-              ? `is the in-cluster Runner of ${
-                  posture.clusterIdentifier?.trim()
-                    ? `cluster "${posture.clusterIdentifier.trim()}"`
-                    : "an unnamed cluster"
-                }`
-              : "runs outside the cluster"
-          }. Select a Kubernetes credential for this Runner on the cluster's AI page, or install the in-cluster Runner on this cluster.`,
+          }", so this kubectl command was not enqueued. Wait for its next report (within a minute), or reset the agent on the cluster's AI agent page (AI → Agent).`,
         );
+      }
+    } else {
+      /*
+       * A Runner target: the Runner row the resolution read, which is the
+       * cluster's bound Runner and so belongs to this project.
+       */
+      const targetRunner: Runner | null =
+        loaded.target.type === "none" ? null : loaded.target.runner;
+
+      if (!targetRunner) {
+        throw new BadDataException(
+          "The target Runner was not found or it does not belong to this project.",
+        );
+      }
+
+      executorKind = data.credentialId ? "credential_runner" : "legacy_runner";
+
+      if (data.credentialId) {
+        /*
+         * A kubernetes-agent Runner is never handed credential material: its
+         * identity is issued with the project's telemetry ingestion key, so
+         * anyone holding that key could come to hold the credential too. The
+         * claim path refuses it as well (by the same name-or-posture rule);
+         * refusing here keeps the job from ever existing.
+         */
+        if (RunnerServiceClass.isKubernetesAgentRunnerRow(targetRunner)) {
+          throw new BadDataException(
+            `Runner "${targetRunner.name}" is a cluster's in-cluster Runner and is never given a credential, so a kubectl command for cluster "${clusterLabel}" that needs one cannot run on it. Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on the cluster's AI agent page (AI → Agent).`,
+          );
+        }
+
+        const credential: RunbookCredential | null = ObjectID.isValidUUID(
+          data.credentialId,
+        )
+          ? await RunbookCredentialService.findOneBy({
+              query: {
+                _id: data.credentialId,
+                projectId: data.projectId,
+              },
+              select: { _id: true, name: true, credentialType: true },
+              props: { isRoot: true },
+            })
+          : null;
+
+        if (
+          !credential ||
+          credential.credentialType !== RunbookCredentialType.Kubernetes
+        ) {
+          throw new BadDataException(
+            `The credential this kubectl command names is not a Kubernetes credential of this project, so it was not enqueued for cluster "${clusterLabel}".`,
+          );
+        }
+      }
+
+      posture = parseKubernetesRunnerPosture(targetRunner.hostInfo);
+
+      if (!data.credentialId) {
+        if (!isInClusterPostureForCluster(posture, clusterIdentifier)) {
+          throw new BadDataException(
+            `A kubectl command without a Kubernetes credential can only run on the in-cluster Runner of cluster "${
+              clusterIdentifier || cluster.name || cluster.id?.toString()
+            }", and Runner "${targetRunner.name}" ${
+              posture?.inCluster
+                ? `is the in-cluster Runner of ${
+                    posture.clusterIdentifier?.trim()
+                      ? `cluster "${posture.clusterIdentifier.trim()}"`
+                      : "an unnamed cluster"
+                  }`
+                : "runs outside the cluster"
+            }. Select a Kubernetes credential for this Runner on the cluster's AI agent page (AI → Agent), or clear the Runner there to use the cluster's Kubernetes AI agent.`,
+          );
+        }
       }
     }
 
     /*
-     * A remediation write the Runner's own posture says it will refuse — a
+     * A remediation write the target's own posture says it will refuse — a
      * namespace outside its write scope, its own namespace, or a node
      * operation its chart did not grant — is refused here, before it can be
      * approved, enqueued or counted by the cluster's circuit breaker, with
-     * the chart value that would allow it. Reads are never refused for
-     * scope.
+     * the setting that would allow it. Reads are never refused for scope.
+     * A job with no credential lands in the pod's own namespace when it
+     * names none — for the agent exactly as for the in-cluster Runner.
      */
     if (data.origin === RunnerJobOrigin.AiRemediation) {
       const scopeRefusal: string | null = Service.getRunnerWriteScopeRefusal({
         policy,
         posture,
         usesCredential: Boolean(data.credentialId),
+        executorKind,
       });
 
       if (scopeRefusal) {
@@ -964,7 +1088,15 @@ export class Service extends DatabaseService<Model> {
     row.kubernetesClusterId = data.kubernetesClusterId;
     row.stepId = data.stepId;
     row.stepType = RunbookStepType.Kubectl;
-    row.targetAgentId = data.targetAgentId;
+    /*
+     * Exactly one target: the agent's row, or the Runner. targetAgentId has
+     * a foreign key to Runner, so it stays empty for the agent.
+     */
+    if (targetKubernetesAiAgentId) {
+      row.targetKubernetesAiAgentId = targetKubernetesAiAgentId;
+    } else {
+      row.targetAgentId = data.targetAgentId;
+    }
     row.script = "";
     row.payload = {
       args: policy.args,
@@ -1023,17 +1155,20 @@ export class Service extends DatabaseService<Model> {
   /*
    * Why a kubectl job may NOT be enqueued for this cluster as it is
    * configured right now, or null when it may. Pure, so the rule reads in
-   * one place: the job must go through the cluster's CURRENT binding, and
-   * the capability it is for must still be switched on.
+   * one place: the job must go to the cluster's CURRENT access target
+   * (resolvedTargetId, from resolveKubernetesAiAccessTarget), and the
+   * capability it is for must still be switched on.
    *
    * A credential-less job does not require the credential binding to be
-   * empty: the in-cluster Runner of the cluster wins over a bound
-   * credential (the readiness status prefers it), so such a job is
-   * legitimate with a credential still selected.
+   * empty: the in-cluster Runner of the cluster (or its Kubernetes AI
+   * agent) wins over a bound credential (the readiness status prefers it),
+   * so such a job is legitimate with a credential still selected.
    */
   public static getClusterBindingRefusal(data: {
     cluster: KubernetesCluster;
     clusterLabel: string;
+    // The cluster's access target as it resolves now; null when none.
+    resolvedTargetId: string | null;
     targetAgentId: ObjectID;
     credentialId?: string | undefined;
     // The switch that must still be on; null for the access test.
@@ -1042,10 +1177,10 @@ export class Service extends DatabaseService<Model> {
     const { cluster, clusterLabel } = data;
 
     if (
-      !cluster.aiAccessRunnerId ||
-      cluster.aiAccessRunnerId.toString() !== data.targetAgentId.toString()
+      !data.resolvedTargetId ||
+      data.resolvedTargetId !== data.targetAgentId.toString()
     ) {
-      return `Cluster "${clusterLabel}" is no longer reached through this Runner (its AI access binding changed or was cleared on the cluster's AI page), so this kubectl command was not enqueued.`;
+      return `Cluster "${clusterLabel}" is no longer reached through this Runner or agent (its AI access changed on the cluster's AI agent page (AI → Agent), or its Kubernetes AI agent took over), so this kubectl command was not enqueued.`;
     }
 
     if (
@@ -1053,14 +1188,14 @@ export class Service extends DatabaseService<Model> {
       (!cluster.aiAccessCredentialId ||
         cluster.aiAccessCredentialId.toString() !== data.credentialId)
     ) {
-      return `Cluster "${clusterLabel}" is no longer reached with this Kubernetes credential (its AI access binding changed or was cleared on the cluster's AI page), so this kubectl command was not enqueued.`;
+      return `Cluster "${clusterLabel}" is no longer reached with this Kubernetes credential (its AI access changed on the cluster's AI agent page (AI → Agent)), so this kubectl command was not enqueued.`;
     }
 
     if (
       data.requiredSwitch === "investigation" &&
       cluster.isAiInvestigationEnabled !== true
     ) {
-      return `"Let AI investigate with kubectl" is turned off for cluster "${clusterLabel}", so this investigation command was not enqueued.`;
+      return `"Investigate with kubectl" is turned off for cluster "${clusterLabel}", so this investigation command was not enqueued.`;
     }
 
     if (
@@ -1069,7 +1204,7 @@ export class Service extends DatabaseService<Model> {
         cluster.aiRemediationMode as KubernetesAiRemediationMode,
       )
     ) {
-      return `AI remediation is turned off for cluster "${clusterLabel}", so this kubectl command was not enqueued.`;
+      return `AI fixes are turned off for cluster "${clusterLabel}", so this kubectl command was not enqueued.`;
     }
 
     return null;
@@ -1458,6 +1593,7 @@ export class Service extends DatabaseService<Model> {
           // The timeout reason is worded for what the job is.
           origin: true,
           stepType: true,
+          targetKubernetesAiAgentId: true,
         },
         props: { isRoot: true },
       });
@@ -1504,6 +1640,7 @@ export class Service extends DatabaseService<Model> {
             stepType: job.stepType,
             claimTimeoutInMs: data.claimTimeoutInMs,
             executionTimeoutInMs: data.executionTimeoutInMs,
+            isForKubernetesAiAgent: Boolean(job.targetKubernetesAiAgentId),
           }),
         });
       }

@@ -57,6 +57,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     isItemSelectable: boolean;
     itemSelectLabel: string | undefined;
     itemNotSelectableReason: string | undefined;
+    itemLabel: string | undefined;
   };
 
   const getSelectionProps: SelectionPropsFunction = (item: T) => {
@@ -71,8 +72,12 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
         }),
     );
 
-    const label: string | undefined = props.bulkItemToString
-      ? `Select ${props.bulkItemToString(item)}`
+    const itemLabel: string | undefined = props.bulkItemToString
+      ? props.bulkItemToString(item)
+      : undefined;
+
+    const label: string | undefined = itemLabel
+      ? `Select ${itemLabel}`
       : undefined;
 
     return {
@@ -84,6 +89,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
       itemNotSelectableReason: props.itemNotSelectableReason
         ? props.itemNotSelectableReason(item)
         : undefined,
+      itemLabel: itemLabel,
     };
   };
 

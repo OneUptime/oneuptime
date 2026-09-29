@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { registerUtilityCommands } from "../Commands/UtilityCommands";
+import { buildProgram } from "../Program";
 import * as ConfigManager from "../Core/ConfigManager";
 import * as fs from "fs";
 import * as path from "path";
@@ -156,7 +157,7 @@ describe("UtilityCommands", () => {
        * but discoverResources is imported directly, so it should work
        */
       const program: Command = createProgram();
-      await program.parseAsync(["node", "test", "resources"]);
+      await program.parseAsync(["node", "test", "resources", "-o", "table"]);
 
       expect(consoleLogSpy).toHaveBeenCalled();
       // Should show total count
@@ -189,6 +190,92 @@ describe("UtilityCommands", () => {
       ]);
 
       expect(consoleLogSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("resources output format through the CLI entry point", () => {
+    const originalIsTTY: boolean | undefined = process.stdout.isTTY;
+    const logResource: Record<string, string> = {
+      name: "log",
+      singularName: "Log",
+      pluralName: "Logs",
+      modelType: "analytics",
+      apiPath: "/logs",
+    };
+
+    function setStdoutIsTTY(value: boolean | undefined): void {
+      Object.defineProperty(process.stdout, "isTTY", {
+        value,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    afterEach(() => {
+      setStdoutIsTTY(originalIsTTY);
+    });
+
+    it.each([
+      { argv: ["resources", "--type", "analytics", "-o", "json"], tty: true },
+      {
+        argv: ["--output", "json", "resources", "--type", "analytics"],
+        tty: true,
+      },
+      { argv: ["resources", "--type", "analytics"], tty: false },
+    ])(
+      "prints JSON for $argv, tty=$tty",
+      async ({ argv, tty }: { argv: string[]; tty: boolean }) => {
+        setStdoutIsTTY(tty);
+
+        await buildProgram().parseAsync(["node", "test", ...argv]);
+
+        expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+        const rows: Array<Record<string, string>> = JSON.parse(
+          consoleLogSpy.mock.calls[0][0],
+        );
+        expect(rows).toContainEqual(logResource);
+        for (const row of rows) {
+          expect(row["modelType"]).toBe("analytics");
+        }
+      },
+    );
+
+    it.each([
+      { argv: ["resources", "--type", "analytics", "-o", "table"], tty: false },
+      { argv: ["-o", "wide", "resources", "--type", "analytics"], tty: false },
+      { argv: ["resources", "--type", "analytics"], tty: true },
+    ])(
+      "prints the table for $argv, tty=$tty",
+      async ({ argv, tty }: { argv: string[]; tty: boolean }) => {
+        setStdoutIsTTY(tty);
+
+        await buildProgram().parseAsync(["node", "test", ...argv]);
+
+        const table: string = consoleLogSpy.mock.calls[0][0];
+        expect(table).toContain("─");
+        expect(table).toContain("API Path");
+        expect(table).toContain("/logs");
+        const lastCall: string =
+          consoleLogSpy.mock.calls[consoleLogSpy.mock.calls.length - 1][0];
+        expect(lastCall).toContain("Total:");
+      },
+    );
+
+    it("prints an empty JSON array when the filter matches nothing", async () => {
+      setStdoutIsTTY(true);
+
+      await buildProgram().parseAsync([
+        "node",
+        "test",
+        "resources",
+        "--type",
+        "nonexistent",
+        "-o",
+        "json",
+      ]);
+
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(consoleLogSpy.mock.calls[0][0])).toEqual([]);
     });
   });
 });

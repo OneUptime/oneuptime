@@ -12,6 +12,7 @@ import {
   computeProxmoxGuestBackedUp,
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
+  proxmoxClusterCountsFromInventory,
 } from "../../../../Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import { JSONObject } from "../../../../Types/JSON";
 
@@ -640,6 +641,160 @@ describe("ProxmoxCephSnapshotScan - Proxmox cluster extras derive", () => {
     expect(extras).toEqual({ guestCount: 1 });
     expect(Object.keys(extras)).not.toContain("nodeCount");
     expect(Object.keys(extras)).not.toContain("guestsWithoutBackupCount");
+  });
+});
+
+/*
+ * The PVE native OTLP push describes one node — and one of node / qemu /
+ * lxc / storage — per request. Counting such a batch would report a
+ * three-node cluster as one node (then as its guest count, then its
+ * storage count) on every push, so those batches are counted from the
+ * stored inventory instead.
+ */
+describe("ProxmoxCephSnapshotScan - counts from the inventory (native push)", () => {
+  function feedPartial(
+    buffers: ProxmoxBuffers,
+    metricName: string,
+    dp: JSONObject,
+  ): void {
+    bufferProxmoxSnapshotMetric({
+      clusterIdStr: CLUSTER,
+      metricName,
+      datapoint: dp,
+      resourceBuffer: buffers.resourceBuffer,
+      clusterBuffer: buffers.clusterBuffer,
+      countsFromInventory: true,
+    });
+  }
+
+  test("the flag defaults off, so the agent path keeps counting its batch", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_node_info",
+      datapoint({ value: 1, labels: { id: "node/pve1", name: "pve1" } }),
+    );
+    expect(buffers.clusterBuffer.get(CLUSTER)!.countsFromInventory).toBe(false);
+    expect(
+      deriveProxmoxClusterSnapshotExtras(
+        proxmoxEntries(buffers),
+        buffers.clusterBuffer.get(CLUSTER),
+      ),
+    ).toEqual({ nodeCount: 1 });
+  });
+
+  test("a partial-by-design batch derives no counts, only the version", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedPartial(
+      buffers,
+      "pve_node_info",
+      datapoint({ value: 1, labels: { id: "node/pve1", name: "pve1" } }),
+    );
+    feedPartial(
+      buffers,
+      "pve_up",
+      datapoint({ value: 1, labels: { id: "node/pve1" } }),
+    );
+    feedPartial(
+      buffers,
+      "pve_guest_info",
+      datapoint({ value: 1, labels: { id: "qemu/100", name: "web" } }),
+    );
+    feedPartial(
+      buffers,
+      "pve_storage_info",
+      datapoint({
+        value: 1,
+        labels: { id: "storage/pve1/local", storage: "local" },
+      }),
+    );
+    feedPartial(
+      buffers,
+      "pve_version_info",
+      datapoint({ value: 1, labels: { version: "9.0.10" } }),
+    );
+
+    // The inventory rows are still folded — only the counting is deferred.
+    expect(proxmoxEntries(buffers)).toHaveLength(3);
+    expect(
+      deriveProxmoxClusterSnapshotExtras(
+        proxmoxEntries(buffers),
+        buffers.clusterBuffer.get(CLUSTER),
+      ),
+    ).toEqual({ pveVersion: "9.0.10" });
+  });
+
+  test("one partial datapoint marks the whole cluster buffer", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_node_info",
+      datapoint({ value: 1, labels: { id: "node/pve1", name: "pve1" } }),
+    );
+    feedPartial(
+      buffers,
+      "pve_up",
+      datapoint({ value: 1, labels: { id: "qemu/100" } }),
+    );
+    expect(buffers.clusterBuffer.get(CLUSTER)!.countsFromInventory).toBe(true);
+  });
+
+  test("backup-coverage counts are unaffected (the native push never sends them)", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedPartial(buffers, "pve_not_backed_up_total", datapoint({ value: 2 }));
+    expect(
+      deriveProxmoxClusterSnapshotExtras(
+        proxmoxEntries(buffers),
+        buffers.clusterBuffer.get(CLUSTER),
+      ),
+    ).toEqual({ guestsWithoutBackupCount: 2 });
+  });
+
+  test("the inventory summary becomes the cluster counts", () => {
+    expect(
+      proxmoxClusterCountsFromInventory({
+        countsByKind: { Node: 3, Guest: 12, Storage: 6 },
+        nodeOnlineCount: 3,
+      }),
+    ).toEqual({
+      nodeCount: 3,
+      onlineNodeCount: 3,
+      guestCount: 12,
+      storageCount: 6,
+    });
+  });
+
+  test("a kind with no inventory rows yet is left unwritten, not zeroed", () => {
+    expect(
+      proxmoxClusterCountsFromInventory({
+        countsByKind: { Guest: 4 },
+        nodeOnlineCount: 0,
+      }),
+    ).toEqual({ guestCount: 4 });
+    expect(
+      proxmoxClusterCountsFromInventory({
+        countsByKind: {},
+        nodeOnlineCount: 0,
+      }),
+    ).toEqual({});
+  });
+
+  test("online nodes never exceed the node count", () => {
+    expect(
+      proxmoxClusterCountsFromInventory({
+        countsByKind: { Node: 2 },
+        nodeOnlineCount: 5,
+      }),
+    ).toEqual({ nodeCount: 2, onlineNodeCount: 2 });
+  });
+
+  test("zero online nodes is a value, not absence", () => {
+    expect(
+      proxmoxClusterCountsFromInventory({
+        countsByKind: { Node: 2 },
+        nodeOnlineCount: 0,
+      }),
+    ).toEqual({ nodeCount: 2, onlineNodeCount: 0 });
   });
 });
 

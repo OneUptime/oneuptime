@@ -212,13 +212,30 @@ describe("every reason can be explained to the person who hit it", () => {
     ) || [])[1] as string;
 
     expect(message).toBeDefined();
-    expect(message).toContain("AI Credits");
+    expect(message).toContain("AI Features");
 
     const copy: AIChatUnavailableCopy = getAIChatUnavailableCopy(
       AIChatUnavailableReason.DisabledForProject,
     );
 
-    expect(copy.actionPage).toBe(PageMap.SETTINGS_AI_CREDITS);
-    expect(copy.actionLabel).toContain("AI Credits");
+    expect(copy.actionPage).toBe(PageMap.SETTINGS_AI_FEATURES);
+    expect(copy.actionLabel).toContain("AI Features");
+  });
+
+  test("the kill-switch notice never sends people to AI Credits — that page is billing-only", () => {
+    /*
+     * Enable AI lives on Project Settings > AI Features, which every install
+     * shows. AI Credits is in the menu only when billing is on, so pointing a
+     * self-hosted user at it would be a dead end.
+     */
+    const copy: AIChatUnavailableCopy = getAIChatUnavailableCopy(
+      AIChatUnavailableReason.DisabledForProject,
+    );
+
+    expect(copy.actionPage).not.toBe(PageMap.SETTINGS_AI_CREDITS);
+    expect(copy.actionLabel).not.toContain("AI Credits");
+    expect(RouteMap[PageMap.SETTINGS_AI_FEATURES]?.toString()).toContain(
+      "/settings/ai-features",
+    );
   });
 });

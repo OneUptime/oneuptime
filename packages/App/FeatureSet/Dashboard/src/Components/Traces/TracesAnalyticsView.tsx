@@ -36,6 +36,7 @@ import {
   TraceAnalyticsPivotedRow,
   buildTraceAnalyticsValueLabels,
   collectTraceAnalyticsEntityIds,
+  getTraceAnalyticsStatusColor,
   pivotTraceAnalyticsTimeseries,
 } from "./TracesEntityDisplay";
 
@@ -436,9 +437,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   const {
     pivotedData,
     seriesKeys,
+    seriesGroupValues,
   }: {
     pivotedData: Array<TraceAnalyticsPivotedRow>;
     seriesKeys: Array<string>;
+    seriesGroupValues: Record<string, Record<string, string>>;
   } = useMemo(() => {
     const metricLabel: string =
       METRIC_OPTIONS.find((opt: { value: string }) => {
@@ -452,6 +455,17 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       metricLabel,
     });
   }, [timeseriesData, metric, props.serviceNameMap, entityNames]);
+
+  // A split by status alone keeps each status's color; others go by position.
+  const colorForSeries: (seriesKey: string, index: number) => string = (
+    seriesKey: string,
+    index: number,
+  ): string => {
+    return (
+      getTraceAnalyticsStatusColor(seriesGroupValues[seriesKey]) ||
+      CHART_COLORS[index % CHART_COLORS.length]!
+    );
+  };
 
   const renderSelectControl: (
     label: string,
@@ -615,7 +629,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
               <span
                 className="inline-block h-2.5 w-2.5 rounded-[3px]"
                 style={{
-                  backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+                  backgroundColor: colorForSeries(key, index),
                 }}
               />
               <span className="max-w-[280px] truncate text-[11px] text-gray-500">
@@ -698,12 +712,12 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     >
                       <stop
                         offset="0%"
-                        stopColor={CHART_COLORS[0]}
+                        stopColor={colorForSeries(seriesKeys[0] || "value", 0)}
                         stopOpacity={0.2}
                       />
                       <stop
                         offset="95%"
-                        stopColor={CHART_COLORS[0]}
+                        stopColor={colorForSeries(seriesKeys[0] || "value", 0)}
                         stopOpacity={0.02}
                       />
                     </linearGradient>
@@ -711,7 +725,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   {sharedAxes}
                   <Area
                     dataKey={seriesKeys[0] || "value"}
-                    stroke={CHART_COLORS[0]!}
+                    stroke={colorForSeries(seriesKeys[0] || "value", 0)}
                     strokeWidth={2}
                     fill="url(#traceAnalyticsArea)"
                     dot={false}
@@ -734,7 +748,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       <Line
                         key={key}
                         dataKey={key}
-                        stroke={CHART_COLORS[index % CHART_COLORS.length]!}
+                        stroke={colorForSeries(key, index)}
                         strokeWidth={1.75}
                         dot={false}
                         connectNulls={true}
@@ -758,7 +772,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       key={key}
                       dataKey={key}
                       stackId="group"
-                      fill={CHART_COLORS[index % CHART_COLORS.length]!}
+                      fill={colorForSeries(key, index)}
                       radius={
                         index === seriesKeys.length - 1
                           ? [3, 3, 0, 0]
@@ -794,11 +808,19 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         <div className="space-y-1.5">
           {topListData.map((item: TopItem, index: number) => {
             const percentage: number = (item.metricValue / maxValue) * 100;
+            const statusColor: string | undefined =
+              getTraceAnalyticsStatusColor({
+                [groupByFields[0] || ""]: item.value,
+              });
             const color: string =
-              CHART_COLORS[index % CHART_COLORS.length] || CHART_COLORS[0]!;
-            const mutedColor: string =
-              CHART_COLORS_MUTED[index % CHART_COLORS_MUTED.length] ||
-              CHART_COLORS_MUTED[0]!;
+              statusColor ||
+              CHART_COLORS[index % CHART_COLORS.length] ||
+              CHART_COLORS[0]!;
+            // "26" is the 15% alpha the muted palette uses.
+            const mutedColor: string = statusColor
+              ? `${statusColor}26`
+              : CHART_COLORS_MUTED[index % CHART_COLORS_MUTED.length] ||
+                CHART_COLORS_MUTED[0]!;
 
             return (
               <div

@@ -5,6 +5,7 @@ import {
   readCliVersion,
   registerUtilityCommands,
 } from "./Commands/UtilityCommands";
+import { createOutputOption } from "./Core/OutputFormatter";
 
 /*
  * Build the CLI program. Kept out of Index.ts so tests can assert on the
@@ -22,7 +23,7 @@ export function buildProgram(): Command {
     .option("--api-key <key>", "API key (overrides config)")
     .option("--url <url>", "OneUptime instance URL (overrides config)")
     .option("--context <name>", "Use a specific context")
-    .option("-o, --output <format>", "Output format: json, table, wide")
+    .addOption(createOutputOption())
     .option("--no-color", "Disable colored output");
 
   // Register command groups

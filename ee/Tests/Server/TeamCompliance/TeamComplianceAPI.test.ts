@@ -36,6 +36,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import Team from "Common/Models/DatabaseModels/Team";
+import Color from "Common/Types/Color";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
@@ -50,6 +51,8 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
+import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
+import { ComplianceSeverityKind } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -171,12 +174,15 @@ interface StubUser {
   id: ObjectID;
   name: string;
   email: string;
+  profilePictureId?: ObjectID | undefined;
 }
 
 /** A minimal severity row - the shape both severity services return here. */
 interface StubSeverity {
   id: ObjectID;
   name: string;
+  order?: number | undefined;
+  color?: Color | undefined;
 }
 
 function buildMemberProps(data: {
@@ -539,15 +545,17 @@ describe("TeamComplianceAPI - route registration", () => {
 
 /*
  * --------------------------------------------------------------------------- *
- * The TeamComplianceService rebuild, exercised through its own route with the
- * REAL readiness service underneath.
+ * The compliance status, exercised through its own route with the REAL
+ * readiness service underneath.
  *
  * Teams > View > Compliance renders this payload field for field - including
- * the reason strings, which it prints as prose rather than mapping through any
- * lookup - so the shape is a hard contract. What changed underneath is where
- * the two "does this user have on-call rules?" answers come from, and the four
- * defects that lived in the old answer are re-tested here across the real seam
- * rather than against a stubbed readiness service.
+ * the reason strings, which it prints as prose - so the shape is a hard
+ * contract: TeamComplianceStatusJSON in Common/Types/Team, which the Dashboard
+ * is typed against too. TeamComplianceEvaluator.test.ts pins every judgement
+ * and TeamComplianceServiceBehaviour.test.ts every read with readiness stubbed;
+ * what is left worth proving here is that the real seams behave - the route to
+ * the service, and the service to the real readiness computation, which is
+ * where the old defects lived.
  * ---------------------------------------------------------------------------
  */
 
@@ -557,7 +565,7 @@ interface StubRule {
   ruleType: NotificationRuleType;
   incidentSeverityId?: ObjectID | undefined;
   alertSeverityId?: ObjectID | undefined;
-  isOptOut?: boolean | undefined;
+  isOptOut?: boolean | null | undefined;
   userCallId?: ObjectID | undefined;
   userSmsId?: ObjectID | undefined;
   userEmailId?: ObjectID | undefined;
@@ -569,21 +577,106 @@ interface StubRule {
   userWebhookId?: ObjectID | undefined;
 }
 
-describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
+/*
+ * A compliance rule as the team's settings read hands it back. Severities are
+ * the relation rows, so they carry their project.
+ */
+interface StubSetting {
+  ruleType: ComplianceRuleType;
+  enabled: boolean;
+  notificationChannel?: ComplianceNotificationChannel | undefined;
+  incidentSeverities?: Array<StubSeverity> | undefined;
+  alertSeverities?: Array<StubSeverity> | undefined;
+  // The row's options JSON (NULL when unset).
+  options?: Record<string, unknown> | undefined;
+}
+
+/*
+ * A notification-method row. It carries both `_id` and the `id` a model would
+ * have, because the real readiness service reads the one and the compliance
+ * service the other - and both read these same stubs.
+ */
+interface StubMethod {
+  _id: string;
+  id: ObjectID;
+  userId: ObjectID;
+  isVerified: boolean;
+  phone?: string | undefined;
+  deviceName?: string | undefined;
+}
+
+function methodRow(data: {
+  userId: ObjectID;
+  isVerified: boolean;
+}): StubMethod {
+  const id: ObjectID = ObjectID.generate();
+
+  return {
+    _id: id.toString(),
+    id: id,
+    userId: data.userId,
+    isVerified: data.isVerified,
+    phone: "+15550100",
+    deviceName: "Pixel",
+  };
+}
+
+describe("GET /team/compliance-status/:teamId - the compliance status", () => {
   let ada: StubUser;
   let grace: StubUser;
   let critical: StubSeverity;
   let major: StubSeverity;
   let page: StubSeverity;
 
+  function settingRows(
+    settings: Array<StubSetting>,
+  ): Array<Record<string, unknown>> {
+    return settings.map(
+      (stubSetting: StubSetting, index: number): Record<string, unknown> => {
+        const relation: (
+          severities: Array<StubSeverity> | undefined,
+        ) => Array<Record<string, unknown>> = (
+          severities: Array<StubSeverity> | undefined,
+        ): Array<Record<string, unknown>> => {
+          return (severities || []).map(
+            (severity: StubSeverity): Record<string, unknown> => {
+              return {
+                _id: severity.id.toString(),
+                name: severity.name,
+                order: severity.order,
+                color: severity.color,
+                projectId: projectId,
+              };
+            },
+          );
+        };
+
+        return {
+          _id: `5e771000-0000-4000-8000-${index.toString().padStart(12, "0")}`,
+          ruleType: stubSetting.ruleType,
+          enabled: stubSetting.enabled,
+          notificationChannel: stubSetting.notificationChannel,
+          createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
+          incidentSeverities: relation(stubSetting.incidentSeverities),
+          alertSeverities: relation(stubSetting.alertSeverities),
+          options: stubSetting.options || null,
+        };
+      },
+    );
+  }
+
   function stage(data: {
-    settings: Array<{ ruleType: ComplianceRuleType; enabled: boolean }>;
+    settings: Array<StubSetting>;
     members: Array<StubUser>;
     rules: Array<StubRule>;
     incidentSeverities: Array<StubSeverity>;
     alertSeverities: Array<StubSeverity>;
+    callMethods?: Array<StubMethod> | undefined;
+    pushMethods?: Array<StubMethod> | undefined;
   }): void {
-    complianceSettingFindBy.mockResolvedValue(data.settings as never);
+    complianceSettingFindBy.mockResolvedValue(
+      settingRows(data.settings) as never,
+    );
 
     teamMemberFindBy.mockResolvedValue(
       data.members.map((member: StubUser): Record<string, unknown> => {
@@ -606,9 +699,16 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       }) as never,
     );
 
+    /*
+     * ONE list for every notification-rule read, the readiness service's and
+     * the compliance service's alike. Neither may trust its query alone to have
+     * filtered the rows, so a single list is the harder test.
+     */
     notificationRuleFindBy.mockResolvedValue(data.rules as never);
     incidentSeverityFindBy.mockResolvedValue(data.incidentSeverities as never);
     alertSeverityFindBy.mockResolvedValue(data.alertSeverities as never);
+    userCallFindBy.mockResolvedValue((data.callMethods || []) as never);
+    userPushFindBy.mockResolvedValue((data.pushMethods || []) as never);
   }
 
   async function readCompliance(): Promise<Record<string, unknown>> {
@@ -617,6 +717,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       params: { teamId: teamId.toString() },
     });
 
+    expect(result.thrownToNext).toBeUndefined();
     expect(result.nextCallCount).toBe(0);
 
     return jsonPayload();
@@ -628,6 +729,42 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     return payload["userComplianceStatuses"] as Array<Record<string, unknown>>;
   }
 
+  function rulesOf(
+    payload: Record<string, unknown>,
+  ): Array<Record<string, unknown>> {
+    return payload["complianceSettings"] as Array<Record<string, unknown>>;
+  }
+
+  function statusFor(
+    payload: Record<string, unknown>,
+    user: StubUser,
+  ): Record<string, unknown> {
+    const status: Record<string, unknown> | undefined = statusesOf(
+      payload,
+    ).find((candidate: Record<string, unknown>): boolean => {
+      return candidate["userId"] === user.id.toString();
+    });
+
+    if (!status) {
+      throw new Error(`No status for ${user.name}`);
+    }
+
+    return status;
+  }
+
+  function reasonsFor(
+    payload: Record<string, unknown>,
+    user: StubUser,
+  ): Array<string> {
+    return (
+      statusFor(payload, user)["nonCompliantRules"] as Array<
+        Record<string, unknown>
+      >
+    ).map((issue: Record<string, unknown>): string => {
+      return issue["reason"] as string;
+    });
+  }
+
   beforeEach(() => {
     ada = { id: ObjectID.generate(), name: "Ada", email: "ada@example.com" };
     grace = {
@@ -635,12 +772,12 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       name: "Grace",
       email: "grace@example.com",
     };
-    critical = { id: ObjectID.generate(), name: "Critical" };
-    major = { id: ObjectID.generate(), name: "Major" };
-    page = { id: ObjectID.generate(), name: "Page" };
+    critical = { id: ObjectID.generate(), name: "Critical", order: 1 };
+    major = { id: ObjectID.generate(), name: "Major", order: 2 };
+    page = { id: ObjectID.generate(), name: "Page", order: 1 };
   });
 
-  test("the response shape the dashboard renders is unchanged", async () => {
+  test("the response is exactly the TeamComplianceStatusJSON contract", async () => {
     stage({
       settings: [
         {
@@ -657,65 +794,126 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
 
     const payload: Record<string, unknown> = await readCompliance();
 
+    /*
+     * Object.keys counts a key whose value is undefined, so these pin that no
+     * field is added, dropped or sent empty behind the Dashboard's back.
+     */
     expect(Object.keys(payload).sort()).toEqual([
       "complianceSettings",
+      "evaluatedAt",
       "teamId",
       "teamName",
       "userComplianceStatuses",
     ]);
     expect(payload["teamId"]).toBe(teamId.toString());
     expect(payload["teamName"]).toBe("Platform On-Call");
-    expect(payload["complianceSettings"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-        enabled: true,
-      },
-      { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-    ]);
+    expect(typeof payload["evaluatedAt"]).toBe("string");
+    expect(new Date(payload["evaluatedAt"] as string).toISOString()).toBe(
+      payload["evaluatedAt"],
+    );
+
+    const rules: Array<Record<string, unknown>> = rulesOf(payload);
+    expect(rules).toHaveLength(2);
+
+    for (const rule of rules) {
+      expect(Object.keys(rule).sort()).toEqual([
+        "appliesToAllSeverities",
+        "compliantCount",
+        "enabled",
+        "nonCompliantCount",
+        "notificationChannel",
+        "ruleType",
+        "settingId",
+        "severities",
+        "severityKind",
+        "warnings",
+      ]);
+    }
+
+    expect(rules[0]).toEqual({
+      settingId: "5e771000-0000-4000-8000-000000000000",
+      ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+      enabled: true,
+      notificationChannel: null,
+      severityKind: null,
+      appliesToAllSeverities: false,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 1,
+      warnings: [],
+    });
+    expect(rules[1]).toEqual({
+      settingId: "5e771000-0000-4000-8000-000000000001",
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: true,
+      notificationChannel: null,
+      severityKind: "Incident",
+      appliesToAllSeverities: true,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 1,
+      warnings: [],
+    });
 
     const statuses: Array<Record<string, unknown>> = statusesOf(payload);
     expect(statuses).toHaveLength(1);
+    // No profile picture: the key is omitted, not sent as undefined.
     expect(Object.keys(statuses[0]!).sort()).toEqual([
       "isCompliant",
       "nonCompliantRules",
       "userEmail",
       "userId",
       "userName",
-      "userProfilePictureId",
     ]);
     expect(statuses[0]!["userId"]).toBe(ada.id.toString());
     expect(statuses[0]!["userName"]).toBe("Ada");
+    expect(statuses[0]!["userEmail"]).toBe("ada@example.com");
     expect(statuses[0]!["isCompliant"]).toBe(false);
     /*
-     * The reason strings are printed verbatim by TeamComplianceStatusTable, so
-     * their exact wording is part of the payload contract, not an internal
-     * detail. Both an old-style channel rule and a rebuilt on-call rule are
-     * asserted together to show neither vocabulary shifted.
+     * The reason strings are printed verbatim by the Dashboard, so their exact
+     * wording is part of the payload contract. A method rule and an on-call
+     * rule are asserted together to show neither vocabulary shifted.
      */
     expect(statuses[0]!["nonCompliantRules"]).toEqual([
       {
+        settingId: "5e771000-0000-4000-8000-000000000000",
         ruleType: ComplianceRuleType.HasNotificationEmailMethod,
         reason: "No verified email address configured for notifications",
       },
       {
+        settingId: "5e771000-0000-4000-8000-000000000001",
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason: "Missing notification rules for incident severities: Critical",
       },
     ]);
+
+    // And the whole thing survives the trip through JSON unchanged.
+    expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
   });
 
-  test("DEFECT closed: a rule on Telegram, WhatsApp, Slack, Teams or a webhook now counts", async () => {
+  test("a member's profile picture id is sent as a string", async () => {
+    const pictureId: ObjectID = ObjectID.generate();
+
+    stage({
+      settings: [],
+      members: [{ ...ada, profilePictureId: pictureId }],
+      rules: [],
+      incidentSeverities: [],
+      alertSeverities: [],
+    });
+
+    expect(statusesOf(await readCompliance())[0]!["userProfilePictureId"]).toBe(
+      pictureId.toString(),
+    );
+  });
+
+  test("DEFECT closed: a rule on Telegram, WhatsApp, Slack, Teams or a webhook counts for an any-channel rule", async () => {
     /*
      * The old check read userCallId/userSmsId/userEmailId/userPushId off the
      * rule row and treated a row carrying none of them as no rule at all, so a
      * responder reachable only on Telegram, WhatsApp or a webhook was reported
      * non-compliant while the runtime was quite happily paging them. A false RED
-     * teaches admins to ignore the table, which is worse than no table. Slack
-     * and Microsoft Teams arrived after the fix and are staged alongside so the
-     * defect cannot return for the channels that never lived through it.
-     *
-     * All five channels are staged onto one user at once: whichever column the
-     * rule carries, the row is a rule.
+     * teaches admins to ignore the table, which is worse than no table.
      */
     const minor: StubSeverity = { id: ObjectID.generate(), name: "Minor" };
     const warn: StubSeverity = { id: ObjectID.generate(), name: "Warn" };
@@ -775,13 +973,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     expect(statuses[0]!["nonCompliantRules"]).toEqual([]);
   });
 
-  test("DEFECT closed: no channel column is even read, so none can be missed", async () => {
-    /*
-     * The structural half of the fix. The three formerly-invisible channels were
-     * invisible because they were never SELECTed; asserting that NONE of the
-     * nine is selected means no future edit can reintroduce a partial column
-     * list and quietly start under-counting again.
-     */
+  test("an any-channel rule reads no channel column - which channels count is readiness's judgement", async () => {
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
@@ -793,6 +985,9 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     });
 
     await readCompliance();
+
+    // The one rule read is readiness's, and it selects none of the nine columns.
+    expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
 
     const call: CapturedFindBy = firstCall(notificationRuleFindBy);
 
@@ -810,7 +1005,6 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       expect(call.select?.[column]).toBeUndefined();
     }
 
-    // What IS read: who, what kind of page, which severity, and opt-out state.
     expect(call.select?.["ruleType"]).toBe(true);
     expect(call.select?.["incidentSeverityId"]).toBe(true);
     expect(call.select?.["alertSeverityId"]).toBe(true);
@@ -821,8 +1015,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     /*
      * The false GREEN, and the more dangerous of the two directions: the owner
      * was told a responder was covered for Sev1 incidents when their only rule
-     * fired as they went off call. The row below carries an incidentSeverityId,
-     * which is exactly what made the old severity-only match accept it.
+     * fired as they went off call.
      */
     stage({
       settings: [
@@ -842,26 +1035,15 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       alertSeverities: [],
     });
 
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
+    const payload: Record<string, unknown> = await readCompliance();
 
-    expect(statuses[0]!["isCompliant"]).toBe(false);
-    expect(statuses[0]!["nonCompliantRules"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        reason: "Missing notification rules for incident severities: Critical",
-      },
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(false);
+    expect(reasonsFor(payload, ada)).toEqual([
+      "Missing notification rules for incident severities: Critical",
     ]);
   });
 
   test("DEFECT closed: an alert rule does not satisfy an incident severity of the same id", async () => {
-    /*
-     * The sharpest form of the ruleType fix. One rule row, one severity id, and
-     * the two checks disagree about it - because the severity is taken from the
-     * column the RULE TYPE dictates rather than from whichever one happens to be
-     * populated.
-     */
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
@@ -881,27 +1063,12 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       alertSeverities: [page],
     });
 
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(statuses[0]!["nonCompliantRules"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        reason: "Missing notification rules for incident severities: Critical",
-      },
+    expect(reasonsFor(await readCompliance(), ada)).toEqual([
+      "Missing notification rules for incident severities: Critical",
     ]);
   });
 
   test("a legacy rule row with a NULL isOptOut still counts as coverage", async () => {
-    /*
-     * isOptOut is nullable and was added long after these rows started
-     * existing, so it is NULL on every rule in every existing install. An
-     * implementation that classified coverage with `isOptOut === false` would
-     * match none of them and report a fully-configured project as entirely
-     * unready - which is why the split is `isOptOut === true`, the exact dual of
-     * the notInOrNull predicate the paging path uses.
-     */
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
@@ -913,7 +1080,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
           userId: ada.id,
           ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
           incidentSeverityId: critical.id,
-          isOptOut: undefined,
+          isOptOut: null,
           userEmailId: ObjectID.generate(),
         },
       ],
@@ -921,14 +1088,10 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       alertSeverities: [],
     });
 
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(statuses[0]!["isCompliant"]).toBe(true);
+    expect(statusFor(await readCompliance(), ada)["isCompliant"]).toBe(true);
   });
 
-  test("an explicitly opted-out severity is coverage, not a gap", async () => {
+  test("for an any-channel rule, an explicitly opted-out severity is coverage, not a gap", async () => {
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
@@ -947,12 +1110,276 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       alertSeverities: [],
     });
 
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
+    // Deliberate silence is not a compliance failure of an any-channel rule.
+    expect(statusFor(await readCompliance(), ada)["isCompliant"]).toBe(true);
+  });
 
-    // Deliberate silence is not a compliance failure.
-    expect(statuses[0]!["isCompliant"]).toBe(true);
+  test("episode rules are answered from the real readiness episode cells", async () => {
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+          enabled: true,
+        },
+      ],
+      members: [ada, grace],
+      rules: [
+        {
+          _id: "rule-ada-episode-critical",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+          incidentSeverityId: critical.id,
+          userEmailId: ObjectID.generate(),
+        },
+        {
+          _id: "rule-ada-episode-major",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+          incidentSeverityId: major.id,
+          userEmailId: ObjectID.generate(),
+        },
+        // Grace has plain incident rules only - not episode coverage.
+        {
+          _id: "rule-grace-incident",
+          userId: grace.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userEmailId: ObjectID.generate(),
+        },
+      ],
+      incidentSeverities: [critical, major],
+      alertSeverities: [],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(reasonsFor(payload, grace)).toEqual([
+      "Missing notification rules for incident episode severities: Critical, Major",
+    ]);
+  });
+
+  test("Call for Critical incidents, end to end: covered, missing, unverified - and the project's call switch", async () => {
+    const carol: StubUser = {
+      id: ObjectID.generate(),
+      name: "Carol",
+      email: "carol@example.com",
+    };
+    const adaPhone: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+    const carolPhone: StubMethod = methodRow({
+      userId: carol.id,
+      isVerified: false,
+    });
+
+    critical.color = new Color("#9f1239");
+
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          incidentSeverities: [critical],
+        },
+      ],
+      members: [ada, grace, carol],
+      rules: [
+        {
+          _id: "rule-ada-call",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userCallId: adaPhone.id,
+        },
+        // Grace would be emailed for Critical, never called.
+        {
+          _id: "rule-grace-email",
+          userId: grace.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userEmailId: ObjectID.generate(),
+        },
+        // Carol's rule dials a number she never verified.
+        {
+          _id: "rule-carol-call",
+          userId: carol.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userCallId: carolPhone.id,
+        },
+        // Major is out of the rule's scope, so nobody needs a rule for it.
+      ],
+      incidentSeverities: [critical, major],
+      alertSeverities: [],
+      callMethods: [adaPhone, carolPhone],
+    });
+    projectFindOneById.mockResolvedValue({
+      id: projectId,
+      enableCallNotifications: false,
+    } as never);
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(rulesOf(payload)).toEqual([
+      {
+        settingId: "5e771000-0000-4000-8000-000000000000",
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        enabled: true,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        severityKind: "Incident",
+        appliesToAllSeverities: false,
+        severities: [
+          { id: critical.id.toString(), name: "Critical", color: "#9f1239" },
+        ],
+        compliantCount: 1,
+        nonCompliantCount: 2,
+        warnings: [
+          "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+        ],
+      },
+    ]);
+
+    // A project-wide switch is the rule's warning, not Ada's failure.
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(reasonsFor(payload, grace)).toEqual([
+      "No Call rule for incident severities: Critical",
+    ]);
+    expect(reasonsFor(payload, carol)).toEqual([
+      "The Call rule for incident severities Critical points at an unverified phone number for calls",
+    ]);
+
+    // No readiness pass for a channel rule.
+    expect(escalationUserFindBy).not.toHaveBeenCalled();
+
+    // The one rule read, and the one read of the phones it points at.
+    expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
+    expect(firstCall(notificationRuleFindBy).select?.["userCallId"]).toBe(true);
+    expect(userCallFindBy).toHaveBeenCalledTimes(1);
+    expect(firstCall(userCallFindBy).query["projectId"]).toBe(projectId);
+  });
+
+  test("Push for critical alerts: an opt-out is not a push rule", async () => {
+    const adaDevice: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          enabled: true,
+          notificationChannel: ComplianceNotificationChannel.Push,
+          alertSeverities: [page],
+        },
+      ],
+      members: [ada, grace],
+      rules: [
+        {
+          _id: "rule-ada-push",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+          alertSeverityId: page.id,
+          userPushId: adaDevice.id,
+        },
+        {
+          _id: "rule-grace-opt-out",
+          userId: grace.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+          alertSeverityId: page.id,
+          isOptOut: true,
+        },
+      ],
+      incidentSeverities: [],
+      alertSeverities: [page],
+      pushMethods: [adaDevice],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(reasonsFor(payload, grace)).toEqual([
+      "Opted out of alert notifications for: Page",
+    ]);
+    // Push has no project switch: no project read, no warning.
+    expect(projectFindOneById).not.toHaveBeenCalled();
+    expect(rulesOf(payload)[0]!["warnings"]).toEqual([]);
+  });
+
+  test("an any-channel rule and a channel rule side by side: readiness's rule read and the compliance rule read are separate", async () => {
+    const adaPhone: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+
+    stage({
+      settings: [
+        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannel: ComplianceNotificationChannel.Call,
+        },
+      ],
+      members: [ada],
+      rules: [
+        {
+          _id: "rule-ada-call-critical",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userCallId: adaPhone.id,
+        },
+        {
+          _id: "rule-ada-email-major",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: major.id,
+          userEmailId: ObjectID.generate(),
+        },
+      ],
+      incidentSeverities: [critical, major],
+      alertSeverities: [],
+      callMethods: [adaPhone],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    // Any channel: both severities have a rule. Call: only Critical does.
+    expect(reasonsFor(payload, ada)).toEqual([
+      "No Call rule for incident severities: Major",
+    ]);
+
+    const reads: Array<CapturedFindBy> = callsOf(notificationRuleFindBy);
+    expect(reads).toHaveLength(2);
+
+    const withChannel: Array<CapturedFindBy> = reads.filter(
+      (call: CapturedFindBy): boolean => {
+        return call.select?.["userCallId"] === true;
+      },
+    );
+    expect(withChannel).toHaveLength(1);
+    expect(Object.keys(withChannel[0]!.select || {}).sort()).toEqual([
+      "_id",
+      "alertSeverityId",
+      "incidentSeverityId",
+      "isOptOut",
+      "ruleType",
+      "userCall",
+      "userCallId",
+      "userEmail",
+      "userId",
+      "userMicrosoftTeams",
+      "userPush",
+      "userSlack",
+      "userSms",
+      "userTelegram",
+      "userWebhook",
+      "userWhatsApp",
+    ]);
   });
 
   test("DEFECT closed: not one read in the whole render carries the literal limit 100", async () => {
@@ -960,20 +1387,43 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
      * The old code capped team members, users and alert severities at 100 while
      * capping incident severities at LIMIT_PER_PROJECT. Truncation is the worst
      * failure mode a compliance page has: the 101st member was not reported
-     * non-compliant, they were simply absent, and an absent row reads as "no
-     * problem here". Sweeping every read the render makes - the compliance
-     * service's three and the readiness service's dozen - is the assertion that
-     * cannot be satisfied by fixing three call sites and missing a fourth.
+     * non-compliant, they were simply absent. Sweeping every read the render
+     * makes - the compliance service's and the readiness service's - is the
+     * assertion that cannot be satisfied by fixing some call sites and missing
+     * another.
      */
+    const adaPhone: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
         { ruleType: ComplianceRuleType.HasAlertOnCallRules, enabled: true },
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannel: ComplianceNotificationChannel.Call,
+        },
+        {
+          ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+          enabled: true,
+        },
       ],
       members: [ada, grace],
-      rules: [],
+      rules: [
+        {
+          _id: "rule-ada-call",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userCallId: adaPhone.id,
+        },
+      ],
       incidentSeverities: [critical, major],
       alertSeverities: [page],
+      callMethods: [adaPhone],
     });
 
     await readCompliance();
@@ -988,7 +1438,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     }
 
     // Guards the guard: an assertion over zero reads proves nothing.
-    expect(readsInspected).toBeGreaterThan(10);
+    expect(readsInspected).toBeGreaterThan(15);
 
     expect(firstCall(complianceSettingFindBy).limit).toBe(LIMIT_PER_PROJECT);
     expect(firstCall(teamMemberFindBy).limit).toBe(LIMIT_PER_PROJECT);
@@ -996,7 +1446,10 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     // Both severity kinds, which is where the two halves used to disagree.
     expect(firstCall(incidentSeverityFindBy).limit).toBe(LIMIT_PER_PROJECT);
     expect(firstCall(alertSeverityFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    expect(firstCall(notificationRuleFindBy).limit).toBe(LIMIT_PER_PROJECT);
+
+    for (const call of callsOf(notificationRuleFindBy)) {
+      expect(call.limit).toBe(LIMIT_PER_PROJECT);
+    }
   });
 
   test("DEFECT closed: the read count does not grow with members or severities", async () => {
@@ -1004,28 +1457,69 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
      * The N+1. The old service issued one findBy per severity per user, so a
      * team of 20 in a project with 5 severities cost 100 round trips to render
      * one page. The proof is comparative rather than absolute: the same render
-     * with three times the members and three times the severities must cost the
-     * same number of reads, whatever that number happens to be.
+     * with three times the members and four times the severities must cost the
+     * same number of reads - of every table, readiness's included.
      */
+    const settings: Array<StubSetting> = [
+      { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
+      {
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        enabled: true,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      {
+        ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+        enabled: true,
+        notificationChannel: ComplianceNotificationChannel.Push,
+      },
+      { ruleType: ComplianceRuleType.HasNotificationSMSMethod, enabled: true },
+    ];
+
+    function rulesFor(
+      members: Array<StubUser>,
+      severities: Array<StubSeverity>,
+      phones: Array<StubMethod>,
+    ): Array<StubRule> {
+      const rules: Array<StubRule> = [];
+
+      members.forEach((member: StubUser, index: number): void => {
+        for (const severity of severities) {
+          rules.push({
+            _id: ObjectID.generate().toString(),
+            userId: member.id,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: severity.id,
+            userCallId: phones[index]!.id,
+          });
+        }
+      });
+
+      return rules;
+    }
+
+    const adaPhone: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+
     stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
+      settings: settings,
       members: [ada],
-      rules: [],
+      rules: rulesFor([ada], [critical], [adaPhone]),
       incidentSeverities: [critical],
-      alertSeverities: [],
+      alertSeverities: [page],
+      callMethods: [adaPhone],
     });
 
     await readCompliance();
 
-    const smallRuleReads: number = notificationRuleFindBy.mock.calls.length;
-    const smallUserReads: number = userFindBy.mock.calls.length;
-    const smallSeverityReads: number =
-      incidentSeverityFindBy.mock.calls.length +
-      alertSeverityFindBy.mock.calls.length;
+    const smallCounts: Array<number> = everyFindBySpy().map(
+      (spy: jest.SpyInstance): number => {
+        return spy.mock.calls.length;
+      },
+    );
 
-    expect(smallRuleReads).toBe(1);
+    expect(notificationRuleFindBy.mock.calls.length).toBe(2);
 
     /*
      * mockClear, not mockReset: the stubs' resolved values are implementations
@@ -1041,28 +1535,32 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     };
     const minor: StubSeverity = { id: ObjectID.generate(), name: "Minor" };
     const trivial: StubSeverity = { id: ObjectID.generate(), name: "Trivial" };
+    const members: Array<StubUser> = [ada, grace, carol];
+    const phones: Array<StubMethod> = members.map(
+      (member: StubUser): StubMethod => {
+        return methodRow({ userId: member.id, isVerified: true });
+      },
+    );
 
     stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada, grace, carol],
-      rules: [],
+      settings: settings,
+      members: members,
+      rules: rulesFor(members, [critical, major, minor, trivial], phones),
       incidentSeverities: [critical, major, minor, trivial],
-      alertSeverities: [page],
+      alertSeverities: [page, { id: ObjectID.generate(), name: "Ticket" }],
+      callMethods: phones,
     });
 
     await readCompliance();
 
-    expect(notificationRuleFindBy.mock.calls.length).toBe(smallRuleReads);
-    expect(userFindBy.mock.calls.length).toBe(smallUserReads);
     expect(
-      incidentSeverityFindBy.mock.calls.length +
-        alertSeverityFindBy.mock.calls.length,
-    ).toBe(smallSeverityReads);
+      everyFindBySpy().map((spy: jest.SpyInstance): number => {
+        return spy.mock.calls.length;
+      }),
+    ).toEqual(smallCounts);
   });
 
-  test("one notification-rule read covers every member, batched on userId", async () => {
+  test("one notification-rule read covers every member for an any-channel rule, batched on userId", async () => {
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
@@ -1081,34 +1579,20 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       alertSeverities: [],
     });
 
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
+    const payload: Record<string, unknown> = await readCompliance();
 
     expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
 
     const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-    // One query, scoped to the project, listing every user it is asking about.
     expect(call.query["userId"]).toBeDefined();
     expect(call.props?.isRoot).toBe(true);
 
-    /*
-     * And the batched read still separates the two people: Ada's rule must not
-     * cover Grace. A batched query folded into a per-user map is exactly where
-     * that mistake would hide.
-     */
-    expect(statuses[0]!["userName"]).toBe("Ada");
-    expect(statuses[0]!["isCompliant"]).toBe(true);
-    expect(statuses[1]!["userName"]).toBe("Grace");
-    expect(statuses[1]!["isCompliant"]).toBe(false);
+    // The batched read still separates the two people: Ada's rule does not cover Grace.
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(statusFor(payload, grace)["isCompliant"]).toBe(false);
   });
 
   test("readiness is not computed at all when no on-call rule is enabled", async () => {
-    /*
-     * The four channel rules do not consult readiness, so a team that only
-     * checks "has a verified email" must not pay for a project-wide readiness
-     * pass on every render.
-     */
     stage({
       settings: [
         {
@@ -1129,16 +1613,115 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     expect(incidentSeverityFindBy).not.toHaveBeenCalled();
     expect(escalationUserFindBy).not.toHaveBeenCalled();
     expect(projectFindOneById).not.toHaveBeenCalled();
-    // The channel rule it WAS asked about still runs.
+    // The method rule it WAS asked about still runs - once, for everybody.
     expect(userEmailFindBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a disabled rule is listed, but checked against nobody", async () => {
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasNotificationCallMethod,
+          enabled: false,
+        },
+      ],
+      members: [ada],
+      rules: [],
+      incidentSeverities: [],
+      alertSeverities: [],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(rulesOf(payload)[0]).toMatchObject({
+      enabled: false,
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      warnings: [],
+    });
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(userCallFindBy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A severity delete that removed every severity a rule was scoped to
+   * pauses the rule and marks it (options.severitiesDeleted). With no
+   * severities left it would otherwise read, and be sent, as a rule for
+   * every severity - beside the team's real every-severity rule, which it
+   * would duplicate.
+   */
+  test("a rule whose severities were all deleted is sent as applying to none, with the warning, and checked against nobody", async () => {
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          enabled: false,
+          options: { severitiesDeleted: true },
+        },
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          enabled: true,
+        },
+      ],
+      members: [ada],
+      rules: [],
+      incidentSeverities: [critical],
+      alertSeverities: [],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+    const [emptied, everySeverity]: Array<Record<string, unknown>> =
+      rulesOf(payload);
+
+    expect(emptied).toEqual({
+      settingId: expect.any(String),
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: false,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      severityKind: ComplianceSeverityKind.Incident,
+      appliesToAllSeverities: false,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      warnings: [
+        "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.",
+      ],
+    });
+    expect(everySeverity).toMatchObject({
+      appliesToAllSeverities: true,
+      nonCompliantCount: 1,
+      warnings: [],
+    });
+
+    // Ada fails only the real rule.
+    expect(
+      (
+        statusFor(payload, ada)["nonCompliantRules"] as Array<
+          Record<string, unknown>
+        >
+      ).map((issue: Record<string, unknown>): unknown => {
+        return issue["settingId"];
+      }),
+    ).toEqual([everySeverity!["settingId"]]);
+
+    // The settings read asks for the options that carry the mark.
+    expect(
+      (
+        complianceSettingFindBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select["options"],
+    ).toBe(true);
   });
 
   test("a team that does not exist is refused rather than described", async () => {
     /*
-     * Refused by the ROUTE now, before the service is reached, and with the same
+     * Refused by the ROUTE, before the service is reached, and with the same
      * words a team in another project gets - see the authorisation block below
      * for why those two cases must be indistinguishable. The service refuses it
-     * as well, on its own, with a BadDataException; that guard is pinned in
+     * as well, on its own; that guard is pinned in
      * TeamComplianceServiceBehaviour.test.ts because it protects in-process
      * callers who never come through this route.
      */
@@ -1153,6 +1736,31 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     expect((result.thrownToNext as NotAuthorizedException).message).toBe(
       REFUSAL,
     );
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("a failure underneath reaches the error handler instead of a half-built payload", async () => {
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+          enabled: true,
+        },
+      ],
+      members: [ada],
+      rules: [],
+      incidentSeverities: [],
+      alertSeverities: [],
+    });
+    userEmailFindBy.mockRejectedValue(new Error("connection reset") as never);
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: COMPLIANCE_ROUTE,
+      params: { teamId: teamId.toString() },
+    });
+
+    expect(result.nextCallCount).toBe(1);
+    expect((result.thrownToNext as Error).message).toBe("connection reset");
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });

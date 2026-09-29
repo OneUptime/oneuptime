@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import InvestigationNotStartedReason, {
   InvestigationNotStartedCode,
 } from "Common/Types/AI/InvestigationNotStartedReason";
+import Project from "Common/Models/DatabaseModels/Project";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -26,16 +27,25 @@ interface ComponentProps {
   onRefresh: () => void;
 }
 
-interface SettingsAction {
+export interface SettingsAction {
   label: string;
   page: PageMap;
   permissions: Array<Permission>;
+  /*
+   * Shown instead of the link to people who lack `permissions`, so it must
+   * name who can act — a Project Admin cannot turn AI on or add credits.
+   */
+  whoCanAct: string;
 }
+
+const PROJECT_ADMIN_CAN_ACT: string =
+  "A project administrator can review these settings.";
 
 const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "ai_disabled",
   "automatic_investigation_disabled",
   "provider_missing",
+  "insufficient_ai_balance",
   "severity_below_threshold",
   "monitor_cooldown",
   "daily_budget_exhausted",
@@ -77,15 +87,45 @@ export function parseInvestigationNotStartedReason(
   return reason as InvestigationNotStartedReason;
 }
 
-function getSettingsAction(
+/*
+ * Who may flip the project's AI switch, from the column's own update access
+ * control, so the link is offered to exactly the people whose save the
+ * server accepts.
+ */
+function getEnableAiUpdatePermissions(): Array<Permission> {
+  return new Project().getColumnAccessControlFor("enableAi")?.update || [];
+}
+
+export function getSettingsAction(
   code: InvestigationNotStartedCode,
   subjectType: "incident" | "alert",
 ): SettingsAction | null {
+  /*
+   * The project's AI switch lives on Project Settings → AI Features, which
+   * every install shows (AI Credits is listed only when billing is on).
+   */
   if (code === "ai_disabled") {
     return {
-      label: "Review project AI settings",
+      label: "Go to Project Settings → AI Features",
+      page: PageMap.SETTINGS_AI_FEATURES,
+      permissions: getEnableAiUpdatePermissions(),
+      whoCanAct:
+        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
+    };
+  }
+
+  /*
+   * Only produced when billing is on, which is exactly when AI Credits is
+   * in the settings menu. Recharging takes the permissions AIBillingAPI's
+   * /ai/recharge checks.
+   */
+  if (code === "insufficient_ai_balance") {
+    return {
+      label: "Add AI credits",
       page: PageMap.SETTINGS_AI_CREDITS,
       permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+      whoCanAct:
+        "A project owner or someone with Manage Billing can add AI credits.",
     };
   }
 
@@ -101,6 +141,7 @@ function getSettingsAction(
         Permission.SettingsMember,
         Permission.CreateProjectLlm,
       ],
+      whoCanAct: PROJECT_ADMIN_CAN_ACT,
     };
   }
 
@@ -119,6 +160,7 @@ function getSettingsAction(
         ? PageMap.ALERTS_SETTINGS_AI
         : PageMap.INCIDENTS_SETTINGS_AI,
     permissions: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    whoCanAct: PROJECT_ADMIN_CAN_ACT,
   };
 }
 
@@ -265,7 +307,7 @@ const InvestigationNotStartedCard: FunctionComponent<ComponentProps> = (
                 </Link>
               ) : action ? (
                 <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                  A project administrator can review these settings.
+                  {action.whoCanAct}
                 </p>
               ) : null}
             </div>

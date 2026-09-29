@@ -1,8 +1,22 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -17,7 +31,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * bucket, each named the way the session list names them; a withheld
  * label reads Hidden; the row and its Sessions action hand the person's
  * filter back with the key and label it was rolled up under; Watch latest
- * is a real link to the newest recording;
+ * sits in the row's ⋯ menu beside Sessions and opens the newest recording
+ * (a real link when it is the row's only action);
  * paging echoes the server's cursor; empty and error states are honest.
  */
 
@@ -52,8 +67,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import SessionReplayUsersTable, {
+  getWatchLatestMenuRoute,
   SESSION_REPLAY_USERS_PAGE_SIZE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersTable";
+import { parseSessionReplayUserRollup } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersApi";
 import { SessionReplayUserSessionsHandoff } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
@@ -107,6 +124,25 @@ function wireRollup(overrides?: JSONObject): JSONObject {
     ...overrides,
   };
 }
+
+/* A browser the recorder linked with a visitor id; its newest session is B. */
+const VISITOR_ROLLUP: JSONObject = {
+  groupKey: `v:${VISITOR_A}`,
+  kind: "visitor",
+  identifiedUserKey: "",
+  identifiedUserLabel: "",
+  lastSessionId: SESSION_B,
+};
+
+/* The "Unlinked sessions" bucket: nobody to filter by. */
+const UNLINKED_ROLLUP: JSONObject = {
+  groupKey: "",
+  kind: "anonymous",
+  identifiedUserKey: "",
+  visitorId: "",
+  identifiedUserLabel: "",
+  identifiedUserTraits: {},
+};
 
 function usersResponse(
   users: Array<JSONObject>,
@@ -390,29 +426,423 @@ describe("SessionReplayUsersTable actions", () => {
 
     expect(onViewUserSessions).toHaveBeenCalledTimes(2);
 
-    fireEvent.click(screen.getByTestId("session-user-watch-latest"));
+    /* Opening the row's ⋯ menu is the ⋯'s click, not the row's. */
+    fireEvent.click(
+      within(row as HTMLElement).getByTestId("row-actions-more-button"),
+    );
 
-    /* The link's own navigation, not a third filter call. */
+    expect(onViewUserSessions).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Watch latest",
+      }),
+    );
+
+    /* The item's own navigation, not a third filter call. */
     expect(onViewUserSessions).toHaveBeenCalledTimes(2);
     expect(navigateMock).toHaveBeenCalledTimes(1);
   });
 
-  it("Watch latest links to the newest session's player route", async () => {
+  it("Watch latest opens the newest session's player route", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup()]);
     });
 
     renderTable();
 
-    await waitForUserRows(1);
+    const [row] = await waitForUserRows(1);
 
-    const link: HTMLAnchorElement = screen
+    fireEvent.click(
+      within(row as HTMLElement).getByTestId("row-actions-more-button"),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Watch latest",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const route: string = (
+      navigateMock.mock.calls[0]![0] as { toString: () => string }
+    ).toString();
+
+    expect(route).toContain(`/${SESSION_A}`);
+    expect(route).toContain(APP_ID);
+  });
+});
+
+/*
+ * Each row shows one control and a ⋯ menu for the other. With a person to
+ * filter by, Sessions is the button and Watch latest waits in the menu;
+ * the unlinked bucket has nobody to filter by, so its newest recording is
+ * the button itself - a real link, no menu of one. A row with nothing to
+ * open has neither.
+ */
+/*
+ * Watch latest goes in the ⋯ menu exactly when Sessions is the row's
+ * button - there is a person to filter by - and there is a recording to
+ * open. Everywhere else the menu has nothing to hold.
+ */
+describe("getWatchLatestMenuRoute", () => {
+  function menuRouteFor(overrides?: JSONObject): string | null {
+    const route: { toString: () => string } | null = getWatchLatestMenuRoute(
+      parseSessionReplayUserRollup(wireRollup(overrides)),
+      APP_ID,
+    );
+
+    return route ? route.toString() : null;
+  }
+
+  it("is the newest session's player route for an identified person", () => {
+    const route: string | null = menuRouteFor();
+
+    expect(route).toContain(APP_ID);
+    expect(route).toContain(`/${SESSION_A}`);
+  });
+
+  it("is the newest session's player route for a visitor", () => {
+    expect(menuRouteFor(VISITOR_ROLLUP)).toContain(`/${SESSION_B}`);
+  });
+
+  it("is the route for a withheld label that still has a key to filter by", () => {
+    const hidden: JSONObject = wireRollup();
+
+    delete hidden["identifiedUserLabel"];
+
+    expect(
+      getWatchLatestMenuRoute(
+        parseSessionReplayUserRollup(hidden),
+        APP_ID,
+      )?.toString(),
+    ).toContain(`/${SESSION_A}`);
+  });
+
+  it("is null for a withheld label with no key: nobody to filter by, so Watch latest is the row's button", () => {
+    const hidden: JSONObject = wireRollup({ identifiedUserKey: "" });
+
+    delete hidden["identifiedUserLabel"];
+
+    expect(
+      getWatchLatestMenuRoute(parseSessionReplayUserRollup(hidden), APP_ID),
+    ).toBeNull();
+  });
+
+  it("is null for the unlinked bucket, even with a recording to open", () => {
+    expect(menuRouteFor(UNLINKED_ROLLUP)).toBeNull();
+  });
+
+  it("is null for a person with no recording to open", () => {
+    expect(menuRouteFor({ lastSessionId: "" })).toBeNull();
+  });
+});
+
+describe("SessionReplayUsersTable row actions", () => {
+  function moreButtonOf(row: HTMLElement): HTMLElement | null {
+    return within(row).queryByTestId("row-actions-more-button");
+  }
+
+  function openMenuOf(row: HTMLElement): HTMLElement {
+    fireEvent.click(moreButtonOf(row) as HTMLElement);
+
+    return screen.getByRole("menu");
+  }
+
+  function navigatedTo(callIndex: number): string {
+    return (
+      navigateMock.mock.calls[callIndex]![0] as { toString: () => string }
+    ).toString();
+  }
+
+  function actionsCellOf(row: HTMLElement): HTMLElement {
+    const cells: Array<HTMLElement> = Array.from(row.querySelectorAll("td"));
+
+    return cells[cells.length - 1] as HTMLElement;
+  }
+
+  it("a person's row shows Sessions as its one button and Watch latest in its ⋯ menu", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const [row] = await waitForUserRows(1);
+    const cell: HTMLElement = actionsCellOf(row as HTMLElement);
+
+    /*
+     * Two buttons in the cell: Sessions and the ⋯ beside it. The old small
+     * Watch latest link under Sessions is gone.
+     */
+    expect(within(cell).getAllByRole("button")).toEqual([
+      within(cell).getByTestId("session-user-view-sessions"),
+      moreButtonOf(row as HTMLElement),
+    ]);
+    expect(within(cell).queryAllByRole("link")).toHaveLength(0);
+    expect(within(cell).queryByTestId("session-user-watch-latest")).toBeNull();
+    expect(moreButtonOf(row as HTMLElement)).toHaveAttribute(
+      "aria-label",
+      "More actions",
+    );
+
+    /* Sessions keeps its person-specific title. */
+    expect(
+      within(cell).getByTestId("session-user-view-sessions"),
+    ).toHaveAttribute("title", "List every session from jane@acme.com");
+
+    const menu: HTMLElement = openMenuOf(row as HTMLElement);
+
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["Watch latest"]);
+    /* Portalled out of the row, so the table's overflow cannot clip it. */
+    expect(row).not.toContainElement(menu);
+
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("a person with no recording to open shows Sessions and no ⋯", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup({ lastSessionId: "" })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForUserRows(1);
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-user-view-sessions"),
+    ).toBeInTheDocument();
+    expect(moreButtonOf(row as HTMLElement)).toBeNull();
+    expect(within(row as HTMLElement).queryByTestId("row-actions")).toBeNull();
+  });
+
+  it("the unlinked bucket's newest recording is its one button: a real link, and no ⋯", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup(UNLINKED_ROLLUP)]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const [row] = await waitForUserRows(1);
+    const cell: HTMLElement = actionsCellOf(row as HTMLElement);
+
+    expect(within(cell).queryByTestId("session-user-view-sessions")).toBeNull();
+    expect(moreButtonOf(row as HTMLElement)).toBeNull();
+
+    const link: HTMLAnchorElement = within(cell)
       .getByTestId("session-user-watch-latest")
       .closest("a") as HTMLAnchorElement;
 
-    expect(link).not.toBeNull();
+    expect(within(cell).getAllByRole("link")).toEqual([link]);
     expect(link.getAttribute("href")).toContain(`/${SESSION_A}`);
     expect(link.getAttribute("href")).toContain(APP_ID);
+    expect(link).toHaveAttribute(
+      "title",
+      `Watch the newest session (${SESSION_A.slice(0, 8)})`,
+    );
+
+    fireEvent.click(link);
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_A}`);
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+  });
+
+  it("the unlinked bucket with no recording shows no action at all", async () => {
+    mockUsers(() => {
+      return usersResponse([
+        wireRollup({ ...UNLINKED_ROLLUP, lastSessionId: "" }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForUserRows(1);
+    const cell: HTMLElement = actionsCellOf(row as HTMLElement);
+
+    expect(within(cell).queryAllByRole("button")).toHaveLength(0);
+    expect(within(cell).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("only the rows with both a person and a recording carry a ⋯", async () => {
+    mockUsers(() => {
+      return usersResponse([
+        wireRollup(),
+        wireRollup({ ...VISITOR_ROLLUP, lastSessionId: "" }),
+        wireRollup(UNLINKED_ROLLUP),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForUserRows(3);
+
+    expect(
+      rows.map((row: HTMLElement): boolean => {
+        return Boolean(moreButtonOf(row));
+      }),
+    ).toEqual([true, false, false]);
+  });
+
+  it("choosing Watch latest opens THAT row's newest session, and never filters by the person", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup(), wireRollup(VISITOR_ROLLUP)]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const rows: Array<HTMLElement> = await waitForUserRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "Watch latest",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_B}`);
+    expect(navigatedTo(0)).not.toContain(SESSION_A);
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).toBeNull();
+    });
+
+    fireEvent.click(
+      within(openMenuOf(rows[0] as HTMLElement)).getByRole("menuitem", {
+        name: "Watch latest",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(2);
+    expect(navigatedTo(1)).toContain(`/${SESSION_A}`);
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+  });
+
+  it("Enter on the focused Watch latest item opens it once, and the row does not also filter", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const [row] = await waitForUserRows(1);
+    const item: HTMLElement = within(openMenuOf(row as HTMLElement)).getByRole(
+      "menuitem",
+      { name: "Watch latest" },
+    );
+
+    act((): void => {
+      item.focus();
+    });
+
+    fireEvent.keyDown(item, { key: "Enter" });
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain(`/${SESSION_A}`);
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+  });
+
+  it("a click inside the open menu but off its items does not filter by the row's person", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const [row] = await waitForUserRows(1);
+    const menu: HTMLElement = openMenuOf(row as HTMLElement);
+
+    /*
+     * The menu is portalled to document.body but React bubbles its clicks
+     * to the row all the same; the menu's own padding is not the row.
+     */
+    fireEvent.click(menu);
+
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("Sessions beside the ⋯ still hands back this row's person", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup(), wireRollup(VISITOR_ROLLUP)]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const rows: Array<HTMLElement> = await waitForUserRows(2);
+
+    fireEvent.click(
+      within(rows[1] as HTMLElement).getByTestId("session-user-view-sessions"),
+    );
+
+    expect(onViewUserSessions).toHaveBeenCalledTimes(1);
+    expect(onViewUserSessions.mock.calls[0]![0]).toEqual({
+      filter: { visitorId: VISITOR_A },
+      identifiedUserKey: "",
+      identifiedUserLabel: "",
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("SessionReplayUsersTable row actions on a phone", () => {
+  let originalInnerWidth: number = 0;
+
+  beforeEach(() => {
+    originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 375,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
+  });
+
+  it("a card keeps Sessions and the ⋯, and the menu still opens that person's newest session", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup(), wireRollup(VISITOR_ROLLUP)]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const cards: Array<HTMLElement> = await waitForUserRows(2);
+
+    /* Cards, not table rows. */
+    expect(cards[0]!.tagName).toBe("DIV");
+    expect(
+      within(cards[1] as HTMLElement).getByTestId("session-user-view-sessions"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(cards[1] as HTMLElement).getByTestId("row-actions-more-button"),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Watch latest",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+    ).toContain(`/${SESSION_B}`);
+    expect(onViewUserSessions).not.toHaveBeenCalled();
   });
 });
 

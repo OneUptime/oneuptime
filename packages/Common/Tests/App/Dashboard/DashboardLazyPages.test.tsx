@@ -216,6 +216,7 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/Runners",
   "Settings/RunnerView",
   "Settings/RunnerCredentials",
+  "Settings/AIFeatures",
   "Settings/AICredits",
   "Settings/AIGuardrails",
   "Settings/AILogs",

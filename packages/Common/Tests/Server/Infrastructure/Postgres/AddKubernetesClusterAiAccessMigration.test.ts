@@ -1,4 +1,5 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
+import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -13,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import {
   DefaultNamingStrategy,
+  MigrationInterface,
   QueryRunner,
   getMetadataArgsStorage,
 } from "typeorm";
@@ -79,10 +81,12 @@ const registeredNames: Array<string> = (
 
 type RecordQueriesFunction = (
   direction: "up" | "down",
+  migration?: MigrationInterface,
 ) => Promise<Array<string>>;
 
 const recordQueries: RecordQueriesFunction = async (
   direction: "up" | "down",
+  migration?: MigrationInterface,
 ): Promise<Array<string>> => {
   const statements: Array<string> = [];
 
@@ -92,10 +96,46 @@ const recordQueries: RecordQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new AddKubernetesClusterAiAccess1794400000000()[direction](queryRunner);
+  await (migration || new AddKubernetesClusterAiAccess1794400000000())[
+    direction
+  ](queryRunner);
 
   return statements;
 };
+
+/*
+ * Column defaults a LATER migration moved. This migration has shipped, so
+ * its DDL stays exactly as it was (existing installs ran it long ago); for
+ * these columns the model's current default is compared with the later
+ * migration's SET DEFAULT instead, and this migration's historical default
+ * with what the later migration's down() restores.
+ */
+interface MovedDefault {
+  table: string;
+  property: string;
+  migration: MigrationInterface;
+}
+
+const DEFAULTS_MOVED_LATER: Array<MovedDefault> = [
+  {
+    table: "KubernetesCluster",
+    property: "isAiInvestigationEnabled",
+    migration: new AddKubernetesAiAgentAndAiDefaults1796100000000(),
+  },
+];
+
+function movedDefaultFor(
+  table: string,
+  property: string,
+): MovedDefault | undefined {
+  return DEFAULTS_MOVED_LATER.find((moved: MovedDefault): boolean => {
+    return moved.table === table && moved.property === property;
+  });
+}
+
+function defaultLiteral(value: unknown): string {
+  return typeof value === "string" ? `'${value}'` : String(value);
+}
 
 type ModelClass = { new (): BaseModel; name: string };
 
@@ -435,22 +475,59 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
         expect(column.ddl).not.toContain("NOT NULL");
       }
 
-      if (declared.options.default !== undefined) {
-        const literal: string =
-          typeof declared.options.default === "string"
-            ? `'${declared.options.default}'`
-            : String(declared.options.default);
-        expect(column.ddl).toContain(`DEFAULT ${literal}`);
+      if (movedDefaultFor(column.table, column.property)) {
+        // Compared with the later migration below.
+        expect(column.ddl).toContain("DEFAULT");
+      } else if (declared.options.default !== undefined) {
+        expect(column.ddl).toContain(
+          `DEFAULT ${defaultLiteral(declared.options.default)}`,
+        );
       } else {
         expect(column.ddl).not.toContain("DEFAULT");
       }
     },
   );
 
+  test.each(DEFAULTS_MOVED_LATER)(
+    "$table.$property: the model's default is the one the later migration sets, and its down() restores this migration's",
+    async (moved: MovedDefault) => {
+      const declared: ColumnMetadataArgs = declaredColumn(
+        KubernetesCluster,
+        moved.property,
+      );
+      const expected: ExpectedColumn | undefined = EXPECTED_COLUMNS.find(
+        (column: ExpectedColumn): boolean => {
+          return (
+            column.table === moved.table && column.property === moved.property
+          );
+        },
+      );
+
+      expect(declared.options.default).toBeDefined();
+      expect(expected).toBeDefined();
+
+      expect(await recordQueries("up", moved.migration)).toContain(
+        `ALTER TABLE "${moved.table}" ALTER COLUMN "${moved.property}" SET DEFAULT ${defaultLiteral(
+          declared.options.default,
+        )}`,
+      );
+
+      const historical: RegExpMatchArray | null =
+        expected!.ddl.match(/DEFAULT (.+)$/);
+      expect(historical).not.toBeNull();
+
+      expect(await recordQueries("down", moved.migration)).toContain(
+        `ALTER TABLE "${moved.table}" ALTER COLUMN "${moved.property}" SET DEFAULT ${historical![1]}`,
+      );
+    },
+  );
+
   /*
-   * Existing clusters get investigation off and remediation Disabled in the
-   * same statement that adds the column - no backfill, no window in which a
-   * row has no mode, and nothing turned on for anyone by the upgrade.
+   * Existing clusters got investigation off and remediation Disabled in the
+   * same statement that added the column - no backfill, no window in which a
+   * row has no mode, and nothing turned on for anyone by THIS upgrade. (A
+   * later migration, AddKubernetesAiAgentAndAiDefaults, turns investigation
+   * on for clusters nobody ever configured; that is pinned in its own test.)
    */
   test("leaves every existing cluster with AI investigation off and remediation Disabled", async () => {
     const statements: Array<string> = await recordQueries("up");

@@ -331,7 +331,15 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedResend from "../../../Types/StatusPage/IncidentCreatedResend";
-import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "../../../UI/Components/Forms/ModelForm";
+import { ModalWidth } from "../../../UI/Components/Modal/Modal";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -1233,6 +1241,24 @@ describe.each([
         latestProps<{ seriesLabels: unknown }>("SeriesResource").seriesLabels,
       ).toEqual({ "host.name": "prod-01" });
     });
+
+    /*
+     * The Affected Resources editor holds a picker whose placeholder names a
+     * dozen resource types. In the default 512px modal it was cut off and
+     * every chip cramped, so the card edits in a Medium one.
+     */
+    test("the Affected Resources card edits in a Medium modal", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(
+        latestProps<{ createEditModalWidth?: ModalWidth }>(
+          "CardModelDetail:Affected Resources",
+        ).createEditModalWidth,
+      ).toBe(ModalWidth.Medium);
+    });
   });
 
   describe("background refresh", () => {
@@ -1886,7 +1912,13 @@ describe.each([
  */
 interface ResourcesFormFieldProps {
   field?: Record<string, unknown>;
+  title?: string;
+  description?: string;
   fieldType?: FormFieldSchemaType;
+  required?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
+  dropdownModal?: { type: unknown; labelField: string; valueField: string };
   showIf?: (values: unknown) => boolean;
   getCustomElement?: (values: unknown, elementProps: unknown) => ReactElement;
 }
@@ -2908,11 +2940,11 @@ describe("alert-only behaviour", () => {
     });
 
     /*
-     * The monitor is shown, never edited: ModelForm loads and saves only the
-     * fields registered here, so leaving the monitor out means saving the
-     * card can neither move the alert to another monitor nor clear it.
+     * Alert.monitor is a single relation, so it is edited with a dropdown of
+     * its own above the picker (as on the Create page), never as a picker
+     * chip. ModelForm loads and saves only the fields registered here.
      */
-    test("its edit form never loads the monitor, so saving cannot change or clear it", () => {
+    test("its edit form offers the monitor in a dropdown of its own, above the picker", () => {
       const formFields: Array<ResourcesFormFieldProps> =
         resourcesCard().formFields;
       const keysOf: (field: ResourcesFormFieldProps) => Array<string> = (
@@ -2923,8 +2955,13 @@ describe("alert-only behaviour", () => {
 
       const formKeys: Array<string> = formFields.flatMap(keysOf);
 
-      expect(formKeys).not.toContain("monitor");
+      // The singular relation, never the incident's plural list.
       expect(formKeys).not.toContain("monitors");
+      /*
+       * The lock is read by the page, not registered: ModelForm submits every
+       * registered field, and nobody may update this column.
+       */
+      expect(formKeys).not.toContain("isCreatedAutomatically");
 
       const visibleFields: Array<ResourcesFormFieldProps> = formFields.filter(
         (field: ResourcesFormFieldProps): boolean => {
@@ -2937,11 +2974,30 @@ describe("alert-only behaviour", () => {
         },
       );
 
-      // The one visible field is the resource picker, registered on hosts.
-      expect(visibleFields.map(keysOf)).toEqual([["hosts"]]);
-      expect(visibleFields[0]!.fieldType).toBe(
-        FormFieldSchemaType.CustomComponent,
-      );
+      // The monitor dropdown first, then the resource picker on hosts.
+      expect(visibleFields.map(keysOf)).toEqual([["monitor"], ["hosts"]]);
+
+      const monitorField: ResourcesFormFieldProps = visibleFields[0]!;
+
+      expect(monitorField.title).toBe("Monitor");
+      expect(monitorField.fieldType).toBe(FormFieldSchemaType.Dropdown);
+      expect(monitorField.dropdownModal).toEqual({
+        type: Monitor,
+        labelField: "name",
+        valueField: "_id",
+      });
+      expect(monitorField.required).toBe(false);
+      /*
+       * The Create page's placeholder: the dashboard translates it by its
+       * English text, and every locale has this spelling.
+       */
+      expect(monitorField.placeholder).toBe("Select Monitor");
+
+      const pickerField: ResourcesFormFieldProps = visibleFields[1]!;
+
+      // Read as a pair with the dropdown above it.
+      expect(pickerField.title).toBe("Other Affected Resources");
+      expect(pickerField.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       // Hidden registrations so the form still loads the other relations.
       expect(hiddenFields.flatMap(keysOf)).toEqual([
         "kubernetesClusters",
@@ -2956,8 +3012,8 @@ describe("alert-only behaviour", () => {
         "services",
       ]);
 
-      // The picker it renders offers no monitors to attach either.
-      render(visibleFields[0]!.getCustomElement!({}, {}));
+      // The picker does not offer monitors: the dropdown is the one place.
+      render(pickerField.getCustomElement!({}, {}));
 
       const picker: { monitors?: unknown; resourceTypes?: Array<string> } =
         latestProps<{ monitors?: unknown; resourceTypes?: Array<string> }>(
@@ -2973,6 +3029,524 @@ describe("alert-only behaviour", () => {
       expect(resourcesCard().cardProps.description).toBe(
         "Monitors, services, infrastructure and SLOs this alert affects.",
       );
+    });
+  });
+
+  /*
+   * An alert raised automatically keeps the monitor it was raised with, and
+   * the server refuses to set, change or clear it (AlertService.
+   * onBeforeUpdate). Raised by a monitor, the alert shows that monitor
+   * locked, with the reason; raised without one (an SLO burn-rate or
+   * security-event alert, or one whose monitor was deleted), it has no
+   * Monitor field at all. The page reads which case it is with its own row,
+   * so the lock is known before any card renders.
+   */
+  describe("the Affected Resources card's monitor lock", () => {
+    interface ServedAlert {
+      isCreatedAutomatically: boolean;
+      monitorId?: string | undefined;
+    }
+
+    type ServeAlertFunction = (served: ServedAlert) => void;
+
+    const serveAlert: ServeAlertFunction = (served: ServedAlert): void => {
+      serve(ALERT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      getItemMock.mockImplementation(() => {
+        const alert: Alert = ALERT_CASE.buildEvent("Checkout slow") as Alert;
+        alert.isCreatedAutomatically = served.isCreatedAutomatically;
+
+        if (served.monitorId) {
+          alert.monitorId = new ObjectID(served.monitorId);
+        }
+
+        return Promise.resolve(alert);
+      });
+    };
+
+    type MonitorFieldFunction = () => ResourcesFormFieldProps;
+
+    const monitorField: MonitorFieldFunction = (): ResourcesFormFieldProps => {
+      const field: ResourcesFormFieldProps | undefined =
+        resourcesCard().formFields.find(
+          (formField: ResourcesFormFieldProps): boolean => {
+            return Boolean(formField.field?.["monitor"]);
+          },
+        );
+
+      if (!field) {
+        throw new Error("The Affected Resources form has no monitor field");
+      }
+
+      return field;
+    };
+
+    type IsMonitorFieldShownFunction = (values: unknown) => boolean;
+
+    // What the form decides for the Monitor field, given its current values.
+    const isMonitorFieldShown: IsMonitorFieldShownFunction = (
+      values: unknown,
+    ): boolean => {
+      const field: ResourcesFormFieldProps = monitorField();
+
+      return !field.showIf || field.showIf(values);
+    };
+
+    const LOCKED_DESCRIPTION: string =
+      "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed.";
+
+    test("the page reads whether the alert was raised automatically, and its monitor, with its own row", async () => {
+      serveAlert({ isCreatedAutomatically: false });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      const pageRead: { select: Record<string, unknown> } | undefined =
+        getItemMock.mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as { select: Record<string, unknown> };
+          })
+          .find((request: { select: Record<string, unknown> }): boolean => {
+            return Boolean(request.select["telemetryQuery"]);
+          });
+
+      expect(pageRead).toBeDefined();
+      expect(pageRead!.select["isCreatedAutomatically"]).toBe(true);
+      expect(pageRead!.select["monitorId"]).toBe(true);
+    });
+
+    test("an alert its monitor raised shows the dropdown locked, and says why", async () => {
+      serveAlert({ isCreatedAutomatically: true, monitorId: MONITOR_ID });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({ monitor: MONITOR_ID })).toBe(true);
+      expect(monitorField().disabled).toBe(true);
+      expect(monitorField().description).toBe(LOCKED_DESCRIPTION);
+    });
+
+    test("a manual alert's monitor can be changed or cleared", async () => {
+      serveAlert({ isCreatedAutomatically: false, monitorId: MONITOR_ID });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({ monitor: MONITOR_ID })).toBe(true);
+      // Cleared in the open form, it stays there to pick another.
+      expect(isMonitorFieldShown({ monitor: null })).toBe(true);
+      expect(monitorField().disabled).toBe(false);
+      expect(monitorField().description).toBe(
+        "Select the monitor affected by this alert.",
+      );
+    });
+
+    test("a manual alert with no monitor can be given one", async () => {
+      serveAlert({ isCreatedAutomatically: false });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({})).toBe(true);
+      expect(monitorField().disabled).toBe(false);
+      expect(monitorField().description).toBe(
+        "Select the monitor affected by this alert.",
+      );
+    });
+
+    /*
+     * Nothing to show, and nothing that may be picked: the field is left out
+     * rather than shown empty and locked with a reason that names a monitor
+     * the alert does not have.
+     */
+    test("an automatic alert with no monitor (an SLO burn-rate alert) has no Monitor field", async () => {
+      serveAlert({ isCreatedAutomatically: true });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({})).toBe(false);
+      expect(isMonitorFieldShown({ monitor: null })).toBe(false);
+      // Still registered: ModelForm loads it and saves back the null it holds.
+      expect(monitorField().field).toEqual({ monitor: true });
+    });
+
+    /*
+     * Saving the card can set, move or clear a manual alert's monitor. The
+     * details card shows it (and reports it for the header's Monitor fact),
+     * and the lock depends on the page's own row, so both are read again
+     * without a reload. Here, an automatic alert's monitor was deleted while
+     * the page was open: after the save, the row the page reads again has no
+     * monitor, and the field locked on it is left out.
+     */
+    test("saving the card re-reads the details card, the page's lock and the feed", async () => {
+      serveAlert({ isCreatedAutomatically: true, monitorId: MONITOR_ID });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      expect(isMonitorFieldShown({})).toBe(true);
+      expect(monitorField().disabled).toBe(true);
+
+      const refresherBefore: boolean | undefined =
+        latestProps<CardModelDetailProps>(
+          "CardModelDetail:Alert Details",
+        ).refresher;
+      const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+        "Feed",
+      ).refreshToken;
+      const readsBefore: number = countItemReads();
+
+      // Its monitor was deleted, which leaves the alert's monitorId NULL.
+      serveAlert({ isCreatedAutomatically: true });
+
+      act(() => {
+        latestProps<CardModelDetailProps>("CardModelDetail:Affected Resources")
+          .onSaveSuccess!();
+      });
+
+      await waitFor(() => {
+        expect(isMonitorFieldShown({})).toBe(false);
+      });
+
+      expect(
+        latestProps<CardModelDetailProps>("CardModelDetail:Alert Details")
+          .refresher,
+      ).toBe(!refresherBefore);
+      expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+        feedTokenBefore + 1,
+      );
+      // One background read of the page's own row, and nothing remounted.
+      expect(countItemReads()).toBe(readsBefore + 1);
+      expect(mountCounts["InvestigationPanel"]).toBe(1);
+      expect(mountCounts["Feed"]).toBe(1);
+    });
+  });
+
+  /*
+   * The card's form fields, rendered in the real ModelForm its Edit modal
+   * opens (EntityDropdown included), against the row as the API hands it to
+   * the form: the monitor as `{ _id }` only.
+   */
+  describe("the Affected Resources edit form, rendered", () => {
+    const OTHER_MONITOR_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2";
+    const HOST_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1";
+    const OTHER_HOST_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2";
+
+    const MONITOR_NAMES: Record<string, string> = {
+      [MONITOR_ID]: "Developer portal",
+      [OTHER_MONITOR_ID]: "Payments API",
+    };
+
+    let formLoadSelect: Record<string, unknown> | null = null;
+
+    interface EditFormOptions {
+      isCreatedAutomatically: boolean;
+      // Whether the alert has a monitor. It has MONITOR_ID unless this is false.
+      hasMonitor?: boolean | undefined;
+    }
+
+    type RenderEditFormFunction = (options: EditFormOptions) => Promise<void>;
+
+    const renderEditForm: RenderEditFormFunction = async (
+      options: EditFormOptions,
+    ): Promise<void> => {
+      const hasMonitor: boolean = options.hasMonitor !== false;
+
+      serve(ALERT_CASE, {
+        timeline: REOPENED_TIMELINE,
+        title: "Checkout slow",
+      });
+
+      getItemMock.mockImplementation(() => {
+        const alert: Alert = ALERT_CASE.buildEvent("Checkout slow") as Alert;
+        alert.isCreatedAutomatically = options.isCreatedAutomatically;
+
+        if (hasMonitor) {
+          alert.monitorId = new ObjectID(MONITOR_ID);
+        }
+
+        return Promise.resolve(alert);
+      });
+
+      ALERT_CASE.renderPage();
+      await waitForPage();
+
+      const fields: Array<ModelField<Alert>> = resourcesCard()
+        .formFields as unknown as Array<ModelField<Alert>>;
+
+      // The page has handed over its fields; only the form is needed now.
+      cleanup();
+
+      // The form is about wiring, not about who may edit which column.
+      jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
+
+      formLoadSelect = null;
+
+      getItemMock.mockImplementation((...args: Array<unknown>) => {
+        formLoadSelect = (args[0] as { select: Record<string, unknown> })
+          .select;
+
+        return Promise.resolve(
+          BaseModel.fromJSON(
+            {
+              _id: EVENT_ID,
+              // The API answers a relation the row does not hold with null.
+              monitor: hasMonitor ? { _id: MONITOR_ID } : null,
+              hosts: [{ _id: HOST_ID }],
+              services: [],
+            },
+            Alert,
+          ) as Alert,
+        );
+      });
+
+      getListMock.mockImplementation((...args: Array<unknown>) => {
+        const request: {
+          modelType: unknown;
+          query: Record<string, unknown>;
+        } = args[0] as {
+          modelType: unknown;
+          query: Record<string, unknown>;
+        };
+
+        if (request.modelType !== Monitor) {
+          return Promise.resolve(listResult([]));
+        }
+
+        const idFilter: unknown = request.query["_id"];
+        const ids: Array<string> =
+          idFilter instanceof Includes
+            ? (idFilter.values as Array<unknown>).map((id: unknown) => {
+                return String(id);
+              })
+            : Object.keys(MONITOR_NAMES);
+
+        return Promise.resolve(
+          listResult(
+            ids
+              .filter((id: string): boolean => {
+                return Boolean(MONITOR_NAMES[id]);
+              })
+              .map((id: string): Monitor => {
+                const monitor: Monitor = new Monitor();
+                monitor._id = id;
+                monitor.name = MONITOR_NAMES[id]!;
+                return monitor;
+              }),
+          ),
+        );
+      });
+
+      createOrUpdateMock.mockResolvedValue({
+        data: new Alert(),
+        miscData: undefined,
+      });
+
+      render(
+        <ModelForm<Alert>
+          modelType={Alert}
+          id="edit-alert-affected-resources"
+          name="Affected Resources"
+          fields={fields}
+          formType={FormType.Update}
+          modelIdToEdit={new ObjectID(EVENT_ID)}
+          submitButtonText="Save Changes"
+          onSuccess={() => {
+            // asserted through createOrUpdateMock
+          }}
+        />,
+      );
+
+      if (hasMonitor) {
+        await screen.findByText("Developer portal");
+        return;
+      }
+
+      // No monitor name to wait for: the picker renders with the fields.
+      await waitFor(() => {
+        expect(propsHistory("AffectedResourcesPicker").length).toBeGreaterThan(
+          0,
+        );
+      });
+    };
+
+    type SaveFunction = () => Promise<Alert>;
+
+    const save: SaveFunction = async (): Promise<Alert> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      return (createOrUpdateMock.mock.calls[0]![0] as { model: Alert }).model;
+    };
+
+    // The body ModelAPI.createOrUpdate sends for this model.
+    type RequestBodyFunction = (model: Alert) => JSONObject;
+
+    const requestBodyOf: RequestBodyFunction = (model: Alert): JSONObject => {
+      return JSONFunctions.serialize(BaseModel.toJSON(model, Alert));
+    };
+
+    type MonitorButtonFunction = () => HTMLButtonElement;
+
+    // The dropdown shows its selection as a button until it is opened.
+    const monitorButton: MonitorButtonFunction = (): HTMLButtonElement => {
+      const button: HTMLButtonElement | null = screen
+        .getByText("Developer portal")
+        .closest("button");
+
+      if (!button) {
+        throw new Error("The monitor dropdown shows no selection");
+      }
+
+      return button;
+    };
+
+    test("loads the monitor as an id and shows its name", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      expect(formLoadSelect).not.toBeNull();
+      expect(formLoadSelect!["monitor"]).toBeTruthy();
+      expect(monitorButton()).not.toBeDisabled();
+    });
+
+    test("saving without touching the monitor keeps it", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(MONITOR_ID);
+      expect(requestBodyOf(saved)["monitor"]).toEqual(
+        expect.objectContaining({ _id: MONITOR_ID }),
+      );
+    });
+
+    test("an edit to the other resources keeps the monitor", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      act(() => {
+        latestProps<{ onChange: (payload: unknown) => void }>(
+          "AffectedResourcesPicker",
+        ).onChange([OTHER_HOST_ID]);
+      });
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(MONITOR_ID);
+      expect(
+        (saved.hosts || []).map((host: BaseModel): string => {
+          return String(host._id);
+        }),
+      ).toEqual([OTHER_HOST_ID]);
+    });
+
+    test("choosing another monitor saves the new one", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      fireEvent.click(monitorButton());
+      fireEvent.click(
+        await screen.findByRole("option", { name: /Payments API/ }),
+      );
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(OTHER_MONITOR_ID);
+      expect(requestBodyOf(saved)["monitor"]).toEqual(
+        expect.objectContaining({ _id: OTHER_MONITOR_ID }),
+      );
+    });
+
+    /*
+     * Clear selection hands the form null. It has to reach the request as an
+     * explicit null: an absent key would leave the monitor where it is.
+     */
+    test("clearing it saves the alert with no monitor", async () => {
+      await renderEditForm({ isCreatedAutomatically: false });
+
+      fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Developer portal")).toBeNull();
+      });
+
+      const saved: Alert = await save();
+      const body: JSONObject = requestBodyOf(saved);
+
+      expect(saved.monitor).toBeNull();
+      expect(Object.prototype.hasOwnProperty.call(body, "monitor")).toBe(true);
+      expect(body["monitor"]).toBeNull();
+    });
+
+    test("for an alert its monitor raised, the dropdown cannot be opened or cleared, and saving keeps the monitor", async () => {
+      await renderEditForm({ isCreatedAutomatically: true });
+
+      expect(monitorButton()).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Clear selection" })).toBe(
+        null,
+      );
+      expect(
+        screen.getByText(/so it can't be moved to another monitor/),
+      ).toBeInTheDocument();
+
+      fireEvent.click(monitorButton());
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(screen.queryByRole("option", { name: /Payments API/ })).toBeNull();
+
+      const saved: Alert = await save();
+
+      expect(saved.monitor?._id?.toString()).toBe(MONITOR_ID);
+    });
+
+    /*
+     * An automatic alert raised without a monitor has no Monitor field. The
+     * form still loads the hidden field and submits the null it holds, which
+     * the server reads as no change (AlertMonitorEditGuard.test.ts), so the
+     * rest of the card still saves.
+     */
+    test("for an automatic alert with no monitor, the field is left out, and saving keeps it without one", async () => {
+      await renderEditForm({ isCreatedAutomatically: true, hasMonitor: false });
+
+      expect(formLoadSelect!["monitor"]).toBeTruthy();
+      expect(screen.queryByText("Monitor")).toBeNull();
+      expect(screen.queryByPlaceholderText("Select Monitor")).toBeNull();
+      expect(screen.queryByText(/raised by this monitor/)).toBeNull();
+      expect(screen.queryByRole("button", { name: "Clear selection" })).toBe(
+        null,
+      );
+
+      act(() => {
+        latestProps<{ onChange: (payload: unknown) => void }>(
+          "AffectedResourcesPicker",
+        ).onChange([OTHER_HOST_ID]);
+      });
+
+      const saved: Alert = await save();
+      const body: JSONObject = requestBodyOf(saved);
+
+      expect(saved.monitor).toBeNull();
+      expect(body["monitor"]).toBeNull();
+      expect(
+        (saved.hosts || []).map((host: BaseModel): string => {
+          return String(host._id);
+        }),
+      ).toEqual([OTHER_HOST_ID]);
+    });
+
+    test("for a manual alert with no monitor, the dropdown is offered", async () => {
+      await renderEditForm({
+        isCreatedAutomatically: false,
+        hasMonitor: false,
+      });
+
+      expect(screen.getByText("Monitor")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Select Monitor")).not.toBeDisabled();
     });
   });
 });

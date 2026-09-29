@@ -579,8 +579,8 @@ describe("what the shared helper must not disturb", () => {
     /*
      * The actions container now composes onto the same string the content
      * wrapper uses. A column that declares nothing must still produce exactly
-     * "flex justify-end": a width cap leaking in here would squeeze the Edit
-     * and Delete buttons of every table in the product.
+     * "flex items-center justify-end gap-2": a width cap leaking in here would
+     * squeeze the row button and ⋯ menu of every table in the product.
      */
     const { container } = renderTable([
       { title: "Network", type: FieldType.Text, key: "name" },
@@ -589,7 +589,7 @@ describe("what the shared helper must not disturb", () => {
     const cell: HTMLElement = getBodyCells(container)[1]!;
 
     expect(getContentWrapper(cell).getAttribute("class")).toBe(
-      "flex justify-end",
+      "flex items-center justify-end gap-2",
     );
   });
 });

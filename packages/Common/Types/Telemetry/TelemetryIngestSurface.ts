@@ -34,7 +34,33 @@ enum TelemetryIngestSurface {
    * mint a Runner credential.
    */
   KubernetesAgentRunner = "kubernetes-agent-runner",
+  /*
+   * The Kubernetes AI agent the kubernetes-agent chart installs registers
+   * itself with the same project ingestion key the collector uses, and
+   * receives an agent key that every kubectl job for its cluster is claimed
+   * with. Server keys only, for the same reason as the Runner above.
+   */
+  KubernetesAiAgent = "kubernetes-ai-agent",
 }
+
+/*
+ * Surfaces that mint an IDENTITY (a key that kubectl jobs for a cluster are
+ * targeted at) rather than accept telemetry. The ingest middleware holds
+ * every one of them to the same two extra rules, keyed on this set so a new
+ * identity surface cannot quietly miss one:
+ *
+ *   - a server key with no configured limit gets a conservative default
+ *     requests-per-minute ceiling instead of "unlimited";
+ *   - a key pinned to a single service is refused: its owner scoped it to
+ *     one service's telemetry, not to standing up cluster access.
+ *
+ * None of them is browser-allowed (see the allowlist below).
+ */
+export const IDENTITY_REGISTRATION_SURFACES: ReadonlySet<TelemetryIngestSurface> =
+  new Set<TelemetryIngestSurface>([
+    TelemetryIngestSurface.KubernetesAgentRunner,
+    TelemetryIngestSurface.KubernetesAiAgent,
+  ]);
 
 /*
  * The only surfaces a Browser key may write to. This is an ALLOWLIST, not a
@@ -81,6 +107,8 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",
   [TelemetryIngestSurface.KubernetesAgentRunner]:
     "Kubernetes agent Runner registration",
+  [TelemetryIngestSurface.KubernetesAiAgent]:
+    "Kubernetes AI agent registration",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

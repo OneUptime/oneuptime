@@ -1,3 +1,4 @@
+import KubernetesAiAgent from "./KubernetesAiAgent";
 import KubernetesCluster from "./KubernetesCluster";
 import Project from "./Project";
 import Runner from "./Runner";
@@ -459,6 +460,80 @@ export default class RunnerJob extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public targetAgentId?: ObjectID = undefined;
+
+  /*
+   * The Kubernetes AI agent an AI kubectl job is targeted at, when the
+   * cluster is reached through its agent rather than a Runner. An AI kubectl
+   * job sets exactly one of targetAgentId (a Runner) and this; only the named
+   * agent may claim it. The agent's id is also written to assignedAgentId on
+   * claim (that column has no foreign key), so the job heartbeat and result
+   * paths are the Runner's own. Deleting the agent row nulls this, which
+   * leaves the job claimable by nobody.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "targetKubernetesAiAgentId",
+    type: TableColumnType.Entity,
+    modelType: KubernetesAiAgent,
+    title: "Target Kubernetes AI Agent",
+    description:
+      "The Kubernetes AI agent this AI kubectl job runs on, when the cluster is reached through its agent rather than a Runner. Only this agent may claim the job.",
+  })
+  @ManyToOne(
+    () => {
+      return KubernetesAiAgent;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "targetKubernetesAiAgentId" })
+  public targetKubernetesAiAgent?: KubernetesAiAgent = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Target Kubernetes AI Agent ID",
+    description:
+      "ID of the Kubernetes AI agent that should claim and execute this job.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public targetKubernetesAiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

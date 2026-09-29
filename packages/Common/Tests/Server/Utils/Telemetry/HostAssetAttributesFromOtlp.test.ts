@@ -233,3 +233,71 @@ describe("host asset attributes survive the OTLP wire shape (issue #3866)", () =
     expect(host).toBeUndefined();
   });
 });
+
+/*
+ * Issue #4107 — the same seam for the follow-up attributes. host.mac is
+ * the one that matters here: like host.ip it is an OTLP arrayValue (the
+ * system detector sends one IEEE RA address per interface that is up),
+ * so it has to survive getAttributes as a real array for the join to see
+ * every NIC.
+ */
+const MAC_ADDRESSES: Array<string> = ["3C-7C-3F-1A-2B-3C", "00-15-5D-01-02-03"];
+
+function fullyConfiguredWindowsHost(): JSONArray {
+  return [
+    ...(windowsHostResourceAttributes() as Array<JSONObject>),
+    stringArrayAttribute("host.mac", MAC_ADDRESSES),
+    stringAttribute("os.version", "10.0.22631"),
+    stringAttribute("device.firmware.version", "1.21.0"),
+  ] as JSONArray;
+}
+
+describe("MAC, OS version and firmware survive the OTLP wire shape (issue #4107)", () => {
+  test("host.mac reaches the extractor as a real array under the same key", () => {
+    const flat: Dictionary<AttributeType | Array<AttributeType>> =
+      TelemetryUtil.getAttributes({
+        items: fullyConfiguredWindowsHost(),
+        prefixKeysWithString: "",
+      });
+
+    expect(flat["host.mac"]).toEqual(MAC_ADDRESSES);
+    expect(flat["host.mac.0"]).toBeUndefined();
+  });
+
+  test("a fully configured Windows host yields every asset attribute", () => {
+    const host: ExtractedEntity | undefined = extractHost(
+      fullyConfiguredWindowsHost(),
+    );
+
+    expect(host!.descriptiveAttributes).toEqual({
+      "os.type": "windows",
+      "os.description": "Microsoft Windows 11 Enterprise",
+      "os.version": "10.0.22631",
+      "host.arch": "amd64",
+      "host.id": "4C4C4544-0037-5A10-8054-B4C04F335931",
+      "host.ip": "10.1.2.3, 10.1.2.4, fe80::42:acff:fe11:1",
+      "host.mac": "3C-7C-3F-1A-2B-3C, 00-15-5D-01-02-03",
+      "host.serial_number": "7XYZ123",
+      "device.manufacturer": "Dell Inc.",
+      "device.model.name": "OptiPlex 7090",
+      "device.firmware.version": "1.21.0",
+    });
+  });
+
+  test("a snake_case host.mac array yields the identical value", () => {
+    const snakeCase: ExtractedEntity | undefined = extractHost([
+      stringAttribute("host.name", "wbprjdeais002"),
+      snakeCaseStringArrayAttribute("host.mac", MAC_ADDRESSES),
+    ] as JSONArray);
+
+    expect(snakeCase!.descriptiveAttributes).toEqual({
+      "host.mac": "3C-7C-3F-1A-2B-3C, 00-15-5D-01-02-03",
+    });
+  });
+
+  test("the new attributes do not move the entity key", () => {
+    expect(extractHost(fullyConfiguredWindowsHost())!.entityKey).toBe(
+      extractHost(windowsHostResourceAttributes())!.entityKey,
+    );
+  });
+});

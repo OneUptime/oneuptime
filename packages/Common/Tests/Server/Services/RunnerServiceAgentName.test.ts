@@ -272,13 +272,15 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
       expect(message).toContain('Runner "kubernetes-agent/prod"');
       expect(message).toContain("cannot be renamed");
       /*
-       * Deleting it leaves the cluster with no Runner bound, and the agent's
-       * fresh Runner never binds itself: the delete remedy names the select
-       * step, and who may take it.
+       * The in-cluster Runner is superseded by the Kubernetes AI agent: the
+       * remedy is the chart upgrade that installs it, after which the Runner
+       * can go. What deleting it does, and who may bind a Runner again,
+       * still follows.
        */
       expect(message).toContain(
-        "or delete the Runner, let the agent register a fresh one (on its next retry, within a minute) and then select the new Runner on the cluster's AI page as its Runner.",
+        "or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted.",
       );
+      expect(message).not.toContain("cluster's AI page");
       expect(message).toContain(getDeletedAgentRunnerRebindNote());
       expect(message).toContain("Project Owner");
     });

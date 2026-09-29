@@ -37,9 +37,13 @@ Selecione um ou mais serviços para monitorar rastreamentos. Os serviços devem 
 
 ### Códigos de Status de Span
 
-- **OK** — A operação foi concluída com sucesso
+- **OK** — A operação foi marcada explicitamente como bem-sucedida, pelo código do aplicativo ou por um pipeline de rastreamentos
 - **ERROR** — A operação encontrou um erro
-- **UNSET** — O status não foi definido explicitamente
+- **UNSET** — Nenhum status de erro foi definido. Este é o status padrão do OpenTelemetry
+
+UNSET não significa que faltam dados. A instrumentação do OpenTelemetry define ERROR quando uma operação falha e deixa os spans bem-sucedidos como UNSET, por isso, em um serviço saudável, a maioria dos spans é UNSET. O OneUptime os exibe em verde como "Unset (no error)". Registrar uma exceção não altera o status de um span, portanto um span com status UNSET ainda pode ter exceções; elas são listadas junto com o span. Para alertar sobre falhas, filtre por ERROR. Para contar todos os spans que não falharam, selecione tanto OK quanto UNSET.
+
+Se você quiser que as requisições bem-sucedidas apareçam como OK, adicione um pipeline de rastreamentos em **Traços > Configurações > Pipelines** com a condição de filtro **Status = Não definido** e um **Remapeador de status** que mapeie valores de `http.response.status_code`, como `200`, para Ok.
 
 ## Critérios de Monitoramento
 

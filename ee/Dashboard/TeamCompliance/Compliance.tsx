@@ -1,195 +1,260 @@
-import ProjectUtil from "Common/UI/Utils/Project";
+import { ComplianceAccess, getComplianceAccess } from "./ComplianceAccess";
+import ComplianceHero from "./ComplianceHero";
+import ComplianceRulesCard from "./ComplianceRulesCard";
+import ComplianceRuleWarnings from "./ComplianceRuleWarnings";
+import { MemberStatusFilter } from "./ComplianceView";
+import TeamComplianceStatusTable from "./TeamComplianceStatusTable";
+import useTeamComplianceStatus, {
+  TeamComplianceStatusState,
+} from "./useTeamComplianceStatus";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
-import { Green, Yellow } from "Common/Types/BrandColors";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import type { TeamComplianceRuleJSON } from "Common/Types/Team/TeamComplianceStatus";
+import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
-import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import TeamComplianceStatusTable, {
-  TeamComplianceStatusTableRef,
-} from "./TeamComplianceStatusTable";
-import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
+import ProjectUtil from "Common/UI/Utils/Project";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 /*
- * Teams > View > Compliance (OneUptime Enterprise): the team's compliance
- * rules and who on the team satisfies them.
+ * Teams > View > Compliance (OneUptime Enterprise): what everyone on this
+ * team must have set up to be reachable - "a phone call for critical
+ * incidents", "a verified push device" - and who on the team actually has.
+ *
+ * Top to bottom: the verdict, any rule the project itself makes impossible
+ * to meet, the rules (editable in place by those allowed to), and the members
+ * worst first with the way to fix each of them. All four draw from ONE read
+ * of GET /team/compliance-status/:teamId (useTeamComplianceStatus), repeated
+ * after every rule change, so they always agree.
  *
  * Core's Pages/Teams/View/Compliance is the page the route renders; it renders
  * this component through the Dashboard plugin (the "TeamCompliance" key), or
  * the team compliance upsell card when the project is not eligible or the
  * build has no Enterprise plugin. The eligibility check lives in that shell.
  *
- * The member status table lives in this directory too and is imported from
- * here: it is not a Dashboard plugin key, and core has no shell for it.
+ * The members section lives in this directory too and is imported from here:
+ * it is not a Dashboard plugin key, and core has no shell for it.
  */
 const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const teamId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const complianceStatusTableRef: React.Ref<TeamComplianceStatusTableRef> =
-    React.useRef<TeamComplianceStatusTableRef>(null);
+  const compliance: TeamComplianceStatusState = useTeamComplianceStatus(teamId);
+
+  const access: ComplianceAccess = getComplianceAccess();
+
+  const [memberFilter, setMemberFilter] = useState<MemberStatusFilter>(
+    MemberStatusFilter.All,
+  );
+  const [failingRuleId, setFailingRuleId] = useState<string | null>(null);
+
+  const projectId: ObjectID | null = props.currentProject?._id
+    ? new ObjectID(props.currentProject._id.toString())
+    : ProjectUtil.getCurrentProjectId();
+
+  /*
+   * A rule filter outlives the rule it names only as a dead end: once that
+   * rule is deleted, paused or passed by everyone, drop the filter rather
+   * than show an empty list under a chip for a rule that no longer fails
+   * anybody.
+   */
+  useEffect(() => {
+    if (!failingRuleId || !compliance.status) {
+      return;
+    }
+
+    const rule: TeamComplianceRuleJSON | undefined =
+      compliance.status.complianceSettings.find(
+        (candidate: TeamComplianceRuleJSON): boolean => {
+          return candidate.settingId === failingRuleId;
+        },
+      );
+
+    if (!rule || !rule.enabled || rule.nonCompliantCount === 0) {
+      setFailingRuleId(null);
+    }
+  }, [compliance.status]);
+
+  const scrollToMembers: () => void = (): void => {
+    const section: HTMLElement | null =
+      document.getElementById("compliance-members");
+
+    if (section && typeof section.scrollIntoView === "function") {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const reload: () => Promise<boolean> = (): Promise<boolean> => {
+    return compliance.reload();
+  };
+
+  /*
+   * The members section's status filter, from wherever it is chosen - the
+   * hero's counts or the section's own segments. "Compliant" and a rule
+   * filter can never both hold: everyone failing a rule needs attention, so
+   * the pair filters down to nobody under a count that promised somebody.
+   * Choosing Compliant drops the rule filter (the reverse of the guard in
+   * onShowFailing below).
+   */
+  const chooseMemberFilter: (filter: MemberStatusFilter) => void = (
+    filter: MemberStatusFilter,
+  ): void => {
+    setMemberFilter(filter);
+
+    if (filter === MemberStatusFilter.Compliant) {
+      setFailingRuleId(null);
+    }
+  };
+
+  if (!compliance.status) {
+    /*
+     * The error is checked before "no status yet": a FIRST read that fails
+     * leaves the status null for good, and a skeleton there would pulse
+     * forever instead of saying what went wrong.
+     */
+    if (compliance.error && !compliance.isLoading) {
+      return (
+        <div data-testid="compliance-load-error">
+          <Card
+            title="Team compliance"
+            description="Whether everyone on this team has the notification setup its rules require."
+          >
+            <ErrorMessage
+              message={compliance.error}
+              onRefreshClick={() => {
+                reload().catch(() => {
+                  // reload reports its own failure through the error state.
+                });
+              }}
+            />
+          </Card>
+        </div>
+      );
+    }
+
+    return <ComplianceSkeleton />;
+  }
+
+  const hasRules: boolean = compliance.status.complianceSettings.length > 0;
 
   return (
-    <Fragment>
-      <ModelTable<TeamComplianceSetting>
-        modelType={TeamComplianceSetting}
-        id="table-team-compliance-setting"
-        userPreferencesKey="team-compliance-setting-table"
-        saveFilterProps={{
-          tableId: "settings-team-compliance-setting-table",
+    <div data-testid="team-compliance-page">
+      <ComplianceHero
+        status={compliance.status}
+        isRefreshing={compliance.isLoading}
+        refreshError={compliance.error}
+        onRefresh={() => {
+          reload().catch(() => {
+            // reload reports its own failure through the error state.
+          });
         }}
-        isDeleteable={true}
-        name="Settings > Team > Compliance Settings"
-        isCreateable={true}
-        isEditable={true}
-        isViewable={false}
-        query={{
-          teamId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
+        memberFilter={memberFilter}
+        onShowMembers={(filter: MemberStatusFilter) => {
+          chooseMemberFilter(filter);
+          scrollToMembers();
         }}
-        onBeforeCreate={(
-          item: TeamComplianceSetting,
-        ): Promise<TeamComplianceSetting> => {
-          if (!props.currentProject || !props.currentProject._id) {
-            throw new BadDataException("Project ID cannot be null");
-          }
-          item.teamId = modelId;
-          item.projectId = new ObjectID(props.currentProject._id);
-          return Promise.resolve(item);
-        }}
-        onCreateSuccess={async (
-          item: TeamComplianceSetting,
-        ): Promise<TeamComplianceSetting> => {
-          complianceStatusTableRef.current?.refresh();
-          return item;
-        }}
-        onItemDeleted={(_item: TeamComplianceSetting): void => {
-          complianceStatusTableRef.current?.refresh();
-        }}
-        cardProps={{
-          title: "Compliance Settings",
-          description:
-            "Configure compliance rules for this team. These rules ensure team members have the required notification methods and on-call configurations.",
-        }}
-        noItemsMessage={"No compliance settings configured for this team."}
-        formFields={[
-          {
-            field: {
-              ruleType: true,
-            },
-            title: "Rule Type",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                value: ComplianceRuleType.HasNotificationEmailMethod,
-                label: "User has Email Notification Method",
-              },
-              {
-                value: ComplianceRuleType.HasNotificationSMSMethod,
-                label: "User has SMS Notification Method",
-              },
-              {
-                value: ComplianceRuleType.HasNotificationCallMethod,
-                label: "User has Call Notification Method",
-              },
-              {
-                value: ComplianceRuleType.HasNotificationPushMethod,
-                label: "User has Push Notification Method",
-              },
-              {
-                value: ComplianceRuleType.HasIncidentOnCallRules,
-                label: "User has Incident On-Call Rules",
-              },
-              {
-                value: ComplianceRuleType.HasAlertOnCallRules,
-                label: "User has Alert On-Call Rules",
-              },
-            ],
-            description:
-              "Select the type of compliance rule to enforce for team members.",
-          },
-          {
-            field: {
-              enabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this compliance rule.",
-          },
-        ]}
-        showRefreshButton={true}
-        filters={[
-          {
-            field: {
-              ruleType: true,
-            },
-            type: FieldType.Text,
-            title: "Rule Type",
-          },
-          {
-            field: {
-              enabled: true,
-            },
-            type: FieldType.Boolean,
-            title: "Enabled",
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              ruleType: true,
-            },
-            title: "Rule Type",
-            type: FieldType.Text,
-            getElement: (item: TeamComplianceSetting): ReactElement => {
-              const ruleTypeLabels: Record<string, string> = {
-                [ComplianceRuleType.HasNotificationEmailMethod]:
-                  "Email Notification Method Required for Users",
-                [ComplianceRuleType.HasNotificationSMSMethod]:
-                  "SMS Notification Method Required for Users",
-                [ComplianceRuleType.HasNotificationCallMethod]:
-                  "Call Notification Method Required for Users",
-                [ComplianceRuleType.HasNotificationPushMethod]:
-                  "Push Notification Method Required for Users",
-                [ComplianceRuleType.HasIncidentOnCallRules]:
-                  "Incident On-Call Rules Required for Users",
-                [ComplianceRuleType.HasAlertOnCallRules]:
-                  "Alert On-Call Rules Required for Users",
-              };
-              return (
-                <span>{ruleTypeLabels[item.ruleType!] || item.ruleType}</span>
-              );
-            },
-          },
-          {
-            field: {
-              enabled: true,
-            },
-            title: "Status",
-            type: FieldType.Boolean,
-            getElement: (item: TeamComplianceSetting): ReactElement => {
-              if (item.enabled) {
-                return <Pill text="Enabled" color={Green} />;
-              }
-              return <Pill text="Disabled" color={Yellow} />;
-            },
-          },
-        ]}
       />
 
-      <TeamComplianceStatusTable
-        ref={complianceStatusTableRef}
-        teamId={modelId}
+      <ComplianceRuleWarnings rules={compliance.status.complianceSettings} />
+
+      <ComplianceRulesCard
+        rules={compliance.status.complianceSettings}
+        access={access}
+        teamId={teamId}
+        projectId={projectId}
+        failingRuleId={failingRuleId}
+        onShowFailing={(settingId: string | null) => {
+          setFailingRuleId(settingId);
+
+          if (settingId) {
+            // Everyone failing a rule needs attention; "Compliant" would hide them all.
+            if (memberFilter === MemberStatusFilter.Compliant) {
+              setMemberFilter(MemberStatusFilter.All);
+            }
+
+            scrollToMembers();
+          }
+        }}
+        onChanged={reload}
       />
-    </Fragment>
+
+      {hasRules ? (
+        <TeamComplianceStatusTable
+          status={compliance.status}
+          statusFilter={memberFilter}
+          onStatusFilterChange={chooseMemberFilter}
+          failingRuleId={failingRuleId}
+          onClearFailingRule={() => {
+            setFailingRuleId(null);
+          }}
+          canViewMemberSetup={access.canViewMemberSetup}
+          currentUserId={access.currentUserId}
+        />
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
+/*
+ * The page's shape while the first answer loads - the hero, a rules card and
+ * a members card - rather than a spinner, so a slow read reads as "loading"
+ * and not as "this page is broken".
+ */
+export const ComplianceSkeleton: FunctionComponent = (): ReactElement => {
+  return (
+    <div
+      role="status"
+      aria-label="Loading team compliance"
+      data-testid="compliance-skeleton"
+    >
+      <span className="sr-only">Loading team compliance</span>
+      <div className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="max-sm:hidden h-12 w-12 flex-shrink-0 animate-pulse rounded-xl bg-gray-100 sm:block" />
+          <div className="min-w-0 flex-1">
+            <div className="h-5 w-24 animate-pulse rounded-full bg-gray-100" />
+            <div className="mt-3 h-6 w-2/3 animate-pulse rounded bg-gray-100" />
+            <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-gray-100" />
+          </div>
+        </div>
+        <div className="mt-5 h-2 w-full animate-pulse rounded-full bg-gray-100" />
+      </div>
+      {[0, 1].map((card: number): ReactElement => {
+        return (
+          <div
+            key={`card-skeleton-${card}`}
+            className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6"
+          >
+            <div className="h-5 w-40 animate-pulse rounded bg-gray-100" />
+            <div className="mt-2 h-4 w-3/5 animate-pulse rounded bg-gray-100" />
+            <div className="mt-6 space-y-5">
+              {[0, 1, 2].map((row: number): ReactElement => {
+                return (
+                  <div
+                    key={`row-skeleton-${card}-${row}`}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="h-9 w-9 flex-shrink-0 animate-pulse rounded-lg bg-gray-100" />
+                    <div className="min-w-0 flex-1">
+                      <div className="h-3.5 w-1/3 animate-pulse rounded bg-gray-100" />
+                      <div className="mt-2 h-3 w-2/3 animate-pulse rounded bg-gray-100" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 

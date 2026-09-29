@@ -38,7 +38,8 @@ export default interface DashboardTraceChartComponent extends BaseComponent {
      * (e.g. "#6366f1"). Single-series → the series color; split charts → the
      * first unpinned series, with the rest following the default palette.
      * Same semantics as MetricQueryConfigData.color on the metric Chart
-     * widget. Unset = Auto (default palette).
+     * widget. Unset = Auto (default palette). A split by statusCode ignores
+     * it: each status keeps its own color unless pinned.
      */
     color?: string | undefined;
     /*
@@ -46,7 +47,8 @@ export default interface DashboardTraceChartComponent extends BaseComponent {
      * (e.g. { "url.host=api.example.com": "#10b981" }) — the same storage
      * shape as MetricQueryConfigData.colorsByGroup, so the shared
      * SeriesGroupColorSelector editor works unchanged. Unpinned series fall
-     * back to `color` (lead) then the default palette.
+     * back to `color` (lead) then the default palette — or, in a statusCode
+     * split, to each status's own color.
      */
     colorsByGroup?: Record<string, string> | undefined;
     /*

@@ -145,7 +145,7 @@ export default class InvestigationGrader {
        * executeWithLogging throw would file a permanent error for every
        * incident such a project ever resolves. It is a silent skip instead —
        * the same posture the sibling on-resolve job takes via
-       * AIInvestigationEngine.isEnabledForProject.
+       * AIIncidentPostmortemRunner.isEnabledForProject.
        */
       if (!(await AIService.isProjectAIEnabled(projectId))) {
         logger.debug(

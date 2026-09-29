@@ -345,12 +345,12 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
       [
         "runner_holds_more_than_defaults",
         HOLDINGS,
-        "take those away from that Runner, or delete it and then select the fresh Runner this pod registers on the cluster's AI page as its Runner",
+        "take those away from that Runner, or delete it — better still, upgrade the Kubernetes agent chart so the Kubernetes AI agent replaces this Runner",
       ],
       [
         "runner_belongs_to_another_cluster",
         OTHER_CLUSTER,
-        "Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed) and then select the fresh Runner this pod registers on the cluster's AI page as its Runner",
+        "Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed), or give this install its own clusterName on the Kubernetes agent chart — better still, upgrade the chart so the Kubernetes AI agent replaces this Runner",
       ],
     ])(
       "%s says an operator must act, never that it clears by itself",
@@ -412,6 +412,26 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
 
       expect(message).toContain("still looks online");
       expect(message).toContain("no action is needed");
+      expect(message).not.toContain("an operator must act");
+    });
+
+    /*
+     * The cluster's Kubernetes AI agent replaces this Runner and is online.
+     * Transient (a rolled-back chart stops the agent and this Runner may
+     * register again), but not a wait for a predecessor: the message says
+     * what replaced it and how to finish the upgrade.
+     */
+    test("superseded_by_ai_agent names the Kubernetes AI agent and the chart upgrade, not a predecessor", () => {
+      const message: string = describeFailure(
+        403,
+        "The Kubernetes AI agent of this cluster is online.",
+        "superseded_by_ai_agent",
+      );
+
+      expect(message).toContain("Kubernetes AI agent");
+      expect(message).toContain("Upgrade the Kubernetes agent chart");
+      expect(message).toContain("keeps retrying");
+      expect(message).not.toContain("still looks online");
       expect(message).not.toContain("an operator must act");
     });
   });
@@ -535,6 +555,21 @@ describe("Register.getRetryDelaySeconds", () => {
         attempts: 5,
       }),
     ).toEqual([30, 60, 60, 60, 60]);
+  });
+
+  test("superseded_by_ai_agent is retried on the server's hint, never on the five-minute operator schedule", () => {
+    expect(
+      Register.getRetryDelaySeconds({
+        attempt: 2,
+        error: new RegistrationRefusedError({
+          message: "superseded",
+          statusCode: 403,
+          retryAfterSeconds: 60,
+          reason: "superseded_by_ai_agent",
+        }),
+        isKubernetesAgent: true,
+      }),
+    ).toBe(60);
   });
 
   test("the agent Runner retries a 403 every 20 seconds, or when the server says (within a minute)", () => {

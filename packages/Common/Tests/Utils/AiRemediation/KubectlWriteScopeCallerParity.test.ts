@@ -133,6 +133,8 @@ function statusOf(
       posture: postureOf(runner),
     },
     accessMethod: accessMethodOf(runner),
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     ...(runner.usesCredential
       ? { credentialId: "55555555-5555-4555-8555-555555555555" }
       : {}),

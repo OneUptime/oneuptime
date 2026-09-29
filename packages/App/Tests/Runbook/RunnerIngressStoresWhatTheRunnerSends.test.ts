@@ -1,6 +1,7 @@
 import logger from "Common/Server/Utils/Logger";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import KubernetesClusterFeedService from "Common/Server/Services/KubernetesClusterFeedService";
+import KubernetesAiAgentService from "Common/Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
 import RunbookSecretService from "Common/Server/Services/RunbookSecretService";
@@ -322,6 +323,11 @@ describe("POST /register-kubernetes-agent stores the write scope the Runner repo
     createdRunner = null;
     existingRunner = null;
     runnerUpdates = [];
+
+    // No Kubernetes AI agent: the in-cluster Runner is not superseded.
+    jest
+      .spyOn(KubernetesAiAgentService, "findForCluster")
+      .mockResolvedValue(null);
 
     // A cluster nobody configured yet: the registration first-binds it.
     cluster = {
