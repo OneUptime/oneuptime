@@ -323,15 +323,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         ? html
         : singleParagraphContents(html) ?? html;
     /*
-     * execCommand splits blocks the way the browser's own paste would, and
-     * puts the insert on the undo stack. Plain words go in with insertText,
-     * as if typed: Firefox's insertHTML turns the space before them into a
-     * non-breaking one. jsdom has no execCommand and a browser may refuse
-     * the command, so the Range insert below stays as the fallback.
+     * execCommand puts the insert on the browser's undo stack, and for
+     * blocks splits the paragraph the way the browser's own paste would.
+     * Plain words go in with insertText, as if typed. Words with formatting
+     * go in through the Range insert below instead: Chromium's and Firefox's
+     * insertHTML turn the spaces around an inline insert into non-breaking
+     * ones, which then ended up in the saved markdown. jsdom has no
+     * execCommand and a browser may refuse the command, so the Range insert
+     * is the fallback too.
      */
-    if (typeof document.execCommand === "function") {
-      const plainText: string | null =
-        contents === html ? null : textOfMarkupFreeHtml(contents);
+    const inline: boolean = contents !== html;
+    const plainText: string | null = inline
+      ? textOfMarkupFreeHtml(contents)
+      : null;
+    if (
+      typeof document.execCommand === "function" &&
+      (!inline || plainText !== null)
+    ) {
       try {
         const inserted: boolean =
           plainText === null

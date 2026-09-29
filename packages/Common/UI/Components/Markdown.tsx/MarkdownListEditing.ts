@@ -96,7 +96,11 @@ const getSelectionInRoot: (root: HTMLElement) => SelectionInRoot | null = (
   return { selection, range };
 };
 
-// The nearest <li> at or above `node`, without leaving `root`.
+/*
+ * The nearest <li> at or above `node`, without leaving `root`. None from
+ * inside a code block, even one in a list item: Tab there is not a list
+ * edit, as the source mode skips the lines of a fenced block.
+ */
 const closestListItem: (
   node: Node | null,
   root: HTMLElement,
@@ -108,6 +112,9 @@ const closestListItem: (
   while (current && current !== root) {
     if (isListItem(current)) {
       return current as HTMLElement;
+    }
+    if (tagOf(current) === "pre") {
+      return null;
     }
     current = current.parentNode;
   }

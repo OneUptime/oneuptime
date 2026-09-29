@@ -473,6 +473,20 @@ describe("MarkdownEditor indent and outdent", () => {
 
       expect(onChange).not.toHaveBeenCalled();
     });
+
+    test("leaves Tab to move focus from a code block inside a list item", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor
+          initialValue={"- a\n- b\n\n  ```\n  code\n  ```"}
+          onChange={onChange}
+        />,
+      );
+      placeCaret("code", 2);
+
+      expect(fireEvent.keyDown(editableOf(), { key: "Tab" })).toBe(true);
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 
   describe("in the markdown source", () => {
@@ -813,6 +827,30 @@ describe("MarkdownEditor paste in the visual editor", () => {
     ]);
     // The browser refused both here, so the editor inserted them itself.
     expect(lastChange(onChange)).toContain("hello big");
+  });
+
+  /*
+   * Chromium's and Firefox's insertHTML turn the spaces around formatted
+   * words into non-breaking ones, which were saved on either side of
+   * "**very**", so formatted words are inserted as nodes instead.
+   */
+  test("inserts formatted words itself, without asking the browser", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    const stub: ExecCommandStub = stubExecCommand((): boolean => {
+      return true;
+    });
+    placeCaret("world", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<b>very</b> ",
+        "text/plain": "very ",
+      }),
+    });
+
+    expect(stub).not.toHaveBeenCalled();
+    expect(lastChange(onChange)).toBe("hello **very** world");
   });
 
   test("does not insert twice when the browser takes the insert", () => {

@@ -756,6 +756,25 @@ describe("sinkListItems", () => {
 
       expect(sinkListItems(root)).toBe(false);
     });
+
+    /*
+     * Tab in a code block is not a list edit, even when the block sits in a
+     * list item -- as in the source mode, which skips fenced lines.
+     */
+    it("inside a code block that sits in a list item", () => {
+      const root: HTMLDivElement = mountEditable(
+        "- a\n- b\n\n  ```\n  code\n  ```",
+      );
+      const before: string = root.innerHTML;
+      const code: HTMLElement = root.querySelector(
+        "li pre code",
+      ) as HTMLElement;
+      caretIn(code, 2);
+
+      expect(sinkListItems(root)).toBe(false);
+      expect(liftListItems(root)).toBe(false);
+      expect(root.innerHTML).toBe(before);
+    });
   });
 });
 
