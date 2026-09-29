@@ -22,10 +22,13 @@ import {
  *
  *  - STYLES live in the CSSOM. The replay adds rules with insertRule and
  *    adoptedStyleSheets (CSS-in-JS, and the player's own pause rule),
- *    which a <style> element's text never shows, so every sheet is
- *    re-serialised from cssRules - with its @media conditions settled
- *    against the replay's own window, because an image answers (hover)
- *    and (pointer) differently from the page the stage shows.
+ *    which a <style> element's text never shows, so every sheet the
+ *    browser lets the page read is re-serialised from cssRules - with its
+ *    @media conditions settled against the replay's own window, because
+ *    an image answers (hover) and (pointer) differently from the page the
+ *    stage shows. A stylesheet the stage loaded from the recorded site
+ *    cannot be read, so its rules do not come across; the elements it
+ *    hides are kept hidden all the same (see findUnreadableStyleSheet).
  *  - FORM STATE lives in properties. Replayed input sets .value and
  *    .checked, not the attributes a serialiser writes out.
  *  - SCROLL lives in the layout, and a clone has none. It is put back with
@@ -55,12 +58,27 @@ import {
  * thing the capture adds to a document is a blank, hidden reference frame
  * in the Dashboard's own, for the initial style values, removed before
  * it returns - and nothing here makes a network request. An SVG image
- * loads no subresources, and
- * every url() the page's CSS mentions is rewritten to an empty data: URL
- * besides. What the stage shows agrees with that: the replay document's
- * own CSP (REPLAY_DOCUMENT_CSP) keeps it from loading anything that is not
- * a data: URL, so a recorded image that never loaded stays broken here,
- * exactly as it is on the stage.
+ * loads no subresources, and every url() the page's CSS mentions is
+ * rewritten to an empty data: URL besides.
+ *
+ * The stage does load from the network: the recorded page's images
+ * (except for a recording made under Mask all text), the stylesheets the
+ * recorder could not inline and the page's web fonts, from the addresses
+ * the recording kept (REPLAY_DOCUMENT_CSP). The replay document is the
+ * Dashboard's origin, so to it they come from another site, and the
+ * picture takes from them only what the browser lets a page read back.
+ * Where that falls short, the picture differs from the stage:
+ *  - an image from another site is a grey box of its size, unless it was
+ *    loaded with CORS: reading its pixels otherwise would take a CORS
+ *    re-fetch, which is a request, and one most sites would refuse;
+ *  - the images CSS draws through url() - backgrounds, masks, border
+ *    images - and web fonts are left out, so text is drawn in its
+ *    fallback font;
+ *  - the rules of a stylesheet from another site are left out, except
+ *    that the elements it hides stay hidden;
+ *  - an image still loading is left transparent, as the stage has drawn
+ *    nothing there yet; one that failed to load is drawn broken, as the
+ *    stage draws it.
  *
  * The clone is taken synchronously when the capture starts, so pressing
  * Play while the PNG is being encoded does not change what is in it.
@@ -97,8 +115,9 @@ export const REPLAY_FRAME_MAX_FRAME_DEPTH: number = 2;
 export const REPLAY_FRAME_DEFAULT_BACKGROUND: string = "#ffffff";
 
 /*
- * An image source that fails without a request: a recorded image the
- * stage never loaded is drawn broken, as the stage draws it.
+ * An image source that fails without a request: a recorded image whose
+ * load failed on the stage is drawn broken, as the stage draws it. It is
+ * also what every url() in the page's CSS is emptied to.
  */
 export const REPLAY_FRAME_BROKEN_IMAGE: string = "data:,";
 
@@ -106,7 +125,10 @@ export const REPLAY_FRAME_BROKEN_IMAGE: string = "data:,";
 export const REPLAY_FRAME_IMAGE_PLACEHOLDER: string =
   "data:image/gif;base64,R0lGODlhAQABAIAAAOXn6wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
 
-/* 1x1 transparent: a frame or embed there is nothing to draw for. */
+/*
+ * 1x1 transparent: a frame or embed there is nothing to draw for, and an
+ * image the stage has not finished loading.
+ */
 export const REPLAY_FRAME_TRANSPARENT_IMAGE: string =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
@@ -450,7 +472,9 @@ function findUrlEnd(css: string, start: number): number {
  * Makes the page's CSS safe and correct for the SVG image, skipping over
  * strings and comments so their contents are never touched:
  *  - every url() that is not a data: URL becomes url("data:,"): the image
- *    would not fetch it anyway, and the stage never loaded it,
+ *    would not fetch it anyway, and fetching it here would be a request
+ *    the capture never makes - so a background, mask or font the stage
+ *    did load from the recorded site is left out of the picture,
  *  - :root becomes REPLAY_FRAME_ROOT_SELECTOR (see there),
  *  - :link and :any-link become [href]: nothing in an image document is
  *    a link, so a:link rules would silently stop matching; :visited
@@ -814,7 +838,10 @@ function serializeRules(
 
     /*
      * An @import is replaced by what it imported: the replay document has
-     * it parsed already, and the image would not fetch it.
+     * it parsed already, and the image would not fetch it. A sheet it
+     * imported from another site cannot be read, so it is left out; the
+     * elements that sheet hides stay hidden (see
+     * findUnreadableStyleSheet).
      */
     if (cssText.startsWith("@import")) {
       const media: string = grouping.media
@@ -909,6 +936,23 @@ function serializeRules(
   return texts;
 }
 
+/*
+ * A sheet's rules, or null when the browser will not say: reading the
+ * cssRules of a stylesheet from another origin, loaded without CORS,
+ * throws a SecurityError - or, in WebKit, gives null.
+ */
+function readRuleList(sheet: CSSStyleSheet): CSSRuleList | null {
+  let rules: CSSRuleList | null;
+
+  try {
+    rules = sheet.cssRules;
+  } catch {
+    return null;
+  }
+
+  return rules || null;
+}
+
 /* Serialises a sheet from the CSSOM; null when the browser will not say. */
 export function readStyleSheetText(
   sheet: CSSStyleSheet | null | undefined,
@@ -918,19 +962,74 @@ export function readStyleSheetText(
     return null;
   }
 
-  let rules: CSSRuleList;
-
-  try {
-    rules = sheet.cssRules;
-  } catch {
-    return null;
-  }
+  const rules: CSSRuleList | null = readRuleList(sheet);
 
   if (!rules) {
     return null;
   }
 
   return serializeRules(rules, matchMedia ?? null).join("\n");
+}
+
+/*
+ * Whether a readable sheet imports one that is not, at any depth: an
+ * @import serializeRules leaves out although the stage applies it. As
+ * there, only an import whose media the replay window matches counts,
+ * and one with no sheet at all never loaded, on the stage either.
+ *
+ * Nothing but other @import rules and @layer statements may come before
+ * an @import, so the search stops at the first rule of any other kind: a
+ * sheet of ten thousand rules costs a handful of reads, and no rule's
+ * text is serialised to find out.
+ */
+function hasUnreadableImport(
+  rules: CSSRuleList,
+  matchMedia: ReplayMediaMatcher | null,
+): boolean {
+  for (let index: number = 0; index < rules.length; index++) {
+    const rule:
+      | (CSSRule & {
+          media?: MediaList;
+          styleSheet?: CSSStyleSheet | null;
+        })
+      | null = rules.item
+      ? rules.item(index)
+      : (rules as unknown as Array<CSSRule>)[index] ?? null;
+
+    if (!rule) {
+      continue;
+    }
+
+    /*
+     * Only an @import has a styleSheet, and only an @layer statement a
+     * nameList.
+     */
+    if (!("styleSheet" in rule)) {
+      if ("nameList" in rule) {
+        continue;
+      }
+
+      return false;
+    }
+
+    const media: string = rule.media ? rule.media.mediaText.trim() : "";
+
+    if (media && matchMedia && !matchMedia(media)) {
+      continue;
+    }
+
+    if (!rule.styleSheet) {
+      continue;
+    }
+
+    const imported: CSSRuleList | null = readRuleList(rule.styleSheet);
+
+    if (!imported || hasUnreadableImport(imported, matchMedia)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /*
@@ -1048,6 +1147,11 @@ class ReplayFrameSerializer {
   private readonly matchMedia: ReplayMediaMatcher | null;
   private rootScroll: ReplayScrollOffset = { x: 0, y: 0 };
   private rootScroller: Element;
+  /*
+   * A stylesheet whose rules the clone cannot carry is in force in this
+   * document (see findUnreadableStyleSheet).
+   */
+  private hasUnreadableStyleSheet: boolean = false;
 
   public constructor(
     replayDocument: Document,
@@ -1204,6 +1308,7 @@ class ReplayFrameSerializer {
       x: this.rootScroller.scrollLeft || 0,
       y: this.rootScroller.scrollTop || 0,
     };
+    this.hasUnreadableStyleSheet = this.findUnreadableStyleSheet();
 
     this.forEachElement(this.document, (element: Element): void => {
       const style: CSSStyleDeclaration = this.getStyle(element);
@@ -1234,6 +1339,71 @@ class ReplayFrameSerializer {
     });
 
     this.measureAnimations();
+  }
+
+  /*
+   * Whether a stylesheet is in force here whose rules the clone cannot
+   * carry. The stage loads a stylesheet the recorder could not inline
+   * from the recorded site, and to the replay document - the Dashboard's
+   * origin - that is another site: its cssRules throws a SecurityError
+   * (WebKit answers null), as a <link> and as an @import alike, so
+   * cloneLinkElement and serializeRules have nothing to copy and leave
+   * it out. The scope is theirs: a sheet that is enabled and whose media
+   * the replay window matches. A link with no sheet at all never loaded,
+   * on the stage either, and changes nothing.
+   *
+   * What such a sheet does cannot be recovered in full. Disabling it to
+   * diff every element's computed style writes to the live CSSOM - the
+   * stage's web fonts drop and reload - and a prototype that inlined
+   * every element's computed style instead took a page of 3,300 elements
+   * from 52ms to 1.9s, and its SVG from 134KB to 4.8MB. But the thing it
+   * most visibly does, hiding what the page does not want seen, is on the
+   * stage for free: a hidden element computes display: none, whichever
+   * rule hid it. So while such a sheet is in force, every light-DOM
+   * element the stage computes display: none for is kept hidden in the
+   * clone (see cloneElement) - #4119: a portal hid its "You're offline"
+   * banner with a rule in a sheet on another host, and without this the
+   * picture would show the banner the stage keeps hidden. The sheet's
+   * colours, layout and content are still lost.
+   *
+   * Only this document's own sheets are looked at: a shadow tree is
+   * inlined from computed style, display included, whatever its sheets
+   * say, and a nested frame's document is measured by its own
+   * serialiser. A page with no such sheet is captured exactly as before.
+   */
+  private findUnreadableStyleSheet(): boolean {
+    const owners: NodeListOf<Element> =
+      this.document.querySelectorAll("link, style");
+
+    for (let index: number = 0; index < owners.length; index++) {
+      const owner: Element | null = owners.item(index);
+
+      if (!owner) {
+        continue;
+      }
+
+      const sheet: CSSStyleSheet | null = (
+        owner as HTMLLinkElement | HTMLStyleElement
+      ).sheet;
+
+      if (!sheet || sheet.disabled) {
+        continue;
+      }
+
+      const media: string | null = owner.getAttribute("media");
+
+      if (media && this.matchMedia && !this.matchMedia(media)) {
+        continue;
+      }
+
+      const rules: CSSRuleList | null = readRuleList(sheet);
+
+      if (!rules || hasUnreadableImport(rules, this.matchMedia)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /* Form controls and frames scroll their own contents; nothing to snap. */
@@ -1947,6 +2117,19 @@ class ReplayFrameSerializer {
       this.flattenPseudoElements(live, clone);
     } else {
       this.freezePseudoAnimations(live, clone);
+
+      /*
+       * The light DOM is styled by the page's own rules, and a sheet the
+       * clone could not read may be what hid this element: kept hidden
+       * (see findUnreadableStyleSheet). The style is the one measure()
+       * cached, and it is read only while such a sheet is in force.
+       */
+      if (
+        this.hasUnreadableStyleSheet &&
+        this.getStyle(live).getPropertyValue("display").trim() === "none"
+      ) {
+        declarations.push("display: none !important");
+      }
     }
 
     if (isHtml && name === "img") {
@@ -2561,6 +2744,14 @@ class ReplayFrameSerializer {
     return style;
   }
 
+  /*
+   * A stylesheet link becomes a <style> holding its rules, since the
+   * image would not fetch the sheet. A sheet the stage loaded from the
+   * recorded site - kept as a <link> because the recorder could not read
+   * it either - is another site's to the replay document too, and its
+   * rules cannot be read: it is left out, and what it hides is kept
+   * hidden another way (see findUnreadableStyleSheet).
+   */
   private cloneLinkElement(live: Element, context: CloneContext): Node | null {
     const rel: string = (live.getAttribute("rel") ?? "").toLowerCase();
 
@@ -2601,11 +2792,21 @@ class ReplayFrameSerializer {
   }
 
   /*
-   * An image keeps a data: source as it is. One the replay document did
-   * decode from elsewhere (possible only where its CSP lets it) is copied
-   * in when the browser lets its pixels be read, and becomes a grey box of
-   * the same size when it does not. Anything else never drew on the stage
-   * and is drawn broken here too.
+   * What the stage drew for an <img>, without asking the network again.
+   * A data: source is kept as it is. An image the stage has loaded is
+   * copied in when the browser lets its pixels be read, and becomes a
+   * grey box of the same size when it does not - an image from another
+   * site, which is nearly every image of a recording, unless it was
+   * loaded with CORS (see readImagePixels).
+   *
+   * One still loading - just after a seek or a rebuild, or a lazy image
+   * not yet in view - has drawn nothing on the stage yet, so it is left
+   * transparent in the box the stage laid it out in, rather than drawn
+   * broken with its alt text over the page. One that finished loading
+   * with nothing to show failed - it needs the user's sign-in, its site
+   * refuses other sites, it has gone, or the recording was made under
+   * Mask all text, whose images are never loaded - and the stage draws
+   * it broken, so it is drawn broken here too.
    */
   private applyImage(
     live: HTMLImageElement,
@@ -2619,7 +2820,13 @@ class ReplayFrameSerializer {
       return;
     }
 
-    if (!live.complete || !(live.naturalWidth > 0)) {
+    if (!live.complete) {
+      clone.setAttribute("src", REPLAY_FRAME_TRANSPARENT_IMAGE);
+      this.pinImageBox(live, declarations);
+      return;
+    }
+
+    if (!(live.naturalWidth > 0)) {
       clone.setAttribute("src", REPLAY_FRAME_BROKEN_IMAGE);
       return;
     }
@@ -2632,7 +2839,19 @@ class ReplayFrameSerializer {
     }
 
     clone.setAttribute("src", REPLAY_FRAME_IMAGE_PLACEHOLDER);
+    this.pinImageBox(live, declarations);
+  }
 
+  /*
+   * A 1x1 stand-in has none of the live image's natural size, so the box
+   * the stage laid the image out in is pinned from its computed width and
+   * height (a rendered image resolves both to pixels) and the stand-in is
+   * stretched over all of it.
+   */
+  private pinImageBox(
+    live: HTMLImageElement,
+    declarations: Array<string>,
+  ): void {
     const style: CSSStyleDeclaration = this.getStyle(live);
     const width: string = style.getPropertyValue("width");
     const height: string = style.getPropertyValue("height");
