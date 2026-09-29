@@ -224,7 +224,6 @@ import MonitorResponseTimeCard, {
 import MonitorTelemetryPreview from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorTelemetryPreview";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import Probe from "../../../Models/DatabaseModels/Probe";
-import OneUptimeDate from "../../../Types/Date";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
@@ -233,6 +232,8 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import { getZoomedWindowLabel } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MetricMonitor/MetricMonitorPreview";
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const DAY_AGO: Date = new Date("2026-09-27T12:00:00.000Z");
@@ -314,16 +315,12 @@ async function chartsSettled(metricName: string): Promise<void> {
   jest.setSystemTime(NOW);
 }
 
-function formatWindowEdge(date: Date): string {
-  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-    date,
-    false,
-    true,
-  );
-}
-
+/*
+ * The header names a zoom compactly, as the explorers' pickers name a
+ * custom range (getZoomedWindowLabel, pinned in its own suite).
+ */
 function zoomedHeaderTitle(start: Date, end: Date): string {
-  return `${formatWindowEdge(start)} - ${formatWindowEdge(end)}`;
+  return getZoomedWindowLabel(new InBetween<Date>(start, end));
 }
 
 beforeEach(() => {
