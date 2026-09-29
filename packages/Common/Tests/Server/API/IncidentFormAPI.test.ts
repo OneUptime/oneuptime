@@ -91,7 +91,11 @@ import IncidentFormAPI, {
 import BaseAPI from "../../../Server/API/BaseAPI";
 import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
 import Redis from "../../../Server/Infrastructure/Redis";
-import { INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE } from "../../../Server/Middleware/IncidentFormRateLimit";
+import {
+  INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+  INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  IncidentFormCeilingException,
+} from "../../../Server/Middleware/IncidentFormRateLimit";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import IncidentFormService from "../../../Server/Services/IncidentFormService";
 import Response from "../../../Server/Utils/Response";
@@ -401,13 +405,15 @@ describe("IncidentFormAPI", () => {
       ]);
     });
 
-    it("counts a submission on the submit bucket, with the form's own ceiling", async () => {
+    /*
+     * Not against the form's own ceiling: that is spent by the service, only
+     * for a submission that passed every check, so requests refused later
+     * (the IP allowlist, the captcha, the answers) never use it up.
+     */
+    it("counts a submission on the submit bucket, for this form and address - never against the form's ceiling", async () => {
       await runLimiter("POST", SUBMIT_URI);
 
       expect(Array.from(client.counters.keys()).sort()).toEqual([
-        expect.stringMatching(
-          new RegExp(`^iform:rl:submit:f:k:${SHARE_KEY}:\\d+$`),
-        ),
         expect.stringMatching(
           new RegExp(`^iform:rl:submit:fi:k:${SHARE_KEY}:${TRUSTED_IP}:\\d+$`),
         ),
@@ -659,7 +665,7 @@ describe("IncidentFormAPI", () => {
         new BadDataException("Title is required."),
       );
 
-      const { next } = await runHandler(
+      const { next, response } = await runHandler(
         "POST",
         SUBMIT_URI,
         buildRequest({ body: { data: answers } }),
@@ -667,6 +673,27 @@ describe("IncidentFormAPI", () => {
 
       expect(nextError(next).message).toBe("Title is required.");
       expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+      expect(response.setHeader).not.toHaveBeenCalledWith(
+        "Retry-After",
+        expect.anything(),
+      );
+    });
+
+    it("says when to come back when the form's own ceiling refused", async () => {
+      const refusal: IncidentFormCeilingException =
+        new IncidentFormCeilingException(1234);
+      submitPublicForm.mockRejectedValue(refusal);
+
+      const { next, response } = await runHandler(
+        "POST",
+        SUBMIT_URI,
+        buildRequest({ body: { data: answers } }),
+      );
+
+      expect(nextError(next)).toBe(refusal);
+      expect(refusal.code).toBe(429);
+      expect(refusal.message).toBe(INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE);
+      expect(response.setHeader).toHaveBeenCalledWith("Retry-After", "1234");
     });
 
     it("never tells the service who is calling", async () => {

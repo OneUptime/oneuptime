@@ -18,9 +18,11 @@ import {
  * What matters is less "does it count" than the handful of properties that
  * decide whether the limit can be walked around or turned against the form:
  * that the address is the one OUR proxy wrote, that rotating share keys buys
- * nothing, that junk keys share one bucket, that one hammering address
- * cannot spend the form's shared allowance, that windows do not slide, and
- * that the two buckets fail in opposite directions when Redis is gone.
+ * nothing, that junk keys share one bucket, that no request the middleware
+ * counts - refused or not - spends the form's shared allowance (only a
+ * submission about to declare an incident does, through
+ * reserveFormSubmission), that windows do not slide, and that the two
+ * buckets fail in opposite directions when Redis is gone.
  */
 
 jest.mock("../../../Server/Infrastructure/Redis", () => {
@@ -63,6 +65,7 @@ import IncidentFormRateLimit, {
   INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE,
   INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE,
   INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  IncidentFormCeilingException,
   IncidentFormRateLimitBucket,
   IncidentFormRateLimitBucketConfig,
   IncidentFormRateLimitDecision,
@@ -71,6 +74,8 @@ import IncidentFormRateLimit, {
 } from "../../../Server/Middleware/IncidentFormRateLimit";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import Exception from "../../../Types/Exception/Exception";
+import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
+import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
 import {
   ExpressRequest,
@@ -652,42 +657,6 @@ describe("IncidentFormRateLimit", () => {
       expect(rejected?.scope).toBe(IncidentFormRateLimitScope.Ip);
     });
 
-    /*
-     * The ceiling that survives address rotation: however many addresses
-     * hold the link, the form declares at most this many incidents an hour.
-     */
-    it("caps a form at sixty submissions an hour across every address", async () => {
-      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
-        expect(
-          (await consumeSubmit({ clientIp: addressNumber(i) })).outcome,
-        ).toBe(IncidentFormRateLimitOutcome.Allowed);
-      }
-
-      const decision: IncidentFormRateLimitDecision = await consumeSubmit({
-        clientIp: "198.51.100.200",
-      });
-
-      expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
-      expect(decision.isFirstRejectionInWindow).toBe(true);
-    });
-
-    it("tells a caller refused by the form ceiling to come back when the hour rolls", async () => {
-      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
-        await consumeSubmit({ clientIp: addressNumber(i) });
-      }
-
-      currentTime = currentTime + 20 * 60 * 1000;
-
-      const decision: IncidentFormRateLimitDecision = await consumeSubmit({
-        clientIp: "198.51.100.200",
-      });
-
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
-      // Forty minutes left of the hour, not what is left of 15 minutes.
-      expect(decision.retryAfterSeconds).toBe(40 * 60);
-    });
-
     it("tells a caller refused by an address counter to come back when its quarter hour rolls", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_AND_IP_LIMIT; i++) {
         await consumeSubmit();
@@ -702,96 +671,27 @@ describe("IncidentFormRateLimit", () => {
     });
 
     /*
-     * One address hammering a form must not lock everybody else out of it:
-     * a request its own address counters refuse never reaches the form's
-     * shared ceiling.
+     * The form's shared ceiling is spent only by a submission that passed
+     * every check (consumeFormCeiling, from the service) - never by a request
+     * the middleware counts, refused or not. Otherwise anyone holding the
+     * link could use it up with requests the IP allowlist, the captcha or
+     * the answers refuse, and lock the form for everybody.
      */
-    it("does not let a refused address spend the form's shared allowance", async () => {
+    it("never counts a submission's address counters against the form's ceiling", async () => {
       for (let i: number = 0; i < 200; i++) {
-        await consumeSubmit({ clientIp: CLIENT_IP });
+        await consumeSubmit({ clientIp: addressNumber(i % 20) });
       }
 
-      const formCounter: Array<string> = client.keysMatching(
-        `iform:rl:submit:f:${FORM_KEY}:`,
-      );
+      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([]);
+      expect(client.keysMatching(":f:")).toEqual([]);
+    });
 
-      expect(formCounter).toHaveLength(1);
-      expect(client.counters.get(formCounter[0]!)).toBe(
-        SUBMIT_PER_FORM_AND_IP_LIMIT,
-      );
-
-      // Everyone else still has the rest of the hour's allowance.
-      for (
-        let i: number = 0;
-        i < SUBMIT_PER_FORM_LIMIT - SUBMIT_PER_FORM_AND_IP_LIMIT;
-        i++
-      ) {
+    it("never refuses for the form's ceiling: sixty-one addresses all pass their own counters", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT + 1; i++) {
         expect(
           (await consumeSubmit({ clientIp: addressNumber(i) })).outcome,
         ).toBe(IncidentFormRateLimitOutcome.Allowed);
       }
-    });
-
-    it("gives a reset link, which is a new share key, a fresh ceiling", async () => {
-      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT + 5; i++) {
-        await consumeSubmit({ clientIp: addressNumber(i) });
-      }
-
-      expect(
-        (await consumeSubmit({ clientIp: addressNumber(500) })).scope,
-      ).toBe(IncidentFormRateLimitScope.Form);
-      expect(
-        (
-          await consumeSubmit({
-            formKey: OTHER_FORM_KEY,
-            clientIp: addressNumber(500),
-          })
-        ).outcome,
-      ).toBe(IncidentFormRateLimitOutcome.Allowed);
-    });
-
-    it("rolls the address counters every 15 minutes but holds the form ceiling for the hour", async () => {
-      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
-        await consumeSubmit({ clientIp: addressNumber(i) });
-      }
-
-      // A quarter of an hour on, the same address is past its own counters...
-      currentTime = currentTime + SUBMIT_WINDOW_SECONDS * 1000;
-
-      const stillCapped: IncidentFormRateLimitDecision = await consumeSubmit({
-        clientIp: addressNumber(0),
-      });
-
-      // ...but the form's hour is not over.
-      expect(stillCapped.scope).toBe(IncidentFormRateLimitScope.Form);
-
-      currentTime = HOUR_ALIGNED_TIME + SUBMIT_PER_FORM_WINDOW_SECONDS * 1000;
-
-      expect(
-        (await consumeSubmit({ clientIp: addressNumber(0) })).outcome,
-      ).toBe(IncidentFormRateLimitOutcome.Allowed);
-    });
-
-    it("gives the hour counter a TTL longer than the hour", async () => {
-      await consumeSubmit();
-
-      const formCounter: string = client.keysMatching(
-        `iform:rl:submit:f:${FORM_KEY}:`,
-      )[0]!;
-
-      expect(client.expiresForKey(formCounter)).toEqual([
-        { key: formCounter, ttlSeconds: SUBMIT_PER_FORM_WINDOW_SECONDS * 2 },
-      ]);
-    });
-
-    it("keeps junk share keys in one shared form bucket", async () => {
-      for (let i: number = 0; i < 5; i++) {
-        await consumeSubmit({ formKey: "invalid", clientIp: addressNumber(i) });
-      }
-
-      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([
-        expect.stringContaining("iform:rl:submit:f:invalid:"),
-      ]);
     });
 
     /*
@@ -818,6 +718,235 @@ describe("IncidentFormRateLimit", () => {
     });
   });
 
+  /*
+   * The ceiling that survives address rotation: however many addresses hold
+   * the link, the form declares at most this many incidents an hour. Spent
+   * by IncidentFormService only for a submission about to declare one.
+   */
+  describe("consumeFormCeiling - the form's hourly ceiling", () => {
+    const consumeCeiling: (
+      formKey?: string,
+    ) => Promise<IncidentFormRateLimitDecision> = (
+      formKey: string = FORM_KEY,
+    ) => {
+      return IncidentFormRateLimit.consumeFormCeiling({ formKey });
+    };
+
+    it("allows sixty incidents an hour and refuses the next, naming the form ceiling", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
+        expect((await consumeCeiling()).outcome).toBe(
+          IncidentFormRateLimitOutcome.Allowed,
+        );
+      }
+
+      const decision: IncidentFormRateLimitDecision = await consumeCeiling();
+
+      expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
+      expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
+      expect(decision.isFirstRejectionInWindow).toBe(true);
+      expect((await consumeCeiling()).isFirstRejectionInWindow).toBe(false);
+    });
+
+    it("tells a caller refused by it to come back when the hour rolls", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
+        await consumeCeiling();
+      }
+
+      currentTime = currentTime + 20 * 60 * 1000;
+
+      const decision: IncidentFormRateLimitDecision = await consumeCeiling();
+
+      expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
+      // Forty minutes left of the hour, not what is left of 15 minutes.
+      expect(decision.retryAfterSeconds).toBe(40 * 60);
+    });
+
+    it("holds for the hour, and starts afresh with the next", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
+        await consumeCeiling();
+      }
+
+      currentTime = currentTime + SUBMIT_WINDOW_SECONDS * 1000;
+
+      expect((await consumeCeiling()).outcome).toBe(
+        IncidentFormRateLimitOutcome.RateLimited,
+      );
+
+      currentTime = HOUR_ALIGNED_TIME + SUBMIT_PER_FORM_WINDOW_SECONDS * 1000;
+
+      expect((await consumeCeiling()).outcome).toBe(
+        IncidentFormRateLimitOutcome.Allowed,
+      );
+    });
+
+    it("gives a reset link, which is a new share key, a fresh ceiling", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT + 5; i++) {
+        await consumeCeiling();
+      }
+
+      expect((await consumeCeiling()).scope).toBe(
+        IncidentFormRateLimitScope.Form,
+      );
+      expect((await consumeCeiling(OTHER_FORM_KEY)).outcome).toBe(
+        IncidentFormRateLimitOutcome.Allowed,
+      );
+    });
+
+    it("counts the form under the key the middleware gives it", async () => {
+      await consumeCeiling();
+
+      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([
+        expect.stringMatching(
+          new RegExp(`^iform:rl:submit:f:${FORM_KEY}:\\d+$`),
+        ),
+      ]);
+      expect(
+        IncidentFormRateLimit.getFormKey(
+          "  7C9E6679-7425-40DE-944B-E07FC1F90AE7 ",
+        ),
+      ).toBe(FORM_KEY);
+      expect(
+        IncidentFormRateLimit.resolveFormKey(
+          buildRequest({
+            params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
+          }),
+        ),
+      ).toBe(FORM_KEY);
+    });
+
+    it("gives the hour counter a TTL longer than the hour", async () => {
+      await consumeCeiling();
+
+      const formCounter: string = client.keysMatching(
+        `iform:rl:submit:f:${FORM_KEY}:`,
+      )[0]!;
+
+      expect(client.expiresForKey(formCounter)).toEqual([
+        { key: formCounter, ttlSeconds: SUBMIT_PER_FORM_WINDOW_SECONDS * 2 },
+      ]);
+    });
+
+    it.each([
+      [
+        "Redis has no client",
+        (): void => {
+          getClientMock.mockReturnValue(null);
+        },
+      ],
+      [
+        "Redis is not connected",
+        (): void => {
+          isConnectedMock.mockReturnValue(false);
+        },
+      ],
+      [
+        "the pipeline throws",
+        (): void => {
+          client.failNextExec = new Error("connection reset");
+        },
+      ],
+      [
+        "the pipeline returns nothing",
+        (): void => {
+          client.malformedExecResult = null;
+        },
+      ],
+    ])(
+      "reports unavailable when %s",
+      async (_label: string, breakRedis: () => void) => {
+        breakRedis();
+
+        expect((await consumeCeiling()).outcome).toBe(
+          IncidentFormRateLimitOutcome.CounterUnavailable,
+        );
+      },
+    );
+  });
+
+  describe("reserveFormSubmission - what the service calls before declaring", () => {
+    const SHARE_KEY: string = "7C9E6679-7425-40DE-944B-E07FC1F90AE7";
+
+    const refusalOf: () => Promise<unknown> = async () => {
+      try {
+        await IncidentFormRateLimit.reserveFormSubmission({
+          shareKey: SHARE_KEY,
+        });
+      } catch (err) {
+        return err;
+      }
+
+      return undefined;
+    };
+
+    it("spends one of the form's incidents, and refuses the sixty-first with when to come back", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
+        expect(await refusalOf()).toBeUndefined();
+      }
+
+      currentTime = currentTime + 15 * 60 * 1000;
+
+      const error: unknown = await refusalOf();
+
+      expect(error).toBeInstanceOf(IncidentFormCeilingException);
+      expect(error).toBeInstanceOf(TooManyRequestsException);
+      expect((error as Exception).code).toBe(429);
+      expect((error as Exception).message).toBe(
+        INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+      );
+      expect((error as IncidentFormCeilingException).retryAfterSeconds).toBe(
+        45 * 60,
+      );
+      expect(
+        client.keysMatching(`iform:rl:submit:f:${FORM_KEY}:`),
+      ).toHaveLength(1);
+    });
+
+    it("logs the first refusal of the hour, then stays quiet", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
+        await refusalOf();
+      }
+
+      loggerWarnMock.mockClear();
+
+      for (let i: number = 0; i < 20; i++) {
+        await refusalOf();
+      }
+
+      expect(loggerWarnMock).toHaveBeenCalledTimes(1);
+      expect(String(loggerWarnMock.mock.calls[0]![0])).toContain("form limit");
+    });
+
+    it("fails closed with a 503 when the counter cannot be reached", async () => {
+      isConnectedMock.mockReturnValue(false);
+
+      const error: unknown = await refusalOf();
+
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect((error as Exception).code).toBe(503);
+      expect((error as Exception).message).toBe(
+        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+      );
+    });
+
+    it("writes the refusal's Retry-After on the route's response, and nothing for any other error", () => {
+      const built: BuiltResponse = buildResponse();
+
+      IncidentFormRateLimit.setRetryAfterFor(
+        built.response,
+        new TooManyRequestsException("another limiter"),
+      );
+
+      expect(built.headers).toEqual({});
+
+      IncidentFormRateLimit.setRetryAfterFor(
+        built.response,
+        new IncidentFormCeilingException(1234),
+      );
+
+      expect(built.headers).toEqual({ "Retry-After": "1234" });
+    });
+  });
+
   describe("consume - window behaviour", () => {
     it("sets a TTL only on the request that created a counter", async () => {
       await consumeRead();
@@ -841,6 +970,7 @@ describe("IncidentFormRateLimit", () => {
     it("gives every counter a TTL of two of its windows", async () => {
       await consumeRead();
       await consumeSubmit();
+      await IncidentFormRateLimit.consumeFormCeiling({ formKey: FORM_KEY });
 
       expect(client.expires.length).toBe(5);
 
@@ -949,12 +1079,9 @@ describe("IncidentFormRateLimit", () => {
       );
     });
 
-    it("reports unavailable when the form ceiling's own pipeline fails", async () => {
-      /*
-       * exec 1 counts the address counters, exec 2 sets their TTLs, exec 3
-       * counts the form ceiling.
-       */
-      client.failExecNumber = 3;
+    it("reports unavailable when setting a new counter's TTL fails", async () => {
+      // exec 1 counts the address counters, exec 2 sets their TTLs.
+      client.failExecNumber = 2;
 
       expect((await consumeSubmit()).outcome).toBe(
         IncidentFormRateLimitOutcome.CounterUnavailable,
@@ -1095,25 +1222,28 @@ describe("IncidentFormRateLimit", () => {
       expect(lastError().message).toBe(INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE);
     });
 
-    it("does not blame the reporter's network for the form's own ceiling", async () => {
-      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
-        await runMiddleware({
-          bucket: IncidentFormRateLimitBucket.Submit,
-          request: buildRequest({
-            params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
-            headers: { "x-forwarded-for": addressNumber(i) },
-          }),
-        });
+    /*
+     * The form's ceiling is the service's to spend, after every check: the
+     * middleware lets sixty-one addresses through to be judged, and counts
+     * none of them against it.
+     */
+    it("never refuses a submission for the form's own ceiling, nor spends it", async () => {
+      for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT + 1; i++) {
+        expect(
+          (
+            await runMiddleware({
+              bucket: IncidentFormRateLimitBucket.Submit,
+              request: buildRequest({
+                params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
+                headers: { "x-forwarded-for": addressNumber(i) },
+              }),
+            })
+          ).nextCalled,
+        ).toBe(true);
       }
 
-      const refused: { nextCalled: boolean; headers: Record<string, string> } =
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
-
-      expect(refused.nextCalled).toBe(false);
-      expect(lastError().message).toBe(INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE);
-      expect(Number(refused.headers["Retry-After"])).toBe(
-        SUBMIT_PER_FORM_WINDOW_SECONDS,
-      );
+      expect(sendErrorResponseMock).not.toHaveBeenCalled();
+      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([]);
     });
 
     it("never tells a refused caller the limit or its count", async () => {
@@ -1438,21 +1568,12 @@ describe("IncidentFormRateLimit configuration", () => {
 
     for (let i: number = 0; i < 3; i++) {
       expect(
-        (
-          await limiter.consume({
-            formKey: FORM_KEY,
-            clientIp: `198.51.100.${i + 1}`,
-            bucket: IncidentFormRateLimitBucket.Submit,
-          })
-        ).outcome,
+        (await limiter.consumeFormCeiling({ formKey: FORM_KEY })).outcome,
       ).toBe(IncidentFormRateLimitOutcome.Allowed);
     }
 
-    const decision: IncidentFormRateLimitDecision = await limiter.consume({
-      formKey: FORM_KEY,
-      clientIp: "198.51.100.50",
-      bucket: IncidentFormRateLimitBucket.Submit,
-    });
+    const decision: IncidentFormRateLimitDecision =
+      await limiter.consumeFormCeiling({ formKey: FORM_KEY });
 
     expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
     expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);

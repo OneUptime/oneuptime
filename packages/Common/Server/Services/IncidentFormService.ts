@@ -75,6 +75,7 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
+import IncidentFormRateLimit from "../Middleware/IncidentFormRateLimit";
 import CaptchaUtil from "../Utils/Captcha";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
@@ -528,7 +529,9 @@ export class Service extends DatabaseService<Model> {
    * In order, each step refusing before the next one costs anything: the
    * same checks as getPublicForm (link, form on, plan, network), then the
    * instance captcha when it is on, then the answers against the form's
-   * questions (validateIncidentFormSubmission), then the severity. Only then
+   * questions (validateIncidentFormSubmission), then the severity, and last
+   * the form's hourly ceiling (IncidentFormRateLimit.reserveFormSubmission),
+   * which only a submission that passed all of those may spend. Only then
    * is the incident created, as root, from the validated answers - with
    * nothing left in them that acts on its own when shown
    * (neutralizeIncidentFormReport) - and the form's own settings. Nothing
@@ -598,6 +601,19 @@ export class Service extends DatabaseService<Model> {
 
     const incidentSeverityId: ObjectID | undefined =
       await this.getSubmissionSeverityId({ form, answers });
+
+    /*
+     * Everything that can refuse this submission has passed, so only now
+     * does it count against the form's hourly ceiling - the bound on how
+     * many incidents, and pages, its link can cause. Counted any earlier, a
+     * request refused by the IP allowlist, the captcha or the answers would
+     * use up the allowance everybody shares. Fails closed (503) when the
+     * counter cannot be reached; over the ceiling it is a 429, which the
+     * route answers with Retry-After.
+     */
+    await IncidentFormRateLimit.reserveFormSubmission({
+      shareKey: data.shareKey,
+    });
 
     const incident: Incident = await this.declareIncident({
       form,

@@ -54,6 +54,11 @@ import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "../../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import IncidentFormRateLimit, {
+  INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+  INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  IncidentFormCeilingException,
+} from "../../../Server/Middleware/IncidentFormRateLimit";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentFormService, {
   INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
@@ -83,6 +88,7 @@ import Exception from "../../../Types/Exception/Exception";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ServerException from "../../../Types/Exception/ServerException";
+import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 import {
   IncidentFormFieldSetting,
   PublicIncidentFormSubmissionResult,
@@ -280,6 +286,7 @@ let submissionCreate: MockedFn;
 let noteCreate: MockedFn;
 let captchaEnabled: MockedFn;
 let verifyCaptcha: MockedFn;
+let reserveFormSubmission: MockedFn;
 let createdIncident: Incident;
 
 beforeEach(() => {
@@ -368,6 +375,15 @@ beforeEach(() => {
 
   verifyCaptcha = jest
     .spyOn(CaptchaUtil, "verifyCaptcha")
+    .mockResolvedValue(undefined as never) as unknown as MockedFn;
+
+  /*
+   * The form's hourly ceiling is counted in Redis, which this suite has
+   * none of (left real, it would fail closed with a 503); what it is asked,
+   * and when, is pinned below.
+   */
+  reserveFormSubmission = jest
+    .spyOn(IncidentFormRateLimit, "reserveFormSubmission")
     .mockResolvedValue(undefined as never) as unknown as MockedFn;
 });
 
@@ -2096,5 +2112,129 @@ describe("IncidentFormService.submitPublicForm - the checks before anything is d
     expect(Object.keys(findBy.query)).toEqual(["shareKey"]);
     expect(String(findBy.query["shareKey"])).toBe(SHARE_KEY);
     expect(findBy.props).toEqual({ isRoot: true });
+  });
+});
+
+/*
+ * The form's hourly ceiling bounds the incidents - and pages - its link can
+ * cause, so only a submission about to declare one may spend it. Were a
+ * refused request to count, anyone holding the link - outside the IP
+ * allowlist, or unable to solve the captcha - could use it up and lock the
+ * form for everybody.
+ */
+describe("IncidentFormService.submitPublicForm - the form's hourly ceiling", () => {
+  test("is spent once, for the form's link, after every check and right before the incident is declared", async () => {
+    await submit();
+
+    expect(reserveFormSubmission).toHaveBeenCalledTimes(1);
+    expect(reserveFormSubmission).toHaveBeenCalledWith({ shareKey: SHARE_KEY });
+    expect(reserveFormSubmission.mock.invocationCallOrder[0]!).toBeLessThan(
+      incidentCreate.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test.each([
+    [
+      "a link no form holds",
+      (): void => {
+        storedForm = null;
+      },
+      VALID_ANSWERS,
+    ],
+    [
+      "a form that is turned off",
+      (): void => {
+        storedForm = buildForm({ isEnabled: false });
+      },
+      VALID_ANSWERS,
+    ],
+    [
+      "a project off plan",
+      (): void => {
+        jest
+          .spyOn(IncidentFormService, "isProjectOnPlan")
+          .mockResolvedValue(false as never);
+      },
+      VALID_ANSWERS,
+    ],
+    [
+      "a network the form does not allow",
+      (): void => {
+        storedForm = buildForm({ ipWhitelist: "198.51.100.0/24" });
+      },
+      VALID_ANSWERS,
+    ],
+    [
+      "a failed captcha",
+      (): void => {
+        captchaEnabled.mockReturnValue(true);
+        verifyCaptcha.mockRejectedValue(
+          new BadDataException(
+            "Captcha verification failed. Please try again.",
+          ),
+        );
+      },
+      VALID_ANSWERS,
+    ],
+    [
+      "answers that do not pass",
+      (): void => {
+        // The answers below have no title.
+      },
+      { ...VALID_ANSWERS, title: "" },
+    ],
+    [
+      "no severity left",
+      (): void => {
+        storedForm = buildForm();
+        setNull(storedForm, "incidentSeverityId");
+      },
+      VALID_ANSWERS,
+    ],
+  ])(
+    "is never spent by a submission refused for %s",
+    async (_label: string, arrange: () => void, answers: JSONObject) => {
+      arrange();
+
+      const error: Exception | undefined = await refusal(submit({ answers }));
+
+      expect(error).toBeDefined();
+      expect(reserveFormSubmission).not.toHaveBeenCalled();
+      expect(incidentCreate).not.toHaveBeenCalled();
+    },
+  );
+
+  test("once the hour's allowance is used, nothing is declared and the refusal says when to come back", async () => {
+    storedForm = withTemplate();
+    reserveFormSubmission.mockRejectedValue(
+      new IncidentFormCeilingException(1800),
+    );
+
+    const error: Exception | undefined = await refusal(submit());
+
+    expect(error).toBeInstanceOf(IncidentFormCeilingException);
+    expect(error?.code).toBe(429);
+    expect(error?.message).toBe(INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE);
+    expect((error as IncidentFormCeilingException).retryAfterSeconds).toBe(
+      1800,
+    );
+    expect(incidentCreate).not.toHaveBeenCalled();
+    expect(ownerUserFindBy).not.toHaveBeenCalled();
+    expect(submissionCreate).not.toHaveBeenCalled();
+    expect(noteCreate).not.toHaveBeenCalled();
+  });
+
+  test("when the ceiling cannot be counted, nothing is declared (503)", async () => {
+    reserveFormSubmission.mockRejectedValue(
+      new ServiceUnavailableException(
+        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+      ),
+    );
+
+    const error: Exception | undefined = await refusal(submit());
+
+    expect(error?.code).toBe(503);
+    expect(error?.message).toBe(INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
+    expect(incidentCreate).not.toHaveBeenCalled();
   });
 });

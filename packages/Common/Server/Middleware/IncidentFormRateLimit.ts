@@ -32,14 +32,22 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  *    per form that no number of addresses gets around, and refuses to serve
  *    at all when it cannot count (see getMiddleware).
  *
- * The instance captcha and the form's own IP allowlist sit behind this in
- * IncidentFormService; this limiter runs first so that a flood is refused
- * before it costs a session lookup, a Postgres read or a captcha round trip.
+ * The per-address counters are middleware, in front of everything, so a
+ * flood is refused before it costs a session lookup, a Postgres read or a
+ * captcha round trip. The per-form ceiling is not: IncidentFormService
+ * spends it (reserveFormSubmission) only for a submission that has passed
+ * every other check - the form, its plan, its IP allowlist, the captcha,
+ * the answers, the severity - right before the incident is declared. It
+ * bounds incidents, so only a submission about to become one may count
+ * against it; were every attempt to count, anyone holding the link - even
+ * from outside the allowlist, or without solving the captcha - could use it
+ * up with requests that are refused, and lock the form for everybody.
  */
 
 /*
- * Which counter rejected a request. Every request consumes the first two;
- * a submit that gets past both also consumes the third:
+ * Which counter rejected a request. Every request consumes the first two, in
+ * the middleware; a submission about to declare an incident consumes the
+ * third:
  *
  *  - FormAndIp, keyed on the form + client address: the budget one reporter
  *    (or one office behind one NAT) gets on one form.
@@ -49,9 +57,10 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  *    fresh bucket each time while still costing a Postgres lookup, 404 or
  *    not.
  *
- *  - Form, keyed on the form alone, across every address (submit only). The
- *    ceiling that survives address rotation: a botnet holding the link gets
- *    no more pages out of it than one determined person does.
+ *  - Form, keyed on the form alone, across every address (submissions that
+ *    passed every check only). The ceiling that survives address rotation:
+ *    a botnet holding the link gets no more pages out of it than one
+ *    determined person does.
  *
  * Every counter is incremented on each request that reaches it, including
  * one it rejects, so a client that keeps hammering keeps its window pinned
@@ -139,6 +148,22 @@ export const INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE: string =
 export const INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
   "Reports cannot be accepted right now. Please try again in a few minutes.";
 
+/*
+ * A submission the per-form ceiling refused. Thrown from inside
+ * IncidentFormService (reserveFormSubmission), where there is no response to
+ * write a header on, so it carries when to come back; the submit route
+ * writes that as Retry-After (setRetryAfterFor) before the error handler
+ * answers 429.
+ */
+export class IncidentFormCeilingException extends TooManyRequestsException {
+  public readonly retryAfterSeconds: number;
+
+  public constructor(retryAfterSeconds: number) {
+    super(INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE);
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 const parsePositiveIntFromEnv: (envKey: string, fallback: number) => number = (
   envKey: string,
   fallback: number,
@@ -187,14 +212,16 @@ const READ_BUCKET: IncidentFormRateLimitBucketConfig = {
 
 /*
  * Submit budget: 10 per 15 minutes per form + address, 30 per 15 minutes
- * per address, and 60 per hour per form across every address.
+ * per address, and 60 incidents per hour per form across every address.
  *
  * Sized for people. Ten reports to one form from one network in a quarter
  * of an hour already covers a team that all saw the same outage, plus a few
- * attempts that failed validation (those count too - the counter runs before
- * the form is checked). The per-form ceiling is the one that bounds pages:
- * an hour of it is sixty incidents, far past the point where more reports
- * add information, and no number of addresses raises it.
+ * attempts that failed validation (those count against the address budgets
+ * - the middleware runs before the form is checked). The per-form ceiling
+ * is the one that bounds pages: only a submission about to declare an
+ * incident counts against it, so an hour of it is sixty incidents, far past
+ * the point where more reports add information, and no number of addresses
+ * raises it.
  *
  * The per-form ceiling is keyed on the share key, like everything here, so
  * resetting a form's link in the dashboard - the remedy for a link that went
@@ -300,13 +327,20 @@ export default class IncidentFormRateLimit {
    * it is a link identifier like a public dashboard id, not a secret.
    */
   public static resolveFormKey(req: ExpressRequest): string {
-    const raw: unknown = req.params?.["shareKey"];
+    return IncidentFormRateLimit.getFormKey(req.params?.["shareKey"]);
+  }
 
-    if (typeof raw !== "string" || raw.trim().length === 0) {
+  /*
+   * The key segment for a share key, however it was read: from the path by
+   * the middleware, or handed over by IncidentFormService when it spends the
+   * form's ceiling - so both always count the same form under one key.
+   */
+  public static getFormKey(shareKey: unknown): string {
+    if (typeof shareKey !== "string" || shareKey.trim().length === 0) {
       return "none";
     }
 
-    const value: string = raw.trim();
+    const value: string = shareKey.trim();
 
     if (ObjectID.isValidUUID(value)) {
       return `k:${value.toLowerCase()}`;
@@ -338,13 +372,13 @@ export default class IncidentFormRateLimit {
   }
 
   /*
-   * Count this request and decide.
+   * Count this request against the two per-address counters and decide.
    *
-   * The two per-address counters go out in one pipeline, so reading a form
-   * costs a single round trip. A submit that passes both then counts against
-   * its form in a second one. Only then: a caller already over their own
-   * limits must not also be spending the form's shared allowance, or one
-   * address hammering a form would lock everybody else out of it.
+   * Both go out in one pipeline, so a request costs a single round trip. The
+   * form's own ceiling is not counted here, for either bucket: that is
+   * spent by a submission that has passed every check (consumeFormCeiling),
+   * so a request that is refused - by these counters or by anything after
+   * them - never uses up the allowance everybody else shares.
    */
   public static async consume(data: {
     // From resolveFormKey.
@@ -404,30 +438,6 @@ export default class IncidentFormRateLimit {
         });
       }
 
-      if (config.perForm) {
-        const formCounterKey: string = `${keyPrefix}f:${data.formKey}:${IncidentFormRateLimit.getWindowIndex(
-          config.perForm.windowSeconds,
-        )}`;
-
-        const formCounts: Array<number> =
-          await IncidentFormRateLimit.incrementCounters({
-            client,
-            keys: [formCounterKey],
-            windowSeconds: config.perForm.windowSeconds,
-          });
-
-        const formCount: number = formCounts[0] ?? 0;
-
-        if (formCount > config.perForm.limit) {
-          return IncidentFormRateLimit.rejected({
-            scope: IncidentFormRateLimitScope.Form,
-            count: formCount,
-            limit: config.perForm.limit,
-            windowSeconds: config.perForm.windowSeconds,
-          });
-        }
-      }
-
       return { outcome: IncidentFormRateLimitOutcome.Allowed };
     } catch (err) {
       /*
@@ -443,6 +453,127 @@ export default class IncidentFormRateLimit {
       }
 
       return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+    }
+  }
+
+  /*
+   * Count one incident against the form's ceiling - across every address,
+   * per clock hour - and decide. For a submission that has passed every
+   * other check and is about to declare its incident; see
+   * reserveFormSubmission, which is what the service calls.
+   */
+  public static async consumeFormCeiling(data: {
+    // From getFormKey.
+    formKey: string;
+  }): Promise<IncidentFormRateLimitDecision> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+    }
+
+    const ceiling: IncidentFormRateLimitFormCeiling | undefined =
+      SUBMIT_BUCKET.perForm;
+
+    if (!ceiling) {
+      return { outcome: IncidentFormRateLimitOutcome.Allowed };
+    }
+
+    const formCounterKey: string = `${KEY_PREFIX}${IncidentFormRateLimitBucket.Submit}:f:${data.formKey}:${IncidentFormRateLimit.getWindowIndex(
+      ceiling.windowSeconds,
+    )}`;
+
+    try {
+      const formCounts: Array<number> =
+        await IncidentFormRateLimit.incrementCounters({
+          client,
+          keys: [formCounterKey],
+          windowSeconds: ceiling.windowSeconds,
+        });
+
+      const formCount: number = formCounts[0] ?? 0;
+
+      if (formCount > ceiling.limit) {
+        return IncidentFormRateLimit.rejected({
+          scope: IncidentFormRateLimitScope.Form,
+          count: formCount,
+          limit: ceiling.limit,
+          windowSeconds: ceiling.windowSeconds,
+        });
+      }
+
+      return { outcome: IncidentFormRateLimitOutcome.Allowed };
+    } catch (err) {
+      if (
+        IncidentFormRateLimit.shouldLogCounterUnavailable(
+          IncidentFormRateLimitBucket.Submit,
+        )
+      ) {
+        logger.warn(
+          `IncidentFormRateLimit: form ceiling counter failed for incident form ${data.formKey}`,
+        );
+        logger.warn(err);
+      }
+
+      return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+    }
+  }
+
+  /*
+   * Spend one of the form's hourly incidents, or refuse: 429
+   * (IncidentFormCeilingException, carrying when to come back) once the
+   * hour's allowance is used, and 503 when the counter cannot be reached -
+   * the ceiling is what bounds the pages a link can cause, so without it the
+   * submission fails closed, as the submit middleware does.
+   *
+   * Called by IncidentFormService.submitPublicForm right before it declares
+   * the incident, once the form, its plan, its IP allowlist, the captcha,
+   * the answers and the severity have all been checked: a refused request
+   * never spends it.
+   */
+  public static async reserveFormSubmission(data: {
+    shareKey: string | undefined;
+  }): Promise<void> {
+    const formKey: string = IncidentFormRateLimit.getFormKey(data.shareKey);
+
+    const decision: IncidentFormRateLimitDecision =
+      await IncidentFormRateLimit.consumeFormCeiling({ formKey });
+
+    if (decision.outcome === IncidentFormRateLimitOutcome.RateLimited) {
+      if (decision.isFirstRejectionInWindow) {
+        logger.warn(
+          `IncidentFormRateLimit: rejected a submission to incident form ${formKey} (${IncidentFormRateLimitScope.Form} limit)`,
+        );
+      }
+
+      throw new IncidentFormCeilingException(decision.retryAfterSeconds || 1);
+    }
+
+    if (decision.outcome === IncidentFormRateLimitOutcome.CounterUnavailable) {
+      if (
+        IncidentFormRateLimit.shouldLogCounterUnavailable(
+          IncidentFormRateLimitBucket.Submit,
+        )
+      ) {
+        logger.error(
+          `IncidentFormRateLimit: rate limit counter unavailable, refusing incident form submissions (incident form ${formKey})`,
+        );
+      }
+
+      throw new ServiceUnavailableException(
+        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+      );
+    }
+  }
+
+  /*
+   * For the submit route: when the service refused a submission for the
+   * form's ceiling, say when to come back, as the middleware does for its
+   * own refusals. Anything else is left alone.
+   */
+  public static setRetryAfterFor(res: ExpressResponse, error: unknown): void {
+    if (error instanceof IncidentFormCeilingException) {
+      IncidentFormRateLimit.setRetryAfterHeader(res, error.retryAfterSeconds);
     }
   }
 
@@ -552,16 +683,16 @@ export default class IncidentFormRateLimit {
     return Math.max(1, Math.ceil((windowMs - msIntoWindow) / 1000));
   }
 
+  /*
+   * The middleware only ever refuses on the per-address counters, so a
+   * refused submission is always about the caller's network. (The form's
+   * own ceiling has its own words: see IncidentFormCeilingException.)
+   */
   private static getRateLimitedMessage(
     bucket: IncidentFormRateLimitBucket,
-    scope: IncidentFormRateLimitScope | undefined,
   ): string {
     if (bucket === IncidentFormRateLimitBucket.Read) {
       return INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE;
-    }
-
-    if (scope === IncidentFormRateLimitScope.Form) {
-      return INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE;
     }
 
     return INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE;
@@ -615,7 +746,7 @@ export default class IncidentFormRateLimit {
           req,
           res,
           new TooManyRequestsException(
-            IncidentFormRateLimit.getRateLimitedMessage(bucket, decision.scope),
+            IncidentFormRateLimit.getRateLimitedMessage(bucket),
           ),
         );
       }

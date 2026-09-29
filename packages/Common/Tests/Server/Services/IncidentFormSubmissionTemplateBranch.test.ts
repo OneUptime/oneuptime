@@ -45,6 +45,7 @@ import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import IncidentFormRateLimit from "../../../Server/Middleware/IncidentFormRateLimit";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentFormService from "../../../Server/Services/IncidentFormService";
@@ -168,6 +169,10 @@ beforeEach(() => {
     .spyOn(IncidentFormService, "isProjectOnPlan")
     .mockResolvedValue(true as never);
   jest.spyOn(CaptchaUtil, "isCaptchaEnabled").mockReturnValue(false);
+  // The form's hourly ceiling lives in Redis, which this suite has none of.
+  jest
+    .spyOn(IncidentFormRateLimit, "reserveFormSubmission")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(IncidentCustomFieldService, "findBy")
     .mockResolvedValue([

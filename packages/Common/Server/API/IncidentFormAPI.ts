@@ -40,9 +40,12 @@ import { JSONObject } from "../../Types/JSON";
  *
  * Each public route runs, in order:
  *
- *  1. IncidentFormRateLimit, before anything else costs anything. Reading a
- *     form is load control and fails open; submitting one declares an
- *     incident, so its counter fails closed.
+ *  1. IncidentFormRateLimit's per-address counters, before anything else
+ *     costs anything. Reading a form is load control and fails open;
+ *     submitting one declares an incident, so its counters fail closed. (The
+ *     form's own hourly ceiling is spent later, by IncidentFormService, only
+ *     for a submission that passed every check; its 429 carries a
+ *     Retry-After this route writes.)
  *
  *  2. UserMiddleware.getPublicRouteUserMiddleware, the anonymous variant: an
  *     access-token cookie that no longer decodes makes the request anonymous
@@ -172,6 +175,8 @@ export default class IncidentFormAPI extends BaseAPI<
             result as unknown as JSONObject,
           );
         } catch (err) {
+          // The form's own ceiling refused: say when to come back.
+          IncidentFormRateLimit.setRetryAfterFor(res, err);
           next(err);
         }
       },

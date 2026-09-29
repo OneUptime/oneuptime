@@ -30,6 +30,7 @@ import {
   INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
   INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE,
   INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE,
+  INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
 } from "../../../Server/Middleware/IncidentFormRateLimit";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
@@ -140,8 +141,17 @@ class FakeRedisClient {
   public counters: Map<string, number> = new Map();
   public countFloor: number = 0;
 
+  // A pipeline counting a key this matches fails, as a broken Redis would.
+  public failKeysMatching: RegExp | null = null;
+
   public pipeline(): FakePipeline {
     return new FakePipeline(this);
+  }
+
+  public keysMatching(fragment: string): Array<string> {
+    return Array.from(this.counters.keys()).filter((key: string) => {
+      return key.includes(fragment);
+    });
   }
 }
 
@@ -149,10 +159,12 @@ type QueuedCommand = () => [Error | null, unknown];
 
 class FakePipeline {
   private commands: Array<QueuedCommand> = [];
+  private keys: Array<string> = [];
 
   public constructor(private client: FakeRedisClient) {}
 
   public incr(key: string): FakePipeline {
+    this.keys.push(key);
     this.commands.push((): [Error | null, unknown] => {
       const next: number = Math.max(
         (this.client.counters.get(key) || 0) + 1,
@@ -174,6 +186,17 @@ class FakePipeline {
   }
 
   public async exec(): Promise<unknown> {
+    const failKeysMatching: RegExp | null = this.client.failKeysMatching;
+
+    if (
+      failKeysMatching &&
+      this.keys.some((key: string): boolean => {
+        return failKeysMatching.test(key);
+      })
+    ) {
+      throw new Error("connection reset");
+    }
+
     return this.commands.map((command: QueuedCommand) => {
       return command();
     });
@@ -802,6 +825,174 @@ describe("the public incident form routes over HTTP", () => {
       );
       expect(Number(result.headers["retry-after"])).toBeGreaterThan(0);
       expect(incidentCreate).toHaveBeenCalledTimes(10);
+    });
+  });
+
+  /*
+   * The form's hourly ceiling - sixty incidents across every address -
+   * bounds the pages a leaked link can cause. Only a submission that passed
+   * every check spends it: if refused requests did, anyone holding the link
+   * - even from outside the IP allowlist, or without solving the captcha -
+   * could use it up with requests that declare nothing, and lock the form
+   * for everybody, silently, hour after hour.
+   */
+  describe("the form's hourly ceiling", () => {
+    // Ten requests from each of six addresses: within each one's own budget.
+    async function sendFromSixAddresses(data: {
+      firstOctet: number;
+      shareKey: string;
+      body: unknown;
+    }): Promise<Array<number>> {
+      const statuses: Array<number> = [];
+
+      for (let address: number = 1; address <= 6; address++) {
+        for (let attempt: number = 0; attempt < 10; attempt++) {
+          statuses.push(
+            (
+              await send({
+                port,
+                method: "POST",
+                path: submitPath(data.shareKey),
+                clientIp: `${data.firstOctet}.0.0.${address}`,
+                body: data.body,
+              })
+            ).status,
+          );
+        }
+      }
+
+      return statuses;
+    }
+
+    test("is never spent by requests the IP allowlist, the captcha or the answers refuse", async () => {
+      // Outside the form's allowlist (198.51.100.0/24).
+      expect(
+        new Set(
+          await sendFromSixAddresses({
+            firstOctet: 11,
+            shareKey: LOCKED_SHARE_KEY,
+            body: { data: ANSWERS },
+          }),
+        ),
+      ).toEqual(new Set([403]));
+
+      // A captcha that fails.
+      jest.spyOn(CaptchaUtil, "isCaptchaEnabled").mockReturnValue(true);
+      jest
+        .spyOn(CaptchaUtil, "verifyCaptcha")
+        .mockRejectedValue(
+          new BadDataException(
+            "Captcha verification failed. Please try again.",
+          ),
+        );
+
+      expect(
+        new Set(
+          await sendFromSixAddresses({
+            firstOctet: 12,
+            shareKey: LOCKED_SHARE_KEY,
+            body: { data: ANSWERS },
+          }),
+        ),
+      ).toEqual(new Set([403]));
+      expect(
+        new Set(
+          await sendFromSixAddresses({
+            firstOctet: 12,
+            shareKey: SHARE_KEY,
+            body: { data: ANSWERS },
+          }),
+        ),
+      ).toEqual(new Set([400]));
+
+      jest.spyOn(CaptchaUtil, "isCaptchaEnabled").mockReturnValue(false);
+
+      // Bodies that are not a submission, and answers that do not pass.
+      expect(
+        new Set(
+          await sendFromSixAddresses({
+            firstOctet: 13,
+            shareKey: SHARE_KEY,
+            body: {},
+          }),
+        ),
+      ).toEqual(new Set([400]));
+      expect(
+        new Set(
+          await sendFromSixAddresses({
+            firstOctet: 14,
+            shareKey: SHARE_KEY,
+            body: { data: { reporterName: "No title" } },
+          }),
+        ),
+      ).toEqual(new Set([400]));
+
+      expect(incidentCreate).not.toHaveBeenCalled();
+      expect(client.keysMatching(":submit:f:")).toEqual([]);
+
+      // The office inside the allowlist can still report.
+      const insider: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(LOCKED_SHARE_KEY),
+        clientIp: ALLOWED_IP,
+        body: { data: ANSWERS },
+      });
+
+      expect(seen(insider)).toEqual({ status: 200, body: SUBMISSION_RESULT });
+      expect(incidentCreate).toHaveBeenCalledTimes(1);
+      expect(client.keysMatching(":submit:f:")).toHaveLength(1);
+    }, 60_000);
+
+    test("declares at most sixty incidents an hour, from however many addresses", async () => {
+      for (let address: number = 1; address <= 60; address++) {
+        expect(
+          (
+            await send({
+              port,
+              method: "POST",
+              path: submitPath(SHARE_KEY),
+              clientIp: `10.3.0.${address}`,
+              body: { data: ANSWERS },
+            })
+          ).status,
+        ).toBe(200);
+      }
+
+      const refused: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(SHARE_KEY),
+        clientIp: "10.3.1.1",
+        body: { data: ANSWERS },
+      });
+
+      expect(refused.status).toBe(429);
+      expect(errorMessageOf(refused)).toBe(
+        INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+      );
+      expect(Number(refused.headers["retry-after"])).toBeGreaterThan(0);
+      expect(Number(refused.headers["retry-after"])).toBeLessThanOrEqual(
+        60 * 60,
+      );
+      expect(incidentCreate).toHaveBeenCalledTimes(60);
+    }, 60_000);
+
+    test("refuses with a 503, declaring nothing, when it cannot be counted", async () => {
+      client.failKeysMatching = /:submit:f:/;
+
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(SHARE_KEY),
+        body: { data: ANSWERS },
+      });
+
+      expect(result.status).toBe(503);
+      expect(errorMessageOf(result)).toBe(
+        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+      );
+      expect(incidentCreate).not.toHaveBeenCalled();
     });
   });
 
