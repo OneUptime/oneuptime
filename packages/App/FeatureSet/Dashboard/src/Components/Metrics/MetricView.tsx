@@ -1426,12 +1426,13 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                    * floats, with the refetch indicator beside it. A row of
                    * its own pushed every chart down on each zoom and back
                    * up on each reset, right under a reader about to
-                   * double-click. The corner inside the first chart holds
-                   * its title and drag hint, so the pair sits centred on
+                   * double-click. The top right corner inside the first
+                   * chart holds its drag hint, so the pair sits centred on
                    * that chart's top border instead: the top of the panel
                    * for chart cards, 17px down (the divider and its pt-4)
-                   * without them. Card hosts give the view the 16px above
-                   * it that the upper half needs.
+                   * without them. With chart cards its upper half rides
+                   * above the view, in the 16px top margin of the Card
+                   * body every such host puts the view in.
                    */
                   <div
                     data-testid="metric-view-own-zoom-controls"
