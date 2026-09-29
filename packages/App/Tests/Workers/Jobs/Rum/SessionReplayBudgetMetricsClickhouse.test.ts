@@ -113,6 +113,7 @@ import SessionReplayBudgetMetrics, {
 } from "Common/Server/Utils/SessionReplay/SessionReplayBudgetMetrics";
 import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
+import { TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES } from "Common/Server/Services/TelemetryUsageBillingService";
 import SessionReplayRateLimiter, {
   SessionReplayLimitDecision,
   SessionReplayLimitOutcome,
@@ -131,6 +132,22 @@ const database: string = `replay_budget_metrics_test_${process.pid}_${Date.now()
 
 const GIB: number = 1024 * 1024 * 1024;
 const LIMIT: number = SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY;
+
+/*
+ * The UTC day and month every test charges and sweeps. The gate and the sweep
+ * each build their keys from the wall clock, so both are pinned to these for
+ * the whole suite: a day or month that rolled over between a charge and the
+ * sweep that reads it would put them on different keys.
+ */
+const DAY_BUCKET: string = SessionReplayUsage.getUtcDayBucket();
+const MONTH_BUCKET: string = SessionReplayUsage.getUtcMonthBucket();
+
+function pinCounterBuckets(): void {
+  jest.spyOn(SessionReplayUsage, "getUtcDayBucket").mockReturnValue(DAY_BUCKET);
+  jest
+    .spyOn(SessionReplayUsage, "getUtcMonthBucket")
+    .mockReturnValue(MONTH_BUCKET);
+}
 
 const DAILY_NEARLY_SPENT: string =
   "rum-session-replay-daily-budget-nearly-spent";
@@ -269,6 +286,7 @@ integration("session replay budget metrics against ClickHouse", () => {
   let client: ClickhouseClient;
   let original: ServiceConnection | undefined;
   let counters: InMemoryCounters | null = null;
+  let waitForAsyncInsertBefore: string | undefined = undefined;
 
   // What the sweep registered, as the catalog would hand it back to the worker.
   const catalog: Dictionary<MetricType> = {};
@@ -325,6 +343,15 @@ integration("session replay budget metrics against ClickHouse", () => {
     MetricService.ingestDatabase = clickhouse;
     MetricService.ingestDatabaseClient = client;
 
+    /*
+     * Inserts wait for their flush - into the table AND its materialized
+     * view, which is what the monitor's Max query reads. Without it an
+     * async insert can be visible in MetricItemV3 a few milliseconds before
+     * the view has it.
+     */
+    waitForAsyncInsertBefore = process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"];
+    process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"] = "true";
+
     if (useRealValkey) {
       await Redis.connect();
     }
@@ -333,6 +360,12 @@ integration("session replay budget metrics against ClickHouse", () => {
   afterAll(async (): Promise<void> => {
     if (original) {
       Object.assign(MetricService, original);
+    }
+
+    if (waitForAsyncInsertBefore === undefined) {
+      delete process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"];
+    } else {
+      process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"] = waitForAsyncInsertBefore;
     }
 
     if (client) {
@@ -345,6 +378,9 @@ integration("session replay budget metrics against ClickHouse", () => {
 
     if (useRealValkey) {
       const valkey: ReturnType<typeof Redis.getClient> = Redis.getClient();
+
+      // The keys the tests charged: on the pinned day and month.
+      pinCounterBuckets();
 
       for (const fixture of fixtures) {
         await valkey?.del(
@@ -428,6 +464,8 @@ integration("session replay budget metrics against ClickHouse", () => {
       .mockImplementation(async (): Promise<Array<MetricType>> => {
         return Object.values(catalog);
       });
+
+    pinCounterBuckets();
 
     if (!useRealValkey) {
       counters = counters || new InMemoryCounters();
@@ -791,21 +829,36 @@ integration("session replay budget metrics against ClickHouse", () => {
     expect(unbudgeted.verdict).toBe("none");
   });
 
-  test("a monitor on an application of another project sees nothing", async () => {
+  /*
+   * A monitor is always read within its own project. Scoped to another
+   * project's application - the one place the application filter alone
+   * would let a series through - it must still see nothing.
+   */
+  test("a monitor in another project sees nothing, even scoped to this project's application", async () => {
     const fixture: Fixture = track(newFixture());
     const stranger: Fixture = newFixture();
 
     await charge({ fixture: fixture, bytes: LIMIT });
     await sweep(fixture);
 
-    const result: Evaluation = await evaluate({
-      fixture: stranger,
+    // Positive control: the project's own monitor reads the spent budget.
+    const own: Evaluation = await evaluate({
+      fixture: fixture,
       templateId: DAILY_SPENT,
-      rumApplicationId: stranger.budgeted,
+      rumApplicationId: fixture.budgeted,
     });
 
-    expect(result.values).toEqual([]);
-    expect(result.verdict).toBe("none");
+    expect(own.values).toEqual([100]);
+    expect(own.verdict).toBe("breach");
+
+    const leaked: Evaluation = await evaluate({
+      fixture: stranger,
+      templateId: DAILY_SPENT,
+      rumApplicationId: fixture.budgeted,
+    });
+
+    expect(leaked.values).toEqual([]);
+    expect(leaked.verdict).toBe("none");
   });
 
   test("zero usage writes nothing, so a template meets no criteria", async () => {
@@ -836,9 +889,17 @@ integration("session replay budget metrics against ClickHouse", () => {
       .spyOn(OneUptimeDate, "getCurrentDate")
       .mockReturnValue(OneUptimeDate.addRemoveMinutes(new Date(), -20));
 
-    await sweep(fixture);
+    const summary: SessionReplayBudgetSweepSummary = await sweep(fixture);
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockRestore();
+
+    /*
+     * The points exist - the daily pair on both applications, twenty minutes
+     * old - so an empty answer below means they are outside the window, not
+     * that nothing was written.
+     */
+    expect(summary.rowsWritten).toBe(4);
+    expect(await storedRows(fixture)).toHaveLength(4);
 
     const stale: Evaluation = await evaluate({
       fixture: fixture,
@@ -848,6 +909,93 @@ integration("session replay budget metrics against ClickHouse", () => {
 
     expect(stale.values).toEqual([]);
     expect(stale.verdict).toBe("none");
+  });
+
+  /*
+   * The billing scan on the real server. The budget rows share the
+   * application's id and type with its own metrics, so the grouping cannot
+   * tell them apart: only the name keeps them off the bill.
+   */
+  test("the Metrics billing scan leaves the budget rows out and still counts the application's own metrics", async () => {
+    const fixture: Fixture = track(newFixture());
+
+    await charge({ fixture: fixture, bytes: Math.ceil(LIMIT * 0.5) });
+    await sweep(fixture);
+
+    // The application's own web vitals: the same row shape, id and type.
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const webVitals: Array<JSONObject> = [1200, 1500, 2100].map(
+      (value: number): JSONObject => {
+        const row: JSONObject = SessionReplayBudgetMetrics.buildMetricRow({
+          projectId: fixture.projectId,
+          rumApplicationId: fixture.budgeted,
+          metricType: SessionReplayBudgetMetricType.ProjectDailyUsedBytes,
+          value: value,
+          attributes: {},
+          ingestionDate: now,
+          retentionDate: OneUptimeDate.addRemoveDays(now, 15),
+        });
+
+        row["name"] = "web_vital.lcp";
+
+        return row;
+      },
+    );
+
+    await MetricService.insertJsonRows(webVitals);
+
+    // Two budget rows on each application, and the three web vitals.
+    expect(await storedRows(fixture)).toHaveLength(7);
+
+    const window: {
+      projectId: ObjectID;
+      timestampColumnName: string;
+      startDate: Date;
+      endDate: Date;
+    } = {
+      projectId: fixture.projectId,
+      timestampColumnName: "time",
+      startDate: OneUptimeDate.addRemoveMinutes(now, -60),
+      endDate: OneUptimeDate.addRemoveMinutes(now, 60),
+    };
+
+    type Usage = Array<{
+      primaryEntityId: string;
+      primaryEntityType: string | null;
+      rowCount: number;
+      estimatedBytes: number;
+    }>;
+
+    const rowsById: (usage: Usage) => Record<string, number> = (
+      usage: Usage,
+    ): Record<string, number> => {
+      const counts: Record<string, number> = {};
+
+      for (const entry of usage) {
+        counts[entry.primaryEntityId] =
+          (counts[entry.primaryEntityId] || 0) + entry.rowCount;
+      }
+
+      return counts;
+    };
+
+    const everything: Usage =
+      await MetricService.groupTelemetryUsageByService(window);
+
+    expect(rowsById(everything)).toEqual({
+      [fixture.budgeted.toString()]: 5,
+      [fixture.unbudgeted.toString()]: 2,
+    });
+
+    const billed: Usage = await MetricService.groupTelemetryUsageByService({
+      ...window,
+      excludeNames: [...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES],
+    });
+
+    // Only the web vitals, still under the application's own id and type.
+    expect(rowsById(billed)).toEqual({ [fixture.budgeted.toString()]: 3 });
+    expect(billed[0]?.primaryEntityType).toBe(ServiceType.RealUserMonitor);
+    expect(billed[0]?.estimatedBytes).toBeGreaterThan(0);
   });
 });
 

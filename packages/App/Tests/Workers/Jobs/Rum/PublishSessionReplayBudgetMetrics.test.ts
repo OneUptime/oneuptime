@@ -18,7 +18,9 @@ import { SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES } from "Common/Utils/Rum/
  *   3. one sweep at a time, through the Redis lock, and a contended lock
  *      skips the tick (quietly) while a broken Redis says so (loudly);
  *   4. the sweep gets the daily limit the ingest gate enforces, a deadline
- *      inside the job timeout, and a way to notice it lost the lock;
+ *      inside the job timeout, and the mutex's isAcquired to check between
+ *      pages - kept current by a 30-second lock refresh, with a lost lock
+ *      handled rather than thrown from the refresh timer;
  *   5. the lock is released however the sweep ends, and the handler never
  *      throws.
  *
@@ -311,7 +313,13 @@ describe("the sweep", () => {
     expect(deadline!.getTime() - NOW.getTime()).toBeLessThan(FOUR_MINUTES_MS);
   });
 
-  test("can tell when it has lost the lock", async () => {
+  /*
+   * What this pins is the wiring: between pages the sweep reads the mutex's
+   * own isAcquired. How soon a real mutex reports a loss there is set by the
+   * lock's refresh interval (the 30-second test above) - redis-semaphore only
+   * turns isAcquired false when a refresh finds the lock gone.
+   */
+  test("reads the mutex's isAcquired between pages", async () => {
     await runTick();
 
     const shouldContinue: (() => boolean) | undefined =

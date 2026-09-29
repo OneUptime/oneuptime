@@ -87,6 +87,41 @@ function makeApplication(data: {
   return application;
 }
 
+/*
+ * The ids a QueryHelper.any / in operand asks about - a Raw
+ * `(<column> IN (:...<param>))` whose one parameter holds them. Throws for
+ * anything else, so a query that lost the operand fails loudly.
+ */
+function idsIn(operand: unknown): Array<string> {
+  const raw: {
+    getSql?: (alias: string) => string;
+    objectLiteralParameters?: JSONObject;
+  } = (operand || {}) as {
+    getSql?: (alias: string) => string;
+    objectLiteralParameters?: JSONObject;
+  };
+
+  const inOperandSql: RegExp = /^\(column IN \(:\.\.\.\w+\)\)$/;
+
+  if (
+    typeof raw.getSql !== "function" ||
+    !inOperandSql.test(raw.getSql("column")) ||
+    !raw.objectLiteralParameters
+  ) {
+    throw new Error("Expected a QueryHelper.any operand");
+  }
+
+  const values: Array<unknown> = Object.values(raw.objectLiteralParameters);
+
+  if (values.length !== 1 || !Array.isArray(values[0])) {
+    throw new Error("Expected one list of ids in the operand");
+  }
+
+  return (values[0] as Array<unknown>).map((value: unknown) => {
+    return String(value);
+  });
+}
+
 function makeProject(id: ObjectID): Project {
   const project: Project = new Project();
   project.id = id;
@@ -655,14 +690,28 @@ describe("SessionReplayBudgetMetrics.publishAll", () => {
         },
       );
 
+    /*
+     * Answers like the database would: only the allowed projects among the
+     * ids the query asks about. A query that lost its `_id` scope throws here
+     * (idsIn), rather than quietly answering with every allowed project.
+     */
     jest
       .spyOn(ProjectService, "findBy")
       .mockImplementation(
         async (findBy: FindBy<Project>): Promise<Array<Project>> => {
           projectFindCalls.push(findBy);
-          return allowedProjects.map((id: ObjectID) => {
-            return makeProject(id);
-          });
+
+          const asked: Array<string> = idsIn(
+            (findBy.query as unknown as JSONObject)["_id"],
+          );
+
+          return allowedProjects
+            .filter((id: ObjectID) => {
+              return asked.includes(id.toString());
+            })
+            .map((id: ObjectID) => {
+              return makeProject(id);
+            });
         },
       );
 
@@ -703,15 +752,41 @@ describe("SessionReplayBudgetMetrics.publishAll", () => {
         },
       );
 
+    // Only the one global config row, and only if the setting is selected.
     jest
       .spyOn(GlobalConfigService, "findOneBy")
-      .mockImplementation(async (): Promise<GlobalConfig | null> => {
-        return retentionConfig;
-      });
+      .mockImplementation(
+        async (findOneBy: {
+          query?: unknown;
+          select?: unknown;
+        }): Promise<GlobalConfig | null> => {
+          const query: JSONObject = (findOneBy.query || {}) as JSONObject;
+          const select: JSONObject = (findOneBy.select || {}) as JSONObject;
+
+          if (
+            query["_id"] !== ObjectID.getZeroObjectID().toString() ||
+            select["monitorMetricRetentionInDays"] !== true
+          ) {
+            return null;
+          }
+
+          return retentionConfig;
+        },
+      );
 
     jest.spyOn(logger, "debug").mockImplementation((): void => {});
     jest.spyOn(logger, "warn").mockImplementation((): void => {});
     jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    /*
+     * The counter keys come from the wall clock (SessionReplayUsage), so the
+     * clock is frozen too: a test must not build today's key at 23:59:59.999
+     * and see the sweep build tomorrow's a millisecond later.
+     */
+    jest.useFakeTimers({
+      now: NOW,
+      doNotFake: ["nextTick", "setImmediate"],
+    });
   });
 
   afterEach(() => {
@@ -846,6 +921,10 @@ describe("SessionReplayBudgetMetrics.publishAll", () => {
 
     const projectQuery: JSONObject = projectFindCalls[0]!
       .query as unknown as JSONObject;
+    // Asks about exactly this page's projects: no more, and each once.
+    expect(idsIn(projectQuery["_id"]).sort()).toEqual(
+      [PROJECT_A.toString(), PROJECT_B.toString()].sort(),
+    );
     expect(projectQuery["isSessionReplayAllowed"]).toBe(true);
     expect(projectFindCalls[0]!.select).toEqual({ _id: true });
     // One row per distinct project on the page, however many apps it has.
@@ -1409,6 +1488,23 @@ describe("SessionReplayBudgetMetrics.publishAll", () => {
       await sweep();
 
       expect(GlobalConfigService.findOneBy).toHaveBeenCalledTimes(1);
+    });
+
+    // The one global config row, as root, with the setting selected.
+    test("reads the monitor metric retention off the global config row", async () => {
+      await retentionWritten();
+
+      expect(GlobalConfigService.findOneBy).toHaveBeenCalledWith({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        select: {
+          monitorMetricRetentionInDays: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     });
   });
 
