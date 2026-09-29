@@ -32,6 +32,7 @@ import {
   makeSeriesKeyFromAttributes,
   CounterRatePoint,
 } from "../../Utils/CounterRateUtils";
+import { useEmbeddedMetricCardRefreshNonce } from "../Metrics/EmbeddedMetricCardRefresh";
 
 /*
  * Cumulative-counter → per-second-rate chart for Docker Swarm pages.
@@ -76,6 +77,13 @@ const DockerSwarmRateChart: FunctionComponent<ComponentProps> = (
   const [series, setSeries] = useState<Array<SeriesPoint>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * The Refresh count of the EmbeddedMetricCard around the chart (0
+   * outside one). A zoomed window is a Custom one that Refresh re-resolves
+   * to the same instants, so without it Refresh could not reload the chart,
+   * not even to retry a failed load.
+   */
+  const refreshNonce: number = useEmbeddedMetricCardRefreshNonce();
 
   const startMs: number = props.startDate.getTime();
   const endMs: number = props.endDate.getTime();
@@ -167,8 +175,12 @@ const DockerSwarmRateChart: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-    // startMs/endMs track the date props by value so identical ranges don't refetch.
-  }, [props.clusterName, startMs, endMs, extraAttributesKey]);
+    /*
+     * startMs/endMs track the date props by value so identical ranges don't
+     * refetch; refreshNonce reloads the same window when the card's Refresh
+     * is pressed.
+     */
+  }, [props.clusterName, startMs, endMs, extraAttributesKey, refreshNonce]);
 
   if (isLoading) {
     return <div className="h-48 animate-pulse rounded-md bg-gray-50" />;

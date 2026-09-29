@@ -50,6 +50,7 @@ import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1316,13 +1317,23 @@ const CephClusterOverview: FunctionComponent<
           onTimeRangeChange={handleChartTimeRangeChange}
           startAndEndDate={chartDateRange}
         >
+          {/*
+           * Each rate chart's heading names the drag, revealed while the
+           * pointer is over that chart (its named group): the card's
+           * metric panels name it in their own headers, which these
+           * charts do not have.
+           */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div>
+            <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                 Client IOPS
                 <InfoTooltip
                   label="Client IOPS"
                   text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
                 />
               </div>
               <CephRateChart
@@ -1339,12 +1350,16 @@ const CephClusterOverview: FunctionComponent<
                 emptyMessage="No client I/O reported in the selected time range."
               />
             </div>
-            <div>
+            <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                 Client Throughput
                 <InfoTooltip
                   label="Client Throughput"
                   text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
                 />
               </div>
               <CephRateChart

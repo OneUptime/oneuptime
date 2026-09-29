@@ -28,6 +28,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 
 /*
  * Curated MetricView presets sharing one time-range state — the Ceph
@@ -299,13 +300,22 @@ const CephClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       >
+        {/*
+         * The card holds only these two rate charts, so nothing else in it
+         * names the drag: each heading does, revealed while the pointer is
+         * over that chart (its named group).
+         */}
         <div className="space-y-6">
-          <div>
+          <div className="group/zoomhint">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
               Client IOPS
               <InfoTooltip
                 label="Client IOPS"
                 text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+              />
+              <TimeRangeZoomHint
+                revealOnHover={true}
+                className="ml-auto font-normal"
               />
             </div>
             <CephRateChart
@@ -321,12 +331,16 @@ const CephClusterInsights: FunctionComponent<
               emptyMessage="No client I/O reported in the selected time range."
             />
           </div>
-          <div>
+          <div className="group/zoomhint">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
               Client Throughput
               <InfoTooltip
                 label="Client Throughput"
                 text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+              />
+              <TimeRangeZoomHint
+                revealOnHover={true}
+                className="ml-auto font-normal"
               />
             </div>
             <CephRateChart
