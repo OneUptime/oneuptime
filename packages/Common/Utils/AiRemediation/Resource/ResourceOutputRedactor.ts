@@ -2401,6 +2401,146 @@ function maskProcessCredentialArguments(data: {
 }
 
 /*
+ * `ceph status` (and `ceph -s`) in its plain format calls its usage section
+ * "data:" — pools, objects, usage and PG states — and the generic rules,
+ * written for kubectl, read a "data:" block as a Kubernetes Secret's and
+ * mask every line of it, which leaves the model blind to the one summary it
+ * asks for first. For exactly that shape — a "  data:" header after the
+ * "  cluster:" / "    id: FSID" / "  services:" headers, holding only
+ * ceph's own usage lines and their continuation lines — the header is
+ * renamed to a placeholder the generic rules read as an ordinary key while
+ * they run, and written back afterwards. Every line under it still gets the
+ * generic per-line rules. Any other shape (and output that already holds
+ * the placeholder) is left to the generic rules whole: over-masking is
+ * accepted, under-masking is not.
+ */
+const CEPH_STATUS_DATA_PLACEHOLDER: string = "ceph-status-usage-section";
+const CEPH_STATUS_DATA_HEADER: string = "  data:";
+const CEPH_STATUS_DATA_KEYS: ReadonlyArray<string> = [
+  "volumes",
+  "pools",
+  "objects",
+  "usage",
+  "pgs",
+];
+const CEPH_STATUS_FSID_LINE_REGEX: RegExp =
+  /^ {4}id: +[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const CEPH_STATUS_DATA_ENTRY_REGEX: RegExp = /^ {4}([a-z]+):(?: |$)/;
+const CEPH_STATUS_PLACEHOLDER_LINE_REGEX: RegExp = new RegExp(
+  `^( {2})${CEPH_STATUS_DATA_PLACEHOLDER}:`,
+);
+
+export interface ShieldedOutput {
+  // The output as the generic rules should read it.
+  text: string;
+  // The generic rules' answer with the shielded header written back.
+  restore: (redacted: string) => string;
+}
+
+export function shieldCephStatusDataSection(
+  text: string,
+): ShieldedOutput | null {
+  if (typeof text !== "string" || text.includes(CEPH_STATUS_DATA_PLACEHOLDER)) {
+    return null;
+  }
+
+  const lines: Array<string> = text.split("\n");
+  const bare: Array<string> = lines.map((line: string): string => {
+    return line.replace(/\r$/, "");
+  });
+  const clusterIndex: number = bare.indexOf("  cluster:");
+
+  if (
+    clusterIndex < 0 ||
+    !CEPH_STATUS_FSID_LINE_REGEX.test(bare[clusterIndex + 1] || "")
+  ) {
+    return null;
+  }
+
+  const servicesIndex: number = bare.indexOf("  services:", clusterIndex);
+  const dataIndex: number =
+    servicesIndex < 0
+      ? -1
+      : bare.indexOf(CEPH_STATUS_DATA_HEADER, servicesIndex);
+
+  if (dataIndex < 0) {
+    return null;
+  }
+
+  let entries: number = 0;
+
+  for (let index: number = dataIndex + 1; index < bare.length; index++) {
+    const line: string = bare[index] as string;
+
+    if (line.trim() === "") {
+      break;
+    }
+
+    const indent: number = line.length - line.trimStart().length;
+
+    if (indent <= 2) {
+      break;
+    }
+
+    if (indent === 4) {
+      const entry: RegExpExecArray | null =
+        CEPH_STATUS_DATA_ENTRY_REGEX.exec(line);
+
+      if (!entry || !CEPH_STATUS_DATA_KEYS.includes(entry[1] || "")) {
+        return null;
+      }
+
+      entries++;
+      continue;
+    }
+
+    // Deeper: the continuation of the entry above ("  12 active+clean").
+    if (indent > 4 && entries > 0) {
+      continue;
+    }
+
+    return null;
+  }
+
+  if (entries === 0) {
+    return null;
+  }
+
+  const shielded: Array<string> = lines.slice();
+  shielded[dataIndex] = (lines[dataIndex] as string).replace(
+    "data:",
+    `${CEPH_STATUS_DATA_PLACEHOLDER}:`,
+  );
+
+  return {
+    text: shielded.join("\n"),
+    restore: (redacted: string): string => {
+      return redacted
+        .split("\n")
+        .map((line: string): string => {
+          return line.replace(CEPH_STATUS_PLACEHOLDER_LINE_REGEX, "$1data:");
+        })
+        .join("\n");
+    },
+  };
+}
+
+/*
+ * Output a program prints that the generic rules misread, shielded while
+ * they run (see shieldCephStatusDataSection); null for everything else.
+ */
+function shieldFromGenericRules(
+  program: string,
+  text: string,
+): ShieldedOutput | null {
+  try {
+    return program === "ceph" ? shieldCephStatusDataSection(text) : null;
+  } catch {
+    return null;
+  }
+}
+
+/*
  * The per-program hooks, run on the raw output before the generic rules.
  * Keyed by argv[0]; a program with no entry gets the generic rules only.
  * Each tool's kit extends its program's list (pvesh `cipassword`, govc
@@ -2470,10 +2610,16 @@ export function redactResourceCommandOutputWithCount(data: {
     }
   }
 
-  const generic: ResourceOutputRedaction = GenericOutputRedactor.redact(text);
+  const shield: ShieldedOutput | null = shieldFromGenericRules(
+    data.program,
+    text,
+  );
+  const generic: ResourceOutputRedaction = GenericOutputRedactor.redact(
+    shield ? shield.text : text,
+  );
 
   return {
-    text: generic.text,
+    text: shield ? shield.restore(generic.text) : generic.text,
     redactionCount: count + generic.redactionCount,
   };
 }

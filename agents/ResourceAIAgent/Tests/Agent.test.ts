@@ -512,10 +512,18 @@ test("a Host without HOST_NAME and an executor that cannot name it stays misconf
       ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "host",
       DOCKER_HOST_NAME: "",
     }),
+    /*
+     * An executor without resolveResourceIdentifier, never the real
+     * HostExecutor: that one's answer depends on the machine running the
+     * test (as root on Linux it can read a hostname).
+     */
+    createExecutor: fakeExecutorFactory(),
   });
 
   await agent.start();
 
+  assert.strictEqual(executors.length, 1);
+  assert.strictEqual(executors[0]!.resolveResourceIdentifier, undefined);
   const snapshot: AgentStatusSnapshot = await statusOf(agent);
   assert.strictEqual(snapshot.phase, "misconfigured");
   assert.match(

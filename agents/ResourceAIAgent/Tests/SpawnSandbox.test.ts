@@ -27,6 +27,7 @@ import FakeBinary, {
   FakeBinaryInvocation,
   makeTempDir,
 } from "./Helpers/FakeBinary";
+import { killAfterOutput } from "./Helpers/KillAfterOutput";
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
 import { MAX_RESOURCE_AGENT_OUTPUT_BYTES } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 
@@ -294,12 +295,22 @@ describe("results", () => {
   });
 
   test("a killed command that printed something is just 'Killed'", async () => {
-    docker.setBehaviour({ stdout: "partial\n", sleepMs: 20_000 });
+    docker.setBehaviour({
+      stdout: "partial\n",
+      sleepMs: 20_000,
+      announcePrinted: true,
+    });
 
-    // Long enough for the fake to start and print, even on a busy machine.
-    const result: ExecResult = await sandbox().run(
-      runRequest({ timeoutInMs: 3_000 }),
-    );
+    // The budget runs out once the fake has printed, however busy the machine.
+    const result: ExecResult = await killAfterOutput({
+      timeoutInMs: 3_000,
+      run: (): Promise<ExecResult> => {
+        return sandbox().run(runRequest({ timeoutInMs: 3_000 }));
+      },
+      printed: (signal: AbortSignal): Promise<void> => {
+        return docker.waitUntilPrinted(signal);
+      },
+    });
 
     assert.strictEqual(result.errorMessage, "Killed (timeout 3000ms)");
     assert.match(result.output, /partial/);

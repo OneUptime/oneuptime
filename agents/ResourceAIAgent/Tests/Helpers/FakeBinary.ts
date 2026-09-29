@@ -1,6 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { PRINTED_MARKER, waitForFile } from "./KillAfterOutput";
 
 /*
  * A stand-in CLI for tests (docker, govc, ceph, nsenter — any name): a small
@@ -31,6 +32,12 @@ export interface FakeBinaryBehaviour {
   orphanSleepMs?: number | undefined;
   // Kill itself with this signal after printing.
   killSelfWith?: string | undefined;
+  /*
+   * Once everything above is in the pipes, say so (waitUntilPrinted), so a
+   * test can let the time budget run out only after the output
+   * (killAfterOutput).
+   */
+  announcePrinted?: boolean | undefined;
 }
 
 export interface FakeBinaryInvocation {
@@ -64,10 +71,15 @@ try { parentEntries = fs.readdirSync(path.dirname(process.cwd())).sort(); } catc
 // macOS adds __CF_USER_TEXT_ENCODING to every process it starts; it did not come from the agent.
 const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("__CF_")));
 fs.appendFileSync(path.join(dir, "invocations.jsonl"), JSON.stringify({ argv, env, cwd: process.cwd(), cwdMode, parentMode, homeExists, parentEntries, pid: process.pid }) + "\\n");
-if (behaviour.stdout) process.stdout.write(behaviour.stdout);
-if (behaviour.stdoutBytes) process.stdout.write("x".repeat(behaviour.stdoutBytes));
-if (behaviour.stderr) process.stderr.write(behaviour.stderr);
-if (behaviour.stderrBytes) process.stderr.write("e".repeat(behaviour.stderrBytes));
+// Each write's callback runs once the OS has it; after the last, announce it (announcePrinted).
+let unflushed = 1;
+function flushed() { if (--unflushed === 0 && behaviour.announcePrinted) fs.writeFileSync(path.join(dir, ${JSON.stringify(PRINTED_MARKER)}), ""); }
+function print(stream, text) { unflushed++; stream.write(text, flushed); }
+if (behaviour.stdout) print(process.stdout, behaviour.stdout);
+if (behaviour.stdoutBytes) print(process.stdout, "x".repeat(behaviour.stdoutBytes));
+if (behaviour.stderr) print(process.stderr, behaviour.stderr);
+if (behaviour.stderrBytes) print(process.stderr, "e".repeat(behaviour.stderrBytes));
+flushed();
 if (behaviour.orphanSleepMs) {
   // The child inherits stdout and stderr, so they stay open while it lives.
   spawn(process.execPath, [__filename, "__orphan__", String(behaviour.orphanSleepMs)], { stdio: ["ignore", "inherit", "inherit"] }).unref();
@@ -97,10 +109,17 @@ export default class FakeBinary {
   }
 
   public setBehaviour(behaviour: FakeBinaryBehaviour): void {
+    // A new behaviour, a new run: an earlier run's announcement does not count.
+    fs.rmSync(path.join(this.dir, PRINTED_MARKER), { force: true });
     fs.writeFileSync(
       path.join(this.dir, "behaviour.json"),
       JSON.stringify(behaviour),
     );
+  }
+
+  // Resolves once a run scripted with announcePrinted has printed everything.
+  public waitUntilPrinted(signal?: AbortSignal | undefined): Promise<void> {
+    return waitForFile(path.join(this.dir, PRINTED_MARKER), signal);
   }
 
   public getInvocations(): Array<FakeBinaryInvocation> {

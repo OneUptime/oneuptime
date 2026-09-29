@@ -105,14 +105,20 @@ ENV_FILE="$INSTALL_DIR/.env"
 
 # Re-running the installer (e.g. to pick up a new collector pin) keeps the
 # existing configuration: every value already in .env is reused unless the
-# same variable is exported in the shell, and nothing is prompted for again.
+# same variable is exported in the shell, and nothing is prompted for again
+# (an .env written before the OneUptime AI agent existed keeps it read-only).
 # Edit .env directly, export the variable, or delete the file to change one.
+REUSED_ENV=0
 if [ -f "$ENV_FILE" ]; then
+    REUSED_ENV=1
     echo "Found an existing configuration in $ENV_FILE — reusing it."
     echo "(Exported variables override it; edit or delete the file to change a value.)"
     for name in ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY VMWARE_VCENTER_NAME \
                 VCENTER_ENDPOINT VCENTER_USERNAME VCENTER_PASSWORD \
-                VCENTER_INSECURE_SKIP_VERIFY VCENTER_COLLECTION_INTERVAL; do
+                VCENTER_INSECURE_SKIP_VERIFY VCENTER_COLLECTION_INTERVAL \
+                ONEUPTIME_AI_ALLOW_WRITES ONEUPTIME_AI_VCENTER_USERNAME \
+                ONEUPTIME_AI_VCENTER_PASSWORD ONEUPTIME_AI_WRITE_TARGETS \
+                ONEUPTIME_AI_PROTECTED_TARGETS VCENTER_CA_FILE GOVC_DATACENTER; do
         if [ -z "${!name}" ]; then
             printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
         fi
@@ -178,6 +184,48 @@ if [ -z "$VCENTER_COLLECTION_INTERVAL" ]; then
     VCENTER_COLLECTION_INTERVAL="${VCENTER_COLLECTION_INTERVAL:-2m}"
 fi
 
+# ----------------------------------------------------------------------------
+# OneUptime AI agent (the oneuptime-vmware-ai-agent service)
+# ----------------------------------------------------------------------------
+# It runs next to the collector and lets OneUptime AI look at this vCenter
+# with govc while it investigates an incident or alert — read-only, with the
+# credentials above. Fixes (powering VMs on, rebooting, powering off or
+# resetting them) are off unless ONEUPTIME_AI_ALLOW_WRITES=true, and then
+# need a vSphere user whose role allows them. Asked on a fresh install only.
+if [ -z "$ONEUPTIME_AI_ALLOW_WRITES" ] && [ "$REUSED_ENV" = 0 ]; then
+    echo ""
+    echo "The OneUptime AI agent lets OneUptime AI look at this vCenter (read-only)"
+    echo "while it investigates incidents and alerts."
+    read -rp "Also let it apply fixes (power VMs on, reboot, power off or reset them)? [y/N]: " AI_FIXES
+    if [[ "$AI_FIXES" =~ ^[Yy] ]]; then
+        ONEUPTIME_AI_ALLOW_WRITES="true"
+    fi
+
+    if [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
+        if [ -z "$ONEUPTIME_AI_VCENTER_USERNAME" ]; then
+            echo "Fixes need a vSphere user whose role has VirtualMachine.Interact.PowerOn,"
+            echo "PowerOff and Reset (see README.md). Leave empty to use $VCENTER_USERNAME."
+            read -rp "vSphere user for fixes: " ONEUPTIME_AI_VCENTER_USERNAME
+        fi
+        if [ -n "$ONEUPTIME_AI_VCENTER_USERNAME" ] && [ -z "$ONEUPTIME_AI_VCENTER_PASSWORD" ]; then
+            read -rsp "Password of $ONEUPTIME_AI_VCENTER_USERNAME: " ONEUPTIME_AI_VCENTER_PASSWORD
+            echo ""
+        fi
+        if [ -z "$ONEUPTIME_AI_PROTECTED_TARGETS" ]; then
+            echo "VMs OneUptime AI must never change, comma-separated — at least the VM this"
+            echo "agent runs on, if it runs inside this vCenter (the vCenter appliance named"
+            echo "after the endpoint's host is always protected)."
+            read -rp "Protected VMs [none]: " ONEUPTIME_AI_PROTECTED_TARGETS
+        fi
+    fi
+fi
+# Only "true" allows fixes; anything else (unset, a typo) keeps the agent read-only.
+if [ "$(printf '%s' "$ONEUPTIME_AI_ALLOW_WRITES" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+    ONEUPTIME_AI_ALLOW_WRITES="true"
+else
+    ONEUPTIME_AI_ALLOW_WRITES="false"
+fi
+
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
@@ -190,9 +238,9 @@ echo "Downloading configuration files..."
 curl -fsSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
 curl -fsSL "$REPO_BASE/otel-collector-config.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
 
-# Create .env file. It holds the vSphere password, so it is created
+# Create .env file. It holds the vSphere passwords, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
-# value is quoted for Compose (see compose_env_quote); the boolean and the
+# value is quoted for Compose (see compose_env_quote); the booleans and the
 # duration are validated shapes and stay bare.
 touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
@@ -205,6 +253,13 @@ VCENTER_USERNAME=$(compose_env_quote "$VCENTER_USERNAME")
 VCENTER_PASSWORD=$(compose_env_quote "$VCENTER_PASSWORD")
 VCENTER_INSECURE_SKIP_VERIFY=$VCENTER_INSECURE_SKIP_VERIFY
 VCENTER_COLLECTION_INTERVAL=$VCENTER_COLLECTION_INTERVAL
+ONEUPTIME_AI_ALLOW_WRITES=$ONEUPTIME_AI_ALLOW_WRITES
+ONEUPTIME_AI_VCENTER_USERNAME=$(compose_env_quote "$ONEUPTIME_AI_VCENTER_USERNAME")
+ONEUPTIME_AI_VCENTER_PASSWORD=$(compose_env_quote "$ONEUPTIME_AI_VCENTER_PASSWORD")
+ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_WRITE_TARGETS")
+ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_PROTECTED_TARGETS")
+VCENTER_CA_FILE=$(compose_env_quote "$VCENTER_CA_FILE")
+GOVC_DATACENTER=$(compose_env_quote "$GOVC_DATACENTER")
 ENVEOF
 chmod 600 "$ENV_FILE"
 
@@ -222,8 +277,17 @@ echo ""
 echo "The vCenter '$VMWARE_VCENTER_NAME' appears under VMware in OneUptime after the"
 echo "first collection (about $VCENTER_COLLECTION_INTERVAL)."
 echo ""
+if [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
+    echo "The OneUptime AI agent (oneuptime-vmware-ai-agent) may apply fixes. Choose on the"
+    echo "vCenter's AI -> AI agent page in OneUptime whether a person approves each one."
+else
+    echo "The OneUptime AI agent (oneuptime-vmware-ai-agent) is read-only. To let it apply"
+    echo "fixes, set ONEUPTIME_AI_ALLOW_WRITES=true in $ENV_FILE and run: docker compose up -d"
+fi
+echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"
 echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
+echo "AI agent status:  docker exec oneuptime-vmware-ai-agent wget -qO- http://127.0.0.1:3877/status"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "If nothing shows up: curl -fsSL $REPO_BASE/troubleshoot.sh | bash"

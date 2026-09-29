@@ -6,6 +6,8 @@ The agent is config-only: a stock `otel/opentelemetry-collector-contrib` contain
 
 One agent monitors one vSphere endpoint — a **vCenter Server** (the normal case, covering every datacenter, cluster and host it manages) or a **standalone ESXi host** that is not managed by a vCenter. Run one agent per vCenter.
 
+Next to the collector, `docker-compose.yml` also runs the **OneUptime AI agent** (`oneuptime-vmware-ai-agent`), which lets OneUptime AI look at this vCenter with `govc` while it investigates an incident or alert. It is read-only unless you allow fixes; see [OneUptime AI agent](#oneuptime-ai-agent).
+
 ## Prerequisites
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach vCenter over HTTPS (TCP 443)
@@ -152,6 +154,86 @@ processors:
 
 The vCenter shows up tagged `team:platform` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
 
+## OneUptime AI agent
+
+The `oneuptime-vmware-ai-agent` service (image `oneuptime/resource-ai-agent`) runs the `govc` commands OneUptime AI asks for, so an investigation can check a VM's power state, the host it runs on, recent events and tasks, and performance counters on this vCenter — and, only if you allow it, apply a fix such as powering a VM back on. It shares the collector's `.env`: it logs in with **its own** vCenter credentials from there (OneUptime never sends it any) and registers as the vCenter named `VMWARE_VCENTER_NAME`, the same one the collector reports into. It appears on that vCenter's **AI → AI agent** page in OneUptime, where you also choose whether OneUptime AI proposes fixes and whether a person approves each one.
+
+It runs as UID 1000 with a read-only root filesystem and no capabilities, and only talks HTTPS to vCenter and to OneUptime. If you do not use OneUptime AI, delete the `oneuptime-vmware-ai-agent` service from `docker-compose.yml`.
+
+### What it may run
+
+Every command is checked by the same policy three times — by OneUptime's AI tools, when OneUptime queues it, and by the agent right before it starts `govc` (never through a shell):
+
+| Kind | Commands | When it runs |
+|---|---|---|
+| **Read** | `govc about`, `ls`, `find`, `vm.info`, `host.info`, `host.service.ls`, `host.date.info`, `datastore.info`, `pool.info`, `events`, `tasks`, `metric.ls`, `metric.sample`, `object.collect` (runtime and health properties only), `tags.ls`, `version` | Investigations, always |
+| **Safe fix** | `govc vm.power -on VM`, `govc vm.power -r VM` (graceful guest reboot through VMware Tools), one VM at a time | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; can run unattended in *Automatic* mode |
+| **Risky fix** | `govc vm.power -s` (guest shutdown), `-off`, `-reset`, `-suspend`, a power operation on several VMs, `govc host.maintenance.exit HOST` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; a person approves it unless your settings say otherwise |
+| **Always a person** | `govc vm.migrate`, `govc host.maintenance.enter HOST` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`, and always after a person approves |
+| **Never** | Anything else: guest operations (`guest.*`), creating, cloning, changing or destroying VMs, snapshots, devices and disks, datastore file access, `esxcli`, host add/remove/reboot, permissions, roles, sessions, licenses, `govc env`, a VM's `extraConfig` (`vm.info -e`, `-json`), and the endpoint, credential, TLS and debug flags (`-u`, `-k`, `-cert`, `-debug`, `-dump`, ...) | — |
+
+Secrets `govc` prints (guestinfo values such as cloud-init user data, session ids, anything that looks like a password or token) are masked before the output leaves the agent.
+
+### Allowing fixes
+
+1. Create a vSphere user for OneUptime AI's fixes and a role with the privileges the fixes need — powering VMs on and off and resetting them; add `Host.Config.Maintenance` only if you want maintenance-mode fixes, and `Resource.HotMigrate` / `Resource.ColdMigrate` for migrations. Grant the built-in **Read-Only** role on the top-level vCenter object (propagated) so the user sees the inventory, and the fixes role only where fixes are allowed:
+
+   ```bash
+   govc role.create OneUptimeAIFixes VirtualMachine.Interact.PowerOn VirtualMachine.Interact.PowerOff VirtualMachine.Interact.Reset VirtualMachine.Interact.Suspend
+   govc sso.user.create -p 'a-strong-password' oneuptime-ai
+   govc permissions.set -principal oneuptime-ai@vsphere.local -role ReadOnly -propagate=true /
+   govc permissions.set -principal oneuptime-ai@vsphere.local -role OneUptimeAIFixes -propagate=true /DC/vm/production
+   ```
+
+2. Add to `.env` and run `docker compose up -d`:
+
+   ```bash
+   ONEUPTIME_AI_ALLOW_WRITES=true
+   ONEUPTIME_AI_VCENTER_USERNAME=oneuptime-ai@vsphere.local
+   ONEUPTIME_AI_VCENTER_PASSWORD='a-strong-password'
+   # Recommended: the VM this agent runs on, if it runs inside this vCenter.
+   ONEUPTIME_AI_PROTECTED_TARGETS=monitoring-vm-01
+   ```
+
+3. On the vCenter's **AI → AI agent** page in OneUptime, choose how fixes are applied (*Ask for approval*, *Automatic* or *Bypass approval*).
+
+Without `ONEUPTIME_AI_VCENTER_USERNAME` the agent uses `VCENTER_USERNAME` for everything; with the collector's Read-Only user, vCenter itself then refuses every fix (and the agent's message lists the privileges the role needs). `install.sh` asks about fixes on a fresh install and writes these settings for you.
+
+The agent **never** changes the vCenter appliance itself — the VM named after the host in `VCENTER_ENDPOINT` (`vcsa` for `https://vcsa.example.com`, or the full host name) — nor anything in `ONEUPTIME_AI_PROTECTED_TARGETS`, whatever inventory path a command names it by (`vcsa` and `/DC/vm/infra/vcsa` are the same VM). To restrict fixes to certain VMs or hosts, set `ONEUPTIME_AI_WRITE_TARGETS`: its globs are matched against each name exactly as the command writes it, so list both forms when you use paths (`web-*,/DC/vm/web/*`).
+
+### AI agent settings
+
+These go in the same `.env`; the agent also reads `VMWARE_VCENTER_NAME`, `VCENTER_ENDPOINT`, `VCENTER_USERNAME`, `VCENTER_PASSWORD` and `VCENTER_INSECURE_SKIP_VERIFY` from the collector's settings above.
+
+| Variable | Default | Description |
+|---|---|---|
+| `ONEUPTIME_AI_ALLOW_WRITES` | `false` | `true` lets OneUptime AI apply fixes. Anything else keeps the agent read-only |
+| `ONEUPTIME_AI_VCENTER_USERNAME` / `ONEUPTIME_AI_VCENTER_PASSWORD` | — | The vSphere user the agent logs in as instead of `VCENTER_USERNAME` / `VCENTER_PASSWORD` — one whose role allows the fixes. Set both or neither |
+| `ONEUPTIME_AI_WRITE_TARGETS` | all | Comma-separated globs of the VMs and hosts fixes may touch. Empty means any, except the protected ones |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated names (or globs) of VMs and hosts OneUptime AI must never change, on top of the vCenter appliance |
+| `VCENTER_CA_FILE` | — | Path, inside the agent's container, of a PEM file with the CA that signed vCenter's certificate (its VMCA root, from `https://<vcenter>/certs/download.zip`). Mount it with the commented `volumes:` lines of the service. Lets you keep `VCENTER_INSECURE_SKIP_VERIFY=false` with vCenter's own certificate |
+| `GOVC_DATACENTER` | — | The datacenter commands use when they name none; set it when this vCenter has more than one |
+
+### Troubleshooting the AI agent
+
+```bash
+docker logs --tail 100 oneuptime-vmware-ai-agent
+docker exec oneuptime-vmware-ai-agent wget -qO- http://127.0.0.1:3877/status
+```
+
+`/status` shows whether the agent is registered, which vCenter it serves, the vCenter version it last saw and, if it cannot reach vCenter, why.
+
+| What you see | What to do |
+|---|---|
+| `vCenter rejected the agent's login` | Check the user (full principal, e.g. `oneuptime@vsphere.local`) and password the message names, how the password is quoted in `.env`, and that the account is not locked. |
+| `The agent does not trust vCenter's TLS certificate` | Set `VCENTER_CA_FILE` to a mounted copy of vCenter's CA, or `VCENTER_INSECURE_SKIP_VERIFY=true` on a private management network. |
+| `VCENTER_ENDPOINT ... is a plain http:// address` | Use `https://`: the agent never sends its password unencrypted. |
+| `... this agent is read-only` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env` and `docker compose up -d`. |
+| `... may not make this change: give the user ... a role with VirtualMachine.Interact...` | Grant the fixes role to `ONEUPTIME_AI_VCENTER_USERNAME` on those VMs (see [Allowing fixes](#allowing-fixes)). |
+| `... which the VMware AI agent protects` | The VM is the vCenter appliance or in `ONEUPTIME_AI_PROTECTED_TARGETS`; leave that change to a person. |
+| `This vCenter has more than one datacenter` | Set `GOVC_DATACENTER`, or OneUptime AI names objects by their full path. |
+| `Killed (timeout ...): govc produced no output at all` | vCenter is unreachable from the agent: check `VCENTER_ENDPOINT` and the network to it on TCP 443. |
+
 ## Run as a systemd Service
 
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
@@ -181,7 +263,7 @@ cd /opt/oneuptime-vmware-agent
 docker compose down
 ```
 
-Then remove the `oneuptime` user's permission in vCenter if you no longer need it.
+Then remove the `oneuptime` user's permission in vCenter (and the OneUptime AI fixes user's, if you created one) if you no longer need it.
 
 ## Troubleshooting
 

@@ -67,6 +67,17 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 
 The Docker Host agent models a single host and stamps `host.name` + `container.runtime=docker`. The Swarm agent deliberately stamps **only** `docker.swarm.cluster.name` (not `host.name`/`container.runtime`) so OneUptime attributes the telemetry to the swarm cluster instead of auto-registering each node as a standalone Host or Docker Host.
 
+## AI agent
+
+`docker-compose.yml` also runs the **OneUptime AI agent** for the swarm: a third container, `oneuptime-docker-swarm-ai-agent` (image `oneuptime/resource-ai-agent`), that runs the `docker` commands OneUptime AI asks for while it investigates an incident or alert on this cluster. Like the inventory poller it **must run on a manager node**: on a worker it reports the cluster as unreachable and runs nothing. It shares the collector's `.env` (`ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_SWARM_CLUSTER_NAME`), so it serves exactly the cluster the collector reports, and it appears on the cluster's **AI → AI agent** page in OneUptime.
+
+- **Read-only by default.** It runs commands such as `docker node ls`, `docker service ls`, `docker service ps NAME` and `docker service logs --tail 200 NAME`, never `service create`/`rm`, `stack deploy`/`rm`, secrets, configs, `exec` or docker's global flags. Environment values in `docker service inspect` output are masked before anything leaves the node.
+- **Fixes are opt-in.** Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env` and run `docker compose up -d` (or run `install.sh` with it) to let it roll a named service (`docker service update --force`), roll it back or scale it, then choose on the cluster's AI agent page whether each fix needs approval. Draining a node always needs a person's approval. `ONEUPTIME_AI_WRITE_TARGETS` (comma-separated globs of service and node names) limits what fixes may touch; `ONEUPTIME_AI_PROTECTED_TARGETS` adds services it must never change. It never changes itself, the collector or the inventory poller.
+- It runs as root because the Docker socket is root-owned. The socket's `:ro` mount does not make the Docker API read-only; the agent's command policy is the limit.
+- To leave it out: `install.sh --no-ai-agent` (or `ONEUPTIME_INSTALL_AI_AGENT=false`), which writes a `docker-compose.override.yml` that keeps it from starting, or delete the `oneuptime-docker-swarm-ai-agent` service from `docker-compose.yml`.
+
+Logs: `docker compose logs -f oneuptime-docker-swarm-ai-agent`. Every setting is described in the [resource AI agent README](../ResourceAIAgent/README.md).
+
 ## Troubleshooting
 
 ### Run the diagnostic script first

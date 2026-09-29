@@ -21,3 +21,54 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The OneUptime AI agent for this Podman host. While OneUptime AI
+  # investigates an incident or alert it runs read-only docker commands here
+  # through Podman's Docker-compatible API (docker ps, docker logs --tail 200
+  # NAME, docker inspect, ...), and — only when you set
+  # ONEUPTIME_AI_ALLOW_WRITES=true in .env — the fixes you allow (restart,
+  # start, stop, ... of a named container). It shares this file's .env, so it
+  # serves exactly the host the collector reports (PODMAN_HOST_NAME). Remove
+  # this service to run the collector without it.
+  oneuptime-podman-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-podman-ai-agent
+    # Root, because the Podman socket is root-owned. Neither the account nor
+    # the socket's :ro mount limits what can be done through the API
+    # (connect() works on a read-only bind mount, and the socket is the whole
+    # engine). The agent's command policy is the limit: read-only commands
+    # unless ONEUPTIME_AI_ALLOW_WRITES=true, then only the fixes it tiers as
+    # changes (never exec, run, rm, prune, ...), only on the containers
+    # ONEUPTIME_AI_WRITE_TARGETS allows (all when empty), and never on itself,
+    # the collector or ONEUPTIME_AI_PROTECTED_TARGETS.
+    user: "0:0"
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - /run/podman/podman.sock:/run/podman/podman.sock:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman
+      - PODMAN_HOST_NAME=${PODMAN_HOST_NAME:-podman-host}
+      # "true" lets OneUptime AI apply fixes; anything else keeps it read-only.
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      # Comma-separated container-name globs fixes may touch (e.g. web-*,api-*).
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      # Comma-separated container-name globs OneUptime AI must never change.
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Empty: the docker CLI negotiates the API version with the socket.
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3877/status/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

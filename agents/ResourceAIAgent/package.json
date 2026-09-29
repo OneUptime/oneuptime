@@ -18,6 +18,11 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
+    "@types/pg": "8.23.1",
+    "ioredis": "6.0.0",
+    "mongodb": "7.7.0",
+    "mysql2": "3.24.4",
+    "pg": "8.23.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.9.2"
   },
