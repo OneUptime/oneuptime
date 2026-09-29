@@ -518,6 +518,18 @@ describe("the page reads the form behind its link", () => {
     expect(document.title).toBe("OneUptime Accounts");
   });
 
+  test("a form that cannot be opened leaves the tab's name alone", async () => {
+    document.title = "OneUptime Accounts";
+    serveForm({ status: 404, data: { error: NOT_AVAILABLE } });
+
+    await renderPage();
+
+    expect(
+      screen.getByTestId("incident-form-load-failure"),
+    ).toBeInTheDocument();
+    expect(document.title).toBe("OneUptime Accounts");
+  });
+
   test("while the form loads, the page shows a loader and no form", async () => {
     let releaseForm: () => void = (): void => {};
     const gate: Promise<void> = new Promise<void>((resolve: () => void) => {
@@ -1585,5 +1597,28 @@ describe("the page speaks the reporter's language", () => {
 
     expect(screen.getByText("Titel ist erforderlich.")).toBeInTheDocument();
     expect(screen.getByText("Ihr Name ist erforderlich.")).toBeInTheDocument();
+  });
+
+  test("switching language mid-report relabels the form and keeps the answers", async () => {
+    await renderForm(MINIMAL_FORM);
+
+    typeInto(screen.getByTestId("incident-form-title"), "Checkout is down");
+
+    expect(screen.getByLabelText(/^Title/)).toBe(
+      screen.getByTestId("incident-form-title"),
+    );
+
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+    await flush();
+
+    expect(screen.getByLabelText(/^Titel/)).toBe(
+      screen.getByTestId("incident-form-title"),
+    );
+    expect(screen.getByTestId("incident-form-title")).toHaveValue(
+      "Checkout is down",
+    );
+    expect(screen.getByRole("button", { name: "Senden" })).toBeInTheDocument();
   });
 });
