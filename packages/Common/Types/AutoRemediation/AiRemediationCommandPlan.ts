@@ -12,7 +12,11 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
 } from "../ResourceAiAgent/AiResourceType";
-import { ResourceCommandTier } from "../ResourceAiAgent/ResourceAiAccess";
+import {
+  RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_WRITE_TARGETS_ENV,
+  ResourceCommandTier,
+} from "../ResourceAiAgent/ResourceAiAccess";
 
 /*
  * Defined in a leaf module of their own (no imports) so the pure kubectl
@@ -314,6 +318,62 @@ export const KUBECTL_BYPASS_MODE_SUMMARY: string =
   "Bypass approval: AI does not ask. Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included, except for what always needs a human.";
 
 export const KUBECTL_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${KUBECTL_NEVER_RUNS_SUMMARY}; ${KUBECTL_ALWAYS_ASKS_SUMMARY}; the cluster's in-cluster Runner never changes its own namespace, nor a namespace outside the ones its chart lets it change, nor nodes when its chart turned node operations off; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster.`;
+
+/*
+ * The resource command tiers and the unattended resource modes in the words
+ * every resource remediation prompt, tool description and feed item uses —
+ * for the Docker and Podman hosts, Docker Swarm, Proxmox, VMware and Ceph
+ * clusters, database servers and hosts reached through their resource AI
+ * agents. They restate the ResourceCommandTier and ResourceAiRemediationMode
+ * doc comments in Types/ResourceAiAgent/ResourceAiAccess and must keep
+ * matching them — and the resource command policy (ResourceCommandPolicy),
+ * which is what actually decides. What each kind of resource accepts is its
+ * tool policy's own guide (ResourceCommandPolicy.getWriteCommandGuide); these
+ * are the rules every kind shares. One copy, so a prompt can never describe
+ * a tier the policy no longer has.
+ */
+
+// SafeWrite: what an Automatic resource runs without a human.
+export const RESOURCE_SAFE_CHANGES_SUMMARY: string =
+  "a reversible change to exactly ONE named object — restart or start one container, a rolling restart of one service, start one VM, restart one unit, cancel one query — never several objects at once";
+
+// RiskyWrite: needs a human unless the allowlist names it or approvals are bypassed.
+export const RESOURCE_RISKIER_CHANGES_SUMMARY: string =
+  "a change that can take something down or alter what runs — stop, kill or pause a container, update limits, scale a service to zero, shut down, power off or reset a VM, mark an OSD out, stop a unit, terminate a session — and a change to several objects at once";
+
+/*
+ * Asks a human whatever the resource's mode, allowlist included: what the
+ * resource command policy marks requiresHuman (the canonical mode text in
+ * ResourceAiAccess).
+ */
+export const RESOURCE_ALWAYS_ASKS_SUMMARY: string =
+  "a change the resource's command policy marks as always needing a human (draining a Swarm node, migrating a VM, putting an ESXi host into maintenance, killing a process on a host, ...) always needs a human, in every mode — Bypass approval and the allowlist included";
+
+// Denied: never runs, whoever approves it.
+export const RESOURCE_NEVER_RUNS_SUMMARY: string =
+  "destructive commands never run, even with approval: exec, run, rm, prune, deleting or destroying anything, anything that reads or changes credentials, anything the resource's command policy does not know, and anything written as a shell line (pipes, redirects, ;, &&, $( ), sudo)";
+
+// How the resource's allowlist is read.
+export const RESOURCE_ALLOWLIST_SUMMARY: string =
+  "the resource's command allowlist is matched word by word: a pattern must have exactly as many words as the command, a * stands for exactly one whole word (never part of one), and every other word must be spelled exactly as the command spells it";
+
+/*
+ * The every-mode clause about unattended resource runs (the resource
+ * sibling of ClusterAccessContext's UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY).
+ */
+export const RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY: string =
+  "an unattended run becomes a proposal when the hourly per-resource circuit breaker trips or another unattended round already holds the resource";
+
+export const RESOURCE_AUTOMATIC_MODE_SUMMARY: string = `Automatic: safe changes run without a human (${RESOURCE_SAFE_CHANGES_SUMMARY}). A riskier change (${RESOURCE_RISKIER_CHANGES_SUMMARY}) never runs without one: when the round could only find riskier fixes it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal (the follow-up round, which asks). Shapes on the resource's command allowlist run on their own.`;
+
+/*
+ * Interpolated into prompts and feed copy on its own, so it names the
+ * exceptions instead of pointing at a list "below".
+ */
+export const RESOURCE_BYPASS_MODE_SUMMARY: string =
+  "Bypass approval: AI does not ask. Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included, except for what always needs a human.";
+
+export const RESOURCE_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${RESOURCE_NEVER_RUNS_SUMMARY}; ${RESOURCE_ALWAYS_ASKS_SUMMARY}; the resource's AI agent changes nothing unless it was started with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true, never changes its own protected targets (itself and what it runs in), and with ${RESOURCE_AI_WRITE_TARGETS_ENV} set changes only the targets it names; and ${RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}.`;
 
 export class AiRemediationCommandPlanUtil {
   /*

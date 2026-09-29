@@ -52,6 +52,28 @@ import KubectlJobRunner, {
   KubectlTerminalJobFacts,
 } from "../AI/ClusterAccess/KubectlJobRunner";
 import RemediationCommandToolkit from "../AI/Remediation/RemediationCommandTools";
+import ResourceCommandJobRunner, {
+  ResourceCommandRunState,
+  ResourceCommandTerminalJobFacts,
+} from "../AI/ResourceAccess/ResourceCommandJobRunner";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  isAiResourceType,
+} from "../../../Types/ResourceAiAgent/AiResourceType";
+import {
+  ResourceAiAccessGap,
+  ResourceAiAccessStatus,
+  ResourceAiRemediationMode,
+  ResourceCommandTier,
+} from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceCommandPolicy from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import {
+  ResourceAutoExecutionVerdict,
+  ResourceCommandPolicyResult,
+} from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import ResourceAiAccessService, {
+  describeResourceNoun,
+} from "../../Services/ResourceAiAccessService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -510,6 +532,26 @@ export default class CommandPlanExecutor {
         anyFailed = true;
       }
 
+      /*
+       * The same for a resource command recorded as failed: its job is read
+       * the way every resource job is read
+       * (ResourceCommandJobRunner.getRunStateOfJobRow), and one that may
+       * have changed the resource is left for a human, never undone blind.
+       */
+      for (const command of await this.reconcileFailedResourceExecutions(
+        suggestion,
+        plan,
+      )) {
+        command.rollbackExecution = {
+          status: AiRemediationCommandExecutionStatus.Skipped,
+          errorMessage: `Rollback not run: the command reached the resource's AI agent but it did not report a finished result, so whether it changed the ${this.describeCommandResourceNoun(
+            command,
+          )} is unknown. If it did, undo it manually: ${command.rollbackCommand}`,
+        };
+        leftForHuman.push(command);
+        anyFailed = true;
+      }
+
       if (
         plan.commands.some((command: AiRemediationCommand) => {
           return (
@@ -561,6 +603,7 @@ export default class CommandPlanExecutor {
         const denyReason: string | null = this.getDenyReason({
           stepType: command.stepType,
           command: rollbackCommand,
+          resourceType: command.resourceType,
         });
 
         if (denyReason) {
@@ -581,13 +624,25 @@ export default class CommandPlanExecutor {
          * stopped bypassing them; a cluster whose remediation was turned
          * off must not be changed at all. Left for a human, and said so.
          */
+        /*
+         * The same for a resource: its AI page as it is NOW, its agent, the
+         * agent's write scope, and the resource's CURRENT mode and
+         * allowlist (getResourceExecutionRefusal). Null for kubectl and
+         * Bash/SSH, which the cluster re-check above covers.
+         */
         const clusterRefusal: string | null =
-          await this.getClusterExecutionRefusal({
+          (await this.getClusterExecutionRefusal({
             suggestion,
             command,
             commandText: rollbackCommand,
             purpose: "rollback",
-          });
+          })) ||
+          (await this.getResourceExecutionRefusal({
+            suggestion,
+            command,
+            commandText: rollbackCommand,
+            purpose: "rollback",
+          }));
 
         if (clusterRefusal) {
           command.rollbackExecution = {
@@ -630,6 +685,7 @@ export default class CommandPlanExecutor {
             command.rollbackExecution,
             terminalJob,
             "Rollback",
+            command,
           );
           if (
             command.rollbackExecution.status !==
@@ -666,7 +722,13 @@ export default class CommandPlanExecutor {
         suggestion,
         markdown:
           leftForHuman.length > 0
-            ? `⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the cluster no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${leftForHuman
+            ? `⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the ${
+                leftForHuman.every((command: AiRemediationCommand): boolean => {
+                  return command.stepType === RunbookStepType.ResourceCommand;
+                })
+                  ? this.describeCommandResourceNoun(leftForHuman[0]!)
+                  : "cluster"
+              } no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${leftForHuman
                 .map((command: AiRemediationCommand) => {
                   return this.capForFeed(
                     command.rollbackExecution?.errorMessage || "",
@@ -730,6 +792,7 @@ export default class CommandPlanExecutor {
     const denyReason: string | null = this.getDenyReason({
       stepType: command.stepType,
       command: command.command,
+      resourceType: command.resourceType,
     });
 
     if (denyReason) {
@@ -747,16 +810,23 @@ export default class CommandPlanExecutor {
      * Execution-time cluster re-check: the approve API re-checks the
      * project switches, this re-checks the cluster's own AI page. An
      * operator who turned remediation off, or bound a different Runner,
-     * after the plan was composed expects that to stop the plan too.
+     * after the plan was composed expects that to stop the plan too. A
+     * resource command gets the same re-check against its resource's AI
+     * page and agent (getResourceExecutionRefusal).
      */
-    const clusterRefusal: string | null = await this.getClusterExecutionRefusal(
-      {
+    const clusterRefusal: string | null =
+      (await this.getClusterExecutionRefusal({
         suggestion,
         command,
         commandText: command.command,
         purpose: "command",
-      },
-    );
+      })) ||
+      (await this.getResourceExecutionRefusal({
+        suggestion,
+        command,
+        commandText: command.command,
+        purpose: "command",
+      }));
 
     if (clusterRefusal) {
       return {
@@ -839,7 +909,7 @@ export default class CommandPlanExecutor {
           throw new Error("Command job did not reach a terminal state.");
         }
 
-        this.settleFromJob(state, terminalJob, "Command");
+        this.settleFromJob(state, terminalJob, "Command", command);
         facts = {
           status: terminalJob.status,
           exitCode: terminalJob.exitCode,
@@ -881,7 +951,52 @@ export default class CommandPlanExecutor {
       });
     }
 
+    /*
+     * The same rule for a resource's "Last error": a success, or a failure
+     * about the resource's ACCESS as its program reports it
+     * (ResourceCommandJobRunner.isAccessFailure, with the program's own
+     * patterns).
+     */
+    if (
+      started.recordsClusterOutcome &&
+      command.stepType === RunbookStepType.ResourceCommand &&
+      isAiResourceType(command.resourceType) &&
+      command.resourceId &&
+      ObjectID.isValidUUID(command.resourceId)
+    ) {
+      const resourceFacts: ResourceCommandTerminalJobFacts | null = facts
+        ? { ...facts, program: this.getCommandProgram(command.command) }
+        : null;
+      const recordsResourceOutcome: boolean =
+        succeeded ||
+        (resourceFacts !== null &&
+          ResourceCommandJobRunner.isAccessFailure(resourceFacts));
+
+      if (recordsResourceOutcome) {
+        await ResourceAiAccessService.recordCommandOutcome({
+          resourceType: command.resourceType,
+          resourceId: new ObjectID(command.resourceId),
+          succeeded,
+          errorMessage: state.errorMessage,
+        });
+      }
+    }
+
     return state;
+  }
+
+  // argv[0] of a resource command, for its program's rules.
+  private static getCommandProgram(command: string): string {
+    return (command || "").trim().split(/\s+/)[0] || "";
+  }
+
+  // "Docker host", "host" — the noun of a resource command's resource.
+  private static describeCommandResourceNoun(
+    command: AiRemediationCommand,
+  ): string {
+    return isAiResourceType(command.resourceType)
+      ? describeResourceNoun(command.resourceType)
+      : "resource";
   }
 
   // Copy a terminal job's outcome onto an execution record.
@@ -889,6 +1004,8 @@ export default class CommandPlanExecutor {
     state: AiRemediationCommandExecutionState,
     job: RunnerJob,
     label: "Command" | "Rollback",
+    // The command the job ran: a resource command's output gets its program's redaction.
+    command?: AiRemediationCommand | undefined,
   ): void {
     const succeeded: boolean = job.status === RunnerJobStatus.Succeeded;
 
@@ -897,10 +1014,34 @@ export default class CommandPlanExecutor {
       : AiRemediationCommandExecutionStatus.Failed;
     state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
     state.exitCode = job.exitCode;
-    state.output = this.capOutput(job.output || "");
+    state.output = this.capCommandOutput(job.output || "", command);
     state.errorMessage = succeeded
       ? undefined
       : job.errorMessage || `${label} ended with status ${job.status}.`;
+  }
+
+  /*
+   * The stored output of a command's job: a resource command's goes through
+   * the resource redaction (its program's rules, then the generic ones) at
+   * the stored cap; everything else through capOutput, as before.
+   */
+  private static capCommandOutput(
+    output: string,
+    command?: AiRemediationCommand | undefined,
+  ): string {
+    if (
+      command?.stepType === RunbookStepType.ResourceCommand &&
+      isAiResourceType(command.resourceType)
+    ) {
+      return ResourceCommandJobRunner.redactAndCap({
+        output,
+        resourceType: command.resourceType,
+        program: this.getCommandProgram(command.command),
+        maxChars: MAX_STORED_OUTPUT_CHARS,
+      }).text;
+    }
+
+    return this.capOutput(output);
   }
 
   /*
@@ -915,6 +1056,38 @@ export default class CommandPlanExecutor {
     stepId: string;
   }): Promise<RunnerJob> {
     const { suggestion, command } = data;
+
+    /*
+     * A resource command goes through the resource chokepoint
+     * (enqueueAiResourceCommand), which re-runs the policy, the binding, the
+     * resource's fixes switch and the agent's write scope — and targets the
+     * agent the plan names, so a reset or replaced agent never receives a
+     * job composed for its predecessor.
+     */
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      if (
+        !isAiResourceType(command.resourceType) ||
+        !command.resourceId ||
+        !ObjectID.isValidUUID(command.resourceId) ||
+        !ObjectID.isValidUUID(command.runnerId)
+      ) {
+        throw new Error("The resource command names no resource.");
+      }
+
+      return RunnerJobService.enqueueAiResourceCommand({
+        projectId: suggestion.projectId!,
+        aiRunId: suggestion.aiRunId!,
+        origin: RunnerJobOrigin.AiRemediation,
+        autoRemediationSuggestionId: suggestion.id!,
+        resourceType: command.resourceType,
+        resourceId: new ObjectID(command.resourceId),
+        stepId: data.stepId,
+        targetResourceAiAgentId: new ObjectID(command.runnerId),
+        command: data.commandText,
+        timeoutInMs: command.timeoutInMs,
+        claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+      });
+    }
 
     if (command.stepType === RunbookStepType.Kubectl) {
       if (
@@ -1074,6 +1247,118 @@ export default class CommandPlanExecutor {
   }
 
   /*
+   * Why a resource command may NOT run on its resource right now, or null
+   * — getClusterExecutionRefusal for a resource. The plan froze the
+   * resource and the AI agent it was composed for; before anything is
+   * enqueued the resource's AI page is read again: fixes must still be on
+   * and ready, the agent must still be the one on the plan (a reset or
+   * replaced agent never receives a job meant for its predecessor), and
+   * the agent's reported write scope must let the command run. A rollback
+   * must ALSO be allowed unattended under the resource's CURRENT mode and
+   * allowlist: nothing shows a rollback to a human when it fires.
+   *
+   * Fails closed: a status that cannot be read is a refusal. Other step
+   * types pass through.
+   */
+  private static async getResourceExecutionRefusal(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+    commandText: string;
+    purpose: "command" | "rollback";
+  }): Promise<string | null> {
+    const { suggestion, command } = data;
+
+    if (command.stepType !== RunbookStepType.ResourceCommand) {
+      return null;
+    }
+
+    if (
+      !isAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId) ||
+      !suggestion.projectId
+    ) {
+      return "the resource command names no valid resource";
+    }
+
+    const resourceType: AiResourceType = command.resourceType;
+    const noun: string = describeResourceNoun(resourceType);
+    const label: string = `${noun} "${
+      command.resourceNameSnapshot || command.resourceId
+    }"`;
+
+    let status: ResourceAiAccessStatus | null;
+
+    try {
+      status = await ResourceAiAccessService.getStatusForResource({
+        projectId: suggestion.projectId,
+        resourceType,
+        resourceId: new ObjectID(command.resourceId),
+      });
+    } catch (error) {
+      logger.error(
+        `CommandPlanExecutor: could not read the AI access status of ${resourceType} ${command.resourceId} before a ${data.purpose}: ${error}`,
+      );
+      return `could not confirm that ${label} still allows AI remediation`;
+    }
+
+    if (!status) {
+      return `${label} no longer exists in this project`;
+    }
+
+    const liveLabel: string = `${noun} "${status.resourceName}"`;
+
+    if (!status.isRemediationReady) {
+      const gap: ResourceAiAccessGap | undefined = status.gaps.find(
+        (candidate: ResourceAiAccessGap): boolean => {
+          return candidate.blocksRemediation;
+        },
+      );
+      return `${liveLabel} no longer allows AI remediation${
+        gap ? ` (${gap.title})` : ""
+      }`;
+    }
+
+    const agentName: string =
+      AI_RESOURCE_TYPE_INFO[resourceType].agentDisplayName;
+
+    if (!status.agent || status.agent.agentId !== command.runnerId) {
+      return `${liveLabel} is no longer reached through the ${agentName} this plan was composed for (the agent was reset or replaced)`;
+    }
+
+    const scopeRefusal: string | null =
+      RemediationCommandToolkit.getResourceWriteScopeRefusal({
+        resource: status,
+        command: data.commandText,
+      });
+
+    if (scopeRefusal) {
+      // The callers end the sentence themselves.
+      return `the ${agentName} would refuse it: ${
+        scopeRefusal.endsWith(".") ? scopeRefusal.slice(0, -1) : scopeRefusal
+      }`;
+    }
+
+    if (data.purpose === "rollback") {
+      const verdict: ResourceAutoExecutionVerdict =
+        ResourceCommandPolicy.evaluateForAutoExecution({
+          resourceType,
+          command: data.commandText,
+          allowlistPatterns: status.aiCommandAllowlist,
+          bypassApproval:
+            status.aiRemediationMode ===
+            ResourceAiRemediationMode.BypassApproval,
+        });
+
+      if (verdict.verdict !== AiRemediationCommandPolicyVerdict.AutoApproved) {
+        return `${liveLabel} no longer allows this change unattended (its AI remediation mode is now ${status.aiRemediationMode}): ${verdict.reason}`;
+      }
+    }
+
+    return null;
+  }
+
+  /*
    * The job a command's step ran under, when its record never got the job
    * id. The enqueue and the write that names the job are two steps; a pod
    * death or a failed write between them leaves a Pending record for a job
@@ -1123,7 +1408,30 @@ export default class CommandPlanExecutor {
   private static getDenyReason(data: {
     stepType: RunbookStepType;
     command: string;
+    // ResourceCommand only: which resource command policy decides.
+    resourceType?: AiResourceType | undefined;
   }): string | null {
+    /*
+     * A resource command's floor is the Denied tier of its resource's
+     * command policy — never the bash denylist, and never a step whose
+     * resource type is unknown.
+     */
+    if (data.stepType === RunbookStepType.ResourceCommand) {
+      if (!isAiResourceType(data.resourceType)) {
+        return "the resource command names no valid resource type";
+      }
+
+      const resourcePolicy: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateCommand({
+          resourceType: data.resourceType,
+          command: data.command,
+        });
+
+      return resourcePolicy.tier === ResourceCommandTier.Denied
+        ? resourcePolicy.reason
+        : null;
+    }
+
     if (data.stepType === RunbookStepType.Kubectl) {
       const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
         data.command,
@@ -1224,7 +1532,7 @@ export default class CommandPlanExecutor {
           ? AiRemediationCommandExecutionStatus.Succeeded
           : AiRemediationCommandExecutionStatus.Failed;
         execution.exitCode = job.exitCode;
-        execution.output = this.capOutput(job.output || "");
+        execution.output = this.capCommandOutput(job.output || "", command);
         execution.errorMessage = succeeded
           ? undefined
           : job.errorMessage ||
@@ -1303,7 +1611,7 @@ export default class CommandPlanExecutor {
         }
 
         if (isTerminalAgentJobStatus(job.status)) {
-          this.settleFromJob(rollback, job, "Rollback");
+          this.settleFromJob(rollback, job, "Rollback", command);
           changed = true;
         }
       } catch (error) {
@@ -1381,7 +1689,7 @@ export default class CommandPlanExecutor {
       }
 
       if (job && job.status === RunnerJobStatus.Succeeded) {
-        this.settleFromJob(execution, job, "Command");
+        this.settleFromJob(execution, job, "Command", command);
         changed = true;
         continue;
       }
@@ -1390,6 +1698,81 @@ export default class CommandPlanExecutor {
         runState === KubectlRunState.Ran && typeof job?.exitCode === "number";
 
       if (runState !== KubectlRunState.NotRun && !kubectlFinished) {
+        mayHaveRun.push(command);
+      }
+    }
+
+    if (changed) {
+      await this.persistPlan(suggestion, plan, "rollback");
+    }
+
+    return mayHaveRun;
+  }
+
+  /*
+   * reconcileFailedKubectlExecutions for resource commands: the ones
+   * recorded as Failed that may nonetheless have changed the resource,
+   * read from their jobs the way ResourceCommandJobRunner reads every
+   * resource job. A job that Succeeded after all is settled from the job
+   * (and so rolled back like any other); one whose run is Unknown, or whose
+   * program ran without finishing (the agent killed it at its timeout), is
+   * returned — its undo is not run blind; one that certainly never ran, or
+   * whose program finished and reported a failure, owes no undo.
+   */
+  private static async reconcileFailedResourceExecutions(
+    suggestion: AutoRemediationSuggestion,
+    plan: AiRemediationCommandPlan,
+  ): Promise<Array<AiRemediationCommand>> {
+    const mayHaveRun: Array<AiRemediationCommand> = [];
+    let changed: boolean = false;
+
+    for (const command of plan.commands) {
+      const execution: AiRemediationCommandExecutionState | undefined =
+        command.execution;
+
+      if (
+        command.stepType !== RunbookStepType.ResourceCommand ||
+        !execution ||
+        execution.status !== AiRemediationCommandExecutionStatus.Failed ||
+        !execution.runnerJobId ||
+        !command.rollbackCommand ||
+        command.rollbackExecution
+      ) {
+        continue;
+      }
+
+      let runState: ResourceCommandRunState = ResourceCommandRunState.Unknown;
+      let job: RunnerJob | null = null;
+
+      try {
+        job = ObjectID.isValidUUID(execution.runnerJobId)
+          ? await RunnerJobService.findOneById({
+              id: new ObjectID(execution.runnerJobId),
+              select: RUN_STATE_JOB_SELECT,
+              props: { isRoot: true },
+            })
+          : null;
+
+        if (job) {
+          runState = ResourceCommandJobRunner.getRunStateOfJobRow(job);
+        }
+      } catch (error) {
+        logger.error(
+          `CommandPlanExecutor: could not read whether resource command ${command.sequence} of suggestion ${suggestion.id?.toString()} ran: ${error}`,
+        );
+      }
+
+      if (job && job.status === RunnerJobStatus.Succeeded) {
+        this.settleFromJob(execution, job, "Command", command);
+        changed = true;
+        continue;
+      }
+
+      const programFinished: boolean =
+        runState === ResourceCommandRunState.Ran &&
+        typeof job?.exitCode === "number";
+
+      if (runState !== ResourceCommandRunState.NotRun && !programFinished) {
         mayHaveRun.push(command);
       }
     }
