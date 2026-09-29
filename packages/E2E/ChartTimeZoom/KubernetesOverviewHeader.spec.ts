@@ -105,7 +105,13 @@ async function openOverview(page: Page, width: number): Promise<void> {
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
-  await expect(page.locator("h1", { hasText: CLUSTER_NAME })).toBeVisible({
+  /*
+   * Exactly the hero's name: the page header's own title also carries it
+   * ("Kubernetes Cluster - Production (eu-west-1)").
+   */
+  await expect(
+    page.getByRole("heading", { name: CLUSTER_NAME, exact: true }),
+  ).toBeVisible({
     timeout: 30000,
   });
   await expect(page.locator(".recharts-wrapper")).toHaveCount(5, {
