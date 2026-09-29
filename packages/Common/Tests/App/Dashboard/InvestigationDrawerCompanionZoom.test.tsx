@@ -536,6 +536,9 @@ describe("the drawer's companion tabs name the window they show", () => {
     await renderDrawer();
     await zoomTheDrawer();
     await openTab("Exceptions");
+    expect(
+      screen.getByText(companionDescription("Exceptions", ZOOMED_WINDOW_NAME)),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(
         within(drawerLogSignal()).getByText("Double-click to reset"),

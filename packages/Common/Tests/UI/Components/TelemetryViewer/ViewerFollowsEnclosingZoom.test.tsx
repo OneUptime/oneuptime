@@ -790,11 +790,16 @@ describe("the hook: a zoom around over the explorer's very window is followed", 
   test("the zoom it hands its charts resets the page too", () => {
     renderFollowingExplorer();
     drag(SLICE_START, SLICE_END);
+    // The page's zoom, not one of the explorer's own.
+    expect(read("page-zoomed")).toBe("true");
+    expect(explorer().zoom!.isZoomed).toBe(true);
 
     act(() => {
       explorer().zoom!.resetZoom();
     });
 
+    expect(explorerChangeSpy).not.toHaveBeenCalled();
+    expect(read("page-zoomed")).toBe("false");
     expect(read("page-window")).toBe(WINDOW_TEXT);
     expect(read("explorer-window")).toBe(WINDOW_TEXT);
   });
@@ -831,6 +836,7 @@ describe("the hook: a zoom around over the explorer's very window is followed", 
 
   test("before any zoom a double-click has nothing to do: none is offered, and a stray one changes nothing", () => {
     renderFollowingExplorer();
+    expect(read("follows")).toBe("true");
 
     expect(explorer().onZoomOut).toBeUndefined();
 
