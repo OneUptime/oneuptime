@@ -93,7 +93,10 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -3399,9 +3402,19 @@ export class Service extends DatabaseService<Model> {
         incident.incidentNumberWithPrefix ||
         "#" + incident.incidentNumber?.toString();
 
+      /*
+       * The title is plain text - one line, typed by whoever declared the
+       * incident, which is anyone holding an incident form's link - placed
+       * into Markdown that is rendered without the viewer's safe mode and
+       * posted to Slack and Teams. Escaped as MarkdownEscape says a title
+       * must be, so "[Reset your password](...)" arrives as those
+       * characters, "![](https://tracker...)" is not fetched and "<!here>"
+       * is not a mention, while "Site 03 - payments (EU)" reads unchanged.
+       * The description stays Markdown: that is what it is written in.
+       */
       let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
         
-**${incident.title || "No title provided."}**:
+**${escapeMarkdownValue(incident.title || "No title provided.")}**:
 
 ${incident.description || "No description provided."}
 

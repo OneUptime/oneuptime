@@ -59,7 +59,9 @@ import IncidentFormService, {
   INCIDENT_FORM_NOT_AVAILABLE_MESSAGE,
   INCIDENT_FORM_NO_SEVERITY_MESSAGE,
   INCIDENT_FORM_SUBMIT_FAILED_MESSAGE,
+  INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE,
   getIncidentFormReporterNote,
+  neutralizeIncidentFormReport,
 } from "../../../Server/Services/IncidentFormService";
 import IncidentFormSubmissionService from "../../../Server/Services/IncidentFormSubmissionService";
 import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
@@ -82,10 +84,12 @@ import ServerException from "../../../Types/Exception/ServerException";
 import {
   IncidentFormFieldSetting,
   PublicIncidentFormSubmissionResult,
+  ValidatedIncidentFormSubmission,
   formatIncidentFormSubmissionErrors,
 } from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { Token, Tokens, marked } from "marked";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -187,6 +191,18 @@ const PROJECT_FIELDS: Array<IncidentCustomField> = [
     variableKey: "secret_escalation_path",
     customFieldType: CustomFieldType.Text,
     sortOrder: 4,
+  }),
+  customField({
+    name: "Details",
+    variableKey: "details",
+    customFieldType: CustomFieldType.Markdown,
+    sortOrder: 5,
+  }),
+  customField({
+    name: "Notes",
+    variableKey: "notes",
+    customFieldType: CustomFieldType.LongText,
+    sortOrder: 6,
   }),
 ];
 
@@ -872,6 +888,347 @@ describe("IncidentFormService.submitPublicForm - custom fields", () => {
   });
 });
 
+/*
+ * A stranger's report is posted to the project's Slack and Teams channels
+ * and rendered for every responder and in owners' emails, and nobody reads
+ * it over first. What the incident stores must not act on its own there:
+ * no Slack mention, no image fetched from the reporter's server, no mermaid
+ * diagram run - while reading exactly as the reporter typed it.
+ */
+describe("IncidentFormService.submitPublicForm - nothing the reporter wrote acts on its own", () => {
+  const WORD_JOINER: string = "\u2060";
+
+  function withoutJoiners(text: string | undefined): string {
+    return (text || "").split(WORD_JOINER).join("");
+  }
+
+  function lexedTokens(markdown: string): Array<Token> {
+    const tokens: Array<Token> = [];
+
+    marked.walkTokens(marked.lexer(markdown), (token: Token): void => {
+      tokens.push(token);
+    });
+
+    return tokens;
+  }
+
+  function expectNothingFetchedOrRun(markdown: string): void {
+    const tokens: Array<Token> = lexedTokens(markdown);
+
+    expect(
+      tokens.filter((token: Token): boolean => {
+        return token.type === "image";
+      }),
+    ).toEqual([]);
+    expect(
+      tokens.filter((token: Token): boolean => {
+        return (
+          token.type === "code" &&
+          ((token as Tokens.Code).lang || "")
+            .toLowerCase()
+            .startsWith("mermaid")
+        );
+      }),
+    ).toEqual([]);
+  }
+
+  function slackText(markdown: string): string {
+    return JSON.stringify(
+      SlackUtil.getMarkdownBlocks({
+        payloadMarkdownBlock: {
+          _type: "WorkspacePayloadMarkdown",
+          text: markdown,
+        },
+      }),
+    );
+  }
+
+  const LIVE_SLACK_SEQUENCE: RegExp = /<(![a-z]|@[A-Z0-9]|#C)/;
+
+  const HOSTILE_DESCRIPTION: string =
+    "<!here> every order fails <@U0123ABC>\n\n" +
+    "![](https://tracker.example/p.png)\n\n" +
+    "See ![shot][r]\n\n" +
+    "[r]: https://tracker.example/q.png\n\n" +
+    "```mermaid\ngraph TD\n  A-->B\n```\n\n" +
+    "[the checkout page](https://shop.example/checkout)";
+
+  test("the title and description keep their text, lose their mentions, images and diagrams", async () => {
+    await submit({
+      answers: {
+        ...VALID_ANSWERS,
+        title: "<!channel> Checkout is down",
+        description: HOSTILE_DESCRIPTION,
+      },
+    });
+
+    const created: Incident = createCall().data;
+
+    expect(created.title).not.toMatch(/<[!@#]/);
+    expect(withoutJoiners(created.title)).toBe("<!channel> Checkout is down");
+
+    expect(created.description).not.toMatch(/<[!@#]/);
+    expectNothingFetchedOrRun(created.description || "");
+    expect(slackText(created.description || "")).not.toMatch(
+      LIVE_SLACK_SEQUENCE,
+    );
+
+    // The reporter's link to the broken page still works.
+    expect(
+      lexedTokens(created.description || "")
+        .filter((token: Token): boolean => {
+          return token.type === "link";
+        })
+        .map((token: Token): string => {
+          return (token as Tokens.Link).href;
+        }),
+    ).toEqual([
+      "https://tracker.example/p.png",
+      "https://tracker.example/q.png",
+      "https://shop.example/checkout",
+    ]);
+  });
+
+  test("the unneutralised description really would have fetched, run and mentioned", () => {
+    const tokens: Array<Token> = lexedTokens(HOSTILE_DESCRIPTION);
+
+    expect(
+      tokens.filter((token: Token): boolean => {
+        return token.type === "image";
+      }),
+    ).toHaveLength(2);
+    expect(slackText(HOSTILE_DESCRIPTION)).toMatch(LIVE_SLACK_SEQUENCE);
+  });
+
+  /*
+   * The dashboard reads a description with another parser than marked
+   * (remark, with footnotes), and shows an image in each of these where
+   * marked sees code or a link definition. What is stored must hold no
+   * image syntax left open, whichever reading is right.
+   */
+  test("a description the renderers read differently still stores no image", async () => {
+    const description: string =
+      "[a]: https://x.example\n    ![x](https://tracker.example/p.png)\n\n" +
+      "See[^1]\n\n[^1]: ![y](https://tracker.example/q.png)";
+
+    // marked finds no image in it: the dashboard would have shown two.
+    expect(
+      lexedTokens(description).filter((token: Token): boolean => {
+        return token.type === "image";
+      }),
+    ).toEqual([]);
+
+    await submit({
+      answers: { ...VALID_ANSWERS, description: description },
+    });
+
+    const stored: string = createCall().data.description || "";
+
+    expect(stored).not.toMatch(/(^|[^\\])(\\\\)*!\[/);
+    expect(withoutJoiners(stored).replace(/\\!\[/g, "![")).toBe(description);
+  });
+
+  test("a Markdown answer is neutralised like the description, text answers lose their mentions, and choices are left as chosen", async () => {
+    storedForm = buildForm({
+      customFieldSettings: {
+        details: "Optional",
+        notes: "Optional",
+        region: "Optional",
+        impact: "Optional",
+      },
+    });
+
+    await submit({
+      answers: {
+        ...VALID_ANSWERS,
+        customFields: {
+          Details: "Screenshot: ![](https://tracker.example/p.png) <!here>",
+          Notes: "Ping <#C0123ABC> and <@U0123ABC>",
+          Region: "<!everyone> EU",
+          Impact: "High",
+        },
+      },
+    });
+
+    const customFields: JSONObject = createCall().data.customFields || {};
+
+    expectNothingFetchedOrRun(String(customFields["Details"]));
+    expect(String(customFields["Details"])).not.toMatch(/<[!@#]/);
+    expect(customFields["Notes"]).not.toMatch(/<[!@#]/);
+    expect(withoutJoiners(String(customFields["Notes"]))).toBe(
+      "Ping <#C0123ABC> and <@U0123ABC>",
+    );
+    expect(withoutJoiners(String(customFields["Region"]))).toBe(
+      "<!everyone> EU",
+    );
+    expect(customFields["Region"]).not.toMatch(/<[!@#]/);
+    expect(customFields["Impact"]).toBe("High");
+  });
+
+  test("ordinary answers are stored exactly as typed", async () => {
+    storedForm = buildForm({ customFieldSettings: FORM_QUESTIONS });
+
+    await submit({
+      answers: {
+        ...VALID_ANSWERS,
+        description: "Checkout fails at **step 3**:\n\n```\nError 502\n```",
+        customFields: { Impact: "High", Region: "EU-West (a < b)" },
+      },
+    });
+
+    expect(createCall().data.title).toBe("Checkout is down");
+    expect(createCall().data.description).toBe(
+      "Checkout fails at **step 3**:\n\n```\nError 502\n```",
+    );
+    expect(createCall().data.customFields).toEqual({
+      Impact: "High",
+      Region: "EU-West (a < b)",
+    });
+  });
+
+  /*
+   * Breaking a sequence adds an invisible character, and Incident.title is
+   * a varchar(500): a title the validator accepted can outgrow it.
+   */
+  test("refuses a title that no longer fits the incident once its mentions are broken, declaring nothing", async () => {
+    const title: string = "<!".repeat(250);
+
+    const error: Exception | undefined = await refusal(
+      submit({ answers: { ...VALID_ANSWERS, title: title } }),
+    );
+
+    expect(title.length).toBe(500);
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe(INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE);
+    expect(error?.message).toBe("Title cannot be more than 500 characters.");
+    expect(incidentCreate).not.toHaveBeenCalled();
+  });
+
+  test("the submission record keeps the reporter's name as typed", async () => {
+    await submit({
+      answers: { ...VALID_ANSWERS, reporterName: "<@U0123ABC>" },
+    });
+
+    const createBy: { data: IncidentFormSubmission } = submissionCreate.mock
+      .calls[0]![0] as never;
+
+    expect(createBy.data.reporterName).toBe("<@U0123ABC>");
+  });
+
+  test("the private note mentions nobody in Slack, whatever the names say", async () => {
+    storedForm = buildForm({ name: "<!channel> Reports" });
+
+    await submit({
+      answers: {
+        ...VALID_ANSWERS,
+        reporterName: "<@U0123ABC> <!here>",
+        reporterEmail: "#ops@corp.example",
+      },
+    });
+
+    const note: string = (
+      noteCreate.mock.calls[0]![0] as { data: IncidentInternalNote }
+    ).data.note!;
+
+    expect(note).not.toMatch(/<[!@#]/);
+    expect(slackText(note)).not.toMatch(LIVE_SLACK_SEQUENCE);
+    // The "#" escaped in the link, where it would begin a fragment.
+    expect(slackText(note)).toContain(
+      "<mailto:%23ops@corp.example|#ops@corp.example>",
+    );
+
+    const html: string = await Markdown.convertToHTML(
+      note,
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toContain('href="mailto:%23ops@corp.example"');
+  });
+});
+
+describe("neutralizeIncidentFormReport", () => {
+  test("leaves the reporter's name and address, and an answer to a field it is not told about, alone", () => {
+    const report: ValidatedIncidentFormSubmission =
+      neutralizeIncidentFormReport({
+        answers: {
+          title: "<!here>",
+          reporterName: "<@U1>",
+          reporterEmail: "jane@example.com",
+          customFields: { Unlisted: "<!channel>" },
+        },
+        askedDefinitions: [],
+      });
+
+    expect(report.title).toBe("<\u2060!here>");
+    expect(report.reporterName).toBe("<@U1>");
+    expect(report.reporterEmail).toBe("jane@example.com");
+    expect(report.customFields).toEqual({ Unlisted: "<!channel>" });
+  });
+
+  test("treats a field of a type this version does not know as text, as the form asks it", () => {
+    const report: ValidatedIncidentFormSubmission =
+      neutralizeIncidentFormReport({
+        answers: {
+          title: "Down",
+          customFields: { Legacy: "<!channel>", Count: "3" },
+        },
+        askedDefinitions: [
+          { name: "Legacy", customFieldType: null },
+          { name: "Count", customFieldType: CustomFieldType.Number },
+        ],
+      });
+
+    expect(report.customFields).toEqual({
+      Legacy: "<\u2060!channel>",
+      Count: "3",
+    });
+  });
+
+  test("never mutates the validated answers", () => {
+    const answers: ValidatedIncidentFormSubmission = {
+      title: "<!here>",
+      description: "![x](https://t.example/p.png)",
+      customFields: { Notes: "<@U1>" },
+    };
+
+    neutralizeIncidentFormReport({
+      answers: answers,
+      askedDefinitions: [
+        { name: "Notes", customFieldType: CustomFieldType.LongText },
+      ],
+    });
+
+    expect(answers).toEqual({
+      title: "<!here>",
+      description: "![x](https://t.example/p.png)",
+      customFields: { Notes: "<@U1>" },
+    });
+  });
+
+  test("stores an answer to a field named __proto__ as an answer", () => {
+    const customFields: JSONObject = {};
+    Object.defineProperty(customFields, "__proto__", {
+      value: "<!here>",
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+
+    const report: ValidatedIncidentFormSubmission =
+      neutralizeIncidentFormReport({
+        answers: { title: "Down", customFields: customFields },
+        askedDefinitions: [
+          { name: "__proto__", customFieldType: CustomFieldType.Text },
+        ],
+      });
+
+    expect(Object.getPrototypeOf(report.customFields)).toBe(Object.prototype);
+    expect(
+      Object.getOwnPropertyDescriptor(report.customFields, "__proto__")?.value,
+    ).toBe("<\u2060!here>");
+  });
+});
+
 describe("IncidentFormService.submitPublicForm - the reporter", () => {
   test.each([
     ["no name", { reporterName: undefined }, "Your Name is required."],
@@ -1262,6 +1619,73 @@ describe("getIncidentFormReporterNote", () => {
         expect(sections).toContain(
           JSON.stringify(`<mailto:${address}|${address}>`).slice(1, -1),
         );
+      },
+    );
+
+    // Where a mail client sends a mailto: link: its path, nothing after it.
+    function mailtoAddress(href: string): string {
+      const link: URL = new URL(href);
+
+      expect(link.protocol).toBe("mailto:");
+      expect(link.search).toBe("");
+      expect(link.hash).toBe("");
+
+      return decodeURIComponent(link.pathname);
+    }
+
+    // A link as slackify writes it: <address|text>.
+    const SLACK_MAILTO_LINK: RegExp = /<mailto:([^|>]+)\|([^>]+)>/;
+
+    /*
+     * An autolink cannot carry every valid address whole: in a mailto: link
+     * a mail client reads "#" as a fragment, "?" as headers and "%41" as an
+     * escape, so <a%41@example.com> would write to aA@example.com - and one
+     * starting with "!" or "#" would open like a Slack control sequence.
+     * Such an address is linked explicitly, those characters escaped in the
+     * link: it still writes to exactly the address the reporter gave.
+     */
+    test.each([
+      ["!bang@example.com"],
+      ["#ops@corp.example"],
+      ["a#b@example.com"],
+      ["a?b@example.com"],
+      ["a%41@example.com"],
+    ])(
+      "links %s to itself, not to what a mail client would make of it",
+      async (address: string) => {
+        const note: string = getIncidentFormReporterNote({
+          formName: "Report a Problem",
+          reporterName: "Jane Doe",
+          reporterEmail: address,
+        });
+
+        expect(note).not.toContain(`<${address}>`);
+
+        const html: string = await Markdown.convertToHTML(
+          note,
+          MarkdownContentType.Email,
+        );
+
+        const links: Array<string> = hrefs(html);
+
+        expect(links).toHaveLength(1);
+        expect(mailtoAddress(links[0]!)).toBe(address);
+        expect(html).toContain(`>${address}</a>`);
+
+        const slack: string = JSON.stringify(
+          SlackUtil.getMarkdownBlocks({
+            payloadMarkdownBlock: {
+              _type: "WorkspacePayloadMarkdown",
+              text: note,
+            },
+          }),
+        );
+
+        const slackLink: RegExpExecArray | null = SLACK_MAILTO_LINK.exec(slack);
+
+        expect(slackLink).not.toBeNull();
+        expect(mailtoAddress(`mailto:${slackLink![1]!}`)).toBe(address);
+        expect(slackLink![2]).toBe(address);
       },
     );
 

@@ -22,6 +22,7 @@ import {
   getIncidentFormAskedDefinitions,
   validateCustomFieldCreateSettings,
 } from "../../Types/CustomField/CustomFieldCreateSettings";
+import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import Dictionary from "../../Types/Dictionary";
@@ -31,6 +32,8 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
 import {
+  INCIDENT_FORM_QUESTION_LABELS,
+  INCIDENT_FORM_TITLE_MAX_LENGTH,
   IncidentFormSubmissionValidationResult,
   PublicIncidentForm,
   PublicIncidentFormSeverity,
@@ -44,8 +47,13 @@ import {
   validateIncidentFormSubmission,
 } from "../../Types/Incident/IncidentFormPublic";
 import IP from "../../Types/IP/IP";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  neutralizeChatControlSequences,
+  neutralizeUntrustedMarkdown,
+} from "../../Utils/Markdown/UntrustedMarkdown";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import Model from "../../Models/DatabaseModels/IncidentForm";
@@ -128,6 +136,31 @@ export const INCIDENT_FORM_NO_SEVERITY_MESSAGE: string =
 export const INCIDENT_FORM_SUBMIT_FAILED_MESSAGE: string =
   "Your report could not be submitted. Please try again in a few minutes.";
 
+/*
+ * An address an autolink would not carry whole: one that starts with "!"
+ * (or "#"), whose autolink would open like a Slack control sequence ("<!",
+ * "<#" - an address cannot start with "@"), and one holding "#", "?" or
+ * "%", which a mail client reads in a mailto: link as a fragment, headers or
+ * an escape - so <a#b@example.com> writes to "a", and <a%41@example.com> to
+ * aA@example.com.
+ */
+const EXPLICIT_LINK_ADDRESS_PATTERN: RegExp = /^!|[#?%]/;
+
+// The characters of an address a mailto: link would read as URL syntax.
+const MAILTO_SYNTAX_CHARACTER_PATTERN: RegExp = /[#?%]/g;
+
+type GetMailtoLinkFunction = (email: string) => string;
+
+// A mailto: link that writes to exactly this address.
+const getMailtoLink: GetMailtoLinkFunction = (email: string): string => {
+  return `mailto:${email.replace(
+    MAILTO_SYNTAX_CHARACTER_PATTERN,
+    (character: string): string => {
+      return `%${character.charCodeAt(0).toString(16).toUpperCase()}`;
+    },
+  )}`;
+};
+
 export type GetIncidentFormReporterNoteFunction = (data: {
   formName?: string | null | undefined;
   reporterName?: string | null | undefined;
@@ -147,6 +180,10 @@ export type GetIncidentFormReporterNoteFunction = (data: {
  * as asterisks rather than as emphasis. The form's name is escaped too: an
  * admin chose it, but it sits inside the note's own bold.
  *
+ * The note is posted to the incident's Slack and Teams channels as well, so
+ * a name such as "<!channel>" must not reach Slack as a mention either: the
+ * names go through neutralizeChatControlSequences before they are escaped.
+ *
  * The address is the exception: it is written as an autolink,
  * <jane@example.com>, so every renderer links the whole of it. It has
  * already passed WHOLE_EMAIL_ADDRESS - one dot-atom address, with no space,
@@ -154,9 +191,13 @@ export type GetIncidentFormReporterNoteFunction = (data: {
  * Backslash-escaping it instead broke the link where it matters: marked,
  * which renders the owners' "note posted" email, restarts its bare-address
  * link after every escape, so mary\-jane.watson@corp.example linked
- * mailto:jane.watson@corp.example - somebody else's mailbox. A value that is
- * not one whole address (the function is exported, and could be handed
- * anything) is escaped like the name.
+ * mailto:jane.watson@corp.example - somebody else's mailbox. An address an
+ * autolink would not carry whole (see EXPLICIT_LINK_ADDRESS_PATTERN: one
+ * starting with "!" or "#", which would open like a Slack control sequence,
+ * or holding "#", "?" or "%", which a mail client reads as URL syntax) is
+ * written as a plain link instead, with those characters escaped in its
+ * address. A value that is not one whole address (the function is
+ * exported, and could be handed anything) is escaped like the name.
  */
 export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
   (data: {
@@ -164,18 +205,27 @@ export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
     reporterName?: string | null | undefined;
     reporterEmail?: string | null | undefined;
   }): string => {
-    const formName: string = escapeMarkdownInline(data.formName).trim();
+    const formName: string = escapeMarkdownInline(
+      neutralizeChatControlSequences(data.formName),
+    ).trim();
     const form: string = formName
       ? `the incident form **${formName}**`
       : "an incident form";
 
-    const reporterName: string = escapeMarkdownInline(data.reporterName).trim();
+    const reporterName: string = escapeMarkdownInline(
+      neutralizeChatControlSequences(data.reporterName),
+    ).trim();
 
     const email: string = String(data.reporterEmail ?? "").trim();
-    const reporterEmail: string =
-      email && WHOLE_EMAIL_ADDRESS.test(email)
-        ? `<${email}>`
-        : escapeMarkdownInline(email).trim();
+    let reporterEmail: string = escapeMarkdownInline(
+      neutralizeChatControlSequences(email),
+    ).trim();
+
+    if (email && WHOLE_EMAIL_ADDRESS.test(email)) {
+      reporterEmail = EXPLICIT_LINK_ADDRESS_PATTERN.test(email)
+        ? `[${escapeMarkdownInline(email)}](${getMailtoLink(email)})`
+        : `<${email}>`;
+    }
 
     if (reporterName && reporterEmail) {
       return `Reported through ${form} by ${reporterName} (${reporterEmail}).`;
@@ -186,6 +236,122 @@ export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
     }
 
     return `Reported anonymously through ${form}.`;
+  };
+
+/*
+ * Incident.title is a varchar(500), and breaking a chat sequence in the
+ * title adds an invisible character (see neutralizeIncidentFormReport), so
+ * a title of nearly 500 characters full of "<!" can outgrow it. Worded as
+ * the validator's own length refusal.
+ */
+export const INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE: string = `${INCIDENT_FORM_QUESTION_LABELS.title} cannot be more than ${INCIDENT_FORM_TITLE_MAX_LENGTH} characters.`;
+
+const KNOWN_CUSTOM_FIELD_TYPES: ReadonlyArray<string> =
+  Object.values(CustomFieldType);
+
+export type NeutralizeIncidentFormReportFunction = (data: {
+  answers: ValidatedIncidentFormSubmission;
+  // The fields the form asks, as validated against: their types decide.
+  askedDefinitions: Array<{
+    name?: string | null | undefined;
+    customFieldType?: string | null | undefined;
+  }>;
+}) => ValidatedIncidentFormSubmission;
+
+/**
+ * The validated answers as the incident stores them, with nothing left in
+ * them that acts on its own when shown (see UntrustedMarkdown): a
+ * stranger's report is posted to the project's Slack and Teams channels and
+ * rendered for every responder and in owners' emails, and nobody reads it
+ * over first.
+ *
+ * - The title and every Text or Long Text answer (and an answer to a field
+ *   of a type this version does not know, which the form asks as text):
+ *   chat control sequences such as <!channel> are broken, invisibly.
+ * - The description and every Markdown answer: the same, and images become
+ *   links and mermaid diagrams code, so nothing is fetched or run.
+ * - Everything else - a dropdown option, a number, a date, a yes/no - was
+ *   checked against its field and is left as it is.
+ *
+ * The reporter's name and address are left as validated: the submission
+ * record shows them as plain text, and the private note neutralises them
+ * where it places them (getIncidentFormReporterNote).
+ */
+export const neutralizeIncidentFormReport: NeutralizeIncidentFormReportFunction =
+  (data: {
+    answers: ValidatedIncidentFormSubmission;
+    askedDefinitions: Array<{
+      name?: string | null | undefined;
+      customFieldType?: string | null | undefined;
+    }>;
+  }): ValidatedIncidentFormSubmission => {
+    /*
+     * The answers are copied key by key, defined rather than assigned, as
+     * the validator stores them: a field may be named "__proto__", and
+     * assigning that name (which a spread compiles to) would set the
+     * object's prototype instead of copying the answer.
+     */
+    const customFields: JSONObject = {};
+
+    for (const [name, value] of Object.entries(data.answers.customFields)) {
+      Object.defineProperty(customFields, name, {
+        value: value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    const report: ValidatedIncidentFormSubmission = {
+      ...data.answers,
+      title: neutralizeChatControlSequences(data.answers.title),
+      customFields: customFields,
+    };
+
+    if (data.answers.description) {
+      report.description = neutralizeUntrustedMarkdown(
+        data.answers.description,
+      );
+    }
+
+    for (const definition of data.askedDefinitions) {
+      const name: unknown = definition.name;
+
+      if (
+        typeof name !== "string" ||
+        !Object.prototype.hasOwnProperty.call(report.customFields, name)
+      ) {
+        continue;
+      }
+
+      const value: unknown = report.customFields[name];
+
+      if (typeof value !== "string") {
+        continue;
+      }
+
+      const type: string = definition.customFieldType || "";
+      let neutralized: string = value;
+
+      if (type === CustomFieldType.Markdown) {
+        neutralized = neutralizeUntrustedMarkdown(value);
+      } else if (
+        type === CustomFieldType.Text ||
+        type === CustomFieldType.LongText ||
+        !KNOWN_CUSTOM_FIELD_TYPES.includes(type)
+      ) {
+        neutralized = neutralizeChatControlSequences(value);
+      }
+
+      Object.defineProperty(report.customFields, name, {
+        value: neutralized,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    return report;
   };
 
 export class Service extends DatabaseService<Model> {
@@ -338,9 +504,11 @@ export class Service extends DatabaseService<Model> {
    * same checks as getPublicForm (link, form on, plan, network), then the
    * instance captcha when it is on, then the answers against the form's
    * questions (validateIncidentFormSubmission), then the severity. Only then
-   * is the incident created, as root, from the validated answers and the
-   * form's own settings - nothing else in the request reaches it, least of
-   * all a project id: the incident goes to the form's project.
+   * is the incident created, as root, from the validated answers - with
+   * nothing left in them that acts on its own when shown
+   * (neutralizeIncidentFormReport) - and the form's own settings. Nothing
+   * else in the request reaches it, least of all a project id: the incident
+   * goes to the form's project.
    *
    * Once the incident exists the reporter is told it was declared whatever
    * happens next. The template's owners, the submission record and the
@@ -392,12 +560,22 @@ export class Service extends DatabaseService<Model> {
 
     const answers: ValidatedIncidentFormSubmission = validation.value;
 
+    const report: ValidatedIncidentFormSubmission =
+      neutralizeIncidentFormReport({
+        answers: answers,
+        askedDefinitions: askedDefinitions,
+      });
+
+    if (report.title.length > INCIDENT_FORM_TITLE_MAX_LENGTH) {
+      throw new BadDataException(INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE);
+    }
+
     const incidentSeverityId: ObjectID | undefined =
       await this.getSubmissionSeverityId({ form, answers });
 
     const incident: Incident = await this.declareIncident({
       form,
-      answers,
+      answers: report,
       incidentSeverityId,
     });
 
