@@ -1275,6 +1275,15 @@ const LineChart: React.ForwardRefExoticComponent<
                           tooltipType="none"
                           strokeWidth={12}
                           connectNulls={connectNulls}
+                          /*
+                           * The 12px band is the target. Dots here are
+                           * invisible nodes a press could land on, and an
+                           * animated redraw (after a zoom, say) swaps them
+                           * out from under a double-click.
+                           */
+                          dot={false}
+                          activeDot={false}
+                          isAnimationActive={false}
                           onClick={(props: any, event: any) => {
                             event.stopPropagation();
                             const { name } = props;

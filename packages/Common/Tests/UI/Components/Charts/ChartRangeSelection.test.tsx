@@ -16,9 +16,14 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  * one implementation (useChartRangeSelection); these tests run the same
  * gestures against the line, area and bar charts through it:
  *
- *   - the bucket under the pointer AT RELEASE wins: recharts delivers
- *     mousemove a frame late but mouseup at once, so a quick drag used to
- *     lose its last bucket;
+ *   - the bucket under the pointer AT RELEASE wins, and the chart takes
+ *     mousemove unthrottled so recharts has resolved that bucket by the
+ *     release (it used to be a frame behind, and a quick drag lost its
+ *     last buckets);
+ *   - a press renders nothing until it becomes a drag: a render under the
+ *     press swapped out the line dot it landed on, and the browser then
+ *     sent no click and no dblclick, so a double-click on a line never
+ *     reset the zoom;
  *   - a drag released outside the chart still selects (it used to be
  *     abandoned, with its band left painted);
  *   - a release heard twice (chart and window) selects once;
@@ -29,16 +34,22 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  */
 
 type CapturedChartProps = {
-  onMouseDown?: (state: Record<string, unknown>) => void;
+  onMouseDown?: (
+    state: Record<string, unknown>,
+    event?: Record<string, unknown>,
+  ) => void;
   onMouseMove?: (
     state: Record<string, unknown>,
     event: Record<string, unknown>,
   ) => void;
   onMouseUp?: (state?: Record<string, unknown> | null) => void;
+  throttledEvents?: ReadonlyArray<string>;
   children?: React.ReactNode;
 };
 
 const mockChartPropsRef: { current: CapturedChartProps } = { current: {} };
+// How many times the chart root has rendered.
+const mockChartRenderCountRef: { current: number } = { current: 0 };
 
 jest.mock("recharts", () => {
   const actual: Record<string, any> = jest.requireActual("recharts");
@@ -56,6 +67,7 @@ jest.mock("recharts", () => {
       return null;
     }
     mockChartPropsRef.current = props as CapturedChartProps;
+    mockChartRenderCountRef.current += 1;
     return react.createElement(
       "div",
       { "data-testid": "chart-root" },
@@ -187,8 +199,13 @@ function selection(mock: MockFunction): Array<[string, string]> {
   });
 }
 
+function renders(): number {
+  return mockChartRenderCountRef.current;
+}
+
 beforeEach(() => {
   mockChartPropsRef.current = {};
+  mockChartRenderCountRef.current = 0;
   jest.useFakeTimers();
 });
 
@@ -328,6 +345,223 @@ for (const chartUnderTest of CHARTS) {
       ).toBeNull();
       // And a stray window mouseup is harmless.
       fireEvent.mouseUp(window);
+    });
+
+    test("a press renders nothing, so the node it landed on is still there for its click and dblclick", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+      const before: number = renders();
+
+      // Both presses of a double-click, with a jiggle inside the bucket.
+      press(4);
+      move(4);
+      release({ activeTooltipIndex: 4 });
+      fireEvent.mouseUp(window);
+      press(4);
+      release({ activeTooltipIndex: 4 });
+
+      expect(renders()).toBe(before);
+      expect(screen.queryByTestId("selection-band")).toBeNull();
+      expect(onTimeRangeSelect).not.toHaveBeenCalled();
+    });
+
+    test("the band appears once the pointer reaches another bucket, from the pressed one", () => {
+      render(
+        chartUnderTest.render(
+          getJestMockFunction() as unknown as SelectHandler,
+        ),
+      );
+
+      press(2);
+      move(2);
+      expect(screen.queryByTestId("selection-band")).toBeNull();
+
+      move(3);
+      const band: HTMLElement = screen.getByTestId("selection-band");
+      expect(band).toHaveAttribute("data-x1", "10:02");
+      expect(band).toHaveAttribute("data-x2", "10:03");
+
+      // Back over the pressed bucket: still a (one-bucket) band, not a click.
+      move(2);
+      expect(screen.getByTestId("selection-band")).toHaveAttribute(
+        "data-x2",
+        "10:02",
+      );
+    });
+
+    test("a drag that comes back to its first bucket is released as a click", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+
+      press(2);
+      move(5);
+      move(2);
+      release({ activeTooltipIndex: 2 });
+
+      expect(onTimeRangeSelect).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("selection-band")).toBeNull();
+    });
+
+    test("the chart takes mousemove unthrottled, so press and release read the bucket under the pointer now", () => {
+      render(
+        chartUnderTest.render(
+          getJestMockFunction() as unknown as SelectHandler,
+        ),
+      );
+
+      const throttled: ReadonlyArray<string> | undefined =
+        chart().throttledEvents;
+      expect(throttled).toBeDefined();
+      expect(throttled).not.toContain("mousemove");
+      // The rest of recharts' defaults stay throttled.
+      expect([...(throttled || [])].sort()).toEqual([
+        "pointermove",
+        "scroll",
+        "touchmove",
+        "wheel",
+      ]);
+    });
+
+    test("a chart with no drag keeps recharts' default throttling", () => {
+      render(chartUnderTest.render(undefined));
+
+      expect(chart().throttledEvents).toBeUndefined();
+    });
+
+    test("only the main button drags: a right-click press selects nothing", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+
+      act(() => {
+        chart().onMouseDown?.({ activeTooltipIndex: 2 }, { button: 2 });
+      });
+      move(6);
+      release({ activeTooltipIndex: 6 });
+      fireEvent.mouseUp(window);
+
+      expect(onTimeRangeSelect).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("selection-band")).toBeNull();
+    });
+
+    test("a main-button press with its event still drags", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+
+      act(() => {
+        chart().onMouseDown?.({ activeTooltipIndex: 2 }, { button: 0 });
+      });
+      move(4);
+      release({ activeTooltipIndex: 4 });
+
+      expect(selection(onTimeRangeSelect)).toEqual([
+        ["2026-09-28T10:02:00.000Z", "2026-09-28T10:05:00.000Z"],
+      ]);
+    });
+
+    test("a press off the rows starts nothing and leaves no page-wide listener", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      const addListener: jest.SpiedFunction<typeof window.addEventListener> =
+        jest.spyOn(window, "addEventListener");
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+      addListener.mockClear();
+
+      press(42);
+      move(3);
+      fireEvent.mouseUp(window);
+
+      expect(
+        addListener.mock.calls.filter((call: Array<unknown>) => {
+          return call[0] === "mouseup";
+        }),
+      ).toHaveLength(0);
+      expect(onTimeRangeSelect).not.toHaveBeenCalled();
+      addListener.mockRestore();
+    });
+
+    test("every press's page-wide listener is gone once the press ends", () => {
+      const addListener: jest.SpiedFunction<typeof window.addEventListener> =
+        jest.spyOn(window, "addEventListener");
+      const removeListener: jest.SpiedFunction<
+        typeof window.removeEventListener
+      > = jest.spyOn(window, "removeEventListener");
+      render(
+        chartUnderTest.render(
+          getJestMockFunction() as unknown as SelectHandler,
+        ),
+      );
+
+      // A click, a drag released on the chart, and one released outside.
+      press(1);
+      release({ activeTooltipIndex: 1 });
+      press(1);
+      move(3);
+      release({ activeTooltipIndex: 3 });
+      press(2);
+      move(5);
+      fireEvent.mouseUp(window);
+
+      const added: Array<unknown> = addListener.mock.calls
+        .filter((call: Array<unknown>) => {
+          return call[0] === "mouseup";
+        })
+        .map((call: Array<unknown>) => {
+          return call[1];
+        });
+      const removed: Array<unknown> = removeListener.mock.calls
+        .filter((call: Array<unknown>) => {
+          return call[0] === "mouseup";
+        })
+        .map((call: Array<unknown>) => {
+          return call[1];
+        });
+      expect(added).toHaveLength(3);
+      for (const listener of added) {
+        expect(removed).toContain(listener);
+      }
+      addListener.mockRestore();
+      removeListener.mockRestore();
+    });
+
+    test("a chart unmounted mid-drag stops listening for the release", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      const rendered: ReturnType<typeof render> = render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+
+      press(1);
+      move(4);
+      rendered.unmount();
+      fireEvent.mouseUp(window);
+
+      expect(onTimeRangeSelect).not.toHaveBeenCalled();
+    });
+
+    test("a new press after a lost release starts over from the new bucket", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+
+      // The release of this drag never reaches the page.
+      press(1);
+      move(8);
+      press(5);
+      move(6);
+      release({ activeTooltipIndex: 6 });
+
+      expect(selection(onTimeRangeSelect)).toEqual([
+        ["2026-09-28T10:05:00.000Z", "2026-09-28T10:07:00.000Z"],
+      ]);
     });
 
     test("the latest handler is the one called, even if it changed mid-drag", () => {

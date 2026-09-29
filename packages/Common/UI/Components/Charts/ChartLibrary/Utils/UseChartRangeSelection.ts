@@ -104,13 +104,34 @@ export interface UseChartRangeSelectionOptions {
   enabled?: boolean | undefined;
 }
 
-export interface ChartRechartsMouseHandlers {
-  onMouseDown?: (chartState: RangeSelectionChartState) => void;
+/*
+ * The events recharts may hold for the next animation frame on a chart that
+ * offers a drag: its defaults, less "mousemove".
+ *
+ * recharts works out the bucket under the pointer a frame after each
+ * mousemove, but hands mousedown and mouseup to the chart at once, with
+ * the bucket it last worked out. So a drag released in the frame of its
+ * last move lost the buckets that move crossed, and a press in the frame
+ * the pointer arrived started one bucket early, or was dropped outright
+ * when the move queued before it (no button held yet) landed after it.
+ * Browsers already coalesce mousemove to about one a frame, so taking it
+ * at once costs no extra renders.
+ */
+export const RANGE_SELECTION_THROTTLED_EVENTS: ReadonlyArray<
+  keyof GlobalEventHandlersEventMap
+> = ["touchmove", "pointermove", "scroll", "wheel"];
+
+export interface ChartRangeSelectionRootProps {
+  onMouseDown?: (
+    chartState: RangeSelectionChartState,
+    mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
+  ) => void;
   onMouseMove?: (
     chartState: RangeSelectionChartState,
     mouseEvent: React.MouseEvent<SVGGraphicsElement>,
   ) => void;
   onMouseUp?: (chartState?: RangeSelectionChartState | null) => void;
+  throttledEvents?: ReadonlyArray<keyof GlobalEventHandlersEventMap>;
 }
 
 export interface ChartRangeSelection {
@@ -125,7 +146,7 @@ export interface ChartRangeSelection {
    */
   isClickSuppressed: () => boolean;
   /** Spread onto the recharts chart root. Empty when canSelect is false. */
-  chartEventProps: ChartRechartsMouseHandlers;
+  chartEventProps: ChartRangeSelectionRootProps;
 }
 
 interface LatestRangeSelectionInputs {
@@ -141,11 +162,15 @@ interface LatestRangeSelectionInputs {
  *   of the last, as soon as the button is released.
  * - A press and release on one bucket is a plain click and keeps its
  *   meaning (a bucket click, a legend toggle); only a real drag selects.
+ * - Nothing re-renders until the pointer leaves the bucket it pressed. A
+ *   render under a press can replace the node it landed on (recharts
+ *   re-keys a line's dots when it redraws them), and a press whose node
+ *   is gone by the release gets no click and no dblclick - so a
+ *   double-click on a line never reached the chart's zoom reset.
  * - The release is resolved from the bucket recharts reports under the
- *   pointer at mouseup, falling back to the last move. recharts delivers
- *   mousemove on the next animation frame but mousedown and mouseup at
- *   once, so a quick drag is routinely released before its last move has
- *   been processed - reading only the last move lost the final bucket.
+ *   pointer at mouseup, falling back to the last move. The chart takes
+ *   mousemove unthrottled (RANGE_SELECTION_THROTTLED_EVENTS), so that
+ *   bucket is the one under the pointer now, not a frame ago.
  * - A drag released outside the chart still selects: readers overshoot a
  *   180px-tall chart all the time, and the chart's own mouseup never fires
  *   there. Before, the drag was abandoned and its band stayed painted until
@@ -166,7 +191,6 @@ const useChartRangeSelection: (
   const [selectionEndLabel, setSelectionEndLabel] = React.useState<
     string | null
   >(null);
-  const [isDragging, setIsDragging] = React.useState<boolean>(false);
 
   /*
    * The refs, not render state, are the authority on a selection in
@@ -183,6 +207,12 @@ const useChartRangeSelection: (
   >(null);
   const suppressNextClickRef: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
+  // Whether the band is painted, i.e. the selection is in render state.
+  const isBandShownRef: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
+  // The page-wide mouseup listener of the press in progress, if any.
+  const releaseListenerRef: React.MutableRefObject<(() => void) | null> =
+    React.useRef<(() => void) | null>(null);
 
   /*
    * A release outside the chart is handled by a window listener installed
@@ -200,14 +230,25 @@ const useChartRangeSelection: (
     onTimeRangeSelect: options.onTimeRangeSelect,
   };
 
+  const stopListeningForRelease: () => void = React.useCallback((): void => {
+    if (releaseListenerRef.current) {
+      window.removeEventListener("mouseup", releaseListenerRef.current);
+      releaseListenerRef.current = null;
+    }
+  }, []);
+
   const clearSelection: () => void = React.useCallback((): void => {
     isSelecting.current = false;
     startIndexRef.current = null;
     endIndexRef.current = null;
-    setSelectionStartLabel(null);
-    setSelectionEndLabel(null);
-    setIsDragging(false);
-  }, []);
+    stopListeningForRelease();
+    // A press that never became a drag painted nothing: leave render alone.
+    if (isBandShownRef.current) {
+      isBandShownRef.current = false;
+      setSelectionStartLabel(null);
+      setSelectionEndLabel(null);
+    }
+  }, [stopListeningForRelease]);
 
   const getLabel: (rowIndex: number) => string | null = React.useCallback(
     (rowIndex: number): string | null => {
@@ -217,31 +258,6 @@ const useChartRangeSelection: (
     },
     [],
   );
-
-  const onMouseDown: (chartState: RangeSelectionChartState) => void =
-    React.useCallback(
-      (chartState: RangeSelectionChartState): void => {
-        const rowIndex: number | null = getChartRowIndex(
-          latest.current.data,
-          latest.current.index,
-          chartState,
-        );
-        if (rowIndex === null) {
-          return;
-        }
-        const rowLabel: string | null = getLabel(rowIndex);
-        if (rowLabel === null) {
-          return;
-        }
-        isSelecting.current = true;
-        startIndexRef.current = rowIndex;
-        endIndexRef.current = rowIndex;
-        setSelectionStartLabel(rowLabel);
-        setSelectionEndLabel(null);
-        setIsDragging(true);
-      },
-      [getLabel],
-    );
 
   const onMouseMove: (
     chartState: RangeSelectionChartState,
@@ -275,6 +291,19 @@ const useChartRangeSelection: (
         return;
       }
       endIndexRef.current = rowIndex;
+      if (!isBandShownRef.current) {
+        // Still on the pressed bucket: a click so far, so paint nothing.
+        const startIndex: number | null = startIndexRef.current;
+        if (startIndex === null || rowIndex === startIndex) {
+          return;
+        }
+        const startLabel: string | null = getLabel(startIndex);
+        if (startLabel === null) {
+          return;
+        }
+        isBandShownRef.current = true;
+        setSelectionStartLabel(startLabel);
+      }
       setSelectionEndLabel(rowLabel);
     },
     [clearSelection, getLabel],
@@ -339,28 +368,54 @@ const useChartRangeSelection: (
       [clearSelection],
     );
 
-  /*
-   * A drag released outside the chart: the chart's own mouseup never
-   * fires, so listen on the window for as long as a drag is in progress.
-   * A release over the chart reaches the chart's handler first (React
-   * listens below the window) and ends the selection, so this is then a
-   * no-op.
-   */
+  const onMouseDown: (
+    chartState: RangeSelectionChartState,
+    mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
+  ) => void = React.useCallback(
+    (
+      chartState: RangeSelectionChartState,
+      mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
+    ): void => {
+      // Only the main button drags; a right-click opens a context menu.
+      if (mouseEvent && mouseEvent.button > 0) {
+        return;
+      }
+      const rowIndex: number | null = getChartRowIndex(
+        latest.current.data,
+        latest.current.index,
+        chartState,
+      );
+      if (rowIndex === null || getLabel(rowIndex) === null) {
+        return;
+      }
+      clearSelection();
+      isSelecting.current = true;
+      startIndexRef.current = rowIndex;
+      endIndexRef.current = rowIndex;
+
+      /*
+       * A drag released outside the chart: the chart's own mouseup never
+       * fires, so listen on the window until the press ends. A release
+       * over the chart reaches the chart's handler first (React listens
+       * below the window), which ends the press and removes this listener
+       * before the window hears it. Added here rather than from render
+       * state so the press itself renders nothing (see above).
+       */
+      const finishPressOutsideChart: () => void = (): void => {
+        onMouseUp(null);
+      };
+      releaseListenerRef.current = finishPressOutsideChart;
+      window.addEventListener("mouseup", finishPressOutsideChart);
+    },
+    [clearSelection, getLabel, onMouseUp],
+  );
+
+  // A chart unmounted mid-press stops listening for its release.
   React.useEffect(() => {
-    if (!isDragging) {
-      return undefined;
-    }
-
-    const finishDragOutsideChart: () => void = (): void => {
-      onMouseUp(null);
-    };
-
-    window.addEventListener("mouseup", finishDragOutsideChart);
-
     return () => {
-      window.removeEventListener("mouseup", finishDragOutsideChart);
+      stopListeningForRelease();
     };
-  }, [isDragging, onMouseUp]);
+  }, [stopListeningForRelease]);
 
   const isClickSuppressed: () => boolean = React.useCallback((): boolean => {
     return suppressNextClickRef.current;
@@ -376,6 +431,7 @@ const useChartRangeSelection: (
           onMouseDown: onMouseDown,
           onMouseMove: onMouseMove,
           onMouseUp: onMouseUp,
+          throttledEvents: RANGE_SELECTION_THROTTLED_EVENTS,
         }
       : {},
   };
