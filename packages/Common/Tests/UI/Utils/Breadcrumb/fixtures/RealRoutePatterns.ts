@@ -160,6 +160,8 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/incidents/settings/severity",
   "/dashboard/:projectId/incidents/settings/templates",
   "/dashboard/:projectId/incidents/settings/templates/:id",
+  "/dashboard/:projectId/incidents/settings/forms",
+  "/dashboard/:projectId/incidents/settings/forms/:id",
   "/dashboard/:projectId/incidents/settings/note-templates",
   "/dashboard/:projectId/incidents/settings/note-templates/:id",
   "/dashboard/:projectId/incidents/settings/postmortem-templates",

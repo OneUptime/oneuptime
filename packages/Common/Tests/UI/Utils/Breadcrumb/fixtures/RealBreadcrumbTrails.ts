@@ -971,6 +971,16 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/forms",
+    titles: ["Project", "Incidents", "Settings", "Forms"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/forms/:id",
+    titles: ["Project", "Incidents", "Settings", "Forms", "View Form"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/incidents/settings/grouping-rules",
     titles: ["Project", "Incidents", "Rules", "Grouping Rules"],
   },

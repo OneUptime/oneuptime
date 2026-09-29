@@ -62,6 +62,10 @@ import IncidentSettingsTemplates from "../Pages/Incidents/Settings/IncidentTempl
 
 import IncidentSettingsTemplatesView from "../Pages/Incidents/Settings/IncidentTemplatesView";
 
+import IncidentSettingsForms from "../Pages/Incidents/Settings/IncidentForms";
+
+import IncidentSettingsFormView from "../Pages/Incidents/Settings/IncidentFormView";
+
 import IncidentSettingsNoteTemplates from "../Pages/Incidents/Settings/IncidentNoteTemplates";
 
 import IncidentSettingsNoteTemplatesView from "../Pages/Incidents/Settings/IncidentNoteTemplateView";
@@ -264,6 +268,28 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS] || ""}
+          element={
+            <IncidentSettingsForms
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW] || ""}
+          element={
+            <IncidentSettingsFormView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW] as Route
               }
             />
           }
