@@ -178,6 +178,16 @@ unthrottled (`RANGE_SELECTION_THROTTLED_EVENTS`). Scenario 2 presses and release
 the frame the pointer arrives; the other scenarios let two frames pass before every
 press and release (`settle()`), as a careful reader's pointer would.
 
+### The Kubernetes Overview header
+
+`KubernetesOverviewHeader.spec.ts` (6 tests, same fixture and command) measures the
+cluster Overview's name at 1440, 1280, 1024, 900 and 768px, before and after a real
+drag on the CPU chart. A zoom widens the header's controls (the picker reads a custom
+range and Reset zoom joins it), and they used to take the width out of the name:
+"Production (eu-west-1)" read "Production (eu-..." once zoomed. The spec checks the
+name is not cut, every control stays inside the hero without covering it, the page
+never scrolls sideways, and a name longer than the row still truncates.
+
 ## Run it
 
 ```
