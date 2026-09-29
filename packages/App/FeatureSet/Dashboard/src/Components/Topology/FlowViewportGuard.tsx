@@ -445,8 +445,9 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
       /*
        * Chromium scrolls React Flow's box to the element before focusin
        * fires. That scroll is the browser's way of showing the element, and
-       * the pan below does it instead, so drop it before measuring: measured
-       * through it, the element would be revealed twice, far off the canvas.
+       * the pan below does it instead, so drop it here: left in place, the
+       * scroll listener would turn it into a second pan, carrying the
+       * element far off the canvas.
        */
       domNode.scrollLeft = 0;
       domNode.scrollTop = 0;

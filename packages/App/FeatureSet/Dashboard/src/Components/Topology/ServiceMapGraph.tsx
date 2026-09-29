@@ -784,7 +784,11 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
    * the wheel scrolls the page over it, either end of it may be off screen.
    * Written straight to the notice's style, before the first paint and on
    * every scroll frame after it, so following the page never re-renders the
-   * map.
+   * map. The placement depends on the notice's own height, which is only
+   * final once its styles are: the Dashboard's Tailwind generates the CSS
+   * for a class it has not seen before a moment after the element appears.
+   * So the notice is placed again whenever its size changes, after layout
+   * and before paint.
    */
   useLayoutEffect(() => {
     if (!showOutOfView) {
@@ -792,7 +796,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     }
     let frame: number = 0;
     const place: () => void = (): void => {
-      frame = 0;
       const canvas: HTMLDivElement | null = canvasRef.current;
       const notice: HTMLDivElement | null = noticeRef.current;
       if (!canvas || !notice) {
@@ -809,7 +812,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     };
     const schedule: () => void = (): void => {
       if (!frame) {
-        frame = requestAnimationFrame(place);
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          place();
+        });
       }
     };
     place();
@@ -819,10 +825,16 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       passive: true,
     });
     window.addEventListener("resize", schedule);
+    const resized: ResizeObserver | null =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
+    if (resized && noticeRef.current) {
+      resized.observe(noticeRef.current);
+    }
     return () => {
       cancelAnimationFrame(frame);
       document.removeEventListener("scroll", schedule, { capture: true });
       window.removeEventListener("resize", schedule);
+      resized?.disconnect();
     };
   }, [showOutOfView]);
 
