@@ -268,20 +268,42 @@ describe("Error Budget History (Components/Slo/SloHistoryCharts.tsx)", () => {
   });
 
   test("each card names the gesture on hover, from the row that replaces its body margin", () => {
-    expect(countOf(code, "<SloChartZoomHint />")).toBe(3);
     expect(
       countOf(
         code,
         '<Card className="group/zoomhint" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
       ),
     ).toBe(3);
+    // One row per card, drawn by getChart with the body it heads.
+    expect(countOf(code, "{getChart({")).toBe(3);
+    expect(countOf(code, "<SloChartZoomHint")).toBe(1);
+    expect(code).toContain(
+      "<> <SloChartZoomHint isShown={takesZoomGesture} /> {body} </>",
+    );
     // Not in the header: that squeezed the description beside the picker.
     expect(code).not.toContain("TimeRangeZoomHint revealOnHover");
   });
 
-  test("an empty chart takes the double-click while zoomed", () => {
+  test("the hint names a gesture only where the body takes one: never over the loader, over an empty chart only while zoomed", () => {
+    const getChart: string = between(
+      code,
+      "const getChart: GetChartFunction",
+      "const syncId: string",
+    );
+
+    expect(getChart).toContain(
+      "if (isLoading && options.points.length === 0) { return withZoomHint(false, <ComponentLoader />); }",
+    );
+    expect(getChart).toContain("return withZoomHint( zoom.isZoomed, <div");
+    expect(getChart).toContain("return withZoomHint( true, <LineChartElement");
+  });
+
+  test("an empty chart takes the double-click while zoomed, and then selects no word", () => {
     expect(code).toContain(
       "onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}",
+    );
+    expect(code).toContain(
+      'className={zoom.isZoomed ? "-my-16 select-none" : "-my-16"}',
     );
   });
 
@@ -377,8 +399,41 @@ describe("SLO overview burn-down (Components/Slo/SloBudgetBurnDownCard.tsx)", ()
     expect(code).toContain(
       '<Card className="group/zoomhint" bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}',
     );
-    expect(code).toContain("<SloChartZoomHint /> {getBody()}");
-    expect(code).toContain("<div onDoubleClick={resetZoom}>");
+    // The body brings its own hint row, gated on what the body takes.
+    expect(code).toContain("> {getBody()} </Card>");
+    expect(countOf(code, "<SloChartZoomHint")).toBe(1);
+    expect(code).toContain(
+      "<> <SloChartZoomHint isShown={takesZoomGesture} /> {body} </>",
+    );
+    expect(code).toContain(
+      '<div className="select-none" onDoubleClick={resetZoom}>',
+    );
+  });
+
+  test("the hint names a gesture only where the body takes one", () => {
+    const getBody: string = between(
+      code,
+      "const getBody: GetBodyFunction",
+      "return ( <TimeRangeZoomProvider zoom={zoom}>",
+    );
+
+    // Neither the error nor the loader takes a gesture.
+    expect(getBody).toContain(
+      "return withZoomHint( false, <ErrorMessage message={series.error} onRefreshClick={series.retry} />, );",
+    );
+    expect(getBody).toContain(
+      "return withZoomHint(false, <ComponentLoader />);",
+    );
+    // The zoomed empty state takes the double-click; the unzoomed one nothing.
+    expect(getBody).toContain(
+      'return withZoomHint( true, <div className="select-none" onDoubleClick={resetZoom}>',
+    );
+    expect(getBody).toContain(
+      "return withZoomHint( false, <SloOverviewEmptyState",
+    );
+    expect(getBody).toContain(
+      'return withZoomHint( true, <div data-testid="slo-burn-down-chart">',
+    );
   });
 
   test("still polls nothing of its own", () => {
@@ -393,9 +448,11 @@ describe("the SLO chart cards' hint row (Components/Slo/SloChartZoomHint.tsx)", 
     expect(code).toContain(
       'export const SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME: string = "mt-4 md:mt-0";',
     );
+    // The row stays in every state; only the hint in it comes and goes.
     expect(code).toContain(
-      '<div className="max-md:hidden h-4 items-center justify-end md:flex"> <TimeRangeZoomHint revealOnHover={true} /> </div>',
+      '<div className="max-md:hidden h-4 items-center justify-end md:flex"> {props.isShown ? <TimeRangeZoomHint revealOnHover={true} /> : <></>} </div>',
     );
+    expect(code).toContain("isShown: boolean;");
   });
 });
 
