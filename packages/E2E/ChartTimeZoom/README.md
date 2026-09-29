@@ -22,10 +22,12 @@ side menu with its count badges). `Fixture/server.js` bundles them with esbuild
 `ModelAPI` / `AnalyticsModelAPI` / `API` data boundary and the signed-in user are
 replaced.
 
-The zoom itself comes from the page: a page takes part once it wraps its content in
-`<TimeRangeZoomScope timeRange={...} onTimeRangeChange={...}>`
-(`Common/UI/Components/Charts/TimeRangeZoom`). The fixture adds nothing to the
-pages, so these regressions pass only where the pages are wired that way.
+The zoom itself comes from the page: each of these pages wraps its content in
+`<TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={...}>`
+(`Common/UI/Components/Charts/TimeRangeZoom`), with `setTimeRange` on the two
+overviews and `handleTimeRangeChange` (which also re-resolves the window the cards
+share) on Insights. The fixture adds nothing to the pages: take that wiring away
+and these regressions fail.
 
 ## Dataset
 
@@ -79,30 +81,47 @@ recorded on `unhandled` too, and the spec fails the test on it.
 
 ## What the spec covers
 
-`ChartTimeZoom.spec.ts` runs seven scenarios on each of the three pages (21 tests).
+`ChartTimeZoom.spec.ts` runs eight scenarios on each of the three pages (24 tests).
 Every gesture is a real pointer gesture (`page.mouse`) located from the chart's own
 x-axis: the first and last x-axis labels give the spacing of the evenly spaced
 buckets, so the pointer presses on exactly the bucket a scenario names.
 
-1. **A drag zooms every chart, every chart query and the time picker.** While the
-   button is down the selection band (`.recharts-reference-area`) spans the dragged
-   buckets, nothing is queried yet and no page text is selected. After the release:
-   every aggregate behind the page's charts asked for exactly the dragged window and
-   no other; the picker reads the custom range; Reset zoom shows beside the picker
-   (its title names the range it goes back to); every chart's x-axis starts at the
-   window's start and stays inside it; the band is gone; nothing is selected.
+1. **A drag zooms every chart, every chart query and the time picker.** Hovering a
+   chart reveals its card's hint ("Drag to zoom"). While the button is down the
+   selection band (`.recharts-reference-area`) spans the dragged buckets, nothing is
+   queried yet and no page text is selected. After the release: every aggregate
+   behind the page's charts asked for exactly the dragged window and no other; the
+   picker reads the custom range; Reset zoom shows beside the picker (its title names
+   the range it goes back to); every chart's x-axis starts at the window's start and
+   stays inside it; every hint names the way back; the band is gone; nothing is
+   selected; hovering reveals "Double-click to reset".
 2. **A drag released outside the chart still zooms**: the pointer leaves the chart
    downwards before the release.
 3. **A double-click on another chart puts the page back on its range** (the initial
-   range's queries, label and axes), with no page text selected.
-4. **Nested zooms: one double-click climbs all the way out.** A second drag inside
-   the first zoom narrows the page again; one double-click on a third chart returns
-   to the initial range.
-5. **Reset zoom puts the page back on its range** (a click).
-6. **Reset zoom works from the keyboard**: Tab from the time picker lands on Reset
+   range's queries, label, axes and hints), with no page text selected.
+4. **A double-click on a line itself puts the page back on its range**, marked
+   `test.fail()`: see "Known product bug" below.
+5. **Nested zooms: one double-click climbs all the way out.** A second drag inside
+   the first zoom narrows the page again; one double-click on the first chart
+   returns to the initial range.
+6. **Reset zoom puts the page back on its range** (a click).
+7. **Reset zoom works from the keyboard**: Tab from the time picker lands on Reset
    zoom, Enter resets.
-7. **Picking a range in the time picker ends the zoom**: Reset zoom goes away, every
+8. **Picking a range in the time picker ends the zoom**: Reset zoom goes away, every
    chart follows the new range, and a double-click then changes nothing.
+
+The hints: a chart card's (or, on the host overview, a section's) `TimeRangeZoomHint`
+reads "Drag to zoom", and "Double-click to reset" while the page is zoomed; it is
+revealed while the pointer is over its card (the named Tailwind group
+`group/zoomhint`) or while focus is inside it. A `MetricView` chart's ChartGroup line
+reads "Drag to zoom", then "Drag to zoom · double-click to reset". Kubernetes
+overview: five card hints; host overview: two section hints; Insights: the network
+chart's hint and five ChartGroup lines.
+
+Where a double-click lands: the reset scenarios wait for every chart to stop moving
+(recharts animates a line from its old points to its new ones after a zoom), then
+double-click a spot of the plot that no series covers, half-way between two
+buckets.
 
 | Page | Charts | Initial range | Zoom (scenario 1) | Released outside | Nested | Preset |
 |---|---|---|---|---|---|---|
@@ -132,6 +151,19 @@ Page by page:
 not model and on any request the network fence had to abort. Auto-refresh stays at
 the pages' default (every 30 seconds): a refresh re-queries the window the page is
 on, which the assertions accept.
+
+### Known product bug: a double-click on a line never resets
+
+Scenario 4 double-clicks a point of a ChartLibrary line chart's line (the overviews'
+and Insights' Network charts) and is marked `test.fail()`, because today it leaves
+the page zoomed. A press re-renders the chart (`useChartRangeSelection` sets React
+state on `mousedown`), recharts 3 then remounts the line's path and dots (they are
+keyed by an id that changes with the line's points), the pressed node is gone by
+`mouseup`, and Chrome dispatches no `click` and no `dblclick`. The line chart's
+transparent 12px click-target lines and their default dots cover every line and
+data point, so this is any double-click on or near a line. Once a press no longer
+re-renders the chart, this scenario passes and Playwright reports it as an
+unexpected pass: remove the `test.fail()`.
 
 ### Pointer timing
 

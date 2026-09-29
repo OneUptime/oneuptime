@@ -32,6 +32,11 @@ import path from "path";
  * bucket for longer than a frame before pressing or releasing, so the
  * gestures here let two frames pass before every press and release (see
  * settle()).
+ *
+ * Where a double-click lands: the reset scenarios double-click a settled
+ * chart on a spot of the plot that no series covers (emptyPlotPoint()). A
+ * double-click ON a line is its own scenario, because today it never
+ * resets (see the "on a line" test).
  */
 
 const PORT: string = "4233";
@@ -49,6 +54,13 @@ const SCREENSHOTS: string = path.resolve(
 
 const RESET_ZOOM_TEST_ID: string = "reset-time-range-zoom";
 const PAGE_PICKER_TEST_ID: string = "telemetry-time-range-picker-button";
+
+// TimeRangeZoomHint: a chart card's or section's hint, revealed on hover.
+const HINT_TEST_ID: string = "time-range-zoom-hint";
+const HINT_TEXT: string = "Drag to zoom";
+const HINT_RESET_TEXT: string = "Double-click to reset";
+// ChartGroup's always-shown hint line above each MetricView chart.
+const GROUP_HINT_RESET_TEXT: string = "Drag to zoom · double-click to reset";
 
 // Epoch milliseconds.
 interface TimeWindow {
@@ -112,6 +124,12 @@ interface Box {
   height: number;
 }
 
+// A viewport position.
+interface Point {
+  x: number;
+  y: number;
+}
+
 /*
  * A drag from the bucket labelled `from` to the bucket labelled `to`
  * ("HH:mm" or "HH:mm:ss", UTC, on the fixture's day). The page zooms to
@@ -163,8 +181,18 @@ interface PageUnderTest {
   nested: DragPlan;
   // A chart other than zoom.chart, for the double-click.
   otherChart: string;
+  // A line chart (ChartLibrary LineChart) for the double-click on a line.
+  lineChart: string;
   preset: { option: string; label: string; window: TimeWindow };
   resetButtons: number;
+  hints: {
+    // TimeRangeZoomHints, each revealed while the pointer is over its card.
+    card: number;
+    // ChartGroup hint lines, one per MetricView chart, always shown.
+    group: number;
+    // A chart whose card (or section) hint the spec reveals by hovering it.
+    hoverChart: string;
+  };
 }
 
 // An instant on the fixture's day (UTC): "11:34" or "11:38:30".
@@ -211,12 +239,15 @@ const KUBERNETES_OVERVIEW: PageUnderTest = {
   outside: { chart: "Memory", from: "11:42", to: "11:51" },
   nested: { chart: "Availability", from: "11:36:00", to: "11:38:30" },
   otherChart: "Network",
+  lineChart: "Network",
   preset: {
     option: "Past 1 Hour",
     label: "Past 1 Hour",
     window: { start: at("11:00"), end: at("12:00") },
   },
   resetButtons: 1,
+  // One under each chart card's header.
+  hints: { card: 5, group: 0, hoverChart: "CPU" },
 };
 
 const HOST_OVERVIEW: PageUnderTest = {
@@ -247,12 +278,15 @@ const HOST_OVERVIEW: PageUnderTest = {
   outside: { chart: "Disk space", from: "11:42", to: "11:51" },
   nested: { chart: "Availability", from: "11:36:00", to: "11:38:30" },
   otherChart: "Memory",
+  lineChart: "Network",
   preset: {
     option: "Past 1 Hour",
     label: "Past 1 Hour",
     window: { start: at("11:00"), end: at("12:00") },
   },
   resetButtons: 1,
+  // One per section: Availability, and the Resource usage row.
+  hints: { card: 2, group: 0, hoverChart: "CPU" },
 };
 
 const KUBERNETES_INSIGHTS: PageUnderTest = {
@@ -294,12 +328,16 @@ const KUBERNETES_INSIGHTS: PageUnderTest = {
   outside: { chart: "Node Memory Usage", from: "11:40", to: "11:52" },
   nested: { chart: "Pod Memory Usage", from: "11:20", to: "11:25" },
   otherChart: "Pod CPU Utilization",
+  // KubernetesNetworkThroughputChart: the page's one ChartLibrary line chart.
+  lineChart: "Network",
   preset: {
     option: "Past 3 Hours",
     label: "Past 3 Hours",
     window: { start: at("09:00"), end: at("12:00") },
   },
   resetButtons: 3,
+  // The network chart's hint row, and ChartGroup's line on the others.
+  hints: { card: 1, group: 5, hoverChart: "Network" },
 };
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -836,6 +874,88 @@ async function expectNoTextSelected(page: Page): Promise<void> {
   ).toBe("");
 }
 
+function cardHints(page: Page): Locator {
+  return page.getByTestId(HINT_TEST_ID);
+}
+
+function groupHints(page: Page): Locator {
+  return page
+    .locator(`span:not([data-testid='${HINT_TEST_ID}'])`)
+    .filter({ hasText: /^Drag to zoom( · double-click to reset)?$/ });
+}
+
+/*
+ * Every chart names the gesture: "Drag to zoom", and while the page is
+ * zoomed, the way back ("Double-click to reset" on a card's hint,
+ * ChartGroup's longer line on a MetricView chart).
+ */
+async function expectHints(
+  page: Page,
+  subject: PageUnderTest,
+  zoomed: boolean,
+): Promise<void> {
+  await expect(cardHints(page)).toHaveCount(subject.hints.card);
+  for (let index: number = 0; index < subject.hints.card; index++) {
+    await expect(cardHints(page).nth(index)).toHaveText(
+      zoomed ? HINT_RESET_TEXT : HINT_TEXT,
+    );
+  }
+  await expect(groupHints(page)).toHaveCount(subject.hints.group);
+  for (let index: number = 0; index < subject.hints.group; index++) {
+    await expect(groupHints(page).nth(index)).toHaveText(
+      zoomed ? GROUP_HINT_RESET_TEXT : HINT_TEXT,
+    );
+  }
+}
+
+/*
+ * A card's hint is revealed while the pointer is over the card (its named
+ * `group/zoomhint`), and hidden again when the pointer leaves.
+ */
+async function expectHintRevealedOnHover(
+  page: Page,
+  subject: PageUnderTest,
+  text: string,
+): Promise<void> {
+  const chart: Locator = await chartByTitle(page, subject.hints.hoverChart);
+  const index: number = await chart.evaluate(
+    (wrapper: Element, testId: string): number => {
+      const hint: Element | null | undefined = wrapper
+        .closest("[class*='group/zoomhint']")
+        ?.querySelector(`[data-testid='${testId}']`);
+      return hint
+        ? Array.from(
+            document.querySelectorAll(`[data-testid='${testId}']`),
+          ).indexOf(hint)
+        : -1;
+    },
+    HINT_TEST_ID,
+  );
+  expect(
+    index,
+    `the hint of the "${subject.hints.hoverChart}" chart`,
+  ).toBeGreaterThanOrEqual(0);
+  const hint: Locator = cardHints(page).nth(index);
+  /*
+   * The hint also shows while focus is inside its card (for keyboard
+   * users), and a mouse drag leaves focus on the chart (recharts focuses
+   * the plot on mousedown). Move focus away first, as clicking elsewhere
+   * on the page would.
+   */
+  await page.evaluate((): void => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  await page.mouse.move(2, 2);
+  await expect(hint).toHaveCSS("opacity", "0");
+  await chart.scrollIntoViewIfNeeded();
+  const shape: ChartGeometry = await geometry(chart);
+  await page.mouse.move((shape.left + shape.right) / 2, shape.middle);
+  await expect(hint).toHaveCSS("opacity", "1");
+  await expect(hint).toHaveText(text);
+  await page.mouse.move(2, 2);
+  await expect(hint).toHaveCSS("opacity", "0");
+}
+
 async function expectUnzoomed(
   page: Page,
   subject: PageUnderTest,
@@ -847,6 +967,7 @@ async function expectUnzoomed(
   await expectPickers(page, subject, options.label || subject.initial.label);
   await expect(resetButtons(page)).toHaveCount(0);
   await expectChartsShow(page, subject, window);
+  await expectHints(page, subject, false);
 }
 
 async function expectZoomed(
@@ -871,6 +992,7 @@ async function expectZoomed(
   }
   await expectResetBesidePickers(page, subject);
   await expectChartsShow(page, subject, zoom);
+  await expectHints(page, subject, true);
   // The selection band never outlives the gesture.
   await expect(page.locator(".recharts-reference-area")).toHaveCount(0);
 }
@@ -960,14 +1082,20 @@ async function geometry(chart: Locator): Promise<ChartGeometry> {
  * evenly spaced category per bucket, so the first and last labels give
  * the spacing.
  */
-function bucketX(chart: ChartGeometry, time: number, bucket: number): number {
+function bucketSpacing(chart: ChartGeometry, bucket: number): number {
   expect(chart.ticks.length, "x-axis labels to measure").toBeGreaterThan(1);
   const first: Tick = chart.ticks[0]!;
   const last: Tick = chart.ticks[chart.ticks.length - 1]!;
-  const firstTime: number = tickTime(first.label);
-  const buckets: number = (tickTime(last.label) - firstTime) / bucket;
+  const buckets: number =
+    (tickTime(last.label) - tickTime(first.label)) / bucket;
+  return (last.x - first.x) / buckets;
+}
+
+function bucketX(chart: ChartGeometry, time: number, bucket: number): number {
+  const first: Tick = chart.ticks[0]!;
   const x: number =
-    first.x + ((time - firstTime) / bucket) * ((last.x - first.x) / buckets);
+    first.x +
+    ((time - tickTime(first.label)) / bucket) * bucketSpacing(chart, bucket);
   expect(x, `bucket ${iso(time)} on the plot`).toBeGreaterThanOrEqual(
     chart.left,
   );
@@ -1016,15 +1144,161 @@ async function drag(
   await page.mouse.move(2, 2);
 }
 
-async function doubleClick(page: Page, title: string): Promise<void> {
+/*
+ * Waits until no chart is still moving. After its data changes, recharts
+ * animates a line from its old points to its new ones (the line chart's
+ * transparent click targets for about a second and a half), so a spot that
+ * is empty now may be covered a moment later.
+ */
+async function expectChartsSettled(page: Page): Promise<void> {
+  let previous: string = "";
+  await expect
+    .poll(
+      async (): Promise<boolean> => {
+        const current: string = await page
+          .locator(".recharts-wrapper path")
+          .evaluateAll((paths: Array<Element>): string => {
+            return paths
+              .map((item: Element): string => {
+                return item.getAttribute("d") || "";
+              })
+              .join("|");
+          });
+        const isSettled: boolean = current.length > 0 && current === previous;
+        previous = current;
+        return isSettled;
+      },
+      { message: "every chart's lines at rest", intervals: [300] },
+    )
+    .toBe(true);
+}
+
+/*
+ * A spot on the plot that no series covers: halfway between two buckets
+ * (clear of the hover cursor and dots), and clear of every line, dot and
+ * area the chart draws, the transparent click targets included. Searched
+ * from 55% across and half-way down, outwards.
+ */
+async function emptyPlotPoint(
+  page: Page,
+  title: string,
+  current: TimeWindow,
+): Promise<Point> {
   const chart: Locator = await chartByTitle(page, title);
   await chart.scrollIntoViewIfNeeded();
   const shape: ChartGeometry = await geometry(chart);
-  const x: number = shape.left + (shape.right - shape.left) * 0.55;
-  await page.mouse.move(x, shape.middle);
+  const first: Tick = shape.ticks[0]!;
+  const spacing: number = bucketSpacing(shape, bucketMs(current));
+  const nearest: number = Math.round(
+    (shape.left + (shape.right - shape.left) * 0.55 - first.x) / spacing - 0.5,
+  );
+  const columns: Array<number> = [];
+  for (let offset: number = 0; offset < 8; offset++) {
+    for (const index of offset === 0
+      ? [nearest]
+      : [nearest + offset, nearest - offset]) {
+      const x: number = first.x + (index + 0.5) * spacing;
+      if (x > shape.left + 2 && x < shape.right - 2) {
+        columns.push(x);
+      }
+    }
+  }
+  const point: Point | null = await page.evaluate(
+    (area: {
+      columns: Array<number>;
+      top: number;
+      bottom: number;
+    }): Point | null => {
+      const middle: number = (area.top + area.bottom) / 2;
+      for (const x of area.columns) {
+        for (let step: number = 0; step < middle - area.top; step += 3) {
+          for (const y of step === 0
+            ? [middle]
+            : [middle - step, middle + step]) {
+            if (y <= area.top + 3 || y >= area.bottom - 3) {
+              continue;
+            }
+            const element: Element | null = document.elementFromPoint(x, y);
+            if (
+              element &&
+              (element.matches("svg.recharts-surface") ||
+                element.closest(".recharts-cartesian-grid"))
+            ) {
+              return { x, y };
+            }
+          }
+        }
+      }
+      return null;
+    },
+    { columns: columns, top: shape.top, bottom: shape.bottom },
+  );
+  expect(
+    point,
+    `a spot on the "${title}" plot no series covers`,
+  ).not.toBeNull();
+  return point!;
+}
+
+/*
+ * A spot on one of the chart's drawn lines, about 55% across: where a
+ * reader double-clicks "the line". Read off the visible curve itself.
+ */
+async function linePoint(page: Page, title: string): Promise<Point> {
+  const chart: Locator = await chartByTitle(page, title);
+  await chart.scrollIntoViewIfNeeded();
+  const point: Point | null = await chart.evaluate(
+    (wrapper: Element): Point | null => {
+      const plot: DOMRect = wrapper
+        .querySelector(".recharts-cartesian-grid")!
+        .getBoundingClientRect();
+      const curve: SVGPathElement | null = wrapper.querySelector(
+        "g.recharts-line:not(.cursor-pointer) path.recharts-line-curve",
+      );
+      const matrix: DOMMatrix | null | undefined = curve?.getScreenCTM();
+      if (!curve || !matrix) {
+        return null;
+      }
+      const target: number = plot.left + plot.width * 0.55;
+      const length: number = curve.getTotalLength();
+      let best: Point | null = null;
+      for (let step: number = 0; step <= 200; step++) {
+        const local: DOMPoint = curve.getPointAtLength((length * step) / 200);
+        const screen: DOMPoint = new DOMPoint(local.x, local.y).matrixTransform(
+          matrix,
+        );
+        if (!best || Math.abs(screen.x - target) < Math.abs(best.x - target)) {
+          best = { x: screen.x, y: screen.y };
+        }
+      }
+      return best;
+    },
+  );
+  expect(point, `a point on a line of the "${title}" chart`).not.toBeNull();
+  // recharts 3 draws a line's dots in a layer of their own.
+  const onLine: boolean = await page.evaluate((spot: Point): boolean => {
+    const element: Element | null = document.elementFromPoint(spot.x, spot.y);
+    return Boolean(element?.closest(".recharts-line, .recharts-line-dots"));
+  }, point!);
+  expect(onLine, "the spot is on the chart's line").toBe(true);
+  return point!;
+}
+
+async function doubleClickAt(page: Page, point: Point): Promise<void> {
+  await page.mouse.move(point.x, point.y);
   await settle(page);
-  await page.mouse.dblclick(x, shape.middle);
+  await page.mouse.dblclick(point.x, point.y);
   await page.mouse.move(2, 2);
+}
+
+// Double-clicks an empty spot of the chart titled `title`, once it is at rest.
+async function doubleClick(
+  page: Page,
+  title: string,
+  current: TimeWindow,
+): Promise<void> {
+  await expectChartsSettled(page);
+  await doubleClickAt(page, await emptyPlotPoint(page, title, current));
 }
 
 // The selection band while the button is down, spanning the dragged buckets.
@@ -1125,6 +1399,7 @@ for (const subject of [
       page: Page;
     }) => {
       await open(page, subject);
+      await expectHintRevealedOnHover(page, subject, HINT_TEXT);
 
       const zoom: TimeWindow = zoomOf(subject.zoom, subject.initial.window);
       const mark: number = await requestMark(page);
@@ -1144,6 +1419,7 @@ for (const subject of [
       });
       await expectZoomed(page, subject, zoom, mark);
       await expectNoTextSelected(page);
+      await expectHintRevealedOnHover(page, subject, HINT_RESET_TEXT);
       await screenshot(page, `${subject.slug}-zoomed`);
     });
 
@@ -1168,10 +1444,40 @@ for (const subject of [
       page: Page;
     }) => {
       await open(page, subject);
-      await zoomIn(page, subject);
+      const zoom: TimeWindow = await zoomIn(page, subject);
 
       const mark: number = await requestMark(page);
-      await doubleClick(page, subject.otherChart);
+      await doubleClick(page, subject.otherChart, zoom);
+      await expectUnzoomed(page, subject, subject.initial.window, mark, {
+        returning: true,
+      });
+      await expectNoTextSelected(page);
+    });
+
+    test("a double-click on a line itself puts the page back on its range", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      /*
+       * KNOWN PRODUCT BUG, so this is expected to fail until it is fixed:
+       * a press re-renders the chart (useChartRangeSelection sets React
+       * state on mousedown), recharts 3 then remounts the line's path and
+       * dots (keyed by an id that changes with the line's points), the
+       * pressed node is gone by mouseup, and Chrome dispatches no click
+       * and no dblclick, so the reset never runs. The line chart's
+       * transparent 12px click targets cover every line and point, so
+       * this is any double-click on or near a line. Remove test.fail() once
+       * a press no longer re-renders the chart.
+       */
+      test.fail();
+      await open(page, subject);
+      await zoomIn(page, subject);
+      await expectChartsSettled(page);
+
+      const mark: number = await requestMark(page);
+      await doubleClickAt(page, await linePoint(page, subject.lineChart));
+      await expect(resetButtons(page)).toHaveCount(0, { timeout: 5000 });
       await expectUnzoomed(page, subject, subject.initial.window, mark, {
         returning: true,
       });
@@ -1195,7 +1501,7 @@ for (const subject of [
       await screenshot(page, `${subject.slug}-nested`);
 
       const mark: number = await requestMark(page);
-      await doubleClick(page, subject.zoom.chart);
+      await doubleClick(page, subject.zoom.chart, second);
       await expectUnzoomed(page, subject, subject.initial.window, mark, {
         returning: true,
       });
@@ -1252,7 +1558,7 @@ for (const subject of [
 
       // The zoom is over: a double-click has nothing left to undo.
       mark = await requestMark(page);
-      await doubleClick(page, subject.otherChart);
+      await doubleClick(page, subject.otherChart, subject.preset.window);
       await expectNoRangeQueries(page, subject, mark);
       await expectPickers(page, subject, subject.preset.label);
       await expect(resetButtons(page)).toHaveCount(0);
