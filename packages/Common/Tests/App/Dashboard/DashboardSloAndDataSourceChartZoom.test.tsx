@@ -146,6 +146,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import DashboardSloComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloComponent";
+import { DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetZoomHint";
 import DashboardDataSourceChartComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardDataSourceChartComponent";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import {
@@ -550,6 +551,79 @@ describe("SLO chart widget: board-wide drag-to-zoom", () => {
     );
 
     expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The SLO chart zooms the whole board, but nothing on the tile said so:
+   * it now names the gesture the way the log and trace widgets do (issue
+   * #4105 review), revealed while the pointer is over the tile.
+   */
+  test("the chart names the drag, and the way back once the board is zoomed", async () => {
+    const rendered: RenderResult = renderSlo();
+    await screen.findByTestId("line-chart");
+
+    let hint: HTMLElement = screen.getByTestId(
+      DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID,
+    );
+    expect(hint).toHaveTextContent(/^Drag to zoom$/);
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).toContainElement(
+      screen.getByTestId("line-chart"),
+    );
+
+    rendered.rerender(
+      <DashboardSloComponentElement
+        {...buildBaseProps({
+          dashboardStartAndEndDate: ZOOMED_BOARD_RANGE,
+          isDashboardTimeRangeZoomed: true,
+        })}
+        component={buildSloComponent()}
+      />,
+    );
+
+    await waitFor(() => {
+      hint = screen.getByTestId(DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID);
+      expect(hint).toHaveTextContent("Drag to zoom · double-click to reset");
+    });
+  });
+
+  test("a zoomed empty state names the double-click, and the double-click selects no text", async () => {
+    aggregateMock.mockImplementation(() => {
+      return Promise.resolve({ data: [] });
+    });
+    renderSlo({
+      dashboardStartAndEndDate: ZOOMED_BOARD_RANGE,
+      isDashboardTimeRangeZoomed: true,
+    });
+
+    const message: HTMLElement = await screen.findByText(
+      /No history for the selected time range/,
+    );
+    const hint: HTMLElement = screen.getByTestId(
+      DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID,
+    );
+    expect(hint).toHaveTextContent(/^Double-click to reset$/);
+    expect(message.closest(".select-none")).not.toBeNull();
+  });
+
+  test("an unzoomed empty state names no gesture and stays selectable", async () => {
+    aggregateMock.mockImplementation(() => {
+      return Promise.resolve({ data: [] });
+    });
+    renderSlo();
+
+    const message: HTMLElement = await screen.findByText(
+      /No history for the selected time range/,
+    );
+    expect(screen.queryByTestId(DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID)).toBeNull();
+    expect(message.closest(".select-none")).toBeNull();
+  });
+
+  test("edit mode names no gesture on the chart", async () => {
+    renderSlo({ isEditMode: true });
+    await screen.findByTestId("line-chart");
+
+    expect(screen.queryByTestId(DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID)).toBeNull();
   });
 
   test("the empty state ignores a double-click while the board is not zoomed", async () => {

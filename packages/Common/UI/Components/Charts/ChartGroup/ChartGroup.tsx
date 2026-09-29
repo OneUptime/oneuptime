@@ -421,7 +421,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
               key={index}
               className={`flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
             >
-              {/* Header strip — title, meta icons, hover-revealed zoom hint */}
+              {/* Header strip — title, meta icons, the always-visible zoom hint */}
               <div className="border-b border-gray-100 px-4 py-2.5">
                 <div className="flex items-center">
                   <h2

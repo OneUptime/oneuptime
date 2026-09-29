@@ -16,6 +16,7 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
 } from "../Utils/DashboardWidgetTimeRangeZoom";
+import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
 import SloWidgetData from "../Utils/SloWidgetData";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -552,7 +553,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
        */
       return (
         <div
-          className="w-full h-full"
+          className={`group/zoomhint relative w-full h-full ${
+            timeRangeZoom.onTimeRangeReset ? "select-none" : ""
+          }`}
           onDoubleClick={timeRangeZoom.onTimeRangeReset}
         >
           {getPlaceholder({
@@ -563,6 +566,11 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
             message:
               "No history for the selected time range — the SLO is evaluated every few minutes.",
           })}
+          <DashboardWidgetZoomHint
+            zoom={timeRangeZoom}
+            isChartShown={false}
+            className="absolute right-1 top-0"
+          />
         </div>
       );
     }
@@ -628,7 +636,7 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className="w-full h-full flex flex-col"
+        className="group/zoomhint relative w-full h-full flex flex-col"
         style={{
           opacity: isLoading ? 0.5 : 1,
           transition: "opacity 0.2s ease-in-out",
@@ -665,6 +673,17 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
           />
         </div>
         <div className="flex justify-center pt-1">{statusPill}</div>
+        {/*
+         * The title row is centred and small, so the hint floats over the
+         * top corner instead of taking a row from the tile - as on an
+         * untitled log or trace widget - and it never takes the pointer
+         * from the chart beneath.
+         */}
+        <DashboardWidgetZoomHint
+          zoom={timeRangeZoom}
+          isChartShown={true}
+          className="absolute right-1 top-0"
+        />
       </div>
     );
   }
