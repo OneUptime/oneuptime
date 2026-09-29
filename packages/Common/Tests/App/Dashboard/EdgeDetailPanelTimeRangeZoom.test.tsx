@@ -296,7 +296,8 @@ function resetButtons(): Array<HTMLElement> {
 function expectOnThePagesDay(): void {
   const request: HistoryRequest = lastHistoryRequest();
   expect(requestMinutes(request)).toBe(24 * 60);
-  expect(request.bucketSeconds).toBe(3600);
+  // A day is charted every 15 minutes, and fetched at that step (sdn-3).
+  expect(request.bucketSeconds).toBe(15 * 60);
   expect(resetButtons()).toHaveLength(0);
 }
 

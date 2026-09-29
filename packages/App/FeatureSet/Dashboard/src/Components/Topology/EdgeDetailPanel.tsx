@@ -25,7 +25,9 @@ import {
   XAxis,
   XAxisAggregateType,
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
@@ -38,6 +40,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -50,6 +54,7 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { TopologyEntity, TopologyRelationship } from "./TopologyData";
+import { getChartGridStepSeconds } from "../NetworkDevice/ChartGridStep";
 import {
   HEALTH_COLORS,
   SERVICE_MAP_TOLERATED_ERROR_RATE,
@@ -75,6 +80,8 @@ import {
  * range's start ("Active in"), and changing it reloads the map this drawer
  * is open on. A double-click on a chart, or "Reset zoom", puts the page's
  * range back; a new range picked on the page starts the drawer over on it.
+ * A zoom re-fetches the history at buckets one step of the zoomed chart
+ * wide, and the last history stays on screen until the new one lands.
  */
 
 export interface ComponentProps {
@@ -117,37 +124,80 @@ function parseBucketStart(value: string): Date {
   return OneUptimeDate.fromString(value);
 }
 
+const HOUR_SECONDS: number = 60 * 60;
+
 /*
- * Mirror XAxisUtil.getPrecision's interval for the range so the API
- * returns exactly one bucket per chart interval. With 1:1 buckets the
+ * The step the history charts are drawn on for a window: the one the chart
+ * library itself picks for the window's length. The history is fetched in
+ * buckets of this step (see chartAlignedBucketSeconds) and the charts are
+ * pinned to it, so the two cannot drift apart.
+ */
+function chartPrecisionForWindow(window: InBetween<Date>): XAxisPrecision {
+  return XAxisUtil.getPrecision({
+    xAxisMin: window.startValue,
+    xAxisMax: window.endValue,
+  });
+}
+
+/*
+ * The bucket size to ask the API for: one step of the charts' grid, so the
+ * API returns exactly one bucket per chart interval. With 1:1 buckets the
  * chart's per-interval aggregation is exact — no collapsing, so the
  * latency series never averages averages across buckets (which would be
  * unweighted) and counts never sum across misaligned buckets.
  *
+ * Read off the step the chart picks rather than a copy of its ladder. A copy
+ * drifted: the axis gained its 5-, 15- and 30-minute steps for windows of 3
+ * hours to 3 days while the copy kept asking for hourly buckets there, so a
+ * zoom from the Topology page's 1-day default re-fetched the very same hourly
+ * buckets and only stretched them over a finer axis.
+ *
  * Capped at hourly: the API's buckets are epoch-aligned in UTC while the
- * chart's day/week intervals anchor to the range start and the viewer's
- * LOCAL calendar, so daily-or-coarser buckets can miss the chart's
- * interval labels entirely (dropped points). Hourly buckets always
- * format into the right day/week label, at worst leaving latency as an
- * unweighted average within an interval — the pre-existing behavior.
+ * chart's day/week intervals follow the viewer's LOCAL calendar, so
+ * daily-or-coarser buckets can miss the chart's interval labels entirely
+ * (dropped points). Hourly buckets always format into the right day
+ * label, at worst leaving latency as an unweighted average within an
+ * interval — the pre-existing behavior.
  */
-function chartAlignedBucketSeconds(rangeSeconds: number): number {
-  if (rangeSeconds <= 15) {
-    return 1;
+function chartAlignedBucketSeconds(precision: XAxisPrecision): number {
+  const stepSeconds: number | undefined = getChartGridStepSeconds(precision);
+  if (stepSeconds === undefined) {
+    return HOUR_SECONDS;
   }
-  if (rangeSeconds <= 75) {
-    return 5;
+  return Math.min(stepSeconds, HOUR_SECONDS);
+}
+
+interface LoadedHistory {
+  result: TimeseriesResult;
+  /*
+   * The window the history was fetched over, and the step it was bucketed
+   * for. Until the next window's history lands the charts keep drawing this
+   * one, on its own axis: laid over the new window's axis, the old buckets
+   * would be misplaced or dropped.
+   */
+  window: InBetween<Date>;
+  precision: XAxisPrecision;
+}
+
+/*
+ * Where the charts' time axis starts: on the grid, at the step holding the
+ * FIRST bucket. The API's buckets are aligned to the epoch in UTC, so the
+ * first one usually begins before the window does. Where the viewer's clock
+ * is not a whole number of steps off UTC (half an hour off, on the hourly
+ * step; three quarters of an hour off, on the 30-minute one) it can begin
+ * in the step BEFORE the one holding the window start, and an axis walked
+ * from the window start has no slot for it: the chart silently dropped the
+ * calls of the window's first minutes.
+ */
+function historyAxisStart(history: LoadedHistory): Date {
+  let startMs: number = history.window.startValue.getTime();
+  for (const bucket of history.result.filledBuckets) {
+    const bucketMs: number = bucket.bucketStart.getTime();
+    if (Number.isFinite(bucketMs) && bucketMs < startMs) {
+      startMs = bucketMs;
+    }
   }
-  if (rangeSeconds <= 150) {
-    return 10;
-  }
-  if (rangeSeconds <= 450) {
-    return 30;
-  }
-  if (rangeSeconds <= 3 * 3600) {
-    return 60;
-  }
-  return 3600;
+  return XAxisUtil.getBucketStart(new Date(startMs), history.precision);
 }
 
 const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
@@ -160,7 +210,8 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     props.fromEntity.entityType === EntityType.Service &&
     props.toEntity.entityType === EntityType.Service;
 
-  const [result, setResult] = useState<TimeseriesResult | null>(null);
+  // The last history that loaded; a failed fetch keeps it.
+  const [loaded, setLoaded] = useState<LoadedHistory | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(historyAvailable);
   const [error, setError] = useState<string>("");
 
@@ -218,10 +269,17 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
         cancelled = true;
       };
     }
+    // The step the charts will be drawn on, and the buckets are asked for at.
+    const precision: XAxisPrecision = chartPrecisionForWindow(window);
     const load: () => Promise<void> = async (): Promise<void> => {
+      /*
+       * The last history stays on screen while this one loads: a drag or a
+       * double-click on a chart starts this fetch, and swapping the charts
+       * for a loader collapsed the drawer under the pointer that had just
+       * made it.
+       */
       setIsLoading(true);
       setError("");
-      setResult(null);
       try {
         const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
           "/telemetry/service-dependency-timeseries",
@@ -235,12 +293,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
               calleeServiceName: toName,
               startTime: OneUptimeDate.toString(window.startValue),
               endTime: OneUptimeDate.toString(window.endValue),
-              bucketSeconds: chartAlignedBucketSeconds(
-                Math.ceil(
-                  (window.endValue.getTime() - window.startValue.getTime()) /
-                    1000,
-                ),
-              ),
+              bucketSeconds: chartAlignedBucketSeconds(precision),
             },
             headers: { ...ModelAPI.getCommonHeaders() },
           });
@@ -308,16 +361,20 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
         if (cancelled) {
           return;
         }
-        setResult({
-          buckets,
-          filledBuckets,
-          callerServiceId: data["callerServiceId"]
-            ? String(data["callerServiceId"])
-            : null,
-          calleeServiceId: data["calleeServiceId"]
-            ? String(data["calleeServiceId"])
-            : null,
-          truncated: Boolean(data["truncated"]),
+        setLoaded({
+          result: {
+            buckets,
+            filledBuckets,
+            callerServiceId: data["callerServiceId"]
+              ? String(data["callerServiceId"])
+              : null,
+            calleeServiceId: data["calleeServiceId"]
+              ? String(data["calleeServiceId"])
+              : null,
+            truncated: Boolean(data["truncated"]),
+          },
+          window: window,
+          precision: precision,
         });
       } catch (err) {
         if (!cancelled) {
@@ -335,15 +392,20 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     };
   }, [fromName, toName, timeRange, window, historyAvailable]);
 
-  const buildCharts: () => Array<Chart> = (): Array<Chart> => {
-    if (!result || result.buckets.length === 0) {
+  const buildCharts: (history: LoadedHistory) => Array<Chart> = (
+    history: LoadedHistory,
+  ): Array<Chart> => {
+    const result: TimeseriesResult = history.result;
+    if (result.buckets.length === 0) {
       return [];
     }
 
     const hours: number =
-      (window.endValue.getTime() - window.startValue.getTime()) /
+      (history.window.endValue.getTime() -
+        history.window.startValue.getTime()) /
       (60 * 60 * 1000);
     const xAxisType: XAxisType = hours > 48 ? XAxisType.Date : XAxisType.Time;
+    const axisStart: Date = historyAxisStart(history);
 
     const callSeries: Array<SeriesPoint> = [
       {
@@ -369,13 +431,21 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       },
     ];
 
+    /*
+     * Pinned to the step the buckets were fetched at: the axis now starts a
+     * little before the window (see historyAxisStart), and left to pick its
+     * own step from that longer span it could tip into a coarser one - a
+     * 3-hour window by a minute into five-minute slots, each summing five of
+     * the per-minute buckets.
+     */
     const xAxis: XAxis = {
       legend: "Time",
       options: {
         type: xAxisType,
-        min: window.startValue,
-        max: window.endValue,
+        min: axisStart,
+        max: history.window.endValue,
         aggregateType: XAxisAggregateType.Sum,
+        precision: history.precision,
       },
     };
 
@@ -389,9 +459,10 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       legend: "Time",
       options: {
         type: xAxisType,
-        min: window.startValue,
-        max: window.endValue,
+        min: axisStart,
+        max: history.window.endValue,
         aggregateType: XAxisAggregateType.Average,
+        precision: history.precision,
       },
     };
 
@@ -497,32 +568,6 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {result?.truncated ? (
-            <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
-              {translateString(
-                "These services have more traffic than can be analyzed for this time range, so the history shows the most recent part only. Narrow the time range for complete data.",
-              ) || ""}
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {/*
-           * The drawer has no picker of its own, so the way out of a zoom
-           * sits above the history, whatever the history is showing (a
-           * loader, an empty zoomed stretch or the charts).
-           */}
-          {historyAvailable && zoom.isZoomed ? (
-            <div
-              className="-mb-4 flex justify-end"
-              data-testid="edge-history-zoom"
-            >
-              <ResetTimeRangeZoomButton />
-            </div>
-          ) : (
-            <></>
-          )}
-
           {!historyAvailable ? (
             <p
               className="text-sm text-gray-500"
@@ -532,37 +577,131 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                 "History is available for calls between two instrumented services. This call was inferred from the client spans of the caller, so only the latest window is shown.",
               ) || ""}
             </p>
-          ) : isLoading ? (
-            <ComponentLoader />
-          ) : error ? (
-            <ErrorMessage message={error} />
-          ) : !result || result.buckets.length === 0 ? (
-            /*
-             * A zoom into a quiet stretch lands here, with no chart left to
-             * double-click; the message takes the double-click instead.
-             */
-            <p
-              className="text-sm text-gray-500"
-              data-testid="edge-history-empty"
-              onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}
-            >
-              {translateString(
-                "No calls between these services were recorded in the selected time range.",
-              ) || ""}
-            </p>
           ) : (
-            <ChartGroup charts={buildCharts()} />
+            <div data-testid="edge-history" aria-busy={isLoading}>
+              {/*
+               * The history's header, there whatever the history shows (a
+               * loader, the charts or an empty zoomed stretch). The drawer
+               * has no picker of its own, so its way out of a zoom sits
+               * here. It used to get a row of its own that appeared with
+               * the zoom, which pushed the charts down right under the
+               * pointer that had just dragged them, and pulled them back up
+               * on a reset. This row is as tall as the button, so the
+               * button (or the refresh note) coming and going moves nothing.
+               */}
+              <div
+                className="flex h-7 items-center justify-between gap-2"
+                data-testid="edge-history-header"
+              >
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {translateString("History") || "History"}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {loaded && isLoading ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500"
+                      data-testid="edge-history-refreshing"
+                    >
+                      <Icon
+                        icon={IconProp.Refresh}
+                        className="h-3 w-3 animate-spin text-gray-400"
+                      />
+                      {translateString("Refreshing") || "Refreshing"}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                  <ResetTimeRangeZoomButton />
+                </div>
+              </div>
+
+              <div className="mt-2 space-y-4">
+                {loaded?.result.truncated ? (
+                  <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+                    {translateString(
+                      "These services have more traffic than can be analyzed for this time range, so the history shows the most recent part only. Narrow the time range for complete data.",
+                    ) || ""}
+                  </div>
+                ) : (
+                  <></>
+                )}
+
+                {/*
+                 * A fetch that failed over history already on screen keeps
+                 * that history, under a note; with nothing loaded yet, the
+                 * error is all there is to show.
+                 */}
+                {loaded && error ? (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                  >
+                    <Icon
+                      icon={IconProp.Error}
+                      className="h-4 w-4 shrink-0 text-red-500"
+                    />
+                    <span>
+                      {translateString(
+                        "Couldn't refresh — showing previously loaded data.",
+                      ) || ""}{" "}
+                      {error}
+                    </span>
+                  </div>
+                ) : (
+                  <></>
+                )}
+
+                {!loaded ? (
+                  isLoading ? (
+                    <ComponentLoader />
+                  ) : error ? (
+                    <ErrorMessage message={error} />
+                  ) : (
+                    <></>
+                  )
+                ) : (
+                  <div
+                    className={isLoading ? "opacity-75 transition-opacity" : ""}
+                    data-testid="edge-history-body"
+                  >
+                    {loaded.result.buckets.length === 0 ? (
+                      /*
+                       * A zoom into a quiet stretch lands here, with no
+                       * chart left to double-click; the message takes the
+                       * double-click instead (and then its words cannot be
+                       * selected, or the double-click would select one).
+                       */
+                      <p
+                        className={`text-sm text-gray-500${
+                          zoom.isZoomed ? " select-none" : ""
+                        }`}
+                        data-testid="edge-history-empty"
+                        onDoubleClick={
+                          zoom.isZoomed ? zoom.resetZoom : undefined
+                        }
+                      >
+                        {translateString(
+                          "No calls between these services were recorded in the selected time range.",
+                        ) || ""}
+                      </p>
+                    ) : (
+                      <ChartGroup charts={buildCharts(loaded)} />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Open</h3>
             <ul className="mt-2 space-y-2 text-sm">
-              {result?.callerServiceId && (
+              {loaded?.result.callerServiceId && (
                 <li>
                   <Link
                     to={RouteUtil.populateRouteParams(
                       RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                      { modelId: new ObjectID(result.callerServiceId) },
+                      { modelId: new ObjectID(loaded.result.callerServiceId) },
                     )}
                     className="font-medium text-indigo-600 hover:text-indigo-800"
                   >
@@ -570,12 +709,12 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                   </Link>
                 </li>
               )}
-              {result?.calleeServiceId && (
+              {loaded?.result.calleeServiceId && (
                 <li>
                   <Link
                     to={RouteUtil.populateRouteParams(
                       RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
-                      { modelId: new ObjectID(result.calleeServiceId) },
+                      { modelId: new ObjectID(loaded.result.calleeServiceId) },
                     )}
                     className="font-medium text-indigo-600 hover:text-indigo-800"
                   >

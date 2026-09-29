@@ -115,8 +115,24 @@ describe("Network device Traffic: the top-talkers card's range is the page's", (
     const open: number = scopeOpening(code, "timeRange", "setTimeRange");
     expect(code.slice(open - "return ( ".length, open)).toBe("return ( ");
     expect(
-      indexOfOrFail(code, "{isLoading ? <ComponentLoader />"),
+      indexOfOrFail(code, "{!loaded && isLoading ? <ComponentLoader />"),
     ).toBeGreaterThan(open);
+  });
+
+  test("a refetch keeps the last data on screen: the loader and the full error are for the first load only", () => {
+    // sdn-2: every zoom and reset used to swap the whole body for a loader.
+    expect(code).not.toContain("{isLoading ? <ComponentLoader />");
+    expect(code).toContain(
+      "{!loaded && !isLoading && error ? ( <ErrorMessage message={error} /> )",
+    );
+    // Once loaded, the figures stay, dimmed, with a note that they refresh.
+    expect(code).toContain(
+      '<div className={isLoading ? "opacity-75 transition-opacity" : ""} data-testid="flow-top-talkers-body" > {loaded.data.totalFlows > 0 ? ( <FlowTopTalkersFigures data={loaded.data} /> ) : ( <FlowNoDataState timeRange={loaded.timeRange} /> )}',
+    );
+    // Only a fetch that succeeded replaces them, with the range it was for.
+    expect(code).toContain(
+      "} else if (result) { setLoaded({ data: result, timeRange: timeRange }); }",
+    );
   });
 
   test("the picker keeps setting the range directly, with Reset zoom beside it", () => {
@@ -162,8 +178,46 @@ describe("Network device Traffic: the top-talkers card's range is the page's", (
   });
 
   test("a zoom into a quiet stretch can be double-clicked away", () => {
-    expect(code).toContain("onDoubleClick={zoom?.onTimeRangeReset}");
-    expect(code).toContain("<FlowNoDataState timeRange={timeRange} />");
+    expect(code).toContain(
+      "const onTimeRangeReset: (() => void) | undefined = zoom?.onTimeRangeReset;",
+    );
+    expect(code).toContain(
+      'data-testid="flow-no-data" onDoubleClick={onTimeRangeReset} >',
+    );
+    // The empty state reads the window the card LOADED, not the picker's.
+    expect(code).toContain("<FlowNoDataState timeRange={loaded.timeRange} />");
+  });
+
+  test("a zoom into a quiet stretch says so, and keeps the NetFlow setup steps for a preset window", () => {
+    // sdn-6
+    expect(code).toContain(
+      '{props.timeRange.range === TimeRange.CUSTOM ? ( <div className="text-center max-w-md"> <div className="text-sm font-medium text-gray-900"> No flows in the selected time range. </div>',
+    );
+    expect(code).toContain("No flow data yet.");
+    expect(code).toContain("PROBE_NETFLOW_RECEIVER_ENABLED=true");
+  });
+});
+
+describe("Network device Traffic: the API's bucket widths, which the chart tests mirror", () => {
+  test("pickBucketSeconds still sizes buckets to ~120 per window, in whole minutes", () => {
+    /*
+     * Common/Tests/App/Dashboard/FlowBandwidthAxisCases.tsx restates this
+     * formula to build API responses for every window; if it changes, that
+     * mirror must change with it.
+     */
+    const server: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "../../FeatureSet/BaseAPI/API/NetworkDeviceFlow.ts",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+    expect(server).toContain(
+      "export function pickBucketSeconds(windowInSeconds: number): number { const targetPoints: number = 120; const rawSeconds: number = Math.ceil(windowInSeconds / targetPoints); return Math.max(60, Math.ceil(rawSeconds / 60) * 60); }",
+    );
+    expect(server).toContain("const MAX_RANGE_DAYS: number = 31;");
   });
 });
 
