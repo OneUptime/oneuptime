@@ -77,6 +77,7 @@ import IncidentFormService, {
   INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
   INCIDENT_FORM_NOT_AVAILABLE_MESSAGE,
 } from "../../../Server/Services/IncidentFormService";
+import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
@@ -910,5 +911,86 @@ describe("IncidentFormService.isProjectOnPlan", () => {
     setBillingEnabled(true);
 
     await expect(getPublicForm()).resolves.toBeDefined();
+  });
+
+  /*
+   * The check stands in for the whole of the model's billing gate, which
+   * refuses every dashboard request of a project whose subscription is
+   * unpaid - its admins cannot even turn the form off - so the link must
+   * not keep declaring incidents meanwhile, whatever the plan.
+   */
+  test.each([[PlanType.Growth], [PlanType.Scale], [PlanType.Enterprise]])(
+    "an unpaid subscription on %s is off plan",
+    async (plan: PlanType) => {
+      setBillingEnabled(true);
+      getCurrentPlan.mockResolvedValue({
+        plan: plan,
+        isSubscriptionUnpaid: true,
+      });
+
+      expect(await IncidentFormService.isProjectOnPlan(projectId)).toBe(false);
+      expect(planCheck).not.toHaveBeenCalled();
+    },
+  );
+
+  test("with billing on, a form of an unpaid project is not available, exactly as an unknown link", async () => {
+    setBillingEnabled(true);
+    getCurrentPlan.mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: true,
+    });
+
+    const unpaid: Exception | undefined = await refusal(getPublicForm());
+    const unknown: Exception | undefined = await refusal(
+      getPublicForm({ shareKey: OTHER_SHARE_KEY }),
+    );
+
+    expect(unpaid).toBeInstanceOf(NotFoundException);
+    expect(unpaid?.message).toBe(INCIDENT_FORM_NOT_AVAILABLE_MESSAGE);
+    expect([unpaid?.code, unpaid?.message]).toEqual([
+      unknown?.code,
+      unknown?.message,
+    ]);
+    expect(customFieldFindBy).not.toHaveBeenCalled();
+  });
+
+  test("with billing on, a form of an unpaid project declares nothing", async () => {
+    setBillingEnabled(true);
+    getCurrentPlan.mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: true,
+    });
+
+    const incidentCreate: MockedFn = jest
+      .spyOn(IncidentService, "create")
+      .mockResolvedValue(undefined as never) as unknown as MockedFn;
+
+    const error: Exception | undefined = await refusal(
+      IncidentFormService.submitPublicForm({
+        shareKey: SHARE_KEY,
+        request: {
+          data: {
+            title: "Checkout is down",
+            reporterName: "Jane Doe",
+            reporterEmail: "jane@example.com",
+          },
+        },
+        clientIp: CLIENT_IP,
+      }),
+    );
+
+    expect(error).toBeInstanceOf(NotFoundException);
+    expect(error?.message).toBe(INCIDENT_FORM_NOT_AVAILABLE_MESSAGE);
+    expect(incidentCreate).not.toHaveBeenCalled();
+  });
+
+  test("a paid subscription on a plan with forms stays on plan", async () => {
+    setBillingEnabled(true);
+    getCurrentPlan.mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+    });
+
+    expect(await IncidentFormService.isProjectOnPlan(projectId)).toBe(true);
   });
 });

@@ -94,9 +94,10 @@ export const INCIDENT_FORM_SHARE_KEY_MESSAGE: string =
 /*
  * The one answer a public request gets for every form it may not use: a
  * link that is malformed or names no form, a form that is turned off, and a
- * form whose project's plan does not include forms. They all read the same,
- * word for word and status for status, so trying links tells a stranger
- * nothing about which forms exist or why one is unavailable.
+ * form whose project's plan does not include forms or whose subscription is
+ * unpaid (see isProjectOnPlan). They all read the same, word for word and
+ * status for status, so trying links tells a stranger nothing about which
+ * forms exist or why one is unavailable.
  */
 export const INCIDENT_FORM_NOT_AVAILABLE_MESSAGE: string =
   "This form is not available. It may have been turned off, or the link may be out of date.";
@@ -419,11 +420,17 @@ export class Service extends DatabaseService<Model> {
    * Whether the form's project is on a plan that includes incident forms.
    *
    * Checked by hand because the public routes read as root, and root never
-   * carries a plan, so the model's @TableBillingAccessControl never runs for
-   * them. Fails closed: a project whose plan cannot be read (deleted
-   * mid-request, still onboarding) is treated as below plan - that costs one
-   * "not available" page, where failing open would let anyone with a link
-   * page on-call on a plan that does not include forms.
+   * carries a plan, so none of the model's billing gate runs for them. This
+   * stands in for all of it (BillingPermission.checkBillingPermissions), not
+   * only @TableBillingAccessControl: a project whose subscription is unpaid
+   * is off plan too. The dashboard refuses every IncidentForm request of
+   * such a project - its admins cannot even turn a form off - so its link
+   * must not keep declaring incidents and paging on-call meanwhile.
+   *
+   * Fails closed: a project whose plan cannot be read (deleted mid-request,
+   * still onboarding) is treated as below plan - that costs one "not
+   * available" page, where failing open would let anyone with a link page
+   * on-call on a plan that does not include forms.
    */
   @CaptureSpan()
   public async isProjectOnPlan(projectId: ObjectID): Promise<boolean> {
@@ -435,7 +442,7 @@ export class Service extends DatabaseService<Model> {
       const current: CurrentPlan =
         await ProjectService.getCurrentPlan(projectId);
 
-      if (!current.plan) {
+      if (!current.plan || current.isSubscriptionUnpaid) {
         return false;
       }
 
