@@ -47,20 +47,22 @@ export interface FlowViewportPosition {
 }
 
 /*
- * The least a gesture has to move the view to count as moving it: half a
- * screen pixel, or a zoom change of one part in a thousand.
+ * The least a gesture has to move the view to count as moving it: more than
+ * a click's slop (the drag threshold operating systems use), or a zoom
+ * change of one part in a thousand.
  */
-export const VIEWPORT_MOVE_TOLERANCE_PX: number = 0.5;
+export const VIEWPORT_MOVE_TOLERANCE_PX: number = 4;
 export const VIEWPORT_ZOOM_TOLERANCE: number = 1e-3;
 
 /**
  * Whether a gesture really moved the view.
  *
- * React Flow reports a move whenever the transform changed at all, and
- * d3-zoom re-applies the pan extent on every pointer move: a press on a map
- * the extent pins in place (the fitted view of a large drawing) comes back
- * a floating-point ulp away from where it started, and is reported as a
- * move. A sloppy one-pixel click is not the user taking the view.
+ * React Flow reports a move whenever the transform changed at all. d3-zoom
+ * re-applies the pan extent on every pointer move, so a press on a map the
+ * extent pins in place (the fitted view of a large drawing) comes back a
+ * floating-point ulp away from where it started and is reported as a move;
+ * on a smaller map the pointer's slip during a click pans it a pixel or
+ * two. Neither is the user taking the view.
  */
 export function hasViewportMoved(
   from: FlowViewportPosition,
@@ -235,4 +237,95 @@ export function anyRectInView(
     }
   }
   return false;
+}
+
+/**
+ * How far to pan along one axis, in screen pixels, to bring a box into
+ * view with `padding` to spare: positive moves the drawing right (or
+ * down), 0 means it already shows.
+ *
+ * A box that fits is brought wholly inside. A box longer than the view — a
+ * connection can span the whole drawing — only has to show in part, so it
+ * is left alone while any of it is in view, and otherwise brought in from
+ * the side it is on until it fills the view.
+ */
+export function panDeltaToReveal(
+  start: number,
+  end: number,
+  viewStart: number,
+  viewEnd: number,
+  padding: number,
+): number {
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    !Number.isFinite(viewStart) ||
+    !Number.isFinite(viewEnd) ||
+    end < start ||
+    viewEnd <= viewStart
+  ) {
+    return 0;
+  }
+  const viewLength: number = viewEnd - viewStart;
+  const pad: number =
+    Number.isFinite(padding) && padding > 0
+      ? Math.min(padding, viewLength / 4)
+      : 0;
+  const innerStart: number = viewStart + pad;
+  const innerEnd: number = viewEnd - pad;
+
+  if (end - start <= innerEnd - innerStart) {
+    if (start < innerStart) {
+      return innerStart - start;
+    }
+    if (end > innerEnd) {
+      return innerEnd - end;
+    }
+    return 0;
+  }
+  if (end <= innerStart) {
+    return innerEnd - end;
+  }
+  if (start >= innerEnd) {
+    return innerStart - start;
+  }
+  return 0;
+}
+
+/**
+ * Where a notice goes inside a tall canvas, as an offset from its top: the
+ * middle of the part of the canvas that is on screen, so it is seen whether
+ * the page shows the canvas's top, its bottom or all of it. Kept `inset`
+ * pixels inside the canvas; at the top when none of the canvas is on
+ * screen.
+ */
+export function noticeOffsetInCanvas(
+  canvasTop: number,
+  canvasHeight: number,
+  viewportHeight: number,
+  noticeHeight: number,
+  inset: number,
+): number {
+  const margin: number = Number.isFinite(inset) && inset > 0 ? inset : 0;
+  if (
+    !Number.isFinite(canvasTop) ||
+    !Number.isFinite(canvasHeight) ||
+    !Number.isFinite(viewportHeight) ||
+    canvasHeight <= 0
+  ) {
+    return margin;
+  }
+  const height: number =
+    Number.isFinite(noticeHeight) && noticeHeight > 0 ? noticeHeight : 0;
+  const visibleTop: number = Math.max(canvasTop, 0);
+  const visibleBottom: number = Math.min(
+    canvasTop + canvasHeight,
+    viewportHeight,
+  );
+  if (visibleBottom <= visibleTop) {
+    return margin;
+  }
+  const middle: number = (visibleTop + visibleBottom) / 2 - canvasTop;
+  const lowest: number = Math.max(margin, canvasHeight - height - margin);
+  return Math.min(Math.max(middle - height / 2, margin), lowest);
 }

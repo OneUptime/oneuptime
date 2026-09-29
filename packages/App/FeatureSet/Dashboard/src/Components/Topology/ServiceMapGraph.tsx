@@ -41,6 +41,7 @@ import {
   FlowViewportPosition,
   UNBOUNDED_FLOW_EXTENT,
   hasViewportMoved,
+  noticeOffsetInCanvas,
 } from "./FlowViewport";
 import TopologyNodeCard, {
   TOPOLOGY_NODE_HEIGHT,
@@ -114,6 +115,8 @@ export const SERVICE_MAP_PAN_MARGIN: number = TOPOLOGY_NODE_HEIGHT;
  * a notice.
  */
 export const OUT_OF_VIEW_NOTICE_DELAY_MS: number = 800;
+/* The notice's distance from the canvas edges, in pixels. */
+export const OUT_OF_VIEW_NOTICE_INSET_PX: number = 16;
 /*
  * Past this many nodes a whole-project drawing stops being readable, so the
  * view opens as a table and the map is one search or focus away.
@@ -366,6 +369,14 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const [panExtent, setPanExtent] = useState<FlowExtent>(UNBOUNDED_FLOW_EXTENT);
   const [drawingInView, setDrawingInView] = useState<boolean>(true);
   const [showOutOfView, setShowOutOfView] = useState<boolean>(false);
+  const canvasRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const noticeRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  /* The notice's offset from the canvas top (see noticeOffsetInCanvas). */
+  const [noticeTop, setNoticeTop] = useState<number>(
+    OUT_OF_VIEW_NOTICE_INSET_PX,
+  );
   /* Bumped to draw the canvas again from scratch (see fitToScreen). */
   const [canvasGeneration, setCanvasGeneration] = useState<number>(0);
   const onFlowInstance: (instance: ReactFlowInstance | null) => void =
@@ -769,6 +780,52 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       }
     };
   }, [drawingInView, view]);
+
+  /*
+   * Keep the notice where it can be read: in the middle of the part of the
+   * canvas on screen. The canvas can be taller than the window, and now that
+   * the wheel scrolls the page over it, either end of it may be off screen.
+   */
+  useEffect(() => {
+    if (!showOutOfView) {
+      return undefined;
+    }
+    let frame: number = 0;
+    const place: () => void = (): void => {
+      frame = 0;
+      const canvas: HTMLDivElement | null = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const box: DOMRect = canvas.getBoundingClientRect();
+      setNoticeTop(
+        noticeOffsetInCanvas(
+          box.top,
+          box.height,
+          window.innerHeight,
+          noticeRef.current?.offsetHeight || 0,
+          OUT_OF_VIEW_NOTICE_INSET_PX,
+        ),
+      );
+    };
+    const schedule: () => void = (): void => {
+      if (!frame) {
+        frame = requestAnimationFrame(place);
+      }
+    };
+    place();
+    // Capture, so a scroll of whichever element scrolls the page counts.
+    document.addEventListener("scroll", schedule, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+    };
+  }, [showOutOfView]);
 
   /*
    * Frame the whole drawing again. When React Flow cannot (it has no
@@ -1186,6 +1243,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <div
+              ref={canvasRef}
               style={{ height: canvasHeight, width: "100%" }}
               className="relative bg-slate-50"
               data-testid="service-map-canvas"
@@ -1228,9 +1286,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 ) => {
                   /*
                    * Only a gesture that moved the view takes it from the
-                   * automatic framing. A press on a fitted large map moves
-                   * nothing (the pan extent pins it) yet is reported as a
-                   * move, a floating-point ulp away; so is a sloppy click.
+                   * automatic framing (see hasViewportMoved): a press on a
+                   * fitted large map moves nothing yet is reported as a
+                   * move, a floating-point ulp away, and the slip of a click
+                   * pans a smaller map a pixel or two.
                    */
                   const start: FlowViewportPosition | null =
                     gestureStart.current;
@@ -1284,17 +1343,23 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               </ReactFlow>
               {showOutOfView && (
                 /*
-                 * Top-left of the canvas: under the toolbar the user just
-                 * came from, on screen even when most of a tall canvas is
-                 * below the fold, and clear of a drawer open on the right.
+                 * On the left of the canvas, clear of a drawer open on the
+                 * right, and as high as the part of the canvas on screen puts
+                 * it (see noticeTop).
                  */
                 <div
-                  className="pointer-events-none absolute inset-0 z-10 flex items-start justify-start p-4"
+                  className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
                   data-testid="service-map-out-of-view"
                 >
                   <div
+                    ref={noticeRef}
                     role="status"
-                    className="pointer-events-auto flex flex-wrap items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+                    className="pointer-events-auto absolute flex flex-wrap items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+                    style={{
+                      top: noticeTop,
+                      left: OUT_OF_VIEW_NOTICE_INSET_PX,
+                      maxWidth: `calc(100% - ${2 * OUT_OF_VIEW_NOTICE_INSET_PX}px)`,
+                    }}
                   >
                     <span>{t("The map is out of view.")}</span>
                     <button

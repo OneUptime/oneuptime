@@ -11,7 +11,6 @@ import {
   Node,
   ReactFlowInstance,
   ReactFlowState,
-  Viewport,
   useReactFlow,
   useStore,
   useStoreApi,
@@ -23,7 +22,11 @@ import {
   anyRectInView,
   drawingExtent,
   extentsMatch,
+  panDeltaToReveal,
 } from "./FlowViewport";
+
+/* How far inside the canvas edge a focused card is brought, in pixels. */
+export const FOCUS_REVEAL_PADDING_PX: number = 24;
 
 /*
  * Keeps a React Flow map on its canvas. Rendered as a child of <ReactFlow>,
@@ -42,12 +45,14 @@ import {
  *   resize keeps it, within the pan extent: d3-zoom would otherwise apply the
  *   extent only on the next drag, which then jumps.
  * - Keyboard focus. React Flow 11 makes every card and connection
- *   focusable, and focusing one outside the canvas makes the browser scroll
- *   React Flow's overflow:hidden box. Everything React Flow draws, its
- *   controls included, then slides off the canvas while its viewport — as
- *   far as React Flow knows — never moved, so nothing could tell the map was
- *   blank. The scroll is turned into a pan of the viewport instead: the
- *   focused element comes into view, and the map stays whole.
+ *   focusable but never brings a focused one into view. Left alone, the
+ *   browser scrolls React Flow's overflow:hidden box to show one below or
+ *   right of the view — sliding everything React Flow draws, its controls
+ *   included, off the canvas while its viewport, as far as React Flow knows,
+ *   never moved — and cannot reach one above or left of it at all. Focus is
+ *   followed with a pan of the viewport instead, in any direction and within
+ *   the pan extent; a scroll the browser makes anyway (find in page, say) is
+ *   turned into the same pan.
  * - The pan extent. The measured drawing plus a margin, reported for the
  *   map's translateExtent, so the drawing's bounding box cannot be dragged or
  *   zoomed off the canvas. Measured rather than estimated, so it is centred
@@ -214,7 +219,11 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
   const lastPane: MutableRefObject<PaneSize | null> = useRef<PaneSize | null>(
     null,
   );
-  /* A fit that is owed and has not landed yet (React Flow refused it). */
+  /*
+   * A fit that is owed and has not landed yet, because React Flow refused
+   * it. It is tried again on the next change to the drawing, the canvas size
+   * or the instance.
+   */
   const fitDue: MutableRefObject<boolean> = useRef<boolean>(false);
   const lastExtent: MutableRefObject<FlowExtent | null> =
     useRef<FlowExtent | null>(null);
@@ -302,9 +311,17 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
     if (fittedDrawingKey.current !== props.drawingKey) {
       // A new drawing is always framed, whoever had the view.
       fitDue.current = true;
-    } else if (paneResized && props.autoFrame.current) {
+    } else if (!props.autoFrame.current) {
+      /*
+       * The drawing is framed and the user has since taken the view: a
+       * re-fit still owed from an earlier resize is theirs to keep now.
+       */
+      fitDue.current = false;
+    }
+
+    if (paneResized && props.autoFrame.current) {
       fitDue.current = true;
-    } else if (paneResized) {
+    } else if (paneResized && !fitDue.current) {
       /*
        * The user has the view: keep it, but inside the pan extent now, not
        * on the next drag. translateBy(0, 0) is d3-zoom's way of applying
@@ -334,7 +351,55 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
     if (!domNode) {
       return undefined;
     }
-    const followFocus: () => void = (): void => {
+    /*
+     * Pan by a screen-pixel delta through React Flow's own panBy, which
+     * keeps the view inside the pan extent (setViewport would not, and the
+     * next drag would jump back into it).
+     */
+    const panBy: (x: number, y: number) => void = (
+      x: number,
+      y: number,
+    ): void => {
+      if (store.getState().panBy({ x, y })) {
+        props.autoFrame.current = false;
+      }
+    };
+    const reveal: (target: Element) => void = (target: Element): void => {
+      const pane: HTMLElement | null = domNode.querySelector<HTMLElement>(
+        ".react-flow__renderer",
+      );
+      // The controls sit outside the pane and are always on the canvas.
+      if (!pane || !pane.contains(target)) {
+        return;
+      }
+      const view: DOMRect = pane.getBoundingClientRect();
+      const box: DOMRect = target.getBoundingClientRect();
+      const x: number = panDeltaToReveal(
+        box.left,
+        box.right,
+        view.left,
+        view.right,
+        FOCUS_REVEAL_PADDING_PX,
+      );
+      const y: number = panDeltaToReveal(
+        box.top,
+        box.bottom,
+        view.top,
+        view.bottom,
+        FOCUS_REVEAL_PADDING_PX,
+      );
+      if (x || y) {
+        panBy(x, y);
+      }
+    };
+    const followFocus: (event: FocusEvent) => void = (
+      event: FocusEvent,
+    ): void => {
+      if (event.target instanceof Element) {
+        reveal(event.target);
+      }
+    };
+    const undoScroll: () => void = (): void => {
       const left: number = domNode.scrollLeft;
       const top: number = domNode.scrollTop;
       if (!left && !top) {
@@ -342,19 +407,23 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
       }
       domNode.scrollLeft = 0;
       domNode.scrollTop = 0;
-      const viewport: Viewport = instance.getViewport();
-      instance.setViewport({
-        x: viewport.x - left,
-        y: viewport.y - top,
-        zoom: viewport.zoom,
-      });
-      props.autoFrame.current = false;
+      panBy(-left, -top);
+      /*
+       * The browser scrolled to show something. The extent may have kept
+       * the pan short of that, so make sure the focused element shows.
+       */
+      const focused: Element | null = document.activeElement;
+      if (focused && domNode.contains(focused)) {
+        reveal(focused);
+      }
     };
-    domNode.addEventListener("scroll", followFocus);
+    domNode.addEventListener("focusin", followFocus);
+    domNode.addEventListener("scroll", undoScroll);
     return () => {
-      domNode.removeEventListener("scroll", followFocus);
+      domNode.removeEventListener("focusin", followFocus);
+      domNode.removeEventListener("scroll", undoScroll);
     };
-  }, [domNode, instance]);
+  }, [domNode, store]);
 
   useEffect(() => {
     if (!holdsDrawing) {
