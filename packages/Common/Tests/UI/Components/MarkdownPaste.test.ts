@@ -13,13 +13,16 @@ import {
   PastedClipboard,
 } from "../../../UI/Components/Markdown.tsx/MarkdownPaste";
 import {
+  CHROME_VIEWER_CODE_LINES_COPY_HTML,
   CHROME_VIEWER_COPY_HTML,
   CHROME_VIEWER_COPY_TEXT,
+  FIREFOX_VIEWER_CODE_LINES_COPY_HTML,
   FIREFOX_VIEWER_COPY_HTML,
   FIREFOX_VIEWER_COPY_TEXT,
   GOOGLE_DOCS_LIST_COPY_HTML,
   GOOGLE_DOCS_LIST_COPY_MARKDOWN,
   GOOGLE_DOCS_LIST_COPY_TEXT,
+  VIEWER_CODE_LINES_COPY_TEXT,
   VIEWER_COPY_SOURCE_MARKDOWN,
   WORD_OUTLOOK_ISSUE_4114_HTML,
 } from "./fixtures/MarkdownPasteFixtures";
@@ -420,6 +423,28 @@ describe("pastedHtmlToMarkdown", () => {
   });
 
   describe("a note copied out of MarkdownViewer", () => {
+    /*
+     * Real copies of two lines of a viewer code block: neither browser keeps
+     * the block's <div>, only the <pre> around the text, which carries the
+     * viewer's hints -- so the lines come back as a fenced block in their
+     * language rather than as markdown ("- name: web" a list item).
+     */
+    it("comes back as a fenced block when only some of a code block's lines were copied", () => {
+      for (const html of [
+        CHROME_VIEWER_CODE_LINES_COPY_HTML,
+        FIREFOX_VIEWER_CODE_LINES_COPY_HTML,
+      ]) {
+        expect(
+          clipboardToMarkdown(
+            clipboard({
+              "text/html": html,
+              "text/plain": VIEWER_CODE_LINES_COPY_TEXT,
+            }),
+          ),
+        ).toBe("```yaml\nreplicas: 3\nimage: api_server:v2\n```");
+      }
+    });
+
     /*
      * The fixtures are real copies of the real viewer: the code block comes
      * back as a fence with its language (not the "Copy" button's text), the

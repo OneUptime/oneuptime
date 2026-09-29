@@ -360,12 +360,18 @@ const CodeBlock: FunctionComponent<{
     (language ? language.charAt(0).toUpperCase() + language.slice(1) : "");
 
   /*
-   * The highlighter renders no <pre> and no language class, so a copy of the
-   * rendered note would paste back as spans of plain text. The data
-   * attributes tell the editor's paste handler (MarkdownPaste) that this is
-   * a code block and in which language, and that the header -- the language
-   * label and the Copy button, which a copy picks up as text -- is not part
-   * of the document.
+   * The highlighter's classes carry no language, so a copy of the rendered
+   * note would paste back as spans of plain text. The data attributes tell
+   * the editor's paste handler (MarkdownPaste) that this is a code block and
+   * in which language, and that the header -- the language label and the
+   * Copy button -- is not part of the document.
+   *
+   * They are on the <pre> the code is in as well as on the block: a copy of
+   * part of the block -- a drag over its lines, a triple click -- carries
+   * the <pre> around the selected text in every browser, but no <div> above
+   * it, so hints on the block alone were lost and the code pasted back as
+   * markdown ("# deploy config" a heading). The header cannot be selected at
+   * all, so its "Copy" label never lands in a copy's plain text.
    */
   return (
     <div
@@ -375,7 +381,7 @@ const CodeBlock: FunctionComponent<{
     >
       {/* Header bar */}
       <div
-        className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700"
+        className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 select-none"
         data-markdown-ignore="true"
       >
         <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400 select-none">
@@ -423,7 +429,9 @@ const CodeBlock: FunctionComponent<{
       {/* Code content */}
       <SyntaxHighlighter
         {...rest}
-        PreTag="div"
+        PreTag="pre"
+        data-markdown-code-block="true"
+        data-language={language}
         // eslint-disable-next-line react/no-children-prop
         children={content}
         language={language}

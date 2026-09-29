@@ -22,11 +22,58 @@ jest.mock("react-markdown", () => {
   };
 });
 
+/*
+ * The shared react-syntax-highlighter mock renders a bare <pre> and drops
+ * every prop. This stand-in keeps react-syntax-highlighter 16's contract,
+ * which the code block's copy hints rely on: props it does not know go on
+ * the PreTag element, codeTagProps on the CodeTag. (Every deep import of the
+ * package maps to one mock module, so this also serves the style and
+ * language imports.)
+ */
+jest.mock("react-syntax-highlighter/dist/esm/prism-light", () => {
+  const react: typeof React = jest.requireActual("react") as typeof React;
+  const Highlighter: {
+    (props: Record<string, unknown>): React.ReactElement;
+    registerLanguage: () => void;
+  } = Object.assign(
+    (props: Record<string, unknown>): React.ReactElement => {
+      const rest: Record<string, unknown> = { ...props };
+      for (const known of [
+        "PreTag",
+        "CodeTag",
+        "codeTagProps",
+        "children",
+        "language",
+        "style",
+        "customStyle",
+      ]) {
+        delete rest[known];
+      }
+      return react.createElement(
+        (props["PreTag"] as string | undefined) || "pre",
+        rest,
+        react.createElement(
+          (props["CodeTag"] as string | undefined) || "code",
+          props["codeTagProps"] as Record<string, unknown>,
+          props["children"] as React.ReactNode,
+        ),
+      );
+    },
+    {
+      registerLanguage: (): void => {},
+    },
+  );
+  return { __esModule: true, default: Highlighter, vscDarkPlus: {} };
+});
+
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
-import { pastedHtmlToMarkdown } from "../../../UI/Components/Markdown.tsx/MarkdownPaste";
+import {
+  clipboardToMarkdown,
+  pastedHtmlToMarkdown,
+} from "../../../UI/Components/Markdown.tsx/MarkdownPaste";
 
 type MockComponents = Record<string, React.ElementType>;
 
@@ -110,6 +157,62 @@ describe("MarkdownViewer code blocks", () => {
     expect(within(header).getByText("TypeScript")).toBeInTheDocument();
     // The code itself is outside the ignored header.
     expect(header.textContent).not.toContain("const x");
+  });
+
+  /*
+   * A copy of part of a block -- a drag over some of its lines, a triple
+   * click -- carries the <pre> around the selected text in every browser,
+   * but not the block's <div>. With the hints only on the <div>, such a copy
+   * pasted back as markdown: "# deploy config" became a heading.
+   */
+  test("put the hints on the <pre> the code is in as well", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "yaml", "# deploy config\nreplicas: 3\n");
+      },
+    );
+
+    const pre: HTMLElement = container.querySelector("pre") as HTMLElement;
+    expect(pre).not.toBeNull();
+    expect(pre.getAttribute("data-markdown-code-block")).toBe("true");
+    expect(pre.getAttribute("data-language")).toBe("yaml");
+    expect(pre.textContent).toBe("# deploy config\nreplicas: 3");
+  });
+
+  test("so a copy of its code alone pastes back as a fenced block", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "yaml", "# deploy config\nreplicas: 3\n");
+      },
+    );
+    const pre: HTMLElement = container.querySelector("pre") as HTMLElement;
+
+    expect(
+      clipboardToMarkdown({
+        getData: (format: string): string => {
+          if (format === "text/html") {
+            return pre.outerHTML;
+          }
+          return format === "text/plain" ? pre.textContent || "" : "";
+        },
+      }),
+    ).toBe("```yaml\n# deploy config\nreplicas: 3\n```");
+  });
+
+  /*
+   * A selection that took in the header put its Copy button's label in the
+   * copy's plain text -- pasted as a stray "Copy" line.
+   */
+  test("keep the header -- language label and Copy button -- out of a selection", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "yaml", "replicas: 3\n");
+      },
+    );
+
+    expect(container.querySelector("[data-markdown-ignore]")).toHaveClass(
+      "select-none",
+    );
   });
 
   test("name a multi-line block without a language as text", () => {
