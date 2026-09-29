@@ -87,12 +87,13 @@ export interface ChartPointerEvent {
 /**
  * Whether a press is the second of a double-click, by the browser's own
  * count (MouseEvent.detail), so the platform's double-click time and
- * distance decide, exactly as they decide when `dblclick` is sent.
+ * distance decide, exactly as they decide when `dblclick` is sent: at a
+ * count of 2, not at the third press of a triple-click.
  */
 export function isSecondPressOfDoubleClick(
   event?: ChartPointerEvent | null,
 ): boolean {
-  if (!event || typeof event.detail !== "number" || event.detail < 2) {
+  if (!event || event.detail !== 2) {
     return false;
   }
 
@@ -108,10 +109,11 @@ export interface DoubleClickReset {
    */
   onPress: (event?: ChartPointerEvent | null) => boolean;
   /*
-   * For the release of a press on the chart. True when it ended the reset
-   * press, which the caller must then not handle as anything else.
+   * For the release of a press on the chart, or heard by the page. True
+   * when it ended the reset press, which the caller must then not handle
+   * as anything else.
    */
-  onRelease: () => boolean;
+  onRelease: (event?: ChartPointerEvent | null) => boolean;
   // The chart's dblclick handler.
   onDoubleClick: () => void;
 }
@@ -170,19 +172,34 @@ export function useDoubleClickReset(
       return isResetPressRef.current;
     }, []);
 
-  const onRelease: () => boolean = React.useCallback((): boolean => {
-    if (!isResetPressRef.current) {
-      return false;
-    }
+  const onRelease: (event?: ChartPointerEvent | null) => boolean =
+    React.useCallback(
+      (event?: ChartPointerEvent | null): boolean => {
+        if (!isResetPressRef.current) {
+          return false;
+        }
 
-    isResetPressRef.current = false;
-    standDown();
-    fallbackRef.current = setTimeout(() => {
-      fallbackRef.current = null;
-      resetRef.current?.();
-    }, 0);
-    return true;
-  }, [standDown]);
+        isResetPressRef.current = false;
+
+        /*
+         * The release of a fresh single click cannot end the second press:
+         * that press's own release never came (the window lost focus while
+         * the button was down, say), and this one belongs to a later click.
+         * It ends the reset press without resetting.
+         */
+        if (event && event.detail === 1) {
+          return true;
+        }
+
+        standDown();
+        fallbackRef.current = setTimeout(() => {
+          fallbackRef.current = null;
+          resetRef.current?.();
+        }, 0);
+        return true;
+      },
+      [standDown],
+    );
 
   const onDoubleClick: () => void = React.useCallback((): void => {
     standDown();

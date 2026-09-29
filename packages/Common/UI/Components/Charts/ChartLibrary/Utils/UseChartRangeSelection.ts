@@ -1,6 +1,18 @@
 import React from "react";
 import { CHART_DATA_POINT_DATE_KEY } from "../Types/ChartDataPoint";
-import { DoubleClickReset, useDoubleClickReset } from "./DoubleClick";
+import {
+  ChartPointerEvent,
+  DoubleClickReset,
+  useDoubleClickReset,
+} from "./DoubleClick";
+
+/*
+ * How far the pointer may wander from where it was pressed and still be a
+ * pointer that has not moved: a hand on a mouse or a trackpad is never
+ * quite still, and a press that drifts a pixel or two across the edge of a
+ * bucket is still a click.
+ */
+export const CHART_PRESS_STILLNESS_PX: number = 3;
 
 /*
  * Subset of the recharts MouseHandlerDataParam passed to chart-level
@@ -145,7 +157,7 @@ export interface ChartRangeSelectionRootProps {
   ) => void;
   onMouseUp?: (
     chartState?: RangeSelectionChartState | null,
-    mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
+    mouseEvent?: ChartPointerEvent | null,
   ) => void;
   onDoubleClick?: () => void;
   throttledEvents?: ReadonlyArray<keyof GlobalEventHandlersEventMap>;
@@ -187,6 +199,10 @@ interface LatestRangeSelectionInputs {
  *   of the last, as soon as the button is released.
  * - A press and release on one bucket is a plain click and keeps its
  *   meaning (a bucket click, a legend toggle); only a real drag selects.
+ *   A drag needs the pointer itself to move, by more than
+ *   CHART_PRESS_STILLNESS_PX: a press whose bucket changes under a still
+ *   pointer (new rows landing mid-press, a hand's drift across a bucket's
+ *   edge) is still a plain click.
  * - Nothing re-renders until the pointer leaves the bucket it pressed. A
  *   render under a press can replace the node it landed on (recharts
  *   re-keys a line's dots when it redraws them), and a press whose node
@@ -243,9 +259,14 @@ const useChartRangeSelection: (
   // Whether the band is painted, i.e. the selection is in render state.
   const isBandShownRef: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
+  // Where the press in progress went down, when recharts said.
+  const pressClientXRef: React.MutableRefObject<number | null> = React.useRef<
+    number | null
+  >(null);
   // The page-wide mouseup listener of the press in progress, if any.
-  const releaseListenerRef: React.MutableRefObject<(() => void) | null> =
-    React.useRef<(() => void) | null>(null);
+  const releaseListenerRef: React.MutableRefObject<
+    ((event: MouseEvent) => void) | null
+  > = React.useRef<((event: MouseEvent) => void) | null>(null);
 
   /*
    * A release outside the chart is handled by a window listener installed
@@ -284,6 +305,24 @@ const useChartRangeSelection: (
       setSelectionEndLabel(null);
     }
   }, [stopListeningForRelease]);
+
+  /*
+   * Whether the pointer has left the spot the press went down on. Without
+   * positions to go by (a caller that hands no event), it has: any change
+   * of bucket counts, as it always did.
+   */
+  const hasPointerMoved: (event?: ChartPointerEvent | null) => boolean =
+    React.useCallback((event?: ChartPointerEvent | null): boolean => {
+      const clientX: number | undefined = event?.clientX;
+
+      if (pressClientXRef.current === null || typeof clientX !== "number") {
+        return true;
+      }
+
+      return (
+        Math.abs(clientX - pressClientXRef.current) > CHART_PRESS_STILLNESS_PX
+      );
+    }, []);
 
   const getLabel: (rowIndex: number) => string | null = React.useCallback(
     (rowIndex: number): string | null => {
@@ -325,11 +364,22 @@ const useChartRangeSelection: (
       if (startIndex === null || getLabel(rowIndex) === null) {
         return;
       }
-      endIndexRef.current = rowIndex;
-      // Still on the pressed bucket: a click so far, so paint nothing.
-      if (!isBandShownRef.current && rowIndex === startIndex) {
-        return;
+      if (!isBandShownRef.current) {
+        // Still on the pressed bucket: a click so far, so paint nothing.
+        if (rowIndex === startIndex) {
+          endIndexRef.current = rowIndex;
+          return;
+        }
+        /*
+         * Another bucket under a pointer that has not really moved: new
+         * rows landed under the press, or a hand's drift crossed the edge
+         * of the bucket it pressed. Not a drag.
+         */
+        if (!hasPointerMoved(mouseEvent)) {
+          return;
+        }
       }
+      endIndexRef.current = rowIndex;
       /*
        * The band runs between its buckets in row order, whichever way the
        * drag goes: a bar chart draws x1 from the left edge of its bar and
@@ -349,73 +399,84 @@ const useChartRangeSelection: (
       setSelectionStartLabel(lowerLabel);
       setSelectionEndLabel(upperLabel);
     },
-    [clearSelection, getLabel],
+    [clearSelection, getLabel, hasPointerMoved],
   );
 
-  const onMouseUp: (chartState?: RangeSelectionChartState | null) => void =
-    React.useCallback(
-      (chartState?: RangeSelectionChartState | null): void => {
-        // The end of a double-click's second press: the reset, nothing else.
-        if (doubleClickReset.onRelease()) {
-          stopListeningForRelease();
-          return;
-        }
+  const onMouseUp: (
+    chartState?: RangeSelectionChartState | null,
+    mouseEvent?: ChartPointerEvent | null,
+  ) => void = React.useCallback(
+    (
+      chartState?: RangeSelectionChartState | null,
+      mouseEvent?: ChartPointerEvent | null,
+    ): void => {
+      // The end of a double-click's second press: the reset, nothing else.
+      if (doubleClickReset.onRelease(mouseEvent)) {
+        stopListeningForRelease();
+        return;
+      }
 
-        if (!isSelecting.current) {
-          return;
-        }
+      if (!isSelecting.current) {
+        return;
+      }
 
-        const releaseIndex: number | null = chartState
-          ? getChartRowIndex(
-              latest.current.data,
-              latest.current.index,
-              chartState,
-            )
-          : null;
-        const startIndex: number | null = startIndexRef.current;
-        const endIndex: number | null =
-          releaseIndex !== null ? releaseIndex : endIndexRef.current;
-        clearSelection();
+      const releaseIndex: number | null = chartState
+        ? getChartRowIndex(
+            latest.current.data,
+            latest.current.index,
+            chartState,
+          )
+        : null;
+      const startIndex: number | null = startIndexRef.current;
+      const endIndex: number | null =
+        releaseIndex !== null ? releaseIndex : endIndexRef.current;
+      const wasDragging: boolean = isBandShownRef.current;
+      clearSelection();
 
-        /*
-         * A plain click (the pointer never left the starting bucket) must
-         * keep behaving exactly as before — only a real drag selects.
-         */
-        if (
-          startIndex === null ||
-          endIndex === null ||
-          startIndex === endIndex
-        ) {
-          return;
-        }
+      /*
+       * A press whose pointer stayed put is a plain click, whatever bucket
+       * recharts reports under it by now: new rows can land during the
+       * press, and a hand drifts across a bucket's edge.
+       */
+      if (!wasDragging && !hasPointerMoved(mouseEvent)) {
+        return;
+      }
 
-        /*
-         * The browser fires a click right after mouseup; swallow it so a
-         * drag doesn't also toggle a legend, dot or bar selection. Cleared
-         * on a timeout so a never-delivered click can't suppress a later
-         * one.
-         */
-        suppressNextClickRef.current = true;
-        setTimeout(() => {
-          suppressNextClickRef.current = false;
-        }, 0);
+      /*
+       * A plain click (the pointer never left the starting bucket) must
+       * keep behaving exactly as before — only a real drag selects.
+       */
+      if (startIndex === null || endIndex === null || startIndex === endIndex) {
+        return;
+      }
 
-        const selectedWindow: ChartBucketWindow | null = getChartBucketWindow(
-          latest.current.data,
-          Math.min(startIndex, endIndex),
-          Math.max(startIndex, endIndex),
-        );
-        if (!selectedWindow) {
-          return;
-        }
+      /*
+       * The browser fires a click right after mouseup; swallow it so a
+       * drag doesn't also toggle a legend, dot or bar selection. Cleared
+       * on a timeout so a never-delivered click can't suppress a later
+       * one.
+       */
+      suppressNextClickRef.current = true;
+      setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 0);
 
-        latest.current.onTimeRangeSelect?.(
-          selectedWindow.start,
-          selectedWindow.end,
-        );
-      },
-      [clearSelection, doubleClickReset, stopListeningForRelease],
-    );
+      const selectedWindow: ChartBucketWindow | null = getChartBucketWindow(
+        latest.current.data,
+        Math.min(startIndex, endIndex),
+        Math.max(startIndex, endIndex),
+      );
+      if (!selectedWindow) {
+        return;
+      }
+
+      latest.current.onTimeRangeSelect?.(
+        selectedWindow.start,
+        selectedWindow.end,
+      );
+    },
+    [clearSelection, doubleClickReset, stopListeningForRelease],
+  );
 
   /*
    * A press released outside the chart: the chart's own mouseup never
@@ -427,8 +488,11 @@ const useChartRangeSelection: (
    */
   const listenForReleaseOffChart: () => void = React.useCallback((): void => {
     stopListeningForRelease();
-    const finishPressOutsideChart: () => void = (): void => {
-      onMouseUp(null);
+    // No bucket off the chart, but the pointer's place and the click count.
+    const finishPressOutsideChart: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
+      onMouseUp(null, event);
     };
     releaseListenerRef.current = finishPressOutsideChart;
     window.addEventListener("mouseup", finishPressOutsideChart);
@@ -475,6 +539,8 @@ const useChartRangeSelection: (
       isSelecting.current = true;
       startIndexRef.current = rowIndex;
       endIndexRef.current = rowIndex;
+      pressClientXRef.current =
+        typeof mouseEvent?.clientX === "number" ? mouseEvent.clientX : null;
       listenForReleaseOffChart();
     },
     [clearSelection, doubleClickReset, getLabel, listenForReleaseOffChart],

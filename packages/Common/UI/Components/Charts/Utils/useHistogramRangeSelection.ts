@@ -9,22 +9,29 @@ import {
   DoubleClickReset,
   useDoubleClickReset,
 } from "../ChartLibrary/Utils/DoubleClick";
-import { RANGE_SELECTION_THROTTLED_EVENTS } from "../ChartLibrary/Utils/UseChartRangeSelection";
+import {
+  CHART_PRESS_STILLNESS_PX,
+  RANGE_SELECTION_THROTTLED_EVENTS,
+} from "../ChartLibrary/Utils/UseChartRangeSelection";
 import OneUptimeDate from "../../../../Types/Date";
 
 /*
  * The part of recharts' chart state the handlers read. `activeLabel` is the
  * category under the pointer: the bucket start of the hovered bar.
+ * `activeTooltipIndex` is that category's place on the axis, which recharts
+ * works out again only when the pointer moves: bars landing under a still
+ * pointer keep the index and change the label.
  */
 export interface HistogramPointerState {
   activeLabel?: string | number | undefined;
+  activeTooltipIndex?: string | number | null | undefined;
 }
 
 /*
  * How far the pointer may wander from where it was pressed and still be a
- * pointer that has not moved: a hand on a mouse is never quite still.
+ * pointer that has not moved - the line, area and bar charts' own measure.
  */
-export const HISTOGRAM_PRESS_STILLNESS_PX: number = 3;
+export const HISTOGRAM_PRESS_STILLNESS_PX: number = CHART_PRESS_STILLNESS_PX;
 
 export interface HistogramRangeSelectionOptions {
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
@@ -104,6 +111,16 @@ function toLabel(state?: HistogramPointerState | null): string | null {
   return String(label);
 }
 
+function toAxisIndex(state?: HistogramPointerState | null): string | null {
+  const index: string | number | null | undefined = state?.activeTooltipIndex;
+
+  if (index === undefined || index === null || index === "") {
+    return null;
+  }
+
+  return String(index);
+}
+
 /*
  * Two bars' labels in time order. recharts draws a band's x1 from the left
  * edge of its bar and x2 to the right edge of its own, so a band in drag
@@ -141,10 +158,17 @@ function inTimeOrder(first: string, second: string): [string, string] {
  *   the `dblclick` (see useDoubleClickReset). That is what happens when the
  *   chart's new bars land during the press, which, right after a zoom, is
  *   when readers double-click.
- * - A press becomes a drag only once the POINTER leaves its bar. New bars
- *   landing under a pointer that has not moved are not a drag, and a press
- *   whose bar is gone from under its still pointer by the release zooms
- *   nowhere: the reader pressed a bar that is no longer on the chart.
+ * - A press becomes a drag only once the POINTER leaves its bar, by more
+ *   than HISTOGRAM_PRESS_STILLNESS_PX. New bars landing under a pointer that
+ *   has not moved are not a drag. A press that stayed put is a click on the
+ *   bar it pressed, even if a hand's drift ended it over the neighbour;
+ *   only when the very spot it pressed shows another bar at the release
+ *   (the same place on the axis, new data) does it zoom nowhere: the bar it
+ *   pressed is no longer on the chart.
+ * - A click waiting to zoom in is dropped if the zoom ends first (Reset
+ *   zoom, the picker, an empty state's double-click): it was a zoom into
+ *   the window the reader has just left.
+ * - Only the main button selects: a right-click opens a context menu.
  *
  * The release is resolved against refs rather than render state, from the
  * bar recharts hands the `mouseup` handler, falling back to the last move.
@@ -170,10 +194,14 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   const pressClientX: React.MutableRefObject<number | null> = useRef<
     number | null
   >(null);
-  // The page-wide mouseup listener of the press in progress, if any.
-  const releaseListener: React.MutableRefObject<(() => void) | null> = useRef<
-    (() => void) | null
+  // The place on the axis of the bar it went down on (see toAxisIndex).
+  const pressAxisIndex: React.MutableRefObject<string | null> = useRef<
+    string | null
   >(null);
+  // The page-wide mouseup listener of the press in progress, if any.
+  const releaseListener: React.MutableRefObject<
+    ((event: MouseEvent) => void) | null
+  > = useRef<((event: MouseEvent) => void) | null>(null);
 
   /*
    * The ref stays the authority on whether a selection is in progress, so a
@@ -250,6 +278,19 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   const doubleClickReset: DoubleClickReset = useDoubleClickReset(zoomOut);
 
   /*
+   * A click waiting to zoom in was made on a zoomed chart. If the zoom ends
+   * by another way first - Reset zoom, the picker, an empty state's own
+   * double-click - it must not zoom back in a moment after the reader left.
+   */
+  const offersZoomOut: boolean = Boolean(onZoomOut);
+
+  useEffect(() => {
+    if (!offersZoomOut && cancelPendingClick()) {
+      clearSelection();
+    }
+  }, [offersZoomOut, cancelPendingClick, clearSelection]);
+
+  /*
    * Whether the pointer has left the spot the press went down on. Without
    * positions to go by (a caller that hands no event), it has: any change
    * of bar counts, as it always did.
@@ -288,12 +329,15 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
    * outside it, where the chart's own mouseup never fires. Listen on the
    * page until the press ends; a release over the chart reaches the
    * chart's handler first, which removes this listener before the page
-   * hears it.
+   * hears it. The page's release carries no bar, but it does carry where
+   * the pointer is and the click count.
    */
   const listenForReleaseOffChart: () => void = useCallback((): void => {
     stopListeningForRelease();
-    const finishPressOutsideChart: () => void = (): void => {
-      onMouseUpRef.current(null);
+    const finishPressOutsideChart: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
+      onMouseUpRef.current(null, event);
     };
     releaseListener.current = finishPressOutsideChart;
     window.addEventListener("mouseup", finishPressOutsideChart);
@@ -327,6 +371,11 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
         return;
       }
 
+      // Only the main button selects: a right-click opens a context menu.
+      if (event && typeof event.button === "number" && event.button > 0) {
+        return;
+      }
+
       /*
        * A second press before the first click zoomed replaces it. The
        * band that click painted stays until this press ends: this may be
@@ -340,6 +389,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       endLabel.current = null;
       pressClientX.current =
         typeof event?.clientX === "number" ? event.clientX : null;
+      pressAxisIndex.current = toAxisIndex(state);
 
       listenForReleaseOffChart();
     },
@@ -369,9 +419,9 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
         }
 
         /*
-         * Another bar under a pointer that has not moved: the bars changed
-         * under the press (the chart's new data landed), the pointer did
-         * not leave its bar. Not a drag.
+         * Another bar under a pointer that has not really moved: new bars
+         * landed under the press, or a hand's drift crossed the edge of the
+         * bar it pressed. Not a drag.
          */
         if (!hasPointerMoved(event)) {
           return;
@@ -397,7 +447,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       event?: ChartPointerEvent | null,
     ): void => {
       // The end of a double-click's second press: the zoom-out, nothing else.
-      if (doubleClickReset.onRelease()) {
+      if (doubleClickReset.onRelease(event)) {
         stopListeningForRelease();
         return;
       }
@@ -417,16 +467,26 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       if (hasLeftPressedBar.current || hasPointerMoved(event)) {
         // A drag, or a flick released before any of its moves came in.
         to = releaseLabel || endLabel.current || from;
-      } else if (releaseLabel && releaseLabel !== from) {
+      } else if (
+        releaseLabel !== null &&
+        releaseLabel !== from &&
+        pressAxisIndex.current !== null &&
+        toAxisIndex(state) === pressAxisIndex.current
+      ) {
         /*
-         * The pointer never left the bar it pressed, yet another bar is
-         * under it now: the chart's data changed during the press, and the
-         * pressed bar is gone. Not a drag the reader never made, nor a
-         * zoom into a bar that is no longer shown.
+         * The pointer stayed put, and the spot on the axis it pressed now
+         * holds another bar: the chart's data changed during the press,
+         * and the pressed bar is gone. Not a drag the reader never made,
+         * nor a zoom into a bar that is no longer shown.
          */
         clearSelection();
         return;
       }
+
+      /*
+       * Otherwise a press that stayed put is a click on the bar it pressed,
+       * even when a hand's drift let it go over the next one.
+       */
 
       if (!from || !to) {
         clearSelection();
