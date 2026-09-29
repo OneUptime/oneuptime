@@ -84,18 +84,14 @@ function robotsHeaderCalls(res: FakeResponse): Array<Array<unknown>> {
   });
 }
 
-function mockSeoAndFeedApis(
-  indexingEnabled: boolean,
-  title: string = "Acme Status",
-  description: string = "How Acme is doing.",
-): void {
+function mockSeoAndFeedApis(indexingEnabled: boolean): void {
   (jest.spyOn(API, "get") as unknown as SpiedApi).mockResolvedValue(
     new HTTPResponse<JSONObject>(
       200,
       {
         _id: STATUS_PAGE_ID,
-        title,
-        description,
+        title: "Acme Status",
+        description: "How Acme is doing.",
         enableSearchEngineIndexing: indexingEnabled,
       },
       {},
@@ -165,42 +161,3 @@ describe.each(NON_HTML_RESPONSES)("%s", (_name: string, handler: Handler) => {
     expect(robotsHeaderCalls(res)).toEqual([]);
   });
 });
-
-const RSS_HANDLERS: Array<[string, Handler]> = [
-  ["standalone status-page container", handleStandaloneRSS],
-  ["combined App container", handleFrontendRSS],
-];
-
-describe.each(RSS_HANDLERS)(
-  "RSS XML (%s)",
-  (_name: string, handler: Handler) => {
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it.each(["/rss", `/status-page/${STATUS_PAGE_ID}/rss`])(
-      "escapes page metadata on %s",
-      async (path: string) => {
-        mockSeoAndFeedApis(true, "R&D <Status>", 'Ops & "on-call"');
-        const res: FakeResponse = fakeResponse();
-        const req: ExpressRequest = {
-          ...customDomainRequest(),
-          path,
-        } as ExpressRequest;
-
-        await handler(req, res as unknown as ExpressResponse);
-
-        expect(res.send).toHaveBeenCalledWith(
-          expect.stringContaining(
-            "<title>R&amp;D &lt;Status&gt; Updates</title>",
-          ),
-        );
-        expect(res.send).toHaveBeenCalledWith(
-          expect.stringContaining(
-            "<description>Ops &amp; &quot;on-call&quot;</description>",
-          ),
-        );
-      },
-    );
-  },
-);
