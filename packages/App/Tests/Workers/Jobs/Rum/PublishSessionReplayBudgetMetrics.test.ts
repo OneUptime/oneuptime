@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
-import { SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES } from "Common/Utils/Rum/SessionReplayBudgetMetricType";
+import { SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES } from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 /*
  * Rum:PublishSessionReplayBudgetMetrics is the thin cron around

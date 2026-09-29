@@ -23,7 +23,7 @@ import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_BUDGET_METRIC_PROJECT_ID_ATTRIBUTE,
   SESSION_REPLAY_BUDGET_METRIC_RUM_APPLICATION_ID_ATTRIBUTE,
   SESSION_REPLAY_BUDGET_METRIC_RUM_APPLICATION_NAME_ATTRIBUTE,
-} from "../../../Utils/Rum/SessionReplayBudgetMetricType";
+} from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 /*
  * Publishes the two session replay storage budgets as metrics, so running out

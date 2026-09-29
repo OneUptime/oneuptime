@@ -7,7 +7,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
-} from "../../Utils/Rum/SessionReplayBudgetMetricType";
+} from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

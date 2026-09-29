@@ -34,7 +34,7 @@ import {
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES,
-} from "../../../Utils/Rum/SessionReplayBudgetMetricType";
+} from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 

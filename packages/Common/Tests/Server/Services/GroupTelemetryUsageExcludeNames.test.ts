@@ -8,7 +8,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
-import SessionReplayBudgetMetricTypeUtil from "../../../Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import { describe, expect, test } from "@jest/globals";
 
 /*

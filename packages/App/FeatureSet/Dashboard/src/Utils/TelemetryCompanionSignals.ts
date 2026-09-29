@@ -14,7 +14,7 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
-import SessionReplayBudgetMetricTypeUtil from "Common/Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import {
   MetricCrossSignalScopeResult,
   SERVICE_NAME_ATTRIBUTE_KEY,

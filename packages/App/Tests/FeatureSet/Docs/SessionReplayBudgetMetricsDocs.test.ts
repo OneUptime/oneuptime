@@ -37,7 +37,7 @@ import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_BUDGET_METRIC_RUM_APPLICATION_ID_ATTRIBUTE,
   SESSION_REPLAY_BUDGET_METRIC_RUM_APPLICATION_NAME_ATTRIBUTE,
   SESSION_REPLAY_METRIC_NAME_PREFIX,
-} from "Common/Utils/Rum/SessionReplayBudgetMetricType";
+} from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";

@@ -45,7 +45,7 @@ import ProductType from "../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../Types/ObjectID";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
-import SessionReplayBudgetMetricTypeUtil from "../../../Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";

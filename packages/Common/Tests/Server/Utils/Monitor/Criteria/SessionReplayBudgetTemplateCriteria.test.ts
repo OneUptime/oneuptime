@@ -27,7 +27,7 @@ import {
 } from "../../../../../Types/Monitor/RumAlertTemplates";
 import ObjectID from "../../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../../Types/Probe/ProbeApiIngestResponse";
-import SessionReplayBudgetMetricTypeUtil from "../../../../../Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "../../../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import SessionReplayBudgetMetricType from "../../../../../Types/Rum/SessionReplayBudgetMetricType";
 import { describe, expect, test } from "@jest/globals";
 

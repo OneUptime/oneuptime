@@ -154,7 +154,7 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
-} from "Common/Utils/Rum/SessionReplayBudgetMetricType";
+} from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 type MetricTimestamp = {
   nano: string;

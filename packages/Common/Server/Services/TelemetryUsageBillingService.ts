@@ -44,7 +44,7 @@ import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import ServiceType from "../../Types/Telemetry/ServiceType";
-import SessionReplayBudgetMetricTypeUtil from "../../Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -110,7 +110,7 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * that id and type, so an entity-type exclusion would stop billing those
  * too. That is only safe because nothing but the budget sweep can write a
  * name under the session replay prefix (isReservedMetricName in
- * Common/Utils/Rum/SessionReplayBudgetMetricType): OTLP ingest drops them,
+ * Common/Utils/SessionReplay/SessionReplayBudgetMetricType): OTLP ingest drops them,
  * and a metric or trace recording rule cannot be saved with one as its
  * output. So no customer telemetry can be stored under one of these names to
  * be kept for free.

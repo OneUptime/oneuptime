@@ -6,7 +6,7 @@ import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_BUDGET_METRIC_RUM_APPLICATION_ID_ATTRIBUTE,
   SESSION_REPLAY_BUDGET_METRIC_RUM_APPLICATION_NAME_ATTRIBUTE,
   SESSION_REPLAY_METRIC_NAME_PREFIX,
-} from "../../../Utils/Rum/SessionReplayBudgetMetricType";
+} from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import { MutableMetricService } from "../../../Server/Services/MutableMetricService";
 import { describe, expect, test } from "@jest/globals";

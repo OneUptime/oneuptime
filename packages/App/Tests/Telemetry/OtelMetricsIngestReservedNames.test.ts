@@ -20,7 +20,7 @@ import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType"
 import ObjectID from "Common/Types/ObjectID";
 import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import SessionReplayBudgetMetricTypeUtil from "Common/Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*

@@ -11,6 +11,14 @@ import SessionReplayBudgetMetricType from "../../Types/Rum/SessionReplayBudgetMe
  *
  * React-free and import-light on purpose: the worker, the ingest path, the
  * dashboard and plain node tests all load it.
+ *
+ * It lives here rather than beside its enum in Common/{Types,Utils}/Rum on
+ * purpose. Those two directories are the allow-list of dependency-free
+ * modules the browser recorder inlines into the script served on customers'
+ * pages, so nothing in them may import from outside them - and this module
+ * needs AggregationType. The recorder's esbuild plugin and its SourceHygiene
+ * test both refuse such an import. The enum itself imports nothing, so it
+ * stays in Types/Rum.
  */
 
 /*

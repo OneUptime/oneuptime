@@ -25,7 +25,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import SessionReplayBudgetMetricType from "../../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
-import SessionReplayBudgetMetricTypeUtil from "../../../../Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "../../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import {
   afterEach,
   beforeEach,

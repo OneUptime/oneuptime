@@ -24,7 +24,7 @@ import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRa
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
-import SessionReplayBudgetMetricTypeUtil from "Common/Utils/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 
