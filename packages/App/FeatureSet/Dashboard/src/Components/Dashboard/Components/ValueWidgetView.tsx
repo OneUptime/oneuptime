@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -131,12 +132,15 @@ interface SparklineProps {
   color: string;
   fillColor: string;
   /*
-   * Fires while the cursor moves over the chart with the data point
-   * under the cursor; fires with `null` when the cursor leaves. The
-   * parent uses this to swap the big number for the hovered value and
-   * surface its timestamp inline (no on-chart tooltip).
+   * Fires while the cursor moves over the chart with the index, in
+   * `data`, of the point under the cursor; fires with `null` once the
+   * hover names no point: the cursor left, a drag zoomed the board away
+   * from the points it was over, or the line was redrawn with a different
+   * number of points (or taken away). The parent uses this to swap the big
+   * number for the hovered value and surface its timestamp inline (no
+   * on-chart tooltip).
    */
-  onHoverPoint?: ((point: SparklinePoint | null) => void) | undefined;
+  onHoverIndex?: ((index: number | null) => void) | undefined;
   /*
    * Drag across the line: called with the window the dragged-over points
    * cover (see getSparklineSelectionWindow). Unset, the line only
@@ -178,13 +182,16 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
   const latestRef: React.MutableRefObject<{
     data: Array<SparklinePoint>;
     onTimeRangeSelect: ((startTime: Date, endTime: Date) => void) | undefined;
+    onHoverIndex: ((index: number | null) => void) | undefined;
   }> = useRef({
     data: props.data,
     onTimeRangeSelect: props.onTimeRangeSelect,
+    onHoverIndex: props.onHoverIndex,
   });
   latestRef.current = {
     data: props.data,
     onTimeRangeSelect: props.onTimeRangeSelect,
+    onHoverIndex: props.onHoverIndex,
   };
 
   const finishDrag: () => void = useCallback((): void => {
@@ -204,14 +211,45 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
         finished.startIndex,
         finished.endIndex,
       );
+    const onTimeRangeSelect:
+      | ((startTime: Date, endTime: Date) => void)
+      | undefined = latestRef.current.onTimeRangeSelect;
 
-    if (selected) {
-      latestRef.current.onTimeRangeSelect?.(
-        selected.startTime,
-        selected.endTime,
-      );
+    if (!selected || !onTimeRangeSelect) {
+      return;
     }
+
+    /*
+     * The board reloads this line for the window just picked, under a
+     * pointer that has not moved. The point the hover names belongs to the
+     * window being left, so let go of it now; the next move names one on
+     * the new line.
+     */
+    setHoverIndex(null);
+    latestRef.current.onHoverIndex?.(null);
+
+    onTimeRangeSelect(selected.startTime, selected.endTime);
   }, []);
+
+  /*
+   * A hover names a point by its place along the line, and every place
+   * moves when the line is redrawn with a different number of points (a
+   * zoom or a refresh landed), or goes when the line is taken away. The
+   * pointer is then over some other point, or none, so the hover is let go
+   * of - here in the cleanup, which runs on exactly those two occasions -
+   * and the next move picks a point on the line as it is now. Redrawn with
+   * as many points as before, each place still holds the point under the
+   * pointer, and the hover stays: the parent reads that point afresh.
+   * Before paint, so the read-out never shows a point the line has lost.
+   */
+  const pointCount: number = props.data.length;
+
+  useLayoutEffect(() => {
+    return () => {
+      setHoverIndex(null);
+      latestRef.current.onHoverIndex?.(null);
+    };
+  }, [pointCount]);
 
   /*
    * Readers overshoot a line this small all the time and let go outside
@@ -250,10 +288,18 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
    * now, so nothing is allowed to bleed — inset far enough to contain it.
    */
   const padding: number = 4;
+  const lastIndex: number = dataPoints.length - 1;
 
-  const pointAt: (i: number) => [number, number] = (i: number) => {
-    const x: number =
-      padding + (i / (dataPoints.length - 1)) * (props.width - padding * 2);
+  /*
+   * Where the point at `index` is drawn, the index held to the line. The
+   * hover and the ends of a drag are read off the line as it was when the
+   * pointer last moved, and a zoom or a refresh can land fewer points
+   * before it moves again. Read past the end, one of them threw during
+   * render, and the error took the whole dashboard down with it.
+   */
+  const pointAt: (index: number) => [number, number] = (index: number) => {
+    const i: number = Math.max(0, Math.min(lastIndex, index));
+    const x: number = padding + (i / lastIndex) * (props.width - padding * 2);
     const y: number =
       props.height -
       padding -
@@ -272,7 +318,7 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
   const lastX: number = padding + (props.width - padding * 2);
   const fillPoints: string = `${firstX},${props.height} ${points} ${lastX},${props.height}`;
 
-  const { onHoverPoint } = props;
+  const { onHoverIndex } = props;
   const canSelect: boolean = Boolean(props.onTimeRangeSelect);
 
   // The point under the pointer: the nearest of the evenly spaced points.
@@ -303,8 +349,8 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
      * names the point the window currently ends on.
      */
     setHoverIndex(clampedIdx);
-    if (onHoverPoint) {
-      onHoverPoint(dataPoints[clampedIdx] ?? null);
+    if (onHoverIndex) {
+      onHoverIndex(clampedIdx);
     }
 
     const current: SparklineDrag | null = dragRef.current;
@@ -331,8 +377,8 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
 
   const onLeave: () => void = () => {
     setHoverIndex(null);
-    if (onHoverPoint) {
-      onHoverPoint(null);
+    if (onHoverIndex) {
+      onHoverIndex(null);
     }
   };
 
@@ -376,8 +422,16 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
     finishDrag();
   };
 
+  /*
+   * A hover past the end of a line that has since shrunk names no point
+   * on it, so there is nothing to mark until the pointer moves. (The ends
+   * of a drag are held to the line by pointAt instead: the band shows what
+   * a release would zoom to, the points the drag still covers.)
+   */
+  const activeHoverIndex: number | null =
+    hoverIndex !== null && hoverIndex <= lastIndex ? hoverIndex : null;
   const hoverPos: [number, number] | null =
-    hoverIndex !== null ? pointAt(hoverIndex) : null;
+    activeHoverIndex !== null ? pointAt(activeHoverIndex) : null;
 
   const selectionFromX: number | null = drag
     ? pointAt(Math.min(drag.startIndex, drag.endIndex))[0]
@@ -524,12 +578,19 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * number for the hovered data point's value and render its timestamp
    * inline (in place of the trend indicator). Reset to null on mouse-out
    * to fall back to the aggregated value.
+   *
+   * Held as the point's index and read out of `points` on every render,
+   * never as the point itself: a zoom or a refresh replaces the points
+   * under a pointer that has not moved, and a point kept from before would
+   * go on showing a value the line no longer has. (Nor could a kept point
+   * be looked up again by identity: the hosts rebuild every point on each
+   * of their renders.)
    */
-  const [hoveredPoint, setHoveredPoint] = useState<SparklinePoint | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const handleHoverPoint: (point: SparklinePoint | null) => void = useCallback(
-    (point: SparklinePoint | null): void => {
-      setHoveredPoint(point);
+  const handleHoverIndex: (index: number | null) => void = useCallback(
+    (index: number | null): void => {
+      setHoveredIndex(index);
     },
     [],
   );
@@ -658,11 +719,14 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     /*
      * A zoom into a quiet stretch lands here with no sparkline left to
      * double-click, so the empty state takes the double-click instead (it is
-     * only armed while there is a zoom to undo).
+     * only armed while there is a zoom to undo). While it is, its words are
+     * not selectable: a double-click on text would also select a word.
      */
     return (
       <div
-        className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden"
+        className={`flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden ${
+          props.onTimeRangeReset ? "select-none" : ""
+        }`}
         onDoubleClick={props.onTimeRangeReset}
       >
         {showStateIcon && (
@@ -696,6 +760,10 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   const sparklineData: Array<SparklinePoint> = props.points;
   const metricName: string = props.metricName;
   const rawUnit: string = props.rawUnit;
+
+  // Past the end of points that have since shrunk, no point is hovered.
+  const hoveredPoint: SparklinePoint | null =
+    hoveredIndex !== null ? (sparklineData[hoveredIndex] ?? null) : null;
 
   /*
    * Run the raw aggregate through ValueFormatter so bytes scale to
@@ -984,7 +1052,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
             height={layout.sparklineHeightInPx}
             color={sparklineColor}
             fillColor={sparklineFill}
-            onHoverPoint={handleHoverPoint}
+            onHoverIndex={handleHoverIndex}
             onTimeRangeSelect={props.onTimeRangeSelect}
             onTimeRangeReset={props.onTimeRangeReset}
           />
