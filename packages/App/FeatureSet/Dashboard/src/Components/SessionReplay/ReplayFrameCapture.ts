@@ -27,8 +27,9 @@ import {
  *    @media conditions settled against the replay's own window, because
  *    an image answers (hover) and (pointer) differently from the page the
  *    stage shows. A stylesheet the stage loaded from the recorded site
- *    cannot be read, so its rules do not come across; the elements it
- *    hides are kept hidden all the same (see findUnreadableStyleSheet).
+ *    cannot be read, so its rules do not come across, but what it hides
+ *    with display: none or visibility is kept hidden all the same (see
+ *    findUnreadableStyleSheet).
  *  - FORM STATE lives in properties. Replayed input sets .value and
  *    .checked, not the attributes a serialiser writes out.
  *  - SCROLL lives in the layout, and a clone has none. It is put back with
@@ -75,10 +76,14 @@ import {
  *    images - and web fonts are left out, so text is drawn in its
  *    fallback font;
  *  - the rules of a stylesheet from another site are left out, except
- *    that the elements it hides stay hidden;
+ *    that what it hides with display: none or visibility stays hidden:
+ *    screen-reader-only text, and anything else it clips, transforms or
+ *    moves off screen, can appear in the picture;
  *  - an image still loading is left transparent, as the stage has drawn
- *    nothing there yet; one that failed to load is drawn broken, as the
- *    stage draws it.
+ *    nothing there yet - though one whose src or srcset has just changed
+ *    still shows its previous image on the stage, and is a blank hole in
+ *    the picture (see applyImage); one that failed to load is drawn
+ *    broken, as the stage draws it.
  *
  * The clone is taken synchronously when the capture starts, so pressing
  * Play while the PNG is being encoded does not change what is in it.
@@ -1356,20 +1361,28 @@ class ReplayFrameSerializer {
    * diff every element's computed style writes to the live CSSOM - the
    * stage's web fonts drop and reload - and a prototype that inlined
    * every element's computed style instead took a page of 3,300 elements
-   * from 52ms to 1.9s, and its SVG from 134KB to 4.8MB. But the thing it
-   * most visibly does, hiding what the page does not want seen, is on the
-   * stage for free: a hidden element computes display: none, whichever
-   * rule hid it. So while such a sheet is in force, every light-DOM
-   * element the stage computes display: none for is kept hidden in the
-   * clone (see cloneElement) - #4119: a portal hid its "You're offline"
-   * banner with a rule in a sheet on another host, and without this the
-   * picture would show the banner the stage keeps hidden. The sheet's
-   * colours, layout and content are still lost.
+   * from 52ms to 1.9s, and its SVG from 134KB to 4.8MB. But two of the
+   * ways it hides what the page does not want seen are on the stage for
+   * free, because an element's computed style reports them whichever rule
+   * did it: display: none and visibility. So while such a sheet is in
+   * force, both are carried from the stage to the light-DOM elements of
+   * the clone (see carryHidingFromStage) - #4119: a portal hid its
+   * "You're offline" banner with a rule in a sheet on another host, and
+   * without this the picture would show the banner the stage keeps
+   * hidden. Other things are hidden with visibility instead: an
+   * off-canvas menu, a closed tooltip, a collapsed table row.
+   *
+   * Nothing else the sheet does comes across. Its colours, layout and
+   * content are lost, and so is every other way it hides things:
+   * screen-reader-only text it clips to a pixel, a skip link it moves off
+   * screen and a panel it only transforms out of view all appear in the
+   * picture.
    *
    * Only this document's own sheets are looked at: a shadow tree is
-   * inlined from computed style, display included, whatever its sheets
-   * say, and a nested frame's document is measured by its own
-   * serialiser. A page with no such sheet is captured exactly as before.
+   * inlined from computed style, display and visibility included,
+   * whatever its sheets say, and a nested frame's document is measured by
+   * its own serialiser. A page with no such sheet is captured exactly as
+   * before.
    */
   private findUnreadableStyleSheet(): boolean {
     const owners: NodeListOf<Element> =
@@ -2120,15 +2133,13 @@ class ReplayFrameSerializer {
 
       /*
        * The light DOM is styled by the page's own rules, and a sheet the
-       * clone could not read may be what hid this element: kept hidden
-       * (see findUnreadableStyleSheet). The style is the one measure()
-       * cached, and it is read only while such a sheet is in force.
+       * clone could not read may be what hid this element, with display:
+       * none or visibility: that much is carried from the stage (see
+       * carryHidingFromStage). Nothing is read while no such sheet is in
+       * force.
        */
-      if (
-        this.hasUnreadableStyleSheet &&
-        this.getStyle(live).getPropertyValue("display").trim() === "none"
-      ) {
-        declarations.push("display: none !important");
+      if (this.hasUnreadableStyleSheet) {
+        this.carryHidingFromStage(live, context, declarations);
       }
     }
 
@@ -2191,6 +2202,82 @@ class ReplayFrameSerializer {
     }
 
     return isModal ? null : clone;
+  }
+
+  /*
+   * How the stage hides a light-DOM element, carried into the clone while
+   * a sheet the clone cannot read is in force (see
+   * findUnreadableStyleSheet). The styles are the ones measure() cached,
+   * and visibility costs two more reads of them per element: its own and
+   * its parent's.
+   *
+   * display: none is not inherited: each element the stage computes it
+   * for is pinned, and what is inside it goes with it.
+   *
+   * visibility is inherited, and a box can show inside a hidden one - a
+   * menu's toggle in its closed drawer. An element the stage computes
+   * hidden or collapse is pinned to that value, even where it only
+   * inherits it: a rule the clone keeps might show it, where on the stage
+   * a rule of the unreadable sheet outranked that one. An element the
+   * stage computes visible is pinned visible inside a hidden or collapsed
+   * parent, and left alone inside a visible one, as inheriting then gives
+   * it what the stage shows - so a page that hides nothing with
+   * visibility gets nothing for it. The reverse is not carried, for
+   * either property: an element that a rule the clone keeps hides, and
+   * that only the unreadable sheet showed, stays hidden in the picture.
+   *
+   * An SVG element that only inherits its parent's hiding is left to
+   * inherit it, although a rule the clone keeps could then show it. <use>
+   * draws a copy of what it points at, style attribute and all, and on
+   * the stage that copy inherits from the <use>: pinned, every icon drawn
+   * from a sprite sheet in a hidden <svg> would vanish from the picture.
+   * The sprite's <svg> itself, inside a parent that shows, is pinned all
+   * the same.
+   *
+   * An animated visibility is left to collectDeclarations, which pins its
+   * paused value already.
+   */
+  private carryHidingFromStage(
+    live: Element,
+    context: CloneContext,
+    declarations: Array<string>,
+  ): void {
+    const style: CSSStyleDeclaration = this.getStyle(live);
+
+    if (style.getPropertyValue("display").trim() === "none") {
+      declarations.push("display: none !important");
+    }
+
+    const animated: Set<string> | undefined = this.animatedProperties.get(live);
+
+    if (animated && animated.has("visibility")) {
+      return;
+    }
+
+    const visibility: string = style.getPropertyValue("visibility").trim();
+    /*
+     * On the stage the root inherits nothing and starts visible; in the
+     * picture its parent is the frame, which is pinned visible
+     * (buildReplayFrameSvg).
+     */
+    const parentVisibility: string = context.parentStyle
+      ? context.parentStyle.getPropertyValue("visibility").trim()
+      : "visible";
+
+    if (visibility === "visible") {
+      if (parentVisibility === "hidden" || parentVisibility === "collapse") {
+        declarations.push("visibility: visible !important");
+      }
+
+      return;
+    }
+
+    if (
+      (visibility === "hidden" || visibility === "collapse") &&
+      (live.namespaceURI !== SVG_NAMESPACE || visibility !== parentVisibility)
+    ) {
+      declarations.push(`visibility: ${visibility} !important`);
+    }
   }
 
   private createClone(live: Element): Element {
@@ -2749,8 +2836,9 @@ class ReplayFrameSerializer {
    * image would not fetch the sheet. A sheet the stage loaded from the
    * recorded site - kept as a <link> because the recorder could not read
    * it either - is another site's to the replay document too, and its
-   * rules cannot be read: it is left out, and what it hides is kept
-   * hidden another way (see findUnreadableStyleSheet).
+   * rules cannot be read: it is left out, and what it hides with display:
+   * none or visibility is kept hidden another way (see
+   * findUnreadableStyleSheet).
    */
   private cloneLinkElement(live: Element, context: CloneContext): Node | null {
     const rel: string = (live.getAttribute("rel") ?? "").toLowerCase();
@@ -2807,6 +2895,22 @@ class ReplayFrameSerializer {
    * refuses other sites, it has gone, or the recording was made under
    * Mask all text, whose images are never loaded - and the stage draws
    * it broken, so it is drawn broken here too.
+   *
+   * A known limit: an image can be loading and still show a picture on
+   * the stage. When a recorded mutation changes the src or srcset of one
+   * that had loaded - a carousel's next slide, a gallery's main photo, a
+   * lazy loader putting the real file in place of a data: placeholder -
+   * the stage keeps painting the previous picture until the new file
+   * arrives. It is drawn blank here all the same, a hole where the stage
+   * shows that picture, because nothing in the element tells the two
+   * cases apart: during that load Chromium reports complete false,
+   * naturalWidth 0 and currentSrc '' - exactly what an image loading for
+   * the first time reports - and WebKit likewise reports no natural size
+   * and the new address. The previous picture lives on only in the
+   * stage's rendering, which no DOM property exposes; telling the cases
+   * apart would take the stage remembering what each image last loaded.
+   * (Firefox does keep the previous currentSrc, so there a data:
+   * placeholder is still copied in.)
    */
   private applyImage(
     live: HTMLImageElement,

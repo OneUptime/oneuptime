@@ -3243,6 +3243,312 @@ describe("serializeReplayFrame", () => {
       ).toBeNull();
       expect(captured.serialization.svg).not.toContain("widget-cdn.example");
     });
+
+    /*
+     * visibility is the other way of hiding that a computed style reports
+     * whichever rule did it: an off-canvas menu, a closed tooltip, a
+     * collapsed table row. It is inherited, and a box can show inside a
+     * hidden one, so the stage's value is pinned wherever the clone could
+     * otherwise differ - and nowhere else.
+     */
+    function makeDrawerPage(): Document {
+      return makeReplayDocument(
+        `<nav id="drawer" class="offcanvas"><a id="drawer-link" class="menu-link" href="#home">Home</a><button id="drawer-toggle" class="toggle">Menu</button></nav>` +
+          `<table><tbody id="rows"><tr id="collapsed-row" class="collapse"><td id="collapsed-cell">Archived</td></tr><tr id="open-row"><td id="open-cell">Current</td></tr></tbody></table>` +
+          `<main id="content"><p id="welcome">Welcome</p><span id="badge" style="color: red">New</span></main>`,
+        {
+          head:
+            `<link id="portal" rel="stylesheet" href="https://portal-cdn.example/portal.css">` +
+            /*
+             * A rule the clone keeps, which on the stage the portal's
+             * `.offcanvas .menu-link { visibility: hidden }` outranks.
+             */
+            `<style>.menu-link { visibility: visible; }</style>`,
+        },
+      );
+    }
+
+    /* What the portal's sheet makes the stage compute for each element. */
+    function setStageVisibility(
+      replayDocument: Document,
+      visibilities: Record<string, string>,
+    ): void {
+      for (const [id, visibility] of Object.entries(visibilities)) {
+        overrideComputedStyle(liveById(replayDocument, id), {
+          visibility: visibility,
+        });
+      }
+    }
+
+    /* The drawer closed and a table row collapsed, as the stage has them. */
+    const DRAWER_PAGE_ON_STAGE: Record<string, string> = {
+      drawer: "hidden",
+      "drawer-link": "hidden",
+      "drawer-toggle": "visible",
+      "collapsed-row": "collapse",
+      "collapsed-cell": "collapse",
+    };
+
+    /* Every visibility declaration in the picture, by id or by name. */
+    function carriedVisibility(
+      captured: CapturedFrame,
+    ): Record<string, string> {
+      const carried: Record<string, string> = {};
+
+      for (const element of Array.from(captured.html.querySelectorAll("*"))) {
+        const declarations: Array<string> = declarationsOf(element).filter(
+          (declaration: string): boolean => {
+            return declaration.startsWith("visibility");
+          },
+        );
+
+        if (declarations.length > 0) {
+          carried[element.getAttribute("id") ?? element.localName] =
+            declarations.join("; ");
+        }
+      }
+
+      return carried;
+    }
+
+    it("pins what a sheet it cannot read hides with visibility, hidden and collapse alike, and a child it shows inside a hidden box", () => {
+      const replayDocument: Document = makeDrawerPage();
+      const portal: CrossOriginSheet = makeCrossOriginSheet("throws");
+
+      giveSheet(liveById(replayDocument, "portal"), portal.sheet);
+      setStageVisibility(replayDocument, DRAWER_PAGE_ON_STAGE);
+
+      const before: string = replayDocument.documentElement.outerHTML;
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(carriedVisibility(captured)).toEqual({
+        drawer: "visibility: hidden !important",
+        /*
+         * Hidden only by inheriting, and pinned all the same: unpinned,
+         * the kept .menu-link rule would show it in the picture.
+         */
+        "drawer-link": "visibility: hidden !important",
+        /* Visible inside a hidden parent: it would inherit hidden. */
+        "drawer-toggle": "visibility: visible !important",
+        "collapsed-row": "visibility: collapse !important",
+        "collapsed-cell": "visibility: collapse !important",
+      });
+      /*
+       * Nothing for what shows inside a box that shows - it inherits what
+       * the stage has - and an element's own declarations come first.
+       */
+      expect(byId(captured.svg, "content").getAttribute("style")).toBeNull();
+      expect(byId(captured.svg, "welcome").getAttribute("style")).toBeNull();
+      expect(byId(captured.svg, "open-row").getAttribute("style")).toBeNull();
+      expect(styleOf(byId(captured.svg, "badge"))).toBe("color: red");
+      expect(styleOf(byId(captured.svg, "drawer-link"))).toBe(
+        "visibility: hidden !important",
+      );
+      /* Only read, as for display: none. */
+      expect(replayDocument.documentElement.outerHTML).toBe(before);
+      expect(portal.disabledWrites).toEqual([]);
+      expect(portal.readCount()).toBeLessThanOrEqual(2);
+    });
+
+    it("adds no visibility anywhere when every sheet in force can be read, though the page hides elements with it", () => {
+      const replayDocument: Document = makeDrawerPage();
+
+      giveSheet(
+        liveById(replayDocument, "portal"),
+        makeMockSheet([
+          { cssText: ".offcanvas { visibility: hidden; }" },
+          { cssText: ".offcanvas .menu-link { visibility: hidden; }" },
+          { cssText: ".toggle { visibility: visible; }" },
+          { cssText: ".collapse { visibility: collapse; }" },
+        ]),
+      );
+      setStageVisibility(replayDocument, DRAWER_PAGE_ON_STAGE);
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      /* The page's own rules do it in the picture, as on the stage. */
+      expect(headStyleTexts(captured).join("\n")).toContain(
+        ".offcanvas { visibility: hidden; }",
+      );
+      expect(carriedVisibility(captured)).toEqual({});
+
+      for (const id of Object.keys(DRAWER_PAGE_ON_STAGE)) {
+        expect(byId(captured.svg, id).getAttribute("style")).toBeNull();
+      }
+    });
+
+    it("pins no visibility on a page that hides nothing with it, though a sheet it cannot read is in force", () => {
+      const replayDocument: Document = makeDrawerPage();
+
+      giveSheet(
+        liveById(replayDocument, "portal"),
+        makeCrossOriginSheet("null").sheet,
+      );
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(carriedVisibility(captured)).toEqual({});
+      expect(byId(captured.svg, "drawer").getAttribute("style")).toBeNull();
+      expect(styleOf(byId(captured.svg, "badge"))).toBe("color: red");
+    });
+
+    it("pins display: none and visibility together on an element the stage hides both ways", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="offline" class="displayNone invisible" style="color: red"><p id="offline-text">You're offline.</p></div><p id="welcome">Welcome</p>`,
+        {
+          head: `<link id="portal" rel="stylesheet" href="https://portal-cdn.example/portal.css">`,
+        },
+      );
+
+      giveSheet(
+        liveById(replayDocument, "portal"),
+        makeCrossOriginSheet("throws").sheet,
+      );
+      overrideComputedStyle(liveById(replayDocument, "offline"), {
+        display: "none",
+        visibility: "hidden",
+      });
+      /* visibility is inherited, display: none is not. */
+      setStageVisibility(replayDocument, { "offline-text": "hidden" });
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(styleOf(byId(captured.svg, "offline"))).toBe(
+        "color: red; display: none !important; visibility: hidden !important",
+      );
+      expect(styleOf(byId(captured.svg, "offline-text"))).toBe(
+        "visibility: hidden !important",
+      );
+      expect(byId(captured.svg, "welcome").getAttribute("style")).toBeNull();
+    });
+
+    /*
+     * <use> draws a copy of what it points at, style attribute and all, and
+     * on the stage that copy inherits from the <use>. A sprite sheet in a
+     * hidden <svg> is pinned at the <svg>; what it holds is left to inherit
+     * from there, or every icon drawn from it would vanish from the picture.
+     */
+    it("pins a hidden sprite <svg> but leaves the symbols in it to inherit, so the icons <use> draws from them still show", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<svg id="sprite" class="hidden-sprite"><symbol id="icon-star"><rect id="star-shape" width="10" height="10"></rect><circle id="star-dot" r="2"></circle></symbol></svg>` +
+          `<svg id="toolbar"><use id="star-use" href="#icon-star"></use></svg>` +
+          `<div id="tip" class="tooltip"><svg id="tip-icon"><use id="tip-use" href="#icon-star"></use></svg></div>`,
+        {
+          head: `<link id="portal" rel="stylesheet" href="https://portal-cdn.example/portal.css">`,
+        },
+      );
+
+      giveSheet(
+        liveById(replayDocument, "portal"),
+        makeCrossOriginSheet("throws").sheet,
+      );
+      setStageVisibility(replayDocument, {
+        sprite: "hidden",
+        "icon-star": "hidden",
+        "star-shape": "hidden",
+        /* Shown by the sheet inside the hidden sprite: pinned visible. */
+        "star-dot": "visible",
+        /* A closed tooltip, and the icon in it that only inherits that. */
+        tip: "hidden",
+        "tip-icon": "hidden",
+        "tip-use": "hidden",
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(carriedVisibility(captured)).toEqual({
+        sprite: "visibility: hidden !important",
+        "star-dot": "visibility: visible !important",
+        tip: "visibility: hidden !important",
+      });
+      /* The references the copies are drawn from are kept. */
+      expect(byId(captured.svg, "star-use").getAttribute("href")).toBe(
+        "#icon-star",
+      );
+    });
+
+    /*
+     * An animated visibility is pinned at its paused value with the rest of
+     * the element's animated properties; it is not pinned a second time.
+     */
+    it("leaves an animated visibility to the animation freeze", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="toast" class="toast">Saved</div>`,
+        {
+          head: `<link id="portal" rel="stylesheet" href="https://portal-cdn.example/portal.css">`,
+        },
+      );
+      const toast: HTMLElement = liveById(replayDocument, "toast");
+
+      giveSheet(
+        liveById(replayDocument, "portal"),
+        makeCrossOriginSheet("throws").sheet,
+      );
+      setStageVisibility(replayDocument, { toast: "hidden" });
+      defineAnimations(replayDocument, (): Array<unknown> => {
+        return [
+          fakeAnimation({
+            target: toast,
+            keyframes: [{ visibility: "visible" }, { visibility: "hidden" }],
+          }),
+        ];
+      });
+
+      expect(
+        declarationsOf(byId(capture(replayDocument).svg, "toast")),
+      ).toEqual(["visibility: hidden !important"]);
+    });
+
+    /*
+     * Where the clone inlines an element's whole computed style anyway -
+     * flattened shadow content, a modal dialog, a frame's stand-in image -
+     * visibility comes with it, once.
+     */
+    it("leaves visibility to the computed style where the clone inlines it anyway", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<fancy-card id="card"></fancy-card><dialog id="modal" open><p id="modal-text">Confirm</p></dialog><iframe id="widget"></iframe>`,
+        {
+          head: `<link id="portal" rel="stylesheet" href="https://portal-cdn.example/portal.css">`,
+        },
+      );
+      const root: ShadowRoot = attachShadow(
+        liveById(replayDocument, "card"),
+        `<p id="shadow-tip">Tip</p>`,
+      );
+
+      giveSheet(
+        liveById(replayDocument, "portal"),
+        makeCrossOriginSheet("throws").sheet,
+      );
+      makeModal(liveById(replayDocument, "modal"));
+      overrideComputedStyle(root.getElementById("shadow-tip") as Element, {
+        visibility: "hidden",
+      });
+      setStageVisibility(replayDocument, {
+        modal: "hidden",
+        "modal-text": "visible",
+        widget: "hidden",
+      });
+
+      const svg: Document = capture(replayDocument).svg;
+      const count: (id: string, declaration: string) => number = (
+        id: string,
+        declaration: string,
+      ): number => {
+        return declarationsOf(byId(svg, id)).filter(
+          (candidate: string): boolean => {
+            return candidate === declaration;
+          },
+        ).length;
+      };
+
+      expect(count("shadow-tip", "visibility: hidden !important")).toBe(1);
+      expect(count("modal", "visibility: hidden !important")).toBe(1);
+      expect(count("modal-text", "visibility: visible !important")).toBe(1);
+      expect(count("widget", "visibility: hidden !important")).toBe(1);
+      /* The shadow host shows, and its computed style says so by omission. */
+      expect(styleOf(byId(svg, "card"))).not.toContain("visibility");
+    });
   });
 
   /*
@@ -3595,6 +3901,90 @@ describe("serializeReplayFrame", () => {
       expect(lazy.hasAttribute("loading")).toBe(false);
       /* Nothing is read from an image that has not finished. */
       expect(canvas.draws).toEqual([]);
+    });
+
+    /*
+     * A KNOWN LIMIT, pinned so that changing it is a decision - this is not
+     * the picture we would want. A recorded mutation changed the src of an
+     * image that had loaded (a carousel's next slide), or a lazy loader put
+     * the real file in place of a data: placeholder, and the new file is
+     * still on its way. The stage keeps painting the previous image until
+     * it arrives, but Chromium reports what a first load reports - not
+     * complete, no natural size, and a currentSrc of '' - so the capture
+     * cannot tell the two apart and leaves a transparent hole where the
+     * stage shows a picture.
+     */
+    it("leaves an image whose src just changed transparent, although the stage still shows its previous image (a known limit)", () => {
+      const canvas: ImageCanvasMock = mockImageCanvas({
+        hasContext: true,
+        dataUrl: "data:image/png;base64,Q09QSUVE",
+      });
+      const replayDocument: Document = makeReplayDocument(
+        `<img id="slide" src="https://cdn.example/slide-1.jpg" alt="Slide" style="width: 320px; height: 180px">` +
+          `<img id="photo" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Photo" style="width: 200px; height: 150px">`,
+      );
+      const slide: HTMLElement = liveById(replayDocument, "slide");
+      const photo: HTMLElement = liveById(replayDocument, "photo");
+
+      /* The mutations, and what Chromium reports while the new files load. */
+      slide.setAttribute("src", "https://cdn.example/slide-2.jpg");
+      photo.setAttribute("src", "https://cdn.example/photo.jpg");
+
+      for (const image of [slide, photo]) {
+        markImageLoading(image);
+        Object.defineProperty(image, "currentSrc", {
+          configurable: true,
+          get: (): string => {
+            return "";
+          },
+        });
+      }
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      for (const id of ["slide", "photo"]) {
+        const image: Element = byId(captured.svg, id);
+
+        expect(image.getAttribute("src")).toBe(REPLAY_FRAME_TRANSPARENT_IMAGE);
+        expect(styleOf(image)).toContain("object-fit: fill !important");
+      }
+
+      expect(styleOf(byId(captured.svg, "slide"))).toContain(
+        "width: 320px !important",
+      );
+      expect(styleOf(byId(captured.svg, "photo"))).toContain(
+        "height: 150px !important",
+      );
+      /* Not the placeholder either: currentSrc no longer names it. */
+      expect(captured.serialization.svg).not.toContain("R0lGODlhAQABAIAAAP");
+      expect(captured.serialization.svg).not.toContain("cdn.example");
+      expect(canvas.draws).toEqual([]);
+    });
+
+    /*
+     * Firefox keeps the previous currentSrc until the new file arrives, so
+     * there a data: placeholder being replaced is still drawn, as the stage
+     * draws it.
+     */
+    it("keeps a data: placeholder the engine still reports as currentSrc while its replacement loads", () => {
+      const placeholder: string =
+        "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
+      const replayDocument: Document = makeReplayDocument(
+        `<img id="photo" src="https://cdn.example/photo.jpg" alt="Photo">`,
+      );
+      const photo: HTMLElement = liveById(replayDocument, "photo");
+
+      markImageLoading(photo, { width: 1, height: 1 });
+      Object.defineProperty(photo, "currentSrc", {
+        configurable: true,
+        get: (): string => {
+          return placeholder;
+        },
+      });
+
+      expect(
+        byId(capture(replayDocument).svg, "photo").getAttribute("src"),
+      ).toBe(placeholder);
     });
 
     /*
