@@ -172,10 +172,8 @@ describe("CephRateChart", () => {
   const code: string = readCode("Components/Ceph/CephRateChart.tsx");
 
   test("its line chart takes the zoom of the page or card around it: no handlers of its own", () => {
-    const chart: string = code.slice(
-      indexOfOrFail(code, "<LineChartElement"),
-      indexOfOrFail(code, "/> ); };"),
-    );
+    const start: number = indexOfOrFail(code, "<LineChartElement");
+    const chart: string = code.slice(start, code.indexOf("/>", start));
     expect(chart).toContain("xAxis={xAxis}");
     expect(chart).not.toContain("onTimeRangeSelect");
     expect(chart).not.toContain("onTimeRangeReset");
