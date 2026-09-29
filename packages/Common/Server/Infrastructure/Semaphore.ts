@@ -21,6 +21,20 @@ export default class Semaphore {
     acquireTimeout?: number | undefined;
     acquireAttemptsLimit?: number | undefined;
     retryInterval?: number | undefined;
+    /*
+     * How often a held lock is re-asserted. redis-semaphore defaults to 80%
+     * of lockTimeout, which is also how long `mutex.isAcquired` can go on
+     * reading true after the lock was lost (a Valkey restart, an eviction):
+     * it only changes when a refresh fails. A holder that polls isAcquired
+     * between steps wants this well under lockTimeout.
+     */
+    refreshInterval?: number | undefined;
+    /*
+     * Called when a refresh finds the lock gone. By default redis-semaphore
+     * throws from its refresh timer, which nothing can catch and which ends
+     * up as an unhandled rejection; a long-running holder should pass one.
+     */
+    onLockLost?: ((err: Error) => void) | undefined;
   }): Promise<SemaphoreMutex> {
     if (!data.lockTimeout) {
       data.lockTimeout = 5000;
@@ -50,6 +64,14 @@ export default class Semaphore {
 
     if (data.retryInterval) {
       lockOptions.retryInterval = data.retryInterval;
+    }
+
+    if (data.refreshInterval) {
+      lockOptions.refreshInterval = data.refreshInterval;
+    }
+
+    if (data.onLockLost) {
+      lockOptions.onLockLost = data.onLockLost;
     }
 
     const mutex: SemaphoreMutex = new Mutex(

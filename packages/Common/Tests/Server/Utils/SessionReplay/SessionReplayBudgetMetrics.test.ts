@@ -1005,6 +1005,59 @@ describe("SessionReplayBudgetMetrics.publishAll", () => {
     );
   });
 
+  /*
+   * A read that fails partway through: what earlier pages wrote stays
+   * written, and the warning says so rather than "nothing was published".
+   */
+  test("counters lost partway keep the earlier pages' rows, and the warning counts them", async () => {
+    pages = [
+      fullPage(1, PROJECT_A),
+      [makeApplication({ id: applicationId(9999), projectId: PROJECT_B })],
+    ];
+    counters[dailyKey(PROJECT_A)] = 1000;
+
+    let reads: number = 0;
+
+    jest
+      .spyOn(SessionReplayUsage, "readByteCounters")
+      .mockImplementation(
+        async (keys: Array<string>): Promise<Array<number> | null> => {
+          reads++;
+
+          if (reads > 1) {
+            return null;
+          }
+
+          return keys.map((key: string) => {
+            return counters[key] || 0;
+          });
+        },
+      );
+
+    const summary: SessionReplayBudgetSweepSummary = await sweep();
+
+    expect(summary.stopReason).toBe("counters-unavailable");
+    expect(summary.rowsWritten).toBe(2 * SESSION_REPLAY_BUDGET_SWEEP_PAGE_SIZE);
+    expect(insertedBatches).toHaveLength(1);
+
+    const warning: string = String(
+      (logger.warn as unknown as jest.Mock).mock.calls.find(
+        (call: Array<unknown>) => {
+          return String(call[0]).includes("could not be read from Redis");
+        },
+      )?.[0],
+    );
+
+    expect(warning).toContain(
+      `${2 * SESSION_REPLAY_BUDGET_SWEEP_PAGE_SIZE} row(s) from earlier pages were`,
+    );
+    // Names the page it stopped at: the first page's last application.
+    expect(warning).toContain(
+      applicationId(SESSION_REPLAY_BUDGET_SWEEP_PAGE_SIZE).toString(),
+    );
+    expect(warning).not.toContain("nothing is published");
+  });
+
   test("a page that cannot be read ends the sweep quietly - it never throws", async () => {
     jest
       .spyOn(RumApplicationService, "findBy")
@@ -1382,6 +1435,17 @@ describe("SessionReplayBudgetMetrics.publishAll", () => {
     });
 
     expect(mismatchWarnings).toHaveLength(1);
+
+    /*
+     * On Helm a component's own extraEnv replaces the chart-wide list, so
+     * "set it chart-wide" alone does not reach a worker with its own list.
+     */
+    const warning: string = String((mismatchWarnings[0] as Array<unknown>)[0]);
+
+    expect(warning).toContain(`${DAILY_LIMIT} bytes`);
+    expect(warning).toContain("chart-wide extraEnv");
+    expect(warning).toContain("app.extraEnv or worker.extraEnv");
+
     // It still publishes what it knows.
     expect(summary.rowsWritten).toBe(4);
   });

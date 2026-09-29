@@ -649,7 +649,7 @@ const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
       "Triggers when the project's session replay uploads today reach 100% of its daily limit at any point in the last 15 minutes.",
     incidentHeadline: "Session replay paused: project's daily budget spent",
     getIncidentDescription: (): string => {
-      return "This project has spent today's session replay upload limit, which all of its RUM applications share: every recorder in the project has been told to stop, and nothing more is recorded until 00:00 UTC, when this resolves on its own. To make tomorrow's limit last, lower the Sample percentage, upload only On error or frustration, or narrow the Allowed origins on the busiest applications' Replay Policy page. Self-hosted: the limit is SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY.";
+      return "This project has spent today's session replay upload limit, which all of its RUM applications share: every recorder in the project has been told to stop, and nothing more is recorded until 00:00 UTC. This resolves on its own at about 00:10-00:15 UTC, once the last reading over the limit has left the monitor's 15-minute window. To make tomorrow's limit last, lower the Sample percentage, upload only On error or frustration, or narrow the Allowed origins on the busiest applications' Replay Policy page. Self-hosted: the limit is SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY.";
     },
   }),
   buildSessionReplayBudgetTemplate({

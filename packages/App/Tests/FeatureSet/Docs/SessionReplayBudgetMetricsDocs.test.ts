@@ -755,7 +755,23 @@ describe("Session replay storage budget alerts docs", (): void => {
       expect(block).toContain(
         "Removing the budget silences its monthly monitors",
       );
-      expect(block).toContain("one set mid-month counts from that moment");
+      expect(block).toContain(
+        "one first set mid-month counts from that moment",
+      );
+
+      /*
+       * The month's counter is keyed by project, application and UTC month
+       * alone, and nothing clears it when a budget is removed: a budget set
+       * again in the same month picks up where the month's count stood.
+       */
+      expect(block).toContain(
+        "one removed and set again in the same month picks up that month's earlier count",
+      );
+      expect(
+        readRepo("Common/Server/Utils/SessionReplay/SessionReplayUsage.ts"),
+      ).toContain(
+        "return `${MONTHLY_APP_BYTE_KEY_PREFIX}${data.projectId.toString()}:${data.rumApplicationId.toString()}:${this.getUtcMonthBucket()}`;",
+      );
 
       /*
        * Which applications are swept at all: replay on for the application
@@ -1305,6 +1321,25 @@ describe("Session replay storage budget alerts docs", (): void => {
         "or rename to one with a metric pipeline rule",
       );
       expect(retention).toContain("are dropped at ingest");
+
+      // Recording rules write past ingest; their services refuse the prefix.
+      expect(retention).toContain(
+        "a recording rule cannot be saved with one as its output",
+      );
+
+      for (const service of [
+        "MetricRecordingRuleService",
+        "TraceRecordingRuleService",
+      ]) {
+        const code: string = readRepo(`Common/Server/Services/${service}.ts`);
+
+        expect([
+          service,
+          code.includes("assertOutputMetricNameAllowed("),
+        ]).toEqual([service, true]);
+        expect(code).toContain("protected override async onBeforeCreate(");
+        expect(code).toContain("protected override async onBeforeUpdate(");
+      }
     });
   });
 
@@ -1365,14 +1400,42 @@ describe("Session replay storage budget alerts docs", (): void => {
 
       for (const phrase of [
         "from its own copy of the variable",
-        "set it in the chart-wide `extraEnv`",
-        "`app.extraEnv`",
-        "`worker.extraEnv`",
+        "On Docker Compose, set it in `config.env`: one `app` container runs both.",
+        "set it in the chart-wide `extraEnv`, and also in `app.extraEnv` or `worker.extraEnv` if you set either",
         "replaces the chart-wide list instead of adding to it",
         "which runs without persistence by default, so a Valkey restart resets them",
       ]) {
         expect([phrase, bullet.includes(phrase)]).toEqual([phrase, true]);
       }
+    });
+
+    /*
+     * "Set it in config.env" only holds if compose hands it on: the app
+     * service lists its variables one by one and has no env_file. Unset, it
+     * arrives empty, which parseBatchSize (and the Health API) read as the
+     * 1 GiB default - so forwarding it changes nothing for anyone who does
+     * not set it.
+     */
+    it("compose passes the daily limit to the app container, empty when unset", (): void => {
+      const compose: string = readCheckout("docker-compose.base.yml");
+      const appService: string =
+        compose.split(/^ {2}app:\n/m)[1]?.split(/^ {2}\S[^\n]*:\n/m)[0] || "";
+
+      expect(appService).toContain(
+        "SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: ${SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY:-}",
+      );
+
+      const telemetryConfig: string = readRepo(
+        "App/FeatureSet/Telemetry/Config.ts",
+      );
+
+      // parseBatchSize: an empty value is the default, not 0 or NaN.
+      expect(telemetryConfig).toContain(
+        "if (!value) {\n    return defaultValue;",
+      );
+      expect(telemetryConfig).toContain(
+        'parseBatchSize(\n    "SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY",',
+      );
     });
   });
 });

@@ -233,11 +233,15 @@ describe("aggregation, titles, descriptions and scope", () => {
       expect(description).toContain(
         `every ${SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES} minutes`,
       );
-      expect(description).toContain("while above zero");
+      /*
+       * "Usage", not the value: a percent point goes out with its bytes point
+       * even when it rounds down to 0.00.
+       */
+      expect(description).toContain("while usage is above zero");
     },
   );
 
-  test("the project series warn against Sum in their own descriptions", () => {
+  test("the project series warn against Sum, and say which applications carry them", () => {
     for (const metricType of ALL_BUDGET_METRIC_TYPES) {
       const description: string =
         SessionReplayBudgetMetricTypeUtil.getDescription(metricType);
@@ -245,7 +249,26 @@ describe("aggregation, titles, descriptions and scope", () => {
         SessionReplayBudgetMetricTypeUtil.isProjectScoped(metricType);
 
       expect(description.includes("never Sum")).toBe(projectScoped);
+      expect(
+        description.includes(
+          "every application that records (session replay on)",
+        ),
+      ).toBe(projectScoped);
     }
+  });
+
+  /*
+   * The crossing upload is refused but stays counted, so the bytes were not
+   * all "let through" - they are what the limit was charged.
+   */
+  test("the daily bytes are what the limit was charged, not what was let through", () => {
+    const description: string =
+      SessionReplayBudgetMetricTypeUtil.getDescription(
+        SessionReplayBudgetMetricType.ProjectDailyUsedBytes,
+      );
+
+    expect(description).toContain("counted against the project's daily limit");
+    expect(description).not.toContain("let through");
   });
 
   test("the percent descriptions say what 100 means and that the value is rounded down", () => {

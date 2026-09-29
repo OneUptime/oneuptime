@@ -95,13 +95,19 @@ class SessionReplayBudgetMetricTypeUtil {
   public static getDescription(
     metricType: SessionReplayBudgetMetricType,
   ): string {
-    const everyInterval: string = `Written every ${SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES} minutes while above zero`;
+    /*
+     * "Usage", not the value: a percent point is posted with the bytes point,
+     * and a few kilobytes of a gigabyte round down to 0.00.
+     */
+    const everyInterval: string = `Written every ${SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES} minutes while usage is above zero`;
+    const sharedByApplications: string =
+      "with the same value on every application that records (session replay on): aggregate with Max, never Sum";
 
     switch (metricType) {
       case SessionReplayBudgetMetricType.ProjectDailyUsedBytes:
-        return `Session replay upload bytes let through since 00:00 UTC for the whole project, all applications together, as the recorders sent them (usually compressed). ${everyInterval}, with the same value on every application that has recorded: aggregate with Max, never Sum.`;
+        return `Session replay upload bytes counted against the project's daily limit since 00:00 UTC, all applications together, as the recorders sent them (usually compressed). ${everyInterval}, ${sharedByApplications}.`;
       case SessionReplayBudgetMetricType.ProjectDailyUsedPercent:
-        return `The project's session replay bytes today as a percent of this deployment's daily limit, rounded down to 0.01. At 100 or more, recorders are told to stop until 00:00 UTC. ${everyInterval}, with the same value on every application that has recorded: aggregate with Max, never Sum.`;
+        return `The project's session replay bytes today as a percent of this deployment's daily limit, rounded down to 0.01. At 100 or more, recorders are told to stop until 00:00 UTC. ${everyInterval}, ${sharedByApplications}.`;
       case SessionReplayBudgetMetricType.ApplicationMonthlyUsedBytes:
         return `Session replay upload bytes charged to this application's monthly budget since the 1st of the month (UTC), counted only while a budget is set. ${everyInterval}, and only for applications with a monthly budget.`;
       case SessionReplayBudgetMetricType.ApplicationMonthlyUsedPercent:

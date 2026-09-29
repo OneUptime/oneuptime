@@ -217,12 +217,55 @@ describe("one sweep at a time", () => {
     await runTick();
 
     expect(lockMock).toHaveBeenCalledTimes(1);
-    expect(lockMock).toHaveBeenCalledWith({
-      key: JOB_NAME,
-      namespace: "Workers.Cron",
-      lockTimeout: FOUR_MINUTES_MS,
-      acquireAttemptsLimit: 1,
-    });
+    expect(lockMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: JOB_NAME,
+        namespace: "Workers.Cron",
+        lockTimeout: FOUR_MINUTES_MS,
+        acquireAttemptsLimit: 1,
+      }),
+    );
+  });
+
+  /*
+   * isAcquired only turns false when a refresh finds the lock gone, so the
+   * check between pages is only as fresh as the refresh interval.
+   * redis-semaphore's default (80% of the four-minute lock) would leave it
+   * blind for 192 seconds of a 210-second sweep.
+   */
+  test("refreshes the lock every 30 seconds, so a lost lock is noticed between pages", async () => {
+    await runTick();
+
+    const options: { refreshInterval?: number } = lockMock.mock
+      .calls[0]![0] as { refreshInterval?: number };
+
+    expect(options.refreshInterval).toBe(30 * 1000);
+    expect(options.refreshInterval!).toBeLessThan(FOUR_MINUTES_MS / 4);
+  });
+
+  /*
+   * Without a handler redis-semaphore throws from its refresh timer: an
+   * unhandled rejection the process logs as an error, instead of the sweep
+   * stopping quietly at its next page.
+   */
+  test("handles a lost lock itself: a warning, never a throw from the refresh timer", async () => {
+    await runTick();
+
+    const onLockLost: ((err: Error) => void) | undefined = (
+      lockMock.mock.calls[0]![0] as { onLockLost?: (err: Error) => void }
+    ).onLockLost;
+
+    expect(onLockLost).toBeInstanceOf(Function);
+
+    const lost: Error = new Error("Lost mutex for key");
+
+    expect(() => {
+      onLockLost!(lost);
+    }).not.toThrow();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("lost the sweep lock"),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(lost);
   });
 
   test("a sweep already running skips the tick, quietly", async () => {

@@ -108,10 +108,12 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * RealUserMonitor, keyed to the application, so monitors scoped to that
  * application see them - and the application's real web-vitals rows share
  * that id and type, so an entity-type exclusion would stop billing those
- * too. That is only safe because OTLP ingest refuses every name under the
- * session replay prefix (isReservedMetricName in
- * Common/Utils/Rum/SessionReplayBudgetMetricType), so no customer telemetry
- * can be stored under one of these names to be kept for free.
+ * too. That is only safe because nothing but the budget sweep can write a
+ * name under the session replay prefix (isReservedMetricName in
+ * Common/Utils/Rum/SessionReplayBudgetMetricType): OTLP ingest drops them,
+ * and a metric or trace recording rule cannot be saved with one as its
+ * output. So no customer telemetry can be stored under one of these names to
+ * be kept for free.
  */
 export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
   SessionReplayBudgetMetricTypeUtil.getAll();

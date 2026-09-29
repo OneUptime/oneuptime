@@ -1128,7 +1128,7 @@ describe("RecommendationResourceRegistry", () => {
     };
 
     const DAILY_ONLY_NOTE: string =
-      "Only the alerts for the project's shared daily session replay limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
+      "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
     const REPLAY_OFF_NOTE: string =
       "Session replay is off for this application, so its storage budget alerts are not offered. Turn it back on under Replay Policy and they appear here.";
     const REPLAY_OFF_NEVER_RECORDED_NOTE: string =

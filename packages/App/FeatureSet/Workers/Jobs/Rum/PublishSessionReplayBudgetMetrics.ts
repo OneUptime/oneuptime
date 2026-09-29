@@ -32,10 +32,17 @@ export const PUBLISH_SESSION_REPLAY_BUDGET_METRICS_JOB_NAME: string =
  * a half - so a slow sweep ends before the next tick instead of racing it.
  * The job timeout alone cannot do that: runJobWithTimeout is a Promise.race
  * that does not cancel the sweep.
+ *
+ * The deadline is what bounds a sweep. The lock check between pages only
+ * ends one early that lost its lock (a Valkey restart, an eviction), and
+ * isAcquired only turns false when a refresh finds the lock gone - so the
+ * lock is refreshed every 30 seconds rather than redis-semaphore's default of
+ * 80% of the lock timeout, which would leave that check blind for 192.
  */
 const JOB_TIMEOUT_MS: number = OneUptimeDate.convertMinutesToMilliseconds(4);
 const SWEEP_LOCK_TIMEOUT_MS: number =
   OneUptimeDate.convertMinutesToMilliseconds(4);
+const SWEEP_LOCK_REFRESH_INTERVAL_MS: number = 30 * 1000;
 const SWEEP_DEADLINE_SECONDS: number = 210;
 const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
 
@@ -60,6 +67,18 @@ RunCron(
         namespace: SWEEP_LOCK_NAMESPACE,
         lockTimeout: SWEEP_LOCK_TIMEOUT_MS,
         acquireAttemptsLimit: 1,
+        refreshInterval: SWEEP_LOCK_REFRESH_INTERVAL_MS,
+        /*
+         * Without a handler redis-semaphore throws from its refresh timer, an
+         * unhandled rejection nothing can catch. isAcquired is already false
+         * when this runs, so the sweep stops at its next page.
+         */
+        onLockLost: (err: Error): void => {
+          logger.warn(
+            `${PUBLISH_SESSION_REPLAY_BUDGET_METRICS_JOB_NAME}: lost the sweep lock; the sweep stops at its next page.`,
+          );
+          logger.warn(err);
+        },
       });
     } catch (err) {
       if (err instanceof SemaphoreLockTimeoutError) {

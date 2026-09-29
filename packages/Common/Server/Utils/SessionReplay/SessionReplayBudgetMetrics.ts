@@ -69,10 +69,11 @@ import SessionReplayBudgetMetricTypeUtil, {
 export const SESSION_REPLAY_BUDGET_SWEEP_PAGE_SIZE: number = 500;
 
 /*
- * A page whose Project query, insert or catalog write throws is skipped and
- * the sweep moves on - but three in a row means ClickHouse or Postgres is
- * down for everyone, and the remaining pages would only repeat the same
- * error.
+ * A page whose Project query or insert throws is skipped and the sweep moves
+ * on - but three in a row means ClickHouse or Postgres is down for everyone,
+ * and the remaining pages would only repeat the same error. (A failed catalog
+ * write does not fail its page: the rows are already written, and a later
+ * sweep registers the names.)
  */
 export const SESSION_REPLAY_BUDGET_SWEEP_MAX_CONSECUTIVE_FAILED_PAGES: number = 3;
 
@@ -108,7 +109,9 @@ export interface SessionReplayBudgetSweepOptions {
 
   /*
    * Checked between pages. The job passes `() => mutex.isAcquired`, so a
-   * sweep that lost its lock stops instead of racing the next tick's.
+   * sweep stops early once it knows it lost its lock - which it learns at
+   * the lock's next refresh. The deadline is what keeps a sweep out of the
+   * next tick's way; this only ends a lockless one sooner.
    */
   shouldContinue?: (() => boolean) | undefined;
 
@@ -535,7 +538,7 @@ export default class SessionReplayBudgetMetrics {
         if (!result.countersAvailable) {
           summary.stopReason = "counters-unavailable";
           logger.warn(
-            "SessionReplayBudgetMetrics: the budget counters could not be read from Redis; nothing is published this tick (an unknown count is never posted as 0).",
+            `SessionReplayBudgetMetrics: the budget counters could not be read from Redis, so the applications after ${pageStart} are not published this tick (${summary.rowsWritten} row(s) from earlier pages were; an unknown count is never posted as 0).`,
           );
           break;
         }
@@ -575,7 +578,7 @@ export default class SessionReplayBudgetMetrics {
 
     if (summary.dailyLimitMismatchSuspected) {
       logger.warn(
-        `SessionReplayBudgetMetrics: a project's daily session replay counter is more than twice the daily limit this worker uses (${options.dailyByteLimit} bytes). The ingest pods probably read a different SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY, so the published daily percentages are measured against the wrong limit - set it for every component (on Helm, in the chart-wide extraEnv).`,
+        `SessionReplayBudgetMetrics: a project's daily session replay counter is more than twice the daily limit this worker uses (${options.dailyByteLimit} bytes). The ingest pods probably read a different SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY, so the published daily percentages are measured against the wrong limit - set it for every component (on Helm, in the chart-wide extraEnv, and also in app.extraEnv or worker.extraEnv if either is set, because a component's own list replaces the chart-wide one).`,
       );
     }
 
@@ -589,9 +592,10 @@ export default class SessionReplayBudgetMetrics {
   /*
    * One page: drop applications whose project has replay switched off, read
    * every counter the page needs in one batch, write the rows, and register
-   * the names written. Throws on a Project query, insert or catalog failure
-   * (the sweep skips the page); reports unreadable counters separately,
-   * because those end the sweep.
+   * the names written. Throws on a Project query or insert failure (the
+   * sweep skips the page); a catalog failure is logged and swallowed in
+   * registerMetricNames. Reports unreadable counters separately, because
+   * those end the sweep.
    */
   @CaptureSpan()
   private static async publishPage(data: {

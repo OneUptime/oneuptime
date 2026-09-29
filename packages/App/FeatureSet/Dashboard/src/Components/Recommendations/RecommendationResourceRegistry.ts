@@ -282,7 +282,7 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         ) !== null;
 
       if (isEnabled && hasRecorded && !hasBudget) {
-        return "Only the alerts for the project's shared daily session replay limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
+        return "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
       }
 
       if (context.sessionReplayEnabled === false && hasRecorded) {
