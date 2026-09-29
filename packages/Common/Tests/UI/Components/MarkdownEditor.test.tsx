@@ -1907,6 +1907,57 @@ describe("MarkdownEditor typing lines into an empty editor", () => {
   });
 });
 
+/*
+ * The error was a bare paragraph: a required description left empty was
+ * neither announced nor tied to the editor, so to a screen reader the form
+ * did nothing when submitted.
+ */
+describe("MarkdownEditor error message", () => {
+  test("is announced, and describes the visual editor, which is marked invalid", () => {
+    render(<MarkdownEditor initialValue="" error="Description is required." />);
+
+    const editor: HTMLElement = screen.getByRole("textbox");
+    expect(editor).toHaveAttribute("aria-invalid", "true");
+    expect(editor).toHaveAccessibleDescription("Description is required.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Description is required.",
+    );
+  });
+
+  test("describes the markdown source the same way", () => {
+    render(<MarkdownEditor initialValue="" error="Description is required." />);
+
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+    expect(textarea).toHaveAccessibleDescription("Description is required.");
+  });
+
+  test("gives each editor's message an id of its own", () => {
+    render(
+      <>
+        <MarkdownEditor initialValue="" error="Description is required." />
+        <MarkdownEditor initialValue="" error="Impact is required." />
+      </>,
+    );
+
+    const [first, second] = screen.getAllByRole(
+      "textbox",
+    ) as Array<HTMLElement>;
+    expect(first).toHaveAccessibleDescription("Description is required.");
+    expect(second).toHaveAccessibleDescription("Impact is required.");
+  });
+
+  test("leaves the editor unmarked without an error", () => {
+    render(<MarkdownEditor initialValue="" />);
+
+    const editor: HTMLElement = screen.getByRole("textbox");
+    expect(editor).not.toHaveAttribute("aria-invalid");
+    expect(editor).not.toHaveAttribute("aria-describedby");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
 describe("MarkdownEditor help text", () => {
   test("explains Tab and Shift+Tab, and plain-text paste", () => {
     render(<MarkdownEditor initialValue="" />);

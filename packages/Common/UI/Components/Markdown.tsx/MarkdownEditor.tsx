@@ -36,6 +36,7 @@ import React, {
   useState,
   useRef,
   useEffect,
+  useId,
 } from "react";
 
 export interface ComponentProps {
@@ -226,6 +227,13 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const allowImageUpload: boolean = props.allowImageUpload !== false;
+  /*
+   * The error message is tied to the field -- in either mode -- and
+   * announced when it appears, as Input's and TextArea's are. It was a bare
+   * paragraph: a required description left empty was neither announced nor
+   * tied to the editor, so to a screen reader the form did nothing.
+   */
+  const errorId: string = `markdown-editor-error-${useId()}`;
   const [text, setText] = useState<string>(props.initialValue || "");
   const [mode, setMode] = useState<EditorMode>("wysiwyg");
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
@@ -1770,6 +1778,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               role="textbox"
               aria-multiline="true"
               aria-labelledby={props.ariaLabelledby}
+              aria-invalid={props.error ? "true" : undefined}
+              aria-describedby={props.error ? errorId : undefined}
               contentEditable
               suppressContentEditableWarning
               spellCheck={props.disableSpellCheck !== true}
@@ -1818,6 +1828,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               ref={textareaRef}
               autoFocus={false}
               aria-labelledby={props.ariaLabelledby}
+              aria-invalid={props.error ? "true" : undefined}
+              aria-describedby={props.error ? errorId : undefined}
               placeholder={props.placeholder || "Type your markdown here..."}
               className={`${className} rounded-t-none min-h-32 ${
                 isDraggingOver
@@ -1869,7 +1881,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 
       {/* Error Message */}
       {props.error && (
-        <p className="mt-1 text-sm text-red-400">{props.error}</p>
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-400">
+          {props.error}
+        </p>
       )}
 
       {/* Help Text */}
