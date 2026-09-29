@@ -82,11 +82,14 @@ import useAsyncEffect from "use-async-effect";
  *
  * The page may have been open a while when Edit is pressed, and somebody
  * else - another admin, another tab, the API, Terraform - may have changed
- * the settings since. So Edit reads the fields and the settings again before
- * the modal shows a dropdown, and Save reads the settings once more and lays
- * only the dropdowns changed in the modal over what is stored then: a field
- * this edit leaves alone keeps whatever somebody else gave it - on a form, a
- * question another admin took off the public page stays off.
+ * the settings, or the fields, since. So Edit reads the fields and the
+ * settings again before the modal shows a dropdown, and Save reads both once
+ * more and lays only the dropdowns changed in the modal over what is stored
+ * then, for the fields that exist then: a field this edit leaves alone keeps
+ * whatever somebody else gave it - on a form, a question another admin took
+ * off the public page stays off, and one they added for a field made while
+ * the modal was open stays on - and a change to a field deleted meanwhile is
+ * not written back.
  *
  * Saving writes the compacted settings (Default and, on a form, Not Asked
  * are left out) with the record's other columns untouched. A template keeps
@@ -327,16 +330,32 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
 
     try {
       /*
-       * The settings as they are stored now, not as the modal opened: only
-       * the dropdowns changed in the modal are laid over them, so a field
-       * somebody else set meanwhile keeps their setting.
+       * The fields and the settings as they are now, not as the modal
+       * opened: only the dropdowns changed in the modal are laid over the
+       * stored settings, so a field somebody else set meanwhile keeps their
+       * setting. The fields are read again too, because a form keeps the
+       * stored questions of the fields it is packed over and of no other: a
+       * field created since Edit, and asked on the form by somebody else,
+       * keeps its question, and a change made here to a field deleted since
+       * is not written back for a field that no longer exists.
        */
-      const record: SettingsRecord | null = await readRecord();
+      const [fieldDefinitions, record]: [
+        Array<IncidentCustomFieldDefinition>,
+        SettingsRecord | null,
+      ] = await Promise.all([
+        fetchIncidentCustomFieldDefinitions(),
+        readRecord(),
+      ]);
 
       if (record) {
+        const freshDefinitions: Array<KeyedIncidentCustomFieldDefinition> =
+          getKeyedCustomFieldDefinitions(fieldDefinitions);
+
         const newSettings: CustomFieldCreateSettings =
           packCustomFieldSettingsFormValues({
-            definitions: definitions,
+            // The fields that exist now.
+            definitions: freshDefinitions,
+            // What changed is judged against the dropdowns the modal showed.
             formValues: getChangedCustomFieldSettingsFormValues({
               definitions: definitions,
               formValues: data,
@@ -356,6 +375,7 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
         });
 
         // The server stores the settings exactly as sent.
+        setDefinitions(freshDefinitions);
         setSettings(newSettings);
         setIsEditing(false);
       } else {

@@ -142,6 +142,12 @@ const LEGACY: IncidentCustomField = customField({
   showOnCreate: true,
   sortOrder: 4,
 });
+// Made by somebody else while an Edit modal is open.
+const ROOT_CAUSE: IncidentCustomField = customField({
+  name: "Root Cause",
+  sortOrder: 5,
+  variableKey: "root_cause",
+});
 // Copied from the monitor field of the same name once there is a monitor.
 const VENDOR: IncidentCustomField = customField({
   name: "Vendor",
@@ -989,6 +995,68 @@ describe("editing from what is stored now, not what the page loaded", () => {
     expect(settingShownFor("category")).toBe("Hidden");
   });
 
+  test("a setting somebody gives a field made while the modal is open is kept", async () => {
+    await renderTemplateCard();
+
+    await openEditor("Edit Custom Fields on Create");
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Default (Required)");
+    });
+
+    definitions = [IMPACT, DURATION, CATEGORY, LEGACY, ROOT_CAUSE];
+    storedSettings = { root_cause: "Required" };
+
+    choose("Impact", "Optional");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({
+      root_cause: "Required",
+      impact: "Optional",
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    expect(settingShownFor("root_cause")).toBe("Required");
+  });
+
+  /*
+   * A template keeps the settings of fields it does not list - a field made
+   * again gets its setting back - so the stored one stays; only this edit's
+   * change to a field that no longer exists is not written.
+   */
+  test("a change to a field deleted while the modal is open is not written, and the template keeps what it had", async () => {
+    storedSettings = { category: "Optional" };
+
+    await renderTemplateCard();
+
+    await openEditor("Edit Custom Fields on Create");
+
+    await waitFor(() => {
+      expect(selectedIn("Category")).toBe("Optional");
+    });
+
+    definitions = [IMPACT, DURATION, LEGACY];
+
+    choose("Category", "Required");
+    choose("Impact", "Hidden");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({ category: "Optional", impact: "Hidden" });
+  });
+
   test("while Edit reads, the modal shows a loader and nothing can be saved", async () => {
     await renderTemplateCard();
 
@@ -1595,6 +1663,140 @@ describe("editing an incident form's questions", () => {
       impact: "Optional",
       category: "Optional",
     });
+  });
+
+  /*
+   * Somebody else - another admin, the API, Terraform - makes a field while
+   * this modal is open, and asks it on the form. A form keeps the stored
+   * questions of the fields it is saved over and of no other, so Save reads
+   * the fields again: the new field's question is kept, whether this edit
+   * changed something else or nothing at all.
+   */
+  test.each([
+    ["an edit of another field", true],
+    ["a save that changes nothing", false],
+  ])(
+    "a question another admin adds, for a field made while the modal is open, survives %s",
+    async (_label: string, changesImpact: boolean) => {
+      await renderFormCard();
+
+      await openEditor("Edit Questions");
+
+      await waitFor(() => {
+        expect(selectedIn("Impact")).toBe("Not Asked");
+      });
+
+      definitions = [IMPACT, DURATION, CATEGORY, LEGACY, ROOT_CAUSE];
+      storedSettings = { root_cause: "Required" };
+
+      if (changesImpact) {
+        choose("Impact", "Optional");
+      }
+
+      await save();
+
+      await waitFor(() => {
+        expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(savedSettings()).toEqual(
+        changesImpact
+          ? { root_cause: "Required", impact: "Optional" }
+          : { root_cause: "Required" },
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).toBeNull();
+      });
+
+      // The card lists the new field, with the question it was given.
+      expect(settingShownFor("root_cause")).toBe("Required");
+    },
+  );
+
+  /*
+   * Deleting a field takes its question off every form on the server
+   * (IncidentFormService.removeCustomFieldFromQuestions). A change this
+   * modal made to that field's dropdown meanwhile must not put it back: it
+   * would be asked, name and options and all, of the next field that gets
+   * the same key.
+   */
+  test.each([
+    ["the server took its question off the form", {}],
+    [
+      "the question is still stored (the server's clean-up failed)",
+      { category: "Optional" },
+    ],
+  ])(
+    "a question set for a field deleted while the modal is open is not written, when %s",
+    async (_label: string, storedAtSave: JSONObject) => {
+      storedSettings = { category: "Optional" };
+
+      await renderFormCard();
+
+      await openEditor("Edit Questions");
+
+      await waitFor(() => {
+        expect(selectedIn("Category")).toBe("Optional");
+      });
+
+      definitions = [IMPACT, DURATION, LEGACY];
+      storedSettings = storedAtSave;
+
+      choose("Category", "Required");
+      choose("Impact", "Optional");
+
+      await save();
+
+      await waitFor(() => {
+        expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(savedSettings()).toEqual({ impact: "Optional" });
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).toBeNull();
+      });
+
+      // The card no longer lists the field that is gone.
+      expect(listedKeys()).toEqual(["impact", "estimated_duration"]);
+    },
+  );
+
+  test("a save that cannot read the fields first writes nothing, says why, and keeps the choices", async () => {
+    await renderFormCard();
+
+    await openEditor("Edit Questions");
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Not Asked");
+    });
+
+    choose("Impact", "Required");
+
+    definitions = new Error("The custom fields could not be read.");
+
+    await save();
+
+    expect(
+      await screen.findByText("The custom fields could not be read."),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Required");
+    });
+
+    // Pressed again once they can be read, it writes.
+    definitions = [IMPACT, DURATION, CATEGORY, LEGACY];
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({ impact: "Required" });
   });
 
   test("the gate is an update of the form", async () => {
