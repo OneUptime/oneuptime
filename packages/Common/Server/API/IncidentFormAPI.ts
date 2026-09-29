@@ -68,6 +68,15 @@ export const INCIDENT_FORM_SUBMISSION_BODY_MESSAGE: string =
 export const INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE: string =
   "captchaToken must be a string.";
 
+/*
+ * Far past any token hCaptcha hands out (a few thousand characters), and
+ * small enough that a stranger cannot have the server forward megabytes of
+ * "token" to hCaptcha on the form's behalf.
+ */
+export const INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH: number = 16384;
+
+export const INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE: string = `captchaToken cannot be more than ${INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH} characters.`;
+
 type IsPlainObjectFunction = (
   value: unknown,
 ) => value is Record<string, unknown>;
@@ -172,9 +181,17 @@ export default class IncidentFormAPI extends BaseAPI<
   /*
    * The shape of the submit body, checked before anything reaches the
    * service: an object with the answers in `data` and, optionally, the
-   * captcha token as text. What the answers themselves hold is the service's
-   * to judge (validateIncidentFormSubmission); every other key in the body
-   * is left behind here, so it cannot reach anything.
+   * captcha token as text of a sane length. What the answers themselves
+   * hold is the service's to judge (validateIncidentFormSubmission); every
+   * other key in the body is left behind here, so it cannot reach anything.
+   *
+   * The body's size is not checked here. The app's JSON parser has read it
+   * (up to 50 MB) before any route runs, so refusing a large body now would
+   * save none of what it cost; and nothing after this does more work for a
+   * larger body - only the answers the form asks are read, each text is
+   * capped, a multi-select's list is bounded before its entries are read,
+   * and the token is capped below. A fixed size would also have to allow for
+   * a form with many long questions.
    */
   public static readSubmissionRequest(
     body: unknown,
@@ -191,6 +208,13 @@ export default class IncidentFormAPI extends BaseAPI<
       typeof captchaToken !== "string"
     ) {
       throw new BadDataException(INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE);
+    }
+
+    if (
+      typeof captchaToken === "string" &&
+      captchaToken.length > INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH
+    ) {
+      throw new BadDataException(INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE);
     }
 
     const request: PublicIncidentFormSubmissionRequest = {

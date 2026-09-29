@@ -83,7 +83,9 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 import IncidentFormAPI, {
+  INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH,
   INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE,
+  INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE,
   INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
 } from "../../../Server/API/IncidentFormAPI";
 import BaseAPI from "../../../Server/API/BaseAPI";
@@ -150,6 +152,12 @@ const PUBLIC_FORM: PublicIncidentForm = {
 const SUBMISSION_RESULT: PublicIncidentFormSubmissionResult = {
   incidentNumber: "INC-42",
   successMessage: "Thanks",
+};
+
+const answersForToken: Record<string, unknown> = {
+  title: "Checkout is down",
+  reporterName: "Jane",
+  reporterEmail: "jane@example.com",
 };
 
 // Same counting fake as the limiter's own tests use.
@@ -695,6 +703,49 @@ describe("IncidentFormAPI", () => {
       expect(
         IncidentFormAPI.readSubmissionRequest({ data: {}, captchaToken: "" }),
       ).toEqual({ data: {}, captchaToken: "" });
+    });
+
+    /*
+     * The token is forwarded to hCaptcha as it is, so a stranger must not be
+     * able to make the server send megabytes of it on the form's behalf.
+     */
+    it("takes a token as long as the cap, and refuses one character more", () => {
+      const longest: string = "t".repeat(
+        INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH,
+      );
+
+      expect(
+        IncidentFormAPI.readSubmissionRequest({
+          data: {},
+          captchaToken: longest,
+        }).captchaToken,
+      ).toBe(longest);
+
+      expect(() => {
+        IncidentFormAPI.readSubmissionRequest({
+          data: {},
+          captchaToken: `${longest}t`,
+        });
+      }).toThrow(
+        new BadDataException(INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE),
+      );
+      expect(INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH).toBe(16384);
+    });
+
+    it("refuses a megabyte token before the service or hCaptcha sees it", async () => {
+      const { next } = await runHandler(
+        "POST",
+        SUBMIT_URI,
+        buildRequest({
+          body: { data: answersForToken, captchaToken: "t".repeat(1_000_000) },
+        }),
+      );
+
+      const error: Exception = nextError(next);
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE);
+      expect(submitPublicForm).not.toHaveBeenCalled();
     });
   });
 });

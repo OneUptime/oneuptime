@@ -204,6 +204,13 @@ const PROJECT_FIELDS: Array<IncidentCustomField> = [
     customFieldType: CustomFieldType.LongText,
     sortOrder: 6,
   }),
+  customField({
+    name: "Systems",
+    variableKey: "systems",
+    customFieldType: CustomFieldType.MultiSelectDropdown,
+    sortOrder: 7,
+    dropdownOptions: "API\nWeb",
+  }),
 ];
 
 const FORM_QUESTIONS: Record<string, string> = {
@@ -873,6 +880,38 @@ describe("IncidentFormService.submitPublicForm - custom fields", () => {
     });
 
     expect(createCall().data.customFields).toEqual({ Acknowledged: true });
+  });
+
+  /*
+   * One anonymous request of a million multi-select entries must not cost
+   * the shared API process seconds of work, nor come back (and be logged)
+   * as a refusal the size of the request.
+   */
+  test("refuses a multi-select answer of a million entries at once, with one short message, declaring nothing", async () => {
+    storedForm = buildForm({ customFieldSettings: { systems: "Optional" } });
+
+    const started: number = Date.now();
+
+    const error: Exception | undefined = await refusal(
+      submit({
+        answers: {
+          ...VALID_ANSWERS,
+          customFields: {
+            Systems: Array.from(
+              { length: 1_000_000 },
+              (_value: unknown, index: number): string => {
+                return `x${index}`;
+              },
+            ),
+          },
+        },
+      }),
+    );
+
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe("Systems cannot have more than 100 choices.");
+    expect(incidentCreate).not.toHaveBeenCalled();
   });
 
   test("ignores custom field answers entirely, and reads no fields, when the form asks none", async () => {

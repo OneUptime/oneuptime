@@ -1,3 +1,4 @@
+import { parseCustomFieldDropdownOptions } from "../CustomField/CustomFieldDropdownOption";
 import CustomFieldType from "../CustomField/CustomFieldType";
 import { isCustomFieldValueEmpty } from "../CustomField/CustomFieldValueMapping";
 import {
@@ -85,6 +86,16 @@ export const INCIDENT_FORM_REPORTER_EMAIL_MAX_LENGTH: number =
   ColumnLength.Email;
 
 /*
+ * The most entries a multi-select answer may have: this many, or the
+ * field's number of options when it has more. The page sends each option
+ * at most once, so a real answer never comes near it; what it bounds is a
+ * request that sends a million entries, each of which would otherwise be
+ * cleaned, sorted and quoted back in the refusal (or, for a field nobody
+ * gave options to, stored on the incident).
+ */
+export const INCIDENT_FORM_MULTI_SELECT_MAX_CHOICES: number = 100;
+
+/*
  * The titles of the built-in questions. The public page labels its fields
  * with them (through its locale files) and the server names them in its
  * error messages, so both say "Your Email is required." about the same box.
@@ -114,6 +125,11 @@ const REQUIRED_MESSAGE: string = "{{field}} is required.";
 const TOO_LONG_MESSAGE: string =
   "{{field}} cannot be more than {{maxLength}} characters.";
 const MUST_BE_CHECKED_MESSAGE: string = "{{field}} must be checked.";
+const TOO_MANY_CHOICES_MESSAGE: string =
+  "{{field}} cannot have more than {{maxLength}} choices.";
+const NOT_A_LIST_MESSAGE: string = "{{field}} takes one answer, not a list.";
+const NESTED_CHOICE_MESSAGE: string =
+  "{{field}} takes a list of its options, not lists or objects within it.";
 
 type FillMessageFunction = (
   template: string,
@@ -620,6 +636,18 @@ type ValidateAnswersFunction = (data: {
   errors: Array<string>;
 }) => JSONObject;
 
+type GetMaxChoicesFunction = (field: PublicIncidentFormField) => number;
+
+// See INCIDENT_FORM_MULTI_SELECT_MAX_CHOICES.
+const getMaxChoices: GetMaxChoicesFunction = (
+  field: PublicIncidentFormField,
+): number => {
+  return Math.max(
+    INCIDENT_FORM_MULTI_SELECT_MAX_CHOICES,
+    parseCustomFieldDropdownOptions(field.dropdownOptions).length,
+  );
+};
+
 /*
  * The custom field answers a submission may store. Only the fields the form
  * asks for are read; an answer keyed by any other name is dropped unread.
@@ -632,10 +660,56 @@ const validateAnswers: ValidateAnswersFunction = (data: {
   const accepted: JSONObject = {};
 
   for (const field of data.fields) {
-    const value: unknown = cleanAnswer(
-      field,
-      hasOwn(data.answers, field.name) ? data.answers[field.name] : undefined,
-    );
+    const answer: unknown = hasOwn(data.answers, field.name)
+      ? data.answers[field.name]
+      : undefined;
+
+    /*
+     * A list is bounded before anything reads its entries: cleaning,
+     * de-duplicating and checking them, and quoting the ones that are not
+     * options back in the refusal, all cost as much as the list is long,
+     * and the request may carry millions. Only a multi-select takes a list
+     * at all, and only as many entries as it could have choices.
+     */
+    if (Array.isArray(answer) && answer.length > 0) {
+      if (field.customFieldType !== CustomFieldType.MultiSelectDropdown) {
+        data.errors.push(
+          fillMessage(NOT_A_LIST_MESSAGE, { field: field.name }),
+        );
+        continue;
+      }
+
+      const maxChoices: number = getMaxChoices(field);
+
+      if (answer.length > maxChoices) {
+        data.errors.push(
+          fillMessage(TOO_MANY_CHOICES_MESSAGE, {
+            field: field.name,
+            maxLength: maxChoices,
+          }),
+        );
+        continue;
+      }
+
+      /*
+       * Each choice is one option, so a list or an object inside the list
+       * is refused here, unread: turning a list nested thousands deep into
+       * text, as cleaning and checking the entries would, overflows the
+       * stack - a refusal must never become a thrown error.
+       */
+      if (
+        answer.some((entry: unknown): boolean => {
+          return entry !== null && typeof entry === "object";
+        })
+      ) {
+        data.errors.push(
+          fillMessage(NESTED_CHOICE_MESSAGE, { field: field.name }),
+        );
+        continue;
+      }
+    }
+
+    const value: unknown = cleanAnswer(field, answer);
 
     if (isCustomFieldValueEmpty(value)) {
       if (field.isRequired) {
@@ -813,7 +887,9 @@ export type ValidateIncidentFormSubmissionFunction = (data: {
  *   at most 100.
  * - Custom fields: only those the form asks, each checked as an API write
  *   would be, required ones filled in (a required yes/no ticked), text at
- *   most 10000 characters. Answers to anything else are dropped.
+ *   most 10000 characters, a list only for a multi-select and then with at
+ *   most 100 choices (or as many as it has options), none of them a list
+ *   or an object. Answers to anything else are dropped.
  */
 export const validateIncidentFormSubmission: ValidateIncidentFormSubmissionFunction =
   (data: {

@@ -45,8 +45,10 @@ export interface CustomFieldValueValidationError {
 }
 
 /*
- * Values and option lists are quoted back in the message, bounded so that a
- * pasted essay or a field with two hundred options still reads as one line.
+ * Values and lists (of options, or of entries that are not options) are
+ * quoted back in the message, bounded so that a pasted essay, a field with
+ * two hundred options or a list of a million entries still reads as one
+ * line.
  */
 const MAX_QUOTED_VALUE_LENGTH: number = 80;
 const MAX_LISTED_OPTIONS: number = 10;
@@ -287,11 +289,12 @@ const validateMultiSelectValue: ValidateOneFunction = (data: {
     return null;
   }
 
-  return `${notOptions
-    .map((entry: string) => {
-      return quote(entry);
-    })
-    .join(", ")} ${
+  /*
+   * The entries are listed as the options are, the first few and a count
+   * of the rest: a write can send any number of them, and the message is
+   * logged and sent back whole.
+   */
+  return `${listOptions(notOptions)} ${
     notOptions.length === 1 ? "is not one of" : "are not among"
   } the options for ${quote(name)}. Choose from: ${listOptions(options)}.`;
 };

@@ -7,6 +7,7 @@ import {
   INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
   INCIDENT_FORM_DESCRIPTION_MAX_LENGTH,
   INCIDENT_FORM_FIELD_SETTINGS,
+  INCIDENT_FORM_MULTI_SELECT_MAX_CHOICES,
   INCIDENT_FORM_QUESTION_LABELS,
   INCIDENT_FORM_REPORTER_EMAIL_MAX_LENGTH,
   INCIDENT_FORM_REPORTER_NAME_MAX_LENGTH,
@@ -1512,6 +1513,201 @@ describe("validateIncidentFormSubmission: custom field answers", () => {
     expect(errorsOf(answer({ Systems: ["API", `${longest}x`] }))).toEqual([
       "Systems cannot be more than 10000 characters.",
     ]);
+  });
+
+  /*
+   * A multi-select answer is bounded before any of its entries is read:
+   * otherwise a single request of a million entries has each of them
+   * cleaned, sorted and quoted back in a refusal as large as the request,
+   * or - for a field nobody gave options to - stored on the incident.
+   */
+  describe("how many choices a multi-select answer may have", () => {
+    const systems: (options: string) => Array<IncidentFormAskedDefinition> = (
+      options: string,
+    ): Array<IncidentFormAskedDefinition> => {
+      return [
+        {
+          name: "Systems",
+          customFieldType: CustomFieldType.MultiSelectDropdown,
+          dropdownOptions: options,
+          isRequiredOnCreate: false,
+        },
+      ];
+    };
+
+    const entries: (count: number, prefix?: string) => Array<string> = (
+      count: number,
+      prefix: string = "x",
+    ): Array<string> => {
+      return Array.from({ length: count }, (_value: unknown, index: number) => {
+        return `${prefix}${index}`;
+      });
+    };
+
+    test("is at most 100, whatever is in the list, and the refusal quotes none of it", () => {
+      const errors: Array<string> = errorsOf(
+        validate(submission({ customFields: { Systems: entries(101) } }), {
+          askedDefinitions: systems("EU\nUS\nAPAC"),
+        }),
+      );
+
+      expect(errors).toEqual([
+        `Systems cannot have more than ${INCIDENT_FORM_MULTI_SELECT_MAX_CHOICES} choices.`,
+      ]);
+      expect(INCIDENT_FORM_MULTI_SELECT_MAX_CHOICES).toBe(100);
+      expect(errors.join(" ")).not.toContain("x0");
+    });
+
+    test("is counted before duplicates are dropped", () => {
+      expect(
+        errorsOf(
+          validate(
+            submission({
+              customFields: {
+                Systems: Array(101).fill("EU") as JSONObject[string],
+              },
+            }),
+            { askedDefinitions: systems("EU\nUS") },
+          ),
+        ),
+      ).toEqual(["Systems cannot have more than 100 choices."]);
+    });
+
+    test("refuses a million entries at once, quickly, with one short message", () => {
+      const started: number = Date.now();
+
+      const errors: Array<string> = errorsOf(
+        validate(
+          submission({ customFields: { Systems: entries(1_000_000) } }),
+          { askedDefinitions: systems("EU\nUS\nAPAC") },
+        ),
+      );
+
+      expect(Date.now() - started).toBeLessThan(1000);
+      expect(errors).toEqual(["Systems cannot have more than 100 choices."]);
+      expect(formatIncidentFormSubmissionErrors(errors).length).toBeLessThan(
+        200,
+      );
+    });
+
+    test("on a field nobody gave options to, 100 entries are stored and 101 refused", () => {
+      const hundred: Array<string> = entries(100);
+
+      expect(
+        valueOf(
+          validate(submission({ customFields: { Systems: hundred } }), {
+            askedDefinitions: systems(""),
+          }),
+        ).customFields["Systems"],
+      ).toEqual(hundred);
+
+      const refused: IncidentFormSubmissionValidationResult = validate(
+        submission({ customFields: { Systems: entries(101) } }),
+        { askedDefinitions: systems("") },
+      );
+
+      expect(errorsOf(refused)).toEqual([
+        "Systems cannot have more than 100 choices.",
+      ]);
+    });
+
+    test("is the field's number of options, when it has more than 100 - so every option can be chosen", () => {
+      const options: Array<string> = entries(150, "option ");
+
+      expect(
+        valueOf(
+          validate(submission({ customFields: { Systems: options } }), {
+            askedDefinitions: systems(options.join("\n")),
+          }),
+        ).customFields["Systems"],
+      ).toEqual(options);
+
+      expect(
+        errorsOf(
+          validate(
+            submission({
+              customFields: { Systems: [...options, "option 0"] },
+            }),
+            { askedDefinitions: systems(options.join("\n")) },
+          ),
+        ),
+      ).toEqual(["Systems cannot have more than 150 choices."]);
+    });
+
+    test.each([
+      ["a text question", "Impact"],
+      ["a long text question", "Steps to Reproduce"],
+      ["a Markdown question", "Notes"],
+      ["a number question", "Users Affected"],
+      ["a yes/no question", "Customer Facing"],
+      ["a dropdown", "Region"],
+      ["a date question", "Noticed On"],
+      ["a question with no type", "Untyped"],
+    ])(
+      "refuses a list for %s, without reading it",
+      (_label: string, name: string) => {
+        const errors: Array<string> = errorsOf(
+          answer({ [name]: entries(1_000_000) }),
+        );
+
+        expect(errors).toEqual([`${name} takes one answer, not a list.`]);
+      },
+    );
+
+    test("an empty list for a single-answer question is still no answer", () => {
+      expect(errorsOf(answer({ Impact: [] }))).toEqual(["Impact is required."]);
+      expect(
+        valueOf(answer({ Region: [] })).customFields["Region"],
+      ).toBeUndefined();
+    });
+
+    /*
+     * A choice is one option. A list nested inside the answer - thousands
+     * deep, which the app's JSON parser accepts - would overflow the stack
+     * the moment anything turned it into text, so a list or an object
+     * inside the list is refused unread, and validation still never throws.
+     */
+    test.each([
+      ["a list inside the list", [["EU"]]],
+      ["an object inside the list", [{ EU: true }]],
+      ["a choice beside a list", ["EU", ["US"]]],
+    ])("refuses %s", (_label: string, list: Array<unknown>) => {
+      expect(
+        errorsOf(
+          validate(
+            submission({
+              customFields: { Systems: list as JSONObject[string] },
+            }),
+            { askedDefinitions: systems("EU\nUS\nAPAC") },
+          ),
+        ),
+      ).toEqual([
+        "Systems takes a list of its options, not lists or objects within it.",
+      ]);
+    });
+
+    test("refuses a list nested a hundred thousand deep, without throwing", () => {
+      let nested: unknown = "EU";
+
+      for (let depth: number = 0; depth < 100000; depth++) {
+        nested = [nested];
+      }
+
+      let result: IncidentFormSubmissionValidationResult | undefined;
+
+      expect(() => {
+        result = validate(
+          submission({
+            customFields: { Systems: [nested] as JSONObject[string] },
+          }),
+          { askedDefinitions: systems("EU\nUS\nAPAC") },
+        );
+      }).not.toThrow();
+
+      expect(errorsOf(result!)).toEqual([
+        "Systems takes a list of its options, not lists or objects within it.",
+      ]);
+    });
   });
 
   test("a field name with $ patterns is quoted back as typed", () => {
