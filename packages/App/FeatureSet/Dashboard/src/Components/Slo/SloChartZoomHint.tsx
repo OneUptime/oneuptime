@@ -41,4 +41,26 @@ const SloChartZoomHint: FunctionComponent<ComponentProps> = (
   );
 };
 
+type WithSloChartZoomHintFunction = (
+  takesZoomGesture: boolean,
+  body: ReactElement,
+) => ReactElement;
+
+/*
+ * An SLO chart card's body under its hint row. Whatever picks the body
+ * also says whether that body takes a zoom gesture, so the hint never
+ * names a gesture the body does not have.
+ */
+export const withSloChartZoomHint: WithSloChartZoomHintFunction = (
+  takesZoomGesture: boolean,
+  body: ReactElement,
+): ReactElement => {
+  return (
+    <>
+      <SloChartZoomHint isShown={takesZoomGesture} />
+      {body}
+    </>
+  );
+};
+
 export default SloChartZoomHint;

@@ -119,6 +119,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
     </div>
   );
 
+  // The window checks repeat isSkeletonShown's so the axis below gets dates.
   if (isSkeletonShown || !props.windowStart || !props.windowEnd) {
     return (
       <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

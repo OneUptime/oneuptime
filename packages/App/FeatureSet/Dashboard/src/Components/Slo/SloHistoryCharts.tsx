@@ -1,5 +1,6 @@
-import SloChartZoomHint, {
+import {
   SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+  withSloChartZoomHint,
 } from "./SloChartZoomHint";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -381,28 +382,6 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
     };
   }, [timeRange, refreshTick, sloIdString]);
 
-  type WithZoomHintFunction = (
-    takesZoomGesture: boolean,
-    body: ReactElement,
-  ) => ReactElement;
-
-  /*
-   * A card's hint row together with its body. The branch below that picks
-   * the body also says whether that body takes a zoom gesture, so the hint
-   * never names a gesture the body does not have.
-   */
-  const withZoomHint: WithZoomHintFunction = (
-    takesZoomGesture: boolean,
-    body: ReactElement,
-  ): ReactElement => {
-    return (
-      <>
-        <SloChartZoomHint isShown={takesZoomGesture} />
-        {body}
-      </>
-    );
-  };
-
   type GetChartFunction = (options: {
     points: Array<DataPoint>;
     seriesName: string;
@@ -432,7 +411,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
      * not even while zoomed.
      */
     if (isLoading && options.points.length === 0) {
-      return withZoomHint(false, <ComponentLoader />);
+      return withSloChartZoomHint(false, <ComponentLoader />);
     }
 
     if (options.points.length === 0) {
@@ -447,7 +426,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
        * only then is its text not selectable: a double-click on it must
        * not also select a word.
        */
-      return withZoomHint(
+      return withSloChartZoomHint(
         zoom.isZoomed,
         <div
           className={zoom.isZoomed ? "-my-16 select-none" : "-my-16"}
@@ -495,7 +474,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       },
     ];
 
-    return withZoomHint(
+    return withSloChartZoomHint(
       true,
       <LineChartElement
         data={series}

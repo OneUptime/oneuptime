@@ -4,8 +4,9 @@ import {
   getSloBurnDownZoomRange,
   getSloIdealBurnPointsInWindow,
 } from "./SloBurnDownZoom";
-import SloChartZoomHint, {
+import {
   SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
+  withSloChartZoomHint,
 } from "./SloChartZoomHint";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
@@ -220,28 +221,6 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     ? `Error budget left over ${windowPhrase}. The faded line spends the budget evenly by the reset — below it, the month is burning too fast.`
     : `Error budget left over ${windowPhrase}, with the at-risk and exhausted lines this SLO is judged against.`;
 
-  type WithZoomHintFunction = (
-    takesZoomGesture: boolean,
-    body: ReactElement,
-  ) => ReactElement;
-
-  /*
-   * The card's hint row together with its body. The branch below that
-   * picks the body also says whether that body takes a zoom gesture, so
-   * the hint never names a gesture the body does not have.
-   */
-  const withZoomHint: WithZoomHintFunction = (
-    takesZoomGesture: boolean,
-    body: ReactElement,
-  ): ReactElement => {
-    return (
-      <>
-        <SloChartZoomHint isShown={takesZoomGesture} />
-        {body}
-      </>
-    );
-  };
-
   type GetBodyFunction = () => ReactElement;
 
   const getBody: GetBodyFunction = (): ReactElement => {
@@ -251,14 +230,14 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
      * Neither the error nor the loader takes a gesture.
      */
     if (!series.hasLoaded && series.error) {
-      return withZoomHint(
+      return withSloChartZoomHint(
         false,
         <ErrorMessage message={series.error} onRefreshClick={series.retry} />,
       );
     }
 
     if (!series.hasLoaded) {
-      return withZoomHint(false, <ComponentLoader />);
+      return withSloChartZoomHint(false, <ComponentLoader />);
     }
 
     if (series.points.length === 0 && zoomedTimeRange) {
@@ -268,7 +247,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
        * its text is not selectable, or that double-click would also
        * select a word of it.
        */
-      return withZoomHint(
+      return withSloChartZoomHint(
         true,
         <div className="select-none" onDoubleClick={resetZoom}>
           <SloOverviewEmptyState
@@ -283,7 +262,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
 
     if (series.points.length === 0) {
       // Nothing to drag, and no zoom to undo.
-      return withZoomHint(
+      return withSloChartZoomHint(
         false,
         <SloOverviewEmptyState
           dataTestId="slo-burn-down-empty"
@@ -376,7 +355,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       },
     ];
 
-    return withZoomHint(
+    return withSloChartZoomHint(
       true,
       <div data-testid="slo-burn-down-chart">
         <LineChartElement
