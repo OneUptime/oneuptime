@@ -140,3 +140,79 @@ describe("CopyTextButton", () => {
     );
   });
 });
+
+/*
+ * The dashboard loads Tailwind's browser runtime, which styles only the
+ * classes it knows. A width that is not on its spacing scale matches no rule,
+ * and the icon is simply not drawn - which is what the md size did with
+ * "w-4.5 h-4.5" (the scale has 3.5 and 4, then 5).
+ */
+const TAILWIND_SPACING_SCALE: Array<string> = [
+  "0",
+  "px",
+  "0.5",
+  "1",
+  "1.5",
+  "2",
+  "2.5",
+  "3",
+  "3.5",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+];
+
+type ButtonSize = "xs" | "sm" | "md";
+
+const SIZE_CLASS: RegExp = /^[wh]-/;
+const ARBITRARY_LENGTH: RegExp = /^\[[0-9.]+(rem|px)\]$/;
+
+function iconSizeClasses(size: ButtonSize): Array<string> {
+  render(<CopyTextButton textToBeCopied="trace-4bf92f35" size={size} />);
+
+  const icon: SVGElement | null = screen
+    .getByRole("button", { name: "Copy" })
+    .querySelector("svg");
+
+  expect(icon).not.toBeNull();
+
+  return (icon!.getAttribute("class") || "")
+    .split(/\s+/)
+    .filter((className: string): boolean => {
+      return SIZE_CLASS.test(className);
+    });
+}
+
+describe("CopyTextButton icon sizes", () => {
+  test.each(["xs", "sm", "md"] as Array<ButtonSize>)(
+    "the %s icon has a width and a height Tailwind draws",
+    (size: ButtonSize) => {
+      const classes: Array<string> = iconSizeClasses(size);
+
+      expect(
+        classes.map((className: string): string => {
+          return className.slice(0, 2);
+        }),
+      ).toEqual(["w-", "h-"]);
+
+      for (const className of classes) {
+        const value: string = className.slice(2);
+
+        expect(
+          ARBITRARY_LENGTH.test(value) ||
+            TAILWIND_SPACING_SCALE.includes(value),
+        ).toBe(true);
+      }
+    },
+  );
+
+  test("the md icon is 18px, between sm's 16px and the md text", () => {
+    expect(iconSizeClasses("md")).toEqual(["w-[1.125rem]", "h-[1.125rem]"]);
+  });
+});

@@ -52,10 +52,14 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
     md: "text-sm px-2.5 py-1.5 rounded-md",
   } as const;
 
+  /*
+   * md is 18px written out: Tailwind's spacing scale has no 4.5, so
+   * "w-4.5 h-4.5" matched no rule and the icon was never drawn.
+   */
   const iconSizes: Record<typeof size, string> = {
     xs: "w-3.5 h-3.5",
     sm: "w-4 h-4",
-    md: "w-4.5 h-4.5",
+    md: "w-[1.125rem] h-[1.125rem]",
   } as const;
 
   const variantClasses: Record<typeof variant, string> = {
