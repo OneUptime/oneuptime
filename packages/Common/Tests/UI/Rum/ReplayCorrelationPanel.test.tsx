@@ -1196,16 +1196,43 @@ describe("ReplayCorrelationPanel Fidelity tab", () => {
 
     expect(section).toHaveTextContent("did not load in your browser");
 
-    const docs: HTMLElement = within(section).getByTestId(
+    /*
+     * Found by the words on screen (WCAG 2.5.3, label in name): a voice
+     * control user says what they see, and an aria-label with other words
+     * would leave them nothing to say.
+     */
+    const docs: HTMLElement = within(section).getByRole("link", {
+      name: /^Why they go missing, and how to allow them \(opens in a new tab\)$/,
+    });
+
+    expect(docs).toHaveAttribute(
+      "data-testid",
       "replay-details-missing-assets-docs",
     );
-
+    expect(docs).not.toHaveAttribute("aria-label");
     expect(docs.getAttribute("href")).toMatch(
       /\/rum\/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay$/,
     );
     expect(docs).toHaveAttribute("target", "_blank");
     expect(docs).toHaveAttribute("rel", "noopener noreferrer");
-    expect(docs.getAttribute("aria-label")).toContain("opens in a new tab");
+    expect(
+      screen.queryByTestId("replay-details-missing-assets-truncated"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says when more failed than the list holds", () => {
+    renderPanel({
+      activeTabId: "fidelity",
+      missingAssets: [
+        "https://h0.flood.example/x.png",
+        "https://h1.flood.example/x.png",
+      ],
+      areMissingAssetsTruncated: true,
+    });
+
+    expect(
+      screen.getByTestId("replay-details-missing-assets-truncated"),
+    ).toHaveTextContent("More failed than this; only the first 2 are listed.");
   });
 
   it("counts missing assets on the Fidelity tab with the gaps and notices", () => {

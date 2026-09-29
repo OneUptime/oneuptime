@@ -1679,24 +1679,46 @@ describe("recorded assets", () => {
 
     expect(stage).toContain("onAssetLoadFailures={onAssetLoadFailures}");
     expect(SOURCE).toMatch(/buildReplayPlaybackAssetNotes\(\{/);
+    expect(SOURCE).toContain("isTruncated: areAssetFailuresTruncated,");
     expect(SOURCE).toContain("missingAssets={missingAssetUrls}");
+    expect(SOURCE).toContain(
+      "areMissingAssetsTruncated={areAssetFailuresTruncated}",
+    );
     /* The notes lead the capture notes, so their summary names them first. */
     expect(SOURCE).toContain("[...playbackAssetNotes, ...captureNotes]");
   });
 
-  test("failures belong to the engine that reported them, so another tab or session starts from none", () => {
+  /*
+   * One engine plays every tab of the session (a tab switch swaps its
+   * loader), so the list is the session's; what must not happen is a
+   * report from one engine showing under another after a reload or on
+   * another session.
+   */
+  test("failures belong to the engine that reported them, so a new engine starts from none", () => {
     expect(SOURCE).toMatch(
-      /setAssetFailureReport\(\{\s*engine: engine,\s*failures: failures\s*\}\)/,
+      /setAssetFailureReport\(\{\s*engine: engine,\s*failures: failures,\s*isTruncated: isTruncated,?\s*\}\)/,
     );
     expect(SOURCE).toContain("assetFailureReport.engine === engine");
   });
 
   test("the stage installs the policy and the failure listener on every created and rebuilt document", () => {
     expect(STAGE_SOURCE).toContain(
-      "injectDocumentCsp(event.replayer, getReplayDocumentCsp(loadsImages));",
+      "injectDocumentCsp(event.replayer, getReplayDocumentCsp(isMasked));",
     );
     expect(STAGE_SOURCE).toContain(
-      "listenForAssetFailures(event.replayer, loadsImages);",
+      "listenForAssetFailures(event.replayer, !isMasked);",
     );
+  });
+
+  test("the docs links carry their visible words as their name, not an aria-label", () => {
+    const notes: string = slice(
+      SOURCE,
+      "{playbackAssetNotes.map(",
+      "{captureNotes.map(",
+    );
+
+    expect(notes).toContain("Why they go missing, and how to allow them");
+    expect(notes).toContain('<span className="sr-only">');
+    expect(notes).not.toContain("aria-label=");
   });
 });

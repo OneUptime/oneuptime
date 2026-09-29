@@ -109,7 +109,7 @@ const COPY: Record<string, FidelityNoticeCopy> = {
   [SessionReplayFidelityNotice.FontsOmitted]: {
     title: "Web fonts not captured",
     description:
-      "Font files are large and are not recorded, so playback loads them from their original addresses. That works when the font's server lets other sites use it (Access-Control-Allow-Origin); otherwise text falls back to a system font, its metrics can differ slightly from what the user saw, and icon fonts can show as empty boxes.",
+      "Font files are large and are not recorded, so playback loads them from their original addresses (a recording made under Mask all text loads none). That works when the font's server lets other sites use it (Access-Control-Allow-Origin); otherwise text falls back to a system font, its metrics can differ slightly from what the user saw, and icon fonts can show as empty boxes.",
   },
   [SessionReplayFidelityNotice.MediaNotReplayable]: {
     title: "Video/audio not replayable",

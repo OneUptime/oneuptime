@@ -138,6 +138,8 @@ export interface ReplayCorrelationPanelProps {
    * as "nobody measured", never as "we checked and there are none".
    */
   missingAssets?: Array<string> | undefined;
+  /* More failed than missingAssets lists (REPLAY_ASSET_FAILURE_MAX_LISTED). */
+  areMissingAssetsTruncated?: boolean | undefined;
   gaps: Array<SessionReplayGap>;
   /* Opens the rail on a tab (and closes nothing - the host decides). */
   onOpenRailTab?: ((tabId: ReplayRailTabId) => void) | undefined;
@@ -1489,15 +1491,27 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                 </div>
               );
             })}
+            {props.areMissingAssetsTruncated && (
+              <p
+                className="text-xs text-gray-500"
+                data-testid="replay-details-missing-assets-truncated"
+              >
+                More failed than this; only the first{" "}
+                {props.missingAssets?.length ?? 0} are listed.
+              </p>
+            )}
             <a
               href={getReplayAssetFailureDocsHref(DOCS_URL.toString())}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
               data-testid="replay-details-missing-assets-docs"
-              aria-label="Why images and styles go missing in a replay, and how to allow them (opens in a new tab)"
             >
-              <span>Why they go missing, and how to allow them</span>
+              {/* The visible words are the name; the tab warning is for screen readers. */}
+              <span>
+                Why they go missing, and how to allow them
+                <span className="sr-only"> (opens in a new tab)</span>
+              </span>
               <Icon icon={IconProp.ExternalLink} className="h-3 w-3 shrink-0" />
             </a>
           </div>

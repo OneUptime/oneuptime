@@ -292,17 +292,21 @@ const NO_ASSET_FAILURES: ReadonlyArray<ReplayAssetFailure> = [];
 
 /*
  * The recorded images and stylesheets that failed to load on the stage,
- * kept with the engine that reported them, so a new engine (another tab,
- * another session) starts from none without a reset of its own.
+ * kept with the engine that reported them. One engine plays every tab of
+ * the session (a tab switch swaps its loader, not the engine), so the list
+ * is the session's, like the capture notes it feeds; a new engine - a
+ * reload, another session - starts from none without a reset of its own.
  */
 interface ReplayAssetFailureReport {
   engine: ReplayEngine | null;
   failures: ReadonlyArray<ReplayAssetFailure>;
+  isTruncated: boolean;
 }
 
 const NO_ASSET_FAILURE_REPORT: ReplayAssetFailureReport = {
   engine: null,
   failures: NO_ASSET_FAILURES,
+  isTruncated: false,
 };
 
 /* ---- Clocked wrappers. ---- */
@@ -1924,17 +1928,29 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       .map(getFidelityNoticeCopy);
   }, [manifest]);
 
+  const isCurrentAssetFailureReport: boolean =
+    engine !== null && assetFailureReport.engine === engine;
   const assetFailures: ReadonlyArray<ReplayAssetFailure> =
-    engine !== null && assetFailureReport.engine === engine
+    isCurrentAssetFailureReport
       ? assetFailureReport.failures
       : NO_ASSET_FAILURES;
+  const areAssetFailuresTruncated: boolean =
+    isCurrentAssetFailureReport && assetFailureReport.isTruncated;
 
   /* Handed to the stage, which reads it through a ref. */
   const onAssetLoadFailures: (
     failures: ReadonlyArray<ReplayAssetFailure>,
+    isTruncated: boolean,
   ) => void = useCallback(
-    (failures: ReadonlyArray<ReplayAssetFailure>): void => {
-      setAssetFailureReport({ engine: engine, failures: failures });
+    (
+      failures: ReadonlyArray<ReplayAssetFailure>,
+      isTruncated: boolean,
+    ): void => {
+      setAssetFailureReport({
+        engine: engine,
+        failures: failures,
+        isTruncated: isTruncated,
+      });
     },
     [engine],
   );
@@ -1954,11 +1970,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
       return buildReplayPlaybackAssetNotes({
         failures: assetFailures,
+        isTruncated: areAssetFailuresTruncated,
         maskingMode: manifest.details.maskingMode,
         recorderKind: manifest.details.recorderKind,
         docsRoot: DOCS_URL.toString(),
       });
-    }, [manifest, assetFailures]);
+    }, [manifest, assetFailures, areAssetFailuresTruncated]);
 
   /* ---- URL: rail / q / tab / signal mirror the view state. ---- */
 
@@ -3365,10 +3382,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                               rel="noopener noreferrer"
                               className="mt-1 inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline"
                               data-testid={`${note.testId}-docs`}
-                              aria-label="Why images and styles go missing in a replay, and how to allow them (opens in a new tab)"
                             >
+                              {/*
+                               * The visible words are the link's name, as
+                               * voice control users will say them; the tab
+                               * warning is added for screen readers only.
+                               */}
                               <span>
                                 Why they go missing, and how to allow them
+                                <span className="sr-only">
+                                  {" "}
+                                  (opens in a new tab)
+                                </span>
                               </span>
                               <Icon
                                 icon={IconProp.ExternalLink}
@@ -3496,6 +3521,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           hasRecordingEnded={manifest.hasRecordingEnded}
           fidelityNotices={manifest.fidelityNotices}
           missingAssets={missingAssetUrls}
+          areMissingAssetsTruncated={areAssetFailuresTruncated}
           gaps={manifest.gaps}
           onOpenRailTab={openRailTab}
           railCounts={railCounts}

@@ -243,6 +243,10 @@ describe("fidelity copy for assets playback loads from their original address", 
     expect(copy.description).toContain(
       "playback loads them from their original addresses",
     );
+    /* A masked replay refuses remote fonts (REPLAY_MASKED_DOCUMENT_CSP). */
+    expect(copy.description).toContain(
+      "a recording made under Mask all text loads none",
+    );
     expect(copy.description).toContain("Access-Control-Allow-Origin");
     expect(copy.description).toContain("otherwise text falls back");
     expect(copy.description).not.toContain("playback uses a system font stack");

@@ -28,9 +28,10 @@ import {
   REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE,
 } from "./ReplayTextSelectionAttributes";
 import {
+  REPLAY_ASSET_FAILURE_MAX_LISTED,
   ReplayAssetFailure,
   describeReplayAssetFailureTarget,
-  doesReplayLoadRecordedImages,
+  isMaskedReplay,
 } from "./ReplayRecordedAssets";
 
 /*
@@ -109,17 +110,23 @@ export interface ReplayStageProps {
   /*
    * The masking mode the session was recorded under, from the manifest.
    * It decides whether the replay document may load the recorded page's
-   * images (see REPLAY_DOCUMENT_CSP): absent or unknown reads as Mask all
-   * text, the one mode that is never wrong to assume.
+   * images and web fonts (see REPLAY_DOCUMENT_CSP): absent or unknown reads
+   * as Mask all text, the one mode that is never wrong to assume.
    */
   maskingMode?: string | null | undefined;
   /*
    * Every recorded image and stylesheet that failed to load in the replay
    * document so far, one entry per address, handed over in bursts and
-   * only when a new address has failed. Starts again for a new engine.
+   * only when a new address has failed. It covers everything the engine
+   * has played - every tab of the session - and starts again for a new
+   * engine. isTruncated: more than REPLAY_ASSET_FAILURE_MAX_LISTED failed,
+   * and only the first of them are listed.
    */
   onAssetLoadFailures?:
-    | ((failures: ReadonlyArray<ReplayAssetFailure>) => void)
+    | ((
+        failures: ReadonlyArray<ReplayAssetFailure>,
+        isTruncated: boolean,
+      ) => void)
     | undefined;
   className?: string | undefined;
 }
@@ -227,10 +234,15 @@ export function formatReplayStageAspect(
  * them plays back a page the user never saw: every image broken, and
  * whatever such a stylesheet hid on show - #4119, a portal whose hidden
  * "You're offline" banner took over every replay. The exception is a
- * recording made under Mask all text. That mode promises a wireframe with
- * no readable content, and an image is content, so its document gets
- * REPLAY_DOCUMENT_CSP_WITHOUT_IMAGES; stylesheets and fonts still load,
- * because they are the page's chrome rather than its content.
+ * masked replay (isMaskedReplay: Mask all text, or a mode nobody reported).
+ * That mode promises a wireframe with no readable content, and an image is
+ * content, so its document gets REPLAY_MASKED_DOCUMENT_CSP: no image and no
+ * web font from the network. Fonts go too because, with images refused,
+ * they are the one fetch left that a stylesheet in the recording can make
+ * depend on what the page shows (a font used only by elements a selector
+ * matches), which is a channel out for the attributes Mask all text keeps.
+ * Its stylesheets still load: a stylesheet is requested whatever the page
+ * holds, and without it the wireframe is not the page's layout.
  *
  * Scope, precisely: the meta goes in when the engine reports a new Replayer
  * ("created") - BEFORE rrweb rebuilds its first snapshot, because the
@@ -252,17 +264,30 @@ export function formatReplayStageAspect(
  *    hosts the recorded page used, as the user's browser did, and those
  *    hosts see the viewer's IP address.
  *  - The referrer meta below keeps the replay URL (with the session id) off
- *    those requests. <img> and <link> requests carry no Referer at all;
- *    requests made from the CSS the recording inlined (background images,
- *    fonts) carry the Dashboard's origin, never its path - after
- *    document.open() Chromium no longer applies the document's referrer
- *    policy to CSS fetches, and neither the meta nor a page-level header
- *    changes that - and a stylesheet loaded from its own address sends its
- *    own URL, as it would on the recorded site.
+ *    those requests. The recorded page's own referrer controls - an
+ *    element's referrerpolicy, a <meta name=referrer> - would override it,
+ *    and are taken out of every chunk as it is decoded, before rrweb can
+ *    build anything from them (prepareRecordedEventsForPlayback). So <img>
+ *    and <link> requests carry no Referer at all. Requests made from the
+ *    CSS the recording inlined (background images, fonts) do carry one:
+ *    after document.open() Chromium no longer applies the document's
+ *    referrer policy to CSS fetches, and neither the meta nor a page-level
+ *    header changes that. To another site that is the Dashboard's origin,
+ *    never its path; back to the Dashboard's own host it is the player's
+ *    full address. A stylesheet loaded from its own address sends its own
+ *    URL, as it would on the recorded site.
+ *  - Watching a replay requests the page's images again, and a tracking or
+ *    conversion pixel among them would count another view or sale from the
+ *    viewer's browser. Pixel-sized images are not requested at all
+ *    (prepareRecordedEventsForPlayback); anything else a page wants kept
+ *    out has to be blocked at capture.
  *  - The replay document IS the Dashboard's origin, so a recorded address
  *    on the Dashboard's own host is a same-origin request carrying the
  *    viewer's cookies. Nothing here can tell such an address apart, which
- *    is one more reason GET endpoints must stay free of side effects.
+ *    is one more reason GET endpoints must stay free of side effects. The
+ *    addresses rrweb leaves relative (a poster, the legacy background
+ *    attribute) would resolve to it too, so they are resolved against the
+ *    recorded page as each chunk is decoded.
  *  - An asset that needs the user's sign-in, that its site refuses to
  *    serve to other sites (Cross-Origin-Resource-Policy, hotlink rules),
  *    that has expired or gone, or that sits on a network the viewer cannot
@@ -273,9 +298,8 @@ export function formatReplayStageAspect(
  *    http assets, whatever this says.
  *
  * base-uri stays open on purpose: rrweb makes recorded URLs absolute at
- * capture, and a recorded <base> only resolves the few it does not (a
- * poster, the legacy background attribute) against the recorded site
- * rather than against the Dashboard.
+ * capture, and a recorded <base> is what the page's own relative addresses
+ * were written against.
  */
 const REPLAY_DOCUMENT_CSP_LOCKED_DIRECTIVES: string =
   "script-src 'none'; default-src 'none'";
@@ -287,17 +311,15 @@ export const REPLAY_DOCUMENT_CSP: string =
   "style-src 'unsafe-inline' http: https:; font-src data: http: https:; " +
   REPLAY_DOCUMENT_CSP_CLOSED_DIRECTIVES;
 
-/* The same, for a Mask all text recording: its images are never loaded. */
-export const REPLAY_DOCUMENT_CSP_WITHOUT_IMAGES: string =
+/* The same, for a masked replay: no image and no web font from the network. */
+export const REPLAY_MASKED_DOCUMENT_CSP: string =
   `${REPLAY_DOCUMENT_CSP_LOCKED_DIRECTIVES}; img-src data: blob:; ` +
-  "style-src 'unsafe-inline' http: https:; font-src data: http: https:; " +
+  "style-src 'unsafe-inline' http: https:; font-src data:; " +
   REPLAY_DOCUMENT_CSP_CLOSED_DIRECTIVES;
 
-/* Which of the two a document gets: see doesReplayLoadRecordedImages. */
-export function getReplayDocumentCsp(loadsRecordedImages: boolean): string {
-  return loadsRecordedImages
-    ? REPLAY_DOCUMENT_CSP
-    : REPLAY_DOCUMENT_CSP_WITHOUT_IMAGES;
+/* Which of the two a document gets: see isMaskedReplay. */
+export function getReplayDocumentCsp(isMasked: boolean): string {
+  return isMasked ? REPLAY_MASKED_DOCUMENT_CSP : REPLAY_DOCUMENT_CSP;
 }
 
 /*
@@ -1701,11 +1723,8 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
    * Read through refs so the Replayer effect below does not resubscribe
    * (and forget what already failed) whenever the player re-renders.
    */
-  const loadsRecordedImagesRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-  loadsRecordedImagesRef.current = doesReplayLoadRecordedImages(
-    props.maskingMode,
-  );
+  const isMaskedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  isMaskedRef.current = isMaskedReplay(props.maskingMode);
   const onAssetLoadFailuresRef: React.MutableRefObject<
     ReplayStageProps["onAssetLoadFailures"]
   > = useRef<ReplayStageProps["onAssetLoadFailures"]>(
@@ -1771,23 +1790,39 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
      * A rebuild re-inserts the same one: the document keeps the first
      * anyway, and counting CSP-refused images as failures would be wrong.
      */
-    const loadsImagesByReplayer: Map<ReplayerLike, boolean> = new Map<
+    const isMaskedByReplayer: Map<ReplayerLike, boolean> = new Map<
       ReplayerLike,
       boolean
     >();
     /*
      * One entry per address for this engine: a seek builds a new Replayer
-     * whose rebuild requests - and fails - the same images again.
+     * whose rebuild requests - and fails - the same images again, and a
+     * tab switch plays another page in the same engine. Capped: past
+     * REPLAY_ASSET_FAILURE_MAX_LISTED a new address only marks the list
+     * as cut short.
      */
     const failedAssets: Map<string, ReplayAssetFailure> = new Map<
       string,
       ReplayAssetFailure
     >();
+    let isFailureListTruncated: boolean = false;
     let assetFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
     const flushAssetFailures: () => void = (): void => {
       assetFlushTimer = null;
-      onAssetLoadFailuresRef.current?.(Array.from(failedAssets.values()));
+      onAssetLoadFailuresRef.current?.(
+        Array.from(failedAssets.values()),
+        isFailureListTruncated,
+      );
+    };
+
+    const scheduleAssetFlush: () => void = (): void => {
+      if (assetFlushTimer === null) {
+        assetFlushTimer = setTimeout(
+          flushAssetFailures,
+          REPLAY_ASSET_FAILURE_FLUSH_MS,
+        );
+      }
     };
 
     const listenForAssetFailures: (
@@ -1808,14 +1843,17 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
           return;
         }
 
-        failedAssets.set(failure.url, failure);
+        if (failedAssets.size >= REPLAY_ASSET_FAILURE_MAX_LISTED) {
+          if (!isFailureListTruncated) {
+            isFailureListTruncated = true;
+            scheduleAssetFlush();
+          }
 
-        if (assetFlushTimer === null) {
-          assetFlushTimer = setTimeout(
-            flushAssetFailures,
-            REPLAY_ASSET_FAILURE_FLUSH_MS,
-          );
+          return;
         }
+
+        failedAssets.set(failure.url, failure);
+        scheduleAssetFlush();
       });
     };
 
@@ -1824,7 +1862,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         if (event.type === "destroyed") {
           configureReplayTextSelection(event.replayer, false);
           replayersRef.current.delete(event.replayer);
-          loadsImagesByReplayer.delete(event.replayer);
+          isMaskedByReplayer.delete(event.replayer);
 
           const doc: Document | null = getReplayerDocument(event.replayer);
 
@@ -1838,14 +1876,13 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
           event.type === "created" ||
           event.type === "fullsnapshot-rebuilded"
         ) {
-          const loadsImages: boolean =
-            loadsImagesByReplayer.get(event.replayer) ??
-            loadsRecordedImagesRef.current;
+          const isMasked: boolean =
+            isMaskedByReplayer.get(event.replayer) ?? isMaskedRef.current;
 
-          loadsImagesByReplayer.set(event.replayer, loadsImages);
+          isMaskedByReplayer.set(event.replayer, isMasked);
           replayersRef.current.add(event.replayer);
-          injectDocumentCsp(event.replayer, getReplayDocumentCsp(loadsImages));
-          listenForAssetFailures(event.replayer, loadsImages);
+          injectDocumentCsp(event.replayer, getReplayDocumentCsp(isMasked));
+          listenForAssetFailures(event.replayer, !isMasked);
           configureReplayTextSelection(
             event.replayer,
             isTextSelectionEnabledRef.current,
