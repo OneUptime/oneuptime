@@ -8,26 +8,37 @@ chart, or Reset zoom (mouse or keyboard), puts back the range the page had befor
 the zoom, and one reset climbs all the way out of nested zooms. Picking a range
 in the time picker ends the zoom.
 
+It also holds the regressions for issue #4116: right after a drag zooms the Traces
+or Logs explorer, every double-click on its histogram puts the explorer back on
+its range, whatever moment the zoom's data lands (see "Explorers: a double-click
+right after a drag" below).
+
 | Page | Route (from `RouteMap`) | Production components |
 |---|---|---|
 | Kubernetes cluster overview | `KUBERNETES_CLUSTER_VIEW` `/dashboard/:projectId/kubernetes/:id` | `Pages/Kubernetes/View/{Layout,Index}` (golden tiles and charts, activity cards, workloads, top consumers, warnings, cluster details) |
 | Kubernetes cluster insights | `KUBERNETES_CLUSTER_VIEW_INSIGHTS` `/dashboard/:projectId/kubernetes/:id/insights` | `Pages/Kubernetes/View/{Layout,Insights}`: three `EmbeddedMetricCard`s (`MetricView` charts, `KubernetesNetworkThroughputChart`) |
 | Host overview | `HOST_VIEW` `/dashboard/:projectId/host/:id` | `Pages/Host/View/{Layout,Overview}` |
+| Traces explorer | `TRACES` `/dashboard/:projectId/traces` | `Pages/Traces/{Layout,Index}`: `TracesViewer` ("Traces over time" histogram, facets, span list, saved views) |
+| Logs explorer | `LOGS` `/dashboard/:projectId/logs` | `Pages/Logs/{Layout,Index}`: the Dashboard's `LogsViewer` ("Log Volume" histogram, facets, log list, saved views) |
 
-Each page renders inside its production View layout (`ModelPage`, breadcrumbs,
-side menu with its count badges). `Fixture/server.js` bundles them with esbuild
+Each page renders inside its production layout: the View layout (`ModelPage`,
+breadcrumbs, side menu with its count badges) for the cluster and host pages, the
+Traces or Logs layout (`Page`, breadcrumbs, the Viewer / Insights / Setup Guide /
+Settings tabs) for the explorers. `Fixture/server.js` bundles them with esbuild
 (`Common/UI/esbuild-config.js`), serves them with the same browser Tailwind build,
 `tailwind.config` and `Theme.css` production uses, and listens on `127.0.0.1:4233`
 (`CHART_TIME_ZOOM_FIXTURE_PORT`). No Docker, no database, no sign-in. Only the
-`ModelAPI` / `AnalyticsModelAPI` / `API` data boundary and the signed-in user are
-replaced.
+`ModelAPI` / `AnalyticsModelAPI` / `API` / `Realtime` data boundary and the signed-in
+user are replaced.
 
-The zoom itself comes from the page: each of these pages wraps its content in
-`<TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={...}>`
+The zoom itself comes from the page: each of the cluster and host pages wraps its
+content in `<TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={...}>`
 (`Common/UI/Components/Charts/TimeRangeZoom`), with `setTimeRange` on the two
 overviews and `handleTimeRangeChange` (which also re-resolves the window the cards
-share) on Insights. The fixture adds nothing to the pages: take that wiring away
-and these regressions fail.
+share) on Insights. The explorers keep a zoom of their own
+(`TelemetryViewer/useViewerTimeRangeZoom`) over the window their viewer owns. The
+fixture adds nothing to the pages: take that wiring away and these regressions
+fail.
 
 ## Dataset
 
@@ -56,15 +67,32 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   heartbeats are one a minute, so availability reads 100%.
 - `MetricType` rows give the native units (CPU in cores, `{cpu}`, so the Insights
   CPU% transform sees cores).
+- **The explorers' services, spans and logs.** Four `Service` rows (`checkout-api`,
+  `payments-worker`, `search-api`, `storefront-web`). Spans and log lines are
+  generated, not stored: each minute of each service holds a number of rows that
+  follows a wave, and every row (its offset in the minute, operation or message,
+  status or severity, trace and span ids, attributes) comes from a hash of the
+  minute, the service and the row's index. The span list, the log list, both
+  histograms and the facet counts are read off those same rows, so they agree for
+  any window. The histograms are bucketed the way `TraceAggregationService` /
+  `LogAggregationService` bucket them: the rows whose minute starts inside the
+  window (the start rounded down to its minute, the end excluded), grouped on
+  `toStartOfInterval(minute, bucket)`, one `{ time: "YYYY-MM-DD HH:MM:SS", series |
+  severity, count }` per bucket and series that has rows, in time order; the logs
+  answer also names its `bucketSizeInMinutes` (the server's default for the window
+  when the request names none). checkout-api's calls to payments-worker time out in
+  a burst at 11:43. The `Log` table's two Kubernetes warning events are listed and
+  counted with the generated lines.
 - Empty on purpose: incidents, alerts, scheduled maintenance, monitors, dismissals,
-  change events and exemplars (raw `Metric` rows with a trace id).
+  change events, exemplars (raw `Metric` rows with a trace id), trace and log saved
+  views, Docker and Podman hosts.
 
 Any route not listed above renders a "Not modelled" stub (`data-testid="stub-page"`).
 
 ## What the fixture records
 
-`window.__chartTimeZoomFixture` holds `dataset` (ids and identifiers), `requests`
-and `unhandled`.
+`window.__chartTimeZoomFixture` holds `dataset` (ids and identifiers), `requests`,
+`unhandled` and two gates.
 
 Every data request is appended to `requests` in order, as
 `{ seq, kind, modelName, ... }`:
@@ -74,10 +102,26 @@ Every data request is appended to `requests` in order, as
 | `aggregate` | `metricName`, `attributes`, `aggregationType`, `groupBy`, `groupByAttributeKeys`, `aggregationInterval`, `window` (`startTimestamp` / `endTimestamp`, ISO), `queryTime` (the query's own `InBetween`), `interval` and `rows` (what came back) |
 | `getList`, `count`, `analytics.getList`, `analytics.count` | `query`, `select`, `sort`, `limit`, `skip`, and `window` (`{ column, start, end }`) when the query filters a column by an `InBetween` |
 | `getItem`, `updateById` | `id`, `select` or `body` |
-| `api` | `method`, `url`, `body` |
+| `api` | `method`, `url`, `body`, and `window` (`{ start, end }`, ISO) when the body names a `startTime` / `endTime`; a histogram also records `bucketSizeInMinutes` and `buckets` (how many came back) |
+| `realtime` | `modelName`, `eventType`: the logs explorer's subscription to new rows. Nothing is ever sent on it |
 
-A table, analytics model, metric name or API URL the fixture does not model is
-recorded on `unhandled` too, and the spec fails the test on it.
+A table, analytics model, metric name, API URL, explorer filter or facet the
+fixture does not model is recorded on `unhandled` too, and the specs fail the test
+on it.
+
+The gates let a spec pick the moment data lands. Both answer at once by default,
+so the other specs never see them:
+
+| Gate | Holds |
+|---|---|
+| `histogramGate` | the explorers' `/telemetry/traces/histogram`, `/telemetry/traces/facets`, `/telemetry/traces/analytics`, `/telemetry/logs/histogram` and `/telemetry/logs/facets` answers (the Traces explorer awaits its histogram and facets together) |
+| `aggregateGate` | every modelled `AnalyticsModelAPI.aggregate` answer |
+
+With `gate.mode = "manual"` later answers wait in `gate.pending`, each described as
+`{ seq, url` or `metricName, window, response }` (`response` only on the explorer
+answers); `gate.deliver()` answers everything pending, in order, and returns how
+many it answered. Setting `mode` back to `"immediate"` does not release what is
+already held: `deliver()` does.
 
 ## What the spec covers
 
@@ -188,12 +232,99 @@ range and Reset zoom joins it), and they used to take the width out of the name:
 name is not cut, every control stays inside the hero without covering it, the page
 never scrolls sideways, and a name longer than the row still truncates.
 
+## Explorers: a double-click right after a drag
+
+`ExplorerHistogramDoubleClick.spec.ts` (23 tests, same fixture and command) pins
+issue #4116. A drag on the Traces explorer's "Traces over time" or the Logs
+explorer's "Log Volume" histogram zooms the explorer, and the histogram then offers
+"Double-click to reset". The zoom refetches the histogram, and that answer can land
+at any moment of the double-click that follows. When it lands, recharts redraws the
+bars (and the band a first click paints over its bar goes, or moves), so the node a
+press landed on can leave the page before the press ends, and Chrome then
+dispatches no `click` and no `dblclick` for that press. Before the fix:
+
+- data landing during the second press: no `dblclick` reached the chart, and the
+  release read as a drag from the pressed bar of the old chart to a bar of the new
+  one, so the explorer zoomed into a window nobody asked for (Traces: from the old
+  11:26 bar to the zoom's last bar, 11:26 to 11:30) and stayed there;
+- data landing during the first press: the same misread release zoomed once more
+  before the `dblclick` reset, a third histogram request.
+
+Each explorer opens on "Past 1 Hour" (Traces: 30 two-minute bars; Logs: 60 one-minute
+bars). With `histogramGate` in manual mode, a drag across the bars (located from the
+drawn bars, one column per bucket) zooms it: Traces from the 11:20 bar to the 11:28
+bar, so [11:20, 11:30) in ten one-minute bars; Logs from 11:20 to 11:31, so
+[11:20, 11:32) in twelve. The zoom's histogram and facets answers are held. Then a
+double-click (the button down about 55 ms, about 90 ms to the second press, the
+second press and release with click count 2) with the held answers delivered, and
+drawn, at one moment:
+
+| | The zoomed data lands |
+|---|---|
+| (a) | long before the double-click |
+| (b) | after the whole double-click |
+| (c) | between the two clicks |
+| (d) | during the first press |
+| (e) | during the second press |
+
+each on a bar (3px above the plot's bottom) and on empty plot above the bars (3px
+below the plot's top), and for (a) also in the chart box's top padding strip, outside
+recharts' own area. The spot's column is chosen from the bars as drawn and the bars
+about to land (read off the held answer), so it is the same kind of spot on both
+charts; the test checks it with the pointer resting there, and again once the zoomed
+bars are drawn.
+
+The gesture is timed on the page's own clock: each wait runs in the page, from the
+moment the page received the `mousedown` or `mouseup` it follows, so round trips to
+the browser do not stretch it. The spec also records its traces without DOM
+snapshots or screencast, which Playwright takes on the page's main thread around
+every action, between the double-click's events. Still, a busy machine can hold an
+event back: a first run of this spec once delivered the second press 422 ms after
+the first release, past the histogram's 250 ms single-click wait, and the first
+click zoomed into its bar before the `dblclick` came. So when the page receives the
+second press 230 ms or more after the first release, that run is not the
+double-click the test means: the scenario is run again on a fresh page, up to three
+times in all, and only then fails, naming each run's timing.
+
+After every double-click the explorer must be back on "Past 1 Hour": the toolbar
+picker reads the preset, "Reset zoom" and "Double-click to reset" are gone, the
+histogram draws the hour's bars again, and since the drag the histogram asked for
+exactly the zoom and then the hour, with no third window then or later.
+
+The last test does the same on a line chart: the Kubernetes cluster overview's
+Availability chart (ChartLibrary's `LineChart`), zoomed by a drag from 11:34 to 11:40
+with `aggregateGate` in manual mode, then double-clicked on the line's path while the
+zoomed aggregates land during the second press. The pointer rests halfway between
+two buckets, where the page reports a `path.recharts-curve`, not the dot recharts
+draws at the hovered bucket. Availability is the overview's one full-width chart: the
+four below it are 141px wide at the spec's viewport, their buckets under 5px apart,
+and that dot covers every spot of their lines.
+
+Every test records the pointer events Chrome delivers (capture-phase listeners that
+only read) and, on each `mouseup`, whether the node its press landed on is still in
+the page, and puts them in its failure messages:
+
+```
++0ms mousedown(1) on path.recharts-rectangle · +62ms mouseup(1) on path.recharts-rectangle
+[pressed node still there] · +77ms click(1) on path.recharts-rectangle · +158ms
+mousedown(2) on path.recharts-rectangle · +269ms [data landed: 10 bar columns after 103ms,
+pointer over bar] · +278ms mouseup(2) on path.recharts-rectangle [pressed node gone]
+```
+
+(the Traces explorer's (e) on a bar, before the fix: no `click(2)`, no `dblclick(2)`).
+
 ## Run it
 
 ```
 cd packages/E2E
 npm install
 npm run test-chart-time-zoom-ui
+```
+
+One spec on its own, never reusing a fixture server from another checkout:
+
+```
+CI=1 npx playwright test --config playwright.chart-time-zoom-ui.config.ts ExplorerHistogramDoubleClick
 ```
 
 Playwright reuses a server already listening on port 4233 outside CI. If one from
@@ -214,8 +345,13 @@ node ChartTimeZoom/Fixture/server.js --watch
 
 then open
 `http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/kubernetes/60000000-0000-4000-8000-000000000001`
-(append `/insights` for Insights), or
-`http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/host/62000000-0000-4000-8000-000000000001`.
+(append `/insights` for Insights),
+`http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/host/62000000-0000-4000-8000-000000000001`,
+`http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/traces` or
+`http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/logs`.
 Add `?theme=dark` for dark mode. `--watch` rebuilds the bundle when a source file
 changes; refresh the browser. A browser outside Playwright runs on the real clock,
-so its windows are today's; the generated telemetry fills any window.
+so its windows are today's; the generated telemetry, spans and logs fill any
+window. To hold the explorers' next answers from the console:
+`__chartTimeZoomFixture.histogramGate.mode = "manual"`, then
+`__chartTimeZoomFixture.histogramGate.deliver()`.

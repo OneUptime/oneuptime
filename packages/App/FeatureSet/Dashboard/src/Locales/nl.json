@@ -6726,5 +6726,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Opnieuw proberen gaat verder na de statuspagina's die al zijn bereikt: alleen de pagina's binnen het huidige bereik van dit incident die de melding niet volledig hebben ontvangen, krijgen haar nu, ook pagina's die sindsdien zijn toegevoegd. Anders dan notities en statuswijzigingen, die opnieuw naar elke pagina gaan, krijgen de al bereikte pagina's haar niet twee keer.",
   "Send it to every status page again, including the pages already reached": "Opnieuw naar elke statuspagina verzenden, ook naar de al bereikte pagina's",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "De melding dat dit incident is aangemaakt, wordt opnieuw verzonden naar de abonnees van elke statuspagina die dit incident nu bereikt, ook naar de pagina's die de mislukte verzending al had bereikt.",
-  "Could not queue the notification again.": "De melding kon niet opnieuw in de wachtrij worden gezet."
+  "Could not queue the notification again.": "De melding kon niet opnieuw in de wachtrij worden gezet.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + scrollen of knijpen om te zoomen",
+  "The map is out of view.": "De kaart is buiten beeld."
 }

@@ -6726,5 +6726,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Wiederholen setzt nach den bereits erreichten Statusseiten fort: Nur die Seiten des aktuellen Bereichs dieses Vorfalls, die die Benachrichtigung nicht vollständig erhalten haben, erhalten sie jetzt, einschließlich seither hinzugefügter Seiten. Anders als Notizen und Statusänderungen, die erneut an jede Seite gesendet werden, erhalten die bereits erreichten Seiten sie nicht zweimal.",
   "Send it to every status page again, including the pages already reached": "Erneut an jede Statusseite senden, auch an die bereits erreichten Seiten",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "Die Benachrichtigung, dass dieser Vorfall erstellt wurde, wird erneut an die Abonnenten jeder Statusseite gesendet, die dieser Vorfall jetzt erreicht, auch an die Seiten, die der fehlgeschlagene Versand bereits erreicht hat.",
-  "Could not queue the notification again.": "Die Benachrichtigung konnte nicht erneut eingereiht werden."
+  "Could not queue the notification again.": "Die Benachrichtigung konnte nicht erneut eingereiht werden.",
+  "Ctrl + scroll or pinch to zoom": "Strg + Scrollen oder Zwei-Finger-Geste zum Zoomen",
+  "The map is out of view.": "Die Karte ist außerhalb des sichtbaren Bereichs."
 }

@@ -69,6 +69,12 @@ import HintChip from "./HintChip";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
 import {
+  ChartTimeRangeZoomContextValue,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { isSecondPressOfDoubleClick } from "Common/UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
+import {
   CrossSignalQueryParams,
   MetricScopeFilterExtraction,
   buildExemplarLogsPivotParams,
@@ -1778,6 +1784,22 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     setIsBucketInspectorVisible(false);
     setBucketInspector(null);
   }, [setIsBucketInspectorVisible]);
+
+  /*
+   * The double-click reset the charts below end up with (see
+   * resolveChartTimeRangeZoom): this component's host's, or else the
+   * page's. The inspector hands it on when the rest of a double-click
+   * lands on it instead of on the chart.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const chartsTimeRangeReset: (() => void) | undefined =
+    resolveChartTimeRangeZoom({
+      onTimeRangeSelect: props.onTimeRangeSelect,
+      onTimeRangeReset: props.onTimeRangeReset,
+      isTimeAxis: true,
+      pageZoom: pageZoom,
+    }).onTimeRangeReset;
 
   const openBucketInspector: (input: {
     title: string;
@@ -3590,6 +3612,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 if (!bucketInspectorPressedRef.current) {
                   // The chart's double-click: select no word of this card.
                   event.preventDefault();
+                  /*
+                   * A double-click slower than the chart's wait for one
+                   * (DOUBLE_CLICK_DISAMBIGUATION_MS, well inside the
+                   * platforms' own double-click time) opened this card
+                   * under the pointer with its first click, and its second
+                   * press landed here instead of on the chart. While the
+                   * chart offers a reset, that press is still the way back
+                   * out of the zoom (issue #4116): the card goes, and the
+                   * zoom is reset.
+                   */
+                  if (
+                    isSecondPressOfDoubleClick(event) &&
+                    chartsTimeRangeReset
+                  ) {
+                    closeBucketInspector();
+                    chartsTimeRangeReset();
+                  }
                 }
               }}
               onClickCapture={(event: React.MouseEvent<HTMLDivElement>) => {

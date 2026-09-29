@@ -21,8 +21,12 @@ implementations. The fixture includes sixty Kubernetes pods, multiple clusters,
 isolated resources, an unresolved relationship endpoint, eight services
 (including two without dependencies), a fleet of 1,250 IoT devices, three sites,
 and network devices with different health states. The data is entirely
-synthetic. `Datasets.js` adds two self-hosted estates, selected with
-`?dataset=selfHostedLegacy` or `?dataset=selfHostedDiscovered`.
+synthetic. `Datasets.js` adds more estates, selected with `?dataset=`:
+`selfHostedLegacy` and `selfHostedDiscovered` (a self-hosted estate before and
+after service dependencies were discovered), `aksNodeTraffic` (issue #3972) and
+`largeServiceMap` (issue #4117: 171 active services, 19 dependencies and 77
+connections, drawn as a tall narrow column; it opens on the table, so add
+`&serviceView=map`).
 
 ## The Topology API in the fixture
 
@@ -60,7 +64,17 @@ The tests cover infrastructure drilldown, search/reset, the IoT collection
 (paging, server-side search, details), details panel paging ("Show more") and
 undiscovered endpoints, service directory/focus, refresh (`fresh` requests), a
 busy server (429) with retry, network map options/reset, keyboard tabs, and
-phone-width overflow. They complement the authenticated tests in
+phone-width overflow. The `largeServiceMap` tests keep a large Service Map
+drawn and on its canvas (#4117): the wheel scrolls the page instead of zooming
+the map, hovering lines or opening cards never hides a drawn card, double
+clicks, long drags, cards held past the edge and Ctrl + scroll cannot push the
+drawing off the canvas, a narrower window re-frames it (also after a press or
+a click that slips a pixel), Fit to screen returns to the fitted view, Tab and
+Shift+Tab bring each focused card or line onto the canvas, a click on a card
+the canvas edge cuts off opens its drawer without moving the map, and a map
+zoomed into an empty corner says so, in the part of the canvas on screen,
+with a Fit to screen that brings it back. They complement the authenticated
+tests in
 `Tests/Dashboard/Topology.spec.ts`; they do not test API authorization,
 ingestion or the SQL itself (the Postgres suites under
 `Common/Tests/Server/Utils/Topology` do).

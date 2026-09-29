@@ -6726,5 +6726,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.",
   "Send it to every status page again, including the pages already reached": "Send it to every status page again, including the pages already reached",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.",
-  "Could not queue the notification again.": "Could not queue the notification again."
+  "Could not queue the notification again.": "Could not queue the notification again.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + scroll or pinch to zoom",
+  "The map is out of view.": "The map is out of view."
 }

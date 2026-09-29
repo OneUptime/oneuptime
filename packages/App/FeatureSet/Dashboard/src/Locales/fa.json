@@ -6726,5 +6726,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "تلاش دوباره پس از صفحه‌های وضعیتی که قبلاً به آن‌ها رسیده ادامه می‌دهد: فقط صفحه‌های محدوده فعلی این حادثه که اعلان را کامل دریافت نکرده‌اند، از جمله صفحه‌هایی که از آن زمان اضافه شده‌اند، اکنون آن را دریافت می‌کنند. برخلاف یادداشت‌ها و تغییرات وضعیت که دوباره به همه صفحه‌ها ارسال می‌شوند، صفحه‌هایی که قبلاً به آن‌ها رسیده دو بار آن را دریافت نمی‌کنند.",
   "Send it to every status page again, including the pages already reached": "دوباره به همه صفحه‌های وضعیت ارسال شود، از جمله صفحه‌هایی که قبلاً به آن‌ها رسیده",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "اعلان ایجاد این حادثه دوباره برای مشترکان هر صفحه وضعیتی که این حادثه اکنون به آن می‌رسد ارسال می‌شود، از جمله صفحه‌هایی که ارسال ناموفق قبلاً به آن‌ها رسیده بود.",
-  "Could not queue the notification again.": "امکان قرار دادن دوباره اعلان در صف وجود نداشت."
+  "Could not queue the notification again.": "امکان قرار دادن دوباره اعلان در صف وجود نداشت.",
+  "Ctrl + scroll or pinch to zoom": "برای بزرگ‌نمایی، Ctrl + اسکرول یا حرکت دو انگشتی",
+  "The map is out of view.": "نقشه خارج از دید است."
 }
