@@ -10,6 +10,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import ObjectID from "../../../Types/ObjectID";
 import {
   UserFlowLoop,
@@ -311,7 +312,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
   });
 
   test("Paths after anchors the map forward on the page of its own row", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
 
     renderTables(onAnchor);
     openTab("pages");
@@ -323,7 +324,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
   });
 
   test("Paths before, picked from a row's ⋯ menu, anchors the map backward on that row's page and closes the menu", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
 
     renderTables(onAnchor);
     openTab("pages");
@@ -340,7 +341,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
   });
 
   test("opening the ⋯ and closing it again anchors nothing", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
 
     renderTables(onAnchor);
     openTab("pages");
@@ -355,7 +356,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
   });
 
   test("every row's actions act on its own page, in both directions", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
 
     renderTables(onAnchor);
     openTab("pages");
@@ -376,7 +377,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
   });
 
   test("after a re-sort the actions follow their page, not the position of the row", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
 
     renderTables(onAnchor);
     openTab("pages");
@@ -406,7 +407,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
    * spinner, and the row could not be asked again.
    */
   test("the row's button is ready again once the map has re-anchored", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
     const { rerender }: RenderResult = renderTables(onAnchor);
 
     openTab("pages");
@@ -433,7 +434,7 @@ describe("User Flows Pages rows: one button and a ⋯ menu", () => {
   });
 
   test("the page chip still anchors forward, the same way the row's button does", () => {
-    const onAnchor: jest.Mock<OnAnchor> = jest.fn<OnAnchor>();
+    const onAnchor: Mock<OnAnchor> = jest.fn<OnAnchor>();
 
     renderTables(onAnchor);
     openTab("pages");
