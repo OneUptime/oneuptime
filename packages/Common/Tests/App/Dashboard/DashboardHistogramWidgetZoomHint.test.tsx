@@ -498,7 +498,10 @@ describe("DashboardWidgetZoomHint names only the gestures the widget has there a
    * every drag. It reveals on keyboard focus only, like the card hints.
    */
   test("it reveals on keyboard focus inside the widget, not on the focus a mouse press leaves", () => {
-    renderHint({ onTimeRangeSelect: select }, true);
+    renderHint(
+      { onTimeRangeSelect: select, onTimeRangeReset: undefined },
+      true,
+    );
 
     expect(hint()).toHaveClass(
       "group-has-[:focus-visible]/zoomhint:opacity-100",
