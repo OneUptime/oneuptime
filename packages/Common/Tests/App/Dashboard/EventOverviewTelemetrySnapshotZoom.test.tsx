@@ -22,19 +22,24 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Issue #4105 on the incident and alert overview pages. Their "Telemetry
  * snapshot" charts the metric the monitor evaluated, pinned to the window
  * it evaluated over. That window is a record of what happened, not a range
- * anyone picks, so the chart refused a drag. It now zooms itself alone:
+ * anyone picks, so the chart refused a drag. A drag now zooms the whole
+ * snapshot:
  *
- * - a drag re-queries the metric over the dragged window, without the page
- *   reloading or the snapshot badge changing what it names;
- * - a double-click, or Reset zoom, returns to the snapshot window;
+ * - it re-queries the metric over the dragged window and hands that window
+ *   to the snapshot's other tabs, without the page reloading or the
+ *   snapshot badge changing what it names;
+ * - a double-click, or Reset zoom beside the badge, returns to the snapshot
+ *   window;
  * - the page's background refresh (any state change or note) rebuilds the
  *   snapshot and must not throw the zoom away.
  *
  * The pages are rendered for real with every heavy card stubbed (the same
  * stubs as EventOverviewPages.test). The snapshot card hands the page's
- * primary element through untouched; the metric chart in it is the real
- * MetricView with MetricCharts stood in for by buttons that call exactly
- * the handlers MetricView hands the charts.
+ * primary element through untouched and records the window the page hands
+ * its other tabs; the metric chart in it is the real MetricView with
+ * MetricCharts stood in for by buttons that call exactly the handlers
+ * MetricView hands the charts. EventOverviewSnapshotZoomAcrossTabs.test
+ * renders the real tabs.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -416,6 +421,17 @@ function charts(): MockChartsProps {
   return mockLatestCharts;
 }
 
+// The window the page last handed the snapshot card for its other tabs.
+function windowHandedToTheTabs(): Window {
+  const telemetryCard: Array<Record<string, unknown>> =
+    recordedProps["Telemetry"] || [];
+  expect(telemetryCard.length).toBeGreaterThan(0);
+  const window: InBetween<Date> = telemetryCard[telemetryCard.length - 1]![
+    "snapshotWindow"
+  ] as InBetween<Date>;
+  return windowOf(window.startValue, window.endValue);
+}
+
 /*
  * The telemetryQuery exactly as the row stores it: serialized to JSON, so
  * the window's bounds come back as ISO strings.
@@ -619,9 +635,13 @@ describe.each([
       ).toBeNull();
     });
 
-    test("a drag zooms the snapshot chart alone: no page reload, the badge unchanged", async () => {
+    test("a drag zooms the whole snapshot: no page reload, the badge unchanged, the other tabs handed the slice", async () => {
       await renderSettled(pageCase);
       const pageReads: number = getItemMock.mock.calls.length;
+      // Before the drag, the other tabs are handed the snapshot window.
+      expect(windowHandedToTheTabs()).toEqual(
+        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+      );
 
       await press("Drag across the snapshot chart");
 
@@ -632,18 +652,34 @@ describe.each([
       });
       expect(getItemMock.mock.calls.length).toBe(pageReads);
       expect(screen.getByText(snapshotBadgeTitle())).toBeInTheDocument();
-      // The companion tabs stay pinned to the snapshot window.
-      const telemetryCard: Array<Record<string, unknown>> =
-        recordedProps["Telemetry"] || [];
-      const latestWindow: InBetween<Date> = telemetryCard[
-        telemetryCard.length - 1
-      ]!["snapshotWindow"] as InBetween<Date>;
-      expect(latestWindow.startValue.getTime()).toBe(SNAPSHOT_START.getTime());
-      expect(latestWindow.endValue.getTime()).toBe(SNAPSHOT_END.getTime());
+      // The snapshot's other tabs follow the zoom: they show the slice.
+      expect(windowHandedToTheTabs()).toEqual(
+        windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
+      );
       expect(
         screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
       ).toBeVisible();
       expect(charts().onTimeRangeReset).toBeInstanceOf(Function);
+    });
+
+    test("a reset hands the other tabs the snapshot window again", async () => {
+      await renderSettled(pageCase);
+      await press("Drag across the snapshot chart");
+      await waitFor(() => {
+        expect(windowHandedToTheTabs()).toEqual(
+          windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
+        );
+      });
+
+      fireEvent.click(
+        await screen.findByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+      );
+
+      await waitFor(() => {
+        expect(windowHandedToTheTabs()).toEqual(
+          windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        );
+      });
     });
 
     test("a double-click returns to the snapshot window", async () => {
@@ -705,7 +741,7 @@ describe.each([
         expect(getItemMock.mock.calls.length).toBeGreaterThan(pageReads);
       });
 
-      // Still zoomed, still showing the dragged window.
+      // Still zoomed, still showing the dragged window, on every tab.
       expect(
         await screen.findByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
       ).toBeVisible();
@@ -713,6 +749,9 @@ describe.each([
         windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
       );
       expect(charts().onTimeRangeReset).toBeInstanceOf(Function);
+      expect(windowHandedToTheTabs()).toEqual(
+        windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
+      );
     });
   },
 );

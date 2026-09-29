@@ -14,7 +14,10 @@ import path from "path";
  *   MonitorStepPreviewsTimeRangeZoom.test.tsx     (10 step forms, Criteria)
  *   IncidentRootCauseTimeRangeZoom.test.tsx       (Root Cause page)
  *   EventOverviewTelemetrySnapshotZoom.test.tsx   (incident / alert pages)
+ *   EventOverviewSnapshotZoomAcrossTabs.test.tsx  (their snapshot's tabs)
  *   TelemetrySnapshotPanelTimeRangeZoom.test.tsx  (episodes, companion tabs)
+ *   TelemetrySnapshotZoomAcrossTabs.test.tsx      (a snapshot's zoom, every tab)
+ *   TelemetrySnapshotZoom.test.tsx                (the hosts' snapshot zoom)
  *   UptimeStripsExcludedFromZoom.test.tsx         (uptime day strips)
  */
 
@@ -183,19 +186,66 @@ describe("monitor step forms zoom their preview only", () => {
   });
 });
 
-describe("the telemetry snapshot's metric chart zooms locally", () => {
+describe("the telemetry snapshot zooms as one, every tab of it", () => {
   test.each(SNAPSHOT_HOSTS)(
-    "%s: its metric chart zooms itself and returns to the snapshot window",
+    "%s: its metric chart zooms the snapshot the host holds",
     (_name: string, file: string) => {
       const source: string = readSquashed(file);
       const views: Array<string> = metricViewElements(source);
 
       expect(views).toHaveLength(1);
-      expect(views[0]).toContain("data={telemetryQuery.metricViewData}");
-      expect(views[0]).toContain("localChartZoom={true}");
-      expect(views[0]).not.toContain("disableChartZoom");
+      const view: string = views[0]!;
+      // The chart shows the window the snapshot shows (a zoom included)...
+      expect(view).toContain("data={snapshotZoom.metricViewData}");
+      // ...and a drag or a double-click on it zooms or resets the snapshot.
+      expect(view).toContain(
+        "onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}",
+      );
+      expect(view).toContain(
+        "onTimeRangeReset={snapshotZoom.onTimeRangeReset}",
+      );
+      /*
+       * Reached only when the hook hands no drag handler: a snapshot that
+       * stored no window, whose chart still zooms itself alone.
+       */
+      expect(view).toContain("localChartZoom={true}");
+      expect(view).not.toContain("disableChartZoom");
       // The snapshot window is a record, not a range the page owns.
       expect(source).not.toContain("TimeRangeZoomScope");
+      expect(source).toContain("useTelemetrySnapshotZoom({");
+    },
+  );
+
+  test.each(SNAPSHOT_HOSTS)(
+    "%s: the other tabs are handed the window the snapshot shows",
+    (_name: string, file: string) => {
+      const source: string = readSquashed(file);
+
+      expect(source).toContain("snapshotWindow={snapshotZoom.window}");
+      // So their copy names the zoomed part of the window, not all of it.
+      expect(source).toContain("isSnapshotZoomed={snapshotZoom.isZoomed}");
+    },
+  );
+
+  test.each(SNAPSHOT_HOSTS)(
+    "%s: every card's badge carries the snapshot's Reset zoom",
+    (_name: string, file: string) => {
+      const source: string = readSquashed(file);
+
+      expect(source).toMatch(
+        /const snapshotWindowAlert: ReactElement \| undefined = (telemetrySnapshotWindow|snapshotWindow) \? \( <TelemetrySnapshotBadge window=\{(telemetrySnapshotWindow|snapshotWindow)\} zoom=\{snapshotZoom.zoom\} \/> \) : undefined;/,
+      );
+      // Named by the snapshot window itself, never by the zoomed slice.
+      expect(source).not.toContain(
+        "<TelemetrySnapshotBadge window={snapshotZoom.window}",
+      );
+    },
+  );
+
+  test.each(SNAPSHOT_HOSTS.slice(0, 2))(
+    "%s: the zoom belongs to the event on screen (the page outlives a move to another one)",
+    (_name: string, file: string) => {
+      expect(readSquashed(file)).toContain("subjectKey: modelIdString,");
     },
   );
 });

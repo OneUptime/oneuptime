@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -33,6 +34,9 @@ import TracesViewer from "../Traces/TracesViewer";
 import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
 import EmbeddedMetricCard from "../Metrics/EmbeddedMetricCard";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import useServiceNames from "./useServiceNames";
 import {
   formatDroppedScopeHint,
@@ -64,6 +68,13 @@ import {
 export interface ComponentProps {
   telemetryQuery: TelemetryQuery;
   snapshotWindow: InBetween<Date> | null;
+  /*
+   * True while the host has zoomed the snapshot (see TelemetrySnapshotZoom).
+   * snapshotWindow is then the slice, not the whole snapshot window, and
+   * the tabs' copy says so: "no logs found" must not claim the whole
+   * window was empty.
+   */
+  isSnapshotZoomed?: boolean | undefined;
   // Shared with the page's own preview cards (may be undefined — no window).
   snapshotWindowAlert?: ReactElement | undefined;
   /*
@@ -86,12 +97,25 @@ const TAB_LABELS: Dictionary<string> = {
   [TelemetryType.Exception]: "Exceptions",
 };
 
+type GetWindowNameFunction = (isSnapshotZoomed: boolean | undefined) => string;
+
+// What the companion cards call the window they show.
+const getWindowName: GetWindowNameFunction = (
+  isSnapshotZoomed: boolean | undefined,
+): string => {
+  return isSnapshotZoomed
+    ? "the zoomed part of the snapshot window"
+    : "the snapshot window";
+};
+
 type WithoutPageZoomFunction = (companion: ReactElement) => ReactElement;
 
 /*
- * Each companion keeps its own window: seeded from the snapshot, zoomed
- * and reset inside the companion (the viewers' histograms, the metric
- * card's own zoom). These tabs also open inside the investigation drawer,
+ * Each companion keeps its own zoom: it is seeded from the window the host
+ * hands over (and follows a new one), and zoomed and reset inside the
+ * companion (the viewers' histograms, the metric card's own zoom). A zoom
+ * of the whole snapshot is the host's, and reaches the companions as that
+ * window. These tabs also open inside the investigation drawer,
  * over pages whose charts zoom the page. That page's zoom is withdrawn
  * here, so a companion's time picker never offers to reset the page
  * behind the drawer, and a drag on the companion metric card never
@@ -102,6 +126,25 @@ const withoutPageZoom: WithoutPageZoomFunction = (
   companion: ReactElement,
 ): ReactElement => {
   return <TimeRangeZoomProvider zoom={null}>{companion}</TimeRangeZoomProvider>;
+};
+
+type UseSameWhileEqualFunction = <T>(value: T) => T;
+
+/*
+ * The same object for as long as its value stays the same. The page hands
+ * this card a new but equal snapshot whenever it refreshes in the
+ * background (an acknowledge or an edit re-reads the stored query), and so
+ * does the investigation drawer whenever its opener re-renders. Re-derived
+ * as new objects, the companions would look like a new scope to every tab
+ * below: the metrics tab would blank its card and look its metrics up
+ * again, and the explorers would refetch.
+ */
+const useSameWhileEqual: UseSameWhileEqualFunction = <T,>(value: T): T => {
+  const key: string = JSON.stringify(value) || "";
+
+  return useMemo((): T => {
+    return value;
+  }, [key]);
 };
 
 interface CompanionScopeHintProps {
@@ -129,6 +172,8 @@ interface CompanionLogsTabProps {
   spec: CompanionLogsSpec;
   snapshotWindowAlert?: ReactElement | undefined;
   eventNoun: string;
+  // What the copy calls the window the tab shows; see getWindowName.
+  windowName: string;
 }
 
 const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
@@ -145,7 +190,7 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
       <CompanionScopeHint notes={props.spec.notCarried} />
       <Card
         title={"Logs"}
-        description={`Logs in this ${props.eventNoun}'s telemetry scope during the snapshot window.`}
+        description={`Logs in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
         rightElement={props.snapshotWindowAlert}
       >
         <DashboardLogsViewer
@@ -153,7 +198,7 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
           serviceIds={serviceIds.length > 0 ? serviceIds : undefined}
           logQuery={props.spec.logQuery}
           limit={10}
-          noLogsMessage="No logs found in the snapshot window."
+          noLogsMessage={`No logs found in ${props.windowName}.`}
         />
       </Card>
     </div>
@@ -164,6 +209,7 @@ interface CompanionTracesTabProps {
   spec: CompanionTracesSpec;
   snapshotWindowAlert?: ReactElement | undefined;
   eventNoun: string;
+  windowName: string;
 }
 
 const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
@@ -174,7 +220,7 @@ const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
       <CompanionScopeHint notes={props.spec.notCarried} />
       <Card
         title={"Spans"}
-        description={`Spans in this ${props.eventNoun}'s telemetry scope during the snapshot window.`}
+        description={`Spans in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
         rightElement={props.snapshotWindowAlert}
       >
         <TracesViewer
@@ -182,7 +228,7 @@ const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
           limit={10}
           // Pinned to the snapshot; the host page owns the URL.
           disableUrlSync={true}
-          emptyMessage="No spans found in the snapshot window."
+          emptyMessage={`No spans found in ${props.windowName}.`}
         />
       </Card>
     </div>
@@ -193,6 +239,7 @@ interface CompanionExceptionsTabProps {
   spec: CompanionExceptionsSpec;
   snapshotWindowAlert?: ReactElement | undefined;
   eventNoun: string;
+  windowName: string;
 }
 
 const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
@@ -203,7 +250,7 @@ const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
       <CompanionScopeHint notes={props.spec.notCarried} />
       <Card
         title={"Exceptions"}
-        description={`Exceptions in this ${props.eventNoun}'s telemetry scope during the snapshot window.`}
+        description={`Exceptions in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
         rightElement={props.snapshotWindowAlert}
       >
         <ExceptionsViewer
@@ -217,7 +264,7 @@ const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
           limit={10}
           // Pinned to the snapshot; the host page owns the URL.
           disableUrlSync={true}
-          emptyMessage="No exceptions found in the snapshot window."
+          emptyMessage={`No exceptions found in ${props.windowName}.`}
         />
       </Card>
     </div>
@@ -228,6 +275,7 @@ interface CompanionMetricsTabProps {
   spec: CompanionMetricsSpec;
   snapshotWindowAlert?: ReactElement | undefined;
   eventNoun: string;
+  windowName: string;
 }
 
 /*
@@ -270,6 +318,15 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
 
   const [metricNames, setMetricNames] = useState<Array<string> | null>(null);
   const [error, setError] = useState<string>("");
+
+  /*
+   * The lookup below runs again only when the spec changes by value: a
+   * host handing over an equal spec must not blank the card behind a
+   * loader, taking whatever the reader did in it along.
+   */
+  const specKey: string = useMemo((): string => {
+    return JSON.stringify(spec);
+  }, [spec]);
 
   useEffect(() => {
     let isCancelled: boolean = false;
@@ -331,7 +388,7 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [spec]);
+  }, [specKey]);
 
   const chartPlan: CompanionMetricChartPlan = useMemo(() => {
     return buildCompanionMetricChartPlan({
@@ -356,6 +413,44 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
     };
   });
 
+  /*
+   * A new window from the host is a new starting point: the snapshot was
+   * zoomed or reset while this tab was open, or the investigation drawer
+   * moved to another moment. The card follows it, and any zoom made in the
+   * card ends with it. The same window handed over again changes nothing.
+   */
+  const windowKey: string = `${spec.window.startValue.getTime()}|${spec.window.endValue.getTime()}`;
+  const seededWindowKeyRef: React.MutableRefObject<string> =
+    useRef<string>(windowKey);
+
+  useEffect(() => {
+    if (seededWindowKeyRef.current === windowKey) {
+      return;
+    }
+
+    seededWindowKeyRef.current = windowKey;
+    setTimeRange({
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(
+        spec.window.startValue,
+        spec.window.endValue,
+      ),
+    });
+  }, [windowKey]);
+
+  /*
+   * The card's drag-to-zoom is kept here, beside the range it zooms, and
+   * handed to the card, which follows a zoom over its own range. Kept in the
+   * card it would not outlive it: the card is replaced by a loader whenever
+   * a re-derived scope looks its metrics up again, and the tab would stay on
+   * the zoomed window with no "Reset zoom" and a double-click that does
+   * nothing.
+   */
+  const zoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: timeRange,
+    onTimeRangeChange: setTimeRange,
+  });
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -370,11 +465,11 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
         <CompanionScopeHint notes={spec.notCarried} />
         <Card
           title={"Metrics"}
-          description={`Metrics in this ${props.eventNoun}'s telemetry scope during the snapshot window.`}
+          description={`Metrics in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
           rightElement={props.snapshotWindowAlert}
         >
           <p className="text-sm text-gray-500">
-            No metrics were found in this scope during the snapshot window.
+            {`No metrics were found in this scope during ${props.windowName}.`}
           </p>
         </Card>
       </div>
@@ -383,22 +478,24 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
 
   const description: string =
     chartPlan.omittedMetricCount > 0
-      ? `Metrics in this ${props.eventNoun}'s telemetry scope during the snapshot window. Showing ${chartPlan.queryConfigs.length} of ${metricNames.length} metrics.`
-      : `Metrics in this ${props.eventNoun}'s telemetry scope during the snapshot window.`;
+      ? `Metrics in this ${props.eventNoun}'s telemetry scope during ${props.windowName}. Showing ${chartPlan.queryConfigs.length} of ${metricNames.length} metrics.`
+      : `Metrics in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`;
 
   return (
     <div>
       <CompanionScopeHint
         notes={[...spec.notCarried, ...chartPlan.chartScopeNotes]}
       />
-      <EmbeddedMetricCard
-        title={"Metrics"}
-        description={description}
-        queryConfigs={chartPlan.queryConfigs}
-        timeRange={timeRange}
-        onTimeRangeChange={setTimeRange}
-        rightElement={props.snapshotWindowAlert}
-      />
+      <TimeRangeZoomProvider zoom={zoom}>
+        <EmbeddedMetricCard
+          title={"Metrics"}
+          description={description}
+          queryConfigs={chartPlan.queryConfigs}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          rightElement={props.snapshotWindowAlert}
+        />
+      </TimeRangeZoomProvider>
     </div>
   );
 };
@@ -452,23 +549,35 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
     });
   }, [props.telemetryQuery, props.snapshotWindow, serviceIdsByName]);
 
+  // Each companion keeps its identity until its own value changes.
+  const logsSpec: CompanionLogsSpec | null = useSameWhileEqual(companions.logs);
+  const tracesSpec: CompanionTracesSpec | null = useSameWhileEqual(
+    companions.traces,
+  );
+  const metricsSpec: CompanionMetricsSpec | null = useSameWhileEqual(
+    companions.metrics,
+  );
+  const exceptionsSpec: CompanionExceptionsSpec | null = useSameWhileEqual(
+    companions.exceptions,
+  );
+  const primaryType: TelemetryType | null = companions.primaryType;
+  const windowName: string = getWindowName(props.isSnapshotZoomed);
+
   const handleTabChange: (tab: Tab) => void = useCallback((_tab: Tab): void => {
     // Selection is transient; Tabs owns which panel is mounted.
   }, []);
 
   const tabs: Array<Tab> = useMemo(() => {
-    if (!companions.primaryType) {
+    if (!primaryType) {
       return [];
     }
 
     const items: Array<Tab> = [];
 
-    for (const telemetryType of getTelemetrySnapshotTabOrder(
-      companions.primaryType,
-    )) {
+    for (const telemetryType of getTelemetrySnapshotTabOrder(primaryType)) {
       const label: string = TAB_LABELS[telemetryType] || telemetryType;
 
-      if (telemetryType === companions.primaryType) {
+      if (telemetryType === primaryType) {
         items.push({
           name: label,
           children: props.primarySignalElement,
@@ -476,56 +585,60 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
         continue;
       }
 
-      if (telemetryType === TelemetryType.Log && companions.logs) {
+      if (telemetryType === TelemetryType.Log && logsSpec) {
         items.push({
           name: label,
           children: withoutPageZoom(
             <CompanionLogsTab
-              spec={companions.logs}
+              spec={logsSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
+              windowName={windowName}
             />,
           ),
         });
         continue;
       }
 
-      if (telemetryType === TelemetryType.Trace && companions.traces) {
+      if (telemetryType === TelemetryType.Trace && tracesSpec) {
         items.push({
           name: label,
           children: withoutPageZoom(
             <CompanionTracesTab
-              spec={companions.traces}
+              spec={tracesSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
+              windowName={windowName}
             />,
           ),
         });
         continue;
       }
 
-      if (telemetryType === TelemetryType.Metric && companions.metrics) {
+      if (telemetryType === TelemetryType.Metric && metricsSpec) {
         items.push({
           name: label,
           children: withoutPageZoom(
             <CompanionMetricsTab
-              spec={companions.metrics}
+              spec={metricsSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
+              windowName={windowName}
             />,
           ),
         });
         continue;
       }
 
-      if (telemetryType === TelemetryType.Exception && companions.exceptions) {
+      if (telemetryType === TelemetryType.Exception && exceptionsSpec) {
         items.push({
           name: label,
           children: withoutPageZoom(
             <CompanionExceptionsTab
-              spec={companions.exceptions}
+              spec={exceptionsSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
+              windowName={windowName}
             />,
           ),
         });
@@ -534,10 +647,15 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
 
     return items;
   }, [
-    companions,
+    primaryType,
+    logsSpec,
+    tracesSpec,
+    metricsSpec,
+    exceptionsSpec,
     props.primarySignalElement,
     props.snapshotWindowAlert,
     props.eventNoun,
+    windowName,
   ]);
 
   /*
