@@ -7,6 +7,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
 import {
   indentMarkdownLines,
+  isInFencedCodeBlock,
   liftListItems,
   MarkdownTextEdit,
   outdentMarkdownLines,
@@ -644,6 +645,55 @@ describe("toggleMarkdownList", () => {
     expect(textOf(toggleMarkdownList(text, 0, at(text, "c"), "ordered"))).toBe(
       "1. a\n2. b\nc",
     );
+  });
+});
+
+/*
+ * Where Markdown mode pastes the clipboard's text as it is: inside a fenced
+ * code block, found the way Tab and the list buttons find it.
+ */
+describe("isInFencedCodeBlock", () => {
+  const inside: (text: string, needle: string) => boolean = (
+    text: string,
+    needle: string,
+  ): boolean => {
+    return isInFencedCodeBlock(text, at(text, needle));
+  };
+
+  it("is true between a fence and its closing fence", () => {
+    expect(inside("```bash\nnpm ci\n```", "npm")).toBe(true);
+    expect(isInFencedCodeBlock("```bash\n\n```", 8)).toBe(true);
+  });
+
+  it("is true for a tilde fence, and one nested in a list item", () => {
+    expect(inside("~~~\ncode\n~~~", "code")).toBe(true);
+    expect(inside("- step\n  ```\n  run\n  ```", "run")).toBe(true);
+  });
+
+  it("is true on the fence lines themselves", () => {
+    const text: string = "```\nx\n```\nafter";
+
+    expect(isInFencedCodeBlock(text, 0)).toBe(true);
+    expect(isInFencedCodeBlock(text, text.indexOf("\n```") + 1)).toBe(true);
+  });
+
+  it("is true after a fence that is never closed", () => {
+    expect(isInFencedCodeBlock("```bash\n", 8)).toBe(true);
+  });
+
+  // A shorter fence of backticks does not close a longer one, nor ``` a ~~~ one.
+  it("is true for a fence line inside a longer or other fence", () => {
+    expect(inside("````\n```\nx\n````\nafter", "x")).toBe(true);
+    expect(inside("~~~\n```\ny\n~~~", "y")).toBe(true);
+  });
+
+  it("is false after the closing fence, and in plain text", () => {
+    const text: string = "```\nx\n```\n\nafter";
+
+    expect(inside(text, "after")).toBe(false);
+    expect(isInFencedCodeBlock(text, text.length)).toBe(false);
+    expect(inside("just a paragraph", "paragraph")).toBe(false);
+    expect(inside("````\n```\nx\n````\nafter", "after")).toBe(false);
   });
 });
 

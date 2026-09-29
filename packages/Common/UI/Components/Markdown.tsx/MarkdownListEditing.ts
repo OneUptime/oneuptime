@@ -644,6 +644,21 @@ const parseSourceLines: (lines: Array<string>) => Array<SourceLine> = (
 };
 
 /*
+ * Whether `offset` in the source is inside a fenced code block: on one of
+ * its fence lines, between them, or anywhere after a fence that is never
+ * closed. The editor pastes there as the browser would, text as it is --
+ * the same fences Tab and the list buttons leave alone.
+ */
+export const isInFencedCodeBlock: (text: string, offset: number) => boolean = (
+  text: string,
+  offset: number,
+): boolean => {
+  const line: number =
+    text.slice(0, Math.max(0, offset)).split("\n").length - 1;
+  return parseSourceLines(text.split("\n"))[line]?.fenced === true;
+};
+
+/*
  * The end (exclusive) of the block that starts at `index`: the item's own
  * line and everything indented deeper than it below -- its continuation
  * lines, its nested items, a fenced block inside it -- up to the next line

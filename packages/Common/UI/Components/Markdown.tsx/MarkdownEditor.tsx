@@ -13,6 +13,7 @@ import DOMPurify from "dompurify";
 import { htmlToMarkdown, markdownToHtml } from "./MarkdownConverters";
 import {
   indentMarkdownLines,
+  isInFencedCodeBlock,
   liftListItems,
   MarkdownListKind,
   MarkdownTextEdit,
@@ -705,6 +706,21 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   ) => void = (e: React.ClipboardEvent<HTMLTextAreaElement>): void => {
     const clipboardData: DataTransfer | null = e.clipboardData;
     if (!clipboardData) {
+      return;
+    }
+    /*
+     * Inside a fenced code block the text goes in as it is, the browser's
+     * own paste (which keeps it on the undo stack) -- as in the visual
+     * editor's code blocks. Converted there, a command copied from a docs
+     * page came in as its own ``` fence, which closed the block around it,
+     * and CLI output had its "1)" and "•" lines rewritten as list items. A
+     * clipboard with no text, only an image, still uploads below.
+     */
+    const textarea: HTMLTextAreaElement = e.currentTarget;
+    if (
+      clipboardData.getData("text/plain") &&
+      isInFencedCodeBlock(textarea.value, textarea.selectionStart)
+    ) {
       return;
     }
     const images: Array<File> = allowImageUpload

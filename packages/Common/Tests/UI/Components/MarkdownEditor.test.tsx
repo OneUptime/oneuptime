@@ -1616,6 +1616,100 @@ describe("MarkdownEditor paste in the markdown source", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  /*
+   * Converted inside a fence, a command copied from a docs page came in as
+   * a ``` block of its own -- closing the one around it, with the command
+   * left as a paragraph -- so there the browser pastes the text as it is.
+   */
+  test("leaves a paste inside a fenced code block to the browser", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"```bash\n\n```"} onChange={onChange} />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(8, 8);
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({
+          "text/html": "<pre><code>npm install oneuptime</code></pre>",
+          "text/plain": "npm install oneuptime",
+        }),
+      }),
+    ).toBe(true);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  // CLI output is not a list: "1)" and "•" stay as they were printed.
+  test("does not rewrite list markers in text pasted inside a fence", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue={"~~~\n\n~~~"} onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(4, 4);
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({
+          "text/plain": "● nginx.service - web server\n1) option A\n• done",
+        }),
+      }),
+    ).toBe(true);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("leaves a paste after a fence that is never closed to the browser", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue={"```bash\n"} onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(8, 8);
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({
+          "text/html": "<ul><li>a</li></ul>",
+          "text/plain": "a",
+        }),
+      }),
+    ).toBe(true);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("still converts a paste on the line after a code block", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"```\nx\n```\n\n"} onChange={onChange} />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({
+          "text/html": "<ul><li>a<ul><li>b</li></ul></li></ul>",
+          "text/plain": "a\nb",
+        }),
+      }),
+    ).toBe(false);
+    expect(lastChange(onChange)).toBe("```\nx\n```\n\n- a\n  - b");
+  });
+
+  test("still uploads an image pasted inside a fence", async () => {
+    const create: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "create")
+      .mockReturnValue(new Promise<never>(() => {}) as never);
+    render(<MarkdownEditor initialValue={"```\n\n```"} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(4, 4);
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({}, [imageFile()]),
+      }),
+    ).toBe(false);
+    await flushUploads();
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   test("still uploads a pasted image", async () => {
     const onChange: jest.Mock = jest.fn();
     const create: jest.SpyInstance = jest
