@@ -69,6 +69,8 @@ jest.mock("../../../Server/Utils/Logger", () => {
   };
 });
 
+import fs from "fs";
+import path from "path";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -481,6 +483,37 @@ describe("IncidentFormService.getPublicForm - custom field questions", () => {
       mapFromResourceType: true,
       mapFromCustomFieldName: true,
     });
+  });
+
+  /*
+   * The reporter must be asked the questions in the order the form's
+   * Questions card (and Declare Incident) lists them. Both read the fields
+   * by Sort Order, and DatabaseService appends _id to every sort, so fields
+   * without a sort order tie-break by id on both sides; with no sort at all
+   * the public page read them newest first instead (found by the live E2E
+   * run, IncidentForms.spec.ts G).
+   */
+  test("reads the fields in the dashboard's order: by Sort Order, the same sort the dashboard asks for", async () => {
+    storedForm = buildForm({ customFieldSettings: FORM_QUESTIONS });
+
+    await getPublicForm();
+
+    const findBy: { sort?: Record<string, unknown> } = customFieldFindBy.mock
+      .calls[0]![0] as never;
+
+    expect(findBy.sort).toEqual({ sortOrder: SortOrder.Ascending });
+
+    const dashboardSource: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentCustomFieldDefinitions.ts",
+      ),
+      "utf8",
+    );
+
+    expect(dashboardSource.replace(/\s+/g, "")).toContain(
+      "sort:{sortOrder:SortOrder.Ascending,}",
+    );
   });
 
   test.each([

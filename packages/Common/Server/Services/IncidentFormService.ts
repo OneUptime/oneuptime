@@ -918,6 +918,19 @@ export class Service extends DatabaseService<Model> {
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
+        /*
+         * The order the dashboard reads them in (fetchIncidentCustomFieldDefinitions):
+         * by Sort Order, and - because DatabaseService appends the primary
+         * key to every sort - by _id among fields that have none. The stable
+         * sortCustomFieldDefinitions below keeps that tie order, so fields
+         * without a sort order are asked in the order the form's Questions
+         * card lists them. With no sort, DatabaseService would read them
+         * newest first, and the reporter would get a different order than
+         * the admin set up.
+         */
+        sort: {
+          sortOrder: SortOrder.Ascending,
+        },
         props: {
           isRoot: true,
         },

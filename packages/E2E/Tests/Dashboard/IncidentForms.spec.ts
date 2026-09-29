@@ -2378,9 +2378,10 @@ test.describe("Incident forms", () => {
 });
 
 /*
- * Its own group, with its own project: it asserts behaviour the product does
- * not have yet (see the FIXME), and in the serial group above a failure would
- * skip - and, retried, repeat - every test after it.
+ * Its own group, with its own project: it needs six fields with no sort
+ * order, which would change the questions every test in the serial group
+ * above asks, and a failure there would skip - and, retried, repeat - every
+ * test after it.
  */
 test.describe("Incident form question order", () => {
   test.skip(({ browserName }: { browserName: string }) => {
@@ -2538,15 +2539,14 @@ test.describe("Incident form question order", () => {
     await reporterContext.close();
 
     /*
-     * FIXME(product): the reporter should be asked the questions in the
-     * order the admin set them up in - the order of the form's Questions
-     * card, which is also the Declare Incident page's. It is not, for
-     * fields without a sort order: the dashboard reads them sorted by
+     * The reporter is asked the questions in the order the admin set them
+     * up in - the order of the form's Questions card, which is also the
+     * Declare Incident page's. For fields without a sort order that order
+     * is only the database's tie-break: the dashboard reads them by
      * sortOrder (IncidentCustomFieldDefinitions.ts
-     * fetchIncidentCustomFieldDefinitions, ties broken by id), while
-     * IncidentFormService.getAskedCustomFields reads them with no sort at
-     * all, so DatabaseService's default puts them newest first. Fails
-     * until the server reads them the way the dashboard does.
+     * fetchIncidentCustomFieldDefinitions, ties broken by id), and so must
+     * IncidentFormService.getAskedCustomFields - with no sort it read them
+     * newest first, which is the bug this test first caught.
      */
     expect(askedOrder).toEqual(cardOrder);
   });
