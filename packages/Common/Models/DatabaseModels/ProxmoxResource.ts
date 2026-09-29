@@ -50,7 +50,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * default) while the nodes still alive report it as Offline
  * (ProxmoxResourceService.markNodesNotReporting — isUp only, never
  * lastSeenAt), however long a OneUptime outage interrupts them, until it
- * reports again or is removed with removeOfflineNode ("Remove node").
+ * reports again or is removed with removeOfflineNode ("Remove Node").
  *
  * Writes go through ProxmoxResourceService under isRoot; users never
  * create/update/delete rows directly.
@@ -646,6 +646,25 @@ export default class ProxmoxResource extends BaseModel {
     type: ColumnType.Boolean,
   })
   public isNativePush?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Not Reporting Marked At",
+    description:
+      "Proxmox VE native push: when the nodes still alive last reported this node as having stopped reporting (refreshed at most once a minute while they keep reporting it). Cleared by the node's own next report. Null for every other row.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public notReportingMarkedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

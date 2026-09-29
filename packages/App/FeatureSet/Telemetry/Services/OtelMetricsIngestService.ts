@@ -3444,10 +3444,57 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         proxmoxClusterId: data.proxmoxClusterId,
         nodeNames,
         silentBefore: data.report.silentBefore,
+        markedAt: OneUptimeDate.getCurrentDate(),
       });
     } catch (err) {
       logger.warn(
         `Proxmox silent-node inventory write failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * A cluster reporting over the Proxmox VE native push: take all of its
+   * Node rows into the native-push keep, so a node that was already down
+   * under the agent (or before the flag existed) stays on the roster and
+   * gets reported (ProxmoxResourceService.adoptNodesAsNativePush). The
+   * UPDATE only touches rows not yet flagged, and is fenced to once per
+   * 10 minutes per cluster; without Redis it simply runs, and when it
+   * fails the fence is released so the next push retries. Never throws.
+   */
+  private static async adoptProxmoxNodesAsNativePush(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    seenUpTo: Date;
+  }): Promise<void> {
+    const fenceNamespace: string = "proxmox-native-adopt";
+    const fenceKey: string = data.proxmoxClusterId.toString();
+    let fenced: boolean = false;
+    try {
+      let acquired: boolean = true;
+      try {
+        acquired = await GlobalCache.setStringIfNotExists(
+          fenceNamespace,
+          fenceKey,
+          "1",
+          { expiresInSeconds: 600 },
+        );
+        fenced = acquired;
+      } catch {
+        acquired = true;
+      }
+      if (!acquired) {
+        return;
+      }
+      await ProxmoxResourceService.adoptNodesAsNativePush(data);
+    } catch (err) {
+      if (fenced) {
+        await GlobalCache.deleteKey(fenceNamespace, fenceKey).catch(() => {
+          // The fence expires on its own.
+        });
+      }
+      logger.warn(
+        `Proxmox native-push node adoption failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -3509,6 +3556,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             // A native push is exactly the batch that counts from inventory.
             isNativePush: Boolean(snap?.countsFromInventory),
           });
+
+          if (snap?.countsFromInventory) {
+            await this.adoptProxmoxNodesAsNativePush({
+              projectId: data.projectId,
+              proxmoxClusterId: new ObjectID(clusterIdStr),
+              seenUpTo: entries.reduce(
+                (newest: Date, e: ProxmoxResourceBufferEntry) => {
+                  return e.observedAt > newest ? e.observedAt : newest;
+                },
+                entries[0]!.observedAt,
+              ),
+            });
+          }
 
           const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(
             (e: ProxmoxResourceBufferEntry) => {

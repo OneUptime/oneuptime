@@ -199,8 +199,8 @@ If you set `proxmox.cluster.name` under _Resource Attributes_ before, it keeps b
 
 Each node pushes only its own status, so a node that goes down cannot say so itself. The nodes that are still alive report it for it:
 
-- About 2 minutes after its last report, the node shows **Offline** on the Nodes page. Its **Last Seen** keeps the time of its own last report.
-- After about 5 minutes, **Node Offline** fires for it, and **Cluster Quorum at Risk** counts it as offline.
+- About 2 minutes after its last report, the node shows **Offline** on the Nodes page. **Last Seen** on the node's own page keeps the time of its own last report.
+- After about 5 minutes, **Node Offline** fires for it. **Cluster Quorum at Risk** counts it as offline too; because that template needs a full 5-minute window of reports, it fires about 7–9 minutes after the node went quiet.
 - With its next report it is **Online** again and its alert recovers.
 
 Offline here means the node **stopped reporting**, not necessarily that it is down. A node that is up but whose `pvestatd` is hung or killed, whose cluster file system (`pmxcfs`) is down, or whose network to OneUptime is cut is reported the same way.
@@ -209,10 +209,10 @@ What it cannot cover:
 
 - **A standalone host, or a whole cluster going silent at once.** Nobody is left to report it, so no per-node alert fires. The cluster turns **Disconnected** instead, the same as when the agent stops.
 - **A node silent for more than 7 days** is no longer reported. Its alert resolves and it drops off the Nodes page.
-- **A node you take out of the cluster** looks the same as a dead one. Use **Remove node** on its page: it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days.
+- **A node you take out of the cluster** looks the same as a dead one. Use **Remove Node** on its page: it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days.
 - **The node's guests and storage.** Only the node itself is kept as Offline; its VMs, containers and storage drop off their pages about 15 minutes after its last report. Guests that HA restarts on another node come back under that node.
 
-After a OneUptime ingest outage, no node reports its siblings until one of them has pushed again for 2 minutes, so the outage itself never pages for every node — and a node that was already Offline stays Offline through it.
+After a OneUptime ingest outage, a node that newly went quiet is only reported once one of the others has pushed again for 2 minutes, so the outage itself never pages for every node. A node that was already Offline stays Offline through a short outage and keeps its alert; after an outage longer than 5 minutes it is reported again once the others have pushed for 2 minutes.
 
 In [Metrics Explorer](/docs/monitor/metrics-monitor) these reports are the `pve_up` = 0 points labelled `oneuptime.proxmox.inferred` = `not-reporting`, so you can always tell them apart from what a node said about itself.
 

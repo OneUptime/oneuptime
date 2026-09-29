@@ -14,6 +14,12 @@ import {
 
 const NODE_ID_PREFIX: string = "node/";
 
+export type ProxmoxRemoveNodeResult =
+  | "removed"
+  | "not-found"
+  | "not-native"
+  | "still-reporting";
+
 /*
  * ------------------------------------------------------------------
  * ProxmoxResourceService
@@ -221,6 +227,7 @@ export class Service extends DatabaseService<Model> {
           "uptimeSeconds" = COALESCE(EXCLUDED."uptimeSeconds", "ProxmoxResource"."uptimeSeconds"),
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "isNativePush" = EXCLUDED."isNativePush",
+          "notReportingMarkedAt" = NULL,
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "ProxmoxResource"."lastSeenAt"
       `;
@@ -401,18 +408,18 @@ export class Service extends DatabaseService<Model> {
     now?: Date | undefined;
   }): Promise<Array<ProxmoxRosterNode>> {
     const seenSince: Date = this.getSilentNodeRetentionCutoff(data.now);
-    const rows: Array<{ externalId: string; lastSeenAt: Date | string }> =
-      await this.getRepository().manager.query(
-        `SELECT "externalId", "lastSeenAt" FROM "ProxmoxResource"
+    const rows: Array<{
+      externalId: string;
+      lastSeenAt: Date | string;
+      isUp: boolean | null;
+      notReportingMarkedAt: Date | string | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT "externalId", "lastSeenAt", "isUp", "notReportingMarkedAt" FROM "ProxmoxResource"
          WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
            AND "kind" = 'Node' AND "deletedAt" IS NULL
            AND "lastSeenAt" >= $3`,
-        [
-          data.projectId.toString(),
-          data.proxmoxClusterId.toString(),
-          seenSince,
-        ],
-      );
+      [data.projectId.toString(), data.proxmoxClusterId.toString(), seenSince],
+    );
 
     const roster: Array<ProxmoxRosterNode> = [];
     for (const row of rows) {
@@ -424,7 +431,18 @@ export class Service extends DatabaseService<Model> {
       if (!nodeName || isNaN(lastSeenAt.getTime())) {
         continue;
       }
-      roster.push({ nodeName, lastSeenAt });
+      const markedAt: Date | null =
+        row.notReportingMarkedAt instanceof Date ||
+        typeof row.notReportingMarkedAt === "string"
+          ? new Date(row.notReportingMarkedAt)
+          : null;
+      roster.push({
+        nodeName,
+        lastSeenAt,
+        isUp: typeof row.isUp === "boolean" ? row.isUp : null,
+        notReportingMarkedAt:
+          markedAt && !isNaN(markedAt.getTime()) ? markedAt : null,
+      });
     }
     return roster;
   }
@@ -443,6 +461,14 @@ export class Service extends DatabaseService<Model> {
    * the cluster moved from the agent to the native push (or before this
    * column existed) is then kept like any other native node instead of
    * being pruned while it is still being reported.
+   *
+   * The mark itself is notReportingMarkedAt, refreshed at most once a
+   * minute while the node stays reported: the "marked recently" the
+   * reports of an Offline node rely on to carry on through a gap
+   * (ProxmoxNativeNodeLiveness). It is written as `markedAt`, on the
+   * caller's (the ingest worker's) clock — the clock it is later judged
+   * against — never the database's now(), and only here; the node's own
+   * next push clears it (bulkUpsert).
    */
   @CaptureSpan()
   public async markNodesNotReporting(data: {
@@ -451,10 +477,13 @@ export class Service extends DatabaseService<Model> {
     nodeNames: Array<string>;
     // The report's own time minus the silence window, on the PVE clock.
     silentBefore: Date;
+    // Now, on the ingest worker's clock.
+    markedAt?: Date | undefined;
   }): Promise<number> {
     if (data.nodeNames.length === 0) {
       return 0;
     }
+    const markedAt: Date = data.markedAt || OneUptimeDate.getCurrentDate();
     const externalIds: Array<string> = data.nodeNames.map(
       (nodeName: string) => {
         return truncateShortText(`${NODE_ID_PREFIX}${nodeName}`) as string;
@@ -466,18 +495,63 @@ export class Service extends DatabaseService<Model> {
        SET "isUp" = false,
            "uptimeSeconds" = NULL,
            "isNativePush" = true,
+           "notReportingMarkedAt" = $5,
            "updatedAt" = now()
        WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
          AND "kind" = 'Node' AND "externalId" = ANY($3)
          AND "deletedAt" IS NULL
          AND "lastSeenAt" < $4
          AND ("isUp" IS DISTINCT FROM false
-              OR "isNativePush" IS DISTINCT FROM true)`,
+              OR "isNativePush" IS DISTINCT FROM true
+              OR "notReportingMarkedAt" IS NULL
+              OR "notReportingMarkedAt" < $6)`,
       [
         data.projectId.toString(),
         data.proxmoxClusterId.toString(),
         externalIds,
         data.silentBefore,
+        markedAt,
+        OneUptimeDate.addRemoveSeconds(markedAt, -60),
+      ],
+    );
+
+    // Postgres driver returns [rows, affected] for UPDATE — normalize.
+    if (Array.isArray(result) && typeof result[1] === "number") {
+      return result[1];
+    }
+    return 0;
+  }
+
+  /**
+   * Take a cluster's Node rows into the native-push keep. Called when the
+   * cluster's native push is flushed (fenced by the caller): a node that
+   * was already down under the Proxmox Agent — or before isNativePush
+   * existed — never pushes itself, so without this its old row would be
+   * pruned in the two minutes before the live nodes first report it, and
+   * it would drop off the roster while still down. Only rows last seen no
+   * later than `seenUpTo` (the batch's newest observation) are taken: a
+   * native batch processed late, after the cluster moved back to the
+   * agent, must not take the agent's newer rows. It is not a report: the
+   * rows' notReportingMarkedAt is left alone. Returns the number of rows
+   * flagged.
+   */
+  @CaptureSpan()
+  public async adoptNodesAsNativePush(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    seenUpTo: Date;
+  }): Promise<number> {
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "ProxmoxResource"
+       SET "isNativePush" = true
+       WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+         AND "kind" = 'Node' AND "deletedAt" IS NULL
+         AND "isNativePush" IS DISTINCT FROM true
+         AND "lastSeenAt" <= $3`,
+      [
+        data.projectId.toString(),
+        data.proxmoxClusterId.toString(),
+        data.seenUpTo,
       ],
     );
 
@@ -492,35 +566,68 @@ export class Service extends DatabaseService<Model> {
    * Remove a node that has stopped reporting — for a node taken out of
    * the cluster for good, which OneUptime cannot tell apart from a dead
    * one on the Proxmox VE native push. Its siblings stop reporting it
-   * within a minute and its Node Offline alert resolves. A node that is
-   * still up is never removed (it would reappear on its next push);
-   * returns false then, or when there is no such node.
+   * within a minute and its Node Offline alert resolves. Only such a node
+   * is removed:
+   *   - "not-found": no such node in this cluster;
+   *   - "not-native": an agent node — the agent lets a node go on its own
+   *     once the cluster no longer lists it, and would re-create a node
+   *     it still lists on the next scrape;
+   *   - "still-reporting": the node is up; it would reappear on its next
+   *     push.
    */
   @CaptureSpan()
   public async removeOfflineNode(data: {
     projectId: ObjectID;
     proxmoxClusterId: ObjectID;
     externalId: string;
-  }): Promise<boolean> {
+  }): Promise<ProxmoxRemoveNodeResult> {
     if (!data.externalId.startsWith(NODE_ID_PREFIX)) {
-      return false;
+      return "not-found";
     }
+    // Clamped the way bulkUpsert stored it.
+    const params: Array<string> = [
+      data.projectId.toString(),
+      data.proxmoxClusterId.toString(),
+      truncateShortText(data.externalId) as string,
+    ];
+
     const result: unknown = await this.getRepository().manager.query(
       `DELETE FROM "ProxmoxResource"
        WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
          AND "kind" = 'Node' AND "externalId" = $3
-         AND "isUp" IS FALSE`,
-      [
-        data.projectId.toString(),
-        data.proxmoxClusterId.toString(),
-        data.externalId,
-      ],
+         AND "deletedAt" IS NULL
+         AND "isUp" IS FALSE AND "isNativePush" IS TRUE`,
+      params,
     );
 
     // Postgres driver returns [rows, affected] for DELETE — normalize.
-    return Array.isArray(result) && typeof result[1] === "number"
-      ? result[1] > 0
-      : false;
+    if (
+      Array.isArray(result) &&
+      typeof result[1] === "number" &&
+      result[1] > 0
+    ) {
+      return "removed";
+    }
+
+    // Not deleted: say why, so the caller can answer precisely.
+    const rows: Array<{ isUp: boolean | null; isNativePush: boolean | null }> =
+      await this.getRepository().manager.query(
+        `SELECT "isUp", "isNativePush" FROM "ProxmoxResource"
+         WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+           AND "kind" = 'Node' AND "externalId" = $3
+           AND "deletedAt" IS NULL`,
+        params,
+      );
+    const row:
+      | { isUp: boolean | null; isNativePush: boolean | null }
+      | undefined = rows[0];
+    if (!row) {
+      return "not-found";
+    }
+    if (row.isNativePush !== true) {
+      return "not-native";
+    }
+    return "still-reporting";
   }
 
   /**
@@ -538,7 +645,7 @@ export class Service extends DatabaseService<Model> {
    * How long a node that stopped reporting is still reported (and kept
    * as Offline) before it is treated as gone. 7 days by default — long
    * enough to outlast a weekend, short enough that a node removed from
-   * the cluster without using "Remove node" eventually lets go. Tune via
+   * the cluster without using "Remove Node" eventually lets go. Tune via
    * PVE_SILENT_NODE_RETENTION_HOURS (min 1).
    */
   public getSilentNodeRetentionHours(): number {

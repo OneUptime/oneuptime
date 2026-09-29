@@ -4,6 +4,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import ProxmoxResourceService, {
   ProxmoxInventorySummary,
+  ProxmoxRemoveNodeResult,
   Service as ProxmoxResourceServiceType,
 } from "../Services/ProxmoxResourceService";
 import ProxmoxClusterService from "../Services/ProxmoxClusterService";
@@ -35,6 +36,12 @@ const EDITABLE_CLUSTER_NOT_FOUND_MESSAGE: string =
 
 const NODE_STILL_REPORTING_MESSAGE: string =
   "Only a node that has stopped reporting can be removed. A node that is still reporting would come back on its next report.";
+
+const NODE_NOT_FOUND_MESSAGE: string =
+  "This node is not in the cluster's inventory. It may already have been removed.";
+
+const NODE_NOT_NATIVE_MESSAGE: string =
+  "Only a node that reports over Proxmox VE's built-in metric push can be removed here. With the Proxmox Agent, a node leaves OneUptime on its own once the cluster no longer lists it.";
 
 /*
  * ------------------------------------------------------------------
@@ -222,9 +229,6 @@ export default class ProxmoxResourceAPI extends BaseAPI<
         select: {
           _id: true,
           projectId: true,
-          labels: {
-            _id: true,
-          },
         },
         props: {
           isRoot: true,
@@ -232,12 +236,40 @@ export default class ProxmoxResourceAPI extends BaseAPI<
       });
 
       if (cluster) {
-        const editableCluster: ProxmoxCluster = cluster;
+        /*
+         * The block check needs every label on the cluster. The lookup
+         * above is narrowed to the caller's permitted labels when the
+         * grant is label-scoped, and loading labels through it would
+         * return only those — hiding a label the caller's team is
+         * blocked on. Load them unfiltered, as updateOneById does —
+         * once, though the block and the allow checks both ask.
+         */
+        let withAllLabels: Promise<ProxmoxCluster | null> | null = null;
         await ModelPermission.checkUpdatePermissionByModel({
           modelType: ProxmoxCluster,
           fetchModelWithAccessControlIds:
             async (): Promise<ProxmoxCluster | null> => {
-              return editableCluster;
+              if (!withAllLabels) {
+                withAllLabels = ProxmoxClusterService.findOneById({
+                  id: proxmoxClusterId,
+                  select: {
+                    _id: true,
+                    projectId: true,
+                    labels: {
+                      _id: true,
+                    },
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              }
+              const loaded: ProxmoxCluster | null = await withAllLabels;
+              // Deleted since the lookup above: the same answer as missing.
+              if (!loaded) {
+                throw new NotFoundException(EDITABLE_CLUSTER_NOT_FOUND_MESSAGE);
+              }
+              return loaded;
             },
           props,
         });
@@ -279,6 +311,16 @@ export default class ProxmoxResourceAPI extends BaseAPI<
       throw new BadDataException("Node name must not contain a slash");
     }
 
+    // Control characters (a NUL would fail in Postgres, not here).
+    for (let i: number = 0; i < nodeName.length; i++) {
+      const code: number = nodeName.charCodeAt(i);
+      if (code < 32 || code === 127) {
+        throw new BadDataException(
+          "Node name must not contain control characters",
+        );
+      }
+    }
+
     return nodeName;
   }
 
@@ -298,17 +340,20 @@ export default class ProxmoxResourceAPI extends BaseAPI<
     const { projectId, proxmoxClusterId } =
       await this.resolveEditableClusterForRequest(req, requestedClusterId);
 
-    const removed: boolean = await this.service.removeOfflineNode({
-      projectId,
-      proxmoxClusterId,
-      externalId: `${NODE_EXTERNAL_ID_PREFIX}${nodeName}`,
-    });
+    const result: ProxmoxRemoveNodeResult =
+      await this.service.removeOfflineNode({
+        projectId,
+        proxmoxClusterId,
+        externalId: `${NODE_EXTERNAL_ID_PREFIX}${nodeName}`,
+      });
 
-    /*
-     * False for a node that is still up and for one that is not in the
-     * inventory at all; both get the same answer.
-     */
-    if (!removed) {
+    if (result === "not-found") {
+      throw new NotFoundException(NODE_NOT_FOUND_MESSAGE);
+    }
+    if (result === "not-native") {
+      throw new BadDataException(NODE_NOT_NATIVE_MESSAGE);
+    }
+    if (result !== "removed") {
       throw new BadDataException(NODE_STILL_REPORTING_MESSAGE);
     }
 

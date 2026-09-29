@@ -152,11 +152,17 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
       return;
     }
 
+    /*
+     * A full load, not an in-app navigation: the cluster layout (and its
+     * sidebar node count) stays mounted across its child pages and would
+     * keep counting the removed node.
+     */
     Navigation.navigate(
       RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route,
         { modelId: modelId },
       ),
+      { forceNavigate: true },
     );
   };
 
@@ -326,11 +332,13 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   /*
    * On the Proxmox VE native push a node taken out of the cluster looks
    * exactly like a dead one: its siblings keep reporting it as down. So
-   * a node that has stopped reporting can be removed. A node that is
-   * still up has no button: it would come back on its next report.
+   * a native-push node that has stopped reporting can be removed. A node
+   * that is still up has no button (it would come back on its next
+   * report), and neither has an agent node: the agent lets a node go on
+   * its own once the cluster no longer lists it.
    */
   const canRemoveNode: boolean = Boolean(
-    row && row.isUp === false && pveNodeName,
+    row && row.isUp === false && row.isNativePush === true && pveNodeName,
   );
 
   const tabs: Array<Tab> = [
@@ -351,7 +359,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
               description="This node has stopped reporting. If it was taken out of the Proxmox cluster, remove it here so it is no longer reported as offline."
               buttons={[
                 {
-                  title: "Remove node",
+                  title: "Remove Node",
                   buttonStyle: ButtonStyleType.DANGER_OUTLINE,
                   icon: IconProp.Trash,
                   onClick: () => {
@@ -445,7 +453,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
         <ConfirmModal
           title="Remove Node"
           description={`Only remove ${pveNodeName} if it has been removed from the Proxmox cluster. OneUptime cannot tell a node that was removed from one that is down, so it keeps reporting it as offline until you remove it here. Once it is removed, its Node Offline alert resolves within a few minutes. If ${pveNodeName} reports again, it comes back.`}
-          submitButtonText="Remove node"
+          submitButtonText="Remove Node"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isRemoving}
           error={removeError}

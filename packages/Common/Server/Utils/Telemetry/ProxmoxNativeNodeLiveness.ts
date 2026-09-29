@@ -41,10 +41,34 @@ import logger from "../Logger";
  * or backlog every key has expired, and the first node processed
  * afterwards would see all its siblings as silent; by the time any node
  * is established, every sibling that is alive has a key again. Having
- * every live node report (not just the established ones) is what keeps
- * Quorum at Risk exact: each report carries 1 / (live nodes) of the
- * silent nodes' weight, so however many pushes each live node lands in a
- * minute, the silent nodes weigh exactly as much as live ones.
+ * every live node report (not just the established ones) keeps Quorum at
+ * Risk at L ÷ (L + D): each report carries D ÷ L of weight, where L counts
+ * every node not being reported (a node is presumed live until it is
+ * reported), so however many pushes each live node lands in a minute the
+ * silent nodes weigh as much as live ones. A push that carries no report
+ * — a Redis error fails closed — lifts its minute above that.
+ *
+ * The established gate guards a node's FIRST report only. A node already
+ * reported down — Offline in the inventory, and marked within the
+ * monitors' window (MONITOR_WINDOW_MS) — keeps being reported by every
+ * live node even while none is established: after a OneUptime restart or
+ * a Redis failover that lost the keys, or a lone survivor's own gap or
+ * bursty processing. Otherwise the pushes in those two minutes would be
+ * stored with no report, their minutes would read 100 % up, and Node
+ * Offline and Quorum at Risk would resolve only to page again minutes
+ * later. The mark is its own column, notReportingMarkedAt, written only
+ * by ProxmoxResourceService.markNodesNotReporting on the ingest worker's
+ * clock (refreshed at most once a minute while the node stays reported)
+ * and cleared by the node's own next push — so it survives the loss of
+ * Redis, the continuing reports keep it fresh, and nothing else (an agent
+ * scrape, an adoption, a database clock) can pass for it. Its age is
+ * taken at the moment the roster was read, so every push served one
+ * cached roster decides alike. After a longer silence of the whole
+ * cluster — an outage beyond the monitors' window — the window holds
+ * nothing from before and the incidents have already resolved, so there
+ * is no continuity to keep, and a node that came back during the outage
+ * must not be reported until its own first push is processed: its first
+ * report waits for an established node again.
  *
  * False alarms this is built to avoid:
  *   - A OneUptime ingest outage or backlog — see "Who reports" above.
@@ -60,6 +84,13 @@ import logger from "../Logger";
 export const PROXMOX_NODE_SILENCE_MS: number = 120_000;
 
 /*
+ * The rolling window of the Node Offline and Cluster Quorum at Risk
+ * templates. Reports of nodes already Offline continue through a gap only
+ * while they were marked within it (see the header).
+ */
+export const PROXMOX_MONITOR_WINDOW_MS: number = 5 * 60_000;
+
+/*
  * A reporter's push streak restarts when two of its pushes are further
  * apart than this. pvestatd pushes every ~10 s; a gap of a minute means
  * the pushes (or OneUptime's processing of them) were interrupted.
@@ -69,7 +100,7 @@ export const PROXMOX_NODE_STREAK_GAP_MS: number = 60_000;
 const LIVENESS_NAMESPACE: string = "proxmox-native-node-live";
 
 // How long an ingest worker reuses a cluster's node roster.
-const ROSTER_CACHE_TTL_MS: number = 30_000;
+export const PROXMOX_ROSTER_CACHE_TTL_MS: number = 30_000;
 
 export interface ProxmoxNodeLiveness {
   streakStartMs: number;
@@ -80,11 +111,27 @@ export interface ProxmoxNodeLiveness {
 export interface ProxmoxRosterNode {
   nodeName: string; // `node/<name>` without the prefix
   lastSeenAt: Date; // the node's own last push, on its clock
+  /*
+   * The row's Online/Offline state: false once the node has been reported
+   * as not reporting (ProxmoxResourceService.markNodesNotReporting), until
+   * its own next push. Optional for callers that do not track it.
+   */
+  isUp?: boolean | null | undefined;
+  /*
+   * When the live nodes last reported this node as not reporting — written
+   * on the ingest worker's clock by markNodesNotReporting (refreshed at most
+   * once a minute while they keep reporting it), cleared by its own next
+   * push. Null for a node never reported down.
+   */
+  notReportingMarkedAt?: Date | null | undefined;
 }
 
 export interface ProxmoxSilentNodeDecision {
   silentNodes: Array<string>; // node names, sorted
-  // Live nodes (including the reporter) — every one of them reports.
+  /*
+   * L: the nodes not being reported (the reporter included) — each is
+   * presumed live and pushes this same report.
+   */
   reporterCount: number;
 }
 
@@ -179,6 +226,12 @@ export function isEligibleProxmoxReporter(
 /*
  * Which siblings the reporter should report as not reporting, or null
  * when it should report nothing. Pure — every input is explicit.
+ *
+ * Silent: not the reporter, not alive, and last seen more than the
+ * silence window before the reporter's own push. With an established
+ * node in the cluster every silent node is reported; without one, only
+ * those already Offline in the inventory and marked within the monitors'
+ * window of the time the roster was read (see the header).
  */
 export function decideProxmoxSilentNodes(data: {
   selfNode: string;
@@ -188,6 +241,11 @@ export function decideProxmoxSilentNodes(data: {
   nowMs: number;
   roster: Array<ProxmoxRosterNode>;
   liveness: Map<string, ProxmoxNodeLiveness | null>;
+  /*
+   * When the roster was read (OneUptime's clock); the marks' age is taken
+   * then. nowMs when omitted.
+   */
+  rosterReadAtMs?: number | undefined;
 }): ProxmoxSilentNodeDecision | null {
   const selfLiveness: ProxmoxNodeLiveness | null =
     data.liveness.get(data.selfNode) || null;
@@ -210,15 +268,11 @@ export function decideProxmoxSilentNodes(data: {
 
   const silentBeforeMs: number = data.reporterTimeMs - PROXMOX_NODE_SILENCE_MS;
   const silentNodes: Array<string> = [];
-  let liveCount: number = 0;
   let established: boolean = false;
 
   for (const [nodeName, rosterNode] of nodes) {
     const liveness: ProxmoxNodeLiveness | null =
       data.liveness.get(nodeName) || null;
-    if (isAliveProxmoxNode(liveness, data.nowMs)) {
-      liveCount++;
-    }
     if (isEligibleProxmoxReporter(liveness, data.nowMs)) {
       established = true;
     }
@@ -232,12 +286,37 @@ export function decideProxmoxSilentNodes(data: {
     }
   }
 
-  if (!established || silentNodes.length === 0) {
+  let reported: Array<string> = silentNodes;
+  if (!established) {
+    const rosterReadAtMs: number = data.rosterReadAtMs ?? data.nowMs;
+    reported = silentNodes.filter((nodeName: string) => {
+      const rosterNode: ProxmoxRosterNode | null | undefined =
+        nodes.get(nodeName);
+      return Boolean(
+        rosterNode &&
+          rosterNode.isUp === false &&
+          rosterNode.notReportingMarkedAt &&
+          rosterReadAtMs - rosterNode.notReportingMarkedAt.getTime() <=
+            PROXMOX_MONITOR_WINDOW_MS,
+      );
+    });
+  }
+
+  if (reported.length === 0) {
     return null;
   }
 
-  silentNodes.sort();
-  return { silentNodes, reporterCount: liveCount };
+  reported.sort();
+  /*
+   * Every node not reported is presumed live and reports too — including
+   * a live sibling whose first push after a gap is not processed yet (it
+   * has no key, but is not reported either). Counting only the nodes with
+   * a key would hand the first node back all of the silent nodes' weight.
+   */
+  return {
+    silentNodes: reported,
+    reporterCount: nodes.size - reported.length,
+  };
 }
 
 export function isProxmoxSilentNodeDetectionEnabled(): boolean {
@@ -251,8 +330,13 @@ type RosterLoader = (data: {
   proxmoxClusterId: ObjectID;
 }) => Promise<Array<ProxmoxRosterNode>>;
 
-const rosterCache: InMemoryTTLCache<Array<ProxmoxRosterNode>> =
-  new InMemoryTTLCache<Array<ProxmoxRosterNode>>(5_000);
+const rosterCache: InMemoryTTLCache<{
+  roster: Array<ProxmoxRosterNode>;
+  readAtMs: number;
+}> = new InMemoryTTLCache<{
+  roster: Array<ProxmoxRosterNode>;
+  readAtMs: number;
+}>(5_000);
 
 function livenessKey(
   projectId: ObjectID,
@@ -302,15 +386,20 @@ export async function recordProxmoxNodePushAndFindSilentNodes(data: {
     );
 
     const rosterKey: string = `${data.projectId.toString()}:${data.proxmoxClusterId.toString()}`;
-    let roster: Array<ProxmoxRosterNode> | undefined =
-      rosterCache.get(rosterKey);
-    if (!roster) {
-      roster = await data.loadRoster({
-        projectId: data.projectId,
-        proxmoxClusterId: data.proxmoxClusterId,
-      });
-      rosterCache.set(rosterKey, roster, ROSTER_CACHE_TTL_MS);
+    let cached:
+      | { roster: Array<ProxmoxRosterNode>; readAtMs: number }
+      | undefined = rosterCache.get(rosterKey);
+    if (!cached) {
+      cached = {
+        roster: await data.loadRoster({
+          projectId: data.projectId,
+          proxmoxClusterId: data.proxmoxClusterId,
+        }),
+        readAtMs: nowMs,
+      };
+      rosterCache.set(rosterKey, cached, PROXMOX_ROSTER_CACHE_TTL_MS);
     }
+    const roster: Array<ProxmoxRosterNode> = cached.roster;
 
     const siblings: Array<string> = roster
       .map((node: ProxmoxRosterNode) => {
@@ -342,6 +431,7 @@ export async function recordProxmoxNodePushAndFindSilentNodes(data: {
       nowMs,
       roster,
       liveness,
+      rosterReadAtMs: cached.readAtMs,
     });
   } catch (err) {
     logger.warn(

@@ -222,7 +222,7 @@ The template evaluates the **Avg** of `pve_cpu_usage_ratio` grouped by the `id` 
 
 ### "Node Offline" keeps firing for a node you removed from the cluster
 
-On the Proxmox VE native push, a node taken out of the cluster looks the same as one that went down: it stopped reporting, so the nodes still alive keep reporting it down. Open the node's page and use **Remove node** — it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days. The agent does not have this problem: it asks the cluster, which no longer lists the node.
+On the Proxmox VE native push, a node taken out of the cluster looks the same as one that went down: it stopped reporting, so the nodes still alive keep reporting it down. Open the node's page and use **Remove Node** — it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days. The agent does not have this problem: it asks the cluster, which no longer lists the node.
 
 ### Backup or replication metrics are missing
 
