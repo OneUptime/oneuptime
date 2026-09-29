@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   TIME_RANGE_ZOOM_HINT_RESET_TEXT,
+  TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES,
   TIME_RANGE_ZOOM_HINT_TEXT,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import { DashboardWidgetTimeRangeZoomHandlers } from "../Utils/DashboardWidgetTimeRangeZoom";
@@ -54,7 +55,12 @@ const DashboardWidgetZoomHint: FunctionComponent<ComponentProps> = (
   return (
     <span
       data-testid={DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID}
-      className={`pointer-events-none shrink-0 whitespace-nowrap text-[10px] text-gray-400 opacity-0 transition-opacity group-hover/zoomhint:opacity-100 group-focus-within/zoomhint:opacity-100 ${props.className || ""}`}
+      /*
+       * The card hints' reveal: on hover, or on KEYBOARD focus inside the
+       * widget. Plain focus-within kept the hint up after a mouse drag,
+       * since a press focuses recharts' own (tabindex -1) layer.
+       */
+      className={`pointer-events-none shrink-0 whitespace-nowrap text-[10px] text-gray-400 ${TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES} ${props.className || ""}`}
     >
       {text}
     </span>

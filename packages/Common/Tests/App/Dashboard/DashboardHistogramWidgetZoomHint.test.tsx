@@ -491,6 +491,20 @@ describe("DashboardWidgetZoomHint names only the gestures the widget has there a
     expect(hint()).toHaveClass("group-hover/zoomhint:opacity-100");
     expect(hint()).toHaveClass("pointer-events-none");
   });
+
+  /*
+   * A mouse press on the chart focuses recharts' own (tabindex -1) layer,
+   * so a reveal on any focus inside the widget kept the hint up after
+   * every drag. It reveals on keyboard focus only, like the card hints.
+   */
+  test("it reveals on keyboard focus inside the widget, not on the focus a mouse press leaves", () => {
+    renderHint({ onTimeRangeSelect: select }, true);
+
+    expect(hint()).toHaveClass(
+      "group-has-[:focus-visible]/zoomhint:opacity-100",
+    );
+    expect(hint()!.className).not.toContain("group-focus-within/zoomhint");
+  });
 });
 
 describe.each(WIDGETS)("the $name widget's hint", (widget: WidgetUnderTest) => {
