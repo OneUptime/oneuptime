@@ -81,7 +81,7 @@ recorded on `unhandled` too, and the spec fails the test on it.
 
 ## What the spec covers
 
-`ChartTimeZoom.spec.ts` runs eight scenarios on each of the three pages (24 tests).
+`ChartTimeZoom.spec.ts` runs nine scenarios on each of the three pages (27 tests).
 Every gesture is a real pointer gesture (`page.mouse`) located from the chart's own
 x-axis: the first and last x-axis labels give the spacing of the evenly spaced
 buckets, so the pointer presses on exactly the bucket a scenario names.
@@ -95,19 +95,22 @@ buckets, so the pointer presses on exactly the bucket a scenario names.
    the range it goes back to); every chart's x-axis starts at the window's start and
    stays inside it; every hint names the way back; the band is gone; nothing is
    selected; hovering reveals "Double-click to reset".
-2. **A drag released outside the chart still zooms**: the pointer leaves the chart
+2. **A quick drag zooms exactly the buckets it pressed and released on**: the press
+   comes in the same frame the pointer reaches the first bucket and the release in
+   the same frame it reaches the last (see "Pointer timing" below).
+3. **A drag released outside the chart still zooms**: the pointer leaves the chart
    downwards before the release.
-3. **A double-click on another chart puts the page back on its range** (the initial
+4. **A double-click on another chart puts the page back on its range** (the initial
    range's queries, label, axes and hints), with no page text selected.
-4. **A double-click on a line itself puts the page back on its range**, marked
-   `test.fail()`: see "Known product bug" below.
-5. **Nested zooms: one double-click climbs all the way out.** A second drag inside
+5. **A double-click on a line itself puts the page back on its range** (see "A
+   double-click on a line" below).
+6. **Nested zooms: one double-click climbs all the way out.** A second drag inside
    the first zoom narrows the page again; one double-click on the first chart
    returns to the initial range.
-6. **Reset zoom puts the page back on its range** (a click).
-7. **Reset zoom works from the keyboard**: Tab from the time picker lands on Reset
+7. **Reset zoom puts the page back on its range** (a click).
+8. **Reset zoom works from the keyboard**: Tab from the time picker lands on Reset
    zoom, Enter resets.
-8. **Picking a range in the time picker ends the zoom**: Reset zoom goes away, every
+9. **Picking a range in the time picker ends the zoom**: Reset zoom goes away, every
    chart follows the new range, and a double-click then changes nothing.
 
 The hints: a chart card's (or, on the host overview, a section's) `TimeRangeZoomHint`
@@ -152,27 +155,28 @@ not model and on any request the network fence had to abort. Auto-refresh stays 
 the pages' default (every 30 seconds): a refresh re-queries the window the page is
 on, which the assertions accept.
 
-### Known product bug: a double-click on a line never resets
+### A double-click on a line
 
-Scenario 4 double-clicks a point of a ChartLibrary line chart's line (the overviews'
-and Insights' Network charts) and is marked `test.fail()`, because today it leaves
-the page zoomed. A press re-renders the chart (`useChartRangeSelection` sets React
-state on `mousedown`), recharts 3 then remounts the line's path and dots (they are
-keyed by an id that changes with the line's points), the pressed node is gone by
-`mouseup`, and Chrome dispatches no `click` and no `dblclick`. The line chart's
-transparent 12px click-target lines and their default dots cover every line and
-data point, so this is any double-click on or near a line. Once a press no longer
-re-renders the chart, this scenario passes and Playwright reports it as an
-unexpected pass: remove the `test.fail()`.
+Scenario 5 double-clicks a point of a ChartLibrary line chart's line (the overviews'
+and Insights' Network charts). It used to leave the page zoomed: a press re-rendered
+the chart (`useChartRangeSelection` set React state on `mousedown`), recharts 3 then
+remounted the line's path and dots (they are keyed by an id that changes with the
+line's points), the pressed node was gone by `mouseup`, and Chrome dispatched no
+`click` and no `dblclick`. The line chart's transparent 12px click-target lines
+cover every line, so that was any double-click on or near a line. A press now
+renders nothing until it becomes a drag, and the click-target lines have no dots and
+no animation.
 
 ### Pointer timing
 
-recharts 3 hands a chart's `mousedown` and `mouseup` handlers the bucket its
-`mousemove` handler last recorded, and it runs that handler on the next animation
-frame. A person's pointer rests on a bucket for longer than a frame before pressing
-or releasing, so the spec lets two frames pass before every press and release
-(`settle()`). A press or release inside the same frame as the pointer's last move is
-not covered here.
+By default recharts 3 works out the bucket under the pointer on the animation frame
+after a `mousemove`, but hands a chart's `mousedown` and `mouseup` handlers whatever
+bucket it last worked out, at once. So a release in the frame of the last move lost
+the buckets that move crossed, and a press in the frame the pointer arrived started
+a bucket early or was dropped. Charts that offer a drag now take `mousemove`
+unthrottled (`RANGE_SELECTION_THROTTLED_EVENTS`). Scenario 2 presses and releases in
+the frame the pointer arrives; the other scenarios let two frames pass before every
+press and release (`settle()`), as a careful reader's pointer would.
 
 ## Run it
 

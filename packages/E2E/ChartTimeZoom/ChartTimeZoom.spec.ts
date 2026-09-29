@@ -1106,6 +1106,12 @@ function bucketX(chart: ChartGeometry, time: number, bucket: number): number {
 interface DragOptions {
   // Leave the chart downwards before letting go.
   releaseOutside?: boolean | undefined;
+  /*
+   * At a reader's pace rather than a careful one: the press comes in the
+   * same frame the pointer reaches the first bucket, and the release in
+   * the same frame it reaches the last.
+   */
+  quick?: boolean | undefined;
   // Runs while the button is still down, the pointer on the last bucket.
   whileHolding?: ((from: number, to: number) => Promise<void>) | undefined;
 }
@@ -1126,6 +1132,21 @@ async function drag(
   const bucket: number = bucketMs(current);
   const from: number = bucketX(shape, at(plan.from), bucket);
   const to: number = bucketX(shape, at(plan.to), bucket);
+
+  if (options.quick) {
+    // Come in from the side and press on arrival.
+    await page.mouse.move(Math.max(shape.left + 1, from - 40), shape.middle);
+    await settle(page);
+    await page.mouse.move(from, shape.middle);
+    await page.mouse.down();
+    await page.mouse.move((from + to) / 2, shape.middle, { steps: 4 });
+    await settle(page);
+    // Reach the last bucket and let go in the same frame.
+    await page.mouse.move(to, shape.middle, { steps: 3 });
+    await page.mouse.up();
+    await page.mouse.move(2, 2);
+    return;
+  }
 
   await page.mouse.move(from, shape.middle);
   await settle(page);
@@ -1423,6 +1444,27 @@ for (const subject of [
       await screenshot(page, `${subject.slug}-zoomed`);
     });
 
+    test("a quick drag zooms exactly the buckets it pressed and released on", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      /*
+       * recharts works out the bucket under the pointer a frame after each
+       * mousemove but delivers mousedown and mouseup at once. A press on
+       * arrival used to start a bucket early or be dropped (the move queued
+       * before it, with no button held, landed after it and abandoned the
+       * drag), and a release on arrival lost the buckets its last move
+       * crossed. Charts that offer a drag now take mousemove unthrottled.
+       */
+      await open(page, subject);
+      const zoom: TimeWindow = zoomOf(subject.zoom, subject.initial.window);
+      const mark: number = await requestMark(page);
+      await drag(page, subject.zoom, subject.initial.window, { quick: true });
+      await expectZoomed(page, subject, zoom, mark);
+      await expectNoTextSelected(page);
+    });
+
     test("a drag released outside the chart still zooms", async ({
       page,
     }: {
@@ -1460,17 +1502,14 @@ for (const subject of [
       page: Page;
     }) => {
       /*
-       * KNOWN PRODUCT BUG, so this is expected to fail until it is fixed:
-       * a press re-renders the chart (useChartRangeSelection sets React
-       * state on mousedown), recharts 3 then remounts the line's path and
-       * dots (keyed by an id that changes with the line's points), the
-       * pressed node is gone by mouseup, and Chrome dispatches no click
-       * and no dblclick, so the reset never runs. The line chart's
-       * transparent 12px click targets cover every line and point, so
-       * this is any double-click on or near a line. Remove test.fail() once
-       * a press no longer re-renders the chart.
+       * A press used to re-render the chart (useChartRangeSelection set
+       * React state on mousedown), recharts 3 then remounted the line's
+       * path and dots (keyed by an id that changes with the line's
+       * points), the pressed node was gone by mouseup, and Chrome
+       * dispatched no click and no dblclick, so the reset never ran. The
+       * line chart's transparent 12px click targets cover every line, so
+       * that was any double-click on or near a line.
        */
-      test.fail();
       await open(page, subject);
       await zoomIn(page, subject);
       await expectChartsSettled(page);
