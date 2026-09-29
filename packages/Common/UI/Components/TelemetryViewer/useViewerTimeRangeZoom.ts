@@ -10,6 +10,11 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import OneUptimeDate from "../../../Types/Date";
 import TimeRangeZoomUtil from "../Charts/TimeRangeZoom/TimeRangeZoomUtil";
 import { TimeRangeZoom } from "../Charts/TimeRangeZoom/UseTimeRangeZoom";
+import {
+  ChartTimeRangeZoomContextValue,
+  isTimeRangeZoomFor,
+  useChartTimeRangeZoom,
+} from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface ViewerTimeRangeZoomOptions {
   /** The window the explorer is showing right now (its host owns it). */
@@ -28,7 +33,8 @@ export interface ViewerTimeRangeZoomOptions {
 export interface ViewerTimeRangeZoom {
   /*
    * The zoom the explorer offers every chart inside it (hand it to a
-   * TimeRangeZoomProvider), or null when its host cannot apply a zoom.
+   * TimeRangeZoomProvider), or null when its host cannot apply a zoom. While
+   * the explorer follows the zoom around it, this hands that zoom on.
    */
   zoom: TimeRangeZoom | null;
   /** Hand to the volume histogram in place of the host's select handler. */
@@ -42,6 +48,13 @@ export interface ViewerTimeRangeZoom {
   onTimeRangeChange:
     | ((timeRange: RangeStartAndEndDateTime) => void)
     | undefined;
+  /*
+   * True while the explorer follows the zoom offered around it instead of
+   * keeping one of its own (see useViewerTimeRangeZoom). Whoever offers that
+   * zoom shows its "Reset zoom" (the telemetry snapshot, beside its badge),
+   * so the explorer's picker must not show a second one for the same zoom.
+   */
+  followsEnclosingZoom: boolean;
 }
 
 export type UseViewerTimeRangeZoomFunction = (
@@ -70,7 +83,38 @@ interface LatestInputs {
     | ((timeRange: RangeStartAndEndDateTime) => void)
     | undefined;
   activeRecord: ViewerZoomRecord | null;
+  // The zoom around the explorer that it follows, or null.
+  followedZoom: ChartTimeRangeZoomContextValue | null;
 }
+
+export type ShouldFollowEnclosingZoomFunction = (
+  enclosingZoom: ChartTimeRangeZoomContextValue | null,
+  timeRange: RangeStartAndEndDateTime | undefined,
+) => boolean;
+
+/**
+ * Whether an explorer on `timeRange` follows the zoom offered around it
+ * (useChartTimeRangeZoom) rather than keeping a zoom of its own.
+ *
+ * Only a zoom over the explorer's very window is followed: the telemetry
+ * snapshot's, which pins its primary explorer to the window the snapshot
+ * shows, so a drag on that explorer's histogram is a drag on the snapshot.
+ * A zoom over any other range is about a window this explorer does not
+ * show (the snapshot's, once the reader has picked a range of the
+ * explorer's own in its picker), and a drag here must not retime it. Nor
+ * is a zoom that does not say which range it works over (the investigation
+ * drawer's, a hand-built one): nothing ties it to this explorer's window.
+ */
+export const shouldFollowEnclosingZoom: ShouldFollowEnclosingZoomFunction = (
+  enclosingZoom: ChartTimeRangeZoomContextValue | null,
+  timeRange: RangeStartAndEndDateTime | undefined,
+): boolean => {
+  if (!enclosingZoom || !enclosingZoom.timeRange || !timeRange) {
+    return false;
+  }
+
+  return isTimeRangeZoomFor(enclosingZoom, timeRange);
+};
 
 type ToEpochMsFunction = (value: unknown) => number;
 
@@ -158,18 +202,35 @@ const isRecordActive: IsRecordActiveFunction = (
  *   it.) A host that has not applied the zoom yet still counts as zoomed.
  * - The callbacks keep their identity for the life of the explorer, and
  *   read the latest window through a ref.
+ * - An explorer whose window is the very one a zoom offered around it is
+ *   over (see shouldFollowEnclosingZoom) follows that zoom and keeps none
+ *   of its own: a drag on any of its charts goes to that zoom, and so do a
+ *   double-click and the way back. The telemetry snapshot of an incident
+ *   pins its Logs, Traces or Exceptions explorer to the window its zoom
+ *   shows, so a drag on the explorer's histogram retimes the whole
+ *   snapshot, every tab of it, and one reset undoes it all. With a zoom of
+ *   its own as well there would be two zooms and two ways back, each
+ *   undoing only part of what the reader sees.
  */
 const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
   options: ViewerTimeRangeZoomOptions,
 ): ViewerTimeRangeZoom => {
+  /*
+   * Read here, outside the provider the explorer puts around what it
+   * renders, so this is always the zoom around the explorer, never its own.
+   */
+  const enclosingZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const followedZoom: ChartTimeRangeZoomContextValue | null =
+    shouldFollowEnclosingZoom(enclosingZoom, options.timeRange)
+      ? enclosingZoom
+      : null;
+  const followsEnclosingZoom: boolean = followedZoom !== null;
+
   const [record, setRecord] = useState<ViewerZoomRecord | null>(null);
 
-  const activeRecord: ViewerZoomRecord | null = isRecordActive(
-    record,
-    options.timeRange,
-  )
-    ? record
-    : null;
+  const activeRecord: ViewerZoomRecord | null =
+    !followedZoom && isRecordActive(record, options.timeRange) ? record : null;
 
   /*
    * Written on every render and again straight after a gesture, so a second
@@ -180,6 +241,7 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
     onTimeRangeSelect: options.onTimeRangeSelect,
     onTimeRangeChange: options.onTimeRangeChange,
     activeRecord: activeRecord,
+    followedZoom: followedZoom,
   });
 
   latest.current = {
@@ -187,6 +249,7 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
     onTimeRangeSelect: options.onTimeRangeSelect,
     onTimeRangeChange: options.onTimeRangeChange,
     activeRecord: activeRecord,
+    followedZoom: followedZoom,
   };
 
   /*
@@ -200,6 +263,15 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
     setRecord((current: ViewerZoomRecord | null): ViewerZoomRecord | null => {
       if (!current) {
         return current;
+      }
+
+      /*
+       * An explorer that follows the zoom around it has no zoom of its own:
+       * one it made before was left behind when its host moved it onto that
+       * zoom's window, and must not come back once it stops following.
+       */
+      if (latest.current.followedZoom) {
+        return null;
       }
 
       const timeRange: RangeStartAndEndDateTime | undefined =
@@ -220,11 +292,21 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
 
       return null;
     });
-  }, [timeRangeKey]);
+  }, [timeRangeKey, followsEnclosingZoom]);
 
   const zoomToTimeRange: (startTime: Date, endTime: Date) => void = useCallback(
     (startTime: Date, endTime: Date): void => {
       const current: LatestInputs = latest.current;
+
+      /*
+       * The followed zoom keeps the record and applies the window (the
+       * explorer's host follows it there), so the drag is handed over as it
+       * came: that zoom cuts it at the end of its own range.
+       */
+      if (current.followedZoom) {
+        current.followedZoom.onTimeRangeSelect(startTime, endTime);
+        return;
+      }
 
       if (!current.onTimeRangeSelect) {
         return;
@@ -270,6 +352,16 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
   const resetZoom: () => void = useCallback((): void => {
     const current: LatestInputs = latest.current;
 
+    /*
+     * The way back is the followed zoom's own: it returns everything that
+     * zoom retimed, not just this explorer. It is offered only while that
+     * zoom is zoomed, so a stray double-click does nothing here either.
+     */
+    if (current.followedZoom) {
+      current.followedZoom.onTimeRangeReset?.();
+      return;
+    }
+
     // Nothing to undo: a stray double-click must not retime the explorer.
     if (!current.activeRecord || !current.onTimeRangeChange) {
       return;
@@ -298,10 +390,23 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
     }, []);
 
   const canZoom: boolean = Boolean(options.onTimeRangeSelect);
-  const isZoomed: boolean =
+
+  let isZoomed: boolean =
     activeRecord !== null && Boolean(options.onTimeRangeChange);
-  const rangeBeforeZoom: RangeStartAndEndDateTime | null = isZoomed
-    ? activeRecord!.rangeBeforeZoom
+  let rangeBeforeZoom: RangeStartAndEndDateTime | null =
+    isZoomed && activeRecord ? activeRecord.rangeBeforeZoom : null;
+
+  if (followedZoom) {
+    isZoomed = followedZoom.isZoomed && Boolean(followedZoom.onTimeRangeReset);
+    rangeBeforeZoom = isZoomed ? followedZoom.rangeBeforeZoom : null;
+  }
+
+  /*
+   * Handed on with the zoom it belongs to, so the explorer's charts see a
+   * zoom over that zoom's range, as if nothing stood in between.
+   */
+  const followedTimeRange: RangeStartAndEndDateTime | null = followedZoom
+    ? followedZoom.timeRange
     : null;
 
   const zoom: TimeRangeZoom | null = useMemo((): TimeRangeZoom | null => {
@@ -311,17 +416,32 @@ const useViewerTimeRangeZoom: UseViewerTimeRangeZoomFunction = (
 
     return {
       isZoomed: isZoomed,
+      ...(followedTimeRange ? { timeRange: followedTimeRange } : {}),
       rangeBeforeZoom: rangeBeforeZoom,
       zoomToTimeRange: zoomToTimeRange,
       resetZoom: resetZoom,
     };
-  }, [canZoom, isZoomed, rangeBeforeZoom, zoomToTimeRange, resetZoom]);
+  }, [
+    canZoom,
+    isZoomed,
+    followedTimeRange,
+    rangeBeforeZoom,
+    zoomToTimeRange,
+    resetZoom,
+  ]);
 
   return {
     zoom: zoom,
-    onTimeRangeSelect: canZoom ? zoomToTimeRange : undefined,
+    /*
+     * A followed zoom is applied by whoever offers it, so the histogram
+     * takes part in it even where the explorer's host could not apply a
+     * zoom itself.
+     */
+    onTimeRangeSelect:
+      canZoom || followsEnclosingZoom ? zoomToTimeRange : undefined,
     onZoomOut: isZoomed ? resetZoom : undefined,
     onTimeRangeChange: options.onTimeRangeChange ? pickTimeRange : undefined,
+    followsEnclosingZoom: followsEnclosingZoom,
   };
 };
 

@@ -25,6 +25,8 @@ export interface LogsViewerToolbarProps {
   liveOptions?: LiveLogsOptions;
   timeRange?: RangeStartAndEndDateTime;
   onTimeRangeChange?: (value: RangeStartAndEndDateTime) => void;
+  // Whether the picker offers "Reset zoom"; see LogTimeRangePicker.
+  showResetZoom?: boolean | undefined;
   onCreateSavedView?: (() => void) | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null | undefined;
@@ -355,6 +357,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
           <LogTimeRangePicker
             value={props.timeRange}
             onChange={props.onTimeRangeChange}
+            showResetZoom={props.showResetZoom}
           />
         )}
 

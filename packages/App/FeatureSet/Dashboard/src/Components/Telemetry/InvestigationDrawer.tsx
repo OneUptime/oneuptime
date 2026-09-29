@@ -928,6 +928,12 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
           <TelemetryCompanionSignalTabs
             telemetryQuery={telemetryQuery}
             snapshotWindow={pinnedWindow}
+            /*
+             * While the drawer is zoomed the tabs show the slice, and their
+             * copy must say so: "no logs found" must not claim the whole
+             * window the opener pinned was empty.
+             */
+            isSnapshotZoomed={isZoomed}
             eventNoun="view"
             primarySignalElement={
               /*

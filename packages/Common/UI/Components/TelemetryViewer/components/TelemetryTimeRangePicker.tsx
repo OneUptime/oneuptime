@@ -6,6 +6,12 @@ import ResetTimeRangeZoomButton from "../../Charts/TimeRangeZoom/ResetTimeRangeZ
 export interface TelemetryTimeRangePickerProps {
   value: RangeStartAndEndDateTime;
   onChange: (value: RangeStartAndEndDateTime) => void;
+  /*
+   * False while the explorer this picker belongs to follows a zoom offered
+   * around it (see useViewerTimeRangeZoom): whoever offers that zoom shows
+   * its "Reset zoom", and a second one here would only repeat it.
+   */
+  showResetZoom?: boolean | undefined;
 }
 
 // Matches the Tailwind `w-72` on the rendered dropdown (18rem).
@@ -32,7 +38,9 @@ const TelemetryTimeRangePicker: FunctionComponent<
         dataTestIdPrefix={TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}
         dropdownWidthInPx={TIME_RANGE_DROPDOWN_WIDTH_IN_PX}
       />
-      <ResetTimeRangeZoomButton forTimeRange={props.value} />
+      {props.showResetZoom === false ? null : (
+        <ResetTimeRangeZoomButton forTimeRange={props.value} />
+      )}
     </div>
   );
 };

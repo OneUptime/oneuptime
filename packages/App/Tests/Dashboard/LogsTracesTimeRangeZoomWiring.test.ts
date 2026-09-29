@@ -462,3 +462,85 @@ describe("charts with a window of their own zoom only themselves", () => {
     expect(source).toContain("}, DOUBLE_CLICK_DISAMBIGUATION_MS);");
   });
 });
+
+/*
+ * An explorer follows a zoom offered around it that is over its very window
+ * (a telemetry snapshot's primary explorer), and keeps its own everywhere
+ * else. Behaviour: ViewerFollowsEnclosingZoom.test.tsx,
+ * SnapshotExplorerPrimaryZoom.test.tsx, ExplorerOwnZoomRegression.test.tsx
+ * and InvestigationDrawerCompanionZoom.test.tsx.
+ */
+const VIEWER_ZOOM_HOOK: string =
+  "Common/UI/Components/TelemetryViewer/useViewerTimeRangeZoom.ts";
+const TELEMETRY_TIME_RANGE_PICKER: string =
+  "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker.tsx";
+const LOGS_VIEWER_TOOLBAR: string =
+  "Common/UI/Components/LogsViewer/components/LogsViewerToolbar.tsx";
+
+describe("an explorer follows a zoom around it only when that zoom is over its window", () => {
+  test("the rule: a zoom that names the explorer's very window, and no other", () => {
+    const source: string = read(VIEWER_ZOOM_HOOK);
+
+    expect(source).toContain(
+      "if (!enclosingZoom || !enclosingZoom.timeRange || !timeRange) { return false; } return isTimeRangeZoomFor(enclosingZoom, timeRange);",
+    );
+    // Read outside the provider the explorer puts around what it renders.
+    expect(source).toContain(
+      "const enclosingZoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();",
+    );
+    expect(source).toContain(
+      "shouldFollowEnclosingZoom(enclosingZoom, options.timeRange)",
+    );
+  });
+
+  test("a followed zoom gets the drag and the way back; the explorer keeps no zoom of its own", () => {
+    const source: string = read(VIEWER_ZOOM_HOOK);
+
+    expect(source).toContain(
+      "if (current.followedZoom) { current.followedZoom.onTimeRangeSelect(startTime, endTime); return; }",
+    );
+    expect(source).toContain(
+      "if (current.followedZoom) { current.followedZoom.onTimeRangeReset?.(); return; }",
+    );
+    expect(source).toContain(
+      "!followedZoom && isRecordActive(record, options.timeRange) ? record : null;",
+    );
+    expect(source).toContain("}, [timeRangeKey, followsEnclosingZoom]);");
+  });
+
+  test.each([
+    [
+      "the telemetry shell",
+      TELEMETRY_VIEWER,
+      "showResetZoom={!viewerZoom.followsEnclosingZoom}",
+    ],
+    [
+      "the logs viewer",
+      LOGS_VIEWER,
+      "showResetZoom: !viewerZoom.followsEnclosingZoom,",
+    ],
+  ])(
+    "%s's picker offers no second Reset zoom for a zoom it follows",
+    (_name: string, file: string, wiring: string) => {
+      expect(read(file)).toContain(wiring);
+    },
+  );
+
+  test("the pickers hide their Reset zoom only when told to", () => {
+    expect(read(LOG_TIME_RANGE_PICKER)).toContain(
+      "{props.showResetZoom === false ? null : <ResetTimeRangeZoomButton />}",
+    );
+    expect(read(TELEMETRY_TIME_RANGE_PICKER)).toContain(
+      "{props.showResetZoom === false ? null : ( <ResetTimeRangeZoomButton forTimeRange={props.value} /> )}",
+    );
+    expect(read(LOGS_VIEWER_TOOLBAR)).toContain(
+      "showResetZoom={props.showResetZoom}",
+    );
+  });
+
+  test("the investigation drawer tells its companion tabs when it is zoomed", () => {
+    expect(read(INVESTIGATION_DRAWER)).toContain(
+      '<TelemetryCompanionSignalTabs telemetryQuery={telemetryQuery} snapshotWindow={pinnedWindow} isSnapshotZoomed={isZoomed} eventNoun="view"',
+    );
+  });
+});

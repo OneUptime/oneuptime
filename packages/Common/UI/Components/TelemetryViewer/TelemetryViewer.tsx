@@ -174,7 +174,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
    * "Reset zoom" beside the picker, can hand it back. The same zoom is
    * offered to everything the viewer renders (see the provider below), so
    * a drag across the analytics chart retimes the viewer just like one
-   * across the histogram.
+   * across the histogram. A viewer pinned to the window of a zoom offered
+   * around it (a telemetry snapshot's primary explorer) follows that zoom
+   * instead, so a drag here retimes everything that zoom does.
    */
   const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
@@ -252,6 +254,11 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
         <TelemetryTimeRangePicker
           value={props.timeRange}
           onChange={viewerZoom.onTimeRangeChange || props.onTimeRangeChange}
+          /*
+           * A followed zoom's way back is shown by whoever offers it (the
+           * snapshot's, beside its badge): one Reset zoom per zoom.
+           */
+          showResetZoom={!viewerZoom.followsEnclosingZoom}
         />
 
         {props.live && (
@@ -429,8 +436,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
    * the analytics charts a host renders as mainContentOverride, and the
    * picker's "Reset zoom", which is how a keyboard user gets back out. It
    * also shadows any zoom a page around the viewer offers, since a drag
-   * here is about this explorer's window. A host that cannot zoom (no
-   * select handler) leaves whatever surrounds the viewer in place.
+   * here is about this explorer's window, unless that zoom is over this
+   * very window: the viewer then hands that zoom on (see
+   * useViewerTimeRangeZoom). A host that cannot zoom (no select handler)
+   * leaves whatever surrounds the viewer in place.
    */
   if (!viewerZoom.zoom) {
     return viewer;

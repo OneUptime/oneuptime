@@ -250,6 +250,67 @@ describe("the telemetry snapshot zooms as one, every tab of it", () => {
   );
 });
 
+/*
+ * A Logs, Traces or Exceptions snapshot: the primary is an explorer, and a
+ * drag on its histogram must zoom the whole snapshot as a drag on a metric
+ * snapshot's chart does. Behaviour: SnapshotExplorerPrimaryZoom.test.tsx
+ * (the episode panel) and EventOverviewSnapshotExplorerZoom.test.tsx (the
+ * incident and alert pages); the explorer's side of it:
+ * ViewerFollowsEnclosingZoom.test.tsx.
+ */
+describe("a Logs, Traces or Exceptions snapshot's primary explorer follows the snapshot's zoom", () => {
+  const EXPLORERS: Array<[string, string]> = [
+    ["DashboardLogsViewer", "Log"],
+    ["TracesViewer", "Span"],
+    ["ExceptionsViewer", "ExceptionInstance"],
+  ];
+
+  test.each(SNAPSHOT_HOSTS)(
+    "%s: each explorer primary sits inside the snapshot's zoom",
+    (_name: string, file: string) => {
+      const source: string = readSquashed(file);
+
+      for (const [explorer] of EXPLORERS) {
+        expect(source).toContain(
+          `<TimeRangeZoomProvider zoom={snapshotZoom.zoom}> <${explorer}`,
+        );
+      }
+      // The metric chart keeps its explicit handlers instead.
+      expect(
+        source.split("<TimeRangeZoomProvider zoom={snapshotZoom.zoom}>")
+          .length - 1,
+      ).toBe(EXPLORERS.length);
+      expect(source).not.toContain(
+        "<TimeRangeZoomProvider zoom={snapshotZoom.zoom}> <MetricView",
+      );
+    },
+  );
+
+  test.each(SNAPSHOT_HOSTS)(
+    "%s: each explorer primary is pinned to the window the snapshot shows",
+    (_name: string, file: string) => {
+      const source: string = readSquashed(file);
+
+      for (const [, model] of EXPLORERS) {
+        expect(source).toContain(
+          `snapshotZoom.explorerQuery as Query<${model}>`,
+        );
+      }
+      // Never the stored window alone: a zoom would not reach the primary.
+      expect(source).not.toContain("telemetryQuery.telemetryQuery as Query<");
+    },
+  );
+
+  test.each(SNAPSHOT_HOSTS)(
+    "%s: the snapshot's zoom is handed the stored query to pin",
+    (_name: string, file: string) => {
+      expect(readSquashed(file)).toMatch(
+        /useTelemetrySnapshotZoom\(\{ snapshotWindow: (telemetrySnapshotWindow|snapshotWindow), metricViewData: telemetryQuery\??\.metricViewData, telemetryType: telemetryQuery\??\.telemetryType, explorerQuery: telemetryQuery\??\.telemetryQuery,/,
+      );
+    },
+  );
+});
+
 describe("the snapshot card's companion tabs keep their own windows", () => {
   const source: string = readSquashed(COMPANION_TABS);
 
