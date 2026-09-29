@@ -514,6 +514,182 @@ describe("MarkdownEditor indent and outdent", () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    /*
+     * The items are moved by hand, which the browser's undo stack never
+     * hears of: Ctrl+Z after an accidental Tab undid the typing before it
+     * and left the indent. The editor now takes the move back itself.
+     */
+    test("Ctrl+Z takes back an indent, keeping the caret in the item", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 1);
+      const b: Text = textNodeWith("b");
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+      expect(lastChange(onChange)).toBe("- a\n  - b");
+
+      expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+        false,
+      );
+
+      expect(lastChange(onChange)).toBe("- a\n- b");
+      expect(window.getSelection()?.anchorNode).toBe(b);
+      expect(window.getSelection()?.anchorOffset).toBe(1);
+      // Nothing of the editor's own left: the next Ctrl+Z is the browser's.
+      expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+        true,
+      );
+    });
+
+    // Undoing an outdent by indenting again would nest c under b.
+    test("Ctrl+Z puts an outdented item back exactly as it was", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor
+          initialValue={"- a\n  - b\n  - c"}
+          onChange={onChange}
+        />,
+      );
+      placeCaret("b", 0);
+      fireEvent.keyDown(editableOf(), { key: "Tab", shiftKey: true });
+      expect(lastChange(onChange)).toBe("- a\n- b\n  - c");
+
+      fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+
+      expect(lastChange(onChange)).toBe("- a\n  - b\n  - c");
+    });
+
+    test("Cmd+Z takes back the Indent and Outdent buttons too", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor initialValue={"- a\n- b\n- c"} onChange={onChange} />,
+      );
+      placeCaret("b", 0);
+
+      fireEvent.click(screen.getByTitle("Indent (Tab)"));
+      fireEvent.click(screen.getByTitle("Outdent (Shift+Tab)"));
+      fireEvent.click(screen.getByTitle("Indent (Tab)"));
+      expect(lastChange(onChange)).toBe("- a\n  - b\n- c");
+
+      fireEvent.keyDown(editableOf(), { key: "z", metaKey: true });
+      expect(lastChange(onChange)).toBe("- a\n- b\n- c");
+      fireEvent.keyDown(editableOf(), { key: "z", metaKey: true });
+      expect(lastChange(onChange)).toBe("- a\n  - b\n- c");
+      fireEvent.keyDown(editableOf(), { key: "z", metaKey: true });
+      expect(lastChange(onChange)).toBe("- a\n- b\n- c");
+    });
+
+    test("Ctrl+Shift+Z and Ctrl+Y make an undone indent again", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 0);
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+      fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+
+      expect(
+        fireEvent.keyDown(editableOf(), {
+          key: "Z",
+          ctrlKey: true,
+          shiftKey: true,
+        }),
+      ).toBe(false);
+      expect(lastChange(onChange)).toBe("- a\n  - b");
+
+      fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+      expect(fireEvent.keyDown(editableOf(), { key: "y", ctrlKey: true })).toBe(
+        false,
+      );
+      expect(lastChange(onChange)).toBe("- a\n  - b");
+    });
+
+    /*
+     * Typing after the move is newer history in the browser's own stack, so
+     * Ctrl+Z is left to the browser, which takes the typing back first.
+     */
+    test("leaves Ctrl+Z to the browser once something else changed the editor", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 1);
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+
+      textNodeWith("b").data = "bx";
+      fireEvent.input(editableOf());
+      expect(lastChange(onChange)).toBe("- a\n  - bx");
+
+      expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+        true,
+      );
+      expect(lastChange(onChange)).toBe("- a\n  - bx");
+    });
+
+    test("does not take Ctrl+Alt+Z, or Ctrl+Z while composing", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 0);
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+
+      expect(
+        fireEvent.keyDown(editableOf(), {
+          key: "z",
+          ctrlKey: true,
+          altKey: true,
+        }),
+      ).toBe(true);
+      expect(
+        fireEvent.keyDown(editableOf(), {
+          key: "z",
+          ctrlKey: true,
+          isComposing: true,
+        }),
+      ).toBe(true);
+      expect(lastChange(onChange)).toBe("- a\n  - b");
+    });
+
+    // Undo and redo from the Edit menu arrive as a beforeinput event.
+    test("takes an indent back on the Edit menu's undo, and makes it again on redo", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 0);
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+
+      const undo: InputEvent = new InputEvent("beforeinput", {
+        inputType: "historyUndo",
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => {
+        editableOf().dispatchEvent(undo);
+      });
+      expect(undo.defaultPrevented).toBe(true);
+      expect(lastChange(onChange)).toBe("- a\n- b");
+
+      const redo: InputEvent = new InputEvent("beforeinput", {
+        inputType: "historyRedo",
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => {
+        editableOf().dispatchEvent(redo);
+      });
+      expect(redo.defaultPrevented).toBe(true);
+      expect(lastChange(onChange)).toBe("- a\n  - b");
+    });
+
+    test("leaves the Edit menu's undo to the browser when it has nothing of its own", () => {
+      render(<MarkdownEditor initialValue={"- a\n- b"} />);
+      placeCaret("b", 0);
+
+      const undo: InputEvent = new InputEvent("beforeinput", {
+        inputType: "historyUndo",
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => {
+        editableOf().dispatchEvent(undo);
+      });
+
+      expect(undo.defaultPrevented).toBe(false);
+    });
+
     test("leaves Tab to move focus from a code block inside a list item", () => {
       const onChange: jest.Mock = jest.fn();
       render(
@@ -938,6 +1114,32 @@ describe("MarkdownEditor paste in the visual editor", () => {
     );
   });
 
+  test("Ctrl+Z takes back such a paste, selection and all", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- alpha\n- beta\n- gamma"}
+        onChange={onChange}
+      />,
+    );
+    selectText("alpha", 2, "beta", 2);
+    const alpha: Text = textNodeWith("alpha");
+    const beta: Text = textNodeWith("beta");
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": '<a href="https://oneuptime.com/docs">the docs</a>',
+        "text/plain": "the docs",
+      }),
+    });
+
+    fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+
+    expect(lastChange(onChange)).toBe("- alpha\n- beta\n- gamma");
+    const selection: Selection = window.getSelection() as Selection;
+    expect([selection.anchorNode, selection.anchorOffset]).toEqual([alpha, 2]);
+    expect([selection.focusNode, selection.focusOffset]).toEqual([beta, 2]);
+  });
+
   // Ctrl+A in a note that is only a list, as Chromium selects it.
   test("keeps formatted words pasted over a whole list", () => {
     const onChange: jest.Mock = jest.fn();
@@ -1260,6 +1462,21 @@ describe("MarkdownEditor blocks inserted into a line of text", () => {
     expect(lastChange(onChange)).toBe(
       "Customer said:\n\n> it is down\n> again",
     );
+  });
+
+  // Put in by hand, the block is not on the browser's undo stack.
+  test("Ctrl+Z takes back a code block put into a line", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("hello", 5);
+    fireEvent.click(screen.getByTitle("Code Block"));
+
+    expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+      false,
+    );
+
+    expect(lastChange(onChange)).toBe("hello");
   });
 
   // Every block goes in the same way, splitting the line at the caret.

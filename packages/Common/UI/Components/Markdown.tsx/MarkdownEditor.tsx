@@ -21,6 +21,7 @@ import {
   stripTextListMarkers,
   toggleMarkdownList,
 } from "./MarkdownListEditing";
+import MarkdownEditorHistory from "./MarkdownEditorHistory";
 import { clipboardToMarkdown } from "./MarkdownPaste";
 import {
   caretAtEndOf,
@@ -150,6 +151,34 @@ const isListIndentKey: (event: React.KeyboardEvent<HTMLElement>) => boolean = (
   );
 };
 
+type HistoryStep = "undo" | "redo";
+
+/*
+ * Ctrl+Z (Cmd+Z on a Mac) is undo; Ctrl+Shift+Z, Cmd+Shift+Z and Ctrl+Y are
+ * redo. A keypress that is still composing is left alone.
+ */
+const historyStepOfKey: (
+  event: React.KeyboardEvent<HTMLElement>,
+) => HistoryStep | null = (
+  event: React.KeyboardEvent<HTMLElement>,
+): HistoryStep | null => {
+  if (
+    !(event.ctrlKey || event.metaKey) ||
+    event.altKey ||
+    event.nativeEvent.isComposing
+  ) {
+    return null;
+  }
+  const key: string = event.key.toLowerCase();
+  if (key === "z") {
+    return event.shiftKey ? "redo" : "undo";
+  }
+  if (key === "y" && !event.shiftKey) {
+    return "redo";
+  }
+  return null;
+};
+
 type MarkdownTextEditor = (
   text: string,
   selectionStart: number,
@@ -214,6 +243,16 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const textRef: React.MutableRefObject<string> = useRef<string>(
     props.initialValue || "",
   );
+  /*
+   * The visual editor's own edits -- list moves, inserts made by hand --
+   * which the browser's undo stack never hears of (see
+   * MarkdownEditorHistory).
+   */
+  const [history] = useState<MarkdownEditorHistory>(
+    (): MarkdownEditorHistory => {
+      return new MarkdownEditorHistory();
+    },
+  );
 
   useEffect(() => {
     if (
@@ -224,6 +263,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       textRef.current = props.initialValue;
     }
   }, [props.initialValue]);
+
+  // A new editable in each mode: records about the old one's nodes are no use.
+  useEffect(() => {
+    history.clear();
+  }, [mode]);
 
   /*
    * Sync markdown -> contenteditable when entering WYSIWYG, when text
@@ -248,6 +292,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     const html: string = sanitizeHtml(markdownToHtml(text));
     if (editable.innerHTML !== html) {
       editable.innerHTML = html;
+      history.clear();
     }
   }, [mode, text]);
 
@@ -270,6 +315,83 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       handleChange(md);
     }
   };
+
+  /*
+   * An edit the visual editor makes to its DOM itself, recorded so that
+   * Ctrl+Z takes it back. Returns what `edit` returns: whether it changed
+   * anything.
+   */
+  const editEditableByHand: (
+    edit: (editable: HTMLDivElement) => boolean,
+  ) => boolean = (edit: (editable: HTMLDivElement) => boolean): boolean => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return false;
+    }
+    return history.record(editable, (): boolean => {
+      return edit(editable);
+    });
+  };
+
+  /*
+   * Undo or redo of the editor's own edits; false (and nothing done) when
+   * the last thing to undo is the browser's -- typing, say -- so the
+   * browser does it.
+   */
+  const stepEditableHistory: (step: HistoryStep) => boolean = (
+    step: HistoryStep,
+  ): boolean => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return false;
+    }
+    const stepped: boolean =
+      step === "undo" ? history.undo(editable) : history.redo(editable);
+    if (stepped) {
+      syncFromEditable();
+    }
+    return stepped;
+  };
+
+  /*
+   * Typing, a paste the browser makes, an execCommand: each is newer
+   * history in the browser's own undo stack, which the editor's records
+   * would otherwise jump ahead of.
+   */
+  const handleEditableInput: () => void = (): void => {
+    history.clear();
+    syncFromEditable();
+  };
+
+  /*
+   * Undo and redo from the browser's Edit menu or context menu arrive with
+   * no key press, as a native beforeinput event -- which React's
+   * onBeforeInput is not -- so it is listened for on the element itself.
+   * The ref keeps the listener on the latest render's handlers.
+   */
+  const beforeInputRef: React.MutableRefObject<(event: InputEvent) => void> =
+    useRef<(event: InputEvent) => void>((): void => {});
+  beforeInputRef.current = (event: InputEvent): void => {
+    if (
+      (event.inputType === "historyUndo" && stepEditableHistory("undo")) ||
+      (event.inputType === "historyRedo" && stepEditableHistory("redo"))
+    ) {
+      event.preventDefault();
+    }
+  };
+  useEffect(() => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (mode !== "wysiwyg" || !editable) {
+      return undefined;
+    }
+    const listener: (event: Event) => void = (event: Event): void => {
+      beforeInputRef.current(event as InputEvent);
+    };
+    editable.addEventListener("beforeinput", listener);
+    return () => {
+      editable.removeEventListener("beforeinput", listener);
+    };
+  }, [mode]);
 
   const insertTextAtCursor: (textToInsert: string) => void = (
     textToInsert: string,
@@ -361,31 +483,35 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         // Fall through to the insert by hand.
       }
     }
-    deleteSelectionForInsert(editable, range);
-    const fragment: DocumentFragment = range.createContextualFragment(contents);
-    let caret: Range | null = null;
-    if (inline) {
-      const lastNode: ChildNode | null = fragment.lastChild;
-      range.insertNode(fragment);
-      if (lastNode) {
-        caret = document.createRange();
-        caret.setStartAfter(lastNode);
-        caret.collapse(true);
+    editEditableByHand((): boolean => {
+      deleteSelectionForInsert(editable, range);
+      const fragment: DocumentFragment =
+        range.createContextualFragment(contents);
+      let caret: Range | null = null;
+      if (inline) {
+        const lastNode: ChildNode | null = fragment.lastChild;
+        range.insertNode(fragment);
+        if (lastNode) {
+          caret = document.createRange();
+          caret.setStartAfter(lastNode);
+          caret.collapse(true);
+        }
+      } else {
+        const lastNode: Node | null = insertBlocksAtCaret(
+          editable,
+          range,
+          fragment,
+        );
+        if (lastNode) {
+          caret = caretAtEndOf(lastNode);
+        }
       }
-    } else {
-      const lastNode: Node | null = insertBlocksAtCaret(
-        editable,
-        range,
-        fragment,
-      );
-      if (lastNode) {
-        caret = caretAtEndOf(lastNode);
+      if (caret) {
+        selection.removeAllRanges();
+        selection.addRange(caret);
       }
-    }
-    if (caret) {
-      selection.removeAllRanges();
-      selection.addRange(caret);
-    }
+      return true;
+    });
     syncFromEditable();
   };
 
@@ -632,14 +758,17 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       return;
     }
     const range: Range = selection.getRangeAt(0);
-    deleteSelectionForInsert(editable, range);
-    const textNode: Text = document.createTextNode(value);
-    range.insertNode(textNode);
-    const after: Range = document.createRange();
-    after.setStartAfter(textNode);
-    after.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(after);
+    editEditableByHand((): boolean => {
+      deleteSelectionForInsert(editable, range);
+      const textNode: Text = document.createTextNode(value);
+      range.insertNode(textNode);
+      const after: Range = document.createRange();
+      after.setStartAfter(textNode);
+      after.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(after);
+      return true;
+    });
     syncFromEditable();
   };
 
@@ -973,18 +1102,17 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   /*
    * Indent or outdent the list items at the selection in the visual editor;
    * false (and nothing changed) when the selection is not on an item that
-   * can move.
+   * can move. The items are moved by hand, so the move is recorded for
+   * Ctrl+Z: it undid the typing before an indent and left the indent.
    */
   const shiftListItemsInEditable: (outdent: boolean) => boolean = (
     outdent: boolean,
   ): boolean => {
-    const editable: HTMLDivElement | null = editableRef.current;
-    if (!editable) {
-      return false;
-    }
-    const changed: boolean = outdent
-      ? liftListItems(editable)
-      : sinkListItems(editable);
+    const changed: boolean = editEditableByHand(
+      (editable: HTMLDivElement): boolean => {
+        return outdent ? liftListItems(editable) : sinkListItems(editable);
+      },
+    );
     if (changed) {
       syncFromEditable();
     }
@@ -1054,12 +1182,15 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     const selected: string = selection.toString() || fallbackText;
     const wrapper: HTMLElement = document.createElement(tagName);
     wrapper.textContent = selected;
-    deleteSelectionForInsert(editable, range);
-    range.insertNode(wrapper);
-    const newRange: Range = document.createRange();
-    newRange.selectNodeContents(wrapper);
-    selection.removeAllRanges();
-    selection.addRange(newRange);
+    editEditableByHand((): boolean => {
+      deleteSelectionForInsert(editable, range);
+      range.insertNode(wrapper);
+      const newRange: Range = document.createRange();
+      newRange.selectNodeContents(wrapper);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+      return true;
+    });
     syncFromEditable();
   };
 
@@ -1308,6 +1439,16 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const handleEditableKeyDown: (
     e: React.KeyboardEvent<HTMLDivElement>,
   ) => void = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    /*
+     * Ctrl+Z right after an edit the editor made itself -- a list move, an
+     * insert made by hand -- takes that edit back, and Ctrl+Shift+Z makes
+     * it again. Otherwise the key is the browser's, as always.
+     */
+    const historyStep: HistoryStep | null = historyStepOfKey(e);
+    if (historyStep && stepEditableHistory(historyStep)) {
+      e.preventDefault();
+      return;
+    }
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case "b":
@@ -1621,7 +1762,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               }
               tabIndex={props.tabIndex}
               className={wysiwygClassName}
-              onInput={syncFromEditable}
+              onInput={handleEditableInput}
               onPaste={handleEditablePaste}
               onDragOver={handleDragOver}
               onDragEnter={handleDragOver}
