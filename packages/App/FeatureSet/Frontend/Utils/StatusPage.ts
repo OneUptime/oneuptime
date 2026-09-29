@@ -8,6 +8,7 @@ import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import escapeXml from "../../../Utils/EscapeXml";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
   isSearchEngineIndexingEnabled,
@@ -273,8 +274,8 @@ export const handleRSS: (
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>${title} Updates</title>
-<description>${description}</description>
+<title>${escapeXml(title)} Updates</title>
+<description>${escapeXml(description)}</description>
 <link>${baseUrl}</link>
 <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
 `;
