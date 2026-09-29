@@ -18,6 +18,7 @@ import ReactFlow, {
   NodeChange,
   NodeProps,
   ReactFlowInstance,
+  Viewport,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -35,7 +36,12 @@ import PageMap from "../../Utils/PageMap";
 import EntityDetailPanel, { EntityTrafficSummary } from "./EntityDetailPanel";
 import EdgeDetailPanel from "./EdgeDetailPanel";
 import FlowViewportGuard from "./FlowViewportGuard";
-import { FlowExtent, UNBOUNDED_FLOW_EXTENT } from "./FlowViewport";
+import {
+  FlowExtent,
+  FlowViewportPosition,
+  UNBOUNDED_FLOW_EXTENT,
+  hasViewportMoved,
+} from "./FlowViewport";
 import TopologyNodeCard, {
   TOPOLOGY_NODE_HEIGHT,
   TOPOLOGY_NODE_WIDTH,
@@ -97,7 +103,9 @@ export const SERVICE_MAP_FIT_VIEW_OPTIONS: FitViewOptions = {
  * How far past the outermost cards the view may be moved, in flow units: a
  * card's height of slack. It must stay smaller than the visible area at the
  * closest zoom (a 460 px canvas at 1.5x shows about 300 units), or the view
- * could come to rest wholly inside the slack with no card in sight.
+ * could come to rest wholly inside the slack, off the drawing's bounding
+ * box. (Inside the box a view zoomed in on an empty corner of the layout
+ * can still show no card; the out-of-view notice covers that.)
  */
 export const SERVICE_MAP_PAN_MARGIN: number = TOPOLOGY_NODE_HEIGHT;
 /*
@@ -320,6 +328,9 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     useRef<ReactFlowInstance | null>(null);
   /* The view is the automatic framing until the user pans or zooms it. */
   const autoFrame: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  /* Where the view was when the current pan or zoom gesture began. */
+  const gestureStart: React.MutableRefObject<FlowViewportPosition | null> =
+    useRef<FlowViewportPosition | null>(null);
   /*
    * The size React Flow measured for each node. React Flow keeps a node's
    * size only if the node it is handed carries one: a new nodes array
@@ -730,17 +741,32 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   /*
    * Say so when nothing of the map is on the canvas, rather than leaving an
    * empty box — but not for the frame or two a new drawing takes to measure.
+   * A hidden tab measures nothing (the browser runs no ResizeObserver for
+   * it), so a map that finished loading in the background is only judged
+   * once it can be seen: it is measured in the first frame back.
    */
   useEffect(() => {
     if (drawingInView || view !== "map") {
       setShowOutOfView(false);
       return undefined;
     }
-    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      setShowOutOfView(true);
-    }, OUT_OF_VIEW_NOTICE_DELAY_MS);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const judgeWhenSeen: () => void = (): void => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      document.removeEventListener("visibilitychange", judgeWhenSeen);
+      timer = setTimeout(() => {
+        setShowOutOfView(true);
+      }, OUT_OF_VIEW_NOTICE_DELAY_MS);
+    };
+    document.addEventListener("visibilitychange", judgeWhenSeen);
+    judgeWhenSeen();
     return () => {
-      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", judgeWhenSeen);
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
   }, [drawingInView, view]);
 
@@ -1190,8 +1216,28 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 proOptions={{ hideAttribution: true }}
                 nodesConnectable={false}
                 elementsSelectable={true}
-                onMoveEnd={() => {
-                  autoFrame.current = false;
+                onMoveStart={(
+                  _event: MouseEvent | TouchEvent,
+                  viewport: Viewport,
+                ) => {
+                  gestureStart.current = viewport;
+                }}
+                onMoveEnd={(
+                  _event: MouseEvent | TouchEvent,
+                  viewport: Viewport,
+                ) => {
+                  /*
+                   * Only a gesture that moved the view takes it from the
+                   * automatic framing. A press on a fitted large map moves
+                   * nothing (the pan extent pins it) yet is reported as a
+                   * move, a floating-point ulp away; so is a sloppy click.
+                   */
+                  const start: FlowViewportPosition | null =
+                    gestureStart.current;
+                  gestureStart.current = null;
+                  if (!start || hasViewportMoved(start, viewport)) {
+                    autoFrame.current = false;
+                  }
                 }}
                 onNodeClick={(_event: React.MouseEvent, node: Node) => {
                   selectNode(node.id);
@@ -1237,8 +1283,13 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 />
               </ReactFlow>
               {showOutOfView && (
+                /*
+                 * Top-left of the canvas: under the toolbar the user just
+                 * came from, on screen even when most of a tall canvas is
+                 * below the fold, and clear of a drawer open on the right.
+                 */
                 <div
-                  className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4"
+                  className="pointer-events-none absolute inset-0 z-10 flex items-start justify-start p-4"
                   data-testid="service-map-out-of-view"
                 >
                   <div

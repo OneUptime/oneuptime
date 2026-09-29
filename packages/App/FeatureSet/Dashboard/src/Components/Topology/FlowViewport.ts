@@ -9,7 +9,8 @@
  * unbounded, so a drag or a zoom about an empty spot carries every card out
  * of view and nothing brings them back (issue #4117). These helpers describe
  * the drawing as boxes in flow coordinates, so the map can keep its viewport
- * on the drawing and notice when nothing of it is on screen.
+ * on the drawing, tell a real move of the view from rounding noise, and
+ * notice when nothing of the drawing is on screen.
  */
 
 /** A node's box in flow coordinates: its position plus its size. */
@@ -38,6 +39,53 @@ export const UNBOUNDED_FLOW_EXTENT: FlowExtent = [
   [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
 ];
 
+/** React Flow's `Viewport`: where the drawing is and how far zoomed. */
+export interface FlowViewportPosition {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/*
+ * The least a gesture has to move the view to count as moving it: half a
+ * screen pixel, or a zoom change of one part in a thousand.
+ */
+export const VIEWPORT_MOVE_TOLERANCE_PX: number = 0.5;
+export const VIEWPORT_ZOOM_TOLERANCE: number = 1e-3;
+
+/**
+ * Whether a gesture really moved the view.
+ *
+ * React Flow reports a move whenever the transform changed at all, and
+ * d3-zoom re-applies the pan extent on every pointer move: a press on a map
+ * the extent pins in place (the fitted view of a large drawing) comes back
+ * a floating-point ulp away from where it started, and is reported as a
+ * move. A sloppy one-pixel click is not the user taking the view.
+ */
+export function hasViewportMoved(
+  from: FlowViewportPosition,
+  to: FlowViewportPosition,
+): boolean {
+  if (
+    !Number.isFinite(from.x) ||
+    !Number.isFinite(from.y) ||
+    !Number.isFinite(from.zoom) ||
+    !Number.isFinite(to.x) ||
+    !Number.isFinite(to.y) ||
+    !Number.isFinite(to.zoom) ||
+    from.zoom <= 0 ||
+    to.zoom <= 0
+  ) {
+    // Nothing sensible to compare: treat it as a move, never as noise.
+    return true;
+  }
+  return (
+    Math.abs(to.x - from.x) > VIEWPORT_MOVE_TOLERANCE_PX ||
+    Math.abs(to.y - from.y) > VIEWPORT_MOVE_TOLERANCE_PX ||
+    Math.abs(to.zoom / from.zoom - 1) > VIEWPORT_ZOOM_TOLERANCE
+  );
+}
+
 /*
  * How much of a node must be on the canvas, in screen pixels on each axis,
  * for the drawing to count as in view. A one-pixel sliver of a card at the
@@ -65,8 +113,11 @@ export function isDrawnRect(rect: FlowRect | null | undefined): boolean {
  * React Flow hands this to d3-zoom, which keeps the visible area inside the
  * extent when the extent is the larger of the two, and centres the extent
  * when the visible area is larger. Either way the visible area overlaps the
- * drawing on both axes, as long as `margin` is smaller than the visible
- * area — so the drawing can no longer be dragged or zoomed off the canvas.
+ * drawing's bounding box on both axes, as long as `margin` is smaller than
+ * the visible area — so the drawing can no longer be dragged or zoomed off
+ * the canvas. The box is not the drawing: a layered layout leaves empty
+ * corners inside it, and a view zoomed in on one shows no card. That case
+ * is what the map's out-of-view notice (see anyRectInView) is for.
  *
  * Boxes that are not drawn (unmeasured, non-finite) are skipped rather than
  * allowed to poison the result. With nothing drawn there is nothing to keep
@@ -154,6 +205,12 @@ export function anyRectInView(
 
   const threshold: number =
     Number.isFinite(minVisiblePx) && minVisiblePx > 0 ? minVisiblePx : 0;
+  /*
+   * A wholly visible node smaller than the threshold must count, so each
+   * axis needs min(threshold, the node's own size) — compared with slack
+   * for rounding: right - left can come out an ulp below width * zoom.
+   */
+  const slack: number = 1e-9;
 
   for (const rect of rects) {
     if (!isDrawnRect(rect)) {
@@ -171,8 +228,8 @@ export function anyRectInView(
     if (
       visibleWidth > 0 &&
       visibleHeight > 0 &&
-      visibleWidth >= Math.min(threshold, rect.width * zoom) &&
-      visibleHeight >= Math.min(threshold, rect.height * zoom)
+      visibleWidth + slack >= Math.min(threshold, rect.width * zoom) &&
+      visibleHeight + slack >= Math.min(threshold, rect.height * zoom)
     ) {
       return true;
     }
