@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "Для этой страницы статуса не создано ресурсов.",
   "No Status Page.": "Нет страницы статуса.",
   "No status pages found.": "Страницы статуса не найдены.",
-  "No status set": "Статус не задан",
+  "No error status set (OpenTelemetry default)": "Статус ошибки не задан (значение OpenTelemetry по умолчанию)",
   "No status timeline created for this alert so far.": "Для этого оповещения пока не создана хронология статусов.",
   "No status timeline created for this episode so far.": "Для этого эпизода пока не создана хронология статусов.",
   "No status timeline created for this incident so far.": "Для этого инцидента пока не создана хронология статусов.",
@@ -4927,7 +4927,7 @@
   "Source Key": "Ключ источника",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "Список областей OIDC для запроса, разделённых пробелами. Должен включать «openid».",
   "Span Attributes": "Атрибуты span",
-  "Span completed successfully": "Span успешно завершён",
+  "Explicitly marked successful": "Явно отмечен как успешный",
   "Span ended in error": "Span завершился с ошибкой",
   "Span ID": "ID span",
   "Span Kind": "Тип span",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "Статус span: ошибка",
   "Span Status: Ok": "Статус span: Ok",
   "Span Status: Unset": "Статус span: не задан",
+  "Span Status: Unset (no error)": "Статус span: не задан (без ошибки)",
   "Spans Preview": "Предпросмотр spans",
   "Specific Times of the Day": "Определённое время суток",
   "Specific Times of the Week": "Определённое время недели",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Повтор продолжает после уже охваченных страниц состояния: сейчас уведомление получат только страницы текущей области этого инцидента, которые не получили его полностью, включая страницы, добавленные с тех пор. В отличие от заметок и изменений состояния, которые повторно отправляются на все страницы, уже охваченные страницы не получат его дважды.",
   "Send it to every status page again, including the pages already reached": "Отправить его ещё раз на все страницы состояния, включая уже охваченные",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "Уведомление о создании этого инцидента будет повторно отправлено подписчикам каждой страницы состояния, до которой сейчас доходит этот инцидент, включая страницы, до которых уже дошла неудачная отправка.",
-  "Could not queue the notification again.": "Не удалось снова поставить уведомление в очередь."
+  "Could not queue the notification again.": "Не удалось снова поставить уведомление в очередь.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + прокрутка или щипок для масштабирования",
+  "The map is out of view.": "Карта вне области просмотра."
 }

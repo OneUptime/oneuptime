@@ -894,7 +894,12 @@ describe("page and card wiring", () => {
     (_name: string, source: string, eventNoun: string) => {
       expect(source).toContain("<TelemetryCompanionSignalTabs");
       expect(source).toContain("telemetryQuery={telemetryQuery}");
-      expect(source).toContain("snapshotWindow={telemetrySnapshotWindow}");
+      /*
+       * The window the snapshot shows: the page's snapshot window, or the
+       * slice a drag on its metric chart zoomed the whole snapshot to.
+       */
+      expect(source).toContain("snapshotWindow: telemetrySnapshotWindow,");
+      expect(source).toContain("snapshotWindow={snapshotZoom.window}");
       expect(source).toContain("snapshotWindowAlert={snapshotWindowAlert}");
       expect(source).toContain(`eventNoun="${eventNoun}"`);
       expect(source).toContain("primarySignalElement={");

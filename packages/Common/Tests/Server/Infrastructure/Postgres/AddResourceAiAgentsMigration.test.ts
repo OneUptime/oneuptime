@@ -1,4 +1,4 @@
-import { AddResourceAiAgents1796200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796200000000-AddResourceAiAgents";
+import { AddResourceAiAgents1796300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796300000000-AddResourceAiAgents";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
@@ -56,7 +56,7 @@ import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadat
  * Fake QueryRunner only.
  */
 
-const OWN_CLASS_NAME: string = "AddResourceAiAgents1796200000000";
+const OWN_CLASS_NAME: string = "AddResourceAiAgents1796300000000";
 
 // The last migration registered before this one.
 const REGISTERED_BEFORE_IT: string =
@@ -64,7 +64,7 @@ const REGISTERED_BEFORE_IT: string =
 
 const MIGRATION_PATH: string = path.join(
   __dirname,
-  "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796200000000-AddResourceAiAgents.ts",
+  "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796300000000-AddResourceAiAgents.ts",
 );
 
 type ModelType = { new (): unknown; name: string };
@@ -117,7 +117,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddResourceAiAgents1796200000000()[direction](queryRunner);
+  await new AddResourceAiAgents1796300000000()[direction](queryRunner);
 
   return statements;
 }
@@ -182,17 +182,17 @@ describe("AddResourceAiAgents migration - identity and registration", () => {
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
     expect(source).toContain(`public name: string = "${OWN_CLASS_NAME}";`);
-    expect(new AddResourceAiAgents1796200000000().name).toBe(OWN_CLASS_NAME);
+    expect(new AddResourceAiAgents1796300000000().name).toBe(OWN_CLASS_NAME);
   });
 
-  test("its stamp is at least 1796200000000", () => {
+  test("its stamp is at least 1796300000000", () => {
     expect(timestampOfClassName(OWN_CLASS_NAME)).toBeGreaterThanOrEqual(
-      1796200000000,
+      1796300000000,
     );
   });
 
   test("is registered exactly once", () => {
-    expect(SchemaMigrations).toContain(AddResourceAiAgents1796200000000);
+    expect(SchemaMigrations).toContain(AddResourceAiAgents1796300000000);
     expect(
       registeredNames.filter((name: string): boolean => {
         return name === OWN_CLASS_NAME;

@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "Ingen statussideressourcer oprettet for denne statusside.",
   "No Status Page.": "Ingen statusside.",
   "No status pages found.": "Ingen statussider fundet.",
-  "No status set": "Ingen status angivet",
+  "No error status set (OpenTelemetry default)": "Ingen fejlstatus angivet (OpenTelemetry-standard)",
   "No status timeline created for this alert so far.": "Der er endnu ikke oprettet nogen statustidslinje for denne advarsel.",
   "No status timeline created for this episode so far.": "Der er endnu ikke oprettet nogen statustidslinje for denne episode.",
   "No status timeline created for this incident so far.": "Der er endnu ikke oprettet nogen statustidslinje for denne hændelse.",
@@ -4927,7 +4927,7 @@
   "Source Key": "Kildenøgle",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "Mellemrumsadskilt liste over OIDC-scopes, der skal anmodes om. Skal indeholde 'openid'.",
   "Span Attributes": "Span-attributter",
-  "Span completed successfully": "Span gennemført korrekt",
+  "Explicitly marked successful": "Eksplicit markeret som vellykket",
   "Span ended in error": "Span sluttede med fejl",
   "Span ID": "Span-ID",
   "Span Kind": "Span-type",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "Span-status: Fejl",
   "Span Status: Ok": "Span-status: Ok",
   "Span Status: Unset": "Span-status: Ikke angivet",
+  "Span Status: Unset (no error)": "Span-status: Ikke angivet (ingen fejl)",
   "Spans Preview": "Spans-forhåndsvisning",
   "Specific Times of the Day": "Bestemte tidspunkter på dagen",
   "Specific Times of the Week": "Bestemte tidspunkter i ugen",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Prøv igen fortsætter efter de statussider, der allerede er nået: kun de sider i hændelsens nuværende omfang, som ikke fik hele meddelelsen, får den nu, også sider tilføjet siden. I modsætning til noter og statusændringer, der sendes igen til alle sider, får de sider, der allerede er nået, den ikke to gange.",
   "Send it to every status page again, including the pages already reached": "Send den igen til alle statussider, også de sider, der allerede er nået",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "Meddelelsen om, at hændelsen er oprettet, sendes igen til abonnenterne på alle statussider, som denne hændelse når nu, også de sider, som den mislykkede afsendelse allerede nåede.",
-  "Could not queue the notification again.": "Meddelelsen kunne ikke sættes i kø igen."
+  "Could not queue the notification again.": "Meddelelsen kunne ikke sættes i kø igen.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + rul eller knib for at zoome",
+  "The map is out of view.": "Kortet er uden for visningen."
 }

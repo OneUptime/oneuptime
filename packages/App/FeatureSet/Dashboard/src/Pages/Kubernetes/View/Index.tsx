@@ -83,6 +83,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -153,6 +155,16 @@ const formatBytesPerSec: (value: number | null) => string = (
 
 const TILE_WINDOW_MINUTES: number = 5;
 
+/*
+ * Allocatable CPU - what the CPU chart divides by - is only sampled every
+ * 30 seconds or so. A window a chart zoom narrowed to less than a minute
+ * can fall between two samples and leave the CPU chart with nothing to
+ * divide by while the other charts still draw, so the lookup always
+ * reaches at least this far back from the window's end. No preset is
+ * shorter, so only a zoomed window is ever widened.
+ */
+const ALLOCATABLE_CPU_MIN_LOOKBACK_MINUTES: number = 5;
+
 const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_THIRTY_MINS,
 };
@@ -186,6 +198,9 @@ export interface ClusterChartCardProps {
  * One golden chart on the cluster overview. The header - title, (i) and
  * icon - is built once and shared by the loading and loaded branches, so
  * the explanation is there before the chart is.
+ *
+ * The chart zooms the page (issue #4105): it is handed no zoom handlers of
+ * its own, so it takes the ones the page's TimeRangeZoomScope offers.
  */
 export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   props: ClusterChartCardProps,
@@ -194,7 +209,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
     tileColorClasses[props.iconColor];
 
   const header: ReactElement = (
-    <div className="flex items-center justify-between mb-3">
+    <div className="relative flex items-center justify-between mb-3">
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -209,12 +224,22 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
       >
         <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
       </div>
+      {/*
+       * "Drag to zoom", revealed while the pointer is over the card. It
+       * sits in the gap under the header rather than in it: four of these
+       * cards share a row, and the longer "double-click to reset" wording
+       * would not fit beside the title and the icon.
+       */}
+      <TimeRangeZoomHint
+        revealOnHover={true}
+        className="pointer-events-none absolute right-0 top-full leading-3"
+      />
     </div>
   );
 
   if (!props.chartWindow) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div className="h-48 animate-pulse rounded-md bg-gray-50" />
       </div>
@@ -244,7 +269,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
         data={props.data}
@@ -676,6 +701,16 @@ const KubernetesClusterOverview: FunctionComponent<
   };
 
   /*
+   * Stamps every golden-metrics load. A chart zoom, the double-click that
+   * undoes it and an auto-refresh tick can all be in flight at once, and
+   * their answers can come back in any order. Only the newest load may
+   * paint the charts and tiles; otherwise they could settle on a window the
+   * picker no longer shows.
+   */
+  const goldenLoadSequenceRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
    * Golden cluster metrics — aggregate across all nodes for the
    * selected time range. CPU is cores in use (`k8s.node.cpu.
    * utilization` is a misnamed cores gauge, not a ratio), so we sum it
@@ -690,6 +725,12 @@ const KubernetesClusterOverview: FunctionComponent<
   const loadGoldenMetrics: (
     clusterIdentifier: string,
   ) => Promise<void> = async (clusterIdentifier: string): Promise<void> => {
+    goldenLoadSequenceRef.current += 1;
+    const loadSequence: number = goldenLoadSequenceRef.current;
+    const isSuperseded: () => boolean = (): boolean => {
+      return loadSequence !== goldenLoadSequenceRef.current;
+    };
+
     setIsRefreshing(true);
     setGoldenError("");
     try {
@@ -786,10 +827,17 @@ const KubernetesClusterOverview: FunctionComponent<
        * the k8s_cluster receiver's `k8s.node.allocatable_cpu`. Fetched
        * in parallel with the usage queries below.
        */
+      const allocatableLookbackStart: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -ALLOCATABLE_CPU_MIN_LOOKBACK_MINUTES,
+      );
       const allocatablePromise: Promise<NodeAllocatableCpu> =
         KubernetesCpuUtils.fetchNodeAllocatableCpu({
           clusterIdentifier: clusterIdentifier,
-          startDate: startDate,
+          startDate:
+            allocatableLookbackStart.getTime() < startDate.getTime()
+              ? allocatableLookbackStart
+              : startDate,
           endDate: endDate,
         });
 
@@ -835,6 +883,11 @@ const KubernetesClusterOverview: FunctionComponent<
       ]);
 
       const allocatable: NodeAllocatableCpu = await allocatablePromise;
+
+      // A newer load (a zoom, a reset, a refresh) owns the page now.
+      if (isSuperseded()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -1086,10 +1139,16 @@ const KubernetesClusterOverview: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isSuperseded()) {
+        return;
+      }
       setGoldenError(API.getFriendlyMessage(err));
     } finally {
-      setIsRefreshing(false);
-      setIsGoldenLoading(false);
+      // The newest load clears these when it lands, not an older one.
+      if (!isSuperseded()) {
+        setIsRefreshing(false);
+        setIsGoldenLoading(false);
+      }
     }
   };
 
@@ -1894,8 +1953,29 @@ const KubernetesClusterOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            {/*
+             * The cluster's name keeps its room; the controls give way.
+             * They used to keep their whole width and squeeze the name
+             * instead, and a zoom widens them - a custom range in the
+             * picker and Reset zoom beside it - so zooming truncated the
+             * name ("Production (eu-..."), and narrower windows lost it
+             * altogether.
+             *
+             * - The name column never shrinks below its own content (the
+             *   automatic minimum of a flex item; min-w-0 is what let it),
+             *   capped at the row by w-full, so a name longer than the
+             *   whole row still truncates.
+             * - The controls take the rest of the row up to their full
+             *   width (basis 0, max-w-max, and a grow that outweighs the
+             *   name's), and wrap onto a second line of their own when
+             *   squeezed, still aligned right.
+             * - When that rest is narrower than 24rem - about a custom
+             *   range and Reset zoom side by side, so the picker's label
+             *   never has to wrap - they move under the name as one
+             *   block, kept on the right.
+             */}
+            <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between">
+              <div className="flex items-start gap-4 md:w-full md:flex-1">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-violet-200 shadow-sm">
                   <Icon
                     icon={IconProp.Kubernetes}
@@ -1936,7 +2016,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div className="md:ml-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end">
                 {renderRefreshControl()}
               </div>
             </div>
@@ -2009,8 +2089,16 @@ const KubernetesClusterOverview: FunctionComponent<
     );
   };
 
+  /*
+   * Issue #4105: a drag across any golden chart narrows the whole page to
+   * the window dragged out - the picker shows it, and every chart and tile
+   * reloads for it - and a double-click on any of them (or Reset zoom
+   * beside the picker) puts the range back. The picker sits in the hero,
+   * inside the scope. The inventory counts, health, top consumers and
+   * warnings are "now" snapshots and do not follow the range, zoomed or not.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
 
       {/* Golden metrics — at-a-glance cluster health */}
@@ -2905,7 +2993,7 @@ const KubernetesClusterOverview: FunctionComponent<
           ],
         }}
       />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

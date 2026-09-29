@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "Nenhum recurso de página de status criado para esta página de status.",
   "No Status Page.": "Nenhuma Página de status.",
   "No status pages found.": "Nenhuma página de status encontrada.",
-  "No status set": "Nenhum status definido",
+  "No error status set (OpenTelemetry default)": "Nenhum status de erro definido (padrão do OpenTelemetry)",
   "No status timeline created for this alert so far.": "Nenhuma linha do tempo de status criada para este alerta até agora.",
   "No status timeline created for this episode so far.": "Nenhuma linha do tempo de status criada para este episódio até agora.",
   "No status timeline created for this incident so far.": "Nenhuma linha do tempo de status criada para este incidente até agora.",
@@ -4927,7 +4927,7 @@
   "Source Key": "Chave de origem",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "Lista de escopos OIDC a solicitar, separados por espaço. Deve incluir 'openid'.",
   "Span Attributes": "Atributos do span",
-  "Span completed successfully": "Span concluído com sucesso",
+  "Explicitly marked successful": "Marcado explicitamente como bem-sucedido",
   "Span ended in error": "Span terminou com erro",
   "Span ID": "ID do span",
   "Span Kind": "Tipo de span",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "Status do span: Erro",
   "Span Status: Ok": "Status do span: Ok",
   "Span Status: Unset": "Status do span: Não definido",
+  "Span Status: Unset (no error)": "Status do span: Não definido (sem erro)",
   "Spans Preview": "Pré-visualização de spans",
   "Specific Times of the Day": "Horários específicos do dia",
   "Specific Times of the Week": "Horários específicos da semana",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Tentar novamente continua depois das páginas de status já alcançadas: apenas as páginas do escopo atual deste incidente que não receberam a notificação por completo a recebem agora, incluindo as páginas adicionadas desde então. Ao contrário das notas e mudanças de estado, que são enviadas novamente a todas as páginas, as páginas já alcançadas não a recebem duas vezes.",
   "Send it to every status page again, including the pages already reached": "Enviá-la novamente a todas as páginas de status, incluindo as já alcançadas",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "A notificação de que este incidente foi criado é enviada novamente aos assinantes de cada página de status que este incidente alcança agora, incluindo as páginas que o envio com falha já alcançou.",
-  "Could not queue the notification again.": "Não foi possível colocar a notificação na fila novamente."
+  "Could not queue the notification again.": "Não foi possível colocar a notificação na fila novamente.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + rolagem ou gesto de pinça para dar zoom",
+  "The map is out of view.": "O mapa está fora da área visível."
 }

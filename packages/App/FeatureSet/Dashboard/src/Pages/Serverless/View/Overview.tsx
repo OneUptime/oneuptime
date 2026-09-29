@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -19,6 +20,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -67,6 +69,11 @@ const ServerlessFunctionOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the span metrics reload when it changes.
+  const [metricsRefreshCount, setMetricsRefreshCount] = useState<number>(0);
+  // Set while the span metrics for the current window are still loading.
+  const metricsInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -141,6 +148,15 @@ const ServerlessFunctionOverview: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The metrics follow the function's identity, not the model object:
+   * fetchModel stores a new object on every refresh, and an effect keyed on
+   * it re-ran on every tick, cancelling a load still running for the same
+   * window. A refresh reloads them through metricsRefreshCount instead.
+   */
+  const functionIdentifier: string =
+    (serverlessFunction?.functionIdentifier as string | undefined) || "";
+
   useEffect(() => {
     const fn: ServerlessFunction | null = serverlessFunction;
     if (!fn?.functionIdentifier) {
@@ -152,24 +168,65 @@ const ServerlessFunctionOverview: FunctionComponent<
     const start: Date = range.startValue;
     const end: Date = range.endValue;
     setChartWindow({ start, end });
+
+    /*
+     * Staleness guard: a chart zoom, its reset, the picker and Refresh can
+     * each start a fetch while another is in flight. A slow response for
+     * the window the reader just left must not land on the charts after the
+     * newer one (a double-click right after a drag is exactly that race).
+     */
+    let ignore: boolean = false;
+    metricsInFlightRef.current = true;
     fetchSpanMetrics({
       attributes: { "resource.faas.name": fn.functionIdentifier as string },
       start,
       end,
     })
       .then((m: SpanMetrics) => {
+        if (ignore) {
+          return;
+        }
+        metricsInFlightRef.current = false;
         setMetrics(m);
         setMetricsLoading(false);
       })
       .catch(() => {
+        if (ignore) {
+          return;
+        }
+        metricsInFlightRef.current = false;
         setMetricsLoading(false);
       });
-  }, [serverlessFunction, timeRange]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [functionIdentifier, timeRange, metricsRefreshCount]);
+
+  /*
+   * A refresh reloads the model and the span metrics. The auto-refresh tick
+   * lets a metrics load that is still running land instead of replacing it
+   * with one for the same window: when the span aggregates outlast the
+   * interval, the tiles and charts would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && metricsInFlightRef.current) {
+      return;
+    }
+
+    setMetricsRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "serverless-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -323,41 +380,49 @@ const ServerlessFunctionOverview: FunctionComponent<
     { label: "Agent Version", value: fn.agentVersion },
   ];
 
+  /*
+   * Issue #4105: a drag on either chart sets the page's range to the window
+   * dragged out (the charts and the Invocations / Error rate / p95 tiles
+   * refetch for it); a double-click on either chart, or Reset zoom beside
+   * the picker in the hero, puts the range from before the zoom back.
+   */
   return (
-    <ResourceOverview
-      icon={IconProp.Bolt}
-      title={(fn.name as string) || "Serverless Function"}
-      identifier={(fn.functionIdentifier as string) || ""}
-      identifierLabel="faas.name"
-      status={fn.otelCollectorStatus}
-      lastSeenAt={fn.lastSeenAt}
-      description={fn.description as string}
-      chips={chips}
-      tiles={tiles}
-      charts={charts}
-      controls={
-        <AutoRefreshControl
-          autoRefreshInterval={autoRefreshInterval}
-          onAutoRefreshIntervalChange={setAutoRefreshInterval}
-          onManualRefresh={(): void => {
-            fetchModel(false).catch(() => {});
-          }}
-          isRefreshing={isRefreshing}
-          lastRefreshedAt={lastRefreshedAt}
-          timeRangePicker={
-            <TelemetryTimeRangePicker
-              value={timeRange}
-              onChange={(value: RangeStartAndEndDateTime): void => {
-                setTimeRange(value);
-              }}
-            />
-          }
-        />
-      }
-      quickLinks={quickLinks}
-      detailRows={detailRows}
-      labels={fn.labels}
-    />
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
+      <ResourceOverview
+        icon={IconProp.Bolt}
+        title={(fn.name as string) || "Serverless Function"}
+        identifier={(fn.functionIdentifier as string) || ""}
+        identifierLabel="faas.name"
+        status={fn.otelCollectorStatus}
+        lastSeenAt={fn.lastSeenAt}
+        description={fn.description as string}
+        chips={chips}
+        tiles={tiles}
+        charts={charts}
+        controls={
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={(): void => {
+              refresh({ isAutoRefresh: false });
+            }}
+            isRefreshing={isRefreshing}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+            }
+          />
+        }
+        quickLinks={quickLinks}
+        detailRows={detailRows}
+        labels={fn.labels}
+      />
+    </TimeRangeZoomScope>
   );
 };
 

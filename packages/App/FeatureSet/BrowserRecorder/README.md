@@ -270,18 +270,66 @@ minted at all. `getVisitorId()` returns it.
 
 ### Known limits, stated plainly
 
-- **Image and media URLs are recorded verbatim.** `src`, `srcset` and
-  `poster` are what the player draws the page from, so they are kept in every
-  mode; a signed query string on one is a reference rather than readable
-  text, but it is still a URL the page handed out. Short `data-*` tokens that
-  CSS attribute selectors key on are kept too. Use `blockSelectors` or
-  `.oneuptime-block` for elements whose URLs or data attributes are
-  sensitive. In the two permissive masking modes attributes, like text, are
-  recorded as-is by policy.
+- **Image and media URLs are recorded verbatim, in every mode.** `src`,
+  `srcset` and `poster` are what the player draws the page from: it loads
+  those images from their addresses while the recording is watched, for
+  recordings made in the two permissive masking modes. A signed query
+  string on one is a reference rather than readable text, but it is still a
+  URL the page handed out, and one that is still valid loads. Under
+  `MaskAllText` the addresses are kept but never loaded, and neither are
+  the page's web fonts: the replay stays a wireframe. The player does the
+  same, to be safe, for a session whose masking mode was not reported or is
+  not one it recognises (its text still plays back as recorded). It goes by
+  the mode the session reports, which is its most recent page's, so a
+  session whose policy was relaxed while it recorded plays back relaxed.
+  An image the page held as a `data:` URL is not an address but part of the
+  recording, so it shows in every mode, `MaskAllText` included: block
+  elements that can display a personal image that way (an upload preview,
+  a scanned document). Short `data-*` tokens that CSS attribute selectors
+  key on are kept too. Use `blockSelectors` or `.oneuptime-block` for
+  elements whose URLs or data attributes are sensitive. In the two
+  permissive masking modes attributes, like text, are recorded as-is by
+  policy.
 - Canvas / WebGL, cross-origin iframes, closed shadow roots, cross-origin
   stylesheets, web fonts and `<video>`/`<audio>` are not captured. Each is
   reported to the player as a machine-readable `fidelityNotices` code, so a
   viewer sees "this was not recorded" rather than an unexplained blank.
+  Cross-origin stylesheets and web fonts still show at playback: the
+  recording keeps their addresses (the `<link href>`, the `@font-face` `src`)
+  and the player loads them from there (web fonts not under `MaskAllText`),
+  so they only go missing when the viewer's browser cannot fetch them.
+- **Watching a replay makes the viewer's browser request those addresses**:
+  the images, the stylesheets rrweb could not inline and the web fonts, from
+  the hosts the recorded page used, which see the viewer's IP address.
+  `<img>` and `<link>` requests carry no `Referer`. The replay document's
+  URL is the player's, session id included, so the stage gives it a
+  `no-referrer` policy, and the player strips from every chunk, before
+  rrweb builds anything from it, the recorded page's own referrer controls
+  that would override that policy (`referrerpolicy` attributes, a
+  `<meta name="referrer">`). Requests made by CSS the recording inlined
+  (background images, `@font-face`) carry the Dashboard's origin to other
+  hosts in Chromium, and the player's full URL when they go back to the
+  Dashboard's own host; no request to another host carries the replay URL
+  or the session id. Fonts are CORS requests from the Dashboard's origin.
+  An asset behind the end user's sign-in, refused to other sites
+  (`Cross-Origin-Resource-Policy`, hotlink rules), expired, gone, refused
+  by the viewer's own ad or tracker blocker, or on a network the viewer
+  cannot reach does not render; the player names the first 200 images and
+  stylesheets that failed. A `blob:` image never loads outside the tab
+  that made it, and is not named.
+- **A tracking pixel would fire again on every watch.** The player removes
+  the `src` and `srcset` of an `<img>` whose `width` and `height`
+  attributes are both 1 or less before playback, so such a pixel is never
+  requested. Any other image a page uses as a tracker is requested from the
+  viewer's browser, with the viewer's cookies for that tracker, each time
+  the replay is watched: block it at capture (`blockSelectors`,
+  `.oneuptime-block`).
+- **Relative `poster` addresses, and the legacy `background` attribute,**
+  are the addresses rrweb does not make absolute. Left alone they would
+  resolve against the replay document, which is the Dashboard, so before
+  playback the player resolves them against the recorded page's `Meta`
+  href (scrubbed to origin and path) or a recorded `<base href>`, and drops
+  them when it has no page address for them.
 - **A terminal flush is ONE keepalive request under a 56 KB cap**, however
   many chunks it carries. The browser counts the keepalive quota per ORIGIN
   across every in-flight request, so "one request per piece" is one request

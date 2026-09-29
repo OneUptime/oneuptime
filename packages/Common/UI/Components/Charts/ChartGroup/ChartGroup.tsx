@@ -9,6 +9,13 @@ import AreaChartElement, {
   ComponentProps as AreaChartProps,
 } from "../Area/AreaChart";
 import ExemplarPoint from "../Types/ExemplarPoint";
+import XAxisType from "../Types/XAxis/XAxisType";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "../TimeRangeZoom/TimeRangeZoomContext";
 import Icon, { SizeProp } from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Modal, { ModalWidth } from "../../Modal/Modal";
@@ -90,6 +97,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const syncId: string = props.syncId || fallbackSyncId;
   const [metricInfoModalChart, setMetricInfoModalChart] =
     useState<ChartMetricInfo | null>(null);
+  // The page's zoom, which every chart below takes unless it has its own.
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
 
   type GetChartContentFunction = (chart: Chart, index: number) => ReactElement;
 
@@ -147,23 +157,39 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const getDragToZoomHint: GetDragToZoomHintFunction = (
     chart: Chart,
   ): ReactElement => {
-    const supportsTimeRangeSelect: boolean =
-      (chart.type === ChartType.LINE || chart.type === ChartType.AREA) &&
-      Boolean(
-        (chart.props as LineChartProps | AreaChartProps).onTimeRangeSelect,
-      );
+    if (
+      chart.type !== ChartType.LINE &&
+      chart.type !== ChartType.AREA &&
+      chart.type !== ChartType.BAR
+    ) {
+      return <></>;
+    }
 
-    if (!supportsTimeRangeSelect) {
+    /*
+     * Resolved exactly the way the chart itself resolves them, so the hint
+     * never promises a gesture the chart does not have: the chart's own
+     * handlers, else the page's zoom.
+     */
+    const chartProps: LineChartProps | AreaChartProps | BarChartProps =
+      chart.props;
+    const xAxisType: XAxisType | undefined = chartProps.xAxis?.options?.type;
+    const zoom: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+      onTimeRangeSelect: chartProps.onTimeRangeSelect,
+      onTimeRangeReset: chartProps.onTimeRangeReset,
+      isTimeAxis: xAxisType === XAxisType.Time || xAxisType === XAxisType.Date,
+      disableTimeRangeZoom: chartProps.disableTimeRangeZoom,
+      pageZoom: pageZoom,
+    });
+
+    if (!zoom.onTimeRangeSelect) {
       return <></>;
     }
 
     /*
      * The way back out is only worth naming while there is something to
-     * reset — the host supplies onTimeRangeReset exactly then.
+     * reset — a reset handler is supplied exactly then.
      */
-    const canReset: boolean = Boolean(
-      (chart.props as LineChartProps | AreaChartProps).onTimeRangeReset,
-    );
+    const canReset: boolean = Boolean(zoom.onTimeRangeReset);
 
     return (
       <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400">
@@ -395,7 +421,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
               key={index}
               className={`flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
             >
-              {/* Header strip — title, meta icons, hover-revealed zoom hint */}
+              {/* Header strip — title, meta icons, the always-visible zoom hint */}
               <div className="border-b border-gray-100 px-4 py-2.5">
                 <div className="flex items-center">
                   <h2

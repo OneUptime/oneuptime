@@ -11,7 +11,12 @@ import {
   InventoryRowProjection,
   toOtelMacAddress,
 } from "../../../../Server/Utils/Telemetry/InventoryEntityRegistry";
-import TelemetryEntity, {
+/*
+ * The OTel extraction util's default export is also named InventoryItem,
+ * which would collide with the database model above, so it is imported
+ * here under a name that says what it does.
+ */
+import OtelEntityExtractor, {
   ExtractedEntity,
   MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH,
 } from "../../../../Server/Utils/Telemetry/TelemetryEntity";
@@ -199,12 +204,13 @@ describe("describeNetworkDevice (issue #4107)", () => {
   test("shares its keys and formats with a host's Attributes card", () => {
     const bag: Dictionary<string> = describeNetworkDevice(polledSwitch());
 
-    const host: ExtractedEntity | undefined = TelemetryEntity.extractEntities({
-      projectId: PROJECT_ID.toString(),
-      attributes: { "host.name": "core-sw-01", ...bag },
-    }).find((entity: ExtractedEntity) => {
-      return entity.entityType === EntityType.Host;
-    });
+    const host: ExtractedEntity | undefined =
+      OtelEntityExtractor.extractEntities({
+        projectId: PROJECT_ID.toString(),
+        attributes: { "host.name": "core-sw-01", ...bag },
+      }).find((entity: ExtractedEntity) => {
+        return entity.entityType === EntityType.Host;
+      });
 
     const shared: Dictionary<string> = {};
     for (const key of Object.keys(bag)) {

@@ -349,9 +349,17 @@ export function buildExceptionTrendRows(
   const rows: Array<ExceptionTrendRow> = [];
   const rowsByTime: Map<number, ExceptionTrendRow> = new Map();
 
+  /*
+   * The window's end is not a bucket of its own. A preset ends at "now",
+   * partway through its newest bucket, which starts before the end and is
+   * kept. A zoomed window ends exactly on a bucket boundary, and a bucket
+   * starting there lies wholly past the window: it would draw an empty bar
+   * the reader never zoomed into, and a click on it would open the stretch
+   * after the zoom.
+   */
   for (
     let timeMs: number = firstBucketMs;
-    timeMs <= endMs && rows.length < EXCEPTION_TREND_MAX_ROWS;
+    timeMs < endMs && rows.length < EXCEPTION_TREND_MAX_ROWS;
     timeMs += bucketMs
   ) {
     const row: ExceptionTrendRow = { timeMs, unhandled: 0, handled: 0 };

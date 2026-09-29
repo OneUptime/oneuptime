@@ -26,6 +26,17 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import {
+  ChartTimeRangeZoomContextValue,
+  TimeRangeZoomProvider,
+  isTimeRangeZoomFor,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import { EmbeddedMetricCardRefreshContext } from "./EmbeddedMetricCardRefresh";
 
 /*
  * The one card shell for every embedded (read-only) metric chart in the
@@ -44,6 +55,16 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
  *   resolved window (e.g. it feeds sibling non-MetricView charts or an
  *   auto-refresh loop slides it). Refresh then asks the page to
  *   re-resolve via `onTimeRangeChange` instead of resolving locally.
+ *
+ * Drag-to-zoom (issue #4105): a drag on any chart in the card narrows the
+ * card's range, and a double-click on any of them (or "Reset zoom" beside
+ * the picker) puts the range it had before back.
+ * - A card whose range the page controls, inside a page that zooms
+ *   (TimeRangeZoomScope) over that same range, zooms the PAGE: every card
+ *   and chart sharing the range follows, and a double-click on any of
+ *   them resets it.
+ * - Otherwise the card keeps the zoom itself, over its own range, and
+ *   hands it to everything it renders — the extra charts included.
  */
 export interface ComponentProps {
   title?: string | ReactElement | undefined;
@@ -70,6 +91,15 @@ export interface ComponentProps {
     | ((dateRange: InBetween<Date>) => ReactElement)
     | undefined;
   rightElement?: ReactElement | undefined;
+  /*
+   * Called when the reader presses the card's Refresh, after the card has
+   * re-resolved its window. A page that loads data for the card itself
+   * (its children, tiles or tables beside it) reloads here: a Custom
+   * window, and every zoom is one, re-resolves to the same instants, so
+   * nothing keyed on the window changes. Charts the card renders reload
+   * through useEmbeddedMetricCardRefreshNonce instead.
+   */
+  onRefresh?: (() => void) | undefined;
   /*
    * Frameless mode: no Card chrome — just the header controls row above
    * the charts (used inside pages that already provide a card).
@@ -166,21 +196,35 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Chart drag-to-zoom: route the selected window through the same path
-   * as the header picker, as a pinned Custom range — the picker then
-   * shows "Custom" and the window narrows (or, in controlled modes, the
-   * page is asked to narrow it).
+   * Chart drag-to-zoom. The zoomed window goes through the same path as
+   * the header picker, as a pinned Custom range — the picker then shows
+   * "Custom" and the window narrows (or, in controlled modes, the page is
+   * asked to narrow it). A page that zooms owns the gesture for a card
+   * whose range it controls; see the component comment.
    */
-  const handleChartTimeRangeSelect: (startTime: Date, endTime: Date) => void =
-    useCallback(
-      (startTime: Date, endTime: Date): void => {
-        handleTimeRangeChange({
-          range: TimeRange.CUSTOM,
-          startAndEndDate: new InBetween<Date>(startTime, endTime),
-        });
-      },
-      [handleTimeRangeChange],
-    );
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const ownZoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: effectiveTimeRange,
+    onTimeRangeChange: handleTimeRangeChange,
+  });
+  /*
+   * Only a zoom over the range this card is showing: a card in a drawer
+   * or tab with a range of its own keeps its own zoom even when the page
+   * around it zooms.
+   */
+  const followsPageZoom: boolean =
+    isControlledTimeRange && isTimeRangeZoomFor(pageZoom, effectiveTimeRange);
+  const onChartTimeRangeSelect: (startTime: Date, endTime: Date) => void =
+    followsPageZoom && pageZoom
+      ? pageZoom.onTimeRangeSelect
+      : ownZoom.zoomToTimeRange;
+  const onChartTimeRangeReset: (() => void) | undefined =
+    followsPageZoom && pageZoom
+      ? pageZoom.onTimeRangeReset
+      : ownZoom.isZoomed
+        ? ownZoom.resetZoom
+        : undefined;
 
   /*
    * Re-resolves a relative range ("Past 1 hour") to fresh dates, and
@@ -196,12 +240,18 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     });
     if (props.startAndEndDate) {
       props.onTimeRangeChange?.(effectiveTimeRange);
-      return;
+    } else {
+      setInternalDateRange(
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(effectiveTimeRange),
+      );
     }
-    setInternalDateRange(
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(effectiveTimeRange),
-    );
-  }, [props.startAndEndDate, props.onTimeRangeChange, effectiveTimeRange]);
+    props.onRefresh?.();
+  }, [
+    props.startAndEndDate,
+    props.onTimeRangeChange,
+    props.onRefresh,
+    effectiveTimeRange,
+  ]);
 
   /*
    * MetricView writes query-config changes back through onChange — e.g.
@@ -252,12 +302,13 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   }, [dateRange, effectiveQueryConfigs, props.formulaConfigs]);
 
   const headerControls: ReactElement = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {props.rightElement}
       <RangeStartAndEndDateView
         dashboardStartAndEndDate={effectiveTimeRange}
         onChange={handleTimeRangeChange}
       />
+      <ResetTimeRangeZoomButton forTimeRange={effectiveTimeRange} />
       <Tooltip text="Refresh">
         <button
           type="button"
@@ -287,34 +338,53 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   );
 
   const body: ReactElement = (
-    <div className="space-y-6">
-      {props.children}
-      {props.queryConfigs ? (
-        <MetricView
-          data={metricViewData}
-          hideQueryElements={true}
-          hideStartAndEndDate={true}
-          hideCardInCharts={true}
-          onChange={handleMetricViewChange}
-          onTimeRangeSelect={handleChartTimeRangeSelect}
-          refreshNonce={refreshNonce}
-          timeReferenceLines={
-            eventReferenceLines.length > 0 ? eventReferenceLines : undefined
-          }
-        />
-      ) : null}
-      {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}
-    </div>
+    <EmbeddedMetricCardRefreshContext.Provider value={refreshNonce}>
+      <div className="space-y-6">
+        {props.children}
+        {props.queryConfigs ? (
+          <MetricView
+            data={metricViewData}
+            hideQueryElements={true}
+            hideStartAndEndDate={true}
+            hideCardInCharts={true}
+            onChange={handleMetricViewChange}
+            onTimeRangeSelect={onChartTimeRangeSelect}
+            onTimeRangeReset={onChartTimeRangeReset}
+            refreshNonce={refreshNonce}
+            timeReferenceLines={
+              eventReferenceLines.length > 0 ? eventReferenceLines : undefined
+            }
+          />
+        ) : null}
+        {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}
+      </div>
+    </EmbeddedMetricCardRefreshContext.Provider>
   );
 
-  if (props.hideCard) {
+  /*
+   * The card's own zoom reaches everything it renders: the MetricView,
+   * the children and extra charts (which zoom through the context), and
+   * the header's "Reset zoom". Under a page's zoom there is nothing to
+   * add; the page's context is already here.
+   */
+  type WithZoomFunction = (content: ReactElement) => ReactElement;
+  const withZoom: WithZoomFunction = (content: ReactElement): ReactElement => {
+    if (followsPageZoom) {
+      return content;
+    }
     return (
+      <TimeRangeZoomProvider zoom={ownZoom}>{content}</TimeRangeZoomProvider>
+    );
+  };
+
+  if (props.hideCard) {
+    return withZoom(
       <div>
         <div className="flex items-center justify-end mb-4">
           {headerControls}
         </div>
         {body}
-      </div>
+      </div>,
     );
   }
 
@@ -328,7 +398,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
       <span className="block truncate">{props.title}</span>
     ) : undefined;
 
-  return (
+  return withZoom(
     <Card
       {...(truncatedTitle !== undefined ? { title: truncatedTitle } : {})}
       {...(props.description !== undefined
@@ -337,7 +407,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
       rightElement={headerControls}
     >
       {body}
-    </Card>
+    </Card>,
   );
 };
 

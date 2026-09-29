@@ -266,12 +266,21 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                   <div className="min-w-0" data-testid="occurrence-span">
                     <SpanStatusElement
                       traceId={exceptionInstance.traceId?.toString()}
-                      spanStatusCode={exceptionInstance.spanStatusCode!}
+                      /*
+                       * No span, no status: an exception taken from a log
+                       * carries a placeholder Unset.
+                       */
+                      spanStatusCode={
+                        exceptionInstance.spanId
+                          ? exceptionInstance.spanStatusCode
+                          : undefined
+                      }
                       title={
                         exceptionInstance.spanName ||
                         exceptionInstance.spanId?.toString()
                       }
                       titleClassName="font-mono text-[13px] text-gray-900"
+                      plainLabel={true}
                     />
                     {exceptionInstance.spanName && exceptionInstance.spanId && (
                       <div className="ml-5 mt-0.5 font-mono text-xs text-gray-400">

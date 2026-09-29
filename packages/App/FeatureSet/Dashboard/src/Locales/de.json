@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "Für diese Statusseite wurden keine Statusseiten-Ressourcen erstellt.",
   "No Status Page.": "Keine Statusseite.",
   "No status pages found.": "Keine Status-Seiten gefunden.",
-  "No status set": "Kein Status festgelegt",
+  "No error status set (OpenTelemetry default)": "Kein Fehlerstatus gesetzt (OpenTelemetry-Standard)",
   "No status timeline created for this alert so far.": "Bisher wurde für diese Warnung keine Statuszeitleiste erstellt.",
   "No status timeline created for this episode so far.": "Bisher wurde für diese Episode keine Statuszeitleiste erstellt.",
   "No status timeline created for this incident so far.": "Bisher wurde für diesen Vorfall keine Statuszeitleiste erstellt.",
@@ -4927,7 +4927,7 @@
   "Source Key": "Quellschlüssel",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "Durch Leerzeichen getrennte Liste der anzufordernden OIDC-Scopes. Muss 'openid' enthalten.",
   "Span Attributes": "Span-Attribute",
-  "Span completed successfully": "Span erfolgreich abgeschlossen",
+  "Explicitly marked successful": "Ausdrücklich als erfolgreich markiert",
   "Span ended in error": "Span endete mit einem Fehler",
   "Span ID": "Span-ID",
   "Span Kind": "Span-Art",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "Span-Status: Fehler",
   "Span Status: Ok": "Span-Status: Ok",
   "Span Status: Unset": "Span-Status: Nicht gesetzt",
+  "Span Status: Unset (no error)": "Span-Status: Nicht gesetzt (kein Fehler)",
   "Spans Preview": "Span-Vorschau",
   "Specific Times of the Day": "Bestimmte Tageszeiten",
   "Specific Times of the Week": "Bestimmte Zeiten der Woche",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Wiederholen setzt nach den bereits erreichten Statusseiten fort: Nur die Seiten des aktuellen Bereichs dieses Vorfalls, die die Benachrichtigung nicht vollständig erhalten haben, erhalten sie jetzt, einschließlich seither hinzugefügter Seiten. Anders als Notizen und Statusänderungen, die erneut an jede Seite gesendet werden, erhalten die bereits erreichten Seiten sie nicht zweimal.",
   "Send it to every status page again, including the pages already reached": "Erneut an jede Statusseite senden, auch an die bereits erreichten Seiten",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "Die Benachrichtigung, dass dieser Vorfall erstellt wurde, wird erneut an die Abonnenten jeder Statusseite gesendet, die dieser Vorfall jetzt erreicht, auch an die Seiten, die der fehlgeschlagene Versand bereits erreicht hat.",
-  "Could not queue the notification again.": "Die Benachrichtigung konnte nicht erneut eingereiht werden."
+  "Could not queue the notification again.": "Die Benachrichtigung konnte nicht erneut eingereiht werden.",
+  "Ctrl + scroll or pinch to zoom": "Strg + Scrollen oder Zwei-Finger-Geste zum Zoomen",
+  "The map is out of view.": "Die Karte ist außerhalb des sichtbaren Bereichs."
 }

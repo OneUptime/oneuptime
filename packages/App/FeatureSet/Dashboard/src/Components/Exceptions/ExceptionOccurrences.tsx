@@ -101,7 +101,18 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {view === ExceptionOccurrencesView.Spans ? (
+      {/*
+       * The span list stays mounted while the details are shown, only
+       * hidden. Its window is lifted here, but a zoom's way back (Reset zoom
+       * and the double-click, issue #4105) lives inside the viewer - as do
+       * its search, filters and page - so unmounting it on a view switch
+       * came back on the zoomed window with no way back to the range before
+       * the zoom.
+       */}
+      <div
+        data-testid="exception-occurrences-spans"
+        hidden={view !== ExceptionOccurrencesView.Spans}
+      >
         <TracesViewer
           exceptionScope={exceptionScope}
           exceptionScopeLabel={
@@ -122,11 +133,14 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
           limit={25}
           emptyMessage="No spans raised this exception in the selected time range. Exceptions captured from logs have no span; try a longer time range or the Occurrence details view."
         />
-      ) : (
+      </div>
+      {view === ExceptionOccurrencesView.Details ? (
         <OccouranceTable
           exceptionFingerprint={props.fingerprint}
           primaryEntityId={props.exception.primaryEntityId}
         />
+      ) : (
+        <></>
       )}
     </div>
   );

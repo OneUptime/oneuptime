@@ -8,7 +8,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -21,6 +20,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import { formatBytes } from "../Utils/ProxmoxResourceUtils";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import RangeStartAndEndDateTime, {
@@ -30,6 +30,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -292,8 +293,18 @@ const ProxmoxClusterInsights: FunctionComponent<
 
   const clusterName: string = cluster.name;
 
+  /*
+   * Issue #4105: the five cards share one range, so they share one zoom.
+   * A drag on any chart — the metric charts and the disk / network rate
+   * charts alike — retimes every card, and a double-click on any of them
+   * (or Reset zoom in any card's header) puts the range from before the
+   * zoom back. The rate charts take the zoom from this scope on their own.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory usage across all nodes in the cluster."
@@ -321,12 +332,16 @@ const ProxmoxClusterInsights: FunctionComponent<
         startAndEndDate={startAndEndDate}
         renderExtraCharts={(dateRange: InBetween<Date>) => {
           return (
-            <div>
+            <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                 Disk Throughput
                 <InfoTooltip
                   label="Disk Throughput"
                   text={PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput}
+                />
+                <TimeRangeZoomHint
+                  revealOnHover={true}
+                  className="ml-auto font-normal"
                 />
               </div>
               <ProxmoxRateChart
@@ -360,18 +375,27 @@ const ProxmoxClusterInsights: FunctionComponent<
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
       >
-        <ProxmoxRateChart
-          clusterName={clusterName}
-          series={[
-            { metricName: "pve_network_receive_bytes", label: "Receive" },
-            { metricName: "pve_network_transmit_bytes", label: "Transmit" },
-          ]}
-          startDate={startAndEndDate.startValue}
-          endDate={startAndEndDate.endValue}
-          syncId={`proxmox-insights-${modelId.toString()}`}
-        />
+        {/*
+         * The card holds only this rate chart, so nothing else in it names
+         * the drag: the hint does, revealed while the pointer is over it.
+         */}
+        <div className="group/zoomhint">
+          <div className="mb-2 flex justify-end text-sm">
+            <TimeRangeZoomHint revealOnHover={true} />
+          </div>
+          <ProxmoxRateChart
+            clusterName={clusterName}
+            series={[
+              { metricName: "pve_network_receive_bytes", label: "Receive" },
+              { metricName: "pve_network_transmit_bytes", label: "Transmit" },
+            ]}
+            startDate={startAndEndDate.startValue}
+            endDate={startAndEndDate.endValue}
+            syncId={`proxmox-insights-${modelId.toString()}`}
+          />
+        </div>
       </EmbeddedMetricCard>
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

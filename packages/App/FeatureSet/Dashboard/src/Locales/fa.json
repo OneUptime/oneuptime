@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "هیچ منبع صفحه وضعیتی برای این صفحه وضعیت ساخته نشده است.",
   "No Status Page.": "هیچ صفحه وضعیتی نیست.",
   "No status pages found.": "هیچ صفحه وضعیتی یافت نشد.",
-  "No status set": "وضعیتی تنظیم نشده است",
+  "No error status set (OpenTelemetry default)": "هیچ وضعیت خطایی تنظیم نشده است (پیش‌فرض OpenTelemetry)",
   "No status timeline created for this alert so far.": "تا کنون هیچ خط زمانی وضعیتی برای این هشدار ساخته نشده است.",
   "No status timeline created for this episode so far.": "تا کنون هیچ خط زمانی وضعیتی برای این اپیزود ساخته نشده است.",
   "No status timeline created for this incident so far.": "تا کنون هیچ خط زمانی وضعیتی برای این حادثه ساخته نشده است.",
@@ -4927,7 +4927,7 @@
   "Source Key": "کلید مبدأ",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "فهرست جداشده با فاصله از دامنه‌های دسترسی OIDC که باید درخواست شوند. باید شامل 'openid' باشد.",
   "Span Attributes": "ویژگی‌های اسپن",
-  "Span completed successfully": "اسپن با موفقیت کامل شد",
+  "Explicitly marked successful": "به‌طور صریح موفق علامت‌گذاری شده است",
   "Span ended in error": "اسپن با خطا پایان یافت",
   "Span ID": "شناسه اسپن",
   "Span Kind": "گونه اسپن",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "وضعیت اسپن: خطا",
   "Span Status: Ok": "وضعیت اسپن: موفق",
   "Span Status: Unset": "وضعیت اسپن: تنظیم‌نشده",
+  "Span Status: Unset (no error)": "وضعیت اسپن: تنظیم‌نشده (بدون خطا)",
   "Spans Preview": "پیش‌نمایش اسپن‌ها",
   "Specific Times of the Day": "زمان‌های مشخصی از روز",
   "Specific Times of the Week": "زمان‌های مشخصی از هفته",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "تلاش دوباره پس از صفحه‌های وضعیتی که قبلاً به آن‌ها رسیده ادامه می‌دهد: فقط صفحه‌های محدوده فعلی این حادثه که اعلان را کامل دریافت نکرده‌اند، از جمله صفحه‌هایی که از آن زمان اضافه شده‌اند، اکنون آن را دریافت می‌کنند. برخلاف یادداشت‌ها و تغییرات وضعیت که دوباره به همه صفحه‌ها ارسال می‌شوند، صفحه‌هایی که قبلاً به آن‌ها رسیده دو بار آن را دریافت نمی‌کنند.",
   "Send it to every status page again, including the pages already reached": "دوباره به همه صفحه‌های وضعیت ارسال شود، از جمله صفحه‌هایی که قبلاً به آن‌ها رسیده",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "اعلان ایجاد این حادثه دوباره برای مشترکان هر صفحه وضعیتی که این حادثه اکنون به آن می‌رسد ارسال می‌شود، از جمله صفحه‌هایی که ارسال ناموفق قبلاً به آن‌ها رسیده بود.",
-  "Could not queue the notification again.": "امکان قرار دادن دوباره اعلان در صف وجود نداشت."
+  "Could not queue the notification again.": "امکان قرار دادن دوباره اعلان در صف وجود نداشت.",
+  "Ctrl + scroll or pinch to zoom": "برای بزرگ‌نمایی، Ctrl + اسکرول یا حرکت دو انگشتی",
+  "The map is out of view.": "نقشه خارج از دید است."
 }

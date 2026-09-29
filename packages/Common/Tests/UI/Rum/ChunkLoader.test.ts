@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
+  MAX_SESSION_REPLAY_READ_BYTES,
   SessionReplayChunkManifestEntry,
 } from "../../../Types/Rum/SessionReplay";
 import { MAX_PREFETCH_PAGES_AHEAD } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
@@ -184,6 +185,206 @@ function makeLoader(
 }
 
 describe("ChunkLoader frame decoding", () => {
+  /*
+   * github.com/OneUptime/oneuptime/issues/4119: the replay now loads the
+   * recorded page's images, so what the page itself says about referrers,
+   * relative addresses and tracking pixels has to be taken out before any
+   * Replayer builds from a chunk - decoding is the one place every chunk
+   * passes through, once.
+   */
+  it("hands over every chunk prepared for playback", () => {
+    const page: Array<unknown> = [
+      {
+        type: 4,
+        timestamp: 1,
+        data: {
+          href: "https://shop.example.com/checkout",
+          width: 1200,
+          height: 760,
+        },
+      },
+      {
+        type: 2,
+        timestamp: 2,
+        data: {
+          node: {
+            type: 0,
+            id: 1,
+            childNodes: [
+              {
+                type: 2,
+                id: 2,
+                tagName: "html",
+                attributes: {},
+                childNodes: [
+                  {
+                    type: 2,
+                    id: 3,
+                    tagName: "head",
+                    attributes: {},
+                    childNodes: [
+                      {
+                        type: 2,
+                        id: 4,
+                        tagName: "meta",
+                        attributes: { name: "referrer", content: "unsafe-url" },
+                        childNodes: [],
+                      },
+                    ],
+                  },
+                  {
+                    type: 2,
+                    id: 5,
+                    tagName: "body",
+                    attributes: {},
+                    childNodes: [
+                      {
+                        type: 2,
+                        id: 6,
+                        tagName: "img",
+                        attributes: {
+                          src: "https://cdn.shop.example.com/logo.png",
+                          referrerpolicy: "no-referrer-when-downgrade",
+                        },
+                        childNodes: [],
+                      },
+                      {
+                        type: 2,
+                        id: 7,
+                        tagName: "video",
+                        attributes: { poster: "/media/poster.jpg" },
+                        childNodes: [],
+                      },
+                      {
+                        type: 2,
+                        id: 8,
+                        tagName: "img",
+                        attributes: {
+                          width: "1",
+                          height: "1",
+                          src: "https://tracker.example/sale.png?order=1001",
+                        },
+                        childNodes: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          initialOffset: { top: 0, left: 0 },
+        },
+      },
+    ];
+
+    const frames: Array<{
+      chunkIndex: number;
+      events: Array<SessionReplayRecordedEvent>;
+    }> = ChunkLoader.decodeFrames(
+      encodeFrames([{ chunkIndex: 0, body: JSON.stringify(page) }]),
+    );
+    const decoded: string = JSON.stringify(frames[0]!.events);
+
+    expect(decoded).not.toContain("referrerpolicy");
+    expect(decoded).not.toContain('"name":"referrer"');
+    expect(decoded).toContain('"data-oneuptime-recorded-name":"referrer"');
+    expect(decoded).toContain(
+      '"poster":"https://shop.example.com/media/poster.jpg"',
+    );
+    expect(decoded).not.toContain("tracker.example/sale.png");
+    expect(decoded).toContain('"src":"https://cdn.shop.example.com/logo.png"');
+  });
+
+  it("resolves a relative poster in a chunk with no Meta of its own against the tab's page, across responses", async () => {
+    /*
+     * A Meta comes only with a full snapshot (a checkout a minute) while a
+     * chunk is cut every 15 seconds, so most chunks have no page address of
+     * their own. The loader keeps the last one it decoded for the tab.
+     */
+    const withMeta: string = JSON.stringify([
+      {
+        type: 4,
+        timestamp: 1,
+        data: {
+          href: "https://shop.example.com/checkout",
+          width: 1200,
+          height: 760,
+        },
+      },
+      {
+        type: 2,
+        timestamp: 2,
+        data: {
+          node: { type: 0, id: 1, childNodes: [] },
+          initialOffset: { top: 0, left: 0 },
+        },
+      },
+    ]);
+    const withoutMeta: string = JSON.stringify([
+      {
+        type: 3,
+        timestamp: 3,
+        data: {
+          source: 0,
+          texts: [],
+          attributes: [],
+          removes: [],
+          adds: [
+            {
+              parentId: 1,
+              nextId: null,
+              node: {
+                type: 2,
+                id: 9,
+                tagName: "video",
+                attributes: { poster: "/media/poster.jpg" },
+                childNodes: [],
+              },
+            },
+          ],
+        },
+      },
+    ]);
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (chunkIndex: number): string => {
+        return chunkIndex === 0 ? withMeta : withoutMeta;
+      },
+    });
+    /* A first chunk as big as a read, so each chunk is its own response. */
+    const loader: ChunkLoader = makeLoader(
+      [
+        makeEntry(0, {
+          hasFullSnapshot: true,
+          payloadBytes: MAX_SESSION_REPLAY_READ_BYTES,
+        }),
+        makeEntry(1),
+      ],
+      fetcher,
+    );
+
+    await loader.loadPage(0);
+    await loader.loadPage(1);
+
+    expect(fetcher.requests).toEqual([[0], [1]]);
+    expect(JSON.stringify(loader.getDecodedChunk(1))).toContain(
+      '"poster":"https://shop.example.com/media/poster.jpg"',
+    );
+
+    /* A loader that never saw a Meta drops it rather than guess. */
+    const alone: ChunkLoader = makeLoader(
+      [makeEntry(1)],
+      makeFetcher({
+        payloadFor: (): string => {
+          return withoutMeta;
+        },
+      }),
+    );
+
+    await alone.loadPage(1);
+
+    expect(JSON.stringify(alone.getDecodedChunk(1))).not.toContain("poster");
+  });
+
   it("decodes concatenated frames in wire order", () => {
     const buffer: ArrayBuffer = encodeFrames([
       { chunkIndex: 3, body: bodyFor(3) },

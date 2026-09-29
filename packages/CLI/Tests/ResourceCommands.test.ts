@@ -798,6 +798,28 @@ describe("ResourceCommands", () => {
           "https://global.com",
         );
       });
+
+      it("should use a single --url flag over env credentials", async () => {
+        process.env["ONEUPTIME_API_KEY"] = "env-key";
+        process.env["ONEUPTIME_URL"] = "https://env.com";
+        mockExecuteApiRequest.mockResolvedValue({ data: [] });
+
+        const program: Command = createProgramWithResources();
+        await program.parseAsync([
+          "node",
+          "test",
+          "--url",
+          "https://cli.com",
+          "incident",
+          "list",
+        ]);
+
+        expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
+        expect(mockExecuteApiRequest.mock.calls[0][0].apiKey).toBe("env-key");
+        expect(mockExecuteApiRequest.mock.calls[0][0].apiUrl).toBe(
+          "https://cli.com",
+        );
+      });
     });
   });
 });

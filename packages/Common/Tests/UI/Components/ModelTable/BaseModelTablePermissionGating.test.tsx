@@ -137,6 +137,20 @@ const UPDATE_DENIED_MESSAGE: string =
 const DELETE_DENIED_MESSAGE: string =
   "You do not have permission to delete this Monitor.";
 
+/*
+ * A locked action's full reason goes on to name the permissions that would
+ * unlock it ("... You need one of these permissions: ..."), so an accessible
+ * description is checked for containing the sentence rather than equalling
+ * it. jest-dom's toHaveAccessibleDescription does that with a RegExp. Its
+ * typings do not accept the asymmetric matcher from the `expect` imported
+ * here - they are written against @types/jest's global expect, whose
+ * stringContaining returns `any`, while the @jest/globals one returns an
+ * AsymmetricMatcher. The sentence is escaped so its full stop is literal.
+ */
+const containing: (text: string) => RegExp = (text: string): RegExp => {
+  return new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+};
+
 type TableOptions = {
   isCreateable?: boolean | undefined;
   isEditable?: boolean | undefined;
@@ -458,7 +472,7 @@ describe("BaseModelTable permission gating", () => {
       expect(findButton("Delete")).not.toBeNull();
       expect(findButton("Delete")).toHaveAttribute("aria-disabled", "true");
       expect(findButton("Delete")).toHaveAccessibleDescription(
-        expect.stringContaining(DELETE_DENIED_MESSAGE),
+        containing(DELETE_DENIED_MESSAGE),
       );
     });
 

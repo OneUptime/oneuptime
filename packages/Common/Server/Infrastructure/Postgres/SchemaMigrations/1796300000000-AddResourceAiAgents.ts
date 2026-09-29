@@ -28,8 +28,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * No data is rewritten: every existing resource starts with AI switched
  * off, exactly like a new one. down() reverses the schema.
  */
-export class AddResourceAiAgents1796200000000 implements MigrationInterface {
-  public name: string = "AddResourceAiAgents1796200000000";
+export class AddResourceAiAgents1796300000000 implements MigrationInterface {
+  public name: string = "AddResourceAiAgents1796300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

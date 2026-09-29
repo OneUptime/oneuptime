@@ -22,18 +22,39 @@ import ScheduledMaintenanceState from "../../../../../Models/DatabaseModels/Sche
 import ScheduledMaintenanceInternalNoteService from "../../../../Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceStateService from "../../../../Services/ScheduledMaintenanceStateService";
-import MonitorService from "../../../../Services/MonitorService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
-import MonitorStatusService from "../../../../Services/MonitorStatusService";
-import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
-import LabelService from "../../../../Services/LabelService";
 import Label from "../../../../../Models/DatabaseModels/Label";
-import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../../../../Types/Date";
 import URL from "../../../../../Types/API/URL";
+import ColumnLength from "../../../../../Types/Database/ColumnLength";
+import { truncateToLength } from "../../../Database/TruncateColumnValue";
 import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
+import MicrosoftTeamsCardChoices, {
+  MicrosoftTeamsCardChoiceList,
+} from "../MicrosoftTeamsCardChoices";
+import { MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES } from "../MicrosoftTeamsMessageSize";
+import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import MicrosoftTeamsTimezone, {
+  MicrosoftTeamsUserTimezone,
+} from "../MicrosoftTeamsTimezone";
+
+// ScheduledMaintenance.title is a ShortText column.
+const MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH: number =
+  ColumnLength.ShortText;
+
+/*
+ * Input.Time has minute precision, so "start now" is already a minute or two
+ * in the past once the form is filled in. A start this recent begins now.
+ */
+const MICROSOFT_TEAMS_MAINTENANCE_START_GRACE_IN_MINUTES: number = 5;
+
+// The lists the "Create New Scheduled Maintenance" card offers.
+export interface MicrosoftTeamsNewScheduledMaintenanceFormChoices {
+  monitors: MicrosoftTeamsCardChoiceList;
+  monitorStatuses: MicrosoftTeamsCardChoiceList;
+  labels: MicrosoftTeamsCardChoiceList;
+}
 
 export default class MicrosoftTeamsScheduledMaintenanceActions {
   @CaptureSpan()
@@ -133,10 +154,12 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance
       ) {
         // Handle new scheduled maintenance submission
-        const title: string =
-          (actionPayload["scheduledMaintenanceTitle"] as string) || "";
-        const description: string =
-          (actionPayload["scheduledMaintenanceDescription"] as string) || "";
+        const title: string = (
+          (actionPayload["scheduledMaintenanceTitle"] as string) || ""
+        ).trim();
+        const description: string = (
+          (actionPayload["scheduledMaintenanceDescription"] as string) || ""
+        ).trim();
         const startDate: string = (actionPayload["startDate"] as string) || "";
         const startTime: string = (actionPayload["startTime"] as string) || "";
         const endDate: string = (actionPayload["endDate"] as string) || "";
@@ -168,33 +191,96 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           return;
         }
 
+        if (
+          title.length > MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH
+        ) {
+          await turnContext.sendActivity(
+            `Unable to create scheduled maintenance: the title can be at most ${MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH} characters.`,
+          );
+          return;
+        }
+
         await WorkspaceActionAuthorization.assertCanCreate({
           props: databaseProps,
           modelType: ScheduledMaintenance,
           action: "create a scheduled maintenance event",
         });
 
-        try {
-          // Create the scheduled maintenance
-          const scheduledMaintenanceObj: ScheduledMaintenance =
-            new ScheduledMaintenance();
-          scheduledMaintenanceObj.title = title;
-          scheduledMaintenanceObj.description = description;
-          scheduledMaintenanceObj.projectId = request.projectId;
-          scheduledMaintenanceObj.createdByUserId = new ObjectID(
-            request.userId,
+        /*
+         * The card submits a bare date and time. They mean the time on the
+         * user's clock, so they are read in the user's Teams time zone (see
+         * MicrosoftTeamsTimezone), not in the server's.
+         */
+        const timezone: MicrosoftTeamsUserTimezone =
+          MicrosoftTeamsTimezone.resolve({
+            activity: turnContext.activity as unknown as JSONObject,
+            timezoneFromCard: actionPayload["timezone"],
+          });
+
+        let startsAt: Date | null = MicrosoftTeamsTimezone.toDate({
+          date: startDate,
+          time: startTime,
+          timezone: timezone,
+        });
+        const endsAt: Date | null = MicrosoftTeamsTimezone.toDate({
+          date: endDate,
+          time: endTime,
+          timezone: timezone,
+        });
+
+        if (!startsAt || !endsAt) {
+          await turnContext.sendActivity(
+            "Unable to create scheduled maintenance: the start or end date and time could not be read. Please pick them again.",
+          );
+          return;
+        }
+
+        if (!OneUptimeDate.isInTheFuture(startsAt)) {
+          const earliestStart: Date = OneUptimeDate.addRemoveMinutes(
+            OneUptimeDate.getCurrentDate(),
+            -MICROSOFT_TEAMS_MAINTENANCE_START_GRACE_IN_MINUTES,
           );
 
-          // Combine date and time for start and end
-          const startDateTime: string = `${startDate}T${startTime}`;
-          const endDateTime: string = `${endDate}T${endTime}`;
+          if (OneUptimeDate.isBefore(startsAt, earliestStart)) {
+            await turnContext.sendActivity(
+              `Unable to create scheduled maintenance: the start time (${MicrosoftTeamsTimezone.format(
+                startsAt,
+                timezone,
+              )}) is in the past.`,
+            );
+            return;
+          }
 
-          scheduledMaintenanceObj.startsAt =
-            OneUptimeDate.fromString(startDateTime);
-          scheduledMaintenanceObj.endsAt =
-            OneUptimeDate.fromString(endDateTime);
+          // A start picked for "now" that has just gone by: start now.
+          startsAt = OneUptimeDate.getCurrentDate();
+        }
 
-          const createdScheduledMaintenance: ScheduledMaintenance =
+        if (!OneUptimeDate.isAfter(endsAt, startsAt)) {
+          await turnContext.sendActivity(
+            `Unable to create scheduled maintenance: the end time (${MicrosoftTeamsTimezone.format(
+              endsAt,
+              timezone,
+            )}) must be after the start time (${MicrosoftTeamsTimezone.format(
+              startsAt,
+              timezone,
+            )}).`,
+          );
+          return;
+        }
+
+        const scheduledMaintenanceObj: ScheduledMaintenance =
+          new ScheduledMaintenance();
+        scheduledMaintenanceObj.title = title;
+        scheduledMaintenanceObj.description = description;
+        scheduledMaintenanceObj.projectId = request.projectId;
+        scheduledMaintenanceObj.createdByUserId = new ObjectID(request.userId);
+        scheduledMaintenanceObj.startsAt = startsAt;
+        scheduledMaintenanceObj.endsAt = endsAt;
+
+        let createdScheduledMaintenance: ScheduledMaintenance;
+
+        try {
+          createdScheduledMaintenance =
             await this.createScheduledMaintenanceInProject({
               scheduledMaintenance: scheduledMaintenanceObj,
               projectId: request.projectId,
@@ -202,38 +288,58 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               monitorStatusId,
               labelIds,
             });
-
-          // Hide the form card by deleting it first
-          if (turnContext.activity.replyToId) {
-            await turnContext.deleteActivity(turnContext.activity.replyToId);
-          }
-
-          // Get the scheduled maintenance link
-          const maintenanceLink: URL =
-            await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-              createdScheduledMaintenance.projectId!,
-              createdScheduledMaintenance.id!,
-            );
-
-          // Send confirmation message as a new message in the thread
-          await turnContext.sendActivity(
-            `✅ Scheduled maintenance created successfully!\n\nView scheduled maintenance: ${maintenanceLink.toString()}`,
-          );
-
-          return;
         } catch (error) {
-          logger.error(
-            "Error creating scheduled maintenance from Microsoft Teams:",
+          MicrosoftTeamsReplies.logFailure(
+            "Could not create a scheduled maintenance event from Microsoft Teams",
+            error,
             {
               projectId: request.projectId.toString(),
             },
           );
-          logger.error(error);
-          await turnContext.sendActivity(
-            "❌ Failed to create scheduled maintenance. Please try again.",
+
+          const reason: string | null =
+            MicrosoftTeamsReplies.getUserFacingErrorMessage(error);
+
+          const createInOneUptimeUrl: string | null = reason
+            ? null
+            : await MicrosoftTeamsReplies.getDashboardLink({
+                projectId: request.projectId,
+                route: "/scheduled-maintenance-events/create",
+              });
+
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
+            reason
+              ? `❌ Could not create the scheduled maintenance event: ${reason}`
+              : `❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime${
+                  createInOneUptimeUrl ? `: ${createInOneUptimeUrl}` : "."
+                }`,
           );
           return;
         }
+
+        /*
+         * The event exists from here on, so nothing below may report the
+         * create as failed: a user told it failed submits again and gets a
+         * second event. The confirmation goes first; removing the submitted
+         * form is a courtesy.
+         */
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          await this.getScheduledMaintenanceCreatedMessage({
+            scheduledMaintenance: createdScheduledMaintenance,
+            projectId: request.projectId,
+            startsAt: startsAt,
+            endsAt: endsAt,
+            timezone: timezone,
+          }),
+        );
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
+
+        return;
       }
 
       // For all other actions, we need an existing scheduled maintenance ID
@@ -414,12 +520,19 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             });
           }
 
-          await turnContext.sendActivity("Note added successfully");
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
+            "Note added successfully",
+          );
 
-          // Hide the form card by deleting it
-          if (turnContext.activity.replyToId) {
-            await turnContext.deleteActivity(turnContext.activity.replyToId);
-          }
+          /*
+           * The action is done: a refused reply or a failed delete of the
+           * form must not read as a failed action, which invites a repeat.
+           */
+          await MicrosoftTeamsReplies.deleteBestEffort(
+            turnContext,
+            turnContext.activity.replyToId,
+          );
 
           break;
         }
@@ -463,14 +576,19 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             },
           });
 
-          await turnContext.sendActivity(
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
             "ScheduledMaintenance state changed successfully",
           );
 
-          // Hide the form card by deleting it
-          if (turnContext.activity.replyToId) {
-            await turnContext.deleteActivity(turnContext.activity.replyToId);
-          }
+          /*
+           * The action is done: a refused reply or a failed delete of the
+           * form must not read as a failed action, which invites a repeat.
+           */
+          await MicrosoftTeamsReplies.deleteBestEffort(
+            turnContext,
+            turnContext.activity.replyToId,
+          );
 
           break;
         }
@@ -746,10 +864,52 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }
 
   /*
+   * The confirmation: when the event starts and ends in the user's time zone
+   * (so a wrong zone shows at once), and a link to it when one can be built.
+   */
+  private static async getScheduledMaintenanceCreatedMessage(data: {
+    scheduledMaintenance: ScheduledMaintenance;
+    projectId: ObjectID;
+    startsAt: Date;
+    endsAt: Date;
+    timezone: MicrosoftTeamsUserTimezone;
+  }): Promise<string> {
+    let message: string = `✅ Scheduled maintenance created successfully!\n\n**Starts:** ${MicrosoftTeamsTimezone.format(
+      data.startsAt,
+      data.timezone,
+    )}\n\n**Ends:** ${MicrosoftTeamsTimezone.format(
+      data.endsAt,
+      data.timezone,
+    )}`;
+
+    if (MicrosoftTeamsTimezone.isUtcOffsetOnly(data.timezone)) {
+      message += `\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.timezone.label}. If daylight saving time changes before then, check them in OneUptime.`;
+    }
+
+    if (data.scheduledMaintenance.id) {
+      try {
+        const maintenanceLink: URL =
+          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+            data.scheduledMaintenance.projectId || data.projectId,
+            data.scheduledMaintenance.id,
+          );
+
+        message += `\n\nView scheduled maintenance: ${maintenanceLink.toString()}`;
+      } catch (error) {
+        logger.debug(
+          "Could not build the link to a new scheduled maintenance event",
+        );
+        logger.debug(error);
+      }
+    }
+
+    return message;
+  }
+
+  /*
    * Every id below comes from the submitted card, not from the form we sent,
-   * and the writes run as root. So they are checked against the linked project
-   * before anything is created, and the monitor status write is scoped to that
-   * project as well.
+   * and the event is created as root. So they are checked against the linked
+   * project before anything is created.
    */
   private static async createScheduledMaintenanceInProject(data: {
     scheduledMaintenance: ScheduledMaintenance;
@@ -795,6 +955,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       });
     }
 
+    /*
+     * ScheduledMaintenanceService moves the event's monitors to this status
+     * when the event starts, and back when it ends, with status timeline
+     * entries, as for an event scheduled in the dashboard or from Slack. Teams
+     * used to write currentMonitorStatusId on the monitors directly, the
+     * moment the event was created, however far off it was, and nothing ever
+     * moved them back.
+     */
+    if (monitorStatusId) {
+      scheduledMaintenance.changeMonitorStatusToId = monitorStatusId;
+    }
+
     // Save the scheduled maintenance
     const createdScheduledMaintenance: ScheduledMaintenance =
       await ScheduledMaintenanceService.create({
@@ -813,112 +985,102 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       },
     );
 
-    // Update monitor status if specified
-    if (monitorStatusId) {
-      for (const monitorId of monitorIdArray) {
-        await MonitorService.updateOneBy({
-          query: {
-            _id: monitorId.toString(),
-            projectId: projectId,
-          },
-          data: {
-            currentMonitorStatusId: monitorStatusId,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-    }
-
     return createdScheduledMaintenance;
   }
 
+  // Every list the "Create New Scheduled Maintenance" card offers.
+  public static async getNewScheduledMaintenanceFormChoices(
+    projectId: ObjectID,
+  ): Promise<MicrosoftTeamsNewScheduledMaintenanceFormChoices> {
+    const [monitors, monitorStatuses, labels]: [
+      MicrosoftTeamsCardChoiceList,
+      MicrosoftTeamsCardChoiceList,
+      MicrosoftTeamsCardChoiceList,
+    ] = await Promise.all([
+      MicrosoftTeamsCardChoices.getMonitorChoices(projectId),
+      MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId),
+      MicrosoftTeamsCardChoices.getLabelChoices(projectId),
+    ]);
+
+    return {
+      monitors: monitors,
+      monitorStatuses: monitorStatuses,
+      labels: labels,
+    };
+  }
+
+  /*
+   * The "Create New Scheduled Maintenance" card for a project, fitted to the
+   * first size budget. The bot itself sends the card through
+   * MicrosoftTeamsCreateCommands, which also tries the smaller budgets.
+   */
   public static async buildNewScheduledMaintenanceCard(
     projectId: ObjectID,
+    options?:
+      | {
+          initialTitle?: string | undefined;
+          timezone?: string | undefined;
+        }
+      | undefined,
   ): Promise<JSONObject> {
-    // Fetch monitors
-    const monitors: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
+    return this.buildNewScheduledMaintenanceCardForBudget({
+      choices: await this.getNewScheduledMaintenanceFormChoices(projectId),
+      budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+      initialTitle: options?.initialTitle,
+      timezone: options?.timezone,
     });
+  }
 
-    const monitorChoices: Array<{ title: string; value: string }> = monitors
-      .map((monitor: Monitor) => {
-        return {
-          title: monitor.name || "",
-          value: monitor._id?.toString() || "",
-        };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
-
-    // Fetch monitor statuses
-    const monitorStatuses: Array<MonitorStatus> =
-      await MonitorStatusService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        sort: {
-          priority: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-    const monitorStatusChoices: Array<{ title: string; value: string }> =
-      monitorStatuses
-        .map((status: MonitorStatus) => {
-          return {
-            title: status.name || "",
-            value: status._id?.toString() || "",
-          };
-        })
-        .filter((choice: { title: string; value: string }) => {
-          return choice.title && choice.value;
+  /*
+   * The "Create New Scheduled Maintenance" card with its monitor and label
+   * lists shortened until it fits the budget (issue #4111: listing all of
+   * them made Teams refuse the card). `timezone` is the IANA zone the user
+   * asked from, when Teams told us; it is named on the card and travels in
+   * the submit data.
+   */
+  public static buildNewScheduledMaintenanceCardForBudget(data: {
+    choices: MicrosoftTeamsNewScheduledMaintenanceFormChoices;
+    budgetInBytes: number;
+    initialTitle?: string | undefined;
+    createInOneUptimeUrl?: string | null | undefined;
+    timezone?: string | undefined;
+  }): JSONObject {
+    return MicrosoftTeamsCardChoices.fitCardToBudget<
+      keyof MicrosoftTeamsNewScheduledMaintenanceFormChoices
+    >({
+      lists: data.choices,
+      trimmableKeys: ["monitors", "labels"],
+      budgetInBytes: data.budgetInBytes,
+      buildCard: (
+        shown: Record<
+          keyof MicrosoftTeamsNewScheduledMaintenanceFormChoices,
+          MicrosoftTeamsCardChoiceList
+        >,
+      ): JSONObject => {
+        return this.buildNewScheduledMaintenanceCardBody({
+          shown: shown,
+          initialTitle: data.initialTitle,
+          createInOneUptimeUrl: data.createInOneUptimeUrl,
+          timezone: data.timezone,
         });
+      },
+    }).card;
+  }
 
-    // Fetch labels
-    const labels: Array<Label> = await LabelService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+  private static buildNewScheduledMaintenanceCardBody(data: {
+    shown: MicrosoftTeamsNewScheduledMaintenanceFormChoices;
+    initialTitle?: string | undefined;
+    createInOneUptimeUrl?: string | null | undefined;
+    timezone?: string | undefined;
+  }): JSONObject {
+    const { shown } = data;
+    const initialTitle: string = (data.initialTitle || "").trim();
+    const timezone: string | undefined =
+      MicrosoftTeamsTimezone.getKnownTimezone(data.timezone);
+    let isAnythingLeftOff: boolean = false;
 
-    const labelChoices: Array<{ title: string; value: string }> = labels
-      .map((label: Label) => {
-        return {
-          title: label.name || "",
-          value: label._id?.toString() || "",
-        };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+    const addLaterHint: string =
+      "You can add them to the event in OneUptime after it is created.";
 
     // Build the card
     const bodyElements: Array<JSONObject> = [
@@ -934,6 +1096,15 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         label: "Event Title",
         placeholder: "Enter maintenance event title",
         isRequired: true,
+        maxLength: MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
+        ...(initialTitle
+          ? {
+              value: truncateToLength(
+                initialTitle,
+                MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
+              ),
+            }
+          : {}),
       },
       {
         type: "Input.Text",
@@ -943,6 +1114,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         isMultiline: true,
         isRequired: true,
       },
+      MicrosoftTeamsCardChoices.buildNoteElement(
+        timezone
+          ? `Start and end times are in ${timezone}.`
+          : "Start and end times are in the time zone Microsoft Teams reports for you, or in UTC if it does not report one.",
+      ),
       {
         type: "Input.Date",
         id: "startDate",
@@ -969,39 +1145,86 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       },
     ];
 
+    const addNotShownNote: (
+      list: MicrosoftTeamsCardChoiceList,
+      pluralNoun: string,
+    ) => void = (
+      list: MicrosoftTeamsCardChoiceList,
+      pluralNoun: string,
+    ): void => {
+      const note: JSONObject | null =
+        MicrosoftTeamsCardChoices.buildNotShownNoteElement({
+          list: list,
+          pluralNoun: pluralNoun,
+          addLaterHint: addLaterHint,
+        });
+
+      if (note) {
+        isAnythingLeftOff = true;
+        bodyElements.push(note);
+      }
+    };
+
     // Add monitor multi-select if we have monitors
-    if (monitorChoices.length > 0) {
+    if (shown.monitors.choices.length > 0) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "scheduledMaintenanceMonitors",
         label: "Affected Monitors (Optional)",
         style: "compact",
         isMultiSelect: true,
-        choices: monitorChoices,
+        choices: shown.monitors.choices,
       });
     }
 
+    addNotShownNote(shown.monitors, "monitors");
+
     // Add monitor status dropdown if we have statuses and monitors
-    if (monitorStatusChoices.length > 0 && monitorChoices.length > 0) {
+    if (
+      shown.monitorStatuses.choices.length > 0 &&
+      shown.monitors.choices.length > 0
+    ) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "monitorStatus",
         label: "Change Monitor Status To (Optional)",
         style: "compact",
-        choices: monitorStatusChoices,
+        choices: shown.monitorStatuses.choices,
       });
     }
 
     // Add labels multi-select if we have labels
-    if (labelChoices.length > 0) {
+    if (shown.labels.choices.length > 0) {
       bodyElements.push({
         type: "Input.ChoiceSet",
         id: "labels",
         label: "Labels (Optional)",
         style: "compact",
         isMultiSelect: true,
-        choices: labelChoices,
+        choices: shown.labels.choices,
       });
+    }
+
+    addNotShownNote(shown.labels, "labels");
+
+    const actions: Array<JSONObject> = [
+      {
+        type: "Action.Submit",
+        title: "Create Maintenance Event",
+        data: {
+          action:
+            MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
+          ...(timezone ? { timezone: timezone } : {}),
+        },
+      },
+    ];
+
+    if (isAnythingLeftOff && data.createInOneUptimeUrl) {
+      actions.push(
+        MicrosoftTeamsCardChoices.buildCreateInOneUptimeAction(
+          data.createInOneUptimeUrl,
+        ),
+      );
     }
 
     return {
@@ -1009,16 +1232,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
       version: "1.5",
       body: bodyElements,
-      actions: [
-        {
-          type: "Action.Submit",
-          title: "Create Maintenance Event",
-          data: {
-            action:
-              MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
-          },
-        },
-      ],
+      actions: actions,
     };
   }
 }

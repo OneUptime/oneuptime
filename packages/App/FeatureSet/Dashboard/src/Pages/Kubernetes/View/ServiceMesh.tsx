@@ -28,6 +28,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -952,8 +953,17 @@ const KubernetesClusterServiceMesh: FunctionComponent<
     },
   ];
 
+  /*
+   * Issue #4105: every card reads the page's range, so a drag on any chart
+   * narrows every card - on every tab, since the range lives here and
+   * outlives a tab switch - and a double-click on any of them (or Reset
+   * zoom beside any card's picker) puts the range back.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    >
       {/* Info banner */}
       <div className="mb-5 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
         <div className="flex-shrink-0 mt-0.5">
@@ -980,7 +990,7 @@ const KubernetesClusterServiceMesh: FunctionComponent<
 
       {/* Tabbed content: Cilium | Istio | Linkerd */}
       <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

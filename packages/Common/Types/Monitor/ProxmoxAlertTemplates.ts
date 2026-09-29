@@ -354,7 +354,7 @@ const nodeOfflineTemplate: ProxmoxAlertTemplate = {
   id: "pve-node-offline",
   name: "Node Offline",
   description:
-    "Alert when any Proxmox node reports as down (pve_up = 0, scoped to nodes via pve.scope). One incident per node.",
+    "Alert when any Proxmox node is down (pve_up = 0, scoped to nodes via pve.scope). One incident per node. On the Proxmox VE native OpenTelemetry push, a node that stops reporting is reported down by the nodes still alive, so this fires about 5 minutes after its last report; a standalone host or a whole cluster going silent turns the cluster Disconnected instead.",
   category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -383,7 +383,7 @@ const nodeOfflineTemplate: ProxmoxAlertTemplate = {
         filterType: FilterType.LessThan,
         value: 1,
         incidentTitle: `[Proxmox] Node Offline - ${args.monitorName}`,
-        incidentDescription: `A Proxmox node is reporting as down (pve_up = 0). The node is unreachable or has crashed and every guest running on it may be offline. Check the root cause for the affected node id, verify the node's power/network state, and check whether HA has relocated its guests.`,
+        incidentDescription: `A Proxmox node is down (pve_up = 0): the cluster reports it offline or, on the Proxmox VE native OpenTelemetry push, it has stopped reporting and the nodes still alive report it (those points carry oneuptime.proxmox.inferred = not-reporting). The node may have crashed or lost power or network, and every guest running on it may be offline; a node that is up but whose pvestatd or pmxcfs has stopped, or that cannot reach OneUptime, is reported the same way. Check the root cause for the affected node id, verify the node's power/network state and its pvestatd service, and check whether HA has relocated its guests. If you took the node out of the cluster on purpose, use Remove Node on its page in OneUptime to resolve this.`,
         criteriaName: "Node Offline - pve_up < 1",
         criteriaDescription:
           "Triggers when any node reports pve_up below 1 over the monitoring window.",
@@ -525,7 +525,7 @@ const quorumRiskTemplate: ProxmoxAlertTemplate = {
   id: "pve-quorum-risk",
   name: "Cluster Quorum at Risk",
   description:
-    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count) — pve-exporter exposes no corosync metric, so this is the honest quorum proxy: at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops.",
+    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count) — pve-exporter exposes no corosync metric, so this is the honest quorum proxy: at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops. On the Proxmox VE native OpenTelemetry push, a node that stops reporting counts as offline (the nodes still alive report it); a whole cluster going silent turns the cluster Disconnected instead.",
   category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -557,7 +557,7 @@ const quorumRiskTemplate: ProxmoxAlertTemplate = {
         filterType: FilterType.LessThanOrEqualTo,
         value: 50,
         incidentTitle: `[Proxmox] CRITICAL: Cluster Quorum at Risk - ${args.monitorName}`,
-        incidentDescription: `Half or more of the Proxmox cluster's nodes are offline. With ≤50% of nodes online the cluster has lost (or is about to lose) corosync quorum — pmxcfs goes read-only, guests cannot be started or migrated, and HA recovery stops. Identify and recover the offline nodes immediately. (This is derived from node visibility: online nodes ÷ total nodes; pve-exporter exposes no direct corosync metric.)`,
+        incidentDescription: `Half or more of the Proxmox cluster's nodes are offline. With ≤50% of nodes online the cluster has lost (or is about to lose) corosync quorum — pmxcfs goes read-only, guests cannot be started or migrated, and HA recovery stops. Identify and recover the offline nodes immediately. (This is derived from node visibility: online nodes ÷ total nodes; pve-exporter exposes no direct corosync metric. On the Proxmox VE native OpenTelemetry push, a node counts as offline once it has stopped reporting, as reported by the nodes still alive — so a node that is up but cannot reach OneUptime counts too.)`,
         criteriaName: "Quorum Risk - Node Availability <= 50%",
         criteriaDescription:
           "Triggers when 50% or fewer of the cluster's nodes report as online.",

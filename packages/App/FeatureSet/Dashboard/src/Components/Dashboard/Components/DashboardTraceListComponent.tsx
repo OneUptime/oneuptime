@@ -18,7 +18,7 @@ import {
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Span from "Common/Models/AnalyticsModels/Span";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -32,6 +32,11 @@ import {
 } from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import {
+  SPAN_STATUS_PRESENTATIONS,
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../../Utils/SpanStatusPresentation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceListComponent;
@@ -45,47 +50,12 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "Time", widthPct: "35%" },
 ];
 
-const STATUS_COLORS: Record<number, { color: string; label: string }> = {
-  [SpanStatus.Ok]: { color: "#10b981", label: "Ok" },
-  [SpanStatus.Error]: { color: "#ef4444", label: "Error" },
-  [SpanStatus.Unset]: { color: "#9ca3af", label: "Unset" },
-};
-
-const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> = [
-  { label: "Ok", color: STATUS_COLORS[SpanStatus.Ok]!.color },
-  { label: "Error", color: STATUS_COLORS[SpanStatus.Error]!.color },
-  { label: "Unset", color: STATUS_COLORS[SpanStatus.Unset]!.color },
-];
-
-type StatusStyle = {
-  label: string;
-  textClass: string;
-  bgClass: string;
-};
-
-const getStatusStyle: (statusCode: number) => StatusStyle = (
-  statusCode: number,
-): StatusStyle => {
-  if (statusCode === SpanStatus.Error) {
-    return {
-      label: "Error",
-      textClass: "text-red-700",
-      bgClass: "bg-red-50 border-red-100",
-    };
-  }
-  if (statusCode === SpanStatus.Ok) {
-    return {
-      label: "Ok",
-      textClass: "text-green-700",
-      bgClass: "bg-green-50 border-green-100",
-    };
-  }
-  return {
-    label: "Unset",
-    textClass: "text-gray-500",
-    bgClass: "bg-gray-50 border-gray-100",
-  };
-};
+const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> =
+  SPAN_STATUS_PRESENTATIONS.map(
+    (status: SpanStatusPresentation): HoneycombLegendItem => {
+      return { label: status.displayLabel, color: status.color };
+    },
+  );
 
 const formatDuration: (durationNano: number) => string = (
   durationNano: number,
@@ -191,10 +161,9 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
 
   const honeycombTiles: Array<HoneycombTile> = spans.map(
     (span: Span, index: number): HoneycombTile => {
-      const statusCode: number =
-        (span.statusCode as number) || SpanStatus.Unset;
-      const statusInfo: { color: string; label: string } =
-        STATUS_COLORS[statusCode] || STATUS_COLORS[SpanStatus.Unset]!;
+      const status: SpanStatusPresentation = getSpanStatusPresentation(
+        span.statusCode,
+      );
       const durationNano: number = (span.durationUnixNano as number) || 0;
       const startTimeLabel: string = getDashboardDateTimeLabel(
         span.startTime as unknown as string | undefined,
@@ -206,8 +175,8 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
 
       return {
         id: id,
-        status: statusInfo.label,
-        color: statusInfo.color,
+        status: status.displayLabel,
+        color: status.color,
         tooltip: {
           title: (span.name as string) || "—",
           details: [
@@ -224,9 +193,9 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
 
   const rows: Array<ReactElement> = spans.map(
     (span: Span, index: number): ReactElement => {
-      const statusCode: number =
-        (span.statusCode as number) || SpanStatus.Unset;
-      const statusStyle: StatusStyle = getStatusStyle(statusCode);
+      const status: SpanStatusPresentation = getSpanStatusPresentation(
+        span.statusCode,
+      );
       const durationNano: number = (span.durationUnixNano as number) || 0;
       const startTime: DashboardDateTime = getDashboardDateTime(
         span.startTime as unknown as string | undefined,
@@ -247,10 +216,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           </td>
           <td className="px-3 py-2">
             <span
-              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${statusStyle.textClass} ${statusStyle.bgClass}`}
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${status.pillClassName} ${status.pillBorderClassName}`}
               style={{ fontSize: "10px" }}
+              title={status.description}
             >
-              {statusStyle.label}
+              {status.label}
             </span>
           </td>
           <td

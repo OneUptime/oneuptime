@@ -37,9 +37,13 @@ Select one or more services to monitor traces from. Services must be sending tra
 
 ### Span Status Codes
 
-- **OK** — The operation completed successfully
+- **OK** — The operation was explicitly marked successful, by application code or a trace pipeline
 - **ERROR** — The operation encountered an error
-- **UNSET** — Status was not explicitly set
+- **UNSET** — No error status was set. This is the OpenTelemetry default status
+
+UNSET does not mean data is missing. OpenTelemetry instrumentation sets ERROR when an operation fails and leaves successful spans UNSET, so on a healthy service most spans are UNSET. OneUptime shows them in green as "Unset (no error)". Recording an exception does not change a span's status, so an UNSET span can still have exceptions; they are listed with the span. To alert on failures, filter on ERROR. To count every span that did not fail, select both OK and UNSET.
+
+If you want successful requests to show as OK, add a trace pipeline under **Traces > Settings > Pipelines** with the filter condition **Status = Unset** and a **Status Remapper** that maps `http.response.status_code` values such as `200` to Ok.
 
 ## Monitoring Criteria
 

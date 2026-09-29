@@ -488,6 +488,13 @@ function expectPlainField(source: string, title: string): void {
   });
 }
 
+/*
+ * Each rate chart's heading ends with the drag-to-zoom hint (issue #4105),
+ * after its (i).
+ */
+const RATE_CHART_HINT: string =
+  '<TimeRangeZoomHint revealOnHover={true} className="ml-auto font-normal" />';
+
 function expectThroughputHeaders(
   source: string,
   headers: Array<[string, ProxmoxMetric]>,
@@ -499,7 +506,12 @@ function expectThroughputHeaders(
 
   for (const [header, key] of headers) {
     expect(extra).toMatch(
-      tooltipPattern(header, key, `${header} `, " </div> <ProxmoxRateChart"),
+      tooltipPattern(
+        header,
+        key,
+        `${header} `,
+        ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
+      ),
     );
   }
 }
@@ -660,7 +672,7 @@ describe("insights", () => {
         "Disk Throughput",
         "insightsDiskThroughput",
         "Disk Throughput ",
-        " </div> <ProxmoxRateChart",
+        ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
       ),
     );
     expect(INSIGHTS).toContain(TOOLTIP_IMPORT);

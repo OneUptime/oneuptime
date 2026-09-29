@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "このステータスページに対して作成されたステータスページリソースはありません。",
   "No Status Page.": "ステータスページがありません。",
   "No status pages found.": "ステータスページが見つかりません。",
-  "No status set": "ステータスが設定されていません",
+  "No error status set (OpenTelemetry default)": "エラーステータスは設定されていません（OpenTelemetry のデフォルト）",
   "No status timeline created for this alert so far.": "このアラートのステータスタイムラインはまだ作成されていません。",
   "No status timeline created for this episode so far.": "このエピソードのステータスタイムラインはまだ作成されていません。",
   "No status timeline created for this incident so far.": "このインシデントのステータスタイムラインはまだ作成されていません。",
@@ -4927,7 +4927,7 @@
   "Source Key": "ソースキー",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "リクエストするOIDCスコープのスペース区切りリスト。'openid'を含める必要があります。",
   "Span Attributes": "スパン属性",
-  "Span completed successfully": "スパンは正常に完了しました",
+  "Explicitly marked successful": "明示的に成功とマーク済み",
   "Span ended in error": "スパンはエラーで終了しました",
   "Span ID": "スパンID",
   "Span Kind": "スパンの種類",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "スパンのステータス: エラー",
   "Span Status: Ok": "スパンのステータス: Ok",
   "Span Status: Unset": "スパンのステータス: 未設定",
+  "Span Status: Unset (no error)": "スパンのステータス: 未設定（エラーなし）",
   "Spans Preview": "スパンのプレビュー",
   "Specific Times of the Day": "1日の特定の時刻",
   "Specific Times of the Week": "1週間の特定の時刻",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "再試行は、すでに届いたステータスページの後から再開します。このインシデントの現在の対象ページのうち、通知を完全には受け取っていないページ（その後追加されたページを含む）にだけ今送信されます。すべてのページに再送信されるノートや状態の変更とは異なり、すでに届いたページには二度送信されません。",
   "Send it to every status page again, including the pages already reached": "すでに届いたページも含めて、すべてのステータスページにもう一度送信する",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "このインシデントが作成されたという通知は、このインシデントが現在届くすべてのステータスページの購読者に、失敗した送信がすでに届いたページも含めて再送信されます。",
-  "Could not queue the notification again.": "通知を再度キューに入れられませんでした。"
+  "Could not queue the notification again.": "通知を再度キューに入れられませんでした。",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + スクロールまたはピンチでズーム",
+  "The map is out of view.": "マップが表示範囲の外にあります。"
 }

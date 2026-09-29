@@ -555,11 +555,12 @@ describe("Ceph cluster overview", () => {
 
   test("each rate chart has a header with its (i)", () => {
     expect(count(code, RATE_CHART)).toBe(2);
+    // The header also names the chart's drag-to-zoom (issue #4105).
     expect(code).toMatch(
-      /Client IOPS <InfoTooltip label="Client IOPS" text=\{CEPH_METRIC_DESCRIPTIONS\.clientIops\} \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd"/,
+      /Client IOPS <InfoTooltip label="Client IOPS" text=\{CEPH_METRIC_DESCRIPTIONS\.clientIops\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd"/,
     );
     expect(code).toMatch(
-      /Client Throughput <InfoTooltip label="Client Throughput" text=\{CEPH_METRIC_DESCRIPTIONS\.clientThroughput\} \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd_bytes"/,
+      /Client Throughput <InfoTooltip label="Client Throughput" text=\{CEPH_METRIC_DESCRIPTIONS\.clientThroughput\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd_bytes"/,
     );
   });
 

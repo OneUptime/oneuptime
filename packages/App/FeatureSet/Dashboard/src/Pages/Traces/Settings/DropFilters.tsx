@@ -39,7 +39,9 @@ Drop filters let you **discard or sample spans before they are stored**, reducin
 ### Examples
 
 - **Drop healthcheck spans:** \`name LIKE 'healthcheck'\` (action: Drop)
-- **Sample successful CRUD:** \`kind = 'SPAN_KIND_CLIENT' AND statusCode = 1\` (action: Sample, 10%)
+- **Sample successful CRUD:** \`kind = 'SPAN_KIND_CLIENT' AND statusCode != 2\` (action: Sample, 10%)
+
+Status codes: \`0\` Unset, \`1\` Ok, \`2\` Error. Most instrumentation leaves successful spans **Unset** (the OpenTelemetry default) and sets **Error** only on failure, so match "not an error" with \`statusCode != 2\` rather than \`statusCode = 1\`.
 `;
 
 const TraceDropFilters: FunctionComponent<

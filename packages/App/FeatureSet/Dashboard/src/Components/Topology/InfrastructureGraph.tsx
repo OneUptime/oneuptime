@@ -1136,6 +1136,12 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
             </select>
           </label>
         )}
+        <span
+          className="text-xs text-gray-500"
+          data-testid="infrastructure-zoom-hint"
+        >
+          {t("Ctrl + scroll or pinch to zoom")}
+        </span>
       </div>
       <div
         style={{
@@ -1157,6 +1163,15 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
           fitViewOptions={{ padding: 0.16, maxZoom: 1 }}
           minZoom={0.1}
           maxZoom={1.5}
+          /*
+           * Like the Service Map beside it: a map inside a page, so the wheel
+           * scrolls the page and Ctrl + scroll or a pinch zooms, rather than
+           * every wheel event over the canvas zooming about the pointer
+           * (#4117). A double-click does not zoom either.
+           */
+          zoomOnScroll={false}
+          preventScrolling={false}
+          zoomOnDoubleClick={false}
           proOptions={{ hideAttribution: true }}
           nodesDraggable={false}
           nodesConnectable={false}

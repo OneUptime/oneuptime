@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "未为此状态页创建任何状态页资源。",
   "No Status Page.": "没有状态页。",
   "No status pages found.": "未找到状态页面。",
-  "No status set": "未设置状态",
+  "No error status set (OpenTelemetry default)": "未设置错误状态（OpenTelemetry 默认值）",
   "No status timeline created for this alert so far.": "到目前为止，尚未为此警报创建状态时间线。",
   "No status timeline created for this episode so far.": "到目前为止，尚未为此片段创建状态时间线。",
   "No status timeline created for this incident so far.": "到目前为止，尚未为此事件创建状态时间线。",
@@ -4927,7 +4927,7 @@
   "Source Key": "源键",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "以空格分隔的要请求的 OIDC 作用域列表。必须包含 'openid'。",
   "Span Attributes": "Span 属性",
-  "Span completed successfully": "Span 成功完成",
+  "Explicitly marked successful": "已明确标记为成功",
   "Span ended in error": "Span 以错误结束",
   "Span ID": "Span ID",
   "Span Kind": "Span 类型",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "Span 状态：错误",
   "Span Status: Ok": "Span 状态：正常",
   "Span Status: Unset": "Span 状态：未设置",
+  "Span Status: Unset (no error)": "Span 状态：未设置（无错误）",
   "Spans Preview": "Spans 预览",
   "Specific Times of the Day": "一天中的特定时间",
   "Specific Times of the Week": "一周中的特定时间",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "重试会在已送达的状态页面之后继续：只有此事件当前范围内未完整收到通知的页面（包括此后添加的页面）现在会收到它。与会再次发送到每个页面的备注和状态变更不同，已送达的页面不会收到两次。",
   "Send it to every status page again, including the pages already reached": "再次发送到每个状态页面，包括已送达的页面",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "此事件已创建的通知将再次发送给此事件当前覆盖的每个状态页面的订阅者，包括失败的发送已送达的页面。",
-  "Could not queue the notification again.": "无法将通知重新加入队列。"
+  "Could not queue the notification again.": "无法将通知重新加入队列。",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + 滚动或双指捏合以缩放",
+  "The map is out of view.": "地图不在视图范围内。"
 }

@@ -16,6 +16,10 @@ import {
 import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
@@ -32,6 +36,10 @@ import {
   makeSeriesKeyFromAttributes,
   CounterRatePoint,
 } from "../../Utils/CounterRateUtils";
+import { useEmbeddedMetricCardRefreshNonce } from "../Metrics/EmbeddedMetricCardRefresh";
+import ChartRefetchFrame, {
+  ChartLoadingSkeleton,
+} from "../Metrics/ChartRefetchFrame";
 
 /*
  * Cumulative-counter → per-second-rate chart for Ceph pages: the
@@ -44,6 +52,14 @@ import {
  * fetched over the window, deltas are clamped at counter resets, and
  * per-bucket rates are summed across all matching series (e.g. across
  * all pools).
+ *
+ * The line chart takes the zoom of the page (or card) around it on its
+ * own, so a drag here retimes whatever the window came from; the window
+ * then comes back down as startDate/endDate (issue #4105).
+ *
+ * A drag or a double-click here reloads this very chart, so a reload keeps
+ * the last chart on screen (see ChartRefetchFrame). Only the first load
+ * shows a skeleton.
  */
 
 export interface CephRateChartSeries {
@@ -70,25 +86,65 @@ export interface ComponentProps {
   emptyMessage?: string | undefined;
 }
 
+/*
+ * What a load drew, kept with the window it was fetched for. While the next
+ * load is in flight the chart keeps these points on THEIR window: the new
+ * window on the axis would put the old points in the wrong place.
+ */
+interface LoadedRates {
+  // The cluster and filters the points were loaded for.
+  scopeKey: string;
+  series: Array<SeriesPoint>;
+  startDate: Date;
+  endDate: Date;
+}
+
+/*
+ * Why the latest load failed, kept with the cluster and filters it failed
+ * for, as the points are: another cluster or pool starts over clean rather
+ * than showing this one's error under its heading.
+ */
+interface FailedRates {
+  scopeKey: string;
+  message: string;
+}
+
 const CephRateChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [series, setSeries] = useState<Array<SeriesPoint>>([]);
+  // null until the first load lands.
+  const [loaded, setLoaded] = useState<LoadedRates | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  // null while the latest settled load succeeded.
+  const [failed, setFailed] = useState<FailedRates | null>(null);
+  // The zoom the chart takes from the page or card around it.
+  const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
+  /*
+   * The Refresh count of the card around the chart. A zoomed window is a
+   * Custom one that Refresh re-resolves to the same instants, so without it
+   * Refresh could not reload the chart, not even to retry a failed load.
+   */
+  const refreshNonce: number = useEmbeddedMetricCardRefreshNonce();
 
   const startMs: number = props.startDate.getTime();
   const endMs: number = props.endDate.getTime();
   const extraAttributesKey: string = JSON.stringify(
     props.extraAttributes || {},
   );
+  const scopeKey: string = `${props.clusterName}|${extraAttributesKey}`;
+  const error: string =
+    failed && failed.scopeKey === scopeKey ? failed.message : "";
 
   useEffect(() => {
     let cancelled: boolean = false;
 
     const load: () => Promise<void> = async (): Promise<void> => {
+      /*
+       * The error stays until this load settles, as MetricView's does, so
+       * the error over a kept chart does not blink out and back while a
+       * retry is in flight.
+       */
       setIsLoading(true);
-      setError("");
       try {
         const startDate: Date = new Date(startMs);
         const endDate: Date = new Date(endMs);
@@ -144,10 +200,19 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
             next.push({ seriesName: s.label, data: points });
           }
         });
-        setSeries(next);
+        setLoaded({
+          scopeKey: scopeKey,
+          series: next,
+          startDate: startDate,
+          endDate: endDate,
+        });
+        setFailed(null);
       } catch (err) {
         if (!cancelled) {
-          setError(API.getFriendlyMessage(err));
+          setFailed({
+            scopeKey: scopeKey,
+            message: API.getFriendlyMessage(err),
+          });
         }
       }
       if (!cancelled) {
@@ -157,29 +222,74 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
 
     load().catch((err: Error) => {
       if (!cancelled) {
-        setError(API.getFriendlyMessage(err));
+        setFailed({ scopeKey: scopeKey, message: API.getFriendlyMessage(err) });
       }
     });
 
     return () => {
       cancelled = true;
     };
-    // startMs/endMs track the date props by value so identical ranges don't refetch.
-  }, [props.clusterName, startMs, endMs, extraAttributesKey]);
+    /*
+     * startMs/endMs track the date props by value so identical ranges don't
+     * refetch; refreshNonce reloads the same window when the card's Refresh
+     * is pressed.
+     */
+  }, [props.clusterName, startMs, endMs, extraAttributesKey, refreshNonce]);
 
-  if (isLoading) {
-    return <div className="h-48 animate-pulse rounded-md bg-gray-50" />;
+  const heightInPx: number = props.heightInPx ?? 300;
+
+  /*
+   * Only a reload of the same counters keeps the last chart. Another cluster
+   * or another set of filters starts over from the skeleton, rather than
+   * showing the previous one's rates under the new heading.
+   */
+  const shown: LoadedRates | null =
+    loaded && loaded.scopeKey === scopeKey ? loaded : null;
+
+  if (!shown) {
+    // Nothing to keep yet: a retry after a failed first load is a skeleton.
+    if (error && !isLoading) {
+      /*
+       * The error holds at least the chart's height, so a retry's skeleton
+       * does not move the page, and takes the double-click the heading
+       * names while zoomed (select-none, so it selects no word), as the
+       * empty state does.
+       */
+      return (
+        <div
+          className="flex select-none flex-col justify-center"
+          style={{ minHeight: `${heightInPx}px` }}
+          onDoubleClick={zoom?.onTimeRangeReset}
+        >
+          <ErrorMessage message={error} />
+        </div>
+      );
+    }
+    return <ChartLoadingSkeleton heightInPx={heightInPx} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
+  const series: Array<SeriesPoint> = shown.series;
 
   if (series.length === 0) {
+    /*
+     * A zoom into a quiet stretch lands here, with no chart left to
+     * double-click. The empty plot area takes the double-click instead,
+     * so the way back is where the reader's pointer already is (the same
+     * as ChartCard's empty state). The reset is only set while zoomed.
+     * It keeps the chart's height, so the zoom does not move the page,
+     * and select-none, so the double-click does not select a word.
+     */
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-        {props.emptyMessage || "No data reported for the selected time range."}
-      </div>
+      <ChartRefetchFrame isRefetching={isLoading} refetchError={error}>
+        <div
+          className="flex select-none items-center justify-center text-sm text-gray-400"
+          style={{ height: `${heightInPx}px` }}
+          onDoubleClick={zoom?.onTimeRangeReset}
+        >
+          {props.emptyMessage ||
+            "No data reported for the selected time range."}
+        </div>
+      </ChartRefetchFrame>
     );
   }
 
@@ -187,8 +297,8 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
     legend: "Time",
     options: {
       type: XAxisType.Time,
-      min: props.startDate,
-      max: props.endDate,
+      min: shown.startDate,
+      max: shown.endDate,
       aggregateType: XAxisAggregateType.Average,
     },
   };
@@ -212,16 +322,18 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
   const syncId: string = props.syncId || `ceph-rate-chart-${props.clusterName}`;
 
   return (
-    <LineChartElement
-      data={series}
-      xAxis={xAxis}
-      yAxis={yAxis}
-      curve={ChartCurve.MONOTONE}
-      heightInPx={props.heightInPx ?? 300}
-      showLegend={series.length > 1}
-      sync={true}
-      syncid={syncId}
-    />
+    <ChartRefetchFrame isRefetching={isLoading} refetchError={error}>
+      <LineChartElement
+        data={series}
+        xAxis={xAxis}
+        yAxis={yAxis}
+        curve={ChartCurve.MONOTONE}
+        heightInPx={heightInPx}
+        showLegend={series.length > 1}
+        sync={true}
+        syncid={syncId}
+      />
+    </ChartRefetchFrame>
   );
 };
 

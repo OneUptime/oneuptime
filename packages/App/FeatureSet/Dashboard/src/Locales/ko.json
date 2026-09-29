@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "이 상태 페이지에 대해 생성된 상태 페이지 리소스가 없습니다.",
   "No Status Page.": "상태 페이지가 없습니다.",
   "No status pages found.": "상태 페이지를 찾을 수 없습니다.",
-  "No status set": "설정된 상태 없음",
+  "No error status set (OpenTelemetry default)": "오류 상태가 설정되지 않음(OpenTelemetry 기본값)",
   "No status timeline created for this alert so far.": "아직 이 경고에 대해 생성된 상태 타임라인이 없습니다.",
   "No status timeline created for this episode so far.": "아직 이 에피소드에 대해 생성된 상태 타임라인이 없습니다.",
   "No status timeline created for this incident so far.": "아직 이 인시던트에 대해 생성된 상태 타임라인이 없습니다.",
@@ -4927,7 +4927,7 @@
   "Source Key": "소스 키",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "요청할 OIDC 범위의 공백으로 구분된 목록입니다. 'openid'를 포함해야 합니다.",
   "Span Attributes": "스팬 속성",
-  "Span completed successfully": "스팬이 성공적으로 완료됨",
+  "Explicitly marked successful": "명시적으로 성공으로 표시됨",
   "Span ended in error": "스팬이 오류로 종료됨",
   "Span ID": "스팬 ID",
   "Span Kind": "스팬 종류",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "스팬 상태: 오류",
   "Span Status: Ok": "스팬 상태: 정상",
   "Span Status: Unset": "스팬 상태: 설정 안 됨",
+  "Span Status: Unset (no error)": "스팬 상태: 설정 안 됨(오류 없음)",
   "Spans Preview": "스팬 미리보기",
   "Specific Times of the Day": "하루 중 특정 시간",
   "Specific Times of the Week": "주중 특정 시간",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "다시 시도는 이미 도달한 상태 페이지 다음부터 이어서 보냅니다. 이 인시던트의 현재 범위에 있는 페이지 중 알림을 완전히 받지 못한 페이지(이후 추가된 페이지 포함)에만 지금 전송됩니다. 모든 페이지에 다시 전송되는 노트와 상태 변경과 달리, 이미 도달한 페이지에는 두 번 전송되지 않습니다.",
   "Send it to every status page again, including the pages already reached": "이미 도달한 페이지를 포함해 모든 상태 페이지에 다시 보내기",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "이 인시던트가 생성되었다는 알림이 이 인시던트가 현재 도달하는 모든 상태 페이지의 구독자에게, 실패한 전송이 이미 도달한 페이지를 포함해 다시 전송됩니다.",
-  "Could not queue the notification again.": "알림을 다시 대기열에 넣을 수 없습니다."
+  "Could not queue the notification again.": "알림을 다시 대기열에 넣을 수 없습니다.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + 스크롤 또는 핀치로 확대/축소",
+  "The map is out of view.": "맵이 화면 밖에 있습니다."
 }

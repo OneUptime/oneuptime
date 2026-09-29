@@ -3773,7 +3773,7 @@
   "No status page resources created for this status page.": "No status page resources created for this status page.",
   "No Status Page.": "No Status Page.",
   "No status pages found.": "No status pages found.",
-  "No status set": "No status set",
+  "No error status set (OpenTelemetry default)": "No error status set (OpenTelemetry default)",
   "No status timeline created for this alert so far.": "No status timeline created for this alert so far.",
   "No status timeline created for this episode so far.": "No status timeline created for this episode so far.",
   "No status timeline created for this incident so far.": "No status timeline created for this incident so far.",
@@ -4927,7 +4927,7 @@
   "Source Key": "Source Key",
   "Space-separated list of OIDC scopes to request. Must include 'openid'.": "Space-separated list of OIDC scopes to request. Must include 'openid'.",
   "Span Attributes": "Span Attributes",
-  "Span completed successfully": "Span completed successfully",
+  "Explicitly marked successful": "Explicitly marked successful",
   "Span ended in error": "Span ended in error",
   "Span ID": "Span ID",
   "Span Kind": "Span Kind",
@@ -4938,6 +4938,7 @@
   "Span Status: Error": "Span Status: Error",
   "Span Status: Ok": "Span Status: Ok",
   "Span Status: Unset": "Span Status: Unset",
+  "Span Status: Unset (no error)": "Span Status: Unset (no error)",
   "Spans Preview": "Spans Preview",
   "Specific Times of the Day": "Specific Times of the Day",
   "Specific Times of the Week": "Specific Times of the Week",
@@ -6648,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.",
   "Send it to every status page again, including the pages already reached": "Send it to every status page again, including the pages already reached",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.",
-  "Could not queue the notification again.": "Could not queue the notification again."
+  "Could not queue the notification again.": "Could not queue the notification again.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + scroll or pinch to zoom",
+  "The map is out of view.": "The map is out of view."
 }

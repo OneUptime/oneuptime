@@ -16,6 +16,8 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import Card from "Common/UI/Components/Card/Card";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   FunctionComponent,
@@ -183,32 +185,45 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
   }, [timeRange, queryConfigs]);
 
   return (
-    <Card
-      title="Health"
-      description="Interface utilization and polled health metrics collected by this device's polls."
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={timeRange}
-          onChange={(newRange: RangeStartAndEndDateTime) => {
-            setTimeRange(newRange);
+    /*
+     * This card's range is the whole Metrics page's (issue #4105): a drag
+     * on either chart zooms `timeRange` itself, so the picker reads Custom
+     * and both panels narrow together (the effect above re-derives the
+     * view's window from it); a double-click on either chart, or "Reset
+     * zoom" beside the picker, puts the range back. Without this scope the
+     * view zoomed only its own window and left the picker on the old range.
+     */
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
+      <Card
+        title="Health"
+        description="Interface utilization and polled health metrics collected by this device's polls."
+        rightElement={
+          <div className="flex items-center gap-2">
+            <RangeStartAndEndDateView
+              dashboardStartAndEndDate={timeRange}
+              onChange={(newRange: RangeStartAndEndDateTime) => {
+                setTimeRange(newRange);
+              }}
+            />
+            <ResetTimeRangeZoomButton />
+          </div>
+        }
+      >
+        <MetricView
+          data={viewData}
+          hideQueryElements={true}
+          hideStartAndEndDate={true}
+          hideCardInCharts={true}
+          onChange={(data: MetricViewData) => {
+            setViewData({
+              ...data,
+              queryConfigs: queryConfigs,
+              formulaConfigs: [],
+            });
           }}
         />
-      }
-    >
-      <MetricView
-        data={viewData}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={(data: MetricViewData) => {
-          setViewData({
-            ...data,
-            queryConfigs: queryConfigs,
-            formulaConfigs: [],
-          });
-        }}
-      />
-    </Card>
+      </Card>
+    </TimeRangeZoomScope>
   );
 };
 
