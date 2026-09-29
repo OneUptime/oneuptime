@@ -1,7 +1,20 @@
 import React from "react";
 import MarkdownEditor from "../../../UI/Components/Markdown.tsx/MarkdownEditor";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, test } from "@jest/globals";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  fireEvent,
+} from "@testing-library/react";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  CHROME_VIEWER_COPY_HTML,
+  CHROME_VIEWER_COPY_TEXT,
+  VIEWER_COPY_SOURCE_MARKDOWN,
+  WORD_OUTLOOK_ISSUE_4114_HTML,
+} from "./fixtures/MarkdownPasteFixtures";
 
 describe("MarkdownEditor", () => {
   test("should render with toolbar buttons", () => {
@@ -151,5 +164,943 @@ describe("MarkdownEditor", () => {
     fireEvent.change(textarea, { target: { value: "new text" } });
 
     expect(mockOnChange).toHaveBeenCalledWith("new text");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Issue #4114: list indent / outdent, rich paste, double bullets, and the
+ * editor without image upload.
+ *
+ * jsdom has no document.execCommand. The code paths that use it fall back
+ * to DOM and value edits here, and the tests that need to see what the
+ * editor asks the browser for install a stub (see stubExecCommand).
+ * ---------------------------------------------------------------------------
+ */
+
+interface ClipboardStub {
+  types: Array<string>;
+  items: Array<{ kind: string; type: string; getAsFile: () => File | null }>;
+  getData: (format: string) => string;
+}
+
+const clipboardWith: (
+  data: { [format: string]: string },
+  files?: Array<File>,
+) => ClipboardStub = (
+  data: { [format: string]: string },
+  files: Array<File> = [],
+): ClipboardStub => {
+  return {
+    types: [...Object.keys(data), ...(files.length > 0 ? ["Files"] : [])],
+    items: files.map(
+      (file: File): { kind: string; type: string; getAsFile: () => File } => {
+        return {
+          kind: "file",
+          type: file.type,
+          getAsFile: (): File => {
+            return file;
+          },
+        };
+      },
+    ),
+    getData: (format: string): string => {
+      return data[format] ?? "";
+    },
+  };
+};
+
+const imageFile: () => File = (): File => {
+  const bytes: ArrayBuffer = new ArrayBuffer(4);
+  new Uint8Array(bytes).set([137, 80, 78, 71]);
+  const file: File = new File([bytes], "shot.png", { type: "image/png" });
+  // jsdom's File has no arrayBuffer(), which the upload reads the file with.
+  Object.defineProperty(file, "arrayBuffer", {
+    value: (): Promise<ArrayBuffer> => {
+      return Promise.resolve(bytes);
+    },
+  });
+  return file;
+};
+
+// Lets the upload's awaited steps run.
+const flushUploads: () => Promise<void> = async (): Promise<void> => {
+  await act(async () => {
+    await new Promise((resolve: (value: unknown) => void) => {
+      setTimeout(resolve, 0);
+    });
+  });
+};
+
+const editableOf: () => HTMLElement = (): HTMLElement => {
+  return document.querySelector('[contenteditable="true"]') as HTMLElement;
+};
+
+// Puts the caret `offset` characters into the first text node holding `text`.
+const placeCaret: (text: string, offset: number) => void = (
+  text: string,
+  offset: number,
+): void => {
+  const editable: HTMLElement = editableOf();
+  act(() => {
+    editable.focus();
+  });
+  const walker: TreeWalker = document.createTreeWalker(
+    editable,
+    NodeFilter.SHOW_TEXT,
+  );
+  let node: Node | null = walker.nextNode();
+  while (node && !(node.textContent || "").includes(text)) {
+    node = walker.nextNode();
+  }
+  if (!node) {
+    throw new Error(`no text "${text}" in the editor`);
+  }
+  const range: Range = document.createRange();
+  range.setStart(node, (node.textContent || "").indexOf(text) + offset);
+  range.collapse(true);
+  window.getSelection()?.removeAllRanges();
+  window.getSelection()?.addRange(range);
+};
+
+const selectAllInEditor: () => void = (): void => {
+  const range: Range = document.createRange();
+  range.selectNodeContents(editableOf());
+  window.getSelection()?.removeAllRanges();
+  window.getSelection()?.addRange(range);
+};
+
+const lastChange: (onChange: jest.Mock) => string = (
+  onChange: jest.Mock,
+): string => {
+  const calls: Array<Array<unknown>> = onChange.mock.calls;
+  return String(calls[calls.length - 1]?.[0] ?? "");
+};
+
+const switchToMarkdown: () => HTMLTextAreaElement = (): HTMLTextAreaElement => {
+  fireEvent.click(screen.getByRole("button", { name: "Markdown" }));
+  return screen.getByRole("textbox") as HTMLTextAreaElement;
+};
+
+type ExecCommandStub = jest.Mock<
+  boolean,
+  [command: string, showUi?: boolean | undefined, value?: string | undefined]
+>;
+
+// Installs document.execCommand for one test; `handle` answers each command.
+const stubExecCommand: (
+  handle: (command: string, value?: string) => boolean,
+) => ExecCommandStub = (
+  handle: (command: string, value?: string) => boolean,
+): ExecCommandStub => {
+  const stub: ExecCommandStub = jest.fn(
+    (
+      command: string,
+      _showUi?: boolean | undefined,
+      value?: string | undefined,
+    ): boolean => {
+      return handle(command, value);
+    },
+  );
+  Object.defineProperty(document, "execCommand", {
+    value: stub,
+    configurable: true,
+    writable: true,
+  });
+  return stub;
+};
+
+afterEach(() => {
+  cleanup();
+  delete (document as unknown as { execCommand?: unknown }).execCommand;
+  window.getSelection()?.removeAllRanges();
+  jest.restoreAllMocks();
+});
+
+describe("MarkdownEditor indent and outdent", () => {
+  test("has Indent and Outdent buttons that name their keys", () => {
+    render(<MarkdownEditor initialValue="" />);
+
+    expect(screen.getByTitle("Indent (Tab)")).toBeInTheDocument();
+    expect(screen.getByTitle("Outdent (Shift+Tab)")).toBeInTheDocument();
+  });
+
+  test("puts them in the lists group, after Task List", () => {
+    render(<MarkdownEditor initialValue="" />);
+
+    const titles: Array<string> = Array.from(
+      document.querySelectorAll("button[title]"),
+    ).map((button: Element): string => {
+      return button.getAttribute("title") || "";
+    });
+    const taskList: number = titles.indexOf("Task List");
+    expect(titles.slice(taskList, taskList + 3)).toEqual([
+      "Task List",
+      "Indent (Tab)",
+      "Outdent (Shift+Tab)",
+    ]);
+  });
+
+  describe("in the visual editor", () => {
+    test("Tab nests the item at the caret under the one before it", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor
+          initialValue={"- a\n- b\n  - c\n- d"}
+          onChange={onChange}
+        />,
+      );
+      placeCaret("b", 1);
+
+      const notPrevented: boolean = fireEvent.keyDown(editableOf(), {
+        key: "Tab",
+      });
+
+      expect(notPrevented).toBe(false);
+      expect(lastChange(onChange)).toBe("- a\n  - b\n    - c\n- d");
+      expect(document.activeElement).toBe(editableOf());
+    });
+
+    /*
+     * The no-keyboard-trap rule: when Tab has nothing to indent, the editor
+     * leaves the key alone and the browser moves focus to the next field.
+     */
+    test("leaves Tab to move focus when the item cannot be indented", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("a", 0);
+
+      expect(fireEvent.keyDown(editableOf(), { key: "Tab" })).toBe(true);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("leaves Tab to move focus outside a list", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue="just text" onChange={onChange} />);
+      placeCaret("text", 0);
+
+      expect(fireEvent.keyDown(editableOf(), { key: "Tab" })).toBe(true);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("Shift+Tab moves a nested item out beside its parent", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor
+          initialValue={"- a\n  - b\n  - c"}
+          onChange={onChange}
+        />,
+      );
+      placeCaret("b", 0);
+
+      expect(
+        fireEvent.keyDown(editableOf(), { key: "Tab", shiftKey: true }),
+      ).toBe(false);
+      expect(lastChange(onChange)).toBe("- a\n- b\n  - c");
+    });
+
+    test("leaves Shift+Tab to move focus back from a top-level item", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 0);
+
+      expect(
+        fireEvent.keyDown(editableOf(), { key: "Tab", shiftKey: true }),
+      ).toBe(true);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("does not take Tab with Ctrl, Alt or Cmd held, or while composing", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      placeCaret("b", 0);
+
+      for (const modifiers of [
+        { ctrlKey: true },
+        { altKey: true },
+        { metaKey: true },
+        { isComposing: true },
+      ]) {
+        expect(
+          fireEvent.keyDown(editableOf(), { key: "Tab", ...modifiers }),
+        ).toBe(true);
+      }
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    /*
+     * NoteComposer handles Cmd+Enter and Escape on its <form> and relies on
+     * key events bubbling up out of the editor.
+     */
+    test("lets the key event bubble on to the page either way", () => {
+      const onKeyDown: jest.Mock = jest.fn();
+      render(
+        <div onKeyDown={onKeyDown}>
+          <MarkdownEditor initialValue={"- a\n- b"} />
+        </div>,
+      );
+      placeCaret("b", 0);
+
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+      fireEvent.keyDown(editableOf(), { key: "Tab" });
+
+      expect(onKeyDown).toHaveBeenCalledTimes(2);
+    });
+
+    test("the toolbar buttons indent and outdent the item at the caret", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor
+          initialValue={"1. a\n2. b\n3. c"}
+          onChange={onChange}
+        />,
+      );
+      placeCaret("b", 0);
+
+      fireEvent.click(screen.getByTitle("Indent (Tab)"));
+      expect(lastChange(onChange)).toBe("1. a\n   1. b\n2. c");
+
+      fireEvent.click(screen.getByTitle("Outdent (Shift+Tab)"));
+      expect(lastChange(onChange)).toBe("1. a\n2. b\n3. c");
+    });
+
+    test("the Indent button does nothing outside a list", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue="text" onChange={onChange} />);
+      placeCaret("text", 1);
+
+      fireEvent.click(screen.getByTitle("Indent (Tab)"));
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("in the markdown source", () => {
+    test("Tab moves the selected item to its parent's content column", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor initialValue={"1. a\n2. b"} onChange={onChange} />,
+      );
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(8, 8);
+
+      expect(fireEvent.keyDown(textarea, { key: "Tab" })).toBe(false);
+      expect(textarea.value).toBe("1. a\n   1. b");
+      expect(lastChange(onChange)).toBe("1. a\n   1. b");
+      expect(textarea.value.slice(textarea.selectionStart)).toBe("b");
+    });
+
+    test("Shift+Tab moves it back", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor initialValue={"- a\n  - b"} onChange={onChange} />,
+      );
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(8, 8);
+
+      expect(fireEvent.keyDown(textarea, { key: "Tab", shiftKey: true })).toBe(
+        false,
+      );
+      expect(textarea.value).toBe("- a\n- b");
+    });
+
+    test("leaves Tab to move focus when there is nothing to indent", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(<MarkdownEditor initialValue={"- a\n- b"} onChange={onChange} />);
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+      textarea.setSelectionRange(0, 0);
+      expect(fireEvent.keyDown(textarea, { key: "Tab" })).toBe(true);
+      textarea.setSelectionRange(6, 6);
+      expect(fireEvent.keyDown(textarea, { key: "Tab", shiftKey: true })).toBe(
+        true,
+      );
+      expect(textarea.value).toBe("- a\n- b");
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("the toolbar buttons indent every selected item", () => {
+      render(<MarkdownEditor initialValue={"- a\n- b\n- c"} />);
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(4, 11);
+
+      fireEvent.click(screen.getByTitle("Indent (Tab)"));
+      expect(textarea.value).toBe("- a\n  - b\n  - c");
+
+      fireEvent.click(screen.getByTitle("Outdent (Shift+Tab)"));
+      expect(textarea.value).toBe("- a\n- b\n- c");
+    });
+
+    /*
+     * Where the browser has execCommand, only the changed stretch is
+     * replaced, with insertText -- so Ctrl+Z undoes an indent like typing.
+     */
+    test("replaces only the changed text through insertText when it can", () => {
+      render(<MarkdownEditor initialValue={"- a\n- b"} />);
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      const seen: Array<{ text?: string; start: number; end: number }> = [];
+      const valueSetter: ((value: string) => void) | undefined =
+        Object.getOwnPropertyDescriptor(
+          HTMLTextAreaElement.prototype,
+          "value",
+        )?.set;
+      stubExecCommand((command: string, value?: string): boolean => {
+        if (command !== "insertText" || value === undefined) {
+          return false;
+        }
+        const start: number = textarea.selectionStart;
+        const end: number = textarea.selectionEnd;
+        seen.push({ text: value, start, end });
+        // What the browser does: splice the text in and fire input.
+        valueSetter?.call(
+          textarea,
+          textarea.value.slice(0, start) + value + textarea.value.slice(end),
+        );
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      });
+      textarea.setSelectionRange(6, 6);
+
+      fireEvent.keyDown(textarea, { key: "Tab" });
+
+      expect(seen).toEqual([{ text: "  ", start: 4, end: 4 }]);
+      expect(textarea.value).toBe("- a\n  - b");
+      expect(textarea.selectionStart).toBe(8);
+    });
+  });
+});
+
+describe("MarkdownEditor list buttons", () => {
+  /*
+   * The double bullets of issue #4114: text pasted from Word still began
+   * with "•", execCommand("insertUnorderedList") kept it, and the item
+   * showed the list's bullet and its own -- saved as "- •\tService down".
+   */
+  test("Bullet List strips the bullet characters the lines began with", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    stubExecCommand((command: string): boolean => {
+      if (command !== "insertUnorderedList") {
+        return false;
+      }
+      // What Chromium leaves after turning the pasted lines into a list.
+      editableOf().innerHTML =
+        "<ul><li>•\tService down</li><li>o\tUsers cannot log in</li></ul>";
+      selectAllInEditor();
+      return true;
+    });
+    act(() => {
+      editableOf().focus();
+    });
+
+    fireEvent.click(screen.getByTitle("Bullet List"));
+
+    expect(document.execCommand).toHaveBeenCalledWith(
+      "insertUnorderedList",
+      false,
+      undefined,
+    );
+    expect(lastChange(onChange)).toBe("- Service down\n- Users cannot log in");
+    expect(editableOf().textContent).not.toContain("•");
+  });
+
+  test("Numbered List strips the numbers the lines were typed with", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    stubExecCommand((command: string): boolean => {
+      if (command !== "insertOrderedList") {
+        return false;
+      }
+      editableOf().innerHTML = "<ol><li>1.\tFirst</li><li>2.\tSecond</li></ol>";
+      selectAllInEditor();
+      return true;
+    });
+    act(() => {
+      editableOf().focus();
+    });
+
+    fireEvent.click(screen.getByTitle("Numbered List"));
+
+    expect(lastChange(onChange)).toBe("1. First\n2. Second");
+  });
+
+  describe("in the markdown source", () => {
+    /*
+     * The same bug in the source: the button put "- " on the first selected
+     * line only, in front of the pasted "•".
+     */
+    test("Bullet List replaces the bullets on every selected line", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor
+          initialValue={"•\tService down\nsecond line"}
+          onChange={onChange}
+        />,
+      );
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      fireEvent.click(screen.getByTitle("Bullet List"));
+
+      expect(textarea.value).toBe("- Service down\n- second line");
+      expect(lastChange(onChange)).toBe("- Service down\n- second line");
+    });
+
+    test("Numbered List numbers every selected line", () => {
+      render(<MarkdownEditor initialValue={"a\nb\nc"} />);
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      fireEvent.click(screen.getByTitle("Numbered List"));
+
+      expect(textarea.value).toBe("1. a\n2. b\n3. c");
+    });
+
+    test("a second click takes the markers off again", () => {
+      render(<MarkdownEditor initialValue={"a\nb"} />);
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      fireEvent.click(screen.getByTitle("Task List"));
+      expect(textarea.value).toBe("- [ ] a\n- [ ] b");
+
+      textarea.setSelectionRange(0, textarea.value.length);
+      fireEvent.click(screen.getByTitle("Task List"));
+      expect(textarea.value).toBe("a\nb");
+    });
+
+    test("starts a list on an empty line with the caret after the marker", () => {
+      render(<MarkdownEditor initialValue="" />);
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(0, 0);
+
+      fireEvent.click(screen.getByTitle("Bullet List"));
+
+      expect(textarea.value).toBe("- ");
+      expect(textarea.selectionStart).toBe(2);
+    });
+  });
+});
+
+describe("MarkdownEditor paste in the visual editor", () => {
+  test("keeps the nesting of a list pasted from Outlook", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    const notPrevented: boolean = fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": WORD_OUTLOOK_ISSUE_4114_HTML,
+        "text/plain": "flattened text",
+      }),
+    });
+
+    expect(notPrevented).toBe(false);
+    expect(lastChange(onChange)).toContain(
+      "- Service is currently unavailable\n  - Users are unable to log in\n  - Users are receiving an error message\n- Investigation is in progress\n  - Technical team has been notified\n  - Vendor has been contacted",
+    );
+    expect(
+      editableOf().querySelector("li > ul > li")?.textContent,
+    ).toBeTruthy();
+  });
+
+  test("turns a copied note back into the markdown it was written in", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": CHROME_VIEWER_COPY_HTML,
+        "text/plain": CHROME_VIEWER_COPY_TEXT,
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(VIEWER_COPY_SOURCE_MARKDOWN);
+  });
+
+  test("makes pasted bullet characters a nested list, not text", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/plain": "•\tService down\no\tUsers cannot log in",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- Service down\n  - Users cannot log in",
+    );
+    expect(editableOf().innerHTML).toBe(
+      "<ul><li>Service down<ul><li>Users cannot log in</li></ul></li></ul>",
+    );
+  });
+
+  /*
+   * A paragraph pasted into the middle of a line used to land as a <p>
+   * inside the <p> the caret was in, and "big " pasted into "hello world"
+   * saved "hello \n\nbig \n\nworld".
+   */
+  test("pastes a word into the middle of a line without splitting it", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    placeCaret("world", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "big " }),
+    });
+
+    expect(lastChange(onChange)).toBe("hello big world");
+    expect(editableOf().querySelectorAll("p")).toHaveLength(1);
+  });
+
+  test("pastes formatted words into the middle of a line", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    placeCaret("world", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<b>very</b> ",
+        "text/plain": "very ",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("hello **very** world");
+  });
+
+  test("keeps the paragraph when pasting into an empty editor", () => {
+    render(<MarkdownEditor initialValue="" />);
+    const range: Range = document.createRange();
+    range.setStart(editableOf(), 0);
+    range.collapse(true);
+    act(() => {
+      editableOf().focus();
+    });
+    window.getSelection()?.addRange(range);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "first" }),
+    });
+
+    expect(editableOf().innerHTML).toBe("<p>first</p>");
+  });
+
+  /*
+   * insertText for plain words (as if typed -- Firefox's insertHTML turns
+   * the space before them into a non-breaking one), insertHTML for markup.
+   * Both go on the browser's undo stack.
+   */
+  test("asks the browser to insert words as text and blocks as HTML", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    const stub: ExecCommandStub = stubExecCommand((): boolean => {
+      return false;
+    });
+    placeCaret("world", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "big " }),
+    });
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "- a\n- b" }),
+    });
+
+    expect(stub.mock.calls[0]).toEqual(["insertText", false, "big "]);
+    expect(stub.mock.calls[1]).toEqual([
+      "insertHTML",
+      false,
+      "<ul><li>a</li><li>b</li></ul>",
+    ]);
+    // The browser refused both here, so the editor inserted them itself.
+    expect(lastChange(onChange)).toContain("hello big");
+  });
+
+  test("does not insert twice when the browser takes the insert", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    stubExecCommand((command: string, value?: string): boolean => {
+      if (command !== "insertText" || value === undefined) {
+        return false;
+      }
+      const range: Range = window.getSelection()!.getRangeAt(0);
+      range.insertNode(document.createTextNode(value));
+      return true;
+    });
+    placeCaret("world", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "big " }),
+    });
+
+    expect(lastChange(onChange)).toBe("hello big world");
+  });
+
+  test("pastes into a code block as the plain text it is", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"```\ncode\n```"} onChange={onChange} />,
+    );
+    placeCaret("code", 4);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>not a list here</li></ul>",
+        "text/plain": "\r\n- line one\r\n  * line two",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "```\ncode\n- line one\n  * line two\n```",
+    );
+  });
+
+  test("lets nothing from hostile HTML through", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html":
+          '<p>safe <a href="javascript:alert(1)">link</a></p><img src="x" onerror="window.__editorPasteRan=1"><script>window.__editorPasteRan=2</script>',
+        "text/plain": "safe link",
+      }),
+    });
+
+    expect(lastChange(onChange)).not.toMatch(/javascript|onerror|script/);
+    expect(editableOf().innerHTML).not.toMatch(/onerror|<script|javascript/);
+    expect(
+      (window as unknown as { __editorPasteRan?: number }).__editorPasteRan,
+    ).toBeUndefined();
+  });
+
+  test("leaves a paste without clipboard data to the browser", () => {
+    render(<MarkdownEditor initialValue="" />);
+
+    expect(fireEvent.paste(editableOf(), {})).toBe(true);
+  });
+});
+
+describe("MarkdownEditor paste in the markdown source", () => {
+  test("writes pasted rich text as markdown source", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    const notPrevented: boolean = fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>a<ul><li>b</li></ul></li></ul>",
+        "text/plain": "a\nb",
+      }),
+    });
+
+    expect(notPrevented).toBe(false);
+    expect(lastChange(onChange)).toBe("- a\n  - b");
+  });
+
+  test("writes pasted bullet characters as markdown items", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({ "text/plain": "•\ta\n•\tb" }),
+      }),
+    ).toBe(false);
+    expect(lastChange(onChange)).toBe("- a\n- b");
+  });
+
+  /*
+   * When there is nothing to convert, the browser's own paste inserts the
+   * same text and keeps it on the undo stack, so it is left to do that.
+   */
+  test("leaves a plain paste to the browser", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({
+          "text/plain": "- already\r\n- markdown",
+          "text/html": "<p>- already<br>- markdown</p>",
+        }),
+      }),
+    ).toBe(true);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("still uploads a pasted image", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "create")
+      .mockReturnValue(new Promise<never>(() => {}) as never);
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    expect(
+      fireEvent.paste(textarea, {
+        clipboardData: clipboardWith({}, [imageFile()]),
+      }),
+    ).toBe(false);
+    expect(lastChange(onChange)).toMatch(/^!\[Uploading shot\.png/);
+    await flushUploads();
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("MarkdownEditor without image upload", () => {
+  test("shows the Image button, file picker and upload tip by default", () => {
+    render(<MarkdownEditor initialValue="" />);
+
+    expect(screen.getByTitle("Image")).toBeInTheDocument();
+    expect(document.querySelector('input[type="file"]')).not.toBeNull();
+    expect(screen.getByText(/upload screenshots inline/)).toBeInTheDocument();
+  });
+
+  test("hides the Image button, file picker and upload tip when turned off", () => {
+    render(<MarkdownEditor initialValue="" allowImageUpload={false} />);
+
+    expect(screen.queryByTitle("Image")).toBeNull();
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+    expect(screen.queryByText(/upload screenshots inline/)).toBeNull();
+    // The rest of the toolbar is still there.
+    expect(screen.getByTitle("Link")).toBeInTheDocument();
+    expect(screen.getByTitle("Indent (Tab)")).toBeInTheDocument();
+  });
+
+  test("ignores a pasted image, and does not let the browser insert it", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest.spyOn(ModelAPI, "create");
+    render(
+      <MarkdownEditor
+        initialValue=""
+        allowImageUpload={false}
+        onChange={onChange}
+      />,
+    );
+
+    const notPrevented: boolean = fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({}, [imageFile()]),
+    });
+
+    expect(notPrevented).toBe(false);
+    await flushUploads();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+    expect(editableOf().innerHTML).toBe("");
+  });
+
+  test("still pastes the text that comes with an image", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue=""
+        allowImageUpload={false}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "caption" }, [imageFile()]),
+    });
+
+    expect(lastChange(onChange)).toBe("caption");
+  });
+
+  test("ignores a pasted image in the markdown source", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest.spyOn(ModelAPI, "create");
+    render(
+      <MarkdownEditor
+        initialValue=""
+        allowImageUpload={false}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({}, [imageFile()]),
+    });
+    await flushUploads();
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("refuses a dropped file without uploading it", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest.spyOn(ModelAPI, "create");
+    render(
+      <MarkdownEditor
+        initialValue=""
+        allowImageUpload={false}
+        onChange={onChange}
+      />,
+    );
+    const dataTransfer: {
+      types: Array<string>;
+      files: Array<File>;
+      dropEffect: string;
+    } = { types: ["Files"], files: [imageFile()], dropEffect: "copy" };
+
+    expect(fireEvent.dragOver(editableOf(), { dataTransfer })).toBe(false);
+    expect(dataTransfer.dropEffect).toBe("none");
+    expect(screen.queryByText("Drop image to upload")).toBeNull();
+    expect(fireEvent.drop(editableOf(), { dataTransfer })).toBe(false);
+    await flushUploads();
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("uploads a dropped image when uploads are on", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "create")
+      .mockReturnValue(new Promise<never>(() => {}) as never);
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const dataTransfer: { types: Array<string>; files: Array<File> } = {
+      types: ["Files"],
+      files: [imageFile()],
+    };
+
+    fireEvent.dragOver(editableOf(), { dataTransfer });
+    expect(screen.getByText("Drop image to upload")).toBeInTheDocument();
+    fireEvent.drop(editableOf(), { dataTransfer });
+
+    expect(lastChange(onChange)).toMatch(/^!\[Uploading shot\.png/);
+    await flushUploads();
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  test("uploads a pasted image in the visual editor when uploads are on", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "create")
+      .mockReturnValue(new Promise<never>(() => {}) as never);
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({}, [imageFile()]),
+    });
+
+    expect(lastChange(onChange)).toMatch(/^!\[Uploading shot\.png/);
+    await flushUploads();
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("MarkdownEditor help text", () => {
+  test("explains Tab and Shift+Tab, and plain-text paste", () => {
+    render(<MarkdownEditor initialValue="" />);
+
+    expect(screen.getByText(/to indent an item and/)).toBeInTheDocument();
+    expect(screen.getByText("Shift+Tab")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl+Shift+V")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Outside a list, Tab moves to the next field/),
+    ).toBeInTheDocument();
   });
 });

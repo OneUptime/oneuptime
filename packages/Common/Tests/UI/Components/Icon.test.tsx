@@ -81,3 +81,35 @@ describe("Icon bars-and-arrow sort glyphs", () => {
     );
   });
 });
+
+/*
+ * The markdown editor's Indent and Outdent buttons show nothing but these
+ * glyphs, so each has to draw its own arrow -- in for Indent, out for
+ * Outdent -- and neither may fall through to an empty icon.
+ */
+describe("Icon indent and outdent", () => {
+  it("draws lines of text with an arrow pointing in for Indent", () => {
+    expect(getIconPath(IconProp.Indent)).toBe(
+      "M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M3.75 9l3 3-3 3",
+    );
+  });
+
+  it("draws the same lines with the arrow pointing out for Outdent", () => {
+    expect(getIconPath(IconProp.Outdent)).toBe(
+      "M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M6.75 9l-3 3 3 3",
+    );
+  });
+
+  it("draws two glyphs that differ from each other and from the list icons", () => {
+    const paths: Array<string> = [
+      getIconPath(IconProp.Indent),
+      getIconPath(IconProp.Outdent),
+      getIconPath(IconProp.ListBullet),
+      getIconPath(IconProp.List),
+    ];
+
+    expect(paths[0]).not.toBe(paths[1]);
+    expect(paths.slice(2)).not.toContain(paths[0]);
+    expect(paths.slice(2)).not.toContain(paths[1]);
+  });
+});

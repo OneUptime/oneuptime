@@ -11,6 +11,17 @@ import MimeType from "../../../Types/File/MimeType";
 import FileModel from "../../../Models/DatabaseModels/File";
 import DOMPurify from "dompurify";
 import { htmlToMarkdown, markdownToHtml } from "./MarkdownConverters";
+import {
+  indentMarkdownLines,
+  liftListItems,
+  MarkdownListKind,
+  MarkdownTextEdit,
+  outdentMarkdownLines,
+  sinkListItems,
+  stripTextListMarkers,
+  toggleMarkdownList,
+} from "./MarkdownListEditing";
+import { clipboardToMarkdown } from "./MarkdownPaste";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -32,6 +43,13 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  /*
+   * Default: true. Inline images upload to the File API, which needs a
+   * signed-in user, so a form open to anyone (no OneUptime account) sets
+   * this to false: the Image button is hidden and pasted or dropped image
+   * files are ignored rather than failing to upload.
+   */
+  allowImageUpload?: boolean | undefined;
 }
 
 type EditorMode = "wysiwyg" | "markdown";
@@ -77,6 +95,61 @@ const sanitizeHtml: (html: string) => string = (html: string): string => {
   });
 };
 
+const RE_SINGLE_PARAGRAPH: RegExp = /^<p>([\s\S]*)<\/p>$/;
+const RE_LINE_BREAKS: RegExp = /\r\n?/g;
+
+/*
+ * The inside of `html` when it is exactly one paragraph -- which is what
+ * markdownToHtml makes of a word, a sentence or an image -- and null for
+ * anything else.
+ */
+const singleParagraphContents: (html: string) => string | null = (
+  html: string,
+): string | null => {
+  const inner: string | undefined = html.match(RE_SINGLE_PARAGRAPH)?.[1];
+  if (inner === undefined || inner.includes("</p>")) {
+    return null;
+  }
+  return inner;
+};
+
+const RE_MARKUP: RegExp = /<[a-z!/]/i;
+
+// The text of `html` when it holds no markup at all, else null.
+const textOfMarkupFreeHtml: (html: string) => string | null = (
+  html: string,
+): string | null => {
+  if (RE_MARKUP.test(html)) {
+    return null;
+  }
+  // Only entities to decode; a <template> parses them without running anything.
+  const template: HTMLTemplateElement = document.createElement("template");
+  template.innerHTML = html;
+  return template.content.textContent || "";
+};
+
+/*
+ * Tab and Shift+Tab without other modifiers indent and outdent list items.
+ * A keypress that is still composing (an IME) is left alone.
+ */
+const isListIndentKey: (event: React.KeyboardEvent<HTMLElement>) => boolean = (
+  event: React.KeyboardEvent<HTMLElement>,
+): boolean => {
+  return (
+    event.key === "Tab" &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    !event.nativeEvent.isComposing
+  );
+};
+
+type MarkdownTextEditor = (
+  text: string,
+  selectionStart: number,
+  selectionEnd: number,
+) => MarkdownTextEdit | null;
+
 interface ToolbarButtonProps {
   icon: IconProp;
   title: string;
@@ -116,6 +189,7 @@ const ToolbarButton: FunctionComponent<ToolbarButtonProps> = ({
 const MarkdownEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const allowImageUpload: boolean = props.allowImageUpload !== false;
   const [text, setText] = useState<string>(props.initialValue || "");
   const [mode, setMode] = useState<EditorMode>("wysiwyg");
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
@@ -235,8 +309,44 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       syncFromEditable();
       return;
     }
+    /*
+     * A single paragraph goes in as its contents, so text pasted into the
+     * middle of a line joins that line. Inserted whole, the <p> landed
+     * inside the paragraph the caret was in and the serializer wrote it out
+     * as three: pasting "big " into "hello world" saved
+     * "hello \n\nbig \n\nworld", and an uploading image's placeholder split
+     * its line the same way. Straight into the editor itself -- empty, or
+     * between two blocks -- the paragraph is kept.
+     */
+    const contents: string =
+      range.startContainer === editable
+        ? html
+        : singleParagraphContents(html) ?? html;
+    /*
+     * execCommand splits blocks the way the browser's own paste would, and
+     * puts the insert on the undo stack. Plain words go in with insertText,
+     * as if typed: Firefox's insertHTML turns the space before them into a
+     * non-breaking one. jsdom has no execCommand and a browser may refuse
+     * the command, so the Range insert below stays as the fallback.
+     */
+    if (typeof document.execCommand === "function") {
+      const plainText: string | null =
+        contents === html ? null : textOfMarkupFreeHtml(contents);
+      try {
+        const inserted: boolean =
+          plainText === null
+            ? document.execCommand("insertHTML", false, contents)
+            : document.execCommand("insertText", false, plainText);
+        if (inserted) {
+          syncFromEditable();
+          return;
+        }
+      } catch {
+        // Fall through to the Range insert.
+      }
+    }
     range.deleteContents();
-    const fragment: DocumentFragment = range.createContextualFragment(html);
+    const fragment: DocumentFragment = range.createContextualFragment(contents);
     const lastNode: ChildNode | null = fragment.lastChild;
     range.insertNode(fragment);
     if (lastNode) {
@@ -406,39 +516,139 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     return files;
   };
 
+  /*
+   * Text for the source textarea. execCommand("insertText") types it the
+   * way a native paste would, so Ctrl+Z undoes it; where the browser has no
+   * such command (jsdom) it is spliced into the value instead.
+   */
+  const insertTextInTextarea: (textToInsert: string) => void = (
+    textToInsert: string,
+  ): void => {
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
+    if (textarea && typeof document.execCommand === "function") {
+      textarea.focus();
+      try {
+        if (document.execCommand("insertText", false, textToInsert)) {
+          return;
+        }
+      } catch {
+        // Fall back to splicing the value.
+      }
+    }
+    insertTextAtCursor(textToInsert);
+  };
+
+  /*
+   * Markdown mode. Rich clipboard content (a Word list, a copied note) is
+   * converted to markdown source, and a file on the clipboard uploads as
+   * before. When the conversion gives back exactly the plain text, the
+   * browser's own paste inserts the same thing, so it is left to it.
+   */
   const handleTextareaPaste: (
     e: React.ClipboardEvent<HTMLTextAreaElement>,
   ) => void = (e: React.ClipboardEvent<HTMLTextAreaElement>): void => {
-    const images: Array<File> = extractImagesFromClipboard(
-      e.clipboardData?.items || null,
+    const clipboardData: DataTransfer | null = e.clipboardData;
+    if (!clipboardData) {
+      return;
+    }
+    const images: Array<File> = allowImageUpload
+      ? extractImagesFromClipboard(clipboardData.items || null)
+      : [];
+    const markdown: string | null = clipboardToMarkdown(clipboardData, {
+      hasImageFiles: images.length > 0,
+    });
+    if (markdown === null) {
+      if (images.length > 0) {
+        e.preventDefault();
+        void handleImageFiles(images);
+      }
+      return;
+    }
+    const plain: string = (clipboardData.getData("text/plain") || "").replace(
+      RE_LINE_BREAKS,
+      "\n",
     );
-    if (images.length === 0) {
+    if (markdown === plain) {
       return;
     }
     e.preventDefault();
-    void handleImageFiles(images);
+    insertTextInTextarea(markdown);
   };
 
+  // The code block the caret is in, if it is in one.
+  const codeBlockAtSelection: () => HTMLElement | null =
+    (): HTMLElement | null => {
+      const editable: HTMLDivElement | null = editableRef.current;
+      const selection: Selection | null = window.getSelection();
+      if (!editable || !selection || selection.rangeCount === 0) {
+        return null;
+      }
+      let node: Node | null = selection.getRangeAt(0).startContainer;
+      while (node && node !== editable) {
+        if (node.nodeName.toLowerCase() === "pre") {
+          return node as HTMLElement;
+        }
+        node = node.parentNode;
+      }
+      return null;
+    };
+
+  const insertPlainTextInEditable: (value: string) => void = (
+    value: string,
+  ): void => {
+    const selection: Selection | null = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+    const range: Range = selection.getRangeAt(0);
+    range.deleteContents();
+    const textNode: Text = document.createTextNode(value);
+    range.insertNode(textNode);
+    const after: Range = document.createRange();
+    after.setStartAfter(textNode);
+    after.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(after);
+    syncFromEditable();
+  };
+
+  /*
+   * Visual mode. The browser's own paste would bring the source's markup in
+   * with it -- styles, classes, elements markdown cannot hold -- so the paste
+   * is always handled here: converted to markdown (the clipboard's HTML
+   * first, so a Word or Outlook list keeps its nesting, then its plain text)
+   * and rendered back. Image files upload when there is no text to paste.
+   * Inside a code block the plain text goes in as it is.
+   */
   const handleEditablePaste: (
     e: React.ClipboardEvent<HTMLDivElement>,
   ) => void = (e: React.ClipboardEvent<HTMLDivElement>): void => {
-    const images: Array<File> = extractImagesFromClipboard(
-      e.clipboardData?.items || null,
-    );
-    if (images.length > 0) {
-      e.preventDefault();
-      void handleImageFiles(images);
+    const clipboardData: DataTransfer | null = e.clipboardData;
+    if (!clipboardData) {
       return;
     }
-    /*
-     * Force plain-text paste so users don't import arbitrary styled HTML
-     * (which our markdown serializer can't faithfully round-trip).
-     */
-    const plain: string | undefined = e.clipboardData?.getData("text/plain");
-    if (plain !== undefined) {
-      e.preventDefault();
-      const html: string = sanitizeHtml(markdownToHtml(plain));
-      insertHtmlAtCursorInEditable(html);
+    e.preventDefault();
+    if (codeBlockAtSelection()) {
+      const plain: string = clipboardData.getData("text/plain") || "";
+      if (plain) {
+        insertPlainTextInEditable(plain.replace(RE_LINE_BREAKS, "\n"));
+      }
+      return;
+    }
+    const images: Array<File> = allowImageUpload
+      ? extractImagesFromClipboard(clipboardData.items || null)
+      : [];
+    const markdown: string | null = clipboardToMarkdown(clipboardData, {
+      hasImageFiles: images.length > 0,
+    });
+    if (markdown !== null) {
+      if (markdown) {
+        insertMarkdownAtCursor(markdown);
+      }
+      return;
+    }
+    if (images.length > 0) {
+      void handleImageFiles(images);
     }
   };
 
@@ -463,6 +673,17 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       return;
     }
     e.preventDefault();
+    if (!allowImageUpload) {
+      /*
+       * Refuse the drop outright. Left to itself the browser would drop the
+       * file in anyway -- Firefox inlines an image as a data: URL -- or
+       * navigate away to it.
+       */
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "none";
+      }
+      return;
+    }
     if (!isDraggingOver) {
       setIsDraggingOver(true);
     }
@@ -482,6 +703,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     }
     e.preventDefault();
     setIsDraggingOver(false);
+    if (!allowImageUpload) {
+      return;
+    }
     const fileList: FileList | null = e.dataTransfer?.files || null;
     if (!fileList || fileList.length === 0) {
       return;
@@ -491,6 +715,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   };
 
   const handleImageButtonClick: () => void = (): void => {
+    if (!allowImageUpload) {
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -627,10 +854,121 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Puts an edit into the source textarea, selection included. Only the
+   * stretch that changed is replaced, with execCommand("insertText") where
+   * the browser has it, so Ctrl+Z undoes an indent like any typing; without
+   * it (jsdom) the value is set directly.
+   */
+  const applyTextareaEdit: (edit: MarkdownTextEdit) => void = (
+    edit: MarkdownTextEdit,
+  ): void => {
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+    const current: string = textarea.value;
+    let start: number = 0;
+    while (
+      start < current.length &&
+      start < edit.text.length &&
+      current.charAt(start) === edit.text.charAt(start)
+    ) {
+      start++;
+    }
+    let oldEnd: number = current.length;
+    let newEnd: number = edit.text.length;
+    while (
+      oldEnd > start &&
+      newEnd > start &&
+      current.charAt(oldEnd - 1) === edit.text.charAt(newEnd - 1)
+    ) {
+      oldEnd--;
+      newEnd--;
+    }
+    textarea.focus();
+    let applied: boolean = false;
+    if (typeof document.execCommand === "function") {
+      textarea.setSelectionRange(start, oldEnd);
+      try {
+        applied = document.execCommand(
+          "insertText",
+          false,
+          edit.text.slice(start, newEnd),
+        );
+      } catch {
+        applied = false;
+      }
+    }
+    if (!applied || textarea.value !== edit.text) {
+      textarea.value = edit.text;
+    }
+    if (textRef.current !== edit.text) {
+      handleChange(edit.text);
+    }
+    textarea.setSelectionRange(edit.selectionStart, edit.selectionEnd);
+  };
+
+  // Runs a source edit on the textarea's text and selection; false if it changed nothing.
+  const editTextarea: (editor: MarkdownTextEditor) => boolean = (
+    editor: MarkdownTextEditor,
+  ): boolean => {
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
+    if (!textarea) {
+      return false;
+    }
+    const edit: MarkdownTextEdit | null = editor(
+      textarea.value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+    );
+    if (!edit) {
+      return false;
+    }
+    applyTextareaEdit(edit);
+    return true;
+  };
+
+  const toggleListInTextarea: (kind: MarkdownListKind) => void = (
+    kind: MarkdownListKind,
+  ): void => {
+    editTextarea(
+      (source: string, selectionStart: number, selectionEnd: number) => {
+        return toggleMarkdownList(source, selectionStart, selectionEnd, kind);
+      },
+    );
+  };
+
+  /*
+   * Indent or outdent the list items at the selection in the visual editor;
+   * false (and nothing changed) when the selection is not on an item that
+   * can move.
+   */
+  const shiftListItemsInEditable: (outdent: boolean) => boolean = (
+    outdent: boolean,
+  ): boolean => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return false;
+    }
+    const changed: boolean = outdent
+      ? liftListItems(editable)
+      : sinkListItems(editable);
+    if (changed) {
+      syncFromEditable();
+    }
+    return changed;
+  };
+
   // WYSIWYG-mode toolbar helpers (operate on the contenteditable DOM).
-  const execEditable: (command: string, value?: string) => void = (
+  const execEditable: (
     command: string,
     value?: string,
+    afterCommand?: (editable: HTMLDivElement) => void,
+  ) => void = (
+    command: string,
+    value?: string,
+    afterCommand?: (editable: HTMLDivElement) => void,
   ): void => {
     const editable: HTMLDivElement | null = editableRef.current;
     if (!editable) {
@@ -647,7 +985,24 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     } catch {
       // Ignore — older command names occasionally throw in some browsers.
     }
+    if (afterCommand) {
+      afterCommand(editable);
+    }
     syncFromEditable();
+  };
+
+  /*
+   * The list buttons. execCommand turns the selected lines into items but
+   * keeps whatever text they started with, so a line pasted from Word as
+   * "•\tService down" showed the list's bullet and its own; the leftover
+   * markers are stripped from the items it made.
+   */
+  const makeListInEditable: (command: string) => void = (
+    command: string,
+  ): void => {
+    execEditable(command, undefined, (editable: HTMLDivElement): void => {
+      stripTextListMarkers(editable);
+    });
   };
 
   const wrapSelectionInEditable: (
@@ -734,6 +1089,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     unorderedList: () => void;
     orderedList: () => void;
     taskList: () => void;
+    indent: () => void;
+    outdent: () => void;
     link: () => void;
     image: () => void;
     code: () => void;
@@ -786,21 +1143,37 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     },
     unorderedList: () => {
       if (mode === "wysiwyg") {
-        return execEditable("insertUnorderedList");
+        return makeListInEditable("insertUnorderedList");
       }
-      return insertAtLineStart("- ");
+      return toggleListInTextarea("bullet");
     },
     orderedList: () => {
       if (mode === "wysiwyg") {
-        return execEditable("insertOrderedList");
+        return makeListInEditable("insertOrderedList");
       }
-      return insertAtLineStart("1. ");
+      return toggleListInTextarea("ordered");
     },
     taskList: () => {
       if (mode === "wysiwyg") {
         return insertWysiwygTaskList();
       }
-      return insertAtLineStart("- [ ] ");
+      return toggleListInTextarea("task");
+    },
+    indent: () => {
+      if (mode === "wysiwyg") {
+        editableRef.current?.focus();
+        shiftListItemsInEditable(false);
+        return;
+      }
+      editTextarea(indentMarkdownLines);
+    },
+    outdent: () => {
+      if (mode === "wysiwyg") {
+        editableRef.current?.focus();
+        shiftListItemsInEditable(true);
+        return;
+      }
+      editTextarea(outdentMarkdownLines);
     },
     link: () => {
       if (mode === "wysiwyg") {
@@ -887,6 +1260,41 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           break;
       }
     }
+    /*
+     * Tab indents a list item and Shift+Tab outdents it -- but the key is
+     * only taken when that actually moved something. On a list's first
+     * item, a top-level item, or outside a list, Tab keeps moving focus to
+     * the next field (and Shift+Tab to the previous one), so the editor is
+     * never a keyboard trap. The event is not stopped either: the note
+     * composer handles its own keys where they bubble to.
+     */
+    if (isListIndentKey(e) && shiftListItemsInEditable(e.shiftKey)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleTextareaKeyDown: (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => void = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case "b":
+          e.preventDefault();
+          formatActions.bold();
+          break;
+        case "i":
+          e.preventDefault();
+          formatActions.italic();
+          break;
+      }
+    }
+    // The same Tab rule as the visual editor's, on the markdown lines.
+    if (
+      isListIndentKey(e) &&
+      editTextarea(e.shiftKey ? outdentMarkdownLines : indentMarkdownLines)
+    ) {
+      e.preventDefault();
+    }
   };
 
   return (
@@ -899,6 +1307,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         .oneuptime-wysiwyg p { margin: 0.5rem 0; }
         .oneuptime-wysiwyg ul, .oneuptime-wysiwyg ol { margin: 0.5rem 0 0.5rem 1.5rem; }
         .oneuptime-wysiwyg ul { list-style-type: disc; }
+        /* Nested bullets step through circle and square, as MarkdownViewer draws them. */
+        .oneuptime-wysiwyg ul ul, .oneuptime-wysiwyg ol ul { list-style-type: circle; }
+        .oneuptime-wysiwyg ul ul ul, .oneuptime-wysiwyg ul ol ul, .oneuptime-wysiwyg ol ul ul, .oneuptime-wysiwyg ol ol ul { list-style-type: square; }
         .oneuptime-wysiwyg ol { list-style-type: decimal; }
         .oneuptime-wysiwyg ul.task-list, .oneuptime-wysiwyg ul.task-list li { list-style: none; margin-left: 0; }
         .oneuptime-wysiwyg ul.task-list li { padding-left: 0; }
@@ -1006,6 +1417,21 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               title="Task List"
               onClick={formatActions.taskList}
             />
+            <ToolbarButton
+              icon={IconProp.Indent}
+              title={`Indent (${KeyboardKeyUtil.getDisplayLabel([
+                KeyboardKey.Tab,
+              ])})`}
+              onClick={formatActions.indent}
+            />
+            <ToolbarButton
+              icon={IconProp.Outdent}
+              title={`Outdent (${KeyboardKeyUtil.getDisplayLabel([
+                KeyboardKey.Shift,
+                KeyboardKey.Tab,
+              ])})`}
+              onClick={formatActions.outdent}
+            />
           </div>
 
           <div className="w-px h-6 bg-gray-300" />
@@ -1017,11 +1443,13 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               title="Link"
               onClick={formatActions.link}
             />
-            <ToolbarButton
-              icon={IconProp.Image}
-              title="Image"
-              onClick={formatActions.image}
-            />
+            {allowImageUpload && (
+              <ToolbarButton
+                icon={IconProp.Image}
+                title="Image"
+                onClick={formatActions.image}
+              />
+            )}
             <ToolbarButton
               icon={IconProp.Code}
               title="Code"
@@ -1106,14 +1534,16 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 
       {/* Editor Area */}
       <div className="relative">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileInputChange}
-        />
+        {allowImageUpload && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
+        )}
         {mode === "wysiwyg" ? (
           <>
             <div
@@ -1195,20 +1625,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
                   props.onBlur();
                 }
               }}
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (e.ctrlKey || e.metaKey) {
-                  switch (e.key) {
-                    case "b":
-                      e.preventDefault();
-                      formatActions.bold();
-                      break;
-                    case "i":
-                      e.preventDefault();
-                      formatActions.italic();
-                      break;
-                  }
-                }
-              }}
+              onKeyDown={handleTextareaKeyDown}
               tabIndex={props.tabIndex}
               rows={10}
             />
@@ -1246,9 +1663,39 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             Switch to <strong>Markdown</strong> to view or edit the raw source.
           </div>
           <div>
-            Tip: paste, drag &amp; drop, or click the image button to upload
-            screenshots inline.
+            In a list, press{" "}
+            <strong>
+              {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])}
+            </strong>{" "}
+            to indent an item and{" "}
+            <strong>
+              {KeyboardKeyUtil.getDisplayLabel([
+                KeyboardKey.Shift,
+                KeyboardKey.Tab,
+              ])}
+            </strong>{" "}
+            to outdent it, or use the Indent and Outdent buttons. Outside a
+            list, {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])} moves to
+            the next field.
           </div>
+          <div>
+            Pasting keeps lists, links and formatting from Word, Outlook, web
+            pages and other notes. To paste plain text instead, press{" "}
+            <strong>
+              {KeyboardKeyUtil.getDisplayLabel([
+                KeyboardKey.Mod,
+                KeyboardKey.Shift,
+                "V",
+              ])}
+            </strong>
+            .
+          </div>
+          {allowImageUpload && (
+            <div>
+              Tip: paste, drag &amp; drop, or click the image button to upload
+              screenshots inline.
+            </div>
+          )}
         </>
       </TinyFormDocumentation>
     </div>
