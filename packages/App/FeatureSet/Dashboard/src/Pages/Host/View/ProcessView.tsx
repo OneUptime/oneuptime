@@ -50,6 +50,9 @@ import GoldenMetricTile, {
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -188,7 +191,29 @@ const HostProcessView: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
+  /*
+   * A chart zoom, its reset, the picker and Refresh can each start a fetch
+   * while another is still in flight. Only the most recently started one
+   * may commit, or a slow response for the window the reader just left
+   * would repaint the charts, tiles and process identity with it.
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its tick then instead of superseding that fetch with one for the
+   * same window: were every fetch to outlast the interval, none would ever
+   * land, and the page would sit on skeletons with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
+    const seq: number = ++fetchSeqRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return seq !== fetchSeqRef.current;
+    };
+
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setStatsError("");
     try {
@@ -203,6 +228,10 @@ const HostProcessView: FunctionComponent<
           osType: true,
         },
       });
+
+      if (isStale()) {
+        return;
+      }
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
@@ -261,6 +290,10 @@ const HostProcessView: FunctionComponent<
 
       const identityResult: ListResult<Metric> =
         await AnalyticsModelAPI.getList<Metric>(identityQuery);
+
+      if (isStale()) {
+        return;
+      }
 
       let resolvedExecutable: string = "";
       let resolvedCommand: string | null = null;
@@ -405,6 +438,10 @@ const HostProcessView: FunctionComponent<
           aggregateBy: diskAggregate,
         }),
       ]);
+
+      if (isStale()) {
+        return;
+      }
 
       const getBucketTimestamp: (p: AggregatedModel) => number = (
         p: AggregatedModel,
@@ -622,7 +659,19 @@ const HostProcessView: FunctionComponent<
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
+      if (isStale()) {
+        return;
+      }
       setStatsError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
+    }
+    // A superseded fetch leaves the spinner to the fetch that replaced it.
+    if (isStale()) {
+      return;
     }
     setIsRefreshing(false);
     setIsInitialLoading(false);
@@ -644,6 +693,10 @@ const HostProcessView: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (fetchInFlightRef.current) {
+        return;
+      }
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
@@ -1013,9 +1066,14 @@ const HostProcessView: FunctionComponent<
       },
     };
 
+    /*
+     * Drag-to-zoom is named once, at the right of the section heading,
+     * while the pointer is over the section: the chart cards are too narrow
+     * to hold the hint beside a title and the icon without wrapping it.
+     */
     return (
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="group/zoomhint mb-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
               Resource usage
@@ -1024,6 +1082,7 @@ const HostProcessView: FunctionComponent<
               Aggregated over the selected time range for this process
             </p>
           </div>
+          <TimeRangeZoomHint revealOnHover={true} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {renderChartCard({
@@ -1066,23 +1125,33 @@ const HostProcessView: FunctionComponent<
     ) {
       return <Fragment />;
     }
+    /*
+     * A zoom into a stretch the process was quiet for lands here; the way
+     * back sits under the note (it renders nothing unless zoomed).
+     */
     return (
       <Card
         title="No process metrics in range"
         description="This process did not emit any samples during the selected time window. Pick a wider time range, or verify the OTel collector's hostmetrics `process` scraper is enabled on this host."
       >
-        <Fragment />
+        <ResetTimeRangeZoomButton />
       </Card>
     );
   };
 
+  /*
+   * Issue #4105: a drag on any chart sets the page's range to the window
+   * dragged out (tiles, charts and the process identity refetch for it);
+   * a double-click on any chart, or Reset zoom beside the hero's picker,
+   * puts the range from before the zoom back.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryCards()}
       {renderCharts()}
       {renderNoDataNote()}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

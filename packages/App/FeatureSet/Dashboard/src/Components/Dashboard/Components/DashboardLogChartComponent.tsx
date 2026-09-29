@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -50,6 +51,12 @@ import {
 } from "./LogChartData";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import { HistogramRangeSelectionState } from "Common/UI/Components/Charts/Utils/useHistogramRangeSelection";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
+import useDashboardHistogramZoom from "../Utils/UseDashboardHistogramZoom";
+import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogChartComponent;
@@ -157,6 +164,32 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
   const { pivotedData, severities } = useMemo(() => {
     return pivotLogHistogramBuckets(buckets, chartTimeRange || undefined);
   }, [buckets, chartTimeRange]);
+
+  /*
+   * Drag-to-zoom retimes the whole board, the gesture every time-series
+   * panel on it answers to: the window goes up to the dashboard shell and
+   * comes back down as dashboardStartAndEndDate, which refetches this
+   * histogram with it. None in edit mode; the reset only while zoomed.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
+  const selection: HistogramRangeSelectionState = useDashboardHistogramZoom({
+    zoom: timeRangeZoom,
+    fetchedWindow: chartTimeRange,
+  });
+
+  // The one condition the plot is drawn on; the hint reads it too.
+  const isChartShown: boolean = !error && pivotedData.length > 0;
+
+  /*
+   * recharts sets cursor: default inline on its own wrapper, so a crosshair
+   * class on the box around the chart never shows over the plot. The chart
+   * root takes it as a style instead, and only while a drag can zoom.
+   */
+  const chartCursor: { style?: React.CSSProperties } =
+    timeRangeZoom.onTimeRangeSelect ? { style: { cursor: "crosshair" } } : {};
+
   const includeDateInTicks: boolean = Boolean(
     chartTimeRange &&
       chartTimeRange.endTime.getTime() - chartTimeRange.startTime.getTime() >
@@ -193,12 +226,30 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
         allowDecimals={false}
         tickFormatter={formatLogCount}
       />
+      {/*
+       * Pinned shut for the length of a drag: it would otherwise sit over
+       * the very bars the reader is picking a window from. Dropping the
+       * prop hands control back to recharts once the drag ends.
+       */}
       <Tooltip
         content={<HistogramTooltip />}
         cursor={{ fill: "rgba(99,102,241,0.04)" }}
+        {...(selection.isDragging ? { active: false } : {})}
       />
     </>
   );
+
+  // The window a drag in progress has covered so far.
+  const selectionBand: ReactElement | null =
+    selection.selectionStart && selection.selectionEnd ? (
+      <ReferenceArea
+        x1={selection.selectionStart}
+        x2={selection.selectionEnd}
+        fill="rgba(99,102,241,0.12)"
+        stroke="rgba(99,102,241,0.5)"
+        strokeWidth={1}
+      />
+    ) : null;
 
   const renderChart: () => ReactElement = (): ReactElement => {
     const margin: { top: number; right: number; bottom: number; left: number } =
@@ -206,7 +257,15 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
 
     if (chartType === DashboardChartType.Line) {
       return (
-        <LineChart data={pivotedData} margin={margin}>
+        <LineChart
+          data={pivotedData}
+          margin={margin}
+          onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
+          onMouseMove={selection.onMouseMove}
+          onMouseUp={selection.onMouseUp}
+          {...chartCursor}
+        >
           {sharedChartElements}
           {severities.map((severity: string) => {
             return (
@@ -221,13 +280,22 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
               />
             );
           })}
+          {selectionBand}
         </LineChart>
       );
     }
 
     if (chartType === DashboardChartType.Area) {
       return (
-        <AreaChart data={pivotedData} margin={margin}>
+        <AreaChart
+          data={pivotedData}
+          margin={margin}
+          onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
+          onMouseMove={selection.onMouseMove}
+          onMouseUp={selection.onMouseUp}
+          {...chartCursor}
+        >
           {sharedChartElements}
           {severities.map((severity: string) => {
             const fill: string = getSeverityColor(severity).fill;
@@ -246,6 +314,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
               />
             );
           })}
+          {selectionBand}
         </AreaChart>
       );
     }
@@ -256,6 +325,11 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
         margin={margin}
         barCategoryGap="18%"
         barGap={0}
+        onMouseDown={selection.onMouseDown}
+        {...selection.chartRootProps}
+        onMouseMove={selection.onMouseMove}
+        onMouseUp={selection.onMouseUp}
+        {...chartCursor}
       >
         {sharedChartElements}
         {severities.map((severity: string, index: number) => {
@@ -273,15 +347,23 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
             />
           );
         })}
+        {selectionBand}
       </BarChart>
     );
   };
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="group/zoomhint relative flex h-full w-full flex-col">
       {props.component.arguments.title && (
-        <div className="mb-1 px-1 text-sm font-medium text-gray-700">
-          {props.component.arguments.title}
+        <div className="mb-1 flex items-baseline gap-2 px-1">
+          <div className="min-w-0 text-sm font-medium text-gray-700">
+            {props.component.arguments.title}
+          </div>
+          <DashboardWidgetZoomHint
+            zoom={timeRangeZoom}
+            isChartShown={isChartShown}
+            className="ml-auto"
+          />
         </div>
       )}
 
@@ -304,7 +386,20 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="min-h-0 flex-1">
+      {/*
+       * The double-click lands here rather than on the chart so that it also
+       * works on the "No logs" state: a zoom into a quiet stretch leaves no
+       * bars to double-click, and the way back should be where the pointer
+       * already is. It does nothing unless the board is zoomed, and while it
+       * is armed the words in here are not selectable: a double-click on
+       * text would also select a word.
+       */}
+      <div
+        className={`min-h-0 flex-1 ${
+          timeRangeZoom.onTimeRangeReset ? "select-none" : ""
+        }`}
+        onDoubleClick={selection.onDoubleClick}
+      >
         {isLoading && buckets.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <ComponentLoader />
@@ -316,12 +411,44 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
             No logs for the selected time range and filters
           </div>
         )}
-        {!error && pivotedData.length > 0 && (
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart()}
-          </ResponsiveContainer>
+        {isChartShown && (
+          /*
+           * Dimmed, not replaced, while a new window loads: a zoom refetches
+           * straight away, and the bars the reader just dragged across
+           * should stay put (and double-clickable) until the answer lands.
+           */
+          <div
+            className={`h-full w-full ${
+              timeRangeZoom.onTimeRangeSelect
+                ? "cursor-crosshair select-none"
+                : ""
+            }`}
+            style={{
+              opacity: isLoading ? 0.5 : 1,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              {renderChart()}
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
+
+      {/*
+       * Untitled, which is how a new widget starts, there is no header row
+       * for the hint, and adding one would take height from a small widget
+       * for a line shown only on hover. It floats over the top corner
+       * instead: after the chart, so the chart does not paint over it, and
+       * it never takes the pointer from the chart beneath.
+       */}
+      {!props.component.arguments.title && (
+        <DashboardWidgetZoomHint
+          zoom={timeRangeZoom}
+          isChartShown={isChartShown}
+          className="absolute right-1 top-0"
+        />
+      )}
     </div>
   );
 };
@@ -332,6 +459,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

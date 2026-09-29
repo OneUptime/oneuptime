@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -39,6 +40,15 @@ import {
   getTraceAnalyticsStatusColor,
   pivotTraceAnalyticsTimeseries,
 } from "./TracesEntityDisplay";
+import useHistogramRangeSelection, {
+  HistogramRangeSelectionState,
+} from "Common/UI/Components/Charts/Utils/useHistogramRangeSelection";
+import {
+  ChartTimeRangeZoomContextValue,
+  ChartTimeRangeZoomHandlers,
+  resolveChartTimeRangeZoom,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -90,7 +100,21 @@ export interface TracesAnalyticsViewProps {
   onCreateMetric?: ((state: TraceAnalyticsState) => void) | undefined;
   // Bump to force a refetch (toolbar Refresh button).
   refreshTick?: number | undefined;
+  /*
+   * Drag-to-zoom for the timeseries chart. Without these the chart zooms
+   * whatever the enclosing traces viewer offers — the same zoom its volume
+   * histogram uses — so a drag here retimes the whole viewer, and a
+   * double-click (or "Reset zoom" beside the picker) puts it back.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Set only while there is a zoom to undo: it holds single clicks open.
+  onTimeRangeReset?: (() => void) | undefined;
 }
+
+export const TRACES_ANALYTICS_TIMESERIES_TEST_ID: string =
+  "traces-analytics-timeseries";
+export const TRACES_ANALYTICS_ZOOM_HINT_TEST_ID: string =
+  "traces-analytics-zoom-hint";
 
 const CHART_COLORS: Array<string> = [
   "#6366f1",
@@ -253,6 +277,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   const [timeseriesData, setTimeseriesData] = useState<Array<TimeseriesRow>>(
     [],
   );
+  /*
+   * How much time one timeseries bucket covers, as the request that
+   * produced the rows on screen bucketed them. Kept next to the rows so a
+   * refetch in flight cannot pair these points with another window's
+   * width; it is what lets a click on one bucket zoom into it.
+   */
+  const [timeseriesBucketMs, setTimeseriesBucketMs] = useState<
+    number | undefined
+  >(undefined);
   const [topListData, setTopListData] = useState<Array<TopItem>>([]);
   const [tableData, setTableData] = useState<Array<TableRow>>([]);
 
@@ -363,11 +396,16 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           return f.length > 0;
         });
 
+        const bucketSizeInMinutes: number = computeDefaultBucketSize(
+          startTime,
+          endTime,
+        );
+
         const requestData: JSONObject = {
           ...props.baseFilters,
           chartType,
           metric,
-          bucketSizeInMinutes: computeDefaultBucketSize(startTime, endTime),
+          bucketSizeInMinutes: bucketSizeInMinutes,
           limit,
         };
 
@@ -398,6 +436,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
         if (chartType === "timeseries") {
           setTimeseriesData(data as Array<TimeseriesRow>);
+          setTimeseriesBucketMs(bucketSizeInMinutes * 60 * 1000);
         } else if (chartType === "toplist") {
           setTopListData(data as Array<TopItem>);
         } else {
@@ -408,6 +447,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           return;
         }
         setTimeseriesData([]);
+        setTimeseriesBucketMs(undefined);
         setTopListData([]);
         setTableData([]);
         setError(API.getFriendlyMessage(err));
@@ -455,6 +495,44 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       metricLabel,
     });
   }, [timeseriesData, metric, props.serviceNameMap, entityNames]);
+
+  /*
+   * Only the timeseries has a time axis: a window dragged across a top
+   * list or a table would not be a time range. Handlers the host passes win
+   * over the zoom the enclosing viewer offers. In analytics mode the volume
+   * histogram is hidden, so without this the view had no zoom at all.
+   */
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const zoomHandlers: ChartTimeRangeZoomHandlers = resolveChartTimeRangeZoom({
+    onTimeRangeSelect: props.onTimeRangeSelect,
+    onTimeRangeReset: props.onTimeRangeReset,
+    isTimeAxis: chartType === "timeseries",
+    pageZoom: pageZoom,
+  });
+
+  /*
+   * The same click-or-drag selection the volume histogram uses, over the
+   * same bucket-start labels: a drag zooms into every bucket it covered, a
+   * click into one bucket, and a double-click zooms back out.
+   */
+  const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
+    onTimeRangeSelect: zoomHandlers.onTimeRangeSelect,
+    onZoomOut: zoomHandlers.onTimeRangeReset,
+    bucketIntervalMs: timeseriesBucketMs,
+  });
+
+  const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so a
+   * cursor on any element around it never shows over the chart. Left off
+   * entirely when nothing can be dragged, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = canZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
 
   // A split by status alone keeps each status's color; others go by position.
   const colorForSeries: (seriesKey: string, index: number) => string = (
@@ -616,9 +694,29 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     );
   };
 
+  const renderZoomHint: () => ReactElement | null = (): ReactElement | null => {
+    if (!canZoom) {
+      return null;
+    }
+
+    return (
+      <span
+        className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400"
+        data-testid={TRACES_ANALYTICS_ZOOM_HINT_TEST_ID}
+      >
+        {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
+        {zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""}
+      </span>
+    );
+  };
+
   const renderLegend: () => ReactElement = (): ReactElement => {
     if (seriesKeys.length <= 1) {
-      return <></>;
+      return canZoom ? (
+        <div className="flex items-center px-5 pb-2">{renderZoomHint()}</div>
+      ) : (
+        <></>
+      );
     }
 
     return (
@@ -638,6 +736,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
             </div>
           );
         })}
+        {renderZoomHint()}
       </div>
     );
   };
@@ -648,8 +747,37 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
   const renderTimeseries: () => ReactElement = (): ReactElement => {
     if (pivotedData.length === 0) {
-      return renderEmptyState();
+      /*
+       * A zoom into a quiet stretch lands here, with no chart left to
+       * double-click; the empty area takes the double-click instead, so the
+       * way back is where the reader's pointer already is. select-none: a
+       * double-click on the message would otherwise also select a word.
+       */
+      return (
+        <div
+          className="select-none"
+          onDoubleClick={zoomHandlers.onTimeRangeReset}
+        >
+          {renderEmptyState()}
+        </div>
+      );
     }
+
+    /*
+     * The band a drag paints across the buckets it covers, in the colours
+     * the volume histogram uses.
+     */
+    const selectionBand: ReactElement | null =
+      selection.selectionStart && selection.selectionEnd ? (
+        <ReferenceArea
+          x1={selection.selectionStart}
+          x2={selection.selectionEnd}
+          fill="rgba(99,102,241,0.12)"
+          stroke="rgba(99,102,241,0.5)"
+          strokeWidth={1}
+          radius={2}
+        />
+      ) : null;
 
     const sharedAxes: ReactElement = (
       <>
@@ -676,6 +804,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           allowDecimals={isDuration}
           tickFormatter={yAxisFormatter}
         />
+        {/*
+         * The tooltip is pinned shut for the length of a drag: it would
+         * otherwise sit over the very buckets the reader is picking.
+         * Dropping the prop hands control back to recharts afterwards.
+         */}
         <Tooltip
           content={<AnalyticsTooltip isDuration={isDuration} />}
           cursor={
@@ -687,6 +820,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 }
               : { fill: "rgba(99,102,241,0.04)" }
           }
+          {...(selection.isDragging ? { active: false } : {})}
         />
       </>
     );
@@ -694,13 +828,26 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     return (
       <div className="px-2 pb-2 pt-4">
         {renderLegend()}
-        <div style={{ height: 320 }}>
+        <div
+          className="select-none"
+          style={{
+            height: 320,
+            cursor: canZoom ? "crosshair" : "default",
+          }}
+          data-testid={TRACES_ANALYTICS_TIMESERIES_TEST_ID}
+          onDoubleClick={selection.onDoubleClick}
+        >
           <ResponsiveContainer width="100%" height="100%">
             {isDuration ? (
               seriesKeys.length === 1 ? (
                 <AreaChart
                   data={pivotedData}
                   margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                  onMouseDown={selection.onMouseDown}
+                  {...selection.chartRootProps}
+                  onMouseMove={selection.onMouseMove}
+                  onMouseUp={selection.onMouseUp}
+                  {...chartRootCursorProps}
                 >
                   <defs>
                     <linearGradient
@@ -732,6 +879,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     connectNulls={true}
                     isAnimationActive={false}
                   />
+                  {selectionBand}
                 </AreaChart>
               ) : (
                 /*
@@ -741,6 +889,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 <LineChart
                   data={pivotedData}
                   margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
+                  onMouseDown={selection.onMouseDown}
+                  {...selection.chartRootProps}
+                  onMouseMove={selection.onMouseMove}
+                  onMouseUp={selection.onMouseUp}
+                  {...chartRootCursorProps}
                 >
                   {sharedAxes}
                   {seriesKeys.map((key: string, index: number) => {
@@ -756,6 +909,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       />
                     );
                   })}
+                  {selectionBand}
                 </LineChart>
               )
             ) : (
@@ -764,6 +918,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 margin={{ top: 8, right: 20, bottom: 4, left: 0 }}
                 barCategoryGap="20%"
                 barGap={0}
+                onMouseDown={selection.onMouseDown}
+                {...selection.chartRootProps}
+                onMouseMove={selection.onMouseMove}
+                onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
               >
                 {sharedAxes}
                 {seriesKeys.map((key: string, index: number) => {
@@ -783,6 +942,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     />
                   );
                 })}
+                {selectionBand}
               </BarChart>
             )}
           </ResponsiveContainer>
@@ -1006,8 +1166,18 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
   const renderChart: () => ReactElement = (): ReactElement => {
     if (isLoading) {
+      /*
+       * A zoom refetches, and until the new window lands the loader stands
+       * where the timeseries was - just when a reader double-clicks to undo
+       * the zoom (issue #4116). It takes that double-click as the chart
+       * does, even when the chart replaces it mid-double-click (see
+       * placeholderProps).
+       */
       return (
-        <div className="flex h-72 items-center justify-center">
+        <div
+          className="flex h-72 select-none items-center justify-center"
+          {...(chartType === "timeseries" ? selection.placeholderProps : {})}
+        >
           <ComponentLoader />
         </div>
       );

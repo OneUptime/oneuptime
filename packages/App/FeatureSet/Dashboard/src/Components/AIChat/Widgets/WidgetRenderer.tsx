@@ -5,6 +5,7 @@ import {
 } from "Common/Types/AI/AIChatTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
 import ChartWidget from "./ChartWidget";
@@ -112,12 +113,20 @@ const WidgetRenderer: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  /*
+   * Every widget here is a snapshot of what a tool returned, so none of
+   * them follows the time range of the page the chat happens to sit over
+   * (or of the incident an evidence row belongs to). Withdraw whatever zoom
+   * that page offers; a chart widget offers its own, over its own points.
+   */
   return (
-    <div className="space-y-2.5">
-      {props.widgets.map((widget: AIChatWidget) => {
-        return <WidgetCard key={widget.id} widget={widget} />;
-      })}
-    </div>
+    <TimeRangeZoomProvider zoom={null}>
+      <div className="space-y-2.5">
+        {props.widgets.map((widget: AIChatWidget) => {
+          return <WidgetCard key={widget.id} widget={widget} />;
+        })}
+      </div>
+    </TimeRangeZoomProvider>
   );
 };
 

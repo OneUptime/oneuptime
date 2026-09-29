@@ -464,5 +464,29 @@ describe("ConfigManager", () => {
       expect(creds.apiKey).toBe("cli-key");
       expect(creds.apiUrl).toBe("https://cli.com");
     });
+
+    it("should apply a single CLI API key over env credentials", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+
+      expect(
+        ConfigManager.getResolvedCredentials({ apiKey: "cli-key" }),
+      ).toEqual({
+        apiKey: "cli-key",
+        apiUrl: "https://env.com",
+      });
+    });
+
+    it("should apply a single CLI URL over env credentials", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+
+      expect(
+        ConfigManager.getResolvedCredentials({ url: "https://cli.com" }),
+      ).toEqual({
+        apiKey: "env-key",
+        apiUrl: "https://cli.com",
+      });
+    });
   });
 });

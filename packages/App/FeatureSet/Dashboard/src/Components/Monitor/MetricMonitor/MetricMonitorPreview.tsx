@@ -21,10 +21,68 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import OneUptimeDate from "Common/Types/Date";
 
 export interface ComponentProps {
   monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined;
 }
+
+/**
+ * The zoomed window, as the explorers' time pickers name a custom range:
+ * "Sep 29, 05:12 - 05:34", the day named once when both ends share it. The
+ * full date on both ends ("Sep 29 2026, 05:12:00 AM GMT - Sep 29 2026,
+ * 05:34:00 AM GMT") was wide enough to wrap the card's description onto a
+ * second line, moving the chart on every zoom and reset.
+ */
+export function getZoomedWindowLabel(window: InBetween<Date>): string {
+  const isSameDay: boolean =
+    OneUptimeDate.getDateAsLocalDayMonthString(window.startValue) ===
+    OneUptimeDate.getDateAsLocalDayMonthString(window.endValue);
+
+  const start: string = OneUptimeDate.getDateAsLocalShortDateTimeString(
+    window.startValue,
+  );
+  const end: string = isSameDay
+    ? OneUptimeDate.getLocalTimeString(window.endValue, {
+        use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+      })
+    : OneUptimeDate.getDateAsLocalShortDateTimeString(window.endValue);
+
+  return `${start} - ${end}`;
+}
+
+interface ZoomedWindowInput {
+  // The window the chart shows.
+  shownWindow: InBetween<Date> | null;
+  // The window the picked rolling range resolved to.
+  rollingWindow: InBetween<Date>;
+}
+
+type GetZoomedWindowFunction = (
+  input: ZoomedWindowInput,
+) => InBetween<Date> | null;
+
+/*
+ * The window the chart was zoomed to, or null while it shows the rolling
+ * window. Compared by instant, as both sides are rebuilt as new objects.
+ */
+const getZoomedWindow: GetZoomedWindowFunction = (
+  input: ZoomedWindowInput,
+): InBetween<Date> | null => {
+  const shownWindow: InBetween<Date> | null = input.shownWindow;
+
+  if (!shownWindow) {
+    return null;
+  }
+
+  const isRollingWindow: boolean =
+    OneUptimeDate.fromString(shownWindow.startValue).getTime() ===
+      OneUptimeDate.fromString(input.rollingWindow.startValue).getTime() &&
+    OneUptimeDate.fromString(shownWindow.endValue).getTime() ===
+      OneUptimeDate.fromString(input.rollingWindow.endValue).getTime();
+
+  return isRollingWindow ? null : shownWindow;
+};
 
 const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -74,12 +132,25 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
     formulaConfigs: metricViewConfig.formulaConfigs,
   });
 
+  /*
+   * A drag on the chart narrows the window in metricViewData (MetricView
+   * zooms through onChange) and a double-click, or its Reset zoom, puts
+   * the rolling window back. While zoomed, the header names the window
+   * on screen instead of a rolling range the chart is no longer showing.
+   * Only MetricView's writes set it: the rolling window is re-resolved in
+   * an effect, a render before metricViewData catches up, and that render
+   * is not a zoom.
+   */
+  const [zoomedWindow, setZoomedWindow] =
+    React.useState<InBetween<Date> | null>(null);
+
   useEffect(() => {
     setMetricViewData({
       startAndEndDate: startAndEndDate,
       queryConfigs: metricViewConfig.queryConfigs,
       formulaConfigs: metricViewConfig.formulaConfigs,
     });
+    setZoomedWindow(null);
   }, [startAndEndDate]);
 
   const getStartAndEndDateElement: GetReactElementFunction =
@@ -93,7 +164,11 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
               setModalTempRollingTime(rollingTime);
               setShowTimePickerModal(true);
             }}
-            title={`${rollingTime}`}
+            title={
+              zoomedWindow
+                ? getZoomedWindowLabel(zoomedWindow)
+                : `${rollingTime}`
+            }
             alertType={HeaderAlertType.INFO}
             colorSwatch={ColorSwatch.Blue}
             tooltip="Click to change the date and time range of data."
@@ -108,6 +183,18 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
               onSubmit={() => {
                 if (modalTempRollingTime) {
                   setRollingTime(modalTempRollingTime);
+
+                  /*
+                   * Picking a range ends a zoom, even the range already
+                   * picked: the effect above only runs when it changes.
+                   */
+                  if (zoomedWindow && modalTempRollingTime === rollingTime) {
+                    setStartAndEndDate(
+                      RollingTimeUtil.convertToStartAndEndDate(
+                        modalTempRollingTime,
+                      ),
+                    );
+                  }
                 }
                 setModalTempRollingTime(null);
                 setShowTimePickerModal(false);
@@ -148,6 +235,12 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
         hideStartAndEndDate={true}
         onChange={(data: MetricViewData) => {
           setMetricViewData(data);
+          setZoomedWindow(
+            getZoomedWindow({
+              shownWindow: data.startAndEndDate,
+              rollingWindow: startAndEndDate,
+            }),
+          );
         }}
       />
     </Card>

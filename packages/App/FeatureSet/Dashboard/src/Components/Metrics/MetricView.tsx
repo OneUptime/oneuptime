@@ -2,7 +2,9 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import MetricQueryConfig from "./MetricQueryConfig";
@@ -40,6 +42,18 @@ import ObjectID from "Common/Types/ObjectID";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import {
+  ChartTimeRangeZoomContextValue,
+  TimeRangeZoomProvider,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTimeRangeZoom, {
+  TimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -134,7 +148,7 @@ const getAlignedWindowForData: (data: MetricViewData) => {
   };
 };
 
-export interface ComponentProps {
+interface MetricViewBodyProps {
   data: MetricViewData;
   hideQueryElements?: boolean;
   hideStartAndEndDate?: boolean;
@@ -150,19 +164,26 @@ export interface ComponentProps {
    */
   refreshNonce?: number | undefined;
   /*
-   * Override for chart drag-to-zoom. When absent, the default handler
-   * narrows the view's own window via onChange (clearing any relative
-   * rangeToken), so any host whose onChange round-trips the data gets
-   * zoom for free.
+   * Override for chart drag-to-zoom. When absent, the view zooms the
+   * enclosing page if the page offers that (TimeRangeZoomScope), and
+   * otherwise narrows its own window via onChange (clearing any relative
+   * rangeToken) and offers a way back — so any host whose onChange
+   * round-trips the data gets zoom and reset for free.
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   /*
-   * Set by hosts that cannot honor drag-to-zoom (their onChange ignores
-   * or drops startAndEndDate — e.g. the incident/alert view pages and
-   * the monitor step forms). Charts advertise the zoom affordance
-   * (crosshair cursor, "Drag to zoom" hint, live selection) purely on
-   * the presence of an onTimeRangeSelect callback, so this withholds it
-   * instead of rendering an interaction that silently does nothing.
+   * Double-click reset for a host that passes its own onTimeRangeSelect.
+   * Supply it only while there is a zoom to undo: charts hold every
+   * single click for a moment while it is set.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * Set by hosts that cannot honor drag-to-zoom at all. Charts advertise
+   * the zoom affordance (crosshair cursor, "Drag to zoom" hint, live
+   * selection) purely on the presence of an onTimeRangeSelect callback,
+   * so this withholds it instead of rendering an interaction that
+   * silently does nothing. It also keeps an enclosing page's zoom away
+   * from these charts.
    */
   disableChartZoom?: boolean | undefined;
   /*
@@ -182,6 +203,34 @@ export interface ComponentProps {
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
   // Fired when a results fetch starts/finishes (drives host refresh UI).
   onIsFetchingResultsChange?: ((isFetching: boolean) => void) | undefined;
+}
+
+/*
+ * What MetricView hands its body on top of the host's props. Kept off the
+ * public props so that no host can switch it on.
+ */
+interface MetricViewBodyInternalProps extends MetricViewBodyProps {
+  /*
+   * Set only where the view keeps the zoom itself (localChartZoom, or its
+   * own window; see MetricView). The view then offers "Reset zoom" beside
+   * its charts while zoomed, for readers who do not know to double-click a
+   * chart, or cannot. Where the page zooms, the page's picker offers it,
+   * and a host with handlers of its own offers its own: a second one here
+   * would duplicate theirs.
+   */
+  showOwnZoomReset?: boolean | undefined;
+}
+
+export interface ComponentProps extends MetricViewBodyProps {
+  /*
+   * Zoom this view's own display window only, never the host's: for hosts
+   * whose window is not theirs to change (the monitor step forms preview
+   * the monitor's rolling window; the incident and alert pages show a
+   * pinned snapshot). A drag narrows what the charts show and fetch, a
+   * double-click or "Reset zoom" puts the host's window back, and the
+   * host's onChange never sees the zoomed window.
+   */
+  localChartZoom?: boolean | undefined;
 }
 
 const getNextUnusedVariable: (input: {
@@ -218,8 +267,8 @@ const getNextUnusedVariable: (input: {
   );
 };
 
-const MetricView: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
+  props: MetricViewBodyInternalProps,
 ): ReactElement => {
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
@@ -340,12 +389,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
   /*
-   * Seed from the already-memoized effectiveData (aligned window) so the
-   * first fetch-effect run sees an unchanged snapshot and doesn't duplicate
-   * the mount fetch. effectiveData is in scope above; referencing it here
-   * avoids re-running the alignment math on every render. The host's
-   * refreshNonce is part of the snapshot so bumping it forces a refetch
-   * even when the view state itself is unchanged (pinned-window refresh).
+   * The last fetched snapshot, seeded from the already-memoized
+   * effectiveData (aligned window). The seed carries no compare flag, so
+   * the fetch effect's first run never matches it and fetches at once
+   * whenever the view has a window; the fetch once the catalog is in then
+   * stands aside (see loadMetricTypes). The host's refreshNonce is part of
+   * the snapshot so bumping it forces a refetch even when the view state
+   * itself is unchanged (pinned-window refresh).
    */
   const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
     JSON.stringify({
@@ -479,7 +529,17 @@ const MetricView: FunctionComponent<ComponentProps> = (
         }
       }
 
-      if (props.data) {
+      /*
+       * The first results - unless the fetch effect below has already
+       * asked for them, as it does whenever the view has a window it has
+       * not fetched (a host that sets its window after mount, like the
+       * monitor step forms, gets there before the metric types are in).
+       * This call reads the first render's data: fetching here too
+       * superseded that fetch with a stale one, and with no window yet it
+       * dropped the only result the view was waiting for, leaving the
+       * charts empty until the next fetch.
+       */
+      if (props.data && fetchSeqRef.current === 0) {
         fetchAggregatedResults().catch((err: Error) => {
           setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
         });
@@ -842,6 +902,33 @@ const MetricView: FunctionComponent<ComponentProps> = (
       );
     },
   );
+
+  /*
+   * The view's own "Reset zoom" goes in the heading row above the charts
+   * when the query builder is shown. Without the builder there is no such
+   * row, so it floats on the charts instead (see below).
+   */
+  const floatsOwnZoomReset: boolean = Boolean(
+    props.showOwnZoomReset && props.hideQueryElements,
+  );
+
+  type GetRefreshingIndicatorFunction = (className: string) => ReactElement;
+
+  const getRefreshingIndicator: GetRefreshingIndicatorFunction = (
+    className: string,
+  ): ReactElement => {
+    return (
+      <div
+        className={`pointer-events-none inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 text-xs font-medium text-gray-500 shadow-sm ${className}`}
+      >
+        <Icon
+          icon={IconProp.Refresh}
+          className="h-3 w-3 animate-spin text-gray-400"
+        />
+        Refreshing
+      </div>
+    );
+  };
 
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
@@ -1294,6 +1381,19 @@ const MetricView: FunctionComponent<ComponentProps> = (
                       </span>
                     ) : null;
                   })()}
+                  {props.showOwnZoomReset ? (
+                    /*
+                     * At the end of the row that already heads the charts:
+                     * beside what it resets, and not above the query
+                     * editors, where it was often scrolled out of sight.
+                     * -my-1 keeps the 24px button inside this 16px row, so
+                     * showing it moves nothing; the row's capitals and
+                     * letter spacing are the heading's, not the button's.
+                     */
+                    <ResetTimeRangeZoomButton className="ml-auto -my-1 normal-case tracking-normal" />
+                  ) : (
+                    <></>
+                  )}
                 </div>
               )}
               {/*
@@ -1321,14 +1421,39 @@ const MetricView: FunctionComponent<ComponentProps> = (
                  * Subtle refetch indicator — the charts stay mounted (see
                  * hasFetchedResultsOnce) so series-control state survives.
                  */}
-                {isMetricResultsLoading && (
-                  <div className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
-                    <Icon
-                      icon={IconProp.Refresh}
-                      className="h-3 w-3 animate-spin text-gray-400"
-                    />
-                    Refreshing
+                {floatsOwnZoomReset ? (
+                  /*
+                   * No heading row here, so the view's own "Reset zoom"
+                   * floats, with the refetch indicator beside it. A row of
+                   * its own pushed every chart down on each zoom and back
+                   * up on each reset, right under a reader about to
+                   * double-click. The top right corner inside the first
+                   * chart holds its drag hint, so the pair sits centred on
+                   * that chart's top border instead: the top of the panel
+                   * for chart cards, 17px down (the divider and its pt-4)
+                   * without them. With chart cards its upper half rides
+                   * above the view, in the 16px top margin of the Card
+                   * body every such host puts the view in.
+                   */
+                  <div
+                    data-testid="metric-view-own-zoom-controls"
+                    className={`pointer-events-none absolute right-2 z-10 flex -translate-y-1/2 items-center gap-2 ${
+                      props.hideCardInCharts ? "top-[17px]" : "top-0"
+                    }`}
+                  >
+                    {isMetricResultsLoading ? (
+                      getRefreshingIndicator("bg-white py-0.5")
+                    ) : (
+                      <></>
+                    )}
+                    <ResetTimeRangeZoomButton className="pointer-events-auto rounded-full border border-gray-200 bg-white px-2.5 !py-0.5 shadow-sm" />
                   </div>
+                ) : isMetricResultsLoading ? (
+                  getRefreshingIndicator(
+                    "absolute right-2 top-2 z-10 bg-white/90 py-1",
+                  )
+                ) : (
+                  <></>
                 )}
                 <div
                   className={`${
@@ -1401,7 +1526,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                        */
                       props.disableChartZoom
                         ? undefined
-                        : handleChartTimeRangeSelect
+                        : props.onTimeRangeSelect || handleChartTimeRangeSelect
+                    }
+                    onTimeRangeReset={
+                      props.disableChartZoom
+                        ? undefined
+                        : props.onTimeRangeReset
                     }
                     timeReferenceLines={props.timeReferenceLines}
                     referenceRegions={props.referenceRegions}
@@ -1428,6 +1558,160 @@ const MetricView: FunctionComponent<ComponentProps> = (
       )}
     </Fragment>
   );
+};
+
+interface LocalZoomOverride {
+  /** The window the view shows instead of the host's. */
+  timeRange: RangeStartAndEndDateTime;
+  /** The host's window when the zoom was made; a new one ends it. */
+  hostTimeRange: RangeStartAndEndDateTime;
+}
+
+/**
+ * MetricView with its charts' drag-to-zoom resolved. In order:
+ *
+ * 1. disableChartZoom: no zoom at all, and none borrowed from the page.
+ * 2. The host's own onTimeRangeSelect (and onTimeRangeReset).
+ * 3. localChartZoom: a display-only zoom of this view (see the prop).
+ * 4. The enclosing page's zoom (TimeRangeZoomScope), so a drag here
+ *    retimes the page and a double-click puts the page back.
+ * 5. Otherwise the view zooms its own window through the host's onChange
+ *    and remembers where it started, so a double-click or "Reset zoom"
+ *    returns there.
+ *
+ * In 3 and 5 the view is the one keeping the zoom, so it also shows a
+ * "Reset zoom" button while zoomed, for anyone who does not know to
+ * double-click a chart (or cannot). It sits with the charts, and showing
+ * it moves nothing (see showOwnZoomReset).
+ */
+const MetricView: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+  const hostTimeRange: RangeStartAndEndDateTime = MetricViewTimeRange.fromData(
+    props.data,
+  );
+
+  /*
+   * The zoom callbacks stay identity-stable, so they read the latest data
+   * and onChange through refs.
+   */
+  const latestData: React.MutableRefObject<MetricViewData> =
+    useRef<MetricViewData>(props.data);
+  latestData.current = props.data;
+  const latestOnChange: React.MutableRefObject<(data: MetricViewData) => void> =
+    useRef<(data: MetricViewData) => void>(props.onChange);
+  latestOnChange.current = props.onChange;
+  const latestHostTimeRange: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(hostTimeRange);
+  latestHostTimeRange.current = hostTimeRange;
+
+  // 5: the host's own window, zoomed through its onChange.
+  const onOwnTimeRangeChange: (timeRange: RangeStartAndEndDateTime) => void =
+    useCallback((timeRange: RangeStartAndEndDateTime): void => {
+      latestOnChange.current(
+        MetricViewTimeRange.applyToData(latestData.current, timeRange),
+      );
+    }, []);
+  const ownZoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: hostTimeRange,
+    onTimeRangeChange: onOwnTimeRangeChange,
+  });
+
+  // 3: a display-only window kept here; a new host window ends it.
+  const [localOverride, setLocalOverride] = useState<LocalZoomOverride | null>(
+    null,
+  );
+  const activeLocalOverride: LocalZoomOverride | null =
+    localOverride &&
+    TimeRangeZoomUtil.isSameRange(localOverride.hostTimeRange, hostTimeRange)
+      ? localOverride
+      : null;
+  const onLocalTimeRangeChange: (timeRange: RangeStartAndEndDateTime) => void =
+    useCallback((timeRange: RangeStartAndEndDateTime): void => {
+      const currentHostTimeRange: RangeStartAndEndDateTime =
+        latestHostTimeRange.current;
+      setLocalOverride(
+        TimeRangeZoomUtil.isSameRange(timeRange, currentHostTimeRange)
+          ? null
+          : { timeRange: timeRange, hostTimeRange: currentHostTimeRange },
+      );
+    }, []);
+  const localZoom: TimeRangeZoom = useTimeRangeZoom({
+    timeRange: activeLocalOverride
+      ? activeLocalOverride.timeRange
+      : hostTimeRange,
+    onTimeRangeChange: onLocalTimeRangeChange,
+  });
+
+  if (props.disableChartZoom) {
+    return (
+      <TimeRangeZoomProvider zoom={null}>
+        <MetricViewBody {...props} />
+      </TimeRangeZoomProvider>
+    );
+  }
+
+  if (props.onTimeRangeSelect) {
+    return <MetricViewBody {...props} />;
+  }
+
+  type RenderOwnZoomFunction = (
+    zoom: TimeRangeZoom,
+    bodyProps: MetricViewBodyProps,
+  ) => ReactElement;
+
+  const renderWithOwnZoom: RenderOwnZoomFunction = (
+    zoom: TimeRangeZoom,
+    bodyProps: MetricViewBodyProps,
+  ): ReactElement => {
+    return (
+      <TimeRangeZoomProvider zoom={zoom}>
+        <MetricViewBody
+          {...bodyProps}
+          onTimeRangeSelect={zoom.zoomToTimeRange}
+          onTimeRangeReset={zoom.isZoomed ? zoom.resetZoom : undefined}
+          showOwnZoomReset={true}
+        />
+      </TimeRangeZoomProvider>
+    );
+  };
+
+  if (props.localChartZoom) {
+    return renderWithOwnZoom(localZoom, {
+      ...props,
+      data: activeLocalOverride
+        ? MetricViewTimeRange.applyToData(
+            props.data,
+            activeLocalOverride.timeRange,
+          )
+        : props.data,
+      /*
+       * Everything else the view writes back (query edits, Top-N) goes to
+       * the host - on the host's own window, never the zoomed one.
+       */
+      onChange: (data: MetricViewData): void => {
+        props.onChange({
+          ...data,
+          startAndEndDate: props.data.startAndEndDate,
+          rangeToken: props.data.rangeToken,
+        });
+      },
+    });
+  }
+
+  if (pageZoom) {
+    return (
+      <MetricViewBody
+        {...props}
+        onTimeRangeSelect={pageZoom.onTimeRangeSelect}
+        onTimeRangeReset={pageZoom.onTimeRangeReset}
+      />
+    );
+  }
+
+  return renderWithOwnZoom(ownZoom, props);
 };
 
 export default MetricView;

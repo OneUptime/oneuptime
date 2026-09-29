@@ -150,6 +150,123 @@ export function pageCostRows<T extends GenericObject>(
   return rows.slice(start, start + COST_ROWS_PER_PAGE);
 }
 
+/*
+ * The narrowest window a drag on a cost chart zooms to. Cost rows are
+ * hourly, and a row counts toward a window when its hour STARTS inside it,
+ * so a 30-minute window usually holds no row at all: the chart, the spend
+ * tiles and both tables would all read as "no spend" for a stretch the
+ * chart plainly showed spend in. Any window at least an hour wide starts
+ * at least one hour.
+ */
+export const MIN_COST_ZOOM_SPAN_IN_MS: number = 60 * 60 * 1000;
+
+export interface CostZoomWindow {
+  startTime: Date;
+  endTime: Date;
+}
+
+/**
+ * The window a drag-selection on a cost chart zooms the page to: the
+ * selection itself when it spans an hour or more, otherwise an hour
+ * centred on it - kept inside the window on screen, so the zoom never
+ * reaches past "now" or out beyond what the reader was looking at. On a
+ * window under an hour there is no finer cost detail to zoom into, so a
+ * drag there keeps the whole window.
+ */
+export const widenCostZoomWindow: (data: {
+  startTime: Date;
+  endTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+}) => CostZoomWindow = (data: {
+  startTime: Date;
+  endTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+}): CostZoomWindow => {
+  const selectionStartMs: number = Math.min(
+    data.startTime.getTime(),
+    data.endTime.getTime(),
+  );
+  const selectionEndMs: number = Math.max(
+    data.startTime.getTime(),
+    data.endTime.getTime(),
+  );
+  const windowStartMs: number = data.windowStart.getTime();
+  const windowEndMs: number = data.windowEnd.getTime();
+  const minimumSpanMs: number = Math.min(
+    MIN_COST_ZOOM_SPAN_IN_MS,
+    windowEndMs - windowStartMs,
+  );
+
+  if (
+    !Number.isFinite(minimumSpanMs) ||
+    minimumSpanMs <= 0 ||
+    selectionEndMs - selectionStartMs >= minimumSpanMs
+  ) {
+    return {
+      startTime: new Date(selectionStartMs),
+      endTime: new Date(selectionEndMs),
+    };
+  }
+
+  let startMs: number = Math.round(
+    (selectionStartMs + selectionEndMs - minimumSpanMs) / 2,
+  );
+  let endMs: number = startMs + minimumSpanMs;
+
+  if (endMs > windowEndMs) {
+    endMs = windowEndMs;
+    startMs = endMs - minimumSpanMs;
+  }
+
+  if (startMs < windowStartMs) {
+    startMs = windowStartMs;
+    endMs = startMs + minimumSpanMs;
+  }
+
+  return { startTime: new Date(startMs), endTime: new Date(endMs) };
+};
+
+/**
+ * The window a drag across a cost chart zooms the page to: the buckets
+ * dragged across, widened to at least an hour (widenCostZoomWindow), and
+ * ending one millisecond before the end of the last of them.
+ *
+ * The chart hands over [start of the first bucket, end of the last): its
+ * rows carry the start of the bucket each bar draws, so both edges sit on
+ * the grid the bars show. But every cost query reads its window
+ * inclusively at BOTH ends (windowStart between start and end), and the
+ * hour after the selection starts exactly at its end - a drag across the
+ * 10:00 and 11:00 bars would also sum the noon hour nobody selected, in the
+ * tiles, both tables and right-sizing. Ending a millisecond early leaves it
+ * out. The millisecond comes off after the widening: an hour less a
+ * millisecond would otherwise be widened back to a whole, inclusive hour,
+ * which holds two hourly rows.
+ */
+export const getCostZoomWindow: (data: {
+  startTime: Date;
+  endTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+}) => CostZoomWindow = (data: {
+  startTime: Date;
+  endTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+}): CostZoomWindow => {
+  const widened: CostZoomWindow = widenCostZoomWindow(data);
+  const startMs: number = widened.startTime.getTime();
+  const endMs: number = widened.endTime.getTime();
+
+  // Nothing inside it to leave out; the page's zoom rejects such a window.
+  if (!(endMs - startMs > 1)) {
+    return widened;
+  }
+
+  return { startTime: widened.startTime, endTime: new Date(endMs - 1) };
+};
+
 type BuildAggregateBy = (data: {
   params: FetchCostParams;
   aggregateColumnName: keyof KubernetesCostAllocation;

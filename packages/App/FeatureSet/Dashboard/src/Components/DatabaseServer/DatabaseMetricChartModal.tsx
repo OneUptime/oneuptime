@@ -37,6 +37,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import React, {
@@ -397,132 +398,144 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       closeButtonText="Close"
     >
-      <div data-testid="database-metric-chart">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {spec.aggregations.length > 0 ? (
-            <div
-              className="inline-flex rounded-md shadow-sm"
-              role="group"
-              aria-label="Aggregation"
-            >
-              {spec.aggregations.map(
-                (option: AggregationType, index: number): ReactElement => {
-                  const isSelected: boolean = option === aggregation;
-                  const edges: string =
-                    index === 0
-                      ? "rounded-l-md"
-                      : index === spec.aggregations.length - 1
-                        ? "-ml-px rounded-r-md"
-                        : "-ml-px";
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={(): void => {
-                        setPickedAggregation(option);
-                      }}
-                      className={`${edges} border px-3 py-1.5 text-xs font-medium ${
-                        isSelected
-                          ? "z-10 border-indigo-500 bg-indigo-50 text-indigo-700"
-                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {DATABASE_METRIC_AGGREGATION_LABELS[option] || option}
-                    </button>
-                  );
-                },
+      {/*
+       * The chart zooms the modal's own range (issue #4105): a drag narrows
+       * it, a double-click or "Reset zoom" beside the modal's picker puts
+       * back the range the modal had before - never the Metrics list behind
+       * it, whose range stays the reader's. This scope also shadows any zoom
+       * a page around the modal offers.
+       */}
+      <TimeRangeZoomScope
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+      >
+        <div data-testid="database-metric-chart">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            {spec.aggregations.length > 0 ? (
+              <div
+                className="inline-flex rounded-md shadow-sm"
+                role="group"
+                aria-label="Aggregation"
+              >
+                {spec.aggregations.map(
+                  (option: AggregationType, index: number): ReactElement => {
+                    const isSelected: boolean = option === aggregation;
+                    const edges: string =
+                      index === 0
+                        ? "rounded-l-md"
+                        : index === spec.aggregations.length - 1
+                          ? "-ml-px rounded-r-md"
+                          : "-ml-px";
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={(): void => {
+                          setPickedAggregation(option);
+                        }}
+                        className={`${edges} border px-3 py-1.5 text-xs font-medium ${
+                          isSelected
+                            ? "z-10 border-indigo-500 bg-indigo-50 text-indigo-700"
+                            : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {DATABASE_METRIC_AGGREGATION_LABELS[option] || option}
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+            ) : (
+              <span />
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={(value: RangeStartAndEndDateTime): void => {
+                  setTimeRange(value);
+                }}
+              />
+              {monitorScopeId && monitorRoute ? (
+                <AppLink
+                  to={monitorRoute}
+                  className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                >
+                  Create monitor
+                </AppLink>
+              ) : (
+                <></>
+              )}
+              {monitorScopeId && !monitorRoute ? (
+                <button
+                  type="button"
+                  disabled={true}
+                  aria-describedby={
+                    monitorBlocker
+                      ? DATABASE_METRIC_MONITOR_BLOCKER_ID
+                      : undefined
+                  }
+                  title={
+                    monitorBlocker ||
+                    "Checking whether this metric carries this database's id…"
+                  }
+                  className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
+                >
+                  Create monitor
+                </button>
+              ) : (
+                <></>
               )}
             </div>
-          ) : (
-            <span />
-          )}
-          <div className="flex flex-wrap items-center gap-2">
-            <TelemetryTimeRangePicker
-              value={timeRange}
-              onChange={(value: RangeStartAndEndDateTime): void => {
-                setTimeRange(value);
-              }}
-            />
-            {monitorScopeId && monitorRoute ? (
-              <AppLink
-                to={monitorRoute}
-                className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
-              >
-                Create monitor
-              </AppLink>
-            ) : (
-              <></>
-            )}
-            {monitorScopeId && !monitorRoute ? (
-              <button
-                type="button"
-                disabled={true}
-                aria-describedby={
-                  monitorBlocker
-                    ? DATABASE_METRIC_MONITOR_BLOCKER_ID
-                    : undefined
-                }
-                title={
-                  monitorBlocker ||
-                  "Checking whether this metric carries this database's id…"
-                }
-                className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
-              >
-                Create monitor
-              </button>
-            ) : (
-              <></>
-            )}
           </div>
+          {monitorScopeId && monitorBlocker ? (
+            <p
+              id={DATABASE_METRIC_MONITOR_BLOCKER_ID}
+              className="mb-3 text-xs text-amber-700"
+              data-testid="database-metric-monitor-blocker"
+            >
+              {monitorBlocker}
+            </p>
+          ) : (
+            <></>
+          )}
+          {monitorScopeId && !monitorBlocker && monitorNote ? (
+            <p
+              className="mb-3 text-xs text-gray-600"
+              data-testid="database-metric-monitor-note"
+            >
+              {monitorNote}
+            </p>
+          ) : (
+            <></>
+          )}
+          {spec.note ? (
+            <p
+              className="mb-3 text-xs text-gray-500"
+              data-testid="database-metric-chart-note"
+            >
+              {spec.note}
+            </p>
+          ) : (
+            <></>
+          )}
+          <ChartCard
+            title={chartTitle}
+            icon={IconProp.ChartBar}
+            iconColor="violet"
+            series={
+              [{ seriesName: spec.title, data: series }] as Array<SeriesPoint>
+            }
+            windowStart={chartWindow?.start ?? null}
+            windowEnd={chartWindow?.end ?? null}
+            syncId={`database-metric-${props.metricName}`}
+            yMax={yAxis.yMax}
+            yAllowDecimals={yAxis.allowDecimals}
+            yFormatter={formatValue}
+            loading={isLoading}
+          />
         </div>
-        {monitorScopeId && monitorBlocker ? (
-          <p
-            id={DATABASE_METRIC_MONITOR_BLOCKER_ID}
-            className="mb-3 text-xs text-amber-700"
-            data-testid="database-metric-monitor-blocker"
-          >
-            {monitorBlocker}
-          </p>
-        ) : (
-          <></>
-        )}
-        {monitorScopeId && !monitorBlocker && monitorNote ? (
-          <p
-            className="mb-3 text-xs text-gray-600"
-            data-testid="database-metric-monitor-note"
-          >
-            {monitorNote}
-          </p>
-        ) : (
-          <></>
-        )}
-        {spec.note ? (
-          <p
-            className="mb-3 text-xs text-gray-500"
-            data-testid="database-metric-chart-note"
-          >
-            {spec.note}
-          </p>
-        ) : (
-          <></>
-        )}
-        <ChartCard
-          title={chartTitle}
-          icon={IconProp.ChartBar}
-          iconColor="violet"
-          series={
-            [{ seriesName: spec.title, data: series }] as Array<SeriesPoint>
-          }
-          windowStart={chartWindow?.start ?? null}
-          windowEnd={chartWindow?.end ?? null}
-          syncId={`database-metric-${props.metricName}`}
-          yMax={yAxis.yMax}
-          yAllowDecimals={yAxis.allowDecimals}
-          yFormatter={formatValue}
-          loading={isLoading}
-        />
-      </div>
+      </TimeRangeZoomScope>
     </Modal>
   );
 };

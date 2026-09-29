@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import DashboardTimeRangeZoomUtil, {
   DashboardTimeRangeZoomState,
 } from "../../../Utils/Dashboard/DashboardTimeRangeZoom";
@@ -162,6 +162,109 @@ describe("DashboardTimeRangeZoomUtil", () => {
       dragStart.setFullYear(1999);
 
       expect(zoomed.current.startAndEndDate?.startValue).toEqual(DRAG_START);
+    });
+  });
+
+  /*
+   * Issue #4105: a panel's selection runs to the END of its last bucket, and
+   * the newest bucket of a rolling range is still filling up. Taken whole, a
+   * drag onto it would zoom the whole board to a window that ends in the
+   * future. The board's zoom now follows the same rule as the page-wide
+   * zoom and the log and trace histograms: never past the end of the window
+   * the board is on.
+   */
+  describe("zoomToWindow never runs past the board's window", () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test("a drag onto the newest bucket of a rolling range stops at now", () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-09-28T12:00:00.000Z"));
+      const state: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.getInitialState(ROLLING_HOUR);
+
+      const zoomed: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.zoomToWindow(
+          state,
+          new Date("2026-09-28T11:50:00.000Z"),
+          new Date("2026-09-28T12:01:00.000Z"),
+        );
+
+      expect(zoomed.current.startAndEndDate?.startValue.toISOString()).toBe(
+        "2026-09-28T11:50:00.000Z",
+      );
+      expect(zoomed.current.startAndEndDate?.endValue.toISOString()).toBe(
+        "2026-09-28T12:00:00.000Z",
+      );
+      // The way back is untouched: the rolling hour itself.
+      expect(zoomed.baseline).toBe(ROLLING_HOUR);
+    });
+
+    test("a drag past the end of a pinned range stops at that end", () => {
+      const state: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.getInitialState(PINNED_DAY);
+
+      const zoomed: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.zoomToWindow(
+          state,
+          new Date("2026-08-20T23:30:00.000Z"),
+          new Date("2026-08-21T00:10:00.000Z"),
+        );
+
+      expect(zoomed.current.startAndEndDate?.endValue.toISOString()).toBe(
+        "2026-08-21T00:00:00.000Z",
+      );
+    });
+
+    test("a drag wholly inside the window is kept as it is", () => {
+      const state: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.getInitialState(PINNED_DAY);
+
+      const zoomed: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.zoomToWindow(state, DRAG_START, DRAG_END);
+
+      expect(zoomed.current.startAndEndDate?.endValue).toEqual(DRAG_END);
+    });
+
+    test("a selection that starts after the window ends is not clamped away", () => {
+      // The chart can still be drawing a window the board has since left.
+      const state: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.getInitialState(PINNED_DAY);
+
+      const zoomed: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.zoomToWindow(
+          state,
+          new Date("2026-08-22T01:00:00.000Z"),
+          new Date("2026-08-22T02:00:00.000Z"),
+        );
+
+      expect(zoomed.current.startAndEndDate?.startValue.toISOString()).toBe(
+        "2026-08-22T01:00:00.000Z",
+      );
+      expect(zoomed.current.startAndEndDate?.endValue.toISOString()).toBe(
+        "2026-08-22T02:00:00.000Z",
+      );
+    });
+
+    test("the zoomed window's end is clamped against the CURRENT window, even when already zoomed", () => {
+      const first: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.zoomToWindow(
+          DashboardTimeRangeZoomUtil.getInitialState(PINNED_DAY),
+          DRAG_START,
+          DRAG_END,
+        );
+
+      const second: DashboardTimeRangeZoomState =
+        DashboardTimeRangeZoomUtil.zoomToWindow(
+          first,
+          NARROWER_START,
+          new Date("2026-08-20T09:40:00.000Z"),
+        );
+
+      expect(second.current.startAndEndDate?.endValue).toEqual(DRAG_END);
+      // And the original range is still the way back.
+      expect(second.baseline).toBe(PINNED_DAY);
     });
   });
 

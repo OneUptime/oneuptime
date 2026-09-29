@@ -19,7 +19,7 @@ import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -56,6 +56,11 @@ import ReplayStage, {
   formatReplayStageAspect,
   getReplayStageBoxClassName,
 } from "./ReplayStage";
+import {
+  ReplayAssetFailure,
+  ReplayPlaybackAssetNote,
+  buildReplayPlaybackAssetNotes,
+} from "./ReplayRecordedAssets";
 import useReplayClock, { ReplayClockLike } from "./useReplayClock";
 import ReplayStageOverlays, {
   ReplayNextUserSession,
@@ -283,6 +288,26 @@ function noopUnsubscribe(): () => void {
 
 const NO_SIGNALS: Array<ReplaySignal> = [];
 const NO_CHUNKS: Array<SessionReplayManifestChunk> = [];
+const NO_ASSET_FAILURES: ReadonlyArray<ReplayAssetFailure> = [];
+
+/*
+ * The recorded images and stylesheets that failed to load on the stage,
+ * kept with the engine that reported them. One engine plays every tab of
+ * the session (a tab switch swaps its loader, not the engine), so the list
+ * is the session's, like the capture notes it feeds; a new engine - a
+ * reload, another session - starts from none without a reset of its own.
+ */
+interface ReplayAssetFailureReport {
+  engine: ReplayEngine | null;
+  failures: ReadonlyArray<ReplayAssetFailure>;
+  isTruncated: boolean;
+}
+
+const NO_ASSET_FAILURE_REPORT: ReplayAssetFailureReport = {
+  engine: null,
+  failures: NO_ASSET_FAILURES,
+  isTruncated: false,
+};
 
 /* ---- Clocked wrappers. ---- */
 
@@ -691,6 +716,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   );
   const [railQuery, setRailQuery] = useState<string>(urlState.railSearch ?? "");
   const [shellNotice, setShellNotice] = useState<string | null>(null);
+  const [assetFailureReport, setAssetFailureReport] =
+    useState<ReplayAssetFailureReport>(NO_ASSET_FAILURE_REPORT);
   const [backendStore, setBackendStore] =
     useState<ReplayBackendSignalsStore | null>(null);
   /*
@@ -1900,6 +1927,55 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       })
       .map(getFidelityNoticeCopy);
   }, [manifest]);
+
+  const isCurrentAssetFailureReport: boolean =
+    engine !== null && assetFailureReport.engine === engine;
+  const assetFailures: ReadonlyArray<ReplayAssetFailure> =
+    isCurrentAssetFailureReport
+      ? assetFailureReport.failures
+      : NO_ASSET_FAILURES;
+  const areAssetFailuresTruncated: boolean =
+    isCurrentAssetFailureReport && assetFailureReport.isTruncated;
+
+  /* Handed to the stage, which reads it through a ref. */
+  const onAssetLoadFailures: (
+    failures: ReadonlyArray<ReplayAssetFailure>,
+    isTruncated: boolean,
+  ) => void = useCallback(
+    (
+      failures: ReadonlyArray<ReplayAssetFailure>,
+      isTruncated: boolean,
+    ): void => {
+      setAssetFailureReport({
+        engine: engine,
+        failures: failures,
+        isTruncated: isTruncated,
+      });
+    },
+    [engine],
+  );
+
+  const missingAssetUrls: Array<string> = useMemo((): Array<string> => {
+    return assetFailures.map((failure: ReplayAssetFailure): string => {
+      return failure.url;
+    });
+  }, [assetFailures]);
+
+  /* What the replay could not load, ahead of what the recorder could not capture. */
+  const playbackAssetNotes: Array<ReplayPlaybackAssetNote> =
+    useMemo((): Array<ReplayPlaybackAssetNote> => {
+      if (!manifest) {
+        return [];
+      }
+
+      return buildReplayPlaybackAssetNotes({
+        failures: assetFailures,
+        isTruncated: areAssetFailuresTruncated,
+        maskingMode: manifest.details.maskingMode,
+        recorderKind: manifest.details.recorderKind,
+        docsRoot: DOCS_URL.toString(),
+      });
+    }, [manifest, assetFailures, areAssetFailuresTruncated]);
 
   /* ---- URL: rail / q / tab / signal mirror the view state. ---- */
 
@@ -3154,10 +3230,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                           recorderCapabilities={manifest.recorderCapabilities}
                           viewportWidth={manifest.details.viewportWidth}
                           viewportHeight={manifest.details.viewportHeight}
+                          maskingMode={manifest.details.maskingMode}
                           sizing={stageSizing}
                           fit={prefs.stageFit}
                           isTextSelectionEnabled={isTextSelectionEnabled}
                           onScaleChange={setScale}
+                          onAssetLoadFailures={onAssetLoadFailures}
                         />
                       )}
                       {isPlayable && !engine && (
@@ -3254,7 +3332,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               )}
             </div>
 
-            {captureNotes.length > 0 && (
+            {playbackAssetNotes.length + captureNotes.length > 0 && (
               <details
                 className="group mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5 shrink-0"
                 data-testid="replay-capture-notes"
@@ -3269,9 +3347,13 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                     className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
                   />
                   <span className="min-w-0 truncate">
-                    {captureNotes.length} capture note
-                    {captureNotes.length === 1 ? "" : "s"}:{" "}
-                    {captureNotes
+                    {playbackAssetNotes.length + captureNotes.length} capture
+                    note
+                    {playbackAssetNotes.length + captureNotes.length === 1
+                      ? ""
+                      : "s"}
+                    :{" "}
+                    {[...playbackAssetNotes, ...captureNotes]
                       .map((note: FidelityNoticeCopy): string => {
                         return note.title.toLowerCase();
                       })
@@ -3279,6 +3361,50 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   </span>
                 </summary>
                 <div className="mt-2 space-y-2">
+                  {playbackAssetNotes.map(
+                    (note: ReplayPlaybackAssetNote): ReactElement => {
+                      return (
+                        <div
+                          key={note.key}
+                          className="text-xs"
+                          data-testid={note.testId}
+                        >
+                          <div className="font-medium text-gray-700">
+                            {note.title}
+                          </div>
+                          <div className="text-gray-500">
+                            {note.description}
+                          </div>
+                          {note.docsHref && (
+                            <a
+                              href={note.docsHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-1 inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline"
+                              data-testid={`${note.testId}-docs`}
+                            >
+                              {/*
+                               * The visible words are the link's name, as
+                               * voice control users will say them; the tab
+                               * warning is added for screen readers only.
+                               */}
+                              <span>
+                                Why they go missing, and how to allow them
+                                <span className="sr-only">
+                                  {" "}
+                                  (opens in a new tab)
+                                </span>
+                              </span>
+                              <Icon
+                                icon={IconProp.ExternalLink}
+                                className="h-3 w-3 shrink-0"
+                              />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
                   {captureNotes.map(
                     (note: FidelityNoticeCopy, index: number): ReactElement => {
                       return (
@@ -3394,6 +3520,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           details={manifest.details}
           hasRecordingEnded={manifest.hasRecordingEnded}
           fidelityNotices={manifest.fidelityNotices}
+          missingAssets={missingAssetUrls}
+          areMissingAssetsTruncated={areAssetFailuresTruncated}
           gaps={manifest.gaps}
           onOpenRailTab={openRailTab}
           railCounts={railCounts}

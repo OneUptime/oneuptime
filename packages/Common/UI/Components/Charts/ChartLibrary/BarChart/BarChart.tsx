@@ -11,6 +11,7 @@ import {
   Label,
   BarChart as RechartsBarChart,
   Legend as RechartsLegend,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -18,6 +19,14 @@ import {
   YAxis,
 } from "recharts";
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import useChartRangeSelection, {
+  ChartRangeSelection,
+} from "../Utils/UseChartRangeSelection";
+import {
+  DeferredChartClick,
+  useDeferredChartClick,
+} from "../Utils/DoubleClick";
+import useChartBucketsChange from "../Utils/UseChartBucketsChange";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import type { AxisDomain } from "recharts/types/util/types";
@@ -693,9 +702,17 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   formattedTimeReferenceLines?: Array<FormattedTimeReferenceLine> | undefined;
   formattedReferenceRegions?: Array<FormattedReferenceRegion> | undefined;
   /**
-   * Double-click on the plot surface. Bar charts have no drag-to-select of
-   * their own, but they sit on the same dashboards as line/area panels and
-   * must offer the same way out of a board-wide zoom.
+   * Drag across bars to select the time window they cover: calls back with
+   * [start of the first bar, end of the last bar), the same window the
+   * line and area charts hand out. A press and release on one bar is a
+   * plain click and keeps its old meaning. Only a horizontal chart whose
+   * rows carry their bucket start (CHART_DATA_POINT_DATE_KEY, as the
+   * time-series wrapper's rows do) can select; a vertical chart ignores it.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /**
+   * Double-click on the plot surface: the way out of whatever
+   * drag-to-select produced, on this chart or a neighbouring one.
    */
   onTimeRangeReset?: (() => void) | undefined;
 }
@@ -741,6 +758,7 @@ const BarChart: React.ForwardRefExoticComponent<
       customTooltip,
       formattedTimeReferenceLines,
       formattedReferenceRegions,
+      onTimeRangeSelect,
       onTimeRangeReset,
       ...other
     } = props;
@@ -753,6 +771,33 @@ const BarChart: React.ForwardRefExoticComponent<
     );
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+
+    /*
+     * Every click on the plot waits out the double-click window while a
+     * reset is on offer; see useDeferredChartClick.
+     */
+    const deferredClick: DeferredChartClick = useDeferredChartClick(
+      Boolean(onTimeRangeReset),
+    );
+
+    /*
+     * Drag-to-select a time window, and the double-click that undoes a
+     * zoom, dropping the clicks it was made of; see useChartRangeSelection.
+     * A drag needs the category axis to be the time axis, which is only
+     * true in horizontal layout; the double-click works in either.
+     */
+    const rangeSelection: ChartRangeSelection = useChartRangeSelection({
+      data: data,
+      index: index,
+      onTimeRangeSelect: onTimeRangeSelect,
+      enabled: layout !== "vertical",
+      onTimeRangeReset: onTimeRangeReset
+        ? (): void => {
+            deferredClick.cancel();
+            onTimeRangeReset();
+          }
+        : undefined,
+    });
 
     /*
      * Annotations are drawn onto the categorical axis, so the layer needs
@@ -779,10 +824,23 @@ const BarChart: React.ForwardRefExoticComponent<
       axisPaddingPx: paddingValue,
       scaleKind: "band",
       hasTopLegend: showLegend,
+      isClickSuppressed: rangeSelection.isClickSuppressed,
     });
     const [activeBar, setActiveBar] = React.useState<any | undefined>(
       undefined,
     );
+    /*
+     * A clicked bar is kept as a copy of its row. After a zoom, a reset or
+     * a new range no bar matches it any more, and every bar drew dimmed
+     * until the reader clicked the empty plot.
+     */
+    useChartBucketsChange(categoryLabels, (): void => {
+      if (activeBar) {
+        setActiveBar(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      }
+    });
     const yAxisDomain: AxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
@@ -804,30 +862,47 @@ const BarChart: React.ForwardRefExoticComponent<
       React.useCallback(
         (data: any, _: any, event: React.MouseEvent): void => {
           event.stopPropagation();
+          // Ignore the click that immediately follows a drag-to-select.
+          if (rangeSelection.isClickSuppressed()) {
+            return;
+          }
           if (!onValueChange) {
             return;
           }
-          if (deepEqual(activeBar, { ...data.payload, value: data.value })) {
-            setActiveLegend(undefined);
-            setActiveBar(undefined);
-            onValueChange?.(null);
-          } else {
-            setActiveLegend(data.tooltipPayload?.[0]?.dataKey);
-            setActiveBar({
-              ...data.payload,
-              value: data.value,
-            });
-            onValueChange?.({
-              eventType: "bar",
-              categoryClicked: data.tooltipPayload?.[0]?.dataKey,
-              ...data.payload,
-            });
-          }
+          deferredClick.run((): void => {
+            if (deepEqual(activeBar, { ...data.payload, value: data.value })) {
+              setActiveLegend(undefined);
+              setActiveBar(undefined);
+              onValueChange?.(null);
+            } else {
+              setActiveLegend(data.tooltipPayload?.[0]?.dataKey);
+              setActiveBar({
+                ...data.payload,
+                value: data.value,
+              });
+              onValueChange?.({
+                eventType: "bar",
+                categoryClicked: data.tooltipPayload?.[0]?.dataKey,
+                ...data.payload,
+              });
+            }
+          });
         },
-        [activeBar, onValueChange, setActiveLegend, setActiveBar],
+        [
+          activeBar,
+          onValueChange,
+          setActiveLegend,
+          setActiveBar,
+          deferredClick,
+          rangeSelection.isClickSuppressed,
+        ],
       );
 
     function onCategoryClick(dataKey: string): void {
+      // Ignore the click that immediately follows a drag-to-select.
+      if (rangeSelection.isClickSuppressed()) {
+        return;
+      }
       if (!hasOnValueChange) {
         return;
       }
@@ -851,15 +926,25 @@ const BarChart: React.ForwardRefExoticComponent<
     };
 
     const handleChartClick: () => void = (): void => {
-      setActiveBar(undefined);
-      setActiveLegend(undefined);
-      onValueChange?.(null);
+      // Ignore the click that immediately follows a drag-to-select.
+      if (rangeSelection.isClickSuppressed()) {
+        return;
+      }
+      deferredClick.run((): void => {
+        setActiveBar(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      });
     };
 
     return (
       <div
         ref={forwardedRef}
-        className={cx("flex-1 w-full", className)}
+        className={cx(
+          "flex-1 w-full",
+          rangeSelection.canSelect && "cursor-crosshair select-none",
+          className,
+        )}
         data-tremor-id="tremor-raw"
         {...other}
       >
@@ -879,16 +964,10 @@ const BarChart: React.ForwardRefExoticComponent<
                * accidentally sync with every other one.
                */
               {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
+              {...rangeSelection.chartEventProps}
               {...(hasOnValueChange && (activeLegend || activeBar)
                 ? {
                     onClick: handleChartClick,
-                  }
-                : {})}
-              {...(onTimeRangeReset
-                ? {
-                    onDoubleClick: () => {
-                      onTimeRangeReset();
-                    },
                   }
                 : {})}
               margin={{
@@ -1172,6 +1251,18 @@ const BarChart: React.ForwardRefExoticComponent<
                * lives in the chip's hover card.
                */}
               {annotations.layer}
+              {/* Live drag-to-select highlight */}
+              {rangeSelection.selectionStartLabel &&
+              rangeSelection.selectionEndLabel ? (
+                <ReferenceArea
+                  x1={rangeSelection.selectionStartLabel}
+                  x2={rangeSelection.selectionEndLabel}
+                  fill="rgba(99,102,241,0.12)"
+                  stroke="rgba(99,102,241,0.5)"
+                  strokeWidth={1}
+                  radius={2}
+                />
+              ) : null}
             </RechartsBarChart>
           </ResponsiveContainer>
           {annotations.overlay}

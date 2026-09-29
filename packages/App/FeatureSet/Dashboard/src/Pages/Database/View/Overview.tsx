@@ -14,10 +14,10 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -26,6 +26,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -168,6 +169,11 @@ const DatabaseServerOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the telemetry reloads when it changes.
+  const [telemetryRefreshCount, setTelemetryRefreshCount] = useState<number>(0);
+  // Set while the telemetry for the current window is still loading.
+  const telemetryInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -263,6 +269,32 @@ const DatabaseServerOverview: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The telemetry follows what the database is scoped by, not the model
+   * objects: fetchModel stores a new row and a new endpoint list on every
+   * refresh, and an effect keyed on them re-ran on every tick, cancelling a
+   * load still running for the same window. The entity keys, the engine's
+   * metric catalog and the runtime charts are all worked out from these
+   * fields. A refresh reloads it through telemetryRefreshCount instead.
+   */
+  const telemetryScope: string = databaseServer
+    ? JSON.stringify({
+        projectId: String(
+          databaseServer.projectId || ProjectUtil.getCurrentProjectId() || "",
+        ),
+        dbSystem: databaseServer.dbSystem || "",
+        /*
+         * The pods / containers it runs as, not when each was last seen:
+         * discovery re-stamps those times, and a time scopes no query.
+         */
+        memberEntityKeys: Object.keys(
+          databaseServer.memberEntityKeys || {},
+        ).sort(),
+        platform: getDatabaseRuntimePlatform(databaseServer),
+        endpoints: endpoints,
+      })
+    : "";
+
   useEffect(() => {
     const item: DatabaseServer | null = databaseServer;
     if (!item) {
@@ -287,6 +319,7 @@ const DatabaseServerOverview: FunctionComponent<
      * chart the whole project. Leave every section empty.
      */
     if (!isDatabaseServerScoped(allKeys)) {
+      telemetryInFlightRef.current = false;
       setQueryMetrics(EMPTY_DATABASE_QUERY_METRICS);
       setCallingServices(EMPTY_DATABASE_CALLING_SERVICES);
       setEngineMetrics([]);
@@ -310,8 +343,12 @@ const DatabaseServerOverview: FunctionComponent<
     const platform: DatabaseRuntimePlatform | null =
       getDatabaseRuntimePlatform(item);
 
-    // A slow wide-range fetch must not overwrite a newer, narrower one.
+    /*
+     * A slow wide-range fetch must not overwrite a newer one: a narrower
+     * range (a zoom, its reset, the picker) or a Refresh.
+     */
     let ignore: boolean = false;
+    telemetryInFlightRef.current = true;
 
     Promise.all([
       fetchDatabaseQueryMetrics({ projectId, keys: endpointKeys, start, end }),
@@ -361,6 +398,7 @@ const DatabaseServerOverview: FunctionComponent<
           if (ignore) {
             return;
           }
+          telemetryInFlightRef.current = false;
           setQueryMetrics(queries);
           setCallingServices(services);
           setEngineMetrics(engine);
@@ -410,20 +448,43 @@ const DatabaseServerOverview: FunctionComponent<
         },
       )
       .catch(() => {
-        if (!ignore) {
-          setTelemetryLoading(false);
+        if (ignore) {
+          return;
         }
+        telemetryInFlightRef.current = false;
+        setTelemetryLoading(false);
       });
 
     return () => {
       ignore = true;
     };
-  }, [databaseServer, endpoints, timeRange]);
+  }, [telemetryScope, timeRange, telemetryRefreshCount]);
+
+  /*
+   * A refresh reloads the row, its endpoints and the telemetry. The
+   * auto-refresh tick lets a telemetry load that is still running land
+   * instead of replacing it with one for the same window: when the queries
+   * outlast the interval, the tiles, the charts and every section below
+   * them would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && telemetryInFlightRef.current) {
+      return;
+    }
+
+    setTelemetryRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "database-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -666,7 +727,15 @@ const DatabaseServerOverview: FunctionComponent<
   ];
 
   return (
-    <Fragment>
+    /*
+     * One zoom for the whole page (issue #4105): a drag on any chart - the
+     * query charts, the runtime charts or an engine metric chart - narrows
+     * `timeRange`, and every tile, card and section below is fetched over
+     * that one range; a double-click on any chart, or "Reset zoom" beside
+     * the picker, puts the range back. The scope wraps the sections that
+     * render after ResourceOverview too, so they zoom and reset with it.
+     */
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {!isScoped || isIdOnly ? (
         <div className="mb-6">
           <DatabaseServerUnscopedBanner
@@ -697,7 +766,7 @@ const DatabaseServerOverview: FunctionComponent<
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              fetchModel(false).catch(() => {});
+              refresh({ isAutoRefresh: false });
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}
@@ -775,7 +844,7 @@ const DatabaseServerOverview: FunctionComponent<
           windowEnd={chartWindow?.end ?? null}
         />
       </div>
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

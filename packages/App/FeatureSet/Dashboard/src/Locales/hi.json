@@ -6649,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "फिर से प्रयास पहले से पहुँचे स्थिति पृष्ठों के बाद से आगे बढ़ता है: इस घटना के वर्तमान दायरे के केवल वे पृष्ठ, जिन्हें सूचना पूरी नहीं मिली थी, इसे अभी पाते हैं, इसके बाद जोड़े गए पृष्ठों सहित। नोट और स्थिति परिवर्तनों के विपरीत, जो सभी पृष्ठों पर फिर से भेजे जाते हैं, पहले से पहुँचे पृष्ठों को यह दो बार नहीं भेजी जाती।",
   "Send it to every status page again, including the pages already reached": "इसे सभी स्थिति पृष्ठों पर फिर से भेजें, पहले से पहुँचे पृष्ठों सहित",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "यह सूचना कि यह घटना बनाई गई थी, उन सभी स्थिति पृष्ठों के सब्सक्राइबर को फिर से भेजी जाती है जिन तक यह घटना अभी पहुँचती है, उन पृष्ठों सहित जिन तक असफल भेजना पहले ही पहुँच चुका था।",
-  "Could not queue the notification again.": "सूचना को फिर से कतार में नहीं डाला जा सका।"
+  "Could not queue the notification again.": "सूचना को फिर से कतार में नहीं डाला जा सका।",
+  "Ctrl + scroll or pinch to zoom": "ज़ूम करने के लिए Ctrl + स्क्रॉल या पिंच करें",
+  "The map is out of view.": "मैप दृश्य से बाहर है।"
 }

@@ -95,6 +95,15 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
     bucketIntervalMs: props.bucketIntervalMs,
   });
 
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so the
+   * cursor on the box around it never shows over the bars. Left off
+   * entirely when nothing can be dragged, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } =
+    props.onTimeRangeSelect ? { style: { cursor: "crosshair" } } : {};
+
   const pivotedData: Array<PivotedRow> = useMemo(() => {
     return pivotBuckets(props.buckets);
   }, [props.buckets]);
@@ -111,15 +120,32 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
     });
   }, [props.buckets]);
 
-  if (props.isLoading && pivotedData.length === 0) {
+  /*
+   * The loader and the empty box below stand where the bars were, and take
+   * the double-click as the bars do: right after a zoom, while its window
+   * loads or when it holds nothing, is exactly when a reader double-clicks
+   * to go back (issue #4116), and the bars can replace them in the middle
+   * of that double-click (see placeholderProps). select-none: a
+   * double-click on the message would otherwise also select a word. A
+   * zoomed chart keeps its card while it loads (below), so the way back
+   * stays in the same place.
+   */
+  if (props.isLoading && pivotedData.length === 0 && !props.onZoomOut) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-lg border border-gray-200 bg-white">
+      <div
+        className="flex h-32 select-none items-center justify-center rounded-lg border border-gray-200 bg-white"
+        {...selection.placeholderProps}
+      >
         <ComponentLoader />
       </div>
     );
   }
 
-  if (pivotedData.length === 0) {
+  /*
+   * A window with no logs has nothing to chart - unless a zoom brought the
+   * reader there: then the card stays, and its empty box is the way back.
+   */
+  if (pivotedData.length === 0 && !props.onZoomOut) {
     return <></>;
   }
 
@@ -129,7 +155,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-gray-500">Log Volume</span>
-          {props.onTimeRangeSelect && (
+          {props.onTimeRangeSelect && pivotedData.length > 0 && (
             <span className="text-[10px] text-gray-300">
               {selection.canClickToZoom
                 ? "Click or drag to zoom"
@@ -138,7 +164,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
           )}
           {props.onZoomOut && (
             <span className="text-[10px] text-gray-300">
-              Double-click to zoom out
+              Double-click to reset
             </span>
           )}
         </div>
@@ -158,87 +184,104 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
         </div>
       </div>
 
+      {pivotedData.length === 0 && (
+        <div
+          className="flex h-[120px] select-none items-center justify-center text-xs text-gray-400"
+          {...selection.placeholderProps}
+        >
+          {props.isLoading ? (
+            <ComponentLoader />
+          ) : (
+            "No logs in the selected range"
+          )}
+        </div>
+      )}
+
       {/* Chart */}
-      <div
-        className="select-none px-2 pb-1 pt-2"
-        style={{
-          height: 120,
-          cursor: props.onTimeRangeSelect ? "crosshair" : "default",
-        }}
-        onDoubleClick={selection.onDoubleClick}
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={pivotedData}
-            margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
-            onMouseDown={selection.onMouseDown}
-            onMouseMove={selection.onMouseMove}
-            onMouseUp={selection.onMouseUp}
-            barCategoryGap="15%"
-            barGap={0}
-          >
-            <XAxis
-              dataKey="time"
-              tickFormatter={formatTickTime}
-              tick={{
-                fontSize: 10,
-                fill: "var(--ou-chart-tick, #9ca3af)",
-              }}
-              axisLine={{ stroke: "var(--ou-chart-grid, #e5e7eb)" }}
-              tickLine={false}
-              minTickGap={40}
-              dy={4}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{
-                fontSize: 10,
-                fill: "var(--ou-chart-tick, #9ca3af)",
-              }}
-              axisLine={false}
-              tickLine={false}
-              width={48}
-              allowDecimals={false}
-              tickFormatter={formatYAxisTick}
-            />
-            {/*
-             * The tooltip is pinned shut for the length of a drag: it would
-             * otherwise sit over the very bars the reader is trying to read
-             * while they pick the range. Dropping the prop hands control back
-             * to recharts once the drag ends.
-             */}
-            <Tooltip
-              content={<HistogramTooltip />}
-              cursor={{ fill: "rgba(99,102,241,0.06)" }}
-              {...(selection.isDragging ? { active: false } : {})}
-            />
-            {activeSeverities.map((severity: string, index: number) => {
-              const isLast: boolean = index === activeSeverities.length - 1;
-              return (
-                <Bar
-                  key={severity}
-                  dataKey={severity}
-                  stackId="severity"
-                  fill={getSeverityColor(severity).fill}
-                  radius={isLast ? [1.5, 1.5, 0, 0] : [0, 0, 0, 0]}
-                  isAnimationActive={false}
-                  maxBarSize={24}
-                />
-              );
-            })}
-            {selection.selectionStart && selection.selectionEnd && (
-              <ReferenceArea
-                x1={selection.selectionStart}
-                x2={selection.selectionEnd}
-                fill="rgba(99,102,241,0.12)"
-                stroke="rgba(99,102,241,0.5)"
-                strokeWidth={1}
-                radius={2}
+      {pivotedData.length > 0 && (
+        <div
+          className="select-none px-2 pb-1 pt-2"
+          style={{
+            height: 120,
+            cursor: props.onTimeRangeSelect ? "crosshair" : "default",
+          }}
+          onDoubleClick={selection.onDoubleClick}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={pivotedData}
+              margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
+              onMouseDown={selection.onMouseDown}
+              {...selection.chartRootProps}
+              onMouseMove={selection.onMouseMove}
+              onMouseUp={selection.onMouseUp}
+              barCategoryGap="15%"
+              barGap={0}
+              {...chartRootCursorProps}
+            >
+              <XAxis
+                dataKey="time"
+                tickFormatter={formatTickTime}
+                tick={{
+                  fontSize: 10,
+                  fill: "var(--ou-chart-tick, #9ca3af)",
+                }}
+                axisLine={{ stroke: "var(--ou-chart-grid, #e5e7eb)" }}
+                tickLine={false}
+                minTickGap={40}
+                dy={4}
+                interval="preserveStartEnd"
               />
-            )}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+              <YAxis
+                tick={{
+                  fontSize: 10,
+                  fill: "var(--ou-chart-tick, #9ca3af)",
+                }}
+                axisLine={false}
+                tickLine={false}
+                width={48}
+                allowDecimals={false}
+                tickFormatter={formatYAxisTick}
+              />
+              {/*
+               * The tooltip is pinned shut for the length of a drag: it would
+               * otherwise sit over the very bars the reader is trying to read
+               * while they pick the range. Dropping the prop hands control back
+               * to recharts once the drag ends.
+               */}
+              <Tooltip
+                content={<HistogramTooltip />}
+                cursor={{ fill: "rgba(99,102,241,0.06)" }}
+                {...(selection.isDragging ? { active: false } : {})}
+              />
+              {activeSeverities.map((severity: string, index: number) => {
+                const isLast: boolean = index === activeSeverities.length - 1;
+                return (
+                  <Bar
+                    key={severity}
+                    dataKey={severity}
+                    stackId="severity"
+                    fill={getSeverityColor(severity).fill}
+                    radius={isLast ? [1.5, 1.5, 0, 0] : [0, 0, 0, 0]}
+                    isAnimationActive={false}
+                    maxBarSize={24}
+                  />
+                );
+              })}
+              {selection.selectionStart && selection.selectionEnd && (
+                <ReferenceArea
+                  x1={selection.selectionStart}
+                  x2={selection.selectionEnd}
+                  fill="rgba(99,102,241,0.12)"
+                  stroke="rgba(99,102,241,0.5)"
+                  strokeWidth={1}
+                  radius={2}
+                />
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 };

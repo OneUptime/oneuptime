@@ -727,6 +727,10 @@ const DocsNav: NavGroup[] = [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
       { title: "Search Syntax", url: "/docs/telemetry/search-syntax" },
       {
+        title: "Zooming Into a Time Range",
+        url: "/docs/telemetry/charts-and-time-ranges",
+      },
+      {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",
       },

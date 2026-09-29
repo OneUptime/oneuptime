@@ -1,5 +1,8 @@
 import InBetween from "../../Types/BaseDatabase/InBetween";
-import RangeStartAndEndDateTime from "../../Types/Time/RangeStartAndEndDateTime";
+import OneUptimeDate from "../../Types/Date";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../Types/Time/TimeRange";
 
 /**
@@ -86,7 +89,13 @@ export default class DashboardTimeRangeZoomUtil {
         range: TimeRange.CUSTOM,
         startAndEndDate: new InBetween<Date>(
           new Date(lowerInMs),
-          new Date(upperInMs),
+          new Date(
+            DashboardTimeRangeZoomUtil.getEndWithinCurrentWindow(
+              state,
+              lowerInMs,
+              upperInMs,
+            ),
+          ),
         ),
       },
       /*
@@ -96,6 +105,41 @@ export default class DashboardTimeRangeZoomUtil {
        */
       baseline: state.baseline || state.current,
     };
+  }
+
+  /**
+   * A zoom never runs past the end of the window the board is on. A
+   * panel's selection runs to the END of its last bucket, and the newest
+   * bucket of a rolling range ("Past 1 Hour") is still filling up, so a drag
+   * onto it would otherwise zoom the whole board to a window that ends in
+   * the future. The same rule the page-wide zoom and the log and trace
+   * histograms follow. A selection that starts at or after that end is left
+   * alone - clamping it would leave nothing to show.
+   */
+  private static getEndWithinCurrentWindow(
+    state: DashboardTimeRangeZoomState,
+    lowerInMs: number,
+    upperInMs: number,
+  ): number {
+    let currentWindowEndInMs: number = Number.NaN;
+
+    try {
+      currentWindowEndInMs = OneUptimeDate.fromString(
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(state.current).endValue,
+      ).getTime();
+    } catch {
+      return upperInMs;
+    }
+
+    if (
+      Number.isFinite(currentWindowEndInMs) &&
+      currentWindowEndInMs > lowerInMs &&
+      currentWindowEndInMs < upperInMs
+    ) {
+      return currentWindowEndInMs;
+    }
+
+    return upperInMs;
   }
 
   /**

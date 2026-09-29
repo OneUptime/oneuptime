@@ -34,6 +34,10 @@ import {
 } from "./ReplayTimelineTypes";
 import { makeRecordingSignalId } from "./Rail/ReplaySignalTypes";
 import { MAX_PREFETCH_PAGES_AHEAD } from "./ReplayPlaybackIntent";
+import {
+  RecordedPageAddress,
+  prepareRecordedEventsForPlayback,
+} from "./ReplayRecordedAssets";
 
 /*
  * Paging, decoding, eviction and gap-aware advancement for one tab of one
@@ -389,6 +393,12 @@ export default class ChunkLoader {
    */
   private readonly decoded: Map<number, DecodedChunk>;
   private decodedBytes: number;
+  /*
+   * The recorded page's address for this tab, from the last Meta event any
+   * response carried: most chunks have none of their own, and a relative
+   * poster in one of them resolves against it (see RecordedPageAddress).
+   */
+  private readonly recordedPage: RecordedPageAddress = { base: null };
 
   /*
    * Rail rows and activity intervals extracted from each decoded chunk.
@@ -946,7 +956,10 @@ export default class ChunkLoader {
        */
       let bytesSinceYield: number = 0;
 
-      for (const frame of ChunkLoader.decodeFrameIterator(buffer)) {
+      for (const frame of ChunkLoader.decodeFrameIterator(
+        buffer,
+        this.recordedPage,
+      )) {
         if (bytesSinceYield >= DECODE_YIELD_BUDGET_BYTES) {
           await this.yieldToMain();
 
@@ -1333,6 +1346,7 @@ export default class ChunkLoader {
    */
   public static *decodeFrameIterator(
     buffer: ArrayBuffer,
+    recordedPage: RecordedPageAddress = { base: null },
   ): Generator<DecodedChunk, void, undefined> {
     const view: DataView = new DataView(buffer);
     const bytes: Uint8Array = new Uint8Array(buffer);
@@ -1364,6 +1378,17 @@ export default class ChunkLoader {
           : null;
       } catch {
         events = null;
+      }
+
+      /*
+       * Once per decoded chunk, before any Replayer can build from it: the
+       * recorded page's referrer controls, relative poster addresses and
+       * tracking pixels (see prepareRecordedEventsForPlayback). The page
+       * address carries over from frame to frame, and - for a loader - from
+       * response to response (recordedPage).
+       */
+      if (events) {
+        prepareRecordedEventsForPlayback(events, recordedPage);
       }
 
       offset = payloadEnd;

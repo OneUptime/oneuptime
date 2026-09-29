@@ -282,7 +282,7 @@ describe("cluster overview: hero chips", () => {
   const hero: string = between(
     OVERVIEW,
     "const renderHero:",
-    "return ( <Fragment> {renderHero()}",
+    "return ( <TimeRangeZoomScope",
   );
 
   test("each pod status chip carries its own description", () => {

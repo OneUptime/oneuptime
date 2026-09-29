@@ -11,10 +11,10 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -26,6 +26,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -116,6 +117,11 @@ const CloudResourceOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the span and memory metrics reload when it changes.
+  const [metricsRefreshCount, setMetricsRefreshCount] = useState<number>(0);
+  // Set while the metrics for the current window are still loading.
+  const metricsInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -198,6 +204,16 @@ const CloudResourceOverview: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The metrics follow what the environment is scoped by, not the model
+   * object: fetchModel stores a new object on every refresh, and an effect
+   * keyed on it re-ran on every tick, cancelling a load still running for
+   * the same window. A refresh reloads them through metricsRefreshCount.
+   */
+  const metricsScope: string = cloudResource?.resourceIdentifier
+    ? JSON.stringify(getCloudResourceAttributeFilters(cloudResource))
+    : "";
+
   useEffect(() => {
     const item: CloudResource | null = cloudResource;
     if (!item?.resourceIdentifier) {
@@ -210,6 +226,7 @@ const CloudResourceOverview: FunctionComponent<
      * one environment's tiles. Leave them empty until telemetry arrives.
      */
     if (!isCloudResourceScoped(item)) {
+      metricsInFlightRef.current = false;
       setMetrics(null);
       setMemorySeries([]);
       setMetricsLoading(false);
@@ -228,10 +245,12 @@ const CloudResourceOverview: FunctionComponent<
 
     /*
      * Staleness guard: a slow wide-range fetch can resolve after a
-     * subsequently selected narrower range — without the guard the older
-     * response would clobber the newer one.
+     * subsequently selected narrower range (a zoom, its reset, the picker)
+     * or a Refresh — without the guard the older response would clobber
+     * the newer one.
      */
     let ignore: boolean = false;
+    metricsInFlightRef.current = true;
     Promise.all([
       fetchSpanMetrics({ attributes, start, end }),
       fetchMetricSeries({
@@ -246,6 +265,7 @@ const CloudResourceOverview: FunctionComponent<
         if (ignore) {
           return;
         }
+        metricsInFlightRef.current = false;
         setMetrics(m);
         setMemorySeries(mem);
         setMetricsLoading(false);
@@ -254,18 +274,40 @@ const CloudResourceOverview: FunctionComponent<
         if (ignore) {
           return;
         }
+        metricsInFlightRef.current = false;
         setMetricsLoading(false);
       });
 
     return () => {
       ignore = true;
     };
-  }, [cloudResource, timeRange]);
+  }, [metricsScope, timeRange, metricsRefreshCount]);
+
+  /*
+   * A refresh reloads the model, the instances and the metrics. The
+   * auto-refresh tick lets a metrics load that is still running land
+   * instead of replacing it with one for the same window: when the
+   * aggregates outlast the interval, the Requests, Error rate and p95 tiles
+   * and both charts would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && metricsInFlightRef.current) {
+      return;
+    }
+
+    setMetricsRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "cloud-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -485,8 +527,15 @@ const CloudResourceOverview: FunctionComponent<
 
   const topInstances: Array<CloudResourceInstance> = liveInstances.slice(0, 5);
 
+  /*
+   * Issue #4105: a drag on either chart sets the page's range to the window
+   * dragged out (the charts and the Requests / Error rate / p95 tiles
+   * refetch for it); a double-click on either chart, or Reset zoom beside
+   * the picker in the hero, puts the range from before the zoom back. The
+   * CPU / Memory / Instances tiles and Top instances are live values.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {!isScoped ? (
         <CloudResourceConnectBanner
           modelId={modelId}
@@ -512,7 +561,7 @@ const CloudResourceOverview: FunctionComponent<
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              fetchModel(false).catch(() => {});
+              refresh({ isAutoRefresh: false });
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}
@@ -572,7 +621,7 @@ const CloudResourceOverview: FunctionComponent<
       ) : (
         <></>
       )}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

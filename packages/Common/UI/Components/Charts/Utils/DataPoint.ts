@@ -32,13 +32,12 @@ export default class DataPointUtil {
     xAxis: XAxis;
     yAxis: YAxis;
   }): Array<ChartDataPoint> {
-    const { intervals, formatter } = this.initializeXAxisData(
-      data.xAxis,
-      data.seriesPoints,
-    );
+    const { intervals, formatter, resolvedPrecision } =
+      this.initializeXAxisData(data.xAxis, data.seriesPoints);
     const arrayOfData: ChartDataPoint[] = this.initializeArrayOfData(
       intervals,
       formatter,
+      resolvedPrecision,
     );
     this.processSeriesData(
       data.seriesPoints,
@@ -57,6 +56,7 @@ export default class DataPointUtil {
     xAxisMin: XAxisMaxMin;
     intervals: Array<Date>;
     formatter: (value: Date) => string;
+    resolvedPrecision: XAxisPrecision;
   } {
     const xAxisMax: XAxisMaxMin = xAxis.options.max;
     const xAxisMin: XAxisMaxMin = xAxis.options.min;
@@ -80,12 +80,18 @@ export default class DataPointUtil {
       xAxisMin,
       precision,
     });
-    return { xAxisMax, xAxisMin, intervals, formatter };
+    const resolvedPrecision: XAxisPrecision = XAxisUtil.getPrecision({
+      xAxisMax,
+      xAxisMin,
+      precision,
+    });
+    return { xAxisMax, xAxisMin, intervals, formatter, resolvedPrecision };
   }
 
   private static initializeArrayOfData(
     intervals: Array<Date>,
     formatter: (value: Date) => string,
+    precision: XAxisPrecision,
   ): Array<ChartDataPoint> {
     const arrayOfData: Array<ChartDataPoint> = [];
     for (const interval of intervals) {
@@ -101,10 +107,16 @@ export default class DataPointUtil {
       dataPoint[CHART_DATA_POINT_X_AXIS_KEY] = formatter(interval);
       /*
        * The formatted label is not round-trippable back to a Date, so
-       * keep the raw bucket start on the row — charts use it to recover
-       * real dates (e.g. drag-to-select a time range).
+       * keep the bucket start on the row — charts use it to recover real
+       * dates (drag-to-select a time range, a bucket click). The start of
+       * the bucket the row DRAWS, not of its slot: points join rows by
+       * label, which is on the grid, while the slots are walked from a
+       * window start that usually is not (see XAxisUtil.getBucketStart).
        */
-      dataPoint[CHART_DATA_POINT_DATE_KEY] = interval.getTime();
+      dataPoint[CHART_DATA_POINT_DATE_KEY] = XAxisUtil.getBucketStart(
+        interval,
+        precision,
+      ).getTime();
       arrayOfData.push(dataPoint);
     }
     return arrayOfData;

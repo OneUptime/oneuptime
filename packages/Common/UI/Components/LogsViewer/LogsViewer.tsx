@@ -68,9 +68,10 @@ import ProjectUtil from "../../Utils/Project";
 import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
-import useHistogramZoom, {
-  HistogramZoomState,
-} from "../Charts/Utils/useHistogramZoom";
+import useViewerTimeRangeZoom, {
+  ViewerTimeRangeZoom,
+} from "../TelemetryViewer/useViewerTimeRangeZoom";
+import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
@@ -342,10 +343,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
    * window for a custom one and nothing remembers what the reader was
-   * looking at. This keeps that window so a double-click on the chart can
-   * hand it back.
+   * looking at. This keeps that window so a double-click on a chart, or
+   * "Reset zoom" beside the picker, can hand it back. The analytics chart
+   * shares the same zoom (see the provider below), so dragging across
+   * either one retimes the whole viewer, and either one zooms back out. A
+   * viewer pinned to the window of a zoom offered around it (a telemetry
+   * snapshot's primary explorer) follows that zoom instead, so a drag here
+   * retimes everything that zoom does.
    */
-  const histogramZoom: HistogramZoomState = useHistogramZoom({
+  const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
     onTimeRangeSelect: props.onHistogramTimeRangeSelect,
     onTimeRangeChange: props.onTimeRangeChange,
@@ -1192,10 +1198,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       exportLogs(displayedLogs, LogExportFormat.JSON, selectedColumns);
     },
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
-    ...(props.timeRange && histogramZoom.onTimeRangeChange
+    ...(props.timeRange && viewerZoom.onTimeRangeChange
       ? {
           timeRange: props.timeRange,
-          onTimeRangeChange: histogramZoom.onTimeRangeChange,
+          onTimeRangeChange: viewerZoom.onTimeRangeChange,
+          /*
+           * A followed zoom's way back is shown by whoever offers it (the
+           * snapshot's, beside its badge): one Reset zoom per zoom.
+           */
+          showResetZoom: !viewerZoom.followsEnclosingZoom,
         }
       : {}),
     showKeyboardShortcuts,
@@ -1219,7 +1230,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       : {}),
   };
 
-  return (
+  const viewer: ReactElement = (
     <div className="space-y-2">
       {props.showFilters && (
         <div>
@@ -1255,8 +1266,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
           bucketIntervalMs={props.histogramBucketIntervalMs}
-          onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
-          onZoomOut={histogramZoom.onZoomOut}
+          onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
+          onZoomOut={viewerZoom.onZoomOut}
         />
       )}
 
@@ -1380,6 +1391,24 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
     </div>
+  );
+
+  /*
+   * The histogram, the analytics chart and the toolbar's "Reset zoom" all
+   * work on this viewer's window, whatever page it sits in, so the viewer's
+   * zoom shadows any zoom offered around it, unless that zoom is over this
+   * very window: the viewer then hands that zoom on (see
+   * useViewerTimeRangeZoom). A host that cannot zoom (no select handler)
+   * leaves whatever surrounds the viewer in place.
+   */
+  if (!viewerZoom.zoom) {
+    return viewer;
+  }
+
+  return (
+    <TimeRangeZoomProvider zoom={viewerZoom.zoom}>
+      {viewer}
+    </TimeRangeZoomProvider>
   );
 };
 

@@ -1,8 +1,10 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Dictionary from "Common/Types/Dictionary";
@@ -11,9 +13,12 @@ import OneUptimeDate from "Common/Types/Date";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -64,6 +69,11 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import { computeBucketSizeInMinutes } from "../Dashboard/Components/LogChartData";
 
 export interface ComponentProps {
   /** What the user is investigating, e.g. `CPU by host · 12:01–12:14`. */
@@ -80,6 +90,33 @@ export interface ComponentProps {
 
 const TOP_ERROR_PATTERN_LIMIT: number = 5;
 
+/*
+ * A window other than the one the opener pinned: a zoom dragged out of a
+ * chart in the drawer, or a range picked on its metric card. Tied to the
+ * pinned window it was made over, so an opener that re-pins the drawer on
+ * a new moment starts it fresh.
+ */
+interface DrawerWindowOverride {
+  pinnedStartMs: number;
+  pinnedEndMs: number;
+  // What the metric card's picker shows (a relative pick stays relative).
+  range: RangeStartAndEndDateTime;
+  // The window every signal in the drawer is fetched for.
+  window: InBetween<Date>;
+}
+
+interface LatestDrawerWindow {
+  pinnedStartMs: number;
+  pinnedEndMs: number;
+  currentRange: RangeStartAndEndDateTime;
+}
+
+// The part of the opener's view data the drawer reads (it pins its own window).
+interface DrawerQueries {
+  queryConfigs: MetricViewData["queryConfigs"];
+  formulaConfigs: MetricViewData["formulaConfigs"];
+}
+
 /**
  * The in-context investigation panel: everything that happened in one
  * window, without leaving the page. A log-signal summary (volume by
@@ -90,8 +127,34 @@ const TOP_ERROR_PATTERN_LIMIT: number = 5;
 const InvestigationDrawer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const windowStartMs: number = props.window.startValue.getTime();
-  const windowEndMs: number = props.window.endValue.getTime();
+  const pinnedStartMs: number = props.window.startValue.getTime();
+  const pinnedEndMs: number = props.window.endValue.getTime();
+
+  /*
+   * Drag-to-zoom inside the drawer (issue #4105). A drag across the log
+   * volume chart or any metric chart narrows the WHOLE drawer — log stats,
+   * top patterns, findings, the metric charts and the companion tabs — and
+   * a double-click on any of them, or "Reset zoom", returns to the window
+   * the opener pinned. It never reaches the page under the drawer: the
+   * drawer offers its own zoom to everything inside it, shadowing any the
+   * page offers.
+   */
+  const [windowOverride, setWindowOverride] =
+    useState<DrawerWindowOverride | null>(null);
+
+  const activeOverride: DrawerWindowOverride | null =
+    windowOverride &&
+    windowOverride.pinnedStartMs === pinnedStartMs &&
+    windowOverride.pinnedEndMs === pinnedEndMs
+      ? windowOverride
+      : null;
+
+  const windowStartMs: number = activeOverride
+    ? activeOverride.window.startValue.getTime()
+    : pinnedStartMs;
+  const windowEndMs: number = activeOverride
+    ? activeOverride.window.endValue.getTime()
+    : pinnedEndMs;
 
   /*
    * Everything handed to the companion machinery MUST be referentially
@@ -103,17 +166,40 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     return new InBetween<Date>(new Date(windowStartMs), new Date(windowEndMs));
   }, [windowStartMs, windowEndMs]);
 
+  /*
+   * The opener's queries, kept by value. An opener may hand over a new but
+   * equal metricViewData on every render - a dashboard chart widget rebuilds
+   * its view data on every auto-refresh tick - and nothing in the drawer may
+   * refetch, or blank what it shows, for that: the log signal, the metric
+   * card, the companion tabs and the event markers all key on these. Only
+   * the queries are compared (the drawer pins its own window), and functions
+   * compare by identity, so a query that really changed is still new.
+   */
+  const latestQueries: DrawerQueries = {
+    queryConfigs: props.metricViewData.queryConfigs,
+    formulaConfigs: props.metricViewData.formulaConfigs || [],
+  };
+  const stableQueries: React.MutableRefObject<DrawerQueries> =
+    useRef<DrawerQueries>(latestQueries);
+  if (!JSONFunctions.deepEqual(stableQueries.current, latestQueries)) {
+    stableQueries.current = latestQueries;
+  }
+  const queryConfigs: MetricViewData["queryConfigs"] =
+    stableQueries.current.queryConfigs;
+  const formulaConfigs: MetricViewData["formulaConfigs"] =
+    stableQueries.current.formulaConfigs;
+
   const pinnedViewData: MetricViewData = useMemo(() => {
     return {
-      queryConfigs: props.metricViewData.queryConfigs,
-      formulaConfigs: props.metricViewData.formulaConfigs || [],
+      queryConfigs: queryConfigs,
+      formulaConfigs: formulaConfigs,
       /*
        * Pinned on purpose — no rangeToken: an investigation window must
        * not re-anchor to "now" on refresh.
        */
       startAndEndDate: pinnedWindow,
     };
-  }, [props.metricViewData, pinnedWindow]);
+  }, [queryConfigs, formulaConfigs, pinnedWindow]);
 
   const telemetryQuery: TelemetryQuery = useMemo(() => {
     return {
@@ -130,19 +216,143 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     };
   }, [pinnedWindow]);
 
+  // The window the opener pinned: where "Reset zoom" always goes back to.
+  const openerTimeRange: RangeStartAndEndDateTime = useMemo(() => {
+    return {
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(
+        new Date(pinnedStartMs),
+        new Date(pinnedEndMs),
+      ),
+    };
+  }, [pinnedStartMs, pinnedEndMs]);
+
+  // What the metric card shows in its picker.
+  const cardTimeRange: RangeStartAndEndDateTime = activeOverride
+    ? activeOverride.range
+    : pinnedTimeRange;
+
+  /*
+   * The callbacks read the latest window through a ref so they can keep
+   * their identity: the charts they are handed to are memoized.
+   */
+  const latestWindow: React.MutableRefObject<LatestDrawerWindow> =
+    useRef<LatestDrawerWindow>({
+      pinnedStartMs: pinnedStartMs,
+      pinnedEndMs: pinnedEndMs,
+      currentRange: cardTimeRange,
+    });
+  latestWindow.current = {
+    pinnedStartMs: pinnedStartMs,
+    pinnedEndMs: pinnedEndMs,
+    currentRange: cardTimeRange,
+  };
+
+  const zoomToTimeRange: (startTime: Date, endTime: Date) => void = useCallback(
+    (startTime: Date, endTime: Date): void => {
+      const current: LatestDrawerWindow = latestWindow.current;
+      const zoomedTo: RangeStartAndEndDateTime | null =
+        TimeRangeZoomUtil.getZoomedRange({
+          startTime: startTime,
+          endTime: endTime,
+          currentRange: current.currentRange,
+        });
+
+      if (!zoomedTo || !zoomedTo.startAndEndDate) {
+        return;
+      }
+
+      setWindowOverride({
+        pinnedStartMs: current.pinnedStartMs,
+        pinnedEndMs: current.pinnedEndMs,
+        range: zoomedTo,
+        window: zoomedTo.startAndEndDate,
+      });
+    },
+    [],
+  );
+
+  const resetZoom: () => void = useCallback((): void => {
+    setWindowOverride(null);
+  }, []);
+
+  /*
+   * A range picked on the metric card moves the whole drawer too, so every
+   * signal in it keeps describing one window. Unlike a page's picker it
+   * does not forget the pinned window: an investigation is about the moment
+   * the opener pinned, so "Reset zoom" still leads back there.
+   */
+  const pickTimeRange: (range: RangeStartAndEndDateTime) => void = useCallback(
+    (range: RangeStartAndEndDateTime): void => {
+      const current: LatestDrawerWindow = latestWindow.current;
+      const pickedWindow: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(range);
+
+      if (
+        pickedWindow.startValue.getTime() === current.pinnedStartMs &&
+        pickedWindow.endValue.getTime() === current.pinnedEndMs
+      ) {
+        setWindowOverride(null);
+        return;
+      }
+
+      setWindowOverride({
+        pinnedStartMs: current.pinnedStartMs,
+        pinnedEndMs: current.pinnedEndMs,
+        range: range,
+        window: pickedWindow,
+      });
+    },
+    [],
+  );
+
+  const isZoomed: boolean = activeOverride !== null;
+
+  const drawerZoom: TimeRangeZoom = useMemo((): TimeRangeZoom => {
+    return {
+      isZoomed: isZoomed,
+      rangeBeforeZoom: isZoomed ? openerTimeRange : null,
+      zoomToTimeRange: zoomToTimeRange,
+      resetZoom: resetZoom,
+    };
+  }, [isZoomed, openerTimeRange, zoomToTimeRange, resetZoom]);
+
+  /*
+   * The scope, from the queries alone: a zoom moves the window, never the
+   * scope, so it must not look like a new scope to the log signal below.
+   */
   const extraction: MetricScopeFilterExtraction = useMemo(() => {
-    return extractScopeFiltersFromQueryConfigs(
-      pinnedViewData.queryConfigs || [],
-    );
-  }, [pinnedViewData]);
+    return extractScopeFiltersFromQueryConfigs(queryConfigs || []);
+  }, [queryConfigs]);
 
   // -- Log signal summary (volume + top error patterns) --
 
   const [logBuckets, setLogBuckets] = useState<Array<HistogramBucket> | null>(
     null,
   );
+  /*
+   * How much time one log volume bar covers, set together with the bars:
+   * it is what lets a click on one bar zoom into it, and a drag zoom
+   * through the end of the last bar it covered.
+   */
+  const [logBucketIntervalMs, setLogBucketIntervalMs] = useState<
+    number | undefined
+  >(undefined);
   const [errorPatterns, setErrorPatterns] =
     useState<Array<TopErrorPatternRow> | null>(null);
+
+  /*
+   * A zoom (or its reset, or a range picked on the card) moves the window:
+   * the previous window's numbers must not sit under the new window's
+   * heading while the new ones load. Only a new window or a new scope
+   * clears them. A re-render over the same ones keeps what is on screen -
+   * the stats, the chart and the findings, which Explain with AI and Save
+   * to incident read.
+   */
+  useEffect(() => {
+    setLogBuckets(null);
+    setErrorPatterns(null);
+  }, [windowStartMs, windowEndMs, extraction]);
 
   useEffect(() => {
     let isCancelled: boolean = false;
@@ -181,12 +391,21 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
         ...(serviceIds.length > 0 ? { serviceIds } : {}),
       };
 
+      /*
+       * Asked for explicitly (the server's own default for the window), so
+       * the drawer knows how wide its bars are without the response saying.
+       */
+      const bucketSizeInMinutes: number = computeBucketSizeInMinutes(
+        new Date(windowStartMs),
+        new Date(windowEndMs),
+      );
+
       const [buckets, patterns]: [
         Array<JSONObject>,
         Array<TopErrorPatternRow>,
       ] = await Promise.all([
-        fetchLogsHistogramRaw(
-          buildLogsHistogramRequest({
+        fetchLogsHistogramRaw({
+          ...buildLogsHistogramRequest({
             timeRange: scope.timeRange,
             ...(serviceIds.length > 0 ? { serviceIds } : {}),
             /*
@@ -200,7 +419,8 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 : undefined,
             appliedFacetFilters: new Map<string, Set<string>>(),
           }),
-        ).catch((): Array<JSONObject> => {
+          bucketSizeInMinutes: bucketSizeInMinutes,
+        }).catch((): Array<JSONObject> => {
           return [];
         }),
         fetchTopErrorPatterns(scope, TOP_ERROR_PATTERN_LIMIT).catch(
@@ -215,6 +435,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       }
 
       setLogBuckets(buckets as unknown as Array<HistogramBucket>);
+      setLogBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
       setErrorPatterns(patterns);
     };
 
@@ -435,275 +656,303 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
     >
       {/* One wrapper element — SideOver divides its children. */}
-      <div className="space-y-5 py-5">
-        {/* Scope strip */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {scopeChipsForEvidence.length > 0 ? (
-            scopeChipsForEvidence.map((chip: string) => {
-              return (
-                <span
-                  key={chip}
-                  className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-gray-600"
-                >
-                  {chip}
-                </span>
-              );
-            })
-          ) : (
-            <span className="text-xs text-gray-500">
-              Scoped by time window only — results cover the whole project.
-            </span>
-          )}
-          {droppedHint ? (
-            <HintChip variant="amber">{droppedHint}</HintChip>
-          ) : null}
-          <button
-            type="button"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            onClick={openInExplorer}
-          >
-            <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            Open in Metric Explorer
-          </button>
-        </div>
-
-        {/* Findings — the deterministic "explain this spike" readout */}
-        <Card
-          title="Findings"
-          description="What stands out in this window, from the evidence below."
-          rightElement={
-            <div className="flex items-center gap-2">
+      <TimeRangeZoomProvider zoom={drawerZoom}>
+        <div className="space-y-5 py-5">
+          {/* Scope strip */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {scopeChipsForEvidence.length > 0 ? (
+              scopeChipsForEvidence.map((chip: string) => {
+                return (
+                  <span
+                    key={chip}
+                    className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-gray-600"
+                  >
+                    {chip}
+                  </span>
+                );
+              })
+            ) : (
+              <span className="text-xs text-gray-500">
+                Scoped by time window only — results cover the whole project.
+              </span>
+            )}
+            {droppedHint ? (
+              <HintChip variant="amber">{droppedHint}</HintChip>
+            ) : null}
+            <div className="ml-auto flex items-center gap-1.5">
+              {/*
+               * The way back to the pinned window from anywhere in the
+               * drawer — including the companion tabs, where no chart of the
+               * drawer's is on screen to double-click. Renders nothing unless
+               * zoomed.
+               */}
+              <ResetTimeRangeZoomButton />
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                title="Open Ask AI with this evidence as an editable prompt"
-                onClick={explainWithAi}
+                onClick={openInExplorer}
               >
-                <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-                Explain with AI
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                title="Pin this investigation to an incident as a private note"
-                onClick={openIncidentPicker}
-              >
-                <Icon icon={IconProp.MapPin} className="h-3.5 w-3.5" />
-                Save to incident
+                <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+                Open in Metric Explorer
               </button>
             </div>
-          }
-        >
-          <div className="space-y-3">
-            <ul className="space-y-1.5">
-              {findings.map((finding: InvestigationFinding, index: number) => {
-                return (
-                  <li key={index} className="flex items-start gap-2">
-                    <span
-                      aria-hidden="true"
-                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                        finding.severity === "critical"
-                          ? "bg-red-500"
-                          : finding.severity === "warning"
-                            ? "bg-amber-500"
-                            : "bg-blue-400"
-                      }`}
-                    />
-                    <span className="text-sm text-gray-700">
-                      {finding.text}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+          </div>
 
-            {isIncidentPickerOpen ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
-                {recentIncidents === null ? (
-                  <span className="text-xs text-gray-500">
-                    Loading incidents…
-                  </span>
-                ) : recentIncidents.length === 0 ? (
-                  <span className="text-xs text-gray-500">
-                    No incidents found in this project.
-                  </span>
-                ) : (
-                  <>
-                    <label
-                      htmlFor="investigation-incident-picker"
-                      className="text-xs font-medium text-gray-700"
-                    >
-                      Pin to
-                    </label>
-                    <select
-                      id="investigation-incident-picker"
-                      value={selectedIncidentId}
-                      onChange={(
-                        event: React.ChangeEvent<HTMLSelectElement>,
-                      ): void => {
-                        setSelectedIncidentId(event.target.value);
-                      }}
-                      className="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    >
-                      {recentIncidents.map((incident: Incident) => {
-                        return (
-                          <option
-                            key={incident.id?.toString()}
-                            value={incident.id?.toString()}
-                          >
-                            {incident.incidentNumberWithPrefix ||
-                              `#${incident.incidentNumber || "?"}`}{" "}
-                            — {incident.title}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <button
-                      type="button"
-                      disabled={isSavingNote || !selectedIncidentId}
-                      className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                      onClick={saveNoteToIncident}
-                    >
-                      {isSavingNote ? "Saving…" : "Save note"}
-                    </button>
-                  </>
-                )}
+          {/* Findings — the deterministic "explain this spike" readout */}
+          <Card
+            title="Findings"
+            description="What stands out in this window, from the evidence below."
+            rightElement={
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="rounded-md px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                  onClick={() => {
-                    setIsIncidentPickerOpen(false);
-                  }}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  title="Open Ask AI with this evidence as an editable prompt"
+                  onClick={explainWithAi}
                 >
-                  Cancel
+                  <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+                  Explain with AI
                 </button>
-                {saveNoteError ? (
-                  <p
-                    role="alert"
-                    className="w-full text-xs font-medium text-red-600"
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  title="Pin this investigation to an incident as a private note"
+                  onClick={openIncidentPicker}
+                >
+                  <Icon icon={IconProp.MapPin} className="h-3.5 w-3.5" />
+                  Save to incident
+                </button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <ul className="space-y-1.5">
+                {findings.map(
+                  (finding: InvestigationFinding, index: number) => {
+                    return (
+                      <li key={index} className="flex items-start gap-2">
+                        <span
+                          aria-hidden="true"
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            finding.severity === "critical"
+                              ? "bg-red-500"
+                              : finding.severity === "warning"
+                                ? "bg-amber-500"
+                                : "bg-blue-400"
+                          }`}
+                        />
+                        <span className="text-sm text-gray-700">
+                          {finding.text}
+                        </span>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+
+              {isIncidentPickerOpen ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                  {recentIncidents === null ? (
+                    <span className="text-xs text-gray-500">
+                      Loading incidents…
+                    </span>
+                  ) : recentIncidents.length === 0 ? (
+                    <span className="text-xs text-gray-500">
+                      No incidents found in this project.
+                    </span>
+                  ) : (
+                    <>
+                      <label
+                        htmlFor="investigation-incident-picker"
+                        className="text-xs font-medium text-gray-700"
+                      >
+                        Pin to
+                      </label>
+                      <select
+                        id="investigation-incident-picker"
+                        value={selectedIncidentId}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLSelectElement>,
+                        ): void => {
+                          setSelectedIncidentId(event.target.value);
+                        }}
+                        className="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      >
+                        {recentIncidents.map((incident: Incident) => {
+                          return (
+                            <option
+                              key={incident.id?.toString()}
+                              value={incident.id?.toString()}
+                            >
+                              {incident.incidentNumberWithPrefix ||
+                                `#${incident.incidentNumber || "?"}`}{" "}
+                              — {incident.title}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={isSavingNote || !selectedIncidentId}
+                        className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                        onClick={saveNoteToIncident}
+                      >
+                        {isSavingNote ? "Saving…" : "Save note"}
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    onClick={() => {
+                      setIsIncidentPickerOpen(false);
+                    }}
                   >
-                    {saveNoteError}
+                    Cancel
+                  </button>
+                  {saveNoteError ? (
+                    <p
+                      role="alert"
+                      className="w-full text-xs font-medium text-red-600"
+                    >
+                      {saveNoteError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </Card>
+
+          {/* Log signal summary */}
+          <Card
+            title="Log signal"
+            description="Log volume and the loudest error patterns inside this window."
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    label: "Log lines",
+                    value: logVolume ? logVolume.total.toLocaleString() : "…",
+                  },
+                  {
+                    label: "Errors",
+                    value: logVolume
+                      ? logVolume.errorCount.toLocaleString()
+                      : "…",
+                  },
+                  {
+                    label: "Error rate",
+                    value: logVolume
+                      ? `${logVolume.errorRatePercent.toFixed(1)}%`
+                      : "…",
+                  },
+                ].map((stat: { label: string; value: string }) => {
+                  return (
+                    <div
+                      key={stat.label}
+                      className="rounded-lg border border-gray-200 bg-white p-3"
+                    >
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                        {stat.label}
+                      </p>
+                      <p className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
+                        {stat.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <LogsHistogram
+                buckets={logBuckets || []}
+                isLoading={logBuckets === null}
+                bucketIntervalMs={logBucketIntervalMs}
+                onTimeRangeSelect={zoomToTimeRange}
+                onZoomOut={isZoomed ? resetZoom : undefined}
+              />
+
+              <div>
+                <p className="text-xs font-medium text-gray-700">
+                  Top error patterns
+                </p>
+                {errorPatterns === null ? (
+                  <p className="mt-1 text-xs text-gray-400">Loading…</p>
+                ) : errorPatterns.length === 0 ? (
+                  <p className="mt-1 text-xs text-gray-500">
+                    No error-severity logs in this window.
+                  </p>
+                ) : (
+                  <ul className="mt-1.5 space-y-1">
+                    {errorPatterns.map((pattern: TopErrorPatternRow) => {
+                      return (
+                        <li key={pattern.pattern}>
+                          <button
+                            type="button"
+                            className="group flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                            title="Open these logs in the explorer"
+                            onClick={() => {
+                              openPattern(pattern);
+                            }}
+                          >
+                            <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-red-700">
+                              {pattern.count.toLocaleString()}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700 group-hover:text-gray-900">
+                              {pattern.sampleBody || pattern.pattern}
+                            </span>
+                            <span className="max-sm:hidden shrink-0 text-[11px] text-gray-400 sm:inline">
+                              {describeOccurrenceCount(
+                                pattern.count,
+                                pinnedTimeRange,
+                              )}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {scopeChipsForEvidence.length > 0 &&
+                Object.keys(extraction.attributes).length > 0 ? (
+                  <p className="mt-1.5 text-[11px] text-gray-400">
+                    Patterns are scoped by service and window; attribute filters
+                    apply to the volume chart above.
                   </p>
                 ) : null}
               </div>
-            ) : null}
-          </div>
-        </Card>
-
-        {/* Log signal summary */}
-        <Card
-          title="Log signal"
-          description="Log volume and the loudest error patterns inside this window."
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                {
-                  label: "Log lines",
-                  value: logVolume ? logVolume.total.toLocaleString() : "…",
-                },
-                {
-                  label: "Errors",
-                  value: logVolume
-                    ? logVolume.errorCount.toLocaleString()
-                    : "…",
-                },
-                {
-                  label: "Error rate",
-                  value: logVolume
-                    ? `${logVolume.errorRatePercent.toFixed(1)}%`
-                    : "…",
-                },
-              ].map((stat: { label: string; value: string }) => {
-                return (
-                  <div
-                    key={stat.label}
-                    className="rounded-lg border border-gray-200 bg-white p-3"
-                  >
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                      {stat.label}
-                    </p>
-                    <p className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
-                      {stat.value}
-                    </p>
-                  </div>
-                );
-              })}
             </div>
+          </Card>
 
-            <LogsHistogram
-              buckets={logBuckets || []}
-              isLoading={logBuckets === null}
-            />
-
-            <div>
-              <p className="text-xs font-medium text-gray-700">
-                Top error patterns
-              </p>
-              {errorPatterns === null ? (
-                <p className="mt-1 text-xs text-gray-400">Loading…</p>
-              ) : errorPatterns.length === 0 ? (
-                <p className="mt-1 text-xs text-gray-500">
-                  No error-severity logs in this window.
-                </p>
-              ) : (
-                <ul className="mt-1.5 space-y-1">
-                  {errorPatterns.map((pattern: TopErrorPatternRow) => {
-                    return (
-                      <li key={pattern.pattern}>
-                        <button
-                          type="button"
-                          className="group flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                          title="Open these logs in the explorer"
-                          onClick={() => {
-                            openPattern(pattern);
-                          }}
-                        >
-                          <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-red-700">
-                            {pattern.count.toLocaleString()}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700 group-hover:text-gray-900">
-                            {pattern.sampleBody || pattern.pattern}
-                          </span>
-                          <span className="max-sm:hidden shrink-0 text-[11px] text-gray-400 sm:inline">
-                            {describeOccurrenceCount(
-                              pattern.count,
-                              pinnedTimeRange,
-                            )}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {scopeChipsForEvidence.length > 0 &&
-              Object.keys(extraction.attributes).length > 0 ? (
-                <p className="mt-1.5 text-[11px] text-gray-400">
-                  Patterns are scoped by service and window; attribute filters
-                  apply to the volume chart above.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </Card>
-
-        {/* Metrics + companion signals, all pinned to the window */}
-        <TelemetryCompanionSignalTabs
-          telemetryQuery={telemetryQuery}
-          snapshotWindow={pinnedWindow}
-          eventNoun="view"
-          primarySignalElement={
-            <EmbeddedMetricCard
-              title="Metrics"
-              description="The charts this investigation started from, pinned to the window."
-              queryConfigs={pinnedViewData.queryConfigs}
-              formulaConfigs={pinnedViewData.formulaConfigs}
-              defaultTimeRange={pinnedTimeRange}
-            />
-          }
-        />
-      </div>
+          {/* Metrics + companion signals, all pinned to the window */}
+          <TelemetryCompanionSignalTabs
+            telemetryQuery={telemetryQuery}
+            snapshotWindow={pinnedWindow}
+            /*
+             * While the drawer is zoomed the tabs show the slice, and their
+             * copy must say so: "no logs found" must not claim the whole
+             * window the opener pinned was empty.
+             */
+            isSnapshotZoomed={isZoomed}
+            eventNoun="view"
+            primarySignalElement={
+              /*
+               * Controlled by the drawer's window, inside the drawer's zoom:
+               * a drag or double-click on a metric chart zooms the whole
+               * drawer, and the card's picker moves the whole drawer.
+               */
+              <EmbeddedMetricCard
+                title="Metrics"
+                description="The charts this investigation started from, pinned to the window."
+                queryConfigs={pinnedViewData.queryConfigs}
+                formulaConfigs={pinnedViewData.formulaConfigs}
+                timeRange={cardTimeRange}
+                onTimeRangeChange={pickTimeRange}
+              />
+            }
+          />
+        </div>
+      </TimeRangeZoomProvider>
     </SideOver>
   );
 };
