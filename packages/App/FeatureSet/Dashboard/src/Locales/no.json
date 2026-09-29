@@ -6611,6 +6611,7 @@
   "Default (Optional)": "Standard (Valgfritt)",
   "Default (Not Shown)": "Standard (Vises ikke)",
   "Hidden": "Skjult",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "Malens innstillinger for egendefinerte felt kunne ikke lastes inn. Malen kan ha blitt slettet.",
   "Required": "Påkrevd",
   "Optional": "Valgfritt",
   "Questions": "Spørsmål",

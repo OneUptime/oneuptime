@@ -6611,6 +6611,7 @@
   "Default (Optional)": "Standaard (Optioneel)",
   "Default (Not Shown)": "Standaard (Niet getoond)",
   "Hidden": "Verborgen",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "De instellingen voor aangepaste velden van dit sjabloon konden niet worden geladen. Het sjabloon is mogelijk verwijderd.",
   "Required": "Verplicht",
   "Optional": "Optioneel",
   "Questions": "Vragen",

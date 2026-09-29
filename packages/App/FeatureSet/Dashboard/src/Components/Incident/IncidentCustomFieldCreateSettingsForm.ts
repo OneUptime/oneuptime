@@ -434,6 +434,88 @@ export const packCustomFieldSettingsFormValues: PackCustomFieldSettingsFormValue
     });
   };
 
+type ReadFormSettingFunction = (
+  value: unknown,
+  mode: IncidentCustomFieldSettingsMode,
+) => CustomFieldCreateSetting;
+
+/*
+ * What a dropdown's value means, as a setting: the option's value, a cleared
+ * or unknown value as the unset choice, and on a form a Default as the Not
+ * Asked a form reads it as.
+ */
+const readFormSetting: ReadFormSettingFunction = (
+  value: unknown,
+  mode: IncidentCustomFieldSettingsMode,
+): CustomFieldCreateSetting => {
+  const setting: unknown = normalizeFormValue(value);
+
+  if (!isCustomFieldCreateSetting(setting)) {
+    return getUnsetCustomFieldSetting(mode);
+  }
+
+  if (mode === "form" && setting === CustomFieldCreateSetting.Default) {
+    return CustomFieldCreateSetting.Hidden;
+  }
+
+  return setting;
+};
+
+export type GetChangedCustomFieldSettingsFormValuesFunction = (data: {
+  // The fields the form asked about.
+  definitions: Array<IncidentCustomFieldDefinition>;
+  // Every value the form submitted.
+  formValues: JSONObject | null | undefined;
+  // What the form started from: getCustomFieldSettingsFormInitialValues.
+  initialValues: JSONObject | null | undefined;
+  mode: IncidentCustomFieldSettingsMode;
+}) => JSONObject;
+
+/**
+ * The submitted values of the dropdowns somebody changed, under their form
+ * keys, and nothing else. A dropdown counts as changed when its choice now
+ * means something else: one changed and changed back, or cleared while on
+ * Default, has not changed.
+ *
+ * Packed over the settings as they are stored at the moment of saving
+ * (packCustomFieldSettingsFormValues), this saves the edit and only the edit:
+ * a field somebody else set while the form was open - another admin, another
+ * tab, the API, Terraform - keeps what they set, instead of going back to
+ * what this form happened to start from.
+ */
+export const getChangedCustomFieldSettingsFormValues: GetChangedCustomFieldSettingsFormValuesFunction =
+  (data: {
+    definitions: Array<IncidentCustomFieldDefinition>;
+    formValues: JSONObject | null | undefined;
+    initialValues: JSONObject | null | undefined;
+    mode: IncidentCustomFieldSettingsMode;
+  }): JSONObject => {
+    const formValues: JSONObject = data.formValues || {};
+    const initialValues: JSONObject = data.initialValues || {};
+    const changed: JSONObject = {};
+
+    for (const definition of getKeyedCustomFieldDefinitions(data.definitions)) {
+      const formKey: string = getCustomFieldSettingFormKey(
+        definition.variableKey,
+      );
+
+      if (!Object.prototype.hasOwnProperty.call(formValues, formKey)) {
+        continue;
+      }
+
+      if (
+        readFormSetting(formValues[formKey], data.mode) ===
+        readFormSetting(initialValues[formKey], data.mode)
+      ) {
+        continue;
+      }
+
+      changed[formKey] = formValues[formKey];
+    }
+
+    return changed;
+  };
+
 export type RemoveCustomFieldSettingsFormKeysFunction = (
   miscDataProps: JSONObject,
 ) => void;

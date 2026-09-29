@@ -6611,6 +6611,7 @@
   "Default (Optional)": "डिफ़ॉल्ट (वैकल्पिक)",
   "Default (Not Shown)": "डिफ़ॉल्ट (नहीं दिखाया जाता)",
   "Hidden": "छिपा हुआ",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "इस टेम्पलेट की कस्टम फ़ील्ड सेटिंग्स लोड नहीं हो सकीं। हो सकता है टेम्पलेट हटा दिया गया हो।",
   "Required": "आवश्यक",
   "Optional": "वैकल्पिक",
   "Questions": "प्रश्न",

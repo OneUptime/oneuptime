@@ -152,7 +152,7 @@ describe("the glossary's words", () => {
 
 describe("Custom Fields on Create and Questions strings in every Dashboard locale", () => {
   test("there are strings to check", () => {
-    expect(STRINGS.length).toBe(17);
+    expect(STRINGS.length).toBe(18);
   });
 
   test.each(STRINGS)("%j holds no placeholder braces", (text: string) => {
@@ -232,6 +232,7 @@ describe("the card, the wizard and the pages render the shared strings and wirin
       "formNoFieldsDescription",
       "formNoFieldsLink",
       "formNotFound",
+      "templateNotFound",
     ]) {
       expect(card).toContain(`IncidentCustomFieldCreateSettingsCopy.${key}`);
     }
@@ -239,6 +240,31 @@ describe("the card, the wizard and the pages render the shared strings and wirin
     // Everything it draws itself goes through the lookup.
     expect(card).toContain("translateString(settingLabel)");
     expect(card).toContain("translateString(typeLabel)");
+  });
+
+  /*
+   * When Edit cannot read the settings again, the modal's button reads them
+   * again instead of saving, in words the Dashboard already had. The modal
+   * looks them up; pinned so their entries cannot quietly go.
+   */
+  test("the modal's Try again is in every Dashboard locale", () => {
+    const card: string = readSource(
+      "Components",
+      "Incident",
+      "IncidentCustomFieldSettingsCard.tsx",
+    );
+
+    expect(card).toContain(
+      'const READ_AGAIN_BUTTON_TEXT: string = "Try again";',
+    );
+    expect(readLocale("en")["Try again"]).toBe("Try again");
+
+    for (const locale of OTHER_LOCALES) {
+      const value: unknown = readLocale(locale)["Try again"];
+
+      expect(typeof value).toBe("string");
+      expect(value).not.toBe("Try again");
+    }
   });
 
   test("the dropdowns' choices come from the copy", () => {

@@ -6611,6 +6611,7 @@
   "Default (Optional)": "默认（可选）",
   "Default (Not Shown)": "默认（不显示）",
   "Hidden": "隐藏",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "无法加载此模板的自定义字段设置。该模板可能已被删除。",
   "Required": "必填",
   "Optional": "可选",
   "Questions": "问题",

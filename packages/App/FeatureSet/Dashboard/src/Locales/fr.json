@@ -6611,6 +6611,7 @@
   "Default (Optional)": "Par défaut (Facultatif)",
   "Default (Not Shown)": "Par défaut (Non affiché)",
   "Hidden": "Masqué",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "Les paramètres des champs personnalisés de ce modèle n'ont pas pu être chargés. Le modèle a peut-être été supprimé.",
   "Required": "Obligatoire",
   "Optional": "Facultatif",
   "Questions": "Questions",

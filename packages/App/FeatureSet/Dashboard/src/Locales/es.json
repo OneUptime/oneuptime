@@ -6611,6 +6611,7 @@
   "Default (Optional)": "Predeterminado (Opcional)",
   "Default (Not Shown)": "Predeterminado (No se muestra)",
   "Hidden": "Oculto",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "No se pudo cargar la configuración de campos personalizados de esta plantilla. Es posible que la plantilla se haya eliminado.",
   "Required": "Obligatorio",
   "Optional": "Opcional",
   "Questions": "Preguntas",

@@ -6611,6 +6611,7 @@
   "Default (Optional)": "デフォルト（任意）",
   "Default (Not Shown)": "デフォルト（表示しない）",
   "Hidden": "非表示",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "このテンプレートのカスタムフィールド設定を読み込めませんでした。テンプレートが削除された可能性があります。",
   "Required": "必須",
   "Optional": "任意",
   "Questions": "質問",

@@ -6611,6 +6611,7 @@
   "Default (Optional)": "По умолчанию (необязательно)",
   "Default (Not Shown)": "По умолчанию (не показывается)",
   "Hidden": "Скрыто",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "Не удалось загрузить настройки пользовательских полей этого шаблона. Возможно, шаблон был удалён.",
   "Required": "Обязательно",
   "Optional": "Необязательно",
   "Questions": "Вопросы",

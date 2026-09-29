@@ -6611,6 +6611,7 @@
   "Default (Optional)": "Default (Optional)",
   "Default (Not Shown)": "Default (Not Shown)",
   "Hidden": "Hidden",
+  "This template's custom field settings could not be loaded. The template may have been deleted.": "This template's custom field settings could not be loaded. The template may have been deleted.",
   "Required": "Required",
   "Optional": "Optional",
   "Questions": "Questions",

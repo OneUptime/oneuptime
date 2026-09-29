@@ -41,6 +41,7 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   templateDefaultOptional: string;
   templateDefaultNotShown: string;
   templateHidden: string;
+  templateNotFound: string;
 
   // Both modes.
   required: string;
@@ -64,6 +65,8 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   templateDefaultOptional: "Default (Optional)",
   templateDefaultNotShown: "Default (Not Shown)",
   templateHidden: "Hidden",
+  templateNotFound:
+    "This template's custom field settings could not be loaded. The template may have been deleted.",
 
   required: "Required",
   optional: "Optional",

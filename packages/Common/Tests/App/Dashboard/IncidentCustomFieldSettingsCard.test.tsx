@@ -271,9 +271,28 @@ function editButton(name: string): HTMLElement {
   return screen.getByRole("button", { name: name });
 }
 
-async function openEditor(name: string): Promise<HTMLElement> {
+// Presses Edit: the modal opens at once, on a loader while it reads.
+async function startEditing(name: string): Promise<HTMLElement> {
   fireEvent.click(editButton(name));
   return await screen.findByRole("dialog");
+}
+
+/*
+ * Presses Edit, and waits for the modal's read to answer: for its dropdowns,
+ * or for the banner saying why there are none.
+ */
+async function openEditor(name: string): Promise<HTMLElement> {
+  const dialog: HTMLElement = await startEditing(name);
+
+  await waitFor(() => {
+    expect(within(dialog).queryByTestId("component-loader")).toBeNull();
+    expect(
+      within(dialog).queryAllByRole("combobox").length +
+        within(dialog).queryAllByRole("alert").length,
+    ).toBeGreaterThan(0);
+  });
+
+  return dialog;
 }
 
 function combobox(fieldName: string): HTMLElement {
@@ -625,8 +644,11 @@ describe("editing a template's Custom Fields on Create", () => {
     expect(settingShownFor("impact")).toBe("Hidden");
     expect(settingShownFor("estimated_duration")).toBe("Required");
     expect(settingShownFor("category")).toBe("Default (Not Shown)");
-    // The server stores what it is sent: nothing is read again.
-    expect(getItemMock).toHaveBeenCalledTimes(1);
+    /*
+     * Read when the card loaded, when Edit opened and right before the save.
+     * The server stores what it is sent, so nothing is read after it.
+     */
+    expect(getItemMock).toHaveBeenCalledTimes(3);
   });
 
   test("everything back on Default saves an empty object", async () => {
@@ -740,6 +762,304 @@ describe("editing a template's Custom Fields on Create", () => {
     });
 
     expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(settingShownFor("impact")).toBe("Default (Required)");
+  });
+});
+
+/*
+ * The page may have been open for a while when somebody presses Edit, and
+ * another admin, another tab, the API or Terraform may have changed the
+ * settings since. What the modal starts from, and what a save writes, is
+ * read again - and a save writes only the dropdowns changed in the modal.
+ */
+describe("editing from what is stored now, not what the page loaded", () => {
+  test("Edit reads the fields and the settings again, and starts from them", async () => {
+    storedSettings = {};
+
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    // Another admin hides Impact, and adds a field, after the page loaded.
+    storedSettings = { impact: "Hidden" };
+    definitions = [
+      IMPACT,
+      DURATION,
+      CATEGORY,
+      customField({
+        name: "Root Cause",
+        sortOrder: 5,
+        variableKey: "root_cause",
+      }),
+    ];
+
+    await openEditor("Edit Custom Fields on Create");
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Hidden");
+    });
+    expect(selectedIn("Root Cause")).toBe("Default (Not Shown)");
+
+    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(getItemMock).toHaveBeenCalledTimes(2);
+    const reread: JSONObject = getItemMock.mock.calls[1]![0] as JSONObject;
+    expect(reread["modelType"]).toBe(IncidentTemplate);
+    expect(String(reread["id"])).toBe(TEMPLATE_ID);
+    expect(reread["select"]).toEqual({ customFieldSettings: true });
+
+    // The card behind the modal shows what was read, too.
+    expect(settingShownFor("impact")).toBe("Hidden");
+    expect(listedKeys()).toEqual([
+      "impact",
+      "estimated_duration",
+      "category",
+      "root_cause",
+    ]);
+
+    choose("Category", "Optional");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The other admin's Hidden is not put back to Default.
+    expect(savedSettings()).toEqual({ impact: "Hidden", category: "Optional" });
+  });
+
+  test("a setting somebody saves while the modal is open is kept, unless this edit changes the same field", async () => {
+    await renderTemplateCard();
+
+    await openEditor("Edit Custom Fields on Create");
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Default (Required)");
+    });
+
+    // Saved by another admin after this modal opened.
+    storedSettings = {
+      estimated_duration: "Required",
+      category: "Hidden",
+      impact: "Optional",
+    };
+
+    choose("Impact", "Hidden");
+    // Changed, then changed back: this edit has nothing to say about it.
+    choose("Category", "Required");
+    choose("Category", "Default (Not Shown)");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({
+      impact: "Hidden",
+      estimated_duration: "Required",
+      category: "Hidden",
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    // The card shows what was saved, the other admin's settings included.
+    expect(settingShownFor("estimated_duration")).toBe("Required");
+    expect(settingShownFor("category")).toBe("Hidden");
+  });
+
+  test("while Edit reads, the modal shows a loader and nothing can be saved", async () => {
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    let answer: (record: IncidentTemplate) => void = (): void => {};
+
+    getItemMock.mockImplementationOnce((): Promise<IncidentTemplate> => {
+      return new Promise<IncidentTemplate>(
+        (resolve: (record: IncidentTemplate) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+
+    const dialog: HTMLElement = await startEditing(
+      "Edit Custom Fields on Create",
+    );
+
+    expect(within(dialog).getByTestId("component-loader")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("combobox")).toBeNull();
+    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+    const stored: IncidentTemplate = new IncidentTemplate();
+    stored.customFieldSettings = { impact: "Optional" };
+
+    await act(async (): Promise<void> => {
+      answer(stored);
+    });
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Optional");
+    });
+    expect(screen.getByTestId("modal-footer-submit-button")).not.toBeDisabled();
+  });
+
+  test("when Edit cannot read them, the modal says why, has nothing to save, and Try again reads them again", async () => {
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    getItemMock.mockImplementationOnce(async (): Promise<never> => {
+      throw new Error("The server could not be reached.");
+    });
+
+    const dialog: HTMLElement = await openEditor(
+      "Edit Custom Fields on Create",
+    );
+
+    expect(
+      await within(dialog).findByText("The server could not be reached."),
+    ).toBeInTheDocument();
+    // Nothing read, so nothing to choose from.
+    expect(within(dialog).queryByRole("combobox")).toBeNull();
+
+    const button: HTMLElement = screen.getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    expect(button).toHaveTextContent("Try again");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(button);
+    });
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Default (Required)");
+    });
+    expect(screen.queryByText("The server could not be reached.")).toBeNull();
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Save",
+    );
+    expect(getItemMock).toHaveBeenCalledTimes(3);
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a template deleted since the page loaded is named as gone, in the template's words", async () => {
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    recordFound = false;
+
+    const dialog: HTMLElement = await openEditor(
+      "Edit Custom Fields on Create",
+    );
+
+    expect(
+      await within(dialog).findByText(
+        IncidentCustomFieldCreateSettingsCopy.templateNotFound,
+      ),
+    ).toBeInTheDocument();
+    expect(IncidentCustomFieldCreateSettingsCopy.templateNotFound).toBe(
+      "This template's custom field settings could not be loaded. The template may have been deleted.",
+    );
+    expect(within(dialog).queryByRole("combobox")).toBeNull();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a save that cannot read the settings first writes nothing, says why, and keeps the choices", async () => {
+    await renderTemplateCard();
+
+    await openEditor("Edit Custom Fields on Create");
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Default (Required)");
+    });
+
+    choose("Impact", "Hidden");
+
+    getItemMock.mockImplementationOnce(async (): Promise<never> => {
+      throw new Error("The server could not be reached.");
+    });
+
+    await save();
+
+    expect(
+      await screen.findByText("The server could not be reached."),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Hidden");
+    });
+
+    // Pressed again, it reads, then writes.
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({ impact: "Hidden" });
+  });
+
+  test("a save finding the template gone writes nothing", async () => {
+    await renderTemplateCard();
+
+    await openEditor("Edit Custom Fields on Create");
+
+    await waitFor(() => {
+      expect(selectedIn("Impact")).toBe("Default (Required)");
+    });
+
+    choose("Impact", "Hidden");
+
+    recordFound = false;
+
+    await save();
+
+    expect(
+      await screen.findByText(
+        IncidentCustomFieldCreateSettingsCopy.templateNotFound,
+      ),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a read that answers after the modal was closed opens nothing", async () => {
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    let answer: (record: IncidentTemplate) => void = (): void => {};
+
+    getItemMock.mockImplementationOnce((): Promise<IncidentTemplate> => {
+      return new Promise<IncidentTemplate>(
+        (resolve: (record: IncidentTemplate) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+
+    await startEditing("Edit Custom Fields on Create");
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    const stored: IncidentTemplate = new IncidentTemplate();
+    stored.customFieldSettings = { impact: "Optional" };
+
+    await act(async (): Promise<void> => {
+      answer(stored);
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    // Nor does it change what the card shows.
     expect(settingShownFor("impact")).toBe("Default (Required)");
   });
 });
@@ -971,6 +1291,83 @@ describe("editing an incident form's questions", () => {
 
     expect(settingShownFor("estimated_duration")).toBe("Optional");
     expect(settingShownFor("category")).toBe("Not Asked");
+  });
+
+  test("a question another admin removed since the page loaded stays off the form", async () => {
+    storedSettings = { category: "Optional" };
+
+    await renderFormCard();
+
+    await screen.findByText("Questions");
+
+    expect(settingShownFor("category")).toBe("Optional");
+
+    // Another admin takes Category off the form.
+    storedSettings = {};
+
+    await openEditor("Edit Questions");
+
+    await waitFor(() => {
+      expect(selectedIn("Category")).toBe("Not Asked");
+    });
+
+    choose("Impact", "Required");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({ impact: "Required" });
+  });
+
+  test("a question removed while the modal is open stays off the form", async () => {
+    storedSettings = { category: "Optional" };
+
+    await renderFormCard();
+
+    await openEditor("Edit Questions");
+
+    await waitFor(() => {
+      expect(selectedIn("Category")).toBe("Optional");
+    });
+
+    storedSettings = {};
+
+    choose("Impact", "Required");
+
+    await save();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedSettings()).toEqual({ impact: "Required" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    expect(settingShownFor("category")).toBe("Not Asked");
+  });
+
+  test("a form deleted since the page loaded is named as gone", async () => {
+    await renderFormCard();
+
+    await screen.findByText("Questions");
+
+    recordFound = false;
+
+    const dialog: HTMLElement = await openEditor("Edit Questions");
+
+    expect(
+      await within(dialog).findByText(
+        "This form's questions could not be loaded. The form may have been deleted.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByRole("combobox")).toBeNull();
+    expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
   test("drops the question of a field that is gone, so a field made again with its key is not asked at once", async () => {

@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import IncidentCustomFieldCreateSettingsCopy from "./IncidentCustomFieldCreateSettingsCopy";
 import {
   buildCustomFieldSettingsFormFields,
+  getChangedCustomFieldSettingsFormValues,
   getCustomFieldSettingLabel,
   getCustomFieldSettingsFormInitialValues,
   getCustomFieldTypeLabel,
@@ -41,7 +42,12 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 import useAsyncEffect from "use-async-effect";
 
 /*
@@ -63,6 +69,14 @@ import useAsyncEffect from "use-async-effect";
  *     The questions are the point of that card, so it stays: with a note on
  *     where custom fields are made when the project has none, and with the
  *     reason when they cannot be read.
+ *
+ * The page may have been open a while when Edit is pressed, and somebody
+ * else - another admin, another tab, the API, Terraform - may have changed
+ * the settings since. So Edit reads the fields and the settings again before
+ * the modal shows a dropdown, and Save reads the settings once more and lays
+ * only the dropdowns changed in the modal over what is stored then: a field
+ * this edit leaves alone keeps whatever somebody else gave it - on a form, a
+ * question another admin took off the public page stays off.
  *
  * Saving writes the compacted settings (Default and, on a form, Not Asked
  * are left out) with the record's other columns untouched. A template keeps
@@ -98,6 +112,8 @@ interface ModeText {
   title: string;
   description: string;
   editButton: string;
+  // The record itself is gone.
+  notFound: string;
 }
 
 const MODE_TEXT: Record<IncidentCustomFieldSettingsMode, ModeText> = {
@@ -105,13 +121,21 @@ const MODE_TEXT: Record<IncidentCustomFieldSettingsMode, ModeText> = {
     title: IncidentCustomFieldCreateSettingsCopy.templateTitle,
     description: IncidentCustomFieldCreateSettingsCopy.templateDescription,
     editButton: IncidentCustomFieldCreateSettingsCopy.templateEditButton,
+    notFound: IncidentCustomFieldCreateSettingsCopy.templateNotFound,
   },
   form: {
     title: IncidentCustomFieldCreateSettingsCopy.formTitle,
     description: IncidentCustomFieldCreateSettingsCopy.formDescription,
     editButton: IncidentCustomFieldCreateSettingsCopy.formEditButton,
+    notFound: IncidentCustomFieldCreateSettingsCopy.formNotFound,
   },
 };
+
+/*
+ * The modal's button while the settings could not be read: there is nothing
+ * to save, so it reads them again. Every Dashboard locale has these words.
+ */
+const READ_AGAIN_BUTTON_TEXT: string = "Try again";
 
 /*
  * A field the record decides for itself - overridden by the template, asked
@@ -142,13 +166,43 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
    * stored ones.
    */
   const [editValues, setEditValues] = useState<JSONObject>({});
+  /*
+   * The dropdowns' values when the modal opened, from the read Edit makes. A
+   * save sends only the ones changed since
+   * (getChangedCustomFieldSettingsFormValues).
+   */
+  const [openedValues, setOpenedValues] = useState<JSONObject>({});
+  // Edit's read of the record: on its way, or why it failed.
+  const [isReadingForEdit, setIsReadingForEdit] = useState<boolean>(false);
+  const [editReadError, setEditReadError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
+
+  /*
+   * Which opening of the modal a read belongs to. A read that answers after
+   * the modal was closed - or closed and opened again - is dropped, rather
+   * than filling a form nobody is looking at with what it found.
+   */
+  const editSessionRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const mode: IncidentCustomFieldSettingsMode = props.mode;
   const text: ModeText = MODE_TEXT[mode];
   const title: string = props.title || text.title;
   const description: string = props.description || text.description;
+
+  type ReadRecordFunction = () => Promise<SettingsRecord | null>;
+
+  // The record's settings as they are stored now; null when it is gone.
+  const readRecord: ReadRecordFunction =
+    async (): Promise<SettingsRecord | null> => {
+      return await ModelAPI.getItem<SettingsRecord>({
+        modelType: props.modelType,
+        id: props.modelId,
+        select: {
+          customFieldSettings: true,
+        },
+      });
+    };
 
   const load: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -160,13 +214,7 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
         SettingsRecord | null,
       ] = await Promise.all([
         fetchIncidentCustomFieldDefinitions(),
-        ModelAPI.getItem<SettingsRecord>({
-          modelType: props.modelType,
-          id: props.modelId,
-          select: {
-            customFieldSettings: true,
-          },
-        }),
+        readRecord(),
       ]);
 
       if (record) {
@@ -174,7 +222,7 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
         setSettings(readCustomFieldCreateSettings(record.customFieldSettings));
       } else {
         // Nothing to show settings for, and nothing a save could update.
-        setLoadError(IncidentCustomFieldCreateSettingsCopy.formNotFound);
+        setLoadError(text.notFound);
       }
     } catch (err) {
       setLoadError(API.getFriendlyMessage(err));
@@ -187,6 +235,79 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
     await load();
   }, [props.modelId.toString()]);
 
+  /*
+   * Opens the modal on the fields and settings as they are now - read again,
+   * not the ones the page loaded with - and shows them on the card too. The
+   * modal shows a loader until the read answers, and why when it fails: a
+   * modal filled from what the page loaded would save that back over
+   * whatever changed since.
+   */
+  const openEditor: PromiseVoidFunction = async (): Promise<void> => {
+    editSessionRef.current += 1;
+    const session: number = editSessionRef.current;
+
+    setSaveError("");
+    setEditReadError("");
+    setIsReadingForEdit(true);
+    setIsEditing(true);
+
+    try {
+      const [fieldDefinitions, record]: [
+        Array<IncidentCustomFieldDefinition>,
+        SettingsRecord | null,
+      ] = await Promise.all([
+        fetchIncidentCustomFieldDefinitions(),
+        readRecord(),
+      ]);
+
+      if (session !== editSessionRef.current) {
+        return;
+      }
+
+      if (record) {
+        const freshDefinitions: Array<KeyedIncidentCustomFieldDefinition> =
+          getKeyedCustomFieldDefinitions(fieldDefinitions);
+        const freshSettings: CustomFieldCreateSettings =
+          readCustomFieldCreateSettings(record.customFieldSettings);
+        const initialValues: JSONObject =
+          getCustomFieldSettingsFormInitialValues({
+            definitions: freshDefinitions,
+            settings: freshSettings,
+            mode: mode,
+          });
+
+        setDefinitions(freshDefinitions);
+        setSettings(freshSettings);
+        setOpenedValues(initialValues);
+        setEditValues(initialValues);
+
+        // Every field was deleted since the page loaded: nothing to set.
+        if (freshDefinitions.length === 0) {
+          setIsEditing(false);
+        }
+      } else {
+        setEditReadError(text.notFound);
+      }
+    } catch (err) {
+      if (session !== editSessionRef.current) {
+        return;
+      }
+
+      setEditReadError(API.getFriendlyMessage(err));
+    }
+
+    setIsReadingForEdit(false);
+  };
+
+  const closeEditor: () => void = (): void => {
+    // A read still on its way is for a modal that is gone.
+    editSessionRef.current += 1;
+    setIsEditing(false);
+    setIsReadingForEdit(false);
+    setEditReadError("");
+    setSaveError("");
+  };
+
   type SaveFunction = (data: JSONObject) => Promise<void>;
 
   const save: SaveFunction = async (data: JSONObject): Promise<void> => {
@@ -194,26 +315,42 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
     setSaveError("");
     setIsSaving(true);
 
-    const newSettings: CustomFieldCreateSettings =
-      packCustomFieldSettingsFormValues({
-        definitions: definitions,
-        formValues: data,
-        startingSettings: settings,
-        mode: mode,
-      });
-
     try {
-      await ModelAPI.updateById<SettingsRecord>({
-        modelType: props.modelType,
-        id: props.modelId,
-        data: {
-          customFieldSettings: newSettings,
-        },
-      });
+      /*
+       * The settings as they are stored now, not as the modal opened: only
+       * the dropdowns changed in the modal are laid over them, so a field
+       * somebody else set meanwhile keeps their setting.
+       */
+      const record: SettingsRecord | null = await readRecord();
 
-      // The server stores the settings exactly as sent.
-      setSettings(newSettings);
-      setIsEditing(false);
+      if (record) {
+        const newSettings: CustomFieldCreateSettings =
+          packCustomFieldSettingsFormValues({
+            definitions: definitions,
+            formValues: getChangedCustomFieldSettingsFormValues({
+              definitions: definitions,
+              formValues: data,
+              initialValues: openedValues,
+              mode: mode,
+            }),
+            startingSettings: record.customFieldSettings,
+            mode: mode,
+          });
+
+        await ModelAPI.updateById<SettingsRecord>({
+          modelType: props.modelType,
+          id: props.modelId,
+          data: {
+            customFieldSettings: newSettings,
+          },
+        });
+
+        // The server stores the settings exactly as sent.
+        setSettings(newSettings);
+        setIsEditing(false);
+      } else {
+        setSaveError(text.notFound);
+      }
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
     }
@@ -260,15 +397,7 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
               return;
             }
 
-            setEditValues(
-              getCustomFieldSettingsFormInitialValues({
-                definitions: definitions,
-                settings: settings,
-                mode: mode,
-              }),
-            );
-            setSaveError("");
-            setIsEditing(true);
+            void openEditor();
           },
         },
       ]
@@ -373,26 +502,32 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
         <BasicFormModal<JSONObject>
           title={text.editButton}
           description={description}
-          isLoading={isSaving}
-          onClose={() => {
-            setIsEditing(false);
-            setSaveError("");
-          }}
+          isLoading={isSaving || isReadingForEdit}
+          submitButtonText={editReadError ? READ_AGAIN_BUTTON_TEXT : undefined}
+          onClose={closeEditor}
           onSubmit={(data: JSONObject) => {
+            if (editReadError) {
+              void openEditor();
+              return;
+            }
+
             void save(data);
           }}
           formProps={{
             initialValues: editValues,
-            fields: buildCustomFieldSettingsFormFields({
-              definitions: definitions,
-              mode: mode,
-            }),
+            // No dropdowns at all over settings that could not be read.
+            fields: editReadError
+              ? []
+              : buildCustomFieldSettingsFormFields({
+                  definitions: definitions,
+                  mode: mode,
+                }),
             /*
              * The form's own error banner, above the dropdowns. (The
              * modal's error prop would show it twice: once from the modal
              * body and once from BasicFormModal itself.)
              */
-            error: saveError || undefined,
+            error: editReadError || saveError || undefined,
           }}
         />
       ) : (

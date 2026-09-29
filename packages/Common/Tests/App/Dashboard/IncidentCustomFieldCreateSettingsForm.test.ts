@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   buildCustomFieldSettingsFormFields,
   buildCustomFieldSettingsModelFormFields,
+  getChangedCustomFieldSettingsFormValues,
   getCustomFieldSettingFormKey,
   getCustomFieldSettingLabel,
   getCustomFieldSettingOptions,
@@ -616,6 +617,142 @@ describe("what is saved", () => {
         mode: "template",
       }),
     ).toEqual({ impact: "Required" });
+  });
+});
+
+/*
+ * A save lays only the dropdowns changed in the modal over the settings as
+ * they are stored when it saves, so what somebody else saved meanwhile, for
+ * the fields this edit leaves alone, stays.
+ */
+describe("what an edit changed", () => {
+  test("only the dropdowns whose choice changed, under their form keys", () => {
+    expect(
+      getChangedCustomFieldSettingsFormValues({
+        definitions: ALL,
+        formValues: {
+          [key("impact")]: "Hidden",
+          [key("estimated_duration")]: "Default",
+          [key("category")]: "Optional",
+          [key("root_cause")]: "Optional",
+        },
+        initialValues: {
+          [key("impact")]: "Default",
+          [key("estimated_duration")]: "Default",
+          [key("category")]: "Optional",
+          [key("root_cause")]: "Default",
+        },
+        mode: "template",
+      }),
+    ).toEqual({
+      [key("impact")]: "Hidden",
+      [key("root_cause")]: "Optional",
+    });
+  });
+
+  test("a dropdown cleared while on Default, or holding its option object, has not changed", () => {
+    expect(
+      getChangedCustomFieldSettingsFormValues({
+        definitions: [IMPACT, DURATION],
+        formValues: {
+          [key("impact")]: null,
+          [key("estimated_duration")]: { label: "Hidden", value: "Hidden" },
+        },
+        initialValues: {
+          [key("impact")]: "Default",
+          [key("estimated_duration")]: "Hidden",
+        },
+        mode: "template",
+      }),
+    ).toEqual({});
+  });
+
+  test("a dropdown cleared from a setting has changed: it goes back to Default", () => {
+    const changed: JSONObject = getChangedCustomFieldSettingsFormValues({
+      definitions: [IMPACT],
+      formValues: { [key("impact")]: null },
+      initialValues: { [key("impact")]: "Hidden" },
+      mode: "template",
+    });
+
+    expect(changed).toEqual({ [key("impact")]: null });
+    expect(
+      packCustomFieldSettingsFormValues({
+        definitions: [IMPACT],
+        formValues: changed,
+        startingSettings: { impact: "Hidden", category: "Required" },
+        mode: "template",
+      }),
+    ).toEqual({ category: "Required" });
+  });
+
+  test("on a form, Default and Not Asked are the same choice", () => {
+    expect(
+      getChangedCustomFieldSettingsFormValues({
+        definitions: [IMPACT, DURATION],
+        formValues: {
+          [key("impact")]: "Default",
+          [key("estimated_duration")]: "Required",
+        },
+        initialValues: {
+          [key("impact")]: "Hidden",
+          [key("estimated_duration")]: "Hidden",
+        },
+        mode: "form",
+      }),
+    ).toEqual({ [key("estimated_duration")]: "Required" });
+  });
+
+  test("a field the form never held a value for has nothing to say", () => {
+    expect(
+      getChangedCustomFieldSettingsFormValues({
+        definitions: [IMPACT, DURATION],
+        formValues: { [key("impact")]: "Required" },
+        initialValues: {},
+        mode: "form",
+      }),
+    ).toEqual({ [key("impact")]: "Required" });
+    expect(
+      getChangedCustomFieldSettingsFormValues({
+        definitions: [IMPACT],
+        formValues: null,
+        initialValues: null,
+        mode: "template",
+      }),
+    ).toEqual({});
+  });
+
+  test("packed over what is stored now, another admin's settings for the other fields stay", () => {
+    const opened: JSONObject = getCustomFieldSettingsFormInitialValues({
+      definitions: [IMPACT, DURATION, CATEGORY],
+      settings: {},
+      mode: "template",
+    });
+
+    // Saved by somebody else after the form opened.
+    const storedNow: JSONObject = {
+      estimated_duration: "Hidden",
+      category: "Required",
+    };
+
+    expect(
+      packCustomFieldSettingsFormValues({
+        definitions: [IMPACT, DURATION, CATEGORY],
+        formValues: getChangedCustomFieldSettingsFormValues({
+          definitions: [IMPACT, DURATION, CATEGORY],
+          // Every dropdown is submitted; only Impact was changed.
+          formValues: { ...opened, [key("impact")]: "Optional" },
+          initialValues: opened,
+          mode: "template",
+        }),
+        startingSettings: storedNow,
+        mode: "template",
+      }),
+    ).toEqual({
+      impact: "Optional",
+      estimated_duration: "Hidden",
+      category: "Required",
+    });
   });
 });
 
