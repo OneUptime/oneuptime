@@ -131,6 +131,12 @@ function toLabel(state?: HistogramPointerState | null): string | null {
   return String(label);
 }
 
+// Where the pointer was, and the bar recharts named under it.
+interface PointerReport {
+  clientX: number | null;
+  label: string | null;
+}
+
 function toAxisIndex(state?: HistogramPointerState | null): string | null {
   const index: string | number | null | undefined = state?.activeTooltipIndex;
 
@@ -219,12 +225,16 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     string | null
   >(null);
   /*
-   * Whether the pointer has moved at all since the press, by so much as a
-   * pixel. recharts works out the bar under the pointer again only when it
-   * moves, so a bar that changes under a pointer that never did means new
-   * data landed under the press.
+   * Where the pointer was, and the bar recharts named under it, at the
+   * press or at the last move since. recharts works out the bar under the
+   * pointer again only when the pointer moves, so a report at the same
+   * spot that names another bar means new data landed under the press -
+   * however much a hand had drifted before it.
    */
-  const pointerMovedSincePress: React.MutableRefObject<boolean> =
+  const lastReport: React.MutableRefObject<PointerReport> =
+    useRef<PointerReport>({ clientX: null, label: null });
+  // Whether new data landed under the press in progress (see lastReport).
+  const barsChangedUnderPress: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   // The page-wide mouseup listener of the press in progress, if any.
   const releaseListener: React.MutableRefObject<
@@ -345,6 +355,38 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     }, []);
 
   /*
+   * Takes in what recharts reports during the press (a move, the release):
+   * the bar it names at a spot it last named another bar at is new data.
+   * Without positions to go by, nothing is concluded.
+   */
+  const noteReport: (
+    label: string | null,
+    event?: ChartPointerEvent | null,
+  ) => void = useCallback(
+    (label: string | null, event?: ChartPointerEvent | null): void => {
+      const clientX: number | undefined = event?.clientX;
+
+      if (typeof clientX !== "number") {
+        return;
+      }
+
+      const previous: PointerReport = lastReport.current;
+
+      if (
+        previous.clientX === clientX &&
+        previous.label !== null &&
+        label !== null &&
+        label !== previous.label
+      ) {
+        barsChangedUnderPress.current = true;
+      }
+
+      lastReport.current = { clientX: clientX, label: label };
+    },
+    [],
+  );
+
+  /*
    * The page-wide release listener is added by a press and calls the
    * newest onMouseUp, whatever the host re-rendered with meanwhile.
    */
@@ -426,7 +468,8 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       pressClientX.current =
         typeof event?.clientX === "number" ? event.clientX : null;
       pressAxisIndex.current = toAxisIndex(state);
-      pointerMovedSincePress.current = false;
+      lastReport.current = { clientX: pressClientX.current, label: label };
+      barsChangedUnderPress.current = false;
 
       listenForReleaseOffChart();
     },
@@ -444,15 +487,14 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       const label: string | null = toLabel(state);
       const from: string | null = startLabel.current;
 
-      if (!isSelecting.current || !label || !from) {
+      if (!isSelecting.current || !from) {
         return;
       }
 
-      if (
-        typeof event?.clientX === "number" &&
-        event.clientX !== pressClientX.current
-      ) {
-        pointerMovedSincePress.current = true;
+      noteReport(label, event);
+
+      if (!label) {
+        return;
       }
 
       if (!hasLeftPressedBar.current) {
@@ -479,7 +521,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       setSelectionEnd(last);
       setIsDragging(true);
     },
-    [hasPointerMoved],
+    [hasPointerMoved, noteReport],
   );
 
   const onMouseUp: (
@@ -517,26 +559,26 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       const releaseLabel: string | null = toLabel(state);
       let to: string | null = from;
 
+      noteReport(releaseLabel, event);
+
       if (hasLeftPressedBar.current || hasPointerMoved(event)) {
         // A drag, or a flick released before any of its moves came in.
         to = releaseLabel || endLabel.current || from;
       } else if (releaseLabel !== null && releaseLabel !== from) {
         /*
-         * The pointer stayed put, yet another bar is under it. When the
-         * pointer never moved at all, or the spot on the axis it pressed
-         * now holds another bar, the chart's data changed during the press
-         * and the pressed bar is gone (recharts also clamps a stale spot
-         * onto the last bar of shorter data): not a drag the reader never
-         * made, nor a zoom into a bar that is no longer shown.
+         * The pointer stayed put, yet another bar is under it. When a bar
+         * changed under the pointer without it moving (see lastReport), or
+         * the spot on the axis it pressed now holds another bar, the
+         * chart's data changed during the press and the pressed bar is
+         * gone (recharts also clamps a stale spot onto the last bar of
+         * shorter data): not a drag the reader never made, nor a zoom into
+         * a bar that is no longer shown.
          */
-        const pointerNeverMoved: boolean =
-          !pointerMovedSincePress.current &&
-          event?.clientX === pressClientX.current;
         const sameSpotOnAxis: boolean =
           pressAxisIndex.current !== null &&
           toAxisIndex(state) === pressAxisIndex.current;
 
-        if (pointerNeverMoved || sameSpotOnAxis) {
+        if (barsChangedUnderPress.current || sameSpotOnAxis) {
           clearSelection();
           return;
         }
@@ -594,6 +636,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       clearSelection,
       doubleClickReset,
       hasPointerMoved,
+      noteReport,
       onZoomOut,
       stopListeningForRelease,
     ],
