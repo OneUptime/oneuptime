@@ -1514,6 +1514,54 @@ describe("MarkdownEditor blocks inserted into a line of text", () => {
     expect(lastChange(onChange)).toBe("hello");
   });
 
+  /*
+   * With the caret between two elements of a line -- after a bold word and
+   * before the space that follows it, where Firefox's arrow keys can leave
+   * it -- the rest of the line is moved out whole rather than copied, and the
+   * space at the split trimmed from it. Trimmed while it was out of the
+   * editor, that change was beyond what an undo could check: Ctrl+Z left the
+   * block in (and in jsdom took the space with it). Moved into the second
+   * half before the half was in the editor, the text could not be redone.
+   */
+  test("Ctrl+Z and Ctrl+Shift+Z take back and remake a code block put in between two words' formatting", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="**bold** *it*" onChange={onChange} />);
+    stubBlinkExecCommand();
+    act(() => {
+      editableOf().focus();
+    });
+    const line: HTMLElement = editableOf().querySelector("p") as HTMLElement;
+    const range: Range = document.createRange();
+    range.setStart(line, 1);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    fireEvent.click(screen.getByTitle("Code Block"));
+    expect(lastChange(onChange)).toBe(
+      "**bold**\n\n```\ncode block\n```\n\n*it*",
+    );
+
+    expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+      false,
+    );
+    expect(lastChange(onChange)).toBe("**bold** *it*");
+
+    expect(
+      fireEvent.keyDown(editableOf(), {
+        key: "z",
+        ctrlKey: true,
+        shiftKey: true,
+      }),
+    ).toBe(false);
+    expect(lastChange(onChange)).toBe(
+      "**bold**\n\n```\ncode block\n```\n\n*it*",
+    );
+    expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+      false,
+    );
+    expect(lastChange(onChange)).toBe("**bold** *it*");
+  });
+
   // Every block goes in the same way, splitting the line at the caret.
   test("the Table button splits the line too", () => {
     const onChange: jest.Mock = jest.fn();

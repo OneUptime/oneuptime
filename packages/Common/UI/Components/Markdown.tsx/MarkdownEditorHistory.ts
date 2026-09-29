@@ -159,6 +159,13 @@ export default class MarkdownEditorHistory {
   /*
    * Makes an edit to `root` by hand, recording it so undo can take it back.
    * `edit` returns whether it changed anything, and so does this.
+   *
+   * The edit must change only nodes that are in `root` at the time. Text
+   * trimmed from a node it has taken out, or nodes moved into an element it
+   * has not yet put in, are changes the undo or the redo cannot check the
+   * editor against, and it is refused -- so a split line's second half goes
+   * into the editor before the text after the caret goes into it, and its
+   * space is trimmed after that (MarkdownVisualEditing).
    */
   public record(root: HTMLElement, edit: () => boolean): boolean {
     const selectionBefore: SavedSelection | null = saveSelection(root);

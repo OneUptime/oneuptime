@@ -198,19 +198,29 @@ const edgeTextNode: (root: Node, last: boolean) => Text | null = (
  * The space the caret sat next to ends up at the edge of a line once the
  * line is split there. A browser does not show a space at a line's edge,
  * but the serializer would still write it -- "Run this \n\n```" -- so it
- * goes. A non-breaking space is shown, and stays.
+ * goes. A non-breaking space is shown, and stays. `tail` is the nodes the
+ * second part starts with, in order.
+ *
+ * This runs once both parts are back in the editor. The part after the
+ * caret can hold nodes the split moved out whole, and a change made to them
+ * while they were out of the editor is one an undo cannot check the editor
+ * against (MarkdownEditorHistory): with the caret between a bold word and
+ * the space after it, Ctrl+Z refused to take the insert back.
  */
-const trimSpacesAtSplit: (head: Node | null, tail: Node | null) => void = (
+const trimSpacesAtSplit: (head: Node | null, tail: Array<Node>) => void = (
   head: Node | null,
-  tail: Node | null,
+  tail: Array<Node>,
 ): void => {
   const headText: Text | null = head ? edgeTextNode(head, true) : null;
   if (headText) {
     headText.data = headText.data.replace(RE_TRAILING_SPACES, "");
   }
-  const tailText: Text | null = tail ? edgeTextNode(tail, false) : null;
-  if (tailText) {
-    tailText.data = tailText.data.replace(RE_LEADING_SPACES, "");
+  for (const node of tail) {
+    const tailText: Text | null = edgeTextNode(node, false);
+    if (tailText) {
+      tailText.data = tailText.data.replace(RE_LEADING_SPACES, "");
+      return;
+    }
   }
 };
 
@@ -230,14 +240,21 @@ const splitLineAtCaret: (line: HTMLElement, range: Range) => InsertionPoint = (
   tail.setStart(range.startContainer, range.startOffset);
   tail.setEnd(line, line.childNodes.length);
   const rest: DocumentFragment = tail.extractContents();
-  trimSpacesAtSplit(line, rest);
   let before: Node | null = line.nextSibling;
+  const secondHalf: Array<Node> = [];
   if (!holdsNothing(rest)) {
-    const secondHalf: Node = line.cloneNode(false);
-    secondHalf.appendChild(rest);
-    parent.insertBefore(secondHalf, before);
-    before = secondHalf;
+    /*
+     * Into the editor first, then filled: filled while still out of it, the
+     * half took nodes the undo record never saw go in, and a redo after
+     * Ctrl+Z was refused.
+     */
+    const half: Node = line.cloneNode(false);
+    parent.insertBefore(half, before);
+    half.appendChild(rest);
+    before = half;
+    secondHalf.push(half);
   }
+  trimSpacesAtSplit(line, secondHalf);
   if (holdsNothing(line)) {
     line.remove();
   }
@@ -272,13 +289,14 @@ const splitInlineRunAtCaret: (holder: Node, range: Range) => InsertionPoint = (
   tail.setStart(range.startContainer, range.startOffset);
   tail.setEndAfter(runEnd);
   const rest: DocumentFragment = tail.extractContents();
-  trimSpacesAtSplit(top, rest);
   let before: Node | null = top.nextSibling;
+  const secondPart: Array<Node> = [];
   if (!holdsNothing(rest)) {
-    const first: Node | null = rest.firstChild;
+    secondPart.push(...Array.from(rest.childNodes));
     holder.insertBefore(rest, before);
-    before = first;
+    before = secondPart[0] || before;
   }
+  trimSpacesAtSplit(top, secondPart);
   if (holdsNothing(top) && !isBlock(top)) {
     top.parentNode?.removeChild(top);
   }
