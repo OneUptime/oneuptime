@@ -55,9 +55,11 @@ Widgets that don't use the time range (like a Text widget) ignore both controls.
 
 You don't have to reach for the time-range picker to look at a spike. Drag
 across the interesting stretch of any line or area chart and the **whole
-dashboard** moves to that window — every other panel re-queries alongside it,
-so you're reading one moment across the board instead of one chart at a
-different scale from its neighbours.
+dashboard** moves to that window, just as if you had picked it in the
+time-range picker — every widget that uses the time range re-queries alongside
+it, so you're reading one moment across the board instead of one chart at a
+different scale from its neighbours. Live lists keep showing what's happening
+now, as they always do.
 
 **Double-click any chart** to undo it: the dashboard goes back to the range it
 had before you started zooming, however many times you drilled in. A **Reset
@@ -70,8 +72,9 @@ mid-investigation would be worse. Reset the zoom to start rolling again.
 
 Zooming works in View mode only; in Edit mode dragging moves and resizes
 widgets instead. Bar charts zoom the same way — drag across the bars — and
-double-clicking one resets the dashboard like any other chart. The same
-gestures work on the charts throughout OneUptime; see
+double-clicking one resets the dashboard like any other chart. Only a drag
+zooms: a plain click on a chart never retimes the dashboard. The same gestures
+work on the charts throughout OneUptime; see
 [Zooming Into a Time Range](/docs/telemetry/charts-and-time-ranges).
 
 ## Saving
