@@ -3,10 +3,12 @@ import {
   formatIncidentFormRetryAfter,
   getIncidentFormFailure,
   getIncidentFormFailureMessage,
+  INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES,
   INCIDENT_FORM_TEXT_CUSTOM_FIELD_TYPES,
   IncidentFormFailure,
   IncidentFormFailureKind,
   IncidentFormStage,
+  isBlankIncidentFormAnswer,
   loadPublicIncidentForm,
   normalizeIncidentFormShareKey,
   submitPublicIncidentForm,
@@ -92,21 +94,28 @@ const FLAT_KEY_OPTIONS: { keySeparator: false; nsSeparator: false } = {
 type RequireTextFunction = (
   fieldKey: string,
   label: string,
+  isMultiLine: boolean,
 ) => (values: FormValues<JSONObject>) => string | null;
 
 /*
  * The form's own required check passes an answer of nothing but spaces,
- * which the server then refuses: every text answer is trimmed there. Asking
- * again here keeps that refusal in the browser, in the reporter's language.
+ * which the server then refuses: every text answer is cleaned and trimmed
+ * there (isBlankIncidentFormAnswer). Asking again here keeps that refusal in
+ * the browser, in the reporter's language - for every required text
+ * question, the custom ones included.
  */
 const requireText: RequireTextFunction = (
   fieldKey: string,
   label: string,
+  isMultiLine: boolean,
 ): ((values: FormValues<JSONObject>) => string | null) => {
   return (values: FormValues<JSONObject>): string | null => {
     const value: unknown = (values as JSONObject)[fieldKey];
 
-    if (typeof value === "string" && value.trim().length === 0) {
+    if (
+      typeof value === "string" &&
+      isBlankIncidentFormAnswer(value, isMultiLine)
+    ) {
       return translateValidationMessage("{{field}} is required.", {
         field: label,
       });
@@ -343,7 +352,7 @@ const IncidentFormPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Text,
         required: true,
         validation: { maxLength: INCIDENT_FORM_TITLE_MAX_LENGTH },
-        customValidation: requireText(TITLE_KEY, titleLabel),
+        customValidation: requireText(TITLE_KEY, titleLabel, false),
         dataTestId: "incident-form-title",
         spanFullRow: true,
       },
@@ -369,6 +378,7 @@ const IncidentFormPage: () => JSX.Element = () => {
         descriptionField.customValidation = requireText(
           DESCRIPTION_KEY,
           descriptionLabel,
+          true,
         );
       }
 
@@ -435,6 +445,17 @@ const IncidentFormPage: () => JSX.Element = () => {
           customField.validation = {
             maxLength: INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
           };
+
+          // As for the title: spaces alone are no answer to a required field.
+          if (definition.isRequired) {
+            customField.customValidation = requireText(
+              getCustomFieldFormKey(definition.name),
+              definition.name,
+              INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES.includes(
+                definition.customFieldType,
+              ),
+            );
+          }
         }
 
         return customField;
@@ -457,6 +478,7 @@ const IncidentFormPage: () => JSX.Element = () => {
       reporterNameField.customValidation = requireText(
         REPORTER_NAME_KEY,
         reporterNameLabel,
+        false,
       );
     }
 

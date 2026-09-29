@@ -5,8 +5,12 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import APIException from "../../../Types/Exception/ApiException";
 import {
+  IncidentFormAskedDefinition,
   IncidentFormFieldSetting,
+  IncidentFormSubmissionRules,
+  IncidentFormSubmissionValidationResult,
   PublicIncidentForm,
+  validateIncidentFormSubmission,
 } from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import { getCustomFieldFormKey } from "../../../UI/Components/CustomFields/CustomFieldModelFormFields";
@@ -18,9 +22,11 @@ import {
   getIncidentFormFailureMessage,
   getIncidentFormSubmitUrl,
   getIncidentFormUrl,
+  INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES,
   IncidentFormFailure,
   IncidentFormFailureKind,
   IncidentFormStage,
+  isBlankIncidentFormAnswer,
   normalizeIncidentFormShareKey,
   readIncidentFormSubmissionResult,
   readPublicIncidentForm,
@@ -910,5 +916,175 @@ describe("formatIncidentFormRetryAfter", () => {
 
   test("a language tag the browser cannot use leaves the wait unsaid", () => {
     expect(formatIncidentFormRetryAfter(900, "not a language tag!")).toBeNull();
+  });
+});
+
+/*
+ * The page refuses a required text answer the server would find nothing in,
+ * so the refusal comes from the browser, in the reporter's language, before
+ * a captcha answer is spent on it. Pinned against the server's own
+ * validateIncidentFormSubmission, which cleans a one-line answer (the title,
+ * the reporter's name, a Text field) differently from a multi-line one (the
+ * description, a Long text or Markdown field), so the two cannot drift.
+ */
+describe("isBlankIncidentFormAnswer", () => {
+  const ANSWERS: Array<string> = [
+    "",
+    " ",
+    "   ",
+    "\t",
+    "\n",
+    "\r\n",
+    " \n\t ",
+    "\u00a0",
+    "\u2028",
+    "\ufeff",
+    "\u0000",
+    "\u0000 \u0000",
+    "\u0001",
+    "\u0007\u001f",
+    "\u007f",
+    "x",
+    "  x  ",
+    "\u0000x",
+    "\u0001x",
+    "\n\n    indented",
+  ];
+
+  type RefusedAsMissingFunction = (data: {
+    question: string;
+    askedDefinitions?: Array<IncidentFormAskedDefinition>;
+    form?: IncidentFormSubmissionRules;
+    answers: JSONObject;
+  }) => boolean;
+
+  // Whether the server refuses the answers with "<question> is required.".
+  const refusedAsMissing: RefusedAsMissingFunction = (data: {
+    question: string;
+    askedDefinitions?: Array<IncidentFormAskedDefinition>;
+    form?: IncidentFormSubmissionRules;
+    answers: JSONObject;
+  }): boolean => {
+    const result: IncidentFormSubmissionValidationResult =
+      validateIncidentFormSubmission({
+        form: data.form || {
+          isReporterDetailsRequired: false,
+          descriptionSetting: IncidentFormFieldSetting.Hidden,
+        },
+        askedDefinitions: data.askedDefinitions || [],
+        severities: [],
+        data: data.answers,
+      });
+
+    return (
+      !result.isValid && result.errors.includes(`${data.question} is required.`)
+    );
+  };
+
+  test.each(ANSWERS)("as the title: %j", (answer: string) => {
+    expect(isBlankIncidentFormAnswer(answer, false)).toBe(
+      refusedAsMissing({ question: "Title", answers: { title: answer } }),
+    );
+  });
+
+  test.each(ANSWERS)("as the reporter's name: %j", (answer: string) => {
+    expect(isBlankIncidentFormAnswer(answer, false)).toBe(
+      refusedAsMissing({
+        question: "Your Name",
+        form: {
+          isReporterDetailsRequired: true,
+          descriptionSetting: IncidentFormFieldSetting.Hidden,
+        },
+        answers: {
+          title: "Checkout is down",
+          reporterName: answer,
+          reporterEmail: "ada@example.com",
+        },
+      }),
+    );
+  });
+
+  test.each(ANSWERS)("as a required description: %j", (answer: string) => {
+    expect(isBlankIncidentFormAnswer(answer, true)).toBe(
+      refusedAsMissing({
+        question: "Description",
+        form: {
+          isReporterDetailsRequired: false,
+          descriptionSetting: IncidentFormFieldSetting.Required,
+        },
+        answers: { title: "Checkout is down", description: answer },
+      }),
+    );
+  });
+
+  test.each(ANSWERS)("as a required Text field: %j", (answer: string) => {
+    expect(isBlankIncidentFormAnswer(answer, false)).toBe(
+      refusedAsMissing({
+        question: "Impact",
+        askedDefinitions: [
+          {
+            name: "Impact",
+            customFieldType: CustomFieldType.Text,
+            isRequiredOnCreate: true,
+          },
+        ],
+        answers: {
+          title: "Checkout is down",
+          customFields: { Impact: answer },
+        },
+      }),
+    );
+  });
+
+  test.each(
+    ANSWERS.flatMap((answer: string): Array<[CustomFieldType, string]> => {
+      return [
+        [CustomFieldType.LongText, answer],
+        [CustomFieldType.Markdown, answer],
+      ];
+    }),
+  )(
+    "as a required %s field: %j",
+    (customFieldType: CustomFieldType, answer: string) => {
+      expect(
+        isBlankIncidentFormAnswer(
+          answer,
+          INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES.includes(customFieldType),
+        ),
+      ).toBe(
+        refusedAsMissing({
+          question: "Details",
+          askedDefinitions: [
+            {
+              name: "Details",
+              customFieldType: customFieldType,
+              isRequiredOnCreate: true,
+            },
+          ],
+          answers: {
+            title: "Checkout is down",
+            customFields: { Details: answer },
+          },
+        }),
+      );
+    },
+  );
+
+  test("the parity is not empty: spaces are blank, a word is not, and a lone control character depends on the line", () => {
+    expect(isBlankIncidentFormAnswer("  \n\t ", false)).toBe(true);
+    expect(isBlankIncidentFormAnswer("  \n\t ", true)).toBe(true);
+    expect(isBlankIncidentFormAnswer("  x ", false)).toBe(false);
+    // A one-line answer reads a control character as a space...
+    expect(isBlankIncidentFormAnswer("\u0001", false)).toBe(true);
+    // ...a multi-line one keeps it, and only drops NUL characters.
+    expect(isBlankIncidentFormAnswer("\u0001", true)).toBe(false);
+    expect(isBlankIncidentFormAnswer("\u0000", true)).toBe(true);
+  });
+
+  test("Long text and Markdown are the multi-line custom field types; Text is not", () => {
+    expect(INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES).toEqual([
+      CustomFieldType.LongText,
+      CustomFieldType.Markdown,
+    ]);
   });
 });

@@ -740,6 +740,112 @@ describe("the questions are the form's", () => {
     expect(submittedBodies()).toEqual([]);
   });
 
+  /*
+   * The server cleans every text answer before it asks whether there is
+   * one, so an answer of nothing but spaces - or line breaks, or a pasted
+   * tab - is refused there: in English, after a captcha answer was spent.
+   * The browser refuses it first, in the reporter's language.
+   */
+  test("a required custom text answer of nothing but spaces is refused in the browser", async () => {
+    await renderForm({
+      ...MINIMAL_FORM,
+      customFields: [
+        {
+          name: "Impact",
+          customFieldType: CustomFieldType.Text,
+          isRequired: true,
+        },
+        {
+          name: "Details",
+          customFieldType: CustomFieldType.LongText,
+          isRequired: true,
+        },
+        {
+          name: "Notes",
+          customFieldType: CustomFieldType.Markdown,
+          isRequired: true,
+        },
+      ],
+    });
+
+    fillMinimalForm();
+    typeInto(screen.getByLabelText(/^Impact/), "   ");
+    typeInto(screen.getByLabelText(/^Details/), "  \n\t  ");
+
+    // Typed in the editor's source mode, which sends what was typed.
+    fireEvent.click(screen.getByTitle("Switch to markdown source"));
+    typeInto(screen.getByRole("textbox", { name: /^Notes/ }), "   ");
+
+    await submit();
+
+    expect(screen.getByText("Impact is required.")).toBeInTheDocument();
+    expect(screen.getByText("Details is required.")).toBeInTheDocument();
+    expect(screen.getByText("Notes is required.")).toBeInTheDocument();
+    expect(submittedBodies()).toEqual([]);
+  });
+
+  test("in German, with a captcha, the refusal is German and the captcha answer is not spent", async () => {
+    setCaptcha(true, "site-key-1");
+
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+
+    serveForm({
+      status: 200,
+      data: {
+        ...MINIMAL_FORM,
+        isCaptchaRequired: true,
+        customFields: [
+          {
+            name: "Impact",
+            customFieldType: CustomFieldType.Text,
+            isRequired: true,
+          },
+        ],
+      } as unknown as JSONObject,
+    });
+    await renderPage();
+
+    fillMinimalForm();
+    typeInto(screen.getByLabelText(/^Impact/), "  ");
+    fireEvent.click(screen.getByRole("button", { name: "Solve captcha" }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Senden" }));
+    });
+    await flush();
+
+    expect(screen.getByText("Impact ist erforderlich.")).toBeInTheDocument();
+    expect(submittedBodies()).toEqual([]);
+    expect(screen.getByTestId("captcha")).toHaveAttribute(
+      "data-reset-signal",
+      "0",
+    );
+  });
+
+  test("an optional custom text answer of spaces is simply no answer", async () => {
+    serveSubmit({ status: 200, data: {} });
+
+    await renderForm({
+      ...MINIMAL_FORM,
+      customFields: [
+        {
+          name: "Impact",
+          customFieldType: CustomFieldType.Text,
+          isRequired: false,
+        },
+      ],
+    });
+
+    fillMinimalForm();
+    typeInto(screen.getByLabelText(/^Impact/), "   ");
+    await submit();
+
+    expect(screen.queryByText("Impact is required.")).toBeNull();
+    expect(submittedBodies()).toHaveLength(1);
+  });
+
   test("a required custom field and a required yes/no are asked for", async () => {
     await renderForm(FULL_FORM);
 

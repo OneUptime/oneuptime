@@ -350,6 +350,49 @@ export const toCustomFieldFormDefinitions: ToCustomFieldFormDefinitionsFunction 
 export const INCIDENT_FORM_TEXT_CUSTOM_FIELD_TYPES: ReadonlyArray<CustomFieldType> =
   [CustomFieldType.Text, CustomFieldType.LongText, CustomFieldType.Markdown];
 
+// Of those, the ones answered on several lines, which the server cleans as such.
+export const INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES: ReadonlyArray<CustomFieldType> =
+  [CustomFieldType.LongText, CustomFieldType.Markdown];
+
+/*
+ * Postgres cannot store a NUL character, so the server drops them from every
+ * answer; control characters in a one-line answer become spaces there. The
+ * two patterns are the server's own (IncidentFormPublic), and matching
+ * control characters is exactly what they are for.
+ */
+// eslint-disable-next-line no-control-regex
+const NUL_CHARACTERS: RegExp = /\u0000/g;
+
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS: RegExp = /[\u0000-\u001F\u007F]/g;
+
+export type IsBlankIncidentFormAnswerFunction = (
+  value: string,
+  isMultiLine: boolean,
+) => boolean;
+
+/**
+ * Whether the server finds nothing in a text answer once it has cleaned it,
+ * and so refuses it for a required question: a one-line answer (the title,
+ * the reporter's name, a Text field) with its control characters read as
+ * spaces, a multi-line one (the description, a Long text or Markdown field)
+ * with its NUL characters dropped - then, either way, trimmed.
+ *
+ * The form's own required check passes an answer of nothing but spaces, so
+ * the page asks this too: the refusal then comes from the browser, in the
+ * reporter's language, before a captcha answer is spent on it.
+ */
+export const isBlankIncidentFormAnswer: IsBlankIncidentFormAnswerFunction = (
+  value: string,
+  isMultiLine: boolean,
+): boolean => {
+  const kept: string = isMultiLine
+    ? value.replace(NUL_CHARACTERS, "")
+    : value.replace(CONTROL_CHARACTERS, " ");
+
+  return kept.trim().length === 0;
+};
+
 type ReadTextFunction = (value: unknown) => string;
 
 const readText: ReadTextFunction = (value: unknown): string => {
