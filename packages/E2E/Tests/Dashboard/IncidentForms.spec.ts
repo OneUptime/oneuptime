@@ -1295,9 +1295,12 @@ test.describe("Incident forms", () => {
     expect(owners.userIds).toEqual([ctx.user.userId]);
     expect(owners.teamIds).toEqual([ctx.teamId]);
 
-    // Who reported it, where only the responders read it.
+    /*
+     * Who reported it, where only the responders read it. The address is an
+     * autolink, so the owners' "note posted" email and Slack link all of it.
+     */
     expect(await readInternalNotes(ctx.incidentId)).toContain(
-      `Reported through the incident form **${ctx.formName}** by ${REPORTER_NAME} (${REPORTER_EMAIL}).`,
+      `Reported through the incident form **${ctx.formName}** by ${REPORTER_NAME} (<${REPORTER_EMAIL}>).`,
     );
 
     // And the row the form's Submissions table lists.
@@ -1983,7 +1986,7 @@ test.describe("Incident forms", () => {
     });
     expect(ownerUsers).toEqual([]);
     expect(await readInternalNotes(incidentId)).toContain(
-      `Reported through the incident form **${quickFormName}** by ${PREVIEW_REPORTER_NAME} (${PREVIEW_REPORTER_EMAIL}).`,
+      `Reported through the incident form **${quickFormName}** by ${PREVIEW_REPORTER_NAME} (<${PREVIEW_REPORTER_EMAIL}>).`,
     );
   });
 
