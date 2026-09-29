@@ -127,6 +127,11 @@ import {
 } from "Common/UI/Components/CustomFields/CustomFieldModelFormFields";
 import { keepValidCustomFieldValues } from "Common/Types/CustomField/CustomFieldValueValidator";
 import {
+  applyTemplateCustomFieldCreateSettings,
+  CustomFieldCreateSettings,
+  readCustomFieldCreateSettings,
+} from "Common/Types/CustomField/CustomFieldCreateSettings";
+import {
   fetchIncidentCustomFieldDefinitions,
   getDetailsStepDefinitions,
   IncidentCustomFieldDefinition,
@@ -356,6 +361,15 @@ const IncidentCreate: FunctionComponent<
   const [templateCustomFields, setTemplateCustomFields] = useState<JSONObject>(
     {},
   );
+
+  /*
+   * How that template changes which fields the Details step asks for, and
+   * requires (its Custom Fields on Create), keyed by each field's template
+   * variable key. Without a template there are none, and every field
+   * follows its own Show on Create and Required on Create.
+   */
+  const [templateCustomFieldSettings, setTemplateCustomFieldSettings] =
+    useState<CustomFieldCreateSettings>({});
 
   /*
    * The template's owner users and teams. The form has no input for owners -
@@ -806,6 +820,8 @@ const IncidentCreate: FunctionComponent<
           isScopedToStatusPages: true,
           // Its custom field values: the Details step starts from them.
           customFields: true,
+          // And which fields that step asks for, and requires.
+          customFieldSettings: true,
         },
       });
 
@@ -815,6 +831,14 @@ const IncidentCreate: FunctionComponent<
         !Array.isArray(incidentTemplate.customFields)
         ? incidentTemplate.customFields
         : {},
+    );
+
+    /*
+     * Read leniently: an entry the dashboard cannot make sense of leaves its
+     * field on Default rather than keep the incident from being declared.
+     */
+    setTemplateCustomFieldSettings(
+      readCustomFieldCreateSettings(incidentTemplate?.customFieldSettings),
     );
 
     /*
@@ -960,9 +984,11 @@ const IncidentCreate: FunctionComponent<
        * The template's custom field values reach the form through the
        * Details step's own inputs (see formInitialValues), and the incident
        * through onBeforeCreate, which merges them - not as a bag the form
-       * would carry along unseen.
+       * would carry along unseen. Its custom field settings only decide
+       * which inputs that step has (see detailsStepDefinitions).
        */
       delete initialValue["customFields"];
+      delete initialValue["customFieldSettings"];
 
       return initialValue;
     }
@@ -986,11 +1012,24 @@ const IncidentCreate: FunctionComponent<
     acknowledgeGate.isAllowed &&
     shouldAcknowledgeAlerts;
 
-  // The fields the Details step asks for.
+  /*
+   * The fields the Details step asks for: the project's "Show on Create"
+   * fields, as the template's Custom Fields on Create change them - Required
+   * and Optional ask for a field whatever the project says, Hidden leaves it
+   * out, Default leaves it be. Everything below follows from this one list:
+   * the step itself, its inputs and which are required, their starting
+   * values, and what is packed on declare and in the subscriber preview. A
+   * field left out keeps the template's value, like any field not asked.
+   */
   const detailsStepDefinitions: Array<IncidentCustomFieldDefinition> =
     useMemo(() => {
-      return getDetailsStepDefinitions(customFieldDefinitions);
-    }, [customFieldDefinitions]);
+      return getDetailsStepDefinitions(
+        applyTemplateCustomFieldCreateSettings(
+          customFieldDefinitions,
+          templateCustomFieldSettings,
+        ),
+      );
+    }, [customFieldDefinitions, templateCustomFieldSettings]);
 
   /*
    * What the incident's custom fields start as: the template's values, less
