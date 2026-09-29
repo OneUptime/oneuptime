@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -373,10 +374,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement | null>(null);
   const noticeRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
-  /* The notice's offset from the canvas top (see noticeOffsetInCanvas). */
-  const [noticeTop, setNoticeTop] = useState<number>(
-    OUT_OF_VIEW_NOTICE_INSET_PX,
-  );
   /* Bumped to draw the canvas again from scratch (see fitToScreen). */
   const [canvasGeneration, setCanvasGeneration] = useState<number>(0);
   const onFlowInstance: (instance: ReactFlowInstance | null) => void =
@@ -785,8 +782,11 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
    * Keep the notice where it can be read: in the middle of the part of the
    * canvas on screen. The canvas can be taller than the window, and now that
    * the wheel scrolls the page over it, either end of it may be off screen.
+   * Written straight to the notice's style, before the first paint and on
+   * every scroll frame after it, so following the page never re-renders the
+   * map.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!showOutOfView) {
       return undefined;
     }
@@ -794,19 +794,18 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     const place: () => void = (): void => {
       frame = 0;
       const canvas: HTMLDivElement | null = canvasRef.current;
-      if (!canvas) {
+      const notice: HTMLDivElement | null = noticeRef.current;
+      if (!canvas || !notice) {
         return;
       }
       const box: DOMRect = canvas.getBoundingClientRect();
-      setNoticeTop(
-        noticeOffsetInCanvas(
-          box.top,
-          box.height,
-          window.innerHeight,
-          noticeRef.current?.offsetHeight || 0,
-          OUT_OF_VIEW_NOTICE_INSET_PX,
-        ),
-      );
+      notice.style.top = `${noticeOffsetInCanvas(
+        box.top,
+        box.height,
+        window.innerHeight,
+        notice.offsetHeight,
+        OUT_OF_VIEW_NOTICE_INSET_PX,
+      )}px`;
     };
     const schedule: () => void = (): void => {
       if (!frame) {
@@ -1345,7 +1344,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 /*
                  * On the left of the canvas, clear of a drawer open on the
                  * right, and as high as the part of the canvas on screen puts
-                 * it (see noticeTop).
+                 * it (its top is set by the layout effect above).
                  */
                 <div
                   className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
@@ -1356,7 +1355,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                     role="status"
                     className="pointer-events-auto absolute flex flex-wrap items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
                     style={{
-                      top: noticeTop,
                       left: OUT_OF_VIEW_NOTICE_INSET_PX,
                       maxWidth: `calc(100% - ${2 * OUT_OF_VIEW_NOTICE_INSET_PX}px)`,
                     }}

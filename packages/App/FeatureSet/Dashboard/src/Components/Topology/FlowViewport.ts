@@ -244,10 +244,11 @@ export function anyRectInView(
  * view with `padding` to spare: positive moves the drawing right (or
  * down), 0 means it already shows.
  *
- * A box that fits is brought wholly inside. A box longer than the view — a
+ * A box that fits the view is brought wholly inside it, with as much of the
+ * padding as the room left around it allows. A box longer than the view — a
  * connection can span the whole drawing — only has to show in part, so it
- * is left alone while any of it is in view, and otherwise brought in from
- * the side it is on until it fills the view.
+ * is left alone while at least the padding's worth of it is in view, and
+ * otherwise brought in from the side it is on until it fills the view.
  */
 export function panDeltaToReveal(
   start: number,
@@ -267,27 +268,26 @@ export function panDeltaToReveal(
     return 0;
   }
   const viewLength: number = viewEnd - viewStart;
-  const pad: number =
-    Number.isFinite(padding) && padding > 0
-      ? Math.min(padding, viewLength / 4)
-      : 0;
-  const innerStart: number = viewStart + pad;
-  const innerEnd: number = viewEnd - pad;
+  const length: number = end - start;
+  const wanted: number = Number.isFinite(padding) && padding > 0 ? padding : 0;
 
-  if (end - start <= innerEnd - innerStart) {
-    if (start < innerStart) {
-      return innerStart - start;
+  if (length <= viewLength) {
+    const pad: number = Math.min(wanted, (viewLength - length) / 2);
+    if (start < viewStart + pad) {
+      return viewStart + pad - start;
     }
-    if (end > innerEnd) {
-      return innerEnd - end;
+    if (end > viewEnd - pad) {
+      return viewEnd - pad - end;
     }
     return 0;
   }
-  if (end <= innerStart) {
-    return innerEnd - end;
+
+  const pad: number = Math.min(wanted, viewLength / 4);
+  if (end < viewStart + pad) {
+    return viewEnd - pad - end;
   }
-  if (start >= innerEnd) {
-    return innerStart - start;
+  if (start > viewEnd - pad) {
+    return viewStart + pad - start;
   }
   return 0;
 }
