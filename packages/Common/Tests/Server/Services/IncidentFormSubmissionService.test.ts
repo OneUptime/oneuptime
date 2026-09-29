@@ -8,9 +8,12 @@ import {
   OnFind,
   OnUpdate,
 } from "../../../Server/Types/Database/Hooks";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import OwnedScopePermission from "../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import Query from "../../../Server/Types/Database/Query";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
@@ -24,13 +27,19 @@ import { FindOperator } from "typeorm";
 /*
  * A submission names the incident it declared, and incidents can be private.
  * IncidentFormSubmissionService narrows every read, count, update and delete
- * to submissions whose incident the caller may see - the null-tolerant way,
- * because a submission keeps its row (with no incident) when the incident is
- * deleted, and such a row has nothing to hide. Project owners and admins,
- * root and master admins see everything.
+ * to submissions whose incident the caller may see - the strict way: a
+ * submission keeps its row (with no incident) when the incident is deleted,
+ * but still holds the reporter's name and address, and nothing then records
+ * whether that incident was private. So a row with no incident is listed
+ * only for those who are not narrowed at all: project owners and admins,
+ * root and master admins.
  *
  * The clause is asserted as SQL text, as IncidentAlertService's is: what
- * matters is which table it reads and that a NULL incident passes.
+ * matters is which table it reads and that a NULL incident does not pass.
+ *
+ * The incident's labels and owners narrow a submission too, through the
+ * model's CanAccessIfCanReadOn and OwnedThrough: the last block runs the
+ * real permission layer for scoped incident roles.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -102,8 +111,13 @@ function expectNarrowed(query: Query<IncidentFormSubmission>): void {
 
   expect(privacy).toHaveLength(1);
 
-  // A submission whose incident was deleted is still listed.
-  expect(privacy[0]!.startsWith("(COLUMN IS NULL OR COLUMN IN (")).toBe(true);
+  /*
+   * A submission whose incident was deleted is not listed: NULL IN (...)
+   * matches nothing, where "COLUMN IS NULL OR" would let every such row -
+   * and its reporter - through to every reader.
+   */
+  expect(privacy[0]!.startsWith("(COLUMN IN (")).toBe(true);
+  expect(privacy[0]).not.toContain("IS NULL OR COLUMN");
   // Private incidents only for those who may see them.
   expect(privacy[0]).toContain(
     'i."isPrivate" IS NULL OR i."isPrivate" = FALSE',
@@ -189,7 +203,7 @@ describe("IncidentFormSubmissionService: submissions of private incidents stay h
     );
 
     expect(clause).toBe(
-      '(COLUMN IS NULL OR COLUMN IN (SELECT i."_id" FROM "Incident" i WHERE i."deletedAt" IS NULL AND (i."isPrivate" IS NULL OR i."isPrivate" = FALSE)))',
+      '(COLUMN IN (SELECT i."_id" FROM "Incident" i WHERE i."deletedAt" IS NULL AND (i."isPrivate" IS NULL OR i."isPrivate" = FALSE)))',
     );
   });
 
@@ -266,4 +280,151 @@ describe("IncidentFormSubmissionService: submissions of private incidents stay h
       ).toEqual({});
     },
   );
+});
+
+/*
+ * The same reporters' names and addresses sit in the incident's private
+ * note, which a role limited to some labels, or to the incidents its holder
+ * owns, cannot read for other incidents - so neither can it list their
+ * submissions. Run through the real permission layer (only the owner lookup
+ * is stubbed), as a read from the dashboard's Submissions table would be.
+ */
+describe("IncidentFormSubmission: a scoped incident role only lists its own incidents' submissions", () => {
+  const FORM_ID: ObjectID = new ObjectID(
+    "0194d4ba-0000-4000-8000-00000000f104",
+  );
+  const LABEL_ID: ObjectID = new ObjectID(
+    "0194d4ba-0000-4000-8000-00000000f105",
+  );
+
+  function scopedProps(
+    permission: Permission,
+    scope: PermissionScope,
+    labelIds: Array<ObjectID> = [],
+  ): DatabaseCommonInteractionProps {
+    const tenantPermission: UserTenantAccessPermission = {
+      projectId: PROJECT_ID,
+      _type: "UserTenantAccessPermission",
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: labelIds,
+          isBlockPermission: false,
+          scope: scope,
+        },
+      ],
+    };
+
+    return {
+      tenantId: PROJECT_ID,
+      userId: USER_ID,
+      userType: UserType.User,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: tenantPermission,
+      },
+    };
+  }
+
+  function ownedIncidents(incidentIds: Array<ObjectID>): void {
+    jest
+      .spyOn(
+        OwnedScopePermission as unknown as {
+          getAllowedResourceIds: () => Promise<Array<ObjectID>>;
+        },
+        "getAllowedResourceIds",
+      )
+      .mockResolvedValue(incidentIds);
+  }
+
+  // The submissions table's read: one form's rows, with the reporters.
+  async function readQuery(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Record<string, unknown>> {
+    return (
+      await ModelPermission.checkReadQueryPermission(
+        IncidentFormSubmission,
+        { incidentFormId: FORM_ID },
+        { _id: true, reporterName: true, reporterEmail: true },
+        props,
+      )
+    ).query as unknown as Record<string, unknown>;
+  }
+
+  // The values a (possibly combined) operator is bound to.
+  function boundValues(value: unknown): Array<string> {
+    if (!(value instanceof FindOperator)) {
+      return [];
+    }
+
+    if (value.type === "and") {
+      return (value.value as unknown as Array<unknown>).flatMap(boundValues);
+    }
+
+    return Object.values(value.objectLiteralParameters || {}).flatMap(
+      (parameter: unknown): Array<string> => {
+        return Array.isArray(parameter)
+          ? parameter.map((entry: unknown): string => {
+              return String(entry);
+            })
+          : [String(parameter)];
+      },
+    );
+  }
+
+  test.each([
+    Permission.IncidentViewer,
+    Permission.IncidentMember,
+    Permission.ProjectMember,
+    Permission.Viewer,
+  ])(
+    "an Owned-scoped %s who owns no incident lists no submission",
+    async (permission: Permission) => {
+      ownedIncidents([]);
+
+      const query: Record<string, unknown> = await readQuery(
+        scopedProps(permission, PermissionScope.Owned),
+      );
+
+      expect(boundValues(query["_id"])).toEqual([
+        ObjectID.getZeroObjectID().toString(),
+      ]);
+    },
+  );
+
+  test("an Owned-scoped reader lists only the submissions of the incidents they own", async () => {
+    ownedIncidents([INCIDENT_ID]);
+
+    const query: Record<string, unknown> = await readQuery(
+      scopedProps(Permission.IncidentViewer, PermissionScope.Owned),
+    );
+
+    expect(boundValues(query["incidentId"])).toEqual([INCIDENT_ID.toString()]);
+    expect(query["incidentFormId"]).toBeDefined();
+  });
+
+  test("a Labels-scoped reader lists only the submissions of incidents carrying their labels", async () => {
+    const query: Record<string, unknown> = await readQuery(
+      scopedProps(Permission.IncidentViewer, PermissionScope.Labels, [
+        LABEL_ID,
+      ]),
+    );
+
+    const incident: Record<string, unknown> | undefined = query["incident"] as
+      | Record<string, unknown>
+      | undefined;
+
+    expect(incident).toBeDefined();
+    expect(JSON.stringify(incident!["labels"])).toContain(LABEL_ID.toString());
+  });
+
+  test("a reader of every incident is not narrowed by scope", async () => {
+    const query: Record<string, unknown> = await readQuery(
+      scopedProps(Permission.IncidentViewer, PermissionScope.All),
+    );
+
+    expect(query["_id"]).toBeUndefined();
+    expect(query["incident"]).toBeUndefined();
+    expect(query["incidentId"]).toBeUndefined();
+  });
 });

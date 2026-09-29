@@ -5,8 +5,10 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -32,10 +34,22 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * admins may do. There are no workflow triggers: a submission is already an
  * incident, and the incident's own triggers fire for it.
  *
+ * A submission belongs to its incident, as the incident's notes do, and is
+ * shown to exactly the people who can see that incident. Reporters' names
+ * and addresses are not for everyone who reads incidents in the project:
+ *
+ *   - its read scope follows the incident's labels (CanAccessIfCanReadOn)
+ *     and owners (OwnedThrough), so a role limited to some labels, or to
+ *     the incidents its holder owns, lists only those incidents'
+ *     submissions;
+ *   - a submission of a private incident is hidden from whoever cannot see
+ *     that incident (IncidentFormSubmissionService applies the incident
+ *     privacy filter).
+ *
  * Deleting the form deletes its submissions. Deleting the incident keeps
- * the submission, pointing at no incident. A submission whose incident is
- * private is hidden from whoever cannot see that incident
- * (IncidentFormSubmissionService applies the incident privacy filter).
+ * the submission, pointing at no incident - and since nothing then records
+ * whether that incident was private, such a submission is listed only for
+ * those who see every incident: project owners and admins.
  */
 
 const READ_PERMISSIONS: Array<Permission> = [
@@ -56,6 +70,7 @@ const READ_PERMISSIONS: Array<Permission> = [
   delete: PlanType.Growth,
 })
 @EnableDocumentation()
+@CanAccessIfCanReadOn("incident")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],
@@ -69,6 +84,7 @@ const READ_PERMISSIONS: Array<Permission> = [
   update: [],
 })
 @CrudApiEndpoint(new Route("/incident-form-submission"))
+@OwnedThrough("incidentId", Incident)
 @Entity({
   name: "IncidentFormSubmission",
 })
@@ -186,7 +202,7 @@ export default class IncidentFormSubmission extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description:
-      "The incident this submission declared. Empty once that incident is deleted.",
+      "The incident this submission declared. A submission is listed only for the people who can see its incident. Empty once that incident is deleted, and then listed only for project owners and admins.",
   })
   @ManyToOne(
     () => {
@@ -214,7 +230,7 @@ export default class IncidentFormSubmission extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Incident ID",
     description:
-      "ID of the incident this submission declared. Empty once that incident is deleted.",
+      "ID of the incident this submission declared. A submission is listed only for the people who can see its incident. Empty once that incident is deleted, and then listed only for project owners and admins.",
     example: "e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b",
   })
   @Column({

@@ -1061,6 +1061,23 @@ describe("IncidentFormSubmission: written by the submit route alone", () => {
     }).toThrow(NotAuthorizedException);
   });
 
+  /*
+   * A submission belongs to its incident, like the incident's notes: a role
+   * limited to some labels, or to the incidents its holder owns, must not
+   * list the reporters of every other incident.
+   */
+  test("reads follow the incident's labels", () => {
+    expect(model.canAccessIfCanReadOn).toBe("incident");
+  });
+
+  test("owners see the submissions of the incidents they own", () => {
+    expect(model.ownedThrough).toEqual({
+      fkColumn: "incidentId",
+      parentModels: [Incident],
+      includeProjectScope: false,
+    });
+  });
+
   test("reading a form does not mean reading its submissions", () => {
     expect(() => {
       TablePermission.checkTableLevelPermissions(

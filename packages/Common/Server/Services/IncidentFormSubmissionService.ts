@@ -6,7 +6,7 @@ import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/IncidentFormSubmission";
-import { applyOptionalIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -15,11 +15,20 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  *
  * A submission names its incident, so it must not show a private incident
  * to someone who cannot see it: every read, count and delete is narrowed to
- * submissions whose incident the caller can see, as incident notes are. The
- * null-tolerant variant of the filter is used because the incident link is
- * optional - it is cleared when the incident is deleted - and a submission
- * with no incident has nothing to hide. Project owners and admins, and root,
- * are not narrowed (see shouldBypassIncidentPrivacy).
+ * submissions whose incident the caller can see, as incident notes are.
+ * (The incident's labels and owners narrow them too - see the model's
+ * CanAccessIfCanReadOn and OwnedThrough.)
+ *
+ * The strict filter, not the null-tolerant one, although the incident link
+ * is cleared when the incident is deleted. A submission holds the reporter's
+ * name and address - the same facts as the private note the incident takes
+ * with it - and once the incident is gone nothing records whether it was
+ * private. Letting such a row through would show a private report's
+ * reporter to everyone in the project the moment the incident was deleted,
+ * by any path (the API, a workflow, retention, raw SQL). So a submission
+ * with no incident is listed only for callers who see every incident anyway:
+ * project owners and admins, root and master admins, who are not narrowed
+ * at all (see shouldBypassIncidentPrivacy).
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -30,7 +39,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
-    findBy.query = applyOptionalIncidentRelatedRecordPrivacyFilter(
+    findBy.query = applyIncidentRelatedRecordPrivacyFilter(
       findBy.query,
       findBy.props,
     );
@@ -42,7 +51,7 @@ export class Service extends DatabaseService<Model> {
   public override async countBy(
     countBy: CountBy<Model>,
   ): Promise<PositiveNumber> {
-    countBy.query = applyOptionalIncidentRelatedRecordPrivacyFilter(
+    countBy.query = applyIncidentRelatedRecordPrivacyFilter(
       countBy.query,
       countBy.props,
     );
@@ -59,7 +68,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    updateBy.query = applyOptionalIncidentRelatedRecordPrivacyFilter(
+    updateBy.query = applyIncidentRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,
     );
@@ -67,11 +76,16 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * An incident admin cannot delete what they cannot list, including a
+   * submission whose incident is gone: a project owner or admin can, or the
+   * submission can be deleted before its incident is.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    deleteBy.query = applyOptionalIncidentRelatedRecordPrivacyFilter(
+    deleteBy.query = applyIncidentRelatedRecordPrivacyFilter(
       deleteBy.query,
       deleteBy.props,
     );

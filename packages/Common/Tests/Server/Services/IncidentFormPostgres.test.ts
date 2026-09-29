@@ -307,15 +307,15 @@ describePostgres("Incident forms against a migrated Postgres", () => {
     return "no error";
   }
 
-  // An incident viewer of the test project, who owns nothing.
-  function viewerProps(): DatabaseCommonInteractionProps {
+  // A member of the test project with one role, who owns nothing.
+  function memberProps(permission: Permission): DatabaseCommonInteractionProps {
     const tenantPermission: UserTenantAccessPermission = {
       projectId: projectId,
       _type: "UserTenantAccessPermission",
       permissions: [
         {
           _type: "UserPermission",
-          permission: Permission.IncidentViewer,
+          permission: permission,
           labelIds: [],
           isBlockPermission: false,
         },
@@ -330,6 +330,11 @@ describePostgres("Incident forms against a migrated Postgres", () => {
         [projectId.toString()]: tenantPermission,
       },
     };
+  }
+
+  // An incident viewer of the test project, who owns nothing.
+  function viewerProps(): DatabaseCommonInteractionProps {
+    return memberProps(Permission.IncidentViewer);
   }
 
   describe("the migrated tables", () => {
@@ -687,7 +692,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       ).toEqual([kept.id!.toString()]);
     });
 
-    test("a viewer sees the submissions of incidents they can see - and of deleted ones - never of a private incident", async () => {
+    test("a viewer sees the submissions of incidents they can see - never of a private incident, nor of one that is gone", async () => {
       const form: IncidentForm = await createForm();
       const publicIncidentId: ObjectID = await seedIncident();
       const privateIncidentId: ObjectID = await seedIncident({
@@ -699,9 +704,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
         { incidentId: publicIncidentId },
       );
       await createSubmission(form.id!, { incidentId: privateIncidentId });
-      const ofDeleted: IncidentFormSubmission = await createSubmission(
-        form.id!,
-      );
+      await createSubmission(form.id!);
 
       const viewer: DatabaseCommonInteractionProps = viewerProps();
 
@@ -715,12 +718,10 @@ describePostgres("Incident forms against a migrated Postgres", () => {
         });
 
       expect(
-        visible
-          .map((row: IncidentFormSubmission): string => {
-            return row._id!.toString();
-          })
-          .sort(),
-      ).toEqual([ofPublic.id!.toString(), ofDeleted.id!.toString()].sort());
+        visible.map((row: IncidentFormSubmission): string => {
+          return row._id!.toString();
+        }),
+      ).toEqual([ofPublic.id!.toString()]);
 
       expect(
         (
@@ -729,7 +730,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
             props: viewer,
           })
         ).toNumber(),
-      ).toBe(2);
+      ).toBe(1);
 
       // Root, which bypasses privacy, sees all three.
       expect(
@@ -741,6 +742,89 @@ describePostgres("Incident forms against a migrated Postgres", () => {
           props: { isRoot: true },
         }),
       ).toHaveLength(3);
+    });
+
+    /*
+     * Deleting an incident clears the submission's link (ON DELETE SET
+     * NULL), and nothing then records that the incident was private. The
+     * reporter of a private report must not become visible to the whole
+     * project at that moment: a submission with no incident is listed only
+     * for those who see every incident.
+     */
+    test("a deleted private incident's submission stays hidden from readers who could not see it", async () => {
+      const form: IncidentForm = await createForm();
+      const privateIncidentId: ObjectID = await seedIncident({
+        isPrivate: true,
+      });
+
+      const submission: IncidentFormSubmission = await createSubmission(
+        form.id!,
+        {
+          incidentId: privateIncidentId,
+          reporterName: "Alice",
+          reporterEmail: new Email("alice@corp.example"),
+        },
+      );
+
+      const readers: Array<DatabaseCommonInteractionProps> = [
+        memberProps(Permission.Viewer),
+        memberProps(Permission.ProjectMember),
+        memberProps(Permission.IncidentViewer),
+        memberProps(Permission.IncidentMember),
+        memberProps(Permission.IncidentAdmin),
+        memberProps(Permission.ReadIncidentFormSubmission),
+      ];
+
+      const listedFor: (
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<Array<string>> = async (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Array<string>> => {
+        return (
+          await IncidentFormSubmissionService.findBy({
+            query: { incidentFormId: form.id! },
+            select: { _id: true, reporterName: true, reporterEmail: true },
+            limit: 10,
+            skip: 0,
+            props: props,
+          })
+        ).map((row: IncidentFormSubmission): string => {
+          return row._id!.toString();
+        });
+      };
+
+      for (const reader of readers) {
+        expect(await listedFor(reader)).toEqual([]);
+      }
+
+      await database.query(
+        `DELETE FROM "${schema}"."Incident" WHERE "_id" = $1`,
+        [privateIncidentId.toString()],
+      );
+
+      expect(await submissionRows()).toEqual([
+        { _id: submission.id!.toString(), incidentId: null },
+      ]);
+
+      for (const reader of readers) {
+        expect(await listedFor(reader)).toEqual([]);
+        expect(
+          (
+            await IncidentFormSubmissionService.countBy({
+              query: { incidentFormId: form.id! },
+              props: reader,
+            })
+          ).toNumber(),
+        ).toBe(0);
+      }
+
+      // Those who see every incident still see it.
+      expect(await listedFor(memberProps(Permission.ProjectAdmin))).toEqual([
+        submission.id!.toString(),
+      ]);
+      expect(await listedFor({ isRoot: true })).toEqual([
+        submission.id!.toString(),
+      ]);
     });
   });
 });
