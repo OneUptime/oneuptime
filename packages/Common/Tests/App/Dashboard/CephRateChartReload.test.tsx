@@ -1096,3 +1096,270 @@ describe("CephRateChart in a card on a Custom window", () => {
     expect(skeletons()).toHaveLength(0);
   });
 });
+
+// ------------------------------- CephRateChart rerendered for other counters
+
+/*
+ * Runs its callback in the layout phase of every commit that rerenders it:
+ * after that commit's DOM changes and before any effect can follow them up,
+ * so it sees what the reader could see for a frame.
+ */
+function CommitProbe(props: { onCommit: () => void }): null {
+  React.useLayoutEffect((): void => {
+    props.onCommit();
+  });
+  return null;
+}
+
+describe("CephRateChart keeps its last chart, and its error, only for the counters they came from", () => {
+  interface PoolChartOptions {
+    poolId: string;
+    start: Date;
+    end: Date;
+    clusterName?: string | undefined;
+  }
+
+  // The page's text after each commit of the tree around the chart.
+  let commits: Array<string> = [];
+
+  // A pool's rate chart as PoolDetail draws it, beside a commit probe.
+  function poolChart(options: PoolChartOptions): React.ReactElement {
+    return (
+      <>
+        <CephRateChart
+          clusterName={options.clusterName ?? "ceph-prod"}
+          series={[
+            { metricName: "ceph_pool_rd", label: "Read" },
+            { metricName: "ceph_pool_wr", label: "Write" },
+          ]}
+          seriesKeyAttributes={["pool_id"]}
+          extraAttributes={{ pool_id: options.poolId }}
+          startDate={options.start}
+          endDate={options.end}
+          heightInPx={220}
+        />
+        <CommitProbe
+          onCommit={(): void => {
+            commits.push(document.body.textContent || "");
+          }}
+        />
+      </>
+    );
+  }
+
+  function heldAttribute(name: string): Array<unknown> {
+    return heldRates.map((held: HeldRateLoad): unknown => {
+      return held.call.attributes[name];
+    });
+  }
+
+  async function releaseRatesForPool(poolId: string): Promise<void> {
+    const releasing: Array<HeldRateLoad> = heldRates.filter(
+      (held: HeldRateLoad): boolean => {
+        return held.call.attributes["pool_id"] === poolId;
+      },
+    );
+    heldRates = heldRates.filter((held: HeldRateLoad): boolean => {
+      return !releasing.includes(held);
+    });
+    expect(releasing.length).toBeGreaterThan(0);
+    for (const held of releasing) {
+      held.release();
+    }
+    await flush();
+  }
+
+  beforeEach(() => {
+    commits = [];
+  });
+
+  test("a new window for the same pool keeps the chart, on its last window, until the load lands", async () => {
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    const charts: Array<HTMLElement> = zoomCharts();
+    expect(charts).toHaveLength(1);
+    expect(chartWindows()).toEqual([HOUR]);
+    holdRates = true;
+
+    rerender(poolChart({ poolId: "1", start: at("11:20"), end: at("11:40") }));
+    await flush();
+
+    expectSameCharts(charts);
+    expect(chartWindows()).toEqual([HOUR]);
+    expect(refreshingMarkers()).toHaveLength(1);
+    expect(skeletons()).toHaveLength(0);
+    expect(heldAttribute("pool_id")).toEqual(["1", "1"]);
+
+    await releaseAllRates();
+
+    expectSameCharts(charts);
+    expect(chartWindows()).toEqual([ZOOM]);
+    expect(refreshingMarkers()).toHaveLength(0);
+  });
+
+  test("another pool starts over from a skeleton at the chart's height, never drawing the last pool's rates", async () => {
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    expect(zoomCharts()).toHaveLength(1);
+    holdRates = true;
+    commits = [];
+
+    rerender(poolChart({ poolId: "2", start: at("11:00"), end: NOW }));
+
+    // Already the switch's own commit draws no chart under pool 2.
+    expect(commits.length).toBeGreaterThan(0);
+    for (const text of commits) {
+      expect(text).not.toContain("Drag across the chart");
+    }
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+    expect(skeletons()[0]).toHaveStyle({ height: "220px" });
+    expect(refreshingMarkers()).toHaveLength(0);
+    expect(heldAttribute("pool_id")).toEqual(["2", "2"]);
+
+    await releaseAllRates();
+
+    expect(skeletons()).toHaveLength(0);
+    expect(zoomCharts()).toHaveLength(1);
+    expect(chartWindows()).toEqual([HOUR]);
+  });
+
+  test("another cluster starts over from the skeleton too", async () => {
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    expect(zoomCharts()).toHaveLength(1);
+    holdRates = true;
+
+    rerender(
+      poolChart({
+        poolId: "1",
+        start: at("11:00"),
+        end: NOW,
+        clusterName: "ceph-dr",
+      }),
+    );
+    await flush();
+
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+    expect(heldAttribute("resource.ceph.cluster.name")).toEqual([
+      "ceph-dr",
+      "ceph-dr",
+    ]);
+
+    await releaseAllRates();
+
+    expect(zoomCharts()).toHaveLength(1);
+  });
+
+  test("a slow load for the last pool cannot paint over the next one", async () => {
+    holdRates = true;
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    rerender(poolChart({ poolId: "2", start: at("11:00"), end: NOW }));
+    await flush();
+
+    await releaseRatesForPool("1");
+
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+
+    await releaseRatesForPool("2");
+
+    expect(zoomCharts()).toHaveLength(1);
+    expect(skeletons()).toHaveLength(0);
+  });
+
+  test("for the same pool, a failed reload's error stays up while its retry runs, and clears when it lands", async () => {
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    failingRateEnds = [at("11:40").getTime()];
+    rerender(poolChart({ poolId: "1", start: at("11:20"), end: at("11:40") }));
+    await flush();
+    expect(zoomCharts()).toHaveLength(1);
+    expect(screen.getByRole("alert")).toHaveTextContent(RATE_ERROR);
+
+    failingRateEnds = [];
+    holdRates = true;
+    rerender(poolChart({ poolId: "1", start: at("11:25"), end: at("11:40") }));
+    await flush();
+
+    // The retry is in flight: the chart, its error and the marker stay.
+    expect(zoomCharts()).toHaveLength(1);
+    expect(screen.getByRole("alert")).toHaveTextContent(RATE_ERROR);
+    expect(refreshingMarkers()).toHaveLength(1);
+
+    await releaseAllRates();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(chartWindows()).toEqual([windowOf(at("11:25"), at("11:40"))]);
+  });
+
+  test("a failed first load for one pool is never shown under another, not even for a frame", async () => {
+    failingRateEnds = [NOW.getTime()];
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    expect(screen.getByText(RATE_ERROR)).toBeInTheDocument();
+    holdRates = true;
+    commits = [];
+
+    rerender(poolChart({ poolId: "2", start: at("11:00"), end: NOW }));
+
+    expect(commits.length).toBeGreaterThan(0);
+    for (const text of commits) {
+      expect(text).not.toContain(RATE_ERROR);
+    }
+    expect(skeletons()).toHaveLength(1);
+    expect(screen.queryByText(RATE_ERROR)).toBeNull();
+  });
+
+  test("a failed reload's error stays with its pool: another pool's first frame is only its skeleton", async () => {
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    failingRateEnds = [at("11:40").getTime()];
+    rerender(poolChart({ poolId: "1", start: at("11:20"), end: at("11:40") }));
+    await flush();
+    expect(screen.getByRole("alert")).toHaveTextContent(RATE_ERROR);
+    holdRates = true;
+    commits = [];
+
+    rerender(poolChart({ poolId: "2", start: at("11:20"), end: at("11:40") }));
+
+    expect(commits.length).toBeGreaterThan(0);
+    for (const text of commits) {
+      expect(text).not.toContain(RATE_ERROR);
+    }
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("a pool's own failure shows once its load for that pool fails", async () => {
+    const { rerender } = render(
+      poolChart({ poolId: "1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    failingRateEnds = [NOW.getTime()];
+
+    rerender(poolChart({ poolId: "2", start: at("11:00"), end: NOW }));
+    await flush();
+
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(0);
+    expect(screen.getByText(RATE_ERROR)).toBeInTheDocument();
+  });
+});

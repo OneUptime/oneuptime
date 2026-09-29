@@ -862,3 +862,242 @@ describe("ProxmoxRateChart in a card on a Custom window", () => {
     ).toBe(1);
   });
 });
+
+// ----------------------- ProxmoxRateChart rerendered for another resource
+
+/*
+ * Runs its callback in the layout phase of every commit that rerenders it:
+ * after that commit's DOM changes and before any effect can follow them up,
+ * so it sees what the reader could see for a frame.
+ */
+function CommitProbe(props: { onCommit: () => void }): null {
+  React.useLayoutEffect((): void => {
+    props.onCommit();
+  });
+  return null;
+}
+
+describe("ProxmoxRateChart keeps its last chart, and its error, only for the resource they came from", () => {
+  interface ResourceChartOptions {
+    id: string;
+    start: Date;
+    end: Date;
+    clusterName?: string | undefined;
+  }
+
+  // The page's text after each commit of the tree around the chart.
+  let commits: Array<string> = [];
+
+  // A node's or guest's Network chart as its Metrics tab draws it.
+  function resourceChart(options: ResourceChartOptions): React.ReactElement {
+    return (
+      <>
+        <ProxmoxRateChart
+          clusterName={options.clusterName ?? "pve-prod"}
+          series={[
+            { metricName: "pve_network_receive_bytes", label: "Receive" },
+            { metricName: "pve_network_transmit_bytes", label: "Transmit" },
+          ]}
+          extraAttributes={{ id: options.id }}
+          startDate={options.start}
+          endDate={options.end}
+        />
+        <CommitProbe
+          onCommit={(): void => {
+            commits.push(document.body.textContent || "");
+          }}
+        />
+      </>
+    );
+  }
+
+  function heldAttribute(name: string): Array<unknown> {
+    return heldRates.map((held: HeldRateLoad): unknown => {
+      return held.call.aggregateBy.query.attributes[name];
+    });
+  }
+
+  async function releaseRatesFor(id: string): Promise<void> {
+    const releasing: Array<HeldRateLoad> = heldRates.filter(
+      (held: HeldRateLoad): boolean => {
+        return held.call.aggregateBy.query.attributes["id"] === id;
+      },
+    );
+    heldRates = heldRates.filter((held: HeldRateLoad): boolean => {
+      return !releasing.includes(held);
+    });
+    expect(releasing.length).toBeGreaterThan(0);
+    for (const held of releasing) {
+      held.release();
+    }
+    await flush();
+  }
+
+  beforeEach(() => {
+    commits = [];
+  });
+
+  test("a new window for the same guest keeps the chart, on its last window, until the load lands", async () => {
+    const { rerender } = render(
+      resourceChart({ id: "qemu/100", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    const charts: Array<HTMLElement> = zoomCharts();
+    expect(charts).toHaveLength(1);
+    holdRates = true;
+
+    rerender(
+      resourceChart({ id: "qemu/100", start: at("11:20"), end: at("11:30") }),
+    );
+    await flush();
+
+    expectSameCharts(charts);
+    expect(chartWindows()).toEqual([HOUR]);
+    expect(refreshingMarkers()).toHaveLength(1);
+    expect(skeletons()).toHaveLength(0);
+
+    await releaseAllRates();
+
+    expectSameCharts(charts);
+    expect(chartWindows()).toEqual([ZOOM]);
+  });
+
+  test("another guest starts over from a skeleton at the chart's height, never drawing the last one's rates", async () => {
+    const { rerender } = render(
+      resourceChart({ id: "qemu/100", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    expect(zoomCharts()).toHaveLength(1);
+    holdRates = true;
+    commits = [];
+
+    rerender(resourceChart({ id: "qemu/101", start: at("11:00"), end: NOW }));
+
+    // Already the switch's own commit draws no chart under guest 101.
+    expect(commits.length).toBeGreaterThan(0);
+    for (const text of commits) {
+      expect(text).not.toContain("Drag across the chart");
+    }
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+    expect(skeletons()[0]).toHaveStyle({ height: "300px" });
+    expect(refreshingMarkers()).toHaveLength(0);
+    expect(heldAttribute("id")).toEqual(["qemu/101", "qemu/101"]);
+
+    await releaseAllRates();
+
+    expect(skeletons()).toHaveLength(0);
+    expect(zoomCharts()).toHaveLength(1);
+  });
+
+  test("another cluster starts over from the skeleton too", async () => {
+    const { rerender } = render(
+      resourceChart({ id: "node/pve1", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    holdRates = true;
+
+    rerender(
+      resourceChart({
+        id: "node/pve1",
+        start: at("11:00"),
+        end: NOW,
+        clusterName: "pve-dr",
+      }),
+    );
+    await flush();
+
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+    expect(heldAttribute("resource.proxmox.cluster.name")).toEqual([
+      "pve-dr",
+      "pve-dr",
+    ]);
+
+    await releaseAllRates();
+
+    expect(zoomCharts()).toHaveLength(1);
+  });
+
+  test("a slow load for the last guest cannot paint over the next one", async () => {
+    holdRates = true;
+    const { rerender } = render(
+      resourceChart({ id: "qemu/100", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    rerender(resourceChart({ id: "qemu/101", start: at("11:00"), end: NOW }));
+    await flush();
+
+    await releaseRatesFor("qemu/100");
+
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+
+    await releaseRatesFor("qemu/101");
+
+    expect(zoomCharts()).toHaveLength(1);
+  });
+
+  test("a failed first load for one guest is never shown under another, not even for a frame", async () => {
+    failingRateEnds = [NOW.getTime()];
+    const { rerender } = render(
+      resourceChart({ id: "qemu/100", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    expect(screen.getByText(RATE_ERROR)).toBeInTheDocument();
+    holdRates = true;
+    commits = [];
+
+    rerender(resourceChart({ id: "qemu/101", start: at("11:00"), end: NOW }));
+
+    expect(commits.length).toBeGreaterThan(0);
+    for (const text of commits) {
+      expect(text).not.toContain(RATE_ERROR);
+    }
+    expect(skeletons()).toHaveLength(1);
+    expect(screen.queryByText(RATE_ERROR)).toBeNull();
+  });
+
+  test("a failed reload's error stays with its guest: another guest's first frame is only its skeleton", async () => {
+    const { rerender } = render(
+      resourceChart({ id: "qemu/100", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    failingRateEnds = [at("11:30").getTime()];
+    rerender(
+      resourceChart({ id: "qemu/100", start: at("11:20"), end: at("11:30") }),
+    );
+    await flush();
+    expect(zoomCharts()).toHaveLength(1);
+    expect(screen.getByRole("alert")).toHaveTextContent(RATE_ERROR);
+    holdRates = true;
+    commits = [];
+
+    rerender(
+      resourceChart({ id: "qemu/101", start: at("11:20"), end: at("11:30") }),
+    );
+
+    expect(commits.length).toBeGreaterThan(0);
+    for (const text of commits) {
+      expect(text).not.toContain(RATE_ERROR);
+    }
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("a guest's own failure shows once its load for that guest fails", async () => {
+    const { rerender } = render(
+      resourceChart({ id: "qemu/100", start: at("11:00"), end: NOW }),
+    );
+    await flush();
+    failingRateEnds = [NOW.getTime()];
+
+    rerender(resourceChart({ id: "qemu/101", start: at("11:00"), end: NOW }));
+    await flush();
+
+    expect(zoomCharts()).toHaveLength(0);
+    expect(skeletons()).toHaveLength(0);
+    expect(screen.getByText(RATE_ERROR)).toBeInTheDocument();
+  });
+});

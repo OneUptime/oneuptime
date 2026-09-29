@@ -99,13 +99,24 @@ interface LoadedRates {
   endDate: Date;
 }
 
+/*
+ * Why the latest load failed, kept with the cluster and filters it failed
+ * for, as the points are: another cluster or pool starts over clean rather
+ * than showing this one's error under its heading.
+ */
+interface FailedRates {
+  scopeKey: string;
+  message: string;
+}
+
 const CephRateChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   // null until the first load lands.
   const [loaded, setLoaded] = useState<LoadedRates | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  // null while the latest settled load succeeded.
+  const [failed, setFailed] = useState<FailedRates | null>(null);
   // The zoom the chart takes from the page or card around it.
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
   /*
@@ -121,6 +132,8 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
     props.extraAttributes || {},
   );
   const scopeKey: string = `${props.clusterName}|${extraAttributesKey}`;
+  const error: string =
+    failed && failed.scopeKey === scopeKey ? failed.message : "";
 
   useEffect(() => {
     let cancelled: boolean = false;
@@ -193,10 +206,13 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
           startDate: startDate,
           endDate: endDate,
         });
-        setError("");
+        setFailed(null);
       } catch (err) {
         if (!cancelled) {
-          setError(API.getFriendlyMessage(err));
+          setFailed({
+            scopeKey: scopeKey,
+            message: API.getFriendlyMessage(err),
+          });
         }
       }
       if (!cancelled) {
@@ -206,7 +222,7 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
 
     load().catch((err: Error) => {
       if (!cancelled) {
-        setError(API.getFriendlyMessage(err));
+        setFailed({ scopeKey: scopeKey, message: API.getFriendlyMessage(err) });
       }
     });
 

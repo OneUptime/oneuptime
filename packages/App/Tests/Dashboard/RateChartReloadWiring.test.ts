@@ -106,7 +106,7 @@ describe.each(KEPT_CHARTS)(
         "const scopeKey: string = `${props.clusterName}|${extraAttributesKey}`;",
       );
       expect(source).toContain(
-        'setLoaded({ scopeKey: scopeKey, series: next, startDate: startDate, endDate: endDate, }); setError("");',
+        "setLoaded({ scopeKey: scopeKey, series: next, startDate: startDate, endDate: endDate, }); setFailed(null);",
       );
       // The old per-series state (drawn over the new window) is gone.
       expect(source).not.toContain("setSeries(");
@@ -116,6 +116,33 @@ describe.each(KEPT_CHARTS)(
       expect(source).toContain(
         "const shown: LoadedRates | null = loaded && loaded.scopeKey === scopeKey ? loaded : null;",
       );
+    });
+
+    test("a failure is kept with the counters it failed for, so another scope never shows it", () => {
+      expect(source).toContain(
+        "interface FailedRates { scopeKey: string; message: string; }",
+      );
+      expect(source).toContain(
+        "const [failed, setFailed] = useState<FailedRates | null>(null);",
+      );
+      expect(source).toContain(
+        'const error: string = failed && failed.scopeKey === scopeKey ? failed.message : "";',
+      );
+      // Both failure paths record the scope: the load's catch and its guard.
+      expect(
+        countOf(
+          source,
+          "setFailed({ scopeKey: scopeKey, message: API.getFriendlyMessage(err),",
+        ),
+      ).toBe(1);
+      expect(
+        countOf(
+          source,
+          "setFailed({ scopeKey: scopeKey, message: API.getFriendlyMessage(err) });",
+        ),
+      ).toBe(1);
+      // No unscoped error state is left behind.
+      expect(source).not.toContain("setError(");
     });
 
     test("only the first load is a skeleton, and it holds the chart's height", () => {
