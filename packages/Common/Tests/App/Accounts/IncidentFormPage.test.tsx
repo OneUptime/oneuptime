@@ -729,6 +729,79 @@ describe("the questions are the form's", () => {
     expect(submittedBodies()).toEqual([]);
   });
 
+  /*
+   * The form's own email check finds an address anywhere in the text; the
+   * server wants the whole answer to be one address. What it would refuse -
+   * in English, after the captcha answer was spent - is refused here first.
+   */
+  test.each([
+    ["with a trailing dot", "ada@example.com."],
+    ["as Outlook copies it", "Ada Lovelace <ada@example.com>"],
+    ["as a list", "ada@example.com, bob@example.com"],
+    ["as a mailto link", "mailto:ada@example.com"],
+  ])(
+    "an email %s is refused in the browser, before the captcha is spent",
+    async (_case: string, email: string) => {
+      setCaptcha(true, "site-key-1");
+
+      await renderForm({ ...MINIMAL_FORM, isCaptchaRequired: true });
+
+      fillMinimalForm();
+      typeInto(screen.getByTestId("incident-form-reporter-email"), email);
+      fireEvent.click(screen.getByRole("button", { name: "Solve captcha" }));
+      await submit();
+
+      expect(screen.getByText("Email is not valid.")).toBeInTheDocument();
+      expect(submittedBodies()).toEqual([]);
+      expect(screen.getByTestId("captcha")).toHaveAttribute(
+        "data-reset-signal",
+        "0",
+      );
+    },
+  );
+
+  test("in German, an email the server would refuse is refused in German", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+
+    serveForm({ status: 200, data: MINIMAL_FORM as unknown as JSONObject });
+    await renderPage();
+
+    fillMinimalForm();
+    typeInto(
+      screen.getByTestId("incident-form-reporter-email"),
+      "Ada Lovelace <ada@example.com>",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Senden" }));
+    });
+    await flush();
+
+    expect(screen.getByText("E-Mail ist ungültig.")).toBeInTheDocument();
+    expect(submittedBodies()).toEqual([]);
+  });
+
+  test("an ordinary address, in any case, is sent", async () => {
+    serveSubmit({ status: 200, data: {} });
+
+    await renderForm(MINIMAL_FORM);
+
+    fillMinimalForm();
+    typeInto(
+      screen.getByTestId("incident-form-reporter-email"),
+      "Ada.Lovelace+reports@Mail.Example.co.uk",
+    );
+    await submit();
+
+    expect(screen.queryByText("Email is not valid.")).toBeNull();
+    expect(submittedBodies()).toHaveLength(1);
+    expect((submittedBodies()[0]!["data"] as JSONObject)["reporterEmail"]).toBe(
+      "ada.lovelace+reports@mail.example.co.uk",
+    );
+  });
+
   test("a title of nothing but spaces is refused in the browser", async () => {
     await renderForm(MINIMAL_FORM);
 

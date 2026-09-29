@@ -9,6 +9,7 @@ import {
   IncidentFormFailureKind,
   IncidentFormStage,
   isBlankIncidentFormAnswer,
+  isIncidentFormReporterEmail,
   loadPublicIncidentForm,
   normalizeIncidentFormShareKey,
   submitPublicIncidentForm,
@@ -488,6 +489,25 @@ const IncidentFormPage: () => JSX.Element = () => {
       fieldType: FormFieldSchemaType.Email,
       required: form.isReporterDetailsRequired,
       validation: { maxLength: INCIDENT_FORM_REPORTER_EMAIL_MAX_LENGTH },
+      /*
+       * The form's own email check finds an address anywhere in the text;
+       * the server wants the whole answer to be one. Asked here as the
+       * server asks it, so "Ada <ada@example.com>" is refused in the browser.
+       */
+      customValidation: (values: FormValues<JSONObject>): string | null => {
+        const value: unknown = (values as JSONObject)[REPORTER_EMAIL_KEY];
+
+        // No answer at all is the required check's to judge.
+        if (
+          typeof value !== "string" ||
+          value.trim().length === 0 ||
+          isIncidentFormReporterEmail(value)
+        ) {
+          return null;
+        }
+
+        return translateValidationMessage("Email is not valid.");
+      },
       dataTestId: "incident-form-reporter-email",
       disableSpellCheck: true,
     });

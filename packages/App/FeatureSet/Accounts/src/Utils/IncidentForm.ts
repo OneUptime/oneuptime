@@ -8,6 +8,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import Email from "Common/Types/Email";
 import {
   DEFAULT_INCIDENT_FORM_DESCRIPTION_SETTING,
   getPublicIncidentFormFields,
@@ -20,6 +21,7 @@ import {
   PublicIncidentFormSubmissionData,
   PublicIncidentFormSubmissionRequest,
   PublicIncidentFormSubmissionResult,
+  WHOLE_EMAIL_ADDRESS,
 } from "Common/Types/Incident/IncidentFormPublic";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -392,6 +394,27 @@ export const isBlankIncidentFormAnswer: IsBlankIncidentFormAnswerFunction = (
 
   return kept.trim().length === 0;
 };
+
+export type IsIncidentFormReporterEmailFunction = (value: string) => boolean;
+
+/**
+ * Whether the server takes an answer to Your Email as an address: cleaned
+ * as it cleans it (NUL characters dropped, the ends trimmed), the whole
+ * answer must be one ordinary address - its own WHOLE_EMAIL_ADDRESS, and
+ * Email's check too, as validateIncidentFormSubmission applies them.
+ *
+ * The form's own email check finds an address anywhere in the text, so
+ * "Ada Lovelace <ada@example.com>" (as Outlook copies it), "ada@example.com."
+ * and "a@example.com, b@example.com" pass it - and the server then refuses
+ * them, in English, after the captcha answer was spent. The length cap is
+ * the form's maxLength check's; an empty answer is the required check's.
+ */
+export const isIncidentFormReporterEmail: IsIncidentFormReporterEmailFunction =
+  (value: string): boolean => {
+    const address: string = value.replace(NUL_CHARACTERS, "").trim();
+
+    return WHOLE_EMAIL_ADDRESS.test(address) && Email.isValid(address);
+  };
 
 type ReadTextFunction = (value: unknown) => string;
 

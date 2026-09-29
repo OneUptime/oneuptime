@@ -3,6 +3,7 @@ import { DASHBOARD_ORIGIN } from "../../UI/Utils/API/DashboardHost";
 import { describe, expect, test } from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import Email from "../../../Types/Email";
 import APIException from "../../../Types/Exception/ApiException";
 import {
   IncidentFormAskedDefinition,
@@ -27,6 +28,7 @@ import {
   IncidentFormFailureKind,
   IncidentFormStage,
   isBlankIncidentFormAnswer,
+  isIncidentFormReporterEmail,
   normalizeIncidentFormShareKey,
   readIncidentFormSubmissionResult,
   readPublicIncidentForm,
@@ -1086,5 +1088,70 @@ describe("isBlankIncidentFormAnswer", () => {
       CustomFieldType.LongText,
       CustomFieldType.Markdown,
     ]);
+  });
+});
+
+/*
+ * The form's own email check finds an address anywhere in the text; the
+ * server wants the whole answer to be one ordinary address. The page asks
+ * what the server asks, pinned here against validateIncidentFormSubmission
+ * itself, so the browser and the server cannot drift apart again. (The
+ * length cap is the form's maxLength check's, and is left out.)
+ */
+describe("isIncidentFormReporterEmail", () => {
+  const ADDRESSES: Array<string> = [
+    // Taken.
+    "ada@example.com",
+    "Ada@Example.COM",
+    "  ada@example.com  ",
+    "ada.lovelace+reports@mail.example.co.uk",
+    "\u0000ada@example.com",
+    // Refused.
+    "ada@example.com.",
+    "Ada <ada@example.com>",
+    "Ada Lovelace <ada@example.com>",
+    "ada@example.com, bob@example.com",
+    "ada@example.com bob@example.com",
+    "mailto:ada@example.com",
+    "ada@example.com (work)",
+    "ada@[192.168.0.1]",
+    "ada@example",
+    "ada @example.com",
+    "@example.com",
+    "ada@",
+  ];
+
+  test.each(ADDRESSES)(
+    "%j is taken exactly when the server takes it",
+    (address: string) => {
+      const result: IncidentFormSubmissionValidationResult =
+        validateIncidentFormSubmission({
+          form: { isReporterDetailsRequired: true },
+          askedDefinitions: [],
+          severities: [],
+          data: {
+            title: "Checkout is down",
+            reporterName: "Ada Lovelace",
+            reporterEmail: address,
+          },
+        });
+
+      expect(isIncidentFormReporterEmail(address)).toBe(result.isValid);
+    },
+  );
+
+  test("the addresses the form's own check lets through are refused", () => {
+    for (const address of [
+      "ada@example.com.",
+      "Ada Lovelace <ada@example.com>",
+      "ada@example.com, bob@example.com",
+    ]) {
+      // What the form checks by itself...
+      expect(Email.isValid(address)).toBe(true);
+      // ...is not what the server takes.
+      expect(isIncidentFormReporterEmail(address)).toBe(false);
+    }
+
+    expect(isIncidentFormReporterEmail("Ada@Example.COM")).toBe(true);
   });
 });
