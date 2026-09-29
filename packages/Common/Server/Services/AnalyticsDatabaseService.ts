@@ -685,6 +685,16 @@ export default class AnalyticsDatabaseService<
     timestampColumnName: keyof TBaseModel | string;
     startDate: Date;
     endDate: Date;
+    /*
+     * Row names left out of the scan entirely, for a table where OneUptime
+     * writes its own rows under the same (primaryEntityId, primaryEntityType)
+     * as the customer's, so the grouping cannot tell them apart and the
+     * caller's entity-type exclusion cannot either - the session replay
+     * budget series sit next to a RUM application's web vitals (see
+     * TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES). Empty or absent leaves the
+     * statement exactly as it was.
+     */
+    excludeNames?: Array<string> | undefined;
   }): Promise<
     Array<{
       primaryEntityId: string;
@@ -698,6 +708,24 @@ export default class AnalyticsDatabaseService<
     if (!this.model.getTableColumn(timestampColumnName)) {
       throw new BadDataException(
         `Invalid timestampColumnName: ${timestampColumnName}`,
+      );
+    }
+
+    const excludeNames: Array<string> = data.excludeNames || [];
+
+    /*
+     * Names can only be excluded from a table whose `name` is a required
+     * column. Without one ClickHouse fails on the unknown column mid-billing
+     * run; with a Nullable one (Span's), `NULL NOT IN (...)` is not true, so
+     * every unnamed row would silently drop out of the bill. Either way the
+     * caller has a bug, so refuse before the scan.
+     */
+    if (
+      excludeNames.length > 0 &&
+      !this.model.getTableColumn("name")?.required
+    ) {
+      throw new BadDataException(
+        `excludeNames needs a required name column, and ${this.model.tableName} has none`,
       );
     }
 
@@ -716,7 +744,23 @@ export default class AnalyticsDatabaseService<
     }} AND ${timestampColumnName} <= ${{
       type: TableColumnType.DateTime64,
       value: data.endDate,
-    }} GROUP BY primaryEntityId, primaryEntityType`;
+    }}`;
+
+    /*
+     * Inside the WHERE, before the grouping, so an excluded row is never
+     * counted or sized. The names travel as one Array(String) parameter,
+     * never as SQL text.
+     */
+    if (excludeNames.length > 0) {
+      statement.append(
+        SQL` AND name NOT IN ${{
+          type: TableColumnType.ArrayText,
+          value: excludeNames,
+        }}`,
+      );
+    }
+
+    statement.append(SQL` GROUP BY primaryEntityId, primaryEntityType`);
 
     /*
      * Billing scan: deliberately NO timeout_overflow_mode='break'. A
