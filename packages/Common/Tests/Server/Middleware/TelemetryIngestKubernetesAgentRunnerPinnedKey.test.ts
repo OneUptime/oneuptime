@@ -1,5 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import TelemetryIngest, {
+  getPinnedKeyRegistrationRefusalMessage,
   TelemetryRequest,
 } from "../../../Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
@@ -16,7 +17,9 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
-import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
+import TelemetryIngestSurface, {
+  IDENTITY_REGISTRATION_SURFACES,
+} from "../../../Types/Telemetry/TelemetryIngestSurface";
 
 /*
  * The Kubernetes agent Runner registration endpoint mints the Runner
@@ -30,6 +33,11 @@ import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurf
  *   2. An unpinned server key is admitted there as before.
  *   3. A pinned key keeps working on every telemetry surface (its pin is
  *      applied when the payload is processed, as it always was).
+ *   4. The Kubernetes AI agent registration, which mints the agent key every
+ *      kubectl job for a cluster is claimed with, refuses a pinned key the
+ *      same way: the rule is keyed on IDENTITY_REGISTRATION_SURFACES. The
+ *      refusal names the identity being registered, and never the Runner
+ *      when it is the agent.
  *
  * Same module-boundary mocks as the other ingest guard suites: no Postgres,
  * no Redis.
@@ -191,7 +199,7 @@ describe("TelemetryIngest refuses a service-pinned key for Kubernetes agent Runn
     const telemetrySurfaces: Array<TelemetryIngestSurface> = (
       Object.values(TelemetryIngestSurface) as Array<TelemetryIngestSurface>
     ).filter((surface: TelemetryIngestSurface): boolean => {
-      return surface !== TelemetryIngestSurface.KubernetesAgentRunner;
+      return !IDENTITY_REGISTRATION_SURFACES.has(surface);
     });
 
     expect(telemetrySurfaces.length).toBeGreaterThan(0);
@@ -208,4 +216,92 @@ describe("TelemetryIngest refuses a service-pinned key for Kubernetes agent Runn
       expect(result.next).toHaveBeenCalledTimes(1);
     }
   });
+});
+
+describe("TelemetryIngest refuses a service-pinned key for Kubernetes AI agent registration", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (TelemetryIngestionKeyService.markUsed as MockFn).mockResolvedValue(
+      undefined as never,
+    );
+    (TelemetryIngestionKeyRateLimiter.consume as MockFn).mockResolvedValue({
+      outcome: TelemetryIngestionKeyLimitOutcome.Allowed,
+    } as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a pinned server key is refused 403 on the AI agent surface, before the limiter", async () => {
+    (
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
+    ).mockResolvedValue(
+      serverPolicy({ pinnedServiceName: "checkout-api" }) as never,
+    );
+
+    const result: RunResult = await run(
+      TelemetryIngestSurface.KubernetesAiAgent,
+    );
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(
+      TelemetryIngestionKeyRateLimiter.consume as MockFn,
+    ).not.toHaveBeenCalled();
+    expect(
+      TelemetryIngestionKeyService.markUsed as MockFn,
+    ).not.toHaveBeenCalled();
+
+    const sendErrorResponse: MockFn = Response.sendErrorResponse as MockFn;
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+
+    const error: Error = sendErrorResponse.mock.calls[0]?.[2] as Error;
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(
+      getPinnedKeyRegistrationRefusalMessage(
+        TelemetryIngestSurface.KubernetesAiAgent,
+      ),
+    );
+    expect(error.message).toContain("pinned to a single service");
+    expect(error.message).toContain("Kubernetes AI agent registration");
+    expect(error.message).toContain("unpinned server ingestion key");
+    expect(error.message).not.toContain("Runner");
+    expect(error.message).not.toContain(SENTINEL_TOKEN);
+    expect(error.message).not.toContain("checkout-api");
+    expect((result.req as TelemetryRequest).projectId).toBeUndefined();
+  });
+
+  test("negative control: an unpinned server key reaches the AI agent registration", async () => {
+    (
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
+    ).mockResolvedValue(serverPolicy({ pinnedServiceName: null }) as never);
+
+    const result: RunResult = await run(
+      TelemetryIngestSurface.KubernetesAiAgent,
+    );
+
+    expect(Response.sendErrorResponse as MockFn).not.toHaveBeenCalled();
+    expect(result.next).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        result.req as TelemetryRequest
+      ).ingestionKeyPolicy.ingestionKeyId.toString(),
+    ).toBe(INGESTION_KEY_ID);
+  });
+
+  test.each(Array.from(IDENTITY_REGISTRATION_SURFACES))(
+    "the refusal on %s names that surface's identity and says what to use instead",
+    (surface: TelemetryIngestSurface) => {
+      const message: string = getPinnedKeyRegistrationRefusalMessage(surface);
+
+      expect(message).toContain("pinned to a single service");
+      expect(message).toContain("unpinned server ingestion key");
+      expect(message).toContain(
+        surface === TelemetryIngestSurface.KubernetesAiAgent
+          ? "Kubernetes AI agent registration"
+          : "Kubernetes agent Runner registration",
+      );
+    },
+  );
 });

@@ -485,6 +485,10 @@ describe("an ordinary Runner's write limits never read as a cluster's agent", ()
    * Negative control: the checks above can tell. The same Runner row with
    * an agent's posture (in-cluster, naming another cluster) is read as that
    * cluster's in-cluster Runner — which the ordinary Runner never reports.
+   * Another cluster's in-cluster Runner is never this cluster's access
+   * target (KubernetesClusterAiAccessService.resolveKubernetesAiAccessTarget),
+   * so the cluster reads as having no way in at all: its Kubernetes AI agent
+   * is not connected.
    */
   test("negative control: an agent's posture on the same row is read as another cluster's in-cluster Runner", async () => {
     const agentHostInfo: JSONObject = {
@@ -508,7 +512,8 @@ describe("an ordinary Runner's write limits never read as a cluster's agent", ()
       cluster: { aiAccessCredentialId: undefined },
     });
 
-    expect(gapCodes(status)).toContain("runner_cluster_mismatch");
+    expect(gapCodes(status)).toContain("ai_agent_not_connected");
+    expect(status.runner).toBeNull();
   });
 });
 

@@ -71,86 +71,12 @@ const AIBillingSettings: FunctionComponent<
         }}
       />
 
-      {/* Enable AI */}
-      <CardModelDetail
-        name="Enable AI"
-        cardProps={{
-          title: "Enable AI",
-          description: "Enable AI services for this project.",
-        }}
-        isEditable={true}
-        editButtonText="Edit AI Settings"
-        formFields={[
-          {
-            field: {
-              enableAi: true,
-            },
-            title: "Enable AI",
-            description:
-              "Enable AI services for this project. This allows the use of AI features like chat, investigations, automatic improvements, and more.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "enable-ai",
-          fields: [
-            {
-              field: {
-                enableAi: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable AI",
-              placeholder: "Not Enabled",
-              description: "Enable AI services for this project.",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
-
-      {/* Enable AI Command Execution */}
-      <CardModelDetail
-        name="Enable AI Command Execution"
-        cardProps={{
-          title: "Enable AI Command Execution",
-          description:
-            "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners.",
-        }}
-        isEditable={true}
-        editButtonText="Edit AI Command Execution Settings"
-        formFields={[
-          {
-            field: {
-              enableAiCommandExecution: true,
-            },
-            title: "Enable AI Command Execution",
-            description:
-              "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners. This is off by default. Every command is policy-checked, and it only runs if it matches an operator-defined allowlist or receives one-click human approval.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "enable-ai-command-execution",
-          fields: [
-            {
-              field: {
-                enableAiCommandExecution: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable AI Command Execution",
-              placeholder: "Not Enabled",
-              description:
-                "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners. Off by default. Commands are policy-checked and require either an operator allowlist match or one-click human approval.",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
-
+      {/*
+       * Enable AI, Enable auto-remediation and Enable AI command execution
+       * moved to Project Settings → AI Features (Pages/Settings/AIFeatures),
+       * which every install shows. This page is listed only when billing is
+       * on, so it keeps the balance and recharge settings alone.
+       */}
       {/* Auto Recharge */}
       <CardModelDetail
         name="Auto Recharge"

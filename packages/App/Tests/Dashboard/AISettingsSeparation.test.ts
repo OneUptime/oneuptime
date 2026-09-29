@@ -93,9 +93,7 @@ interface SettingsPage {
   detailFields: Array<ConfiguredField>;
 }
 
-function settingsPage(...relativeParts: Array<string>): SettingsPage {
-  const source: string = read(...relativeParts);
-
+function settingsCard(source: string): SettingsPage {
   return {
     formFields: fieldsIn(
       sectionBetween(source, "formFields={[", "modelDetailProps={{"),
@@ -104,6 +102,26 @@ function settingsPage(...relativeParts: Array<string>): SettingsPage {
       sectionBetween(source, "modelDetailProps={{", "modelId:"),
     ),
   };
+}
+
+function settingsPage(...relativeParts: Array<string>): SettingsPage {
+  return settingsCard(read(...relativeParts));
+}
+
+/*
+ * Every CardModelDetail on a page, in source order. Each card saves on its
+ * own, so each one's fields are its whole update payload.
+ */
+function settingsCards(...relativeParts: Array<string>): Array<SettingsPage> {
+  return read(...relativeParts)
+    .split("<CardModelDetail")
+    .slice(1)
+    .filter((card: string): boolean => {
+      return card.includes("formFields={[");
+    })
+    .map((card: string): SettingsPage => {
+      return settingsCard(card);
+    });
 }
 
 const INCIDENT_PAGE: SettingsPage = settingsPage(
@@ -125,6 +143,37 @@ const GUARDRAILS_PAGE: SettingsPage = settingsPage(
   "Settings",
   "AIGuardrails.tsx",
 );
+
+const INCIDENT_CARDS: Array<SettingsPage> = settingsCards(
+  "Pages",
+  "Incidents",
+  "Settings",
+  "IncidentAISettings.tsx",
+);
+
+const ALERT_CARDS: Array<SettingsPage> = settingsCards(
+  "Pages",
+  "Alerts",
+  "Settings",
+  "AlertAISettings.tsx",
+);
+
+const AI_FEATURES_PAGE: SettingsPage = settingsPage(
+  "Pages",
+  "Settings",
+  "AIFeatures.tsx",
+);
+
+// The project's AI switches, which live on Project Settings → AI Features.
+const PROJECT_AI_SWITCH_FIELDS: Array<string> = [
+  "enableAi",
+  "enableAutoRemediation",
+  "enableAiCommandExecution",
+];
+
+const POSTMORTEM_DRAFT_FIELDS: Array<string> = [
+  "enableAutomaticPostmortemDraft",
+];
 
 const INCIDENT_FIELDS: Array<string> = [
   "enableAutomaticIncidentInvestigation",
@@ -234,21 +283,146 @@ describe("incident and alert AI settings separation", () => {
    * Credits on a self-hosted install.
    */
   test("AI Guardrails is in the always-visible AI menu section", () => {
-    const source: string = read("Pages", "Settings", "SideMenu.tsx");
-    const sections: Array<string> = source.split(/^ {6}title: "/m);
-    const aiSection: string | undefined = sections.find(
-      (section: string): boolean => {
-        return section.startsWith('AI",');
-      },
-    );
+    const aiSection: string = aiMenuSection();
 
-    expect(aiSection).toBeDefined();
     expect(aiSection).toContain('title: "AI Guardrails"');
 
-    const guardrailsAt: number = aiSection!.indexOf('title: "AI Guardrails"');
-    const billingBranchAt: number = aiSection!.indexOf("BILLING_ENABLED");
+    const guardrailsAt: number = aiSection.indexOf('title: "AI Guardrails"');
+    const billingBranchAt: number = aiSection.indexOf("...(BILLING_ENABLED");
 
     expect(billingBranchAt).toBeGreaterThan(-1);
     expect(guardrailsAt).toBeLessThan(billingBranchAt);
+  });
+});
+
+// The settings side menu's AI section, as source.
+function aiMenuSection(): string {
+  const source: string = read("Pages", "Settings", "SideMenu.tsx");
+  const sections: Array<string> = source.split(/^ {6}title: "/m);
+  const aiSection: string | undefined = sections.find(
+    (section: string): boolean => {
+      return section.startsWith('AI",');
+    },
+  );
+
+  if (!aiSection) {
+    throw new Error("Expected an AI section in the settings side menu.");
+  }
+
+  return aiSection;
+}
+
+/*
+ * The project's AI switches used to live on AI Credits — listed only when
+ * billing is on, so on a self-hosted install the master switch was reachable
+ * only by URL, and "Enable auto-remediation" had no screen at all. They now
+ * have one home that every install shows.
+ */
+describe("the project's AI switches", () => {
+  test("AI Features edits and displays exactly the three switches, master switch first", () => {
+    expect(namesOf(AI_FEATURES_PAGE.formFields)).toEqual(
+      PROJECT_AI_SWITCH_FIELDS,
+    );
+    expect(namesOf(AI_FEATURES_PAGE.detailFields)).toEqual(
+      PROJECT_AI_SWITCH_FIELDS,
+    );
+  });
+
+  test("AI Credits no longer carries any of them", () => {
+    const source: string = read("Pages", "Settings", "AICredits.tsx");
+    const credits: Array<string> = fieldsIn(source).map(
+      (field: ConfiguredField): string => {
+        return field.name;
+      },
+    );
+
+    for (const field of PROJECT_AI_SWITCH_FIELDS) {
+      expect(credits).not.toContain(field);
+    }
+    // What stays: the balance and the recharge settings.
+    expect(credits).toContain("aiCurrentBalanceInUSDCents");
+    expect(credits).toContain("enableAutoRechargeAiBalance");
+  });
+
+  test("no other AI settings page can write them", () => {
+    const otherPages: Array<SettingsPage> = [
+      ...INCIDENT_CARDS,
+      ...ALERT_CARDS,
+      GUARDRAILS_PAGE,
+    ];
+
+    for (const page of otherPages) {
+      for (const field of PROJECT_AI_SWITCH_FIELDS) {
+        expect(namesOf(page.formFields)).not.toContain(field);
+      }
+    }
+  });
+
+  test("AI Features is the first item of the AI menu section, outside the billing branch", () => {
+    const aiSection: string = aiMenuSection();
+    const featuresAt: number = aiSection.indexOf('title: "AI Features"');
+    const firstItemAt: number = aiSection.indexOf("title: ");
+    const billingBranchAt: number = aiSection.indexOf("...(BILLING_ENABLED");
+
+    expect(billingBranchAt).toBeGreaterThan(-1);
+    expect(featuresAt).toBeGreaterThan(-1);
+    expect(featuresAt).toBe(firstItemAt);
+    expect(featuresAt).toBeLessThan(billingBranchAt);
+    expect(aiSection).toContain("PageMap.SETTINGS_AI_FEATURES");
+  });
+
+  test("the page is routed", () => {
+    const routes: string = read("Routes", "SettingsRoutes.tsx");
+
+    expect(routes).toContain(
+      'import SettingsAIFeatures from "../Pages/Settings/AIFeatures";',
+    );
+    expect(routes).toContain(
+      "path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}",
+    );
+    expect(read("Utils", "RouteMap.ts")).toContain(
+      '[PageMap.SETTINGS_AI_FEATURES]: "ai-features",',
+    );
+  });
+});
+
+/*
+ * Drafting a postmortem when an incident resolves used to ride on the
+ * automatic investigation switch. It is its own switch now, on its own card:
+ * a card writes every field it is given, so sharing a card with the
+ * investigation settings would let either save rewrite the other.
+ */
+describe("the automatic postmortem draft", () => {
+  test("has its own card on the incident AI settings page", () => {
+    expect(INCIDENT_CARDS.length).toBe(2);
+    expect(namesOf(INCIDENT_CARDS[1]!.formFields)).toEqual(
+      POSTMORTEM_DRAFT_FIELDS,
+    );
+    expect(namesOf(INCIDENT_CARDS[1]!.detailFields)).toEqual(
+      POSTMORTEM_DRAFT_FIELDS,
+    );
+  });
+
+  test("is not part of the investigation card's payload", () => {
+    expect(INCIDENT_CARDS[0]).toEqual(INCIDENT_PAGE);
+    expect(namesOf(INCIDENT_PAGE.formFields)).not.toContain(
+      "enableAutomaticPostmortemDraft",
+    );
+  });
+
+  test("is an incident setting only", () => {
+    for (const card of ALERT_CARDS) {
+      expect(namesOf(card.formFields)).not.toContain(
+        "enableAutomaticPostmortemDraft",
+      );
+    }
+  });
+
+  test("is labelled for what it does", () => {
+    expect(
+      read("Pages", "Incidents", "Settings", "IncidentAISettings.tsx"),
+    ).toContain(
+      'title: "Draft a postmortem automatically when an incident resolves"',
+    );
   });
 });

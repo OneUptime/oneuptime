@@ -2,6 +2,7 @@ import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  getKubernetesAiAccessTargetKind,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBECTL_ALWAYS_ASKS_SUMMARY } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 
@@ -18,6 +19,46 @@ export const UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY: string =
 // "a write ..." -> "A write ..." for copy that starts a sentence.
 function capitalizeFirst(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/*
+ * Who runs kubectl for a cluster, by name, for copy the model and humans
+ * read: "the Kubernetes AI agent", or `Runner "<name>"`. Told apart by
+ * runner.kind only — accessMethod is "in_cluster" for both the agent and
+ * the chart's previous in-cluster Runner.
+ */
+export function describeClusterAccessTarget(
+  status: Pick<KubernetesClusterAiAccessStatus, "runner">,
+): string {
+  if (getKubernetesAiAccessTargetKind(status.runner) === "ai_agent") {
+    return "the Kubernetes AI agent";
+  }
+
+  return `Runner "${status.runner?.name || "Runner"}"`;
+}
+
+/*
+ * The same with "its" ("its Kubernetes AI agent", "its Runner"), for copy
+ * that has already named the cluster.
+ */
+export function describeClusterAccessTargetOfCluster(
+  status: Pick<KubernetesClusterAiAccessStatus, "runner">,
+): string {
+  return getKubernetesAiAccessTargetKind(status.runner) === "ai_agent"
+    ? "its Kubernetes AI agent"
+    : "its Runner";
+}
+
+/*
+ * The same as a role, for copy about the cluster in general: "the
+ * cluster's Kubernetes AI agent" or "the cluster's Runner".
+ */
+export function describeClusterAccessTargetRole(
+  status: Pick<KubernetesClusterAiAccessStatus, "runner">,
+): string {
+  return getKubernetesAiAccessTargetKind(status.runner) === "ai_agent"
+    ? "the cluster's Kubernetes AI agent"
+    : "the cluster's Runner";
 }
 
 /*
@@ -55,7 +96,7 @@ export default class ClusterAccessContext {
           })
           .join(
             ", ",
-          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every kubectl command that ran is cited like any other tool result; a command that could not run comes back as an error, is not evidence, and must never be described as inspected. The Runner that runs kubectl lives in the cluster and can itself be down: if run_kubectl says a cluster's Runner did not pick up a command, that cluster is unreachable for the rest of this investigation — do not call run_kubectl on it again, continue with OneUptime telemetry, and say so in your report. Reading Secrets is refused and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it — never ask for them and never treat a redaction marker as a finding.`,
+          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every kubectl command that ran is cited like any other tool result; a command that could not run comes back as an error, is not evidence, and must never be described as inspected. The agent (or Runner) that runs kubectl lives in the cluster and can itself be down: if run_kubectl says a cluster's agent or Runner did not pick up a command, that cluster is unreachable for the rest of this investigation — do not call run_kubectl on it again, continue with OneUptime telemetry, and say so in your report. Reading Secrets is refused and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it — never ask for them and never treat a redaction marker as a finding.`,
       );
     }
 
@@ -78,7 +119,7 @@ export default class ClusterAccessContext {
     }
 
     lines.push(
-      `Add a section **${ClusterAccessContext.REPORT_SECTION_HEADING}** before Suggested next steps: one or two sentences on what you inspected directly on the cluster (or that you could not — access not set up, or the cluster's Runner not responding — and that the human should check the cluster's AI page).`,
+      `Add a section **${ClusterAccessContext.REPORT_SECTION_HEADING}** before Suggested next steps: one or two sentences on what you inspected directly on the cluster (or that you could not — access not set up, or the cluster's AI agent or Runner not responding — and that the human should check the cluster's AI agent page (AI → Agent)).`,
     );
 
     return lines.join("\n");
@@ -97,13 +138,9 @@ export default class ClusterAccessContext {
     for (const status of statuses) {
       if (status.isInvestigationReady) {
         lines.push(
-          `- Cluster "${status.clusterName}" (clusterId: ${status.clusterId}): kubectl READ access available via run_kubectl${
-            status.accessMethod === "in_cluster"
-              ? " (in-cluster Runner)"
-              : status.credentialName
-                ? ` (Runner "${status.runner?.name}" with credential "${status.credentialName}")`
-                : ""
-          }. Remediation: ${ClusterAccessContext.describeRemediationMode(status)}.`,
+          `- Cluster "${status.clusterName}" (clusterId: ${status.clusterId}): kubectl READ access available via run_kubectl${ClusterAccessContext.describeAccessPath(
+            status,
+          )}. Remediation: ${ClusterAccessContext.describeRemediationMode(status)}.`,
         );
         continue;
       }
@@ -124,6 +161,27 @@ export default class ClusterAccessContext {
     }
 
     return lines.join("\n");
+  }
+
+  /*
+   * How kubectl reaches a ready cluster, as a parenthetical: the Kubernetes
+   * AI agent, the chart's previous in-cluster Runner, or a Runner with a
+   * credential.
+   */
+  private static describeAccessPath(
+    status: KubernetesClusterAiAccessStatus,
+  ): string {
+    if (getKubernetesAiAccessTargetKind(status.runner) === "ai_agent") {
+      return " (via the in-cluster Kubernetes AI agent)";
+    }
+
+    if (status.accessMethod === "in_cluster") {
+      return " (in-cluster Runner)";
+    }
+
+    return status.credentialName
+      ? ` (Runner "${status.runner?.name}" with credential "${status.credentialName}")`
+      : "";
   }
 
   /*

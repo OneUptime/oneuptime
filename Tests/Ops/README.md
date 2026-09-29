@@ -467,6 +467,28 @@ template, finds the ones with an `enterprise` stage (using the same line test
 as `build_docker_images.sh`, cross-checked against the stage parser) and
 asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
 
+### `KubernetesAiAgentRelease.test.js`
+
+The kubernetes-agent chart installs the Kubernetes AI agent
+(`oneuptime/kubernetes-ai-agent`) by default, at the moving `release` tag, and
+the agent needs the same release's server. So release.yml builds and merges it
+with version tags only, moves its `release` tags in `push-release-tags` (with
+the App's, after the three e2e jobs), and `helm-chart-deploy` waits for that
+before it publishes the charts. The e2e jobs need `helm-chart-check` (lint and
+render only, the same commands) instead of the deploy, because
+`push-release-tags` needs them and the old edge would be a cycle.
+`generate-sboms` names the agent's merge, and `finalize-github-release` waits
+for the charts.
+
+The suite pins all of that, that the chart's default image, the server's
+`KUBERNETES_AI_AGENT_IMAGE_REPOSITORY` and the image release.yml builds are
+the same, that build.yml builds the image on every pull request (and that each
+of its image jobs warms the base images of exactly the Dockerfiles it builds),
+and that test-release.yaml builds both architectures on every push to master
+with the `test` tags. It also checks every workflow's `needs` for a job that
+does not exist and for cycles: GitHub refuses to run such a workflow, and
+nothing on a pull request runs release.yml.
+
 ### `UpdateNpmCli.test.js`
 
 npm bundles its whole dependency tree, so the `tar`, `undici`,
@@ -502,6 +524,9 @@ What keeps the images free of the rest of what scanners reported, for every
   that could need it (`apk del .gyp`, or `apt-get purge --auto-remove`);
 - tini is started from the path the image's package manager installs it to;
 - the Runner still installs the command-line tools the full image provided;
+- the Kubernetes AI agent ships only node, tini, the CA store and one kubectl
+  binary, copied in from a stage that checked it against a pinned sha256 (the
+  download tool never ships), and runs the compiled agent as `node`;
 - E2E installs itself with `--ignore-scripts` (its `preinstall` would install
   a second, unpinned set of browsers and WebKit's libraries), only while no
   dependency has an install script, and installs exactly the engines its

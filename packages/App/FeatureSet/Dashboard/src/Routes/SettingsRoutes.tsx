@@ -54,6 +54,7 @@ import SettingsRunners from "../Pages/Settings/Runners";
 import SettingsRunnerView from "../Pages/Settings/RunnerView";
 import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
 
+import SettingsAIFeatures from "../Pages/Settings/AIFeatures";
 import SettingsAICredits from "../Pages/Settings/AICredits";
 import SettingsAIGuardrails from "../Pages/Settings/AIGuardrails";
 
@@ -137,6 +138,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsMobileApps
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}
+          element={
+            <SettingsAIFeatures
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route}
             />
           }
         />

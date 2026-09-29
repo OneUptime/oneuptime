@@ -231,6 +231,50 @@ jobs:
           max_attempts: 3
           command: sudo docker build --no-cache -f ./packages/Runner/Dockerfile .
 
+  # The Kubernetes AI agent image (agents/KubernetesAIAgent), which the
+  # kubernetes-agent chart installs by default. Built on every pull request
+  # so a broken kubectl download or digest, or an agent that does not compile
+  # inside the image, fails here rather than in the release. This builds the
+  # runner's architecture (amd64) only; test-release.yaml builds both on every
+  # push to master.
+  docker-build-kubernetes-ai-agent:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # public.ecr.aws mirrors Docker's official images, and serves anonymous
+      # pullers from one shared data quota that a busy CI window exhausts. When
+      # it does, `docker build` dies on "429 Too Many Requests ... Data limit
+      # exceeded" before it has read an instruction, and the three attempts above
+      # all burn inside the same exhausted window — that is runs 36338348855 and
+      # 36315910324, both red on an image nobody touched. So seed the base images
+      # into the local store first, from Docker Hub if ECR will not serve them;
+      # BuildKit then resolves FROM locally and never asks ECR about it.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./agents/KubernetesAIAgent/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
+
   docker-build-test-server:
     runs-on: ubuntu-latest
     env:

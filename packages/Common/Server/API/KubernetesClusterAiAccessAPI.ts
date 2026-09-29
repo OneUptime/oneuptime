@@ -16,6 +16,7 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import Permission, {
+  PermissionHelper,
   UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
@@ -24,12 +25,39 @@ import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import {
   DEFAULT_KUBECTL_TIMEOUT_MS,
   KubernetesAiAccessGap,
+  KubernetesAiAccessGapCode,
   KubernetesClusterAiAccessStatus,
+  getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
-import { KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import {
+  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import {
+  KUBERNETES_CLUSTER_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS,
+  KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT,
+  KUBERNETES_CLUSTER_AI_INSIGHTS_RATIONALE_MAX_LENGTH,
+  KubernetesClusterAiInsightFix,
+  KubernetesClusterAiInsightInvestigation,
+  KubernetesClusterAiInsights,
+} from "../../Types/Kubernetes/KubernetesClusterAiInsights";
+import AIRunType from "../../Types/AI/AIRunType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import RunbookStepType from "../../Types/Runbook/RunbookStepType";
+import AIRun from "../../Models/DatabaseModels/AIRun";
+import Alert from "../../Models/DatabaseModels/Alert";
+import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import Incident from "../../Models/DatabaseModels/Incident";
+import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import AIRunService from "../Services/AIRunService";
+import AlertService from "../Services/AlertService";
+import AutoRemediationSuggestionService from "../Services/AutoRemediationSuggestionService";
+import IncidentService from "../Services/IncidentService";
+import KubernetesAiAgentService from "../Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import RunnerJobService from "../Services/RunnerJobService";
@@ -44,25 +72,36 @@ import KubectlJobRunner, {
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The cluster AI page's two custom calls. Everything else on that page is
- * ordinary CRUD on KubernetesCluster (the bound Runner, the credential, the
- * two switches, the allowlist).
+ * The custom calls behind a cluster's AI pages (AI → Agent and
+ * AI → Insights). Everything else there is ordinary CRUD on
+ * KubernetesCluster (the two switches, the allowlist, an advanced Runner
+ * and credential).
  *
- *   POST /kubernetes-cluster/ai-access/status  { clusterId }
- *     The readiness checklist: can OneUptime AI reach this cluster, what
- *     may it do, and what is missing. Requires read access to the cluster;
- *     the credential's name (and descriptions that name it) additionally
- *     need permission to read credentials.
+ *   POST /kubernetes-cluster/ai-access/status       { clusterId }
+ *     The readiness checklist: can OneUptime AI reach this cluster, through
+ *     which access target, what may it do, and what is missing. Requires
+ *     read access to the cluster; the credential's name (and descriptions
+ *     that name it) additionally need permission to read credentials.
  *
- *   POST /kubernetes-cluster/ai-access/test    { clusterId }
+ *   POST /kubernetes-cluster/ai-access/test         { clusterId }
  *     Runs `kubectl version` and `kubectl auth can-i --list` through the
- *     bound Runner and returns their output, so an operator can see the
- *     access work (and the RBAC the Runner actually has) before an incident
- *     does. Read-only, but it spends Runner time, so it requires edit access
- *     to the cluster and has its own limits instead of spending the
+ *     cluster's access target (its Kubernetes AI agent, or the Runner it is
+ *     reached through) and returns their output, so an operator can see the
+ *     access work (and the RBAC it actually has) before an incident does.
+ *     Read-only, but it spends the target's time, so it requires edit
+ *     access to the cluster and has its own limits instead of spending the
  *     project's investigation budget: one test at a time per cluster (an
  *     atomic reservation), a few per minute and a cumulative ceiling per
  *     hour per cluster, and a few per minute per user.
+ *
+ *   POST /kubernetes-cluster/ai-access/reset-agent  { clusterId }
+ *     Forgets the key of the cluster's Kubernetes AI agent, so whatever
+ *     holds it is locked out and the real pod registers afresh within a
+ *     few minutes. For the people who may loosen AI access.
+ *
+ *   POST /kubernetes-cluster/ai-access/insights     { clusterId }
+ *     What AI investigated and changed on the cluster, as summaries. Same
+ *     read gate as the status.
  */
 
 async function getLoggedInProps(
@@ -207,6 +246,17 @@ const AI_ACCESS_TEST_USER_LOCK_ACQUIRE_TIMEOUT_MS: number = 15_000;
 
 const ALREADY_RUNNING_MESSAGE: string =
   "An AI access test is already running for this cluster. Wait for it to finish, then run it again.";
+
+/*
+ * Gaps that block both capabilities but not the access test's transport:
+ * they are about the project's AI (switched off, no provider, no credits),
+ * and the test runs kubectl, never a model.
+ */
+const NON_TRANSPORT_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
+  "project_ai_disabled",
+  "llm_provider_missing",
+  "ai_balance_insufficient",
+];
 
 const AI_ACCESS_TEST_COMMANDS: Array<string> = [
   "kubectl version",
@@ -470,6 +520,29 @@ export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
   "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on this page.";
 
 /*
+ * Resetting the agent locks out whatever holds its key, and the real pod
+ * registers afresh: the same people who may loosen AI access may do it.
+ */
+function assertCanResetAiAgent(
+  props: DatabaseCommonInteractionProps,
+  projectId: ObjectID,
+): void {
+  if (
+    !holdsAnyUnblockedPermission({
+      props,
+      projectId,
+      allowed: KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+    })
+  ) {
+    throw new NotAuthorizedException(
+      `You need one of these permissions to reset this cluster's Kubernetes AI agent: ${PermissionHelper.getPermissionTitles(
+        KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+      ).join(", ")}.`,
+    );
+  }
+}
+
+/*
  * The status as this caller may see it. Reading the cluster shows its
  * readiness; the credential's name — and gap descriptions that name it —
  * additionally need permission to read credentials, the rule the AI page's
@@ -658,16 +731,16 @@ router.post(
         }
 
         /*
-         * The test needs a reachable Runner, not the investigation switch:
-         * an operator checks access BEFORE turning AI on. Only gaps that
-         * block the transport itself stop it.
+         * The test needs a reachable access target, not the investigation
+         * switch: an operator checks access BEFORE turning AI on. Only gaps
+         * that block the transport itself stop it — never one about the
+         * project's AI (the test runs kubectl, not a model).
          */
         const transportGap: KubernetesAiAccessGap | undefined =
           status.gaps.find((gap: KubernetesAiAccessGap) => {
             return (
               gap.blocks === "both" &&
-              gap.code !== "project_ai_disabled" &&
-              gap.code !== "llm_provider_missing"
+              !NON_TRANSPORT_GAP_CODES.includes(gap.code)
             );
           });
 
@@ -676,7 +749,7 @@ router.post(
             ok: false,
             message: transportGap
               ? `${transportGap.title}. ${transportGap.nextStep}`
-              : "No Runner is bound to this cluster.",
+              : "Nothing can reach this cluster yet: install the Kubernetes AI agent.",
             results: [],
             status: toViewerStatus({
               status,
@@ -768,7 +841,11 @@ router.post(
         Response.sendJsonObjectResponse(req, res, {
           ok: allSucceeded,
           message: allSucceeded
-            ? `OneUptime AI can run kubectl on "${cluster.name}" through Runner "${status.runner.name}".`
+            ? `OneUptime AI can run kubectl on "${cluster.name}" through ${
+                getKubernetesAiAccessTargetKind(status.runner) === "ai_agent"
+                  ? "the Kubernetes AI agent"
+                  : `Runner "${status.runner.name}"`
+              }.`
             : "kubectl could not run successfully — see the command output below.",
           results,
           status: toViewerStatus({
@@ -783,6 +860,531 @@ router.post(
           token: reservation,
         });
       }
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * How many of the cluster's newest kubectl jobs the insights read to find
+ * the AI runs and suggestions that ran commands on it. Each AI run runs at
+ * most a handful, so this reaches well past the newest 25 of either.
+ */
+const INSIGHTS_JOB_SCAN_LIMIT: number = 500;
+
+// How many incidents and alerts linked to the cluster the insights read.
+const INSIGHTS_LINKED_SUBJECT_LIMIT: number = 200;
+
+// What the insights' merge reads off every row it unions.
+interface BaseRow {
+  id?: ObjectID | null | undefined;
+  createdAt?: Date | undefined;
+}
+
+function toIsoString(date: Date | undefined): string | undefined {
+  return date ? OneUptimeDate.toString(date) : undefined;
+}
+
+function newestFirst<T extends { createdAt?: Date | undefined }>(
+  rows: Array<T>,
+): Array<T> {
+  return rows.sort((a: T, b: T): number => {
+    return (
+      (b.createdAt ? new Date(b.createdAt).getTime() : 0) -
+      (a.createdAt ? new Date(a.createdAt).getTime() : 0)
+    );
+  });
+}
+
+// The union of several newest-first reads: one row per id, newest first.
+function mergeNewest<T extends BaseRow>(
+  groups: Array<Array<T>>,
+  limit: number,
+): Array<T> {
+  const byId: Map<string, T> = new Map<string, T>();
+
+  for (const rows of groups) {
+    for (const row of rows) {
+      const id: string | undefined = row.id?.toString();
+
+      if (id && !byId.has(id)) {
+        byId.set(id, row);
+      }
+    }
+  }
+
+  return newestFirst(Array.from(byId.values())).slice(0, limit);
+}
+
+/*
+ * What OneUptime AI investigated and changed on one cluster, as summaries
+ * (KubernetesClusterAiInsights). Read as root: the caller has already been
+ * checked for read access to the cluster (findAccessibleCluster), and the
+ * rows it summarises — AI runs, suggestions, Runner jobs — have narrower
+ * read ACLs of their own, so reading them under the viewer's props would
+ * break the page for exactly the people it is for. That is why nothing
+ * here returns kubectl output, prompts or command plans.
+ *
+ * - investigations: AI investigations that ran kubectl on this cluster
+ *   (their RunnerJob rows name it), UNION investigations of incidents and
+ *   alerts linked to it — which also covers one whose cluster access was
+ *   not set up, so it never ran kubectl. Newest first, at most
+ *   KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT.
+ * - fixes: suggestions the cluster's Fixes setting produced (their
+ *   kubernetesClusterId), UNION any suggestion whose kubectl ran on this
+ *   cluster (a rule's round, too). Newest first, same limit.
+ * - commandCounts: kubectl commands in the last
+ *   KUBERNETES_CLUSTER_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS days. The AI
+ *   agent page's connection tests have no AI run behind them and are not
+ *   counted, the way the project's investigation brake leaves them out.
+ */
+export async function getClusterAiInsights(data: {
+  projectId: ObjectID;
+  clusterId: ObjectID;
+}): Promise<KubernetesClusterAiInsights> {
+  const { projectId, clusterId } = data;
+  const limit: number = KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT;
+
+  const jobs: Array<RunnerJob> = await RunnerJobService.findBy({
+    query: {
+      projectId,
+      kubernetesClusterId: clusterId,
+      stepType: RunbookStepType.Kubectl,
+    },
+    select: { _id: true, aiRunId: true, autoRemediationSuggestionId: true },
+    sort: { createdAt: SortOrder.Descending },
+    limit: INSIGHTS_JOB_SCAN_LIMIT,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  const runIdsFromJobs: Map<string, ObjectID> = new Map<string, ObjectID>();
+  const suggestionIdsFromJobs: Map<string, ObjectID> = new Map<
+    string,
+    ObjectID
+  >();
+
+  for (const job of jobs) {
+    if (job.aiRunId) {
+      runIdsFromJobs.set(job.aiRunId.toString(), job.aiRunId);
+    }
+
+    if (job.autoRemediationSuggestionId) {
+      suggestionIdsFromJobs.set(
+        job.autoRemediationSuggestionId.toString(),
+        job.autoRemediationSuggestionId,
+      );
+    }
+  }
+
+  const [linkedIncidents, linkedAlerts]: [Array<Incident>, Array<Alert>] =
+    await Promise.all([
+      IncidentService.findBy({
+        query: {
+          projectId,
+          kubernetesClusters: QueryHelper.inRelationArray([clusterId]),
+        },
+        select: { _id: true },
+        sort: { createdAt: SortOrder.Descending },
+        limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      AlertService.findBy({
+        query: {
+          projectId,
+          kubernetesClusters: QueryHelper.inRelationArray([clusterId]),
+        },
+        select: { _id: true },
+        sort: { createdAt: SortOrder.Descending },
+        limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ]);
+
+  const investigations: Array<KubernetesClusterAiInsightInvestigation> =
+    await getInsightInvestigations({
+      projectId,
+      runIds: Array.from(runIdsFromJobs.values()),
+      incidentIds: getIds(linkedIncidents),
+      alertIds: getIds(linkedAlerts),
+      limit,
+    });
+
+  const fixes: Array<KubernetesClusterAiInsightFix> = await getInsightFixes({
+    projectId,
+    clusterId,
+    suggestionIds: Array.from(suggestionIdsFromJobs.values()),
+    limit,
+  });
+
+  const since: Date = OneUptimeDate.getSomeDaysAgo(
+    KUBERNETES_CLUSTER_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS,
+  );
+
+  const countCommands: (
+    query: Record<string, unknown>,
+  ) => Promise<number> = async (
+    query: Record<string, unknown>,
+  ): Promise<number> => {
+    return (
+      await RunnerJobService.countBy({
+        query: {
+          ...query,
+          projectId,
+          kubernetesClusterId: clusterId,
+          stepType: RunbookStepType.Kubectl,
+          createdAt: QueryHelper.greaterThan(since),
+        } as never,
+        props: { isRoot: true },
+      })
+    ).toNumber();
+  };
+
+  const [investigationCommands, remediationCommands]: [number, number] =
+    await Promise.all([
+      countCommands({
+        origin: RunnerJobOrigin.AiInvestigation,
+        // Connection tests have no AI run; every investigation command does.
+        aiRunId: QueryHelper.notNull(),
+      }),
+      countCommands({ origin: RunnerJobOrigin.AiRemediation }),
+    ]);
+
+  return {
+    clusterId: clusterId.toString(),
+    investigations,
+    fixes,
+    commandCounts: {
+      investigation: investigationCommands,
+      remediation: remediationCommands,
+    },
+  };
+}
+
+function getIds(
+  rows: Array<{ id?: ObjectID | null | undefined }>,
+): Array<ObjectID> {
+  return rows
+    .map((row: { id?: ObjectID | null | undefined }): ObjectID | undefined => {
+      return row.id || undefined;
+    })
+    .filter((id: ObjectID | undefined): id is ObjectID => {
+      return Boolean(id);
+    });
+}
+
+const INSIGHT_RUN_SELECT: Record<string, boolean> = {
+  _id: true,
+  status: true,
+  analysisTldr: true,
+  createdAt: true,
+  completedAt: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+};
+
+async function getInsightInvestigations(data: {
+  projectId: ObjectID;
+  runIds: Array<ObjectID>;
+  incidentIds: Array<ObjectID>;
+  alertIds: Array<ObjectID>;
+  limit: number;
+}): Promise<Array<KubernetesClusterAiInsightInvestigation>> {
+  const reads: Array<Promise<Array<AIRun>>> = [];
+
+  const readRuns: (query: Record<string, unknown>) => Promise<Array<AIRun>> = (
+    query: Record<string, unknown>,
+  ): Promise<Array<AIRun>> => {
+    return AIRunService.findBy({
+      query: {
+        ...query,
+        projectId: data.projectId,
+        runType: AIRunType.Investigation,
+      } as never,
+      select: INSIGHT_RUN_SELECT,
+      sort: { createdAt: SortOrder.Descending },
+      limit: data.limit,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  };
+
+  if (data.runIds.length > 0) {
+    reads.push(readRuns({ _id: QueryHelper.any(data.runIds) }));
+  }
+
+  if (data.incidentIds.length > 0) {
+    reads.push(
+      readRuns({ triggeredByIncidentId: QueryHelper.any(data.incidentIds) }),
+    );
+  }
+
+  if (data.alertIds.length > 0) {
+    reads.push(
+      readRuns({ triggeredByAlertId: QueryHelper.any(data.alertIds) }),
+    );
+  }
+
+  if (reads.length === 0) {
+    return [];
+  }
+
+  const runs: Array<AIRun> = mergeNewest(await Promise.all(reads), data.limit);
+
+  const incidentIds: Array<ObjectID> = getUniqueIds(
+    runs.map((run: AIRun): ObjectID | undefined => {
+      return run.triggeredByIncidentId;
+    }),
+  );
+  const alertIds: Array<ObjectID> = getUniqueIds(
+    runs.map((run: AIRun): ObjectID | undefined => {
+      return run.triggeredByAlertId;
+    }),
+  );
+
+  const [incidents, alerts]: [Array<Incident>, Array<Alert>] =
+    await Promise.all([
+      incidentIds.length > 0
+        ? IncidentService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(incidentIds),
+            },
+            select: { _id: true, title: true, incidentNumber: true },
+            limit: incidentIds.length,
+            skip: 0,
+            props: { isRoot: true },
+          })
+        : Promise.resolve([]),
+      alertIds.length > 0
+        ? AlertService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(alertIds),
+            },
+            select: { _id: true, title: true },
+            limit: alertIds.length,
+            skip: 0,
+            props: { isRoot: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+  const incidentsById: Map<string, Incident> = new Map<string, Incident>(
+    incidents.map((incident: Incident): [string, Incident] => {
+      return [incident.id?.toString() || "", incident];
+    }),
+  );
+  const alertsById: Map<string, Alert> = new Map<string, Alert>(
+    alerts.map((alert: Alert): [string, Alert] => {
+      return [alert.id?.toString() || "", alert];
+    }),
+  );
+
+  return runs.map((run: AIRun): KubernetesClusterAiInsightInvestigation => {
+    const incident: Incident | undefined = run.triggeredByIncidentId
+      ? incidentsById.get(run.triggeredByIncidentId.toString())
+      : undefined;
+    const alert: Alert | undefined = run.triggeredByAlertId
+      ? alertsById.get(run.triggeredByAlertId.toString())
+      : undefined;
+
+    return {
+      aiRunId: run.id!.toString(),
+      status: run.status,
+      analysisTldr: run.analysisTldr || undefined,
+      createdAt: toIsoString(run.createdAt),
+      completedAt: toIsoString(run.completedAt),
+      incident: run.triggeredByIncidentId
+        ? {
+            id: run.triggeredByIncidentId.toString(),
+            title: incident?.title,
+            number: incident?.incidentNumber,
+          }
+        : undefined,
+      alert: run.triggeredByAlertId
+        ? {
+            id: run.triggeredByAlertId.toString(),
+            title: alert?.title,
+          }
+        : undefined,
+    };
+  });
+}
+
+function getUniqueIds(ids: Array<ObjectID | undefined>): Array<ObjectID> {
+  const byId: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const id of ids) {
+    if (id) {
+      byId.set(id.toString(), id);
+    }
+  }
+
+  return Array.from(byId.values());
+}
+
+const INSIGHT_FIX_SELECT: Record<string, boolean> = {
+  _id: true,
+  status: true,
+  executionMode: true,
+  suggestionType: true,
+  rationaleMarkdown: true,
+  createdAt: true,
+  approvedAt: true,
+  incidentId: true,
+  alertId: true,
+};
+
+async function getInsightFixes(data: {
+  projectId: ObjectID;
+  clusterId: ObjectID;
+  suggestionIds: Array<ObjectID>;
+  limit: number;
+}): Promise<Array<KubernetesClusterAiInsightFix>> {
+  const readSuggestions: (
+    query: Record<string, unknown>,
+  ) => Promise<Array<AutoRemediationSuggestion>> = (
+    query: Record<string, unknown>,
+  ): Promise<Array<AutoRemediationSuggestion>> => {
+    return AutoRemediationSuggestionService.findBy({
+      query: { ...query, projectId: data.projectId } as never,
+      select: INSIGHT_FIX_SELECT,
+      sort: { createdAt: SortOrder.Descending },
+      limit: data.limit,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  };
+
+  const reads: Array<Promise<Array<AutoRemediationSuggestion>>> = [
+    readSuggestions({ kubernetesClusterId: data.clusterId }),
+  ];
+
+  if (data.suggestionIds.length > 0) {
+    reads.push(readSuggestions({ _id: QueryHelper.any(data.suggestionIds) }));
+  }
+
+  return mergeNewest(await Promise.all(reads), data.limit).map(
+    (suggestion: AutoRemediationSuggestion): KubernetesClusterAiInsightFix => {
+      return {
+        id: suggestion.id!.toString(),
+        status: suggestion.status,
+        executionMode: suggestion.executionMode,
+        suggestionType: suggestion.suggestionType,
+        rationale: suggestion.rationaleMarkdown
+          ? suggestion.rationaleMarkdown.slice(
+              0,
+              KUBERNETES_CLUSTER_AI_INSIGHTS_RATIONALE_MAX_LENGTH,
+            )
+          : undefined,
+        createdAt: toIsoString(suggestion.createdAt),
+        approvedAt: toIsoString(suggestion.approvedAt),
+        incidentId: suggestion.incidentId?.toString(),
+        alertId: suggestion.alertId?.toString(),
+      };
+    },
+  );
+}
+
+router.post(
+  "/kubernetes-cluster/ai-access/reset-agent",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const cluster: KubernetesCluster = await findAccessibleCluster({
+        req,
+        props,
+        tenantId,
+      });
+
+      assertCanResetAiAgent(props, tenantId);
+
+      const agent: KubernetesAiAgent | null =
+        await KubernetesAiAgentService.findForCluster({
+          projectId: tenantId,
+          kubernetesClusterId: cluster.id!,
+        });
+
+      if (!agent) {
+        throw new BadDataException(
+          "This cluster has no Kubernetes AI agent to reset.",
+        );
+      }
+
+      await KubernetesAiAgentService.resetAgent({
+        projectId: tenantId,
+        kubernetesClusterId: cluster.id!,
+        userId: props.userId,
+      });
+
+      const status: KubernetesClusterAiAccessStatus | null =
+        await KubernetesClusterAiAccessService.getStatusForCluster({
+          clusterId: cluster.id!,
+          projectId: tenantId,
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        ok: true,
+        message:
+          "The Kubernetes AI agent was reset. It reconnects on its own within a few minutes.",
+        ...(status
+          ? {
+              status: toViewerStatus({
+                status,
+                canReadCredentials: canReadCredentials(props, tenantId),
+              }) as unknown as JSONObject,
+            }
+          : {}),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  "/kubernetes-cluster/ai-access/insights",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const cluster: KubernetesCluster = await findAccessibleCluster({
+        req,
+        props,
+        tenantId,
+      });
+
+      const insights: KubernetesClusterAiInsights = await getClusterAiInsights({
+        projectId: tenantId,
+        clusterId: cluster.id!,
+      });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        insights as unknown as JSONObject,
+      );
+      return;
     } catch (err) {
       next(err);
       return;

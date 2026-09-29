@@ -1,10 +1,11 @@
 /*
  * The helm release and namespace every Kubernetes agent command the
- * Dashboard shows uses: the install instructions below, and the cluster AI
- * page's one-command upgrades (Pages/Kubernetes/View/AI.tsx), which import
- * these. `helm upgrade` of a release that does not exist fails with "has no
- * deployed releases", so the two must never drift - hence one definition.
- * The chart itself is `oneuptime/kubernetes-agent`, which is not the release.
+ * Dashboard shows uses: the install instructions below, and the one-command
+ * upgrades on the cluster's AI agent page (KubernetesAiAccessSetup.ts),
+ * which import these. `helm upgrade` of a release that does not exist fails
+ * with "has no deployed releases", so the two must never drift - hence one
+ * definition. The chart itself is `oneuptime/kubernetes-agent`, which is
+ * not the release.
  */
 export const KUBERNETES_AGENT_HELM_RELEASE: string = "kubernetes-agent";
 export const KUBERNETES_AGENT_HELM_NAMESPACE: string = "oneuptime-agent";
@@ -91,24 +92,34 @@ Check that the agent pods are running:
 kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}
 \`\`\`
 
-On a **standard** cluster you'll see a metrics-collector Deployment plus one log-collector DaemonSet pod per node:
+On a **standard** cluster you'll see a metrics-collector Deployment, the Kubernetes AI agent, and one log-collector DaemonSet pod per node:
 
 \`\`\`
 NAME                                          READY   STATUS    RESTARTS   AGE
 ${KUBERNETES_AGENT_HELM_RELEASE}-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent-xxxxxxxxxx-xxxxx    1/1     Running   0          1m
 ${KUBERNETES_AGENT_HELM_RELEASE}-logs-xxxxx                   1/1     Running   0          1m
 ${KUBERNETES_AGENT_HELM_RELEASE}-logs-yyyyy                   1/1     Running   0          1m
 \`\`\`
 
-On **GKE Autopilot** or **EKS Fargate** you'll see two Deployments instead (no DaemonSet):
+On **GKE Autopilot** or **EKS Fargate** you'll see Deployments only (no DaemonSet):
 
 \`\`\`
 NAME                                          READY   STATUS    RESTARTS   AGE
 ${KUBERNETES_AGENT_HELM_RELEASE}-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent-xxxxxxxxxx-xxxxx    1/1     Running   0          1m
 ${KUBERNETES_AGENT_HELM_RELEASE}-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 \`\`\`
 
 Once the agent connects, your cluster will appear automatically in the Kubernetes section.
+
+## Kubernetes AI agent (on by default, read-only)
+
+The chart also runs the **Kubernetes AI agent** (the \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod above). When an incident or alert is raised on this cluster, OneUptime AI uses it to look around with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — the way an on-call engineer would. It uses the same API key as the rest of the agent and can change nothing unless you give it write access later.
+
+Open the cluster in OneUptime and go to **AI → Agent** to see it connected, test it, and choose what AI may do there.
+
+Don't want it? Add \`--set aiAgent.enabled=false\` to the install command.
 
 ## Configuration Options
 
@@ -282,6 +293,12 @@ helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
 2. Check the agent logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} deployment/${KUBERNETES_AGENT_HELM_RELEASE}\`
 3. Verify your OneUptime URL and API key are correct
 4. Ensure your cluster can reach the OneUptime instance over the network
+
+### AI → Agent shows "Offline" or "Not installed"
+
+1. Check the AI agent pod: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ai-agent\`
+2. Check its logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ai-agent --tail=100\`
+3. No pod? Upgrade the chart (see **Upgrading the Agent**) and add \`--set aiAgent.enabled=true\`.
 
 ### No logs appearing (API mode only)
 

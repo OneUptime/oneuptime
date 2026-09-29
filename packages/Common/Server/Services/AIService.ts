@@ -313,7 +313,14 @@ export const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS: number = 4 * 60 * 1000;
  * screen where the switch can be turned back on.
  */
 export const AI_DISABLED_MESSAGE: string =
-  "AI features are disabled for this project. Enable them in Project Settings > AI Credits.";
+  "AI features are disabled for this project. Enable them in Project Settings → AI Features.";
+
+/*
+ * Why no AI run can start in a project whose OneUptime AI credits are used
+ * up (getAiBalanceBlocker), in the words every surface that says so shares.
+ */
+export const AI_BALANCE_INSUFFICIENT_MESSAGE: string =
+  "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.";
 
 export interface AILogRequest {
   projectId: ObjectID;
@@ -484,6 +491,68 @@ export class Service extends BaseService {
         "Please upgrade your plan to Growth to use AI in workflows.",
       );
     }
+  }
+
+  /*
+   * Would an AI call in this project be refused for lack of AI credits?
+   * Returns why (AI_BALANCE_INSUFFICIENT_MESSAGE), or null when nothing
+   * about the balance stands in the way. The same test executeWithLogging
+   * applies to every call — billing is on, the project's provider is the
+   * OneUptime-hosted (global) one and it has a per-token cost, and the
+   * balance is at or below zero — plus one it cannot see: auto-recharge.
+   * A project with auto-recharge on is topped up when its balance runs low,
+   * so an empty balance there is not a standing blocker.
+   *
+   * Asked in advance by the readiness checks (the cluster AI status, the
+   * investigation eligibility), so "out of credits" is said once, up front,
+   * instead of as a failed run per incident. Takes the provider when the
+   * caller already resolved it, to spare a second lookup.
+   */
+  @CaptureSpan()
+  public async getAiBalanceBlocker(data: {
+    projectId: ObjectID;
+    llmProvider?: LlmProvider | null | undefined;
+  }): Promise<string | null> {
+    if (!IsBillingEnabled) {
+      return null;
+    }
+
+    const llmProvider: LlmProvider | null =
+      data.llmProvider !== undefined
+        ? data.llmProvider
+        : await LlmProviderService.getLLMProviderForProject(data.projectId);
+
+    // No provider is its own blocker, reported as such by the callers.
+    if (
+      !llmProvider ||
+      llmProvider.isGlobalLlm !== true ||
+      (llmProvider.costPerMillionTokensInUSDCents || 0) <= 0
+    ) {
+      return null;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        aiCurrentBalanceInUSDCents: true,
+        enableAutoRechargeAiBalance: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      return null;
+    }
+
+    if ((project.aiCurrentBalanceInUSDCents || 0) > 0) {
+      return null;
+    }
+
+    if (project.enableAutoRechargeAiBalance === true) {
+      return null;
+    }
+
+    return AI_BALANCE_INSUFFICIENT_MESSAGE;
   }
 
   /*

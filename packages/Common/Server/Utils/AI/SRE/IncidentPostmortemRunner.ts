@@ -2,8 +2,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import { Blue500 } from "../../../../Types/BrandColors";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
+import Project from "../../../../Models/DatabaseModels/Project";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
+import ProjectService from "../../../Services/ProjectService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -17,12 +19,47 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * human to review and edit — turning a ~90-minute manual writeup into a review.
  *
  * It NEVER overwrites a postmortem that already exists (human work wins), is
- * gated by the same per-project opt-in + LLM provider as investigations, and is
- * fire-and-forget: failures are logged, never surfaced to the resolve flow.
+ * gated by its own per-project opt-in (Project.enableAutomaticPostmortemDraft)
+ * plus the same AI switch, LLM provider and AI balance as investigations, and
+ * is fire-and-forget: failures are logged, never surfaced to the resolve flow.
  */
 const MAX_FEED_PREVIEW_CHARS: number = 6000;
 
 export default class AIIncidentPostmortemRunner {
+  /*
+   * The draft has its own switch, separate from automatic incident
+   * investigation. Investigations are read-only and on by default for new
+   * projects; a draft writes to the incident and posts to the project's
+   * Slack/Teams channels, so a project turns it on deliberately (opt-in:
+   * === true). The AI kill switch, the LLM provider and the AI balance gate
+   * it exactly as they gate an investigation.
+   */
+  public static async isEnabledForProject(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: {
+        enableAi: true,
+        enableAutomaticPostmortemDraft: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (
+      !project ||
+      project.enableAi === false ||
+      project.enableAutomaticPostmortemDraft !== true
+    ) {
+      return false;
+    }
+
+    return (
+      (await AIInvestigationEngine.getProviderOrBalanceReason(projectId)) ===
+      null
+    );
+  }
+
   @CaptureSpan()
   public static async draftPostmortemOnResolve(data: {
     incidentId: ObjectID;
@@ -31,12 +68,7 @@ export default class AIIncidentPostmortemRunner {
     const { incidentId, projectId } = data;
 
     try {
-      if (
-        !(await AIInvestigationEngine.isEnabledForProject(
-          projectId,
-          "Incident",
-        ))
-      ) {
+      if (!(await this.isEnabledForProject(projectId))) {
         return;
       }
 

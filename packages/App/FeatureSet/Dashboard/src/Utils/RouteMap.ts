@@ -109,6 +109,8 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: `${RouteParams.ModelID}/ai`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]: `${RouteParams.ModelID}/costs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
@@ -998,6 +1000,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
+  [PageMap.SETTINGS_AI_FEATURES]: "ai-features",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_GUARDRAILS]: "ai-guardrails",
@@ -2814,6 +2817,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -6313,6 +6328,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_MOBILE_APPS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_MOBILE_APPS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_FEATURES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_FEATURES]
     }`,
   ),
 

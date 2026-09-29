@@ -1,0 +1,16 @@
+{
+  "commonPolicyFiles": [
+    "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+    "Types/Kubernetes/KubernetesClusterAiAccess.ts",
+    "Types/Runbook/RunnerJobOrigin.ts",
+    "Utils/AiRemediation/CommandPolicy.ts",
+    "Utils/AiRemediation/KubectlPolicy.ts",
+    "Utils/AiRemediation/KubectlWriteScope.ts"
+  ],
+  "otherCopies": [
+    {
+      "source": "packages/Runner/Utils/KubectlArgvGuard.ts",
+      "target": "KubectlArgvGuard.ts"
+    }
+  ]
+}

@@ -126,6 +126,7 @@ const childProcessMock: {
 import KubectlExecutor, {
   KUBECTL_NUL_REPLACEMENT,
   KubectlExecResult,
+  formatInClusterServerUrl,
   formatKubectlOutput,
   formatRequestTimeout,
   getRequestTimeoutMs,
@@ -244,6 +245,17 @@ describe("KubectlExecutor", () => {
     jest
       .spyOn(KubectlExecutor, "getOwnClusterIdentifier")
       .mockReturnValue(OWN_CLUSTER);
+    /*
+     * The pod's own API server and a mounted ServiceAccount, which the
+     * in-cluster kubeconfig names (the real files do not exist on a test
+     * host; their own section below exercises the refusal).
+     */
+    jest
+      .spyOn(KubernetesPosture, "getInClusterApiServer")
+      .mockReturnValue({ host: "10.0.0.1", port: "443" });
+    jest
+      .spyOn(KubectlExecutor, "getInClusterAccessRefusal")
+      .mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -273,13 +285,21 @@ describe("KubectlExecutor", () => {
       options: Record<string, unknown>;
     } = lastSpawn();
     expect(call.command).toBe("kubectl");
+    /*
+     * Always an explicit kubeconfig, in-cluster too: with none, the
+     * --request-timeout below made kubectl skip the pod's ServiceAccount
+     * and dial http://localhost:8080.
+     */
     expect(call.args).toEqual([
+      "--kubeconfig",
+      kubeconfigPathOf(call.args),
       "--request-timeout=24s",
       "get",
       "pods",
       "-n",
       "web",
     ]);
+    expect(kubeconfigPathOf(call.args)).toMatch(/oneuptime-kubectl/);
     expect(call.options["shell"]).toBeUndefined();
     expect(call.options["stdio"]).toEqual(["ignore", "pipe", "pipe"]);
     expect(call.options["timeout"]).toBe(30000);
@@ -291,7 +311,8 @@ describe("KubectlExecutor", () => {
       string
     >;
     expect(env["HOME"]).toBeDefined();
-    expect(env["KUBECONFIG"]).toBeUndefined();
+    // Only the command's own kubeconfig, never a host one.
+    expect(env["KUBECONFIG"]).toBe(kubeconfigPathOf(call.args));
     expect(env["AWS_PROFILE"]).toBeUndefined();
     expect(env["KUBERC"]).toBe("off");
     expect(env["KUBECTL_KUBERC"]).toBe("false");
@@ -353,7 +374,13 @@ describe("KubectlExecutor", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toContain("installed read-only");
-    expect(result.errorMessage).toContain("aiAccess.remediation.enabled=true");
+    /*
+     * The chart that installs this legacy Runner is superseded: the fix is
+     * the Kubernetes AI agent's write flag, which a chart upgrade brings.
+     */
+    expect(result.errorMessage).toContain("aiAgent.remediation.enabled=true");
+    expect(result.errorMessage).toContain("Kubernetes AI agent");
+    expect(result.errorMessage).not.toContain("aiAccess");
     expect(result.errorMessage).toContain(
       'ONEUPTIME_KUBECTL_ALLOW_WRITES="false"',
     );
@@ -398,6 +425,7 @@ describe("KubectlExecutor", () => {
         "ONEUPTIME_KUBECTL_ALLOW_WRITES=true",
       );
       expect(result.errorMessage).not.toContain("aiAccess");
+      expect(result.errorMessage).not.toContain("aiAgent");
       expect(result.errorMessage).not.toContain("helm");
       expect(result.errorMessage).not.toContain("Upgrade the Kubernetes agent");
       expect(childProcessMock.spawn).not.toHaveBeenCalled();
@@ -413,6 +441,8 @@ describe("KubectlExecutor", () => {
 
     expect(result.success).toBe(true);
     expect(lastSpawn().args).toEqual([
+      "--kubeconfig",
+      kubeconfigPathOf(lastSpawn().args),
       "--request-timeout=24s",
       "rollout",
       "restart",
@@ -735,7 +765,7 @@ describe("KubectlExecutor", () => {
       return lastSpawn().options["env"] as Record<string, string>;
     }
 
-    test("in-cluster: PATH, a private HOME and cache, kuberc off and the service address — nothing else", async () => {
+    test("in-cluster: PATH, a private HOME and cache, kuberc off and the explicit in-cluster kubeconfig — nothing else", async () => {
       const result: KubectlExecResult = await KubectlExecutor.execute({
         payload: READ_PAYLOAD,
         timeoutInMs: 30000,
@@ -752,9 +782,7 @@ describe("KubectlExecutor", () => {
           "KUBECACHEDIR",
           "KUBERC",
           "KUBECTL_KUBERC",
-          "KUBERNETES_SERVICE_HOST",
-          "KUBERNETES_SERVICE_PORT",
-          "KUBERNETES_SERVICE_PORT_HTTPS",
+          "KUBECONFIG",
         ].sort(),
       );
       expect(env["KUBERC"]).toBe("off");
@@ -762,7 +790,15 @@ describe("KubectlExecutor", () => {
       expect(env["HOME"]).not.toBe("/root");
       expect(env["HOME"]).toContain(KubectlExecutor.getKubeconfigParentDir());
       expect(env["KUBECACHEDIR"]).not.toBe("/root/.kube/cache");
-      expect(env["KUBERNETES_SERVICE_HOST"]).toBe("10.0.0.1");
+      // The command's own kubeconfig — never the host's /root/.kube/config.
+      expect(env["KUBECONFIG"]).toBe(kubeconfigPathOf(lastSpawn().args));
+      expect(env["KUBECONFIG"]).not.toBe("/root/.kube/config");
+      /*
+       * The service address travels in that kubeconfig, not the
+       * environment: kubectl must never fall back to an implicit config.
+       */
+      expect(env["KUBERNETES_SERVICE_HOST"]).toBeUndefined();
+      expect(env["KUBERNETES_SERVICE_PORT"]).toBeUndefined();
       // No proxy in-cluster: the API server is the pod's own service.
       expect(env["HTTPS_PROXY"]).toBeUndefined();
       expect(env["https_proxy"]).toBeUndefined();
@@ -896,7 +932,8 @@ describe("KubectlExecutor", () => {
           origin: "AiInvestigation",
         });
 
-        expect(lastSpawn().args[0]).toBe(`--request-timeout=${expected}`);
+        expect(lastSpawn().args[0]).toBe("--kubeconfig");
+        expect(lastSpawn().args[2]).toBe(`--request-timeout=${expected}`);
         expect(lastSpawn().options["timeout"]).toBe(timeoutInMs);
       },
     );
@@ -1458,8 +1495,9 @@ describe("KubectlExecutor", () => {
           expect(result.success).toBe(false);
           expect(result.errorMessage).toContain("node operation");
           expect(result.errorMessage).toContain(
-            "aiAccess.remediation.nodeOperations=true",
+            "aiAgent.remediation.nodeOperations=true",
           );
+          expect(result.errorMessage).not.toContain("aiAccess");
           expect(result.errorMessage).toContain(
             'ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS="false"',
           );
@@ -1505,6 +1543,7 @@ describe("KubectlExecutor", () => {
         "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=true",
       );
       expect(result.errorMessage).not.toContain("aiAccess");
+      expect(result.errorMessage).not.toContain("aiAgent");
       expect(childProcessMock.spawn).not.toHaveBeenCalled();
     });
 
@@ -1592,7 +1631,156 @@ describe("KubectlExecutor", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(lastSpawn().args).not.toContain("--kubeconfig");
+      // The pod's own ServiceAccount, as an explicit kubeconfig (see below).
+      expect(lastSpawn().args[0]).toBe("--kubeconfig");
+    });
+
+    /*
+     * Regression: "Test access" (kubectl version) failed on every in-cluster
+     * Runner with "The connection to the server localhost:8080 was refused".
+     * kubectl only falls back to its in-cluster config when the client
+     * config equals its built-in default, and the --request-timeout the
+     * executor adds is a client-config override — so kubectl skipped the
+     * pod's ServiceAccount and dialled http://localhost:8080. Reproduced in
+     * a live pod: `kubectl version` worked, `kubectl --request-timeout=20s
+     * version` failed exactly that way, and the explicit kubeconfig below
+     * fixed it. The executor now never relies on the implicit fallback.
+     */
+    describe("the in-cluster kubeconfig (localhost:8080 regression)", () => {
+      test("names the in-cluster API server, the mounted CA and the token FILE — never an inline token", async () => {
+        jest
+          .spyOn(KubernetesPosture, "getPodNamespace")
+          .mockReturnValue("oneuptime-agent");
+        let kubeconfig: string = "";
+        let mode: number = 0;
+        spawnOnceWith((args: Array<string>) => {
+          const kubeconfigPath: string = kubeconfigPathOf(args);
+          kubeconfig = fs.readFileSync(kubeconfigPath, "utf8");
+          mode = fs.statSync(kubeconfigPath).mode & 0o777;
+        });
+
+        const result: KubectlExecResult = await KubectlExecutor.execute({
+          payload: { ...READ_PAYLOAD, args: ["version"] },
+          timeoutInMs: 30000,
+          origin: "AiInvestigation",
+        });
+
+        expect(result.success).toBe(true);
+        expect(kubeconfig).toContain('server: "https://10.0.0.1:443"');
+        expect(kubeconfig).toContain(
+          'certificate-authority: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"',
+        );
+        expect(kubeconfig).toContain(
+          `tokenFile: "${SERVICE_ACCOUNT_TOKEN_PATH}"`,
+        );
+        expect(kubeconfig).not.toMatch(/^\s*token:/m);
+        // A missing -n still means the pod's own namespace.
+        expect(kubeconfig).toContain('namespace: "oneuptime-agent"');
+        expect(kubeconfig).toContain("current-context: in-cluster");
+        expect(mode).toBe(0o600);
+      });
+
+      test("keeps the explicit kubeconfig when the argv carries its own --request-timeout", async () => {
+        await KubectlExecutor.execute({
+          payload: {
+            ...READ_PAYLOAD,
+            args: ["get", "pods", "--request-timeout=5s"],
+          },
+          timeoutInMs: 30000,
+          origin: "AiInvestigation",
+        });
+
+        const args: Array<string> = lastSpawn().args;
+        expect(args[0]).toBe("--kubeconfig");
+        expect(
+          args.filter((arg: string) => {
+            return arg.startsWith("--request-timeout");
+          }),
+        ).toEqual(["--request-timeout=5s"]);
+      });
+
+      test("leaves the namespace out when the pod's namespace is unknown", () => {
+        const kubeconfig: string = KubectlExecutor.buildInClusterKubeconfig({
+          apiServer: { host: "10.96.0.1", port: "443" },
+          namespace: null,
+        });
+
+        expect(kubeconfig).toContain('server: "https://10.96.0.1:443"');
+        expect(kubeconfig).not.toContain("namespace:");
+        expect(kubeconfig.endsWith("\n")).toBe(true);
+      });
+
+      test.each([
+        [{ host: "10.96.0.1", port: "443" }, "https://10.96.0.1:443"],
+        [{ host: "fd00:10:96::1", port: "443" }, "https://[fd00:10:96::1]:443"],
+        [{ host: "[fd00::1]", port: "6443" }, "https://[fd00::1]:6443"],
+        [
+          { host: "kubernetes.default.svc", port: "443" },
+          "https://kubernetes.default.svc:443",
+        ],
+      ])(
+        "formats the API server %j as %s (IPv6 bracketed like net.JoinHostPort)",
+        (apiServer: { host: string; port: string }, expected: string) => {
+          expect(formatInClusterServerUrl(apiServer)).toBe(expected);
+        },
+      );
+
+      test("refuses before spawning when the pod's API server address is not in the environment", async () => {
+        (KubectlExecutor.getInClusterAccessRefusal as jest.Mock).mockRestore();
+        (KubernetesPosture.getInClusterApiServer as jest.Mock).mockReturnValue(
+          null,
+        );
+
+        const result: KubectlExecResult = await KubectlExecutor.execute({
+          payload: READ_PAYLOAD,
+          timeoutInMs: 30000,
+          origin: "AiInvestigation",
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.errorMessage).toContain("KUBERNETES_SERVICE_HOST");
+        expect(childProcessMock.spawn).not.toHaveBeenCalled();
+      });
+
+      test("refuses before spawning when the ServiceAccount token is not mounted, naming automountServiceAccountToken", async () => {
+        (KubectlExecutor.getInClusterAccessRefusal as jest.Mock).mockRestore();
+
+        const result: KubectlExecResult = await KubectlExecutor.execute({
+          payload: READ_PAYLOAD,
+          timeoutInMs: 30000,
+          origin: "AiInvestigation",
+        });
+
+        // A test host has no /var/run/secrets/kubernetes.io/serviceaccount.
+        expect(result.success).toBe(false);
+        expect(result.errorMessage).toContain(SERVICE_ACCOUNT_TOKEN_PATH);
+        expect(result.errorMessage).toContain("automountServiceAccountToken");
+        expect(childProcessMock.spawn).not.toHaveBeenCalled();
+      });
+
+      test("a credential job never reads the pod's ServiceAccount", async () => {
+        (
+          KubectlExecutor.getInClusterAccessRefusal as jest.Mock
+        ).mockReturnValue("must not be asked");
+        let kubeconfig: string = "";
+        spawnOnceWith((args: Array<string>) => {
+          kubeconfig = fs.readFileSync(kubeconfigPathOf(args), "utf8");
+        });
+
+        const result: KubectlExecResult = await KubectlExecutor.execute({
+          payload: READ_PAYLOAD,
+          credential: CREDENTIAL,
+          timeoutInMs: 30000,
+          origin: "AiInvestigation",
+        });
+
+        expect(result.success).toBe(true);
+        expect(
+          KubectlExecutor.getInClusterAccessRefusal,
+        ).not.toHaveBeenCalled();
+        expect(kubeconfig).toContain("https://k8s.example.com:6443");
+        expect(kubeconfig).not.toContain("tokenFile");
+      });
     });
 
     /*

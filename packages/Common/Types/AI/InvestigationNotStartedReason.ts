@@ -2,6 +2,12 @@ export type InvestigationNotStartedCode =
   | "ai_disabled"
   | "automatic_investigation_disabled"
   | "provider_missing"
+  /*
+   * The project runs on OneUptime's own (billed) LLM provider and has no AI
+   * credits left, with auto-recharge off — every model call would be
+   * refused with "Insufficient AI balance", so no run is started.
+   */
+  | "insufficient_ai_balance"
   | "severity_below_threshold"
   | "monitor_cooldown"
   | "daily_budget_exhausted"

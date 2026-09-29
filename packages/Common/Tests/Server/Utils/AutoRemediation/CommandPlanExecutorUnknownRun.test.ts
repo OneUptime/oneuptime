@@ -133,6 +133,8 @@ function clusterStatus(): KubernetesClusterAiAccessStatus {
       posture: { inCluster: true, allowWrites: true },
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,

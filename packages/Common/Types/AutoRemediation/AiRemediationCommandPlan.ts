@@ -4,6 +4,20 @@ import {
   KubectlCommandTier,
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "../Kubernetes/KubernetesClusterAiAccess";
+import {
+  AiRemediationCommandPolicyVerdict,
+  MAX_COMMAND_LENGTH_CHARS,
+} from "./AiRemediationCommandPolicyVerdict";
+
+/*
+ * Defined in a leaf module of their own (no imports) so the pure kubectl
+ * policy closure — KubectlPolicy, KubectlWriteScope, CommandPolicy and the
+ * types they read — can be copied verbatim into the standalone Kubernetes AI
+ * agent (agents/KubernetesAIAgent) without dragging this file, and through
+ * its JSON import most of Common, along. Re-exported here so every existing
+ * importer keeps working.
+ */
+export { AiRemediationCommandPolicyVerdict, MAX_COMMAND_LENGTH_CHARS };
 
 /*
  * The AI-composed command plan stored on
@@ -25,21 +39,6 @@ export const AI_COMMAND_STEP_TYPES: Array<RunbookStepType> = [
   RunbookStepType.SSH,
   RunbookStepType.Kubectl,
 ];
-
-export enum AiRemediationCommandPolicyVerdict {
-  /*
-   * Matched the rule's operator-authored allowlist and passed the
-   * structural chain guard — eligible for FullAuto inline execution.
-   */
-  AutoApproved = "AutoApproved",
-  // Not denylisted, but a human must approve before it runs.
-  RequiresApproval = "RequiresApproval",
-  /*
-   * Matched the hard denylist. Denied commands are never stored in a plan —
-   * the verdict exists so policy evaluation has a complete result type.
-   */
-  Denied = "Denied",
-}
 
 export enum AiRemediationCommandExecutionStatus {
   Pending = "Pending",
@@ -186,7 +185,6 @@ export function getRollbackCommandStepId(
 
 // Hard caps — enforced at plan acceptance, not just in the prompt.
 export const MAX_PLAN_COMMANDS: number = 5;
-export const MAX_COMMAND_LENGTH_CHARS: number = 2000;
 export const MIN_COMMAND_TIMEOUT_MS: number = 1000;
 export const MAX_COMMAND_TIMEOUT_MS: number = 5 * 60 * 1000;
 export const DEFAULT_COMMAND_TIMEOUT_MS: number = 60 * 1000;

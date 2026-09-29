@@ -307,6 +307,8 @@ function readyStatus(
       canRunAiCommands: true,
     },
     accessMethod: "credential",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     credentialId: CREDENTIAL_ID,
     credentialName: "prod-us kubeconfig",
     kubectlAllowlist: [],

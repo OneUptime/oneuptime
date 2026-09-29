@@ -27,6 +27,7 @@ import KubectlPolicy, {
   KubectlPolicyResult,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import {
+  KUBERNETES_AI_AGENT_DISPLAY_NAME,
   KubectlCommandTier,
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -1023,7 +1024,11 @@ export default class CommandPlanExecutor {
     }
 
     if (!status.runner || status.runner.id !== command.runnerId) {
-      return `cluster "${status.clusterName}" is no longer reached through Runner "${command.runnerNameSnapshot}", which this plan was composed for`;
+      return `cluster "${status.clusterName}" is no longer reached through ${
+        command.runnerNameSnapshot === KUBERNETES_AI_AGENT_DISPLAY_NAME
+          ? "the Kubernetes AI agent"
+          : `Runner "${command.runnerNameSnapshot}"`
+      }, which this plan was composed for`;
     }
 
     if (

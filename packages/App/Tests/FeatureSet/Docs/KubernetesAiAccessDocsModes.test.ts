@@ -1,10 +1,24 @@
+import {
+  AI_SRE_PAGE,
+  CHART_NOTES,
+  CHART_README,
+  CHART_SCHEMA,
+  CHART_TEMPLATE,
+  CHART_VALUES,
+  KUBERNETES_AGENT_PAGE,
+  PACKAGES_ROOT,
+  getClusterAccessSection,
+  getSection,
+  read,
+  readFlat,
+  relative,
+} from "./KubernetesAiAgentDocsSupport";
 import { describe, expect, it } from "@jest/globals";
-import fs from "fs";
 import path from "path";
 
 /*
- * What the docs promise about the cluster AI remediation modes, against
- * what the server does.
+ * What the docs promise about the cluster AI fix modes, against what the
+ * server does.
  *
  * The canonical description of each mode is the doc comment on
  * KubernetesAiRemediationMode (Common/Types/Kubernetes/
@@ -14,9 +28,7 @@ import path from "path";
  * - Automatic never runs a riskier change. It proposes one for one-click
  *   approval only when the round could find nothing safe; when a safe fix
  *   also ran, a riskier fix is proposed only by the follow-up round after a
- *   failed verification (RemediationExecutionRunner settles such a round
- *   AutoExecuted with no card). The old copy said a riskier change "is
- *   proposed for one-click approval" without the condition.
+ *   failed verification.
  * - Bypass approval does not ask, but it is not "nobody is asked" with "the
  *   only exception" of the breaker: a round also asks when another
  *   unattended round is still changing or verifying the same cluster, and
@@ -25,33 +37,12 @@ import path from "path";
  *   namespaces, a drain, a taint and a patch of a node always need a human
  *   (a drain evicts pods in every namespace, kube-system and the agent's
  *   own included, and so does a NoExecute taint, whichever command writes
- *   it), and the Runner never changes its own namespace. A copy that
- *   promises the protected-namespace line without the drain line
+ *   it), and the Kubernetes AI agent never changes its own namespace. A copy
+ *   that promises the protected-namespace line without the drain line
  *   overclaims. KubernetesAiAccessDocsRoundFour.test.ts checks the node
  *   patch in each copy.
  */
 
-const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
-const REPOSITORY_ROOT: string = path.resolve(PACKAGES_ROOT, "..");
-const CHART_DIR: string = path.join(
-  REPOSITORY_ROOT,
-  "HelmChart/Public/kubernetes-agent",
-);
-const DOCS_CONTENT_DIR: string = path.join(
-  PACKAGES_ROOT,
-  "App/FeatureSet/Docs/Content/en",
-);
-
-const AI_SRE_PAGE: string = path.join(DOCS_CONTENT_DIR, "ai/ai-sre.md");
-const KUBERNETES_AGENT_PAGE: string = path.join(
-  DOCS_CONTENT_DIR,
-  "telemetry/kubernetes-agent.md",
-);
-const CHART_README: string = path.join(CHART_DIR, "README.md");
-const CHART_NOTES: string = path.join(CHART_DIR, "templates/NOTES.txt");
-const CHART_VALUES: string = path.join(CHART_DIR, "values.yaml");
-const CHART_SCHEMA: string = path.join(CHART_DIR, "values.schema.json");
-const CHART_TEMPLATE: string = path.join(CHART_DIR, "templates/ai-runner.yaml");
 const CANONICAL_MODES: string = path.join(
   PACKAGES_ROOT,
   "Common/Types/Kubernetes/KubernetesClusterAiAccess.ts",
@@ -62,7 +53,6 @@ const MODE_COPY: Array<string> = [
   AI_SRE_PAGE,
   KUBERNETES_AGENT_PAGE,
   CHART_README,
-  CHART_VALUES,
 ];
 
 // Every copy that states the every-mode lines.
@@ -76,8 +66,6 @@ const EVERY_MODE_COPY: Array<string> = [
   CHART_TEMPLATE,
 ];
 
-// Line breaks, and the `#` of a YAML comment, read as one space.
-const LINE_BREAK_PATTERN: RegExp = /\s*\n\s*#?\s*/g;
 // Line breaks, and the `*` of a block comment, read as one space.
 const DOC_COMMENT_LINE_BREAK_PATTERN: RegExp = /\s*\n\s*\*?\s*/g;
 
@@ -114,17 +102,9 @@ const DRAIN_NEEDS_HUMAN_PATTERN: RegExp =
   /\bdrain\b[^.]{0,120}\b(needs? a human|without a human|waits? for a human)|(needs? a human|without a human|waits? for a human)[^.]{0,40}\bdrain\b/i;
 const TAINT_PATTERN: RegExp = /\btaint\b/;
 
-function read(filePath: string): string {
-  return fs.readFileSync(filePath, "utf8");
-}
-
-function readFlat(filePath: string): string {
-  return read(filePath).replace(LINE_BREAK_PATTERN, " ");
-}
-
-function relative(filePath: string): string {
-  return path.relative(REPOSITORY_ROOT, filePath);
-}
+// A lower-case mode bullet ("- **automatic** — ..."), and its title.
+const MODE_LINE_PATTERN: RegExp = /^- \*\*[a-z]/;
+const BULLET_TITLE_PATTERN: RegExp = /^- \*\*([^*]+)\*\*/;
 
 // The doc comment right above `export enum KubernetesAiRemediationMode`.
 function getCanonicalModeComment(): string {
@@ -158,6 +138,12 @@ describe("the canonical mode description the docs follow", () => {
         inCanonical: true,
       });
     }
+  });
+
+  it("still says drains, taints, node patches and protected namespaces always need a human", () => {
+    expect(canonical).toContain(
+      "a write in a protected namespace (kube-system, kube-public, kube-node-lease), a node drain, a node taint and a patch of a Node always need a human",
+    );
   });
 });
 
@@ -220,6 +206,23 @@ describe("the Bypass approval mode copy", () => {
       });
     }
   });
+
+  // Negative controls: the old absolute claims are caught.
+  it("reads the earlier absolute claims as such", () => {
+    expect(
+      NOBODY_IS_ASKED_PATTERN.test("Bypass approval: nobody is asked."),
+    ).toBe(true);
+    expect(
+      ONLY_EXCEPTION_PATTERN.test(
+        "The only exception is the hourly circuit breaker.",
+      ),
+    ).toBe(true);
+    expect(
+      UNCONDITIONAL_AUTOMATIC_PROPOSAL_PATTERN.test(
+        "Automatic: a riskier change is proposed for one-click approval.",
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("the every-mode lines", () => {
@@ -239,43 +242,108 @@ describe("the every-mode lines", () => {
     });
   }
 
-  it("list the drain line with the protected namespaces and the Runner's own namespace on the AI SRE page", () => {
-    const page: string = read(AI_SRE_PAGE);
-    const start: number = page.indexOf("Some lines hold in **every** mode");
-    const end: number = page.indexOf("The Automatic-mode allowlist", start);
+  // Negative control: a drain that is only "riskier" is not "needs a human".
+  it("does not read a drain named only as riskier as needing a human", () => {
+    expect(
+      DRAIN_NEEDS_HUMAN_PATTERN.test(
+        "A drain is a riskier change that Bypass approval runs on its own.",
+      ),
+    ).toBe(false);
+  });
+
+  it("list the drain line with the protected namespaces and the AI agent's own namespace on the AI SRE page", () => {
+    const section: string = getClusterAccessSection();
+    const start: number = section.indexOf("Some lines hold in **every** mode");
+    const end: number = section.indexOf("The Automatic-mode allowlist", start);
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
 
-    const lines: string = page.slice(start, end);
+    const lines: string = section.slice(start, end);
 
     expect(lines).toContain(
       "- A write in **kube-system**, **kube-public** or **kube-node-lease** always needs a human.",
     );
     /*
-     * Round four adds a `patch` of a node to the drain and the taint: a
-     * NoExecute taint written as a node patch evicts pods like `kubectl
-     * taint` does, and the policy now holds it to the same rule.
+     * A NoExecute taint written as a node patch evicts pods like `kubectl
+     * taint` does, and the policy holds it to the same rule.
      */
     expect(lines).toContain(
       "- A `drain`, a `taint` or a `patch` of a node always needs a human. Draining a node evicts pods in every namespace — the three above and the agent's own included",
     );
     expect(lines).toContain(
-      "- The Runner never changes anything in its own namespace",
+      "- The AI agent never changes anything in its own namespace",
+    );
+    expect(lines).toContain(
+      "- Destructive commands (below) never run, even with a human approving them.",
     );
     expect(lines).toContain("no allowlist entry changes them");
   });
 
   it("say on the AI SRE page that Bypass approval keeps what needs a human in every mode", () => {
-    const bypass: string | undefined = read(AI_SRE_PAGE)
+    const bypass: string | undefined = getSection(
+      read(AI_SRE_PAGE),
+      "### How fixes work",
+    )
       .split("\n")
-      .find((line: string) => {
+      .find((line: string): boolean => {
         return line.startsWith("- **Bypass approval**");
       });
 
     expect(bypass).toContain("AI does not ask.");
     expect(bypass).toContain(
       "What needs a human in every mode (below) still waits for one.",
+    );
+  });
+
+  it("say on the Kubernetes agent page that the AI agent never changes its own namespace, whatever the mode", () => {
+    const section: string = getSection(
+      read(KUBERNETES_AGENT_PAGE),
+      "### Let AI fix what it finds",
+    ).replace(/\s*\n\s*/g, " ");
+
+    expect(section).toContain(
+      "Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and so do a `drain`, a `taint` and a `patch` of a node",
+    );
+    expect(section).toContain(
+      "the AI agent never changes anything in its own namespace, outside `aiAgent.remediation.namespaces`, or on a node with `aiAgent.remediation.nodeOperations=false`",
+    );
+  });
+});
+
+describe("the fix modes on the Kubernetes agent page", () => {
+  const section: string = getSection(
+    read(KUBERNETES_AGENT_PAGE),
+    "### Let AI fix what it finds",
+  );
+
+  it("lists ask for approval, automatic and bypass approval, in that order", () => {
+    const modes: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return MODE_LINE_PATTERN.test(line);
+      })
+      .map((line: string): string => {
+        return line.match(BULLET_TITLE_PATTERN)![1]!;
+      });
+
+    expect(modes).toEqual(["ask for approval", "automatic", "bypass approval"]);
+  });
+
+  /*
+   * The server starts a cluster in Ask for approval on the agent's first
+   * report with write access only while nobody has chosen AI settings
+   * (aiAccessConfiguredAt is null); it never flips a mode an operator chose.
+   */
+  it("says when granting write access starts fixes in ask for approval, and when it does not", () => {
+    const flat: string = section.replace(/\s*\n\s*/g, " ");
+
+    expect(flat).toContain(
+      "If nobody has chosen AI settings for the cluster yet, granting write access starts it in **ask for approval**",
+    );
+    expect(flat).toContain("the server never flips a switch an operator owns");
+    expect(flat).toContain(
+      "Turning fixes on takes a Project Owner, a Project Admin or **Edit Auto Remediation Rule**",
     );
   });
 });

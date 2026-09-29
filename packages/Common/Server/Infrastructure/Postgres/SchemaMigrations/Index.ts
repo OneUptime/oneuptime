@@ -21,6 +21,7 @@ import { AddStatusPageSubscriberIsAddedByTeam1795700000000 } from "./17957000000
 import { AddIncidentCustomFieldCreateAndNotificationSettings1795800000000 } from "./1795800000000-AddIncidentCustomFieldCreateAndNotificationSettings";
 import { AddSubscriberNotificationClaimedAt1795900000000 } from "./1795900000000-AddSubscriberNotificationClaimedAt";
 import { AddTeamComplianceRuleScope1796000000000 } from "./1796000000000-AddTeamComplianceRuleScope";
+import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "./1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1242,4 +1243,5 @@ export default [
   AddIncidentCustomFieldCreateAndNotificationSettings1795800000000,
   AddSubscriberNotificationClaimedAt1795900000000,
   AddTeamComplianceRuleScope1796000000000,
+  AddKubernetesAiAgentAndAiDefaults1796100000000,
 ];

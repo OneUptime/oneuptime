@@ -99,6 +99,7 @@ import GoldenMetricTile, {
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
 
 interface ResourceLink {
   title: string;
@@ -2285,7 +2286,7 @@ const KubernetesClusterOverview: FunctionComponent<
           <ErrorMessage message={summaryError} />
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
           tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth}
@@ -2400,6 +2401,15 @@ const KubernetesClusterOverview: FunctionComponent<
               }
             />
           }
+        />
+        {/*
+         * Beside the collector's status on purpose: "Agent Status" is the
+         * telemetry agent, this is the Kubernetes AI agent OneUptime AI runs
+         * kubectl through. It links to AI → Agent.
+         */}
+        <KubernetesAiAgentOverviewCard
+          clusterId={modelId}
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.aiAgent}
         />
       </div>
 
