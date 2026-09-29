@@ -144,9 +144,19 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
     });
   }, [props.buckets, props.series]);
 
+  /*
+   * The loader and the empty box below stand where the bars were, and take
+   * the double-click as the bars do: right after a zoom, while its window
+   * loads or when it holds nothing, is exactly when a reader double-clicks
+   * to go back (issue #4116). select-none: a double-click on the message
+   * would otherwise also select a word.
+   */
   if (props.isLoading && pivotedData.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-lg border border-gray-200 bg-white">
+      <div
+        className="flex h-32 select-none items-center justify-center rounded-lg border border-gray-200 bg-white"
+        onDoubleClick={selection.onDoubleClick}
+      >
         <ComponentLoader />
       </div>
     );
@@ -155,9 +165,10 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
   /*
    * With header actions (e.g. a metric selector) the header must survive an
    * empty result, or switching away from a metric with no data would strand
-   * the user with no control to switch back.
+   * the user with no control to switch back. So must a zoomed chart's, or
+   * a zoom into a quiet stretch would leave nothing to double-click.
    */
-  if (pivotedData.length === 0 && !props.headerActions) {
+  if (pivotedData.length === 0 && !props.headerActions && !props.onZoomOut) {
     return <></>;
   }
 
@@ -209,8 +220,13 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
         </div>
       </div>
       {pivotedData.length === 0 && (
-        <div className="flex h-[120px] items-center justify-center text-xs text-gray-400">
-          No data for this metric in the selected range
+        <div
+          className="flex h-[120px] select-none items-center justify-center text-xs text-gray-400"
+          onDoubleClick={selection.onDoubleClick}
+        >
+          {props.headerActions
+            ? "No data for this metric in the selected range"
+            : "No data in the selected range"}
         </div>
       )}
 

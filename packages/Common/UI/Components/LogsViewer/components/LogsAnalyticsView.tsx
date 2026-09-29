@@ -1262,8 +1262,19 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
   const renderChart: () => ReactElement = (): ReactElement => {
     if (isLoading) {
+      /*
+       * A zoom refetches, and until the new window lands the loader stands
+       * where the timeseries was - just when a reader double-clicks to undo
+       * the zoom (issue #4116). It takes that double-click as the chart
+       * does.
+       */
       return (
-        <div className="flex h-72 items-center justify-center">
+        <div
+          className="flex h-72 select-none items-center justify-center"
+          onDoubleClick={
+            chartType === "timeseries" ? selection.onDoubleClick : undefined
+          }
+        >
           <ComponentLoader />
         </div>
       );
