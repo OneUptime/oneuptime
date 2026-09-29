@@ -582,6 +582,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * A resource command runs on that resource's own AI agent, never on a
+     * Runner: this lane would target a Runner (targetAgentId), which must
+     * never be handed one.
+     */
+    if (data.stepType === RunbookStepType.ResourceCommand) {
+      throw new BadDataException(
+        "Resource commands run on the resource's AI agent, never on a Runner, and are enqueued through enqueueAiResourceCommand.",
+      );
+    }
+
     const command: string = (data.command || "").trim();
     if (!command) {
       throw new BadDataException("An AI command job needs a command.");

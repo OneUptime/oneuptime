@@ -507,6 +507,31 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     expect(outcome.textForLlm).toContain("stepType must be one of");
   });
 
+  it("never runs a ResourceCommand step on a Runner", async () => {
+    /*
+     * ResourceCommand is an AI command step type, but it belongs to a
+     * resource's own AI agent: it must never fall through to the Bash/SSH
+     * path, which would enqueue it for a Runner.
+     */
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(
+      bashArgs({ stepType: "ResourceCommand", command: "docker restart web" }),
+    );
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      "stepType ResourceCommand is not available",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
   it("rejects a missing command", async () => {
     const outcome: ToolCallOutcome = await getTool(
       buildToolkit(),

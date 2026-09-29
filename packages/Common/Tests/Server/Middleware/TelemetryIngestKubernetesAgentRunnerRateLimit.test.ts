@@ -383,11 +383,12 @@ describe("TelemetryIngest identity registration surfaces share one rate limit ru
     jest.restoreAllMocks();
   });
 
-  test("the identity surfaces are exactly the Runner and the Kubernetes AI agent registrations", () => {
+  test("the identity surfaces are exactly the Runner, the Kubernetes AI agent and the resource AI agent registrations", () => {
     expect([...REGISTRATION_SURFACES].sort()).toEqual(
       [
         TelemetryIngestSurface.KubernetesAgentRunner,
         TelemetryIngestSurface.KubernetesAiAgent,
+        TelemetryIngestSurface.ResourceAiAgent,
       ].sort(),
     );
     expect(
@@ -437,6 +438,23 @@ describe("TelemetryIngest identity registration surfaces share one rate limit ru
       expect(result.next).toHaveBeenCalledTimes(1);
     },
   );
+
+  test("a server key with no configured limit gets the registration default on the resource AI agent surface", () => {
+    expect(
+      getEffectiveRequestsPerMinuteLimit(
+        buildServerPolicy({ requestsPerMinuteLimit: null }),
+        TelemetryIngestSurface.ResourceAiAgent,
+      ),
+    ).toBe(DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE);
+
+    // An explicit per-key limit still wins there.
+    expect(
+      getEffectiveRequestsPerMinuteLimit(
+        buildServerPolicy({ requestsPerMinuteLimit: 7 }),
+        TelemetryIngestSurface.ResourceAiAgent,
+      ),
+    ).toBe(7);
+  });
 
   test("a Kubernetes AI agent registration over the default is refused 429 with Retry-After", async () => {
     resolveTo(buildServerPolicy({ requestsPerMinuteLimit: null }));

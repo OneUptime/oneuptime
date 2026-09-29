@@ -137,10 +137,10 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all sixteen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(16);
+    test("covers all seventeen surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(17);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(12);
+      expect(BROWSER_FORBIDDEN).toHaveLength(13);
     });
 
     /*
@@ -153,6 +153,7 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
         [
           TelemetryIngestSurface.KubernetesAgentRunner,
           TelemetryIngestSurface.KubernetesAiAgent,
+          TelemetryIngestSurface.ResourceAiAgent,
         ].sort(),
       );
 
@@ -180,6 +181,35 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
         refusalFor({
           policy: buildPolicy(),
           surface: TelemetryIngestSurface.KubernetesAiAgent,
+        }),
+      ).toBeNull();
+    });
+
+    test("keeps resource AI agent registration off the browser allowlist", () => {
+      /*
+       * A resource AI agent's key is what every command for a Docker host,
+       * a Proxmox cluster or a database server is claimed with — a key
+       * scraped off a public page must never be able to mint one.
+       */
+      const refusal: TelemetryIngestionKeyRefusal | null = refusalFor({
+        policy: buildPolicy({
+          keyType: TelemetryIngestionKeyType.Browser,
+          allowedOrigins: [ALLOWED_ORIGIN],
+        }),
+        surface: TelemetryIngestSurface.ResourceAiAgent,
+      });
+
+      expect(refusal?.reason).toBe(
+        TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey,
+      );
+      expect(refusal?.message).toContain(
+        "infrastructure AI agent registration",
+      );
+
+      expect(
+        refusalFor({
+          policy: buildPolicy(),
+          surface: TelemetryIngestSurface.ResourceAiAgent,
         }),
       ).toBeNull();
     });

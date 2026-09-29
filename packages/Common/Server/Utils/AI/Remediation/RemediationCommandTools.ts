@@ -2209,6 +2209,18 @@ export default class RemediationCommandToolkit {
       });
     }
 
+    /*
+     * A resource command runs on the resource's own AI agent, never on a
+     * Runner, so it must never fall through to the Bash/SSH path below.
+     * Refused until this round has a resource lane.
+     */
+    if (stepType === RunbookStepType.ResourceCommand) {
+      return {
+        errorText:
+          "stepType ResourceCommand is not available in this remediation round: use Bash, SSH or Kubectl with a target from list_command_targets.",
+      };
+    }
+
     const denyReason: string | null = CommandPolicy.getDenyReason(commandText);
     if (denyReason) {
       return {
