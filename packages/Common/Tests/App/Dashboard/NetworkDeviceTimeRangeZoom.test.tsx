@@ -222,6 +222,7 @@ import {
 import { TimeRangeZoom } from "../../../UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import XAxisPrecision from "../../../UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import XAxisType from "../../../UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisUtil from "../../../UI/Components/Charts/Utils/XAxis";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -802,7 +803,8 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
 
     await dragAcrossBandwidth();
     const empty: HTMLElement = await screen.findByTestId("flow-no-data");
-    expect(empty).toHaveTextContent("No flow data yet.");
+    // Not the NetFlow setup steps: the device was just seen exporting.
+    expect(empty).toHaveTextContent("No flows in the selected time range.");
 
     fireEvent.doubleClick(empty);
     await flush();
@@ -1001,15 +1003,113 @@ describe("BandwidthOverTimeChart", () => {
   });
 });
 
+/*
+ * How far apart the chart library's walker puts two slots of a precision,
+ * measured on the walker itself (a UTC Sunday, far from any clock change).
+ */
+function walkedStepSeconds(precision: XAxisPrecision): number {
+  const from: Date = new Date("2026-09-27T00:00:00.000Z");
+  const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
+    xAxisMin: from,
+    xAxisMax: new Date(from.getTime() + 2 * 24 * 60 * MINUTE),
+    precision: precision,
+  });
+  return (intervals[1]!.getTime() - intervals[0]!.getTime()) / 1000;
+}
+
+// The API's bucket width for a window, as pickBucketSeconds sizes it.
+function apiBucketSeconds(windowSeconds: number): number {
+  return Math.max(60, Math.ceil(Math.ceil(windowSeconds / 120) / 60) * 60);
+}
+
 describe("getBandwidthAxisPrecision", () => {
   test("pins one-minute buckets to a one-minute grid", () => {
     expect(getBandwidthAxisPrecision(60)).toBe(XAxisPrecision.EVERY_MINUTE);
   });
 
-  test.each([120, 720, 1440, 5040, 21600])(
-    "leaves %i-second buckets, which match no grid step, to the axis",
-    (bucketSeconds: number) => {
-      expect(getBandwidthAxisPrecision(bucketSeconds)).toBeUndefined();
+  /*
+   * sdn-1: every other width used to be left to the axis, which picks a
+   * step from the window's length - daily over two weeks - and averaged
+   * several buckets into each slot.
+   */
+  test.each([
+    // The presets: 3 hours, a day, 2 days, a week, 2 weeks, a 31-day month.
+    [120, XAxisPrecision.EVERY_MINUTE],
+    [720, XAxisPrecision.EVERY_TEN_MINUTES],
+    [1440, XAxisPrecision.EVERY_FIFTEEN_MINUTES],
+    [5040, XAxisPrecision.EVERY_HOUR],
+    [10080, XAxisPrecision.EVERY_TWO_HOURS],
+    [22320, XAxisPrecision.EVERY_SIX_HOURS],
+    // Zooms and custom ranges: any whole number of minutes.
+    [180, XAxisPrecision.EVERY_MINUTE],
+    [240, XAxisPrecision.EVERY_MINUTE],
+    [300, XAxisPrecision.EVERY_FIVE_MINUTES],
+    [540, XAxisPrecision.EVERY_FIVE_MINUTES],
+    [600, XAxisPrecision.EVERY_TEN_MINUTES],
+    [840, XAxisPrecision.EVERY_TEN_MINUTES],
+    [900, XAxisPrecision.EVERY_FIFTEEN_MINUTES],
+    [1740, XAxisPrecision.EVERY_FIFTEEN_MINUTES],
+    [1800, XAxisPrecision.EVERY_THIRTY_MINUTES],
+    [3540, XAxisPrecision.EVERY_THIRTY_MINUTES],
+    [3600, XAxisPrecision.EVERY_HOUR],
+    [7140, XAxisPrecision.EVERY_HOUR],
+    [7200, XAxisPrecision.EVERY_TWO_HOURS],
+    [10800, XAxisPrecision.EVERY_THREE_HOURS],
+    [21540, XAxisPrecision.EVERY_THREE_HOURS],
+    [21600, XAxisPrecision.EVERY_SIX_HOURS],
+    [43200, XAxisPrecision.EVERY_TWELVE_HOURS],
+    // Wider than any fixed step: the widest one.
+    [86400, XAxisPrecision.EVERY_TWELVE_HOURS],
+  ])(
+    "pins %i-second buckets to the coarsest step no wider than one: %s",
+    (bucketSeconds: number, precision: XAxisPrecision) => {
+      expect(getBandwidthAxisPrecision(bucketSeconds)).toBe(precision);
     },
   );
+
+  test("for every bucket the API can send (one minute up to the 31-day window's), the step fits in a bucket and the next one up would not", () => {
+    const steps: Array<number> = [
+      60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200,
+    ];
+    const widest: number = apiBucketSeconds(31 * 24 * 60 * 60);
+    expect(widest).toBe(22320);
+    for (
+      let bucketSeconds: number = 60;
+      bucketSeconds <= widest;
+      bucketSeconds += 60
+    ) {
+      const precision: XAxisPrecision | undefined =
+        getBandwidthAxisPrecision(bucketSeconds);
+      expect([bucketSeconds, precision]).not.toEqual([
+        bucketSeconds,
+        undefined,
+      ]);
+      const stepSeconds: number = walkedStepSeconds(precision!);
+      const nextStep: number | undefined = steps.find((step: number) => {
+        return step > stepSeconds;
+      });
+      expect([bucketSeconds, stepSeconds <= bucketSeconds]).toEqual([
+        bucketSeconds,
+        true,
+      ]);
+      expect([bucketSeconds, nextStep! > bucketSeconds]).toEqual([
+        bucketSeconds,
+        true,
+      ]);
+    }
+  });
+
+  test("the pinned steps are exactly as wide as the chart walks them", () => {
+    expect(
+      [60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200].map(
+        (seconds: number): number => {
+          return walkedStepSeconds(getBandwidthAxisPrecision(seconds)!);
+        },
+      ),
+    ).toEqual([60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200]);
+  });
+
+  test("a bucket narrower than a second fits no step: the axis picks its own", () => {
+    expect(getBandwidthAxisPrecision(0.5)).toBeUndefined();
+  });
 });

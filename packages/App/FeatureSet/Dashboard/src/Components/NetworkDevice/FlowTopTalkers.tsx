@@ -20,6 +20,7 @@ import {
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
 import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
@@ -34,9 +35,12 @@ import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import fillFlowSeriesGaps, { parseBucketTime } from "./FlowSeriesUtil";
+import { getCoarsestChartGridStepWithin } from "./ChartGridStep";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -350,20 +354,26 @@ const TopEntryTable: FunctionComponent<{
 const BANDWIDTH_SERIES_NAME: string = "Bandwidth";
 
 /*
- * The chart's grid step for the series' bucket width. One-minute buckets
- * are the flow series' usual grid (every window up to two hours, and every
- * zoom into one), so the axis is pinned to them: one slot per bucket, even
- * for a zoom into a few minutes, where the axis would otherwise guess a
- * 30-second grid and leave every other slot empty. Wider buckets (twelve
- * minutes over a day) match no grid step; the axis then picks its own and
- * averages the rates that land in each slot.
+ * The chart's grid step for the series' bucket width: the coarsest step no
+ * wider than one bucket, so every bucket gets a slot of its own.
+ *
+ * The API sizes its buckets to about 120 per window, in whole minutes: 12
+ * minutes over a day, 168 over two weeks, 372 over the 31-day maximum, and
+ * any multiple of a minute for a zoom or a custom range. Hardly any of those
+ * is a grid step, and the axis must not guess one from the window's length:
+ * it guesses the step a metric query of that length is bucketed at, which
+ * is coarser - daily for two weeks - and the chart then AVERAGES every bucket
+ * that lands in one slot. A burst drew at a ninth of the Max printed above
+ * the chart, and a drag could only select whole days. On a step no wider
+ * than a bucket, buckets never share a slot; the slots between them are
+ * left empty, and the area is drawn straight across them.
  */
 export const getBandwidthAxisPrecision: (
   bucketSeconds: number,
 ) => XAxisPrecision | undefined = (
   bucketSeconds: number,
 ): XAxisPrecision | undefined => {
-  return bucketSeconds === 60 ? XAxisPrecision.EVERY_MINUTE : undefined;
+  return getCoarsestChartGridStepWithin(bucketSeconds);
 };
 
 /*
@@ -417,18 +427,33 @@ export const BandwidthOverTimeChart: FunctionComponent<{
     }
   });
 
+  const precision: XAxisPrecision | undefined =
+    getBandwidthAxisPrecision(bucketSeconds);
+
   /*
    * The axis spans the whole window the card asked for, so a quiet start
    * or end still reads as time passing, and a drag maps to real instants.
    * The first and last buckets stand in for a window the API left out.
+   *
+   * It starts on the grid, at the step that holds the FIRST bucket. Buckets
+   * are aligned to the epoch, so the first one usually begins before the
+   * window does (the gap filling walks from the bucket holding the window
+   * start), and an axis walked from the window start - or from any instant
+   * off the grid - can label its first or last slot past a bucket. The chart
+   * silently drops a point with no slot: a burst at either end of the window
+   * drew nothing.
    */
   const windowStartMs: number = parseBucketTime(props.windowStartAt);
   const windowEndMs: number = parseBucketTime(props.windowEndAt);
-  const axisStartMs: number = Number.isFinite(windowStartMs)
-    ? windowStartMs
-    : points.length > 0
-      ? points[0]!.x.getTime()
-      : Number.NaN;
+  const firstBucketMs: number =
+    points.length > 0 ? points[0]!.x.getTime() : Number.NaN;
+  const axisFromMs: number = Number.isFinite(windowStartMs)
+    ? Math.min(windowStartMs, firstBucketMs)
+    : firstBucketMs;
+  const axisStartMs: number =
+    precision && Number.isFinite(axisFromMs)
+      ? XAxisUtil.getBucketStart(new Date(axisFromMs), precision).getTime()
+      : axisFromMs;
   const axisEndMs: number = Number.isFinite(windowEndMs)
     ? windowEndMs
     : points.length > 0
@@ -450,9 +475,13 @@ export const BandwidthOverTimeChart: FunctionComponent<{
       type: XAxisType.Time,
       min: new Date(axisStartMs),
       max: new Date(axisEndMs),
-      // A slot holding several buckets shows their average rate.
+      /*
+       * One bucket per slot (see getBandwidthAxisPrecision); should a
+       * daylight-saving change ever fold two into one, it shows their
+       * average rate.
+       */
       aggregateType: XAxisAggregateType.Average,
-      precision: getBandwidthAxisPrecision(bucketSeconds),
+      precision: precision,
     },
   };
 
@@ -518,41 +547,249 @@ export const BandwidthOverTimeChart: FunctionComponent<{
 };
 
 /*
- * No flows in the window. After a zoom into a quiet stretch this is all
- * that is left where the chart was, so it takes the chart's double-click
- * (only while zoomed): the way back is where the reader's pointer already
- * is. "Reset zoom" beside the picker does the same.
+ * No flows in the window the card loaded (`timeRange`).
+ *
+ * Over a preset window ("the past 1 hour") the likeliest reason is that flow
+ * export is not set up, so it says how. A custom window is almost always a
+ * zoom into a quiet stretch of the chart, for a device the reader has just
+ * seen exporting; setup steps there read as if it were not. It says there
+ * were no flows in that window instead, and how to get back.
+ *
+ * After a zoom this is all that is left where the chart was, so it takes the
+ * chart's double-click (only while zoomed, and then its text cannot be
+ * selected, or the double-click would also select a word): the way back is
+ * where the reader's pointer already is. "Reset zoom" beside the picker does
+ * the same.
  */
 const FlowNoDataState: FunctionComponent<{
   timeRange: RangeStartAndEndDateTime;
 }> = (props: { timeRange: RangeStartAndEndDateTime }): ReactElement => {
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
+  const onTimeRangeReset: (() => void) | undefined = zoom?.onTimeRangeReset;
+
+  const rangeBeforeZoom: RangeStartAndEndDateTime | null =
+    zoom?.rangeBeforeZoom || null;
+  const wayBack: string =
+    rangeBeforeZoom && rangeBeforeZoom.range !== TimeRange.CUSTOM
+      ? windowLabel(rangeBeforeZoom)
+      : "the time range before the zoom";
 
   return (
     <div
-      className="flex items-center justify-center py-16 px-6"
+      className={`flex items-center justify-center py-16 px-6${
+        onTimeRangeReset ? " select-none" : ""
+      }`}
       data-testid="flow-no-data"
-      onDoubleClick={zoom?.onTimeRangeReset}
+      onDoubleClick={onTimeRangeReset}
     >
-      <div className="text-center max-w-md">
-        <div className="text-sm font-medium text-gray-900">
-          No flow data yet.
+      {props.timeRange.range === TimeRange.CUSTOM ? (
+        <div className="text-center max-w-md">
+          <div className="text-sm font-medium text-gray-900">
+            No flows in the selected time range.
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            {onTimeRangeReset
+              ? `This device sent no flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to ${wayBack}.`
+              : "This device sent no flow records in this window."}
+          </p>
         </div>
-        <p className="mt-1 text-sm text-gray-500">
-          Flow export is not configured for this device, or nothing has arrived
-          in {windowLabel(props.timeRange)}. Point the device&apos;s NetFlow v5
-          export at your probe&apos;s IP on UDP port 2055 (and set
-          PROBE_NETFLOW_RECEIVER_ENABLED=true on the probe).
-        </p>
+      ) : (
+        <div className="text-center max-w-md">
+          <div className="text-sm font-medium text-gray-900">
+            No flow data yet.
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Flow export is not configured for this device, or nothing has
+            arrived in {windowLabel(props.timeRange)}. Point the device&apos;s
+            NetFlow v5 export at your probe&apos;s IP on UDP port 2055 (and set
+            PROBE_NETFLOW_RECEIVER_ENABLED=true on the probe).
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/*
+ * What the card shows once a window with flows has loaded: the window's
+ * totals, its bandwidth over time and the top-N tables, all from one fetch.
+ */
+const FlowTopTalkersFigures: FunctionComponent<{
+  data: TopTalkersData;
+}> = (props: { data: TopTalkersData }): ReactElement => {
+  const data: TopTalkersData = props.data;
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <FlowStatTile
+          title="Total Traffic"
+          value={formatBytes(data.totalOctets)}
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTotalTraffic}
+        />
+        <FlowStatTile
+          title="Packets"
+          value={formatCount(data.totalPackets)}
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowPackets}
+        />
+        <FlowStatTile
+          title="Flows"
+          value={formatCount(data.totalFlows)}
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowCount}
+        />
+      </div>
+
+      {data.series.length > 0 ? (
+        // The named group: the chart's "Drag to zoom" hint shows on hover.
+        <div className="group/zoomhint mb-6">
+          <FlowSectionTitle
+            title="Bandwidth Over Time"
+            description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowBandwidth}
+          />
+          <BandwidthOverTimeChart
+            series={fillFlowSeriesGaps(
+              data.series,
+              data.seriesBucketSeconds,
+              data.windowStartAt,
+              data.windowEndAt,
+            )}
+            bucketSeconds={data.seriesBucketSeconds}
+            windowStartAt={data.windowStartAt}
+            windowEndAt={data.windowEndAt}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopEntryTable
+          title="Top Sources"
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopSources}
+          keyHeader="Source IP"
+          entries={data.topSources}
+        />
+        <TopEntryTable
+          title="Top Destinations"
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopDestinations}
+          keyHeader="Destination IP"
+          entries={data.topDestinations}
+        />
+      </div>
+
+      {data.topConversations.length > 0 ? (
+        <div className="mt-6">
+          <FlowSectionTitle
+            title="Top Conversations"
+            description={
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopConversations
+            }
+          />
+          <table className="min-w-full">
+            <thead>
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                  Source &rarr; Destination
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                  Bytes
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                  Packets
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.topConversations.map(
+                (entry: ConversationEntry, index: number) => {
+                  return (
+                    <tr key={index}>
+                      <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100 font-mono">
+                        {entry.sourceIp}{" "}
+                        <span className="text-gray-400">&rarr;</span>{" "}
+                        {entry.destinationIp}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
+                        {formatBytes(entry.octets)}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
+                        {formatCount(entry.packets)}
+                      </td>
+                    </tr>
+                  );
+                },
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      <div className="mt-6">
+        <FlowSectionTitle
+          title="Top Protocols & Ports"
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopProtocolsPorts}
+        />
+        <table className="min-w-full">
+          <thead>
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                Protocol
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                Destination Port
+              </th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                Bytes
+              </th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                Packets
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.topProtocolPorts.map(
+              (entry: TopProtocolPortEntry, index: number) => {
+                return (
+                  <tr key={index}>
+                    <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100">
+                      {protocolLabel(entry.protocolNumber)}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100 font-mono">
+                      {entry.destinationPort}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
+                      {formatBytes(entry.octets)}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
+                      {formatCount(entry.packets)}
+                    </td>
+                  </tr>
+                );
+              },
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
 
+interface LoadedTopTalkers {
+  data: TopTalkersData;
+  /*
+   * The range the data was fetched over. While the next range loads it is
+   * what the card still shows, not what the picker already says.
+   */
+  timeRange: RangeStartAndEndDateTime;
+}
+
 const FlowTopTalkers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [data, setData] = useState<TopTalkersData | null>(null);
+  // The last fetch that succeeded; a failed one keeps it.
+  const [loaded, setLoaded] = useState<LoadedTopTalkers | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
@@ -618,8 +855,8 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
 
       if (failure !== null) {
         setError(failure);
-      } else {
-        setData(result);
+      } else if (result) {
+        setLoaded({ data: result, timeRange: timeRange });
       }
 
       setIsLoading(false);
@@ -634,8 +871,7 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
   return (
     /*
      * The card's range is the Traffic page's, and the zoom lives up here,
-     * above the loader that replaces the card's body on every fetch - so
-     * the range to go back to survives the refetch a zoom starts.
+     * around both the picker (for its Reset zoom) and the card's body.
      */
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       <Card
@@ -655,174 +891,67 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
           </div>
         }
       >
-        {isLoading ? <ComponentLoader /> : <></>}
+        {/*
+         * The loader and the full-size error are for the first load only.
+         * After that a zoom, a reset or a new pick keeps the last data on
+         * screen, dimmed, until the next lands: the body is a page tall,
+         * and swapping it for a loader collapsed the page under the pointer
+         * that had just dragged or double-clicked the chart, then threw it
+         * back. It also keeps the chart mounted, so a drag already under way
+         * on it survives.
+         */}
+        {!loaded && isLoading ? <ComponentLoader /> : <></>}
 
-        {!isLoading && error ? <ErrorMessage message={error} /> : <></>}
-
-        {!isLoading && !error && data && data.totalFlows === 0 ? (
-          <FlowNoDataState timeRange={timeRange} />
+        {!loaded && !isLoading && error ? (
+          <ErrorMessage message={error} />
         ) : (
           <></>
         )}
 
-        {!isLoading && !error && data && data.totalFlows > 0 ? (
-          <div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <FlowStatTile
-                title="Total Traffic"
-                value={formatBytes(data.totalOctets)}
-                description={
-                  NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTotalTraffic
-                }
-              />
-              <FlowStatTile
-                title="Packets"
-                value={formatCount(data.totalPackets)}
-                description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowPackets}
-              />
-              <FlowStatTile
-                title="Flows"
-                value={formatCount(data.totalFlows)}
-                description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowCount}
-              />
-            </div>
-
-            {data.series.length > 0 ? (
-              // The named group: the chart's "Drag to zoom" hint shows on hover.
-              <div className="group/zoomhint mb-6">
-                <FlowSectionTitle
-                  title="Bandwidth Over Time"
-                  description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowBandwidth}
+        {loaded ? (
+          <div className="relative" aria-busy={isLoading}>
+            {error ? (
+              <div
+                role="alert"
+                className="mb-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+              >
+                <Icon
+                  icon={IconProp.Error}
+                  className="h-4 w-4 shrink-0 text-red-500"
                 />
-                <BandwidthOverTimeChart
-                  series={fillFlowSeriesGaps(
-                    data.series,
-                    data.seriesBucketSeconds,
-                    data.windowStartAt,
-                    data.windowEndAt,
-                  )}
-                  bucketSeconds={data.seriesBucketSeconds}
-                  windowStartAt={data.windowStartAt}
-                  windowEndAt={data.windowEndAt}
-                />
+                <span>
+                  Couldn&apos;t refresh — showing previously loaded data.{" "}
+                  {error}
+                </span>
               </div>
             ) : (
               <></>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TopEntryTable
-                title="Top Sources"
-                description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopSources}
-                keyHeader="Source IP"
-                entries={data.topSources}
-              />
-              <TopEntryTable
-                title="Top Destinations"
-                description={
-                  NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopDestinations
-                }
-                keyHeader="Destination IP"
-                entries={data.topDestinations}
-              />
-            </div>
-
-            {data.topConversations.length > 0 ? (
-              <div className="mt-6">
-                <FlowSectionTitle
-                  title="Top Conversations"
-                  description={
-                    NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopConversations
-                  }
+            {isLoading ? (
+              <div
+                className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm"
+                data-testid="flow-refreshing"
+              >
+                <Icon
+                  icon={IconProp.Refresh}
+                  className="h-3 w-3 animate-spin text-gray-400"
                 />
-                <table className="min-w-full">
-                  <thead>
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                        Source &rarr; Destination
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                        Bytes
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                        Packets
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.topConversations.map(
-                      (entry: ConversationEntry, index: number) => {
-                        return (
-                          <tr key={index}>
-                            <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100 font-mono">
-                              {entry.sourceIp}{" "}
-                              <span className="text-gray-400">&rarr;</span>{" "}
-                              {entry.destinationIp}
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
-                              {formatBytes(entry.octets)}
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
-                              {formatCount(entry.packets)}
-                            </td>
-                          </tr>
-                        );
-                      },
-                    )}
-                  </tbody>
-                </table>
+                Refreshing
               </div>
             ) : (
               <></>
             )}
 
-            <div className="mt-6">
-              <FlowSectionTitle
-                title="Top Protocols & Ports"
-                description={
-                  NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopProtocolsPorts
-                }
-              />
-              <table className="min-w-full">
-                <thead>
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                      Protocol
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                      Destination Port
-                    </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                      Bytes
-                    </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                      Packets
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.topProtocolPorts.map(
-                    (entry: TopProtocolPortEntry, index: number) => {
-                      return (
-                        <tr key={index}>
-                          <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100">
-                            {protocolLabel(entry.protocolNumber)}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100 font-mono">
-                            {entry.destinationPort}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
-                            {formatBytes(entry.octets)}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
-                            {formatCount(entry.packets)}
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
+            <div
+              className={isLoading ? "opacity-75 transition-opacity" : ""}
+              data-testid="flow-top-talkers-body"
+            >
+              {loaded.data.totalFlows > 0 ? (
+                <FlowTopTalkersFigures data={loaded.data} />
+              ) : (
+                <FlowNoDataState timeRange={loaded.timeRange} />
+              )}
             </div>
           </div>
         ) : (
