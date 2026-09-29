@@ -148,14 +148,17 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
    * The loader and the empty box below stand where the bars were, and take
    * the double-click as the bars do: right after a zoom, while its window
    * loads or when it holds nothing, is exactly when a reader double-clicks
-   * to go back (issue #4116). select-none: a double-click on the message
-   * would otherwise also select a word.
+   * to go back (issue #4116), and the bars can replace them in the middle
+   * of that double-click (see placeholderProps). select-none: a
+   * double-click on the message would otherwise also select a word. A
+   * zoomed chart keeps its card while it loads (below), so the way back
+   * stays in the same place.
    */
-  if (props.isLoading && pivotedData.length === 0) {
+  if (props.isLoading && pivotedData.length === 0 && !props.onZoomOut) {
     return (
       <div
         className="flex h-32 select-none items-center justify-center rounded-lg border border-gray-200 bg-white"
-        onDoubleClick={selection.onDoubleClick}
+        {...selection.placeholderProps}
       >
         <ComponentLoader />
       </div>
@@ -185,7 +188,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
           <span className="text-xs font-medium text-gray-500">
             {props.title || "Volume"}
           </span>
-          {props.onTimeRangeSelect && (
+          {props.onTimeRangeSelect && pivotedData.length > 0 && (
             <span className="text-[10px] text-gray-300">
               {selection.canClickToZoom
                 ? "Click or drag to zoom"
@@ -222,11 +225,15 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
       {pivotedData.length === 0 && (
         <div
           className="flex h-[120px] select-none items-center justify-center text-xs text-gray-400"
-          onDoubleClick={selection.onDoubleClick}
+          {...selection.placeholderProps}
         >
-          {props.headerActions
-            ? "No data for this metric in the selected range"
-            : "No data in the selected range"}
+          {props.isLoading ? (
+            <ComponentLoader />
+          ) : props.headerActions ? (
+            "No data for this metric in the selected range"
+          ) : (
+            "No data in the selected range"
+          )}
         </div>
       )}
 

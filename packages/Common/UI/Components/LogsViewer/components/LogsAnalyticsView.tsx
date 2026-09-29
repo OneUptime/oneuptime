@@ -1266,14 +1266,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
        * A zoom refetches, and until the new window lands the loader stands
        * where the timeseries was - just when a reader double-clicks to undo
        * the zoom (issue #4116). It takes that double-click as the chart
-       * does.
+       * does, even when the chart replaces it mid-double-click (see
+       * placeholderProps).
        */
       return (
         <div
           className="flex h-72 select-none items-center justify-center"
-          onDoubleClick={
-            chartType === "timeseries" ? selection.onDoubleClick : undefined
-          }
+          {...(chartType === "timeseries" ? selection.placeholderProps : {})}
         >
           <ComponentLoader />
         </div>

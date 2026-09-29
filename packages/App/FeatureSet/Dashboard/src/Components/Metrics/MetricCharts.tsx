@@ -73,6 +73,7 @@ import {
   resolveChartTimeRangeZoom,
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { isSecondPressOfDoubleClick } from "Common/UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
 import {
   CrossSignalQueryParams,
   MetricScopeFilterExtraction,
@@ -3621,7 +3622,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                    * out of the zoom (issue #4116): the card goes, and the
                    * zoom is reset.
                    */
-                  if (event.detail === 2 && chartsTimeRangeReset) {
+                  if (
+                    isSecondPressOfDoubleClick(event) &&
+                    chartsTimeRangeReset
+                  ) {
                     closeBucketInspector();
                     chartsTimeRangeReset();
                   }

@@ -840,10 +840,14 @@ describe("Zooming Into a Time Range docs: what a click does", () => {
       const code: string = readCode(placeholderHost);
       const loader: number = code.indexOf("<ComponentLoader />");
 
-      // The loader's own box, the markup just before it, takes the double-click.
+      /*
+       * The loader's own box, the markup just before it, takes the
+       * double-click - its second press as well as the dblclick, since the
+       * chart can replace the loader in the middle of it.
+       */
       expect(loader).toBeGreaterThan(-1);
       expect(code.slice(Math.max(0, loader - 400), loader)).toContain(
-        "selection.onDoubleClick",
+        "selection.placeholderProps",
       );
     }
 

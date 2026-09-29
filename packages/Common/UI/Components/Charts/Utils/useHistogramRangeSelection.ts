@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   HistogramSelectionWindow,
   getHistogramSelectionWindow,
@@ -85,10 +91,24 @@ export interface HistogramRangeSelectionState {
     event?: ChartPointerEvent | null,
   ) => void;
   onDoubleClick: () => void;
+  /*
+   * Spread onto a box that stands in for the chart - a loader while a
+   * window loads, an empty box when it holds nothing - so that it takes
+   * the double-click as the chart does: the second press as well as the
+   * dblclick. Right after a zoom the chart replaces its loader at any
+   * moment, a double-click in progress included, and the browser's
+   * dblclick does not survive that (see useDoubleClickReset).
+   */
+  placeholderProps: HistogramPlaceholderProps;
 }
 
 export interface HistogramChartRootProps {
   throttledEvents?: ReadonlyArray<keyof GlobalEventHandlersEventMap>;
+}
+
+export interface HistogramPlaceholderProps {
+  onMouseDown: (event: React.MouseEvent<HTMLElement>) => void;
+  onDoubleClick: () => void;
 }
 
 const SELECTABLE_CHART_ROOT_PROPS: HistogramChartRootProps = {
@@ -198,6 +218,14 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   const pressAxisIndex: React.MutableRefObject<string | null> = useRef<
     string | null
   >(null);
+  /*
+   * Whether the pointer has moved at all since the press, by so much as a
+   * pixel. recharts works out the bar under the pointer again only when it
+   * moves, so a bar that changes under a pointer that never did means new
+   * data landed under the press.
+   */
+  const pointerMovedSincePress: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
   // The page-wide mouseup listener of the press in progress, if any.
   const releaseListener: React.MutableRefObject<
     ((event: MouseEvent) => void) | null
@@ -281,11 +309,19 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
    * A click waiting to zoom in was made on a zoomed chart. If the zoom ends
    * by another way first - Reset zoom, the picker, an empty state's own
    * double-click - it must not zoom back in a moment after the reader left.
+   * Its band goes too, and so does one a double-click's second press kept
+   * for a zoom-out that is no longer coming; a drag's band stays.
    */
   const offersZoomOut: boolean = Boolean(onZoomOut);
 
   useEffect(() => {
-    if (!offersZoomOut && cancelPendingClick()) {
+    if (offersZoomOut) {
+      return;
+    }
+
+    cancelPendingClick();
+
+    if (!isSelecting.current) {
       clearSelection();
     }
   }, [offersZoomOut, cancelPendingClick, clearSelection]);
@@ -390,6 +426,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       pressClientX.current =
         typeof event?.clientX === "number" ? event.clientX : null;
       pressAxisIndex.current = toAxisIndex(state);
+      pointerMovedSincePress.current = false;
 
       listenForReleaseOffChart();
     },
@@ -409,6 +446,13 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
 
       if (!isSelecting.current || !label || !from) {
         return;
+      }
+
+      if (
+        typeof event?.clientX === "number" &&
+        event.clientX !== pressClientX.current
+      ) {
+        pointerMovedSincePress.current = true;
       }
 
       if (!hasLeftPressedBar.current) {
@@ -449,6 +493,15 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       // The end of a double-click's second press: the zoom-out, nothing else.
       if (doubleClickReset.onRelease(event)) {
         stopListeningForRelease();
+
+        /*
+         * Ended by a later click's release, its own having never come: no
+         * zoom-out follows, so the band the first click painted, kept for
+         * one, goes now.
+         */
+        if (!doubleClickReset.willReset()) {
+          clearSelection();
+        }
         return;
       }
 
@@ -467,20 +520,26 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       if (hasLeftPressedBar.current || hasPointerMoved(event)) {
         // A drag, or a flick released before any of its moves came in.
         to = releaseLabel || endLabel.current || from;
-      } else if (
-        releaseLabel !== null &&
-        releaseLabel !== from &&
-        pressAxisIndex.current !== null &&
-        toAxisIndex(state) === pressAxisIndex.current
-      ) {
+      } else if (releaseLabel !== null && releaseLabel !== from) {
         /*
-         * The pointer stayed put, and the spot on the axis it pressed now
-         * holds another bar: the chart's data changed during the press,
-         * and the pressed bar is gone. Not a drag the reader never made,
-         * nor a zoom into a bar that is no longer shown.
+         * The pointer stayed put, yet another bar is under it. When the
+         * pointer never moved at all, or the spot on the axis it pressed
+         * now holds another bar, the chart's data changed during the press
+         * and the pressed bar is gone (recharts also clamps a stale spot
+         * onto the last bar of shorter data): not a drag the reader never
+         * made, nor a zoom into a bar that is no longer shown.
          */
-        clearSelection();
-        return;
+        const pointerNeverMoved: boolean =
+          !pointerMovedSincePress.current &&
+          event?.clientX === pressClientX.current;
+        const sameSpotOnAxis: boolean =
+          pressAxisIndex.current !== null &&
+          toAxisIndex(state) === pressAxisIndex.current;
+
+        if (pointerNeverMoved || sameSpotOnAxis) {
+          clearSelection();
+          return;
+        }
       }
 
       /*
@@ -550,6 +609,34 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     doubleClickReset.onDoubleClick();
   }, [cancelPendingClick, clearSelection, doubleClickReset]);
 
+  /*
+   * A press on a box standing in for the chart. It has no bars to select;
+   * only the second press of a double-click counts, and its release - on
+   * the chart that replaced the box by then, or anywhere on the page -
+   * zooms out as the chart's own would.
+   */
+  const onPlaceholderMouseDown: (event: React.MouseEvent<HTMLElement>) => void =
+    useCallback(
+      (event: React.MouseEvent<HTMLElement>): void => {
+        if (!doubleClickReset.onPress(event)) {
+          return;
+        }
+
+        cancelPendingClick();
+        isSelecting.current = false;
+        listenForReleaseOffChart();
+      },
+      [cancelPendingClick, doubleClickReset, listenForReleaseOffChart],
+    );
+
+  const placeholderProps: HistogramPlaceholderProps =
+    useMemo((): HistogramPlaceholderProps => {
+      return {
+        onMouseDown: onPlaceholderMouseDown,
+        onDoubleClick: onDoubleClick,
+      };
+    }, [onPlaceholderMouseDown, onDoubleClick]);
+
   return {
     selectionStart: selectionStart,
     selectionEnd: selectionEnd,
@@ -566,6 +653,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     onMouseMove: onMouseMove,
     onMouseUp: onMouseUp,
     onDoubleClick: onDoubleClick,
+    placeholderProps: placeholderProps,
   };
 };
 

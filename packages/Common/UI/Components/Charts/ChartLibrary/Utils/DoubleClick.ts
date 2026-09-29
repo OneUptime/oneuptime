@@ -114,6 +114,12 @@ export interface DoubleClickReset {
    * as anything else.
    */
   onRelease: (event?: ChartPointerEvent | null) => boolean;
+  /*
+   * Whether a reset is armed for the next task: true from the release of
+   * the reset press until it runs or a dblclick does it first. False when
+   * that release was a fresh click's (see onRelease).
+   */
+  willReset: () => boolean;
   // The chart's dblclick handler.
   onDoubleClick: () => void;
 }
@@ -201,6 +207,10 @@ export function useDoubleClickReset(
       [standDown],
     );
 
+  const willReset: () => boolean = React.useCallback((): boolean => {
+    return fallbackRef.current !== null;
+  }, []);
+
   const onDoubleClick: () => void = React.useCallback((): void => {
     standDown();
     resetRef.current?.();
@@ -210,7 +220,8 @@ export function useDoubleClickReset(
     return {
       onPress: onPress,
       onRelease: onRelease,
+      willReset: willReset,
       onDoubleClick: onDoubleClick,
     };
-  }, [onPress, onRelease, onDoubleClick]);
+  }, [onPress, onRelease, willReset, onDoubleClick]);
 }

@@ -360,12 +360,13 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
        * A zoom clears the bars and refetches, and until the new window
        * lands the loader stands where they were - just when a reader
        * double-clicks to undo the zoom (issue #4116). It takes that
-       * double-click as the bars do.
+       * double-click as the bars do, even when they replace it
+       * mid-double-click (see placeholderProps).
        */
       return (
         <div
           className="flex h-44 select-none items-center justify-center"
-          onDoubleClick={selection.onDoubleClick}
+          {...selection.placeholderProps}
         >
           <ComponentLoader />
         </div>

@@ -184,7 +184,7 @@ describe("the bucket inspector (Components/Metrics/MetricCharts.tsx)", () => {
      * the inspector under the pointer, and the press lands on it.
      */
     expect(inspector).toContain(
-      "onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => { if (event.detail <= 1) { bucketInspectorPressedRef.current = true; return; } if (!bucketInspectorPressedRef.current) { event.preventDefault(); if (event.detail === 2 && chartsTimeRangeReset) { closeBucketInspector(); chartsTimeRangeReset(); } } }}",
+      "onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => { if (event.detail <= 1) { bucketInspectorPressedRef.current = true; return; } if (!bucketInspectorPressedRef.current) { event.preventDefault(); if ( isSecondPressOfDoubleClick(event) && chartsTimeRangeReset ) { closeBucketInspector(); chartsTimeRangeReset(); } } }}",
     );
     expect(inspector).toContain(
       "onClickCapture={(event: React.MouseEvent<HTMLDivElement>) => { if (event.detail > 1 && !bucketInspectorPressedRef.current) { event.preventDefault(); event.stopPropagation(); } }}",
