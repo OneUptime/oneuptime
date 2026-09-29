@@ -1,5 +1,6 @@
 import RunbookAPI from "./API/Runbook";
 import KubernetesAiAgentIngressAPI from "./API/KubernetesAiAgentIngress";
+import ResourceAiAgentIngressAPI from "./API/ResourceAiAgentIngress";
 import RunnerIngressAPI from "./API/RunnerIngress";
 import QueueRunbook from "./Services/QueueRunbook";
 import RunRunbook from "./Services/RunRunbook";
@@ -47,6 +48,17 @@ const LEGACY_AGENT_INGRESS_PATH: string = "runbook-agent-ingest";
 const KUBERNETES_AI_AGENT_INGRESS_PATH: string = "kubernetes-ai-agent-ingest";
 
 /*
+ * The resource AI agents' mount (the executor installed next to a Docker or
+ * Podman host's, a Docker Swarm, Proxmox or Ceph cluster's, a vCenter's, a
+ * database server's or a host's telemetry collector). Its own path, like the
+ * Kubernetes AI agent's: it is not a Runner, and nothing that authorizes a
+ * Runner request applies to it. Must equal RESOURCE_AI_AGENT_INGEST_PATH
+ * (Types/ResourceAiAgent/ResourceAiAccess.ts, what the agent calls); nginx
+ * routes it explicitly (default.conf.template).
+ */
+const RESOURCE_AI_AGENT_INGRESS_PATH: string = "resource-ai-agent-ingest";
+
+/*
  * An old agent polls every few seconds, so logging every request would bury
  * the signal it carries. One line per agent per process is enough to answer
  * "is anyone still on the old path, and who".
@@ -63,6 +75,10 @@ const RunbookFeatureSet: FeatureSet = {
       app.use(
         `/${KUBERNETES_AI_AGENT_INGRESS_PATH}`,
         new KubernetesAiAgentIngressAPI().router,
+      );
+      app.use(
+        `/${RESOURCE_AI_AGENT_INGRESS_PATH}`,
+        new ResourceAiAgentIngressAPI().router,
       );
 
       /*

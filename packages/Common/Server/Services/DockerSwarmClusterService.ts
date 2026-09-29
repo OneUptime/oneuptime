@@ -3,7 +3,14 @@ import DockerSwarmClusterLabelRuleEngineService from "./DockerSwarmClusterLabelR
 import DockerSwarmClusterOwnerRuleEngineService from "./DockerSwarmClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerSwarmCluster";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import { DockerSwarmClusterFeedEventType } from "../../Models/DatabaseModels/DockerSwarmClusterFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -508,6 +515,60 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Deleting a Docker Swarm cluster settles its in-flight AI remediation rounds
+   * and removes its resource AI agent — read before the delete, done after it
+   * for the Docker Swarm clusters actually deleted (ResourceAiDeleteCleanup,
+   * shared by every resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.DockerSwarmCluster,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.DockerSwarmCluster,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this Docker Swarm cluster — the rules every
+   * resource AI agent's resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.DockerSwarmCluster,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -518,6 +579,37 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the Docker Swarm
+     * cluster marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        dockerSwarmClusterId: ObjectID,
+      ): Promise<string> => {
+        return this.getDockerSwarmClusterMarkdownLink(
+          projectId,
+          dockerSwarmClusterId,
+        );
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await DockerSwarmClusterFeedService.createDockerSwarmClusterFeedItem({
+          dockerSwarmClusterId: item.resourceId,
+          projectId: item.projectId,
+          dockerSwarmClusterFeedEventType:
+            DockerSwarmClusterFeedEventType.DockerSwarmClusterUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
