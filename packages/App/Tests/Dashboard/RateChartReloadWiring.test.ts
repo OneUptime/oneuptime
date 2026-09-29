@@ -157,12 +157,22 @@ describe.each(KEPT_CHARTS)(
         "const series: Array<SeriesPoint> = shown.series;",
       );
       expect(firstLoad).toContain(
-        "if (error && !isLoading) { return <ErrorMessage message={error} />; }",
-      );
-      expect(firstLoad).toContain(
         "return <ChartLoadingSkeleton heightInPx={heightInPx} />;",
       );
       expect(countOf(source, "<ChartLoadingSkeleton")).toBe(1);
+    });
+
+    test("with nothing drawn, the error holds the chart's height and takes the double-click back", () => {
+      const firstLoad: string = between(
+        source,
+        "if (!shown) {",
+        "const series: Array<SeriesPoint> = shown.series;",
+      );
+      expect(firstLoad).toContain(
+        'if (error && !isLoading) { return ( <div className="flex select-none flex-col justify-center" style={{ minHeight: `${heightInPx}px` }} onDoubleClick={zoom?.onTimeRangeReset} > <ErrorMessage message={error} /> </div> ); }',
+      );
+      // The only ErrorMessage: a failed reload keeps the chart instead.
+      expect(countOf(source, "<ErrorMessage")).toBe(1);
     });
 
     test("the chart is drawn over the loaded window, inside the refetch frame", () => {

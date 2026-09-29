@@ -861,6 +861,80 @@ describe("ProxmoxRateChart in a card on a Custom window", () => {
       callsOver(["pve_network_receive_bytes"], at("11:20"), at("11:30")),
     ).toBe(1);
   });
+
+  test("a retry never moves the page: the error, the retry's skeleton and the error again all hold the chart's height", async () => {
+    failingRateEnds = [at("11:30").getTime()];
+    renderCard();
+    await flush();
+    expect(errorBoxes()).toHaveLength(1);
+    expect(errorBoxes()[0]).toHaveStyle({ minHeight: "240px" });
+
+    holdRates = true;
+    pressCardRefresh();
+    await flush();
+
+    expect(errorBoxes()).toHaveLength(0);
+    expect(skeletons()[0]).toHaveStyle({ height: "240px" });
+
+    await releaseAllRates();
+
+    expect(errorBoxes()).toHaveLength(1);
+    expect(errorBoxes()[0]).toHaveStyle({ minHeight: "240px" });
+  });
+});
+
+// ----------------------------- a rate chart with nothing drawn, failed
+
+// The box around each rate chart's error when it has nothing to draw.
+function errorBoxes(): Array<HTMLElement> {
+  return screen.queryAllByText(RATE_ERROR).map((error: HTMLElement) => {
+    return error.parentElement as HTMLElement;
+  });
+}
+
+describe("A Proxmox rate chart that failed with nothing drawn keeps its place and takes the way back", () => {
+  test("on Insights, the error holds the chart's 300px and selects no text; unzoomed, a double-click does nothing", async () => {
+    failingRateEnds = [NOW.getTime()];
+    await renderInsights();
+
+    expect(zoomCharts()).toHaveLength(0);
+    const boxes: Array<HTMLElement> = errorBoxes();
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) {
+      expect(box).toHaveStyle({ minHeight: "300px" });
+      expect(box).toHaveClass("select-none");
+    }
+    const calls: number = rateCallCount();
+
+    fireEvent.doubleClick(screen.getAllByText(RATE_ERROR)[0]!);
+    await flush();
+
+    // Not zoomed, so there is nothing to go back to.
+    expect(rateCallCount()).toBe(calls);
+    expect(cardPickers()[0]).toHaveTextContent(TimeRange.PAST_ONE_HOUR);
+    expect(errorBoxes()).toHaveLength(2);
+  });
+
+  test("zoomed from another card, a double-click on the error resets every card and the charts draw the hour", async () => {
+    failingRateEnds = [NOW.getTime(), at("11:30").getTime()];
+    await renderInsights();
+    await dragAcross(metricViews()[0]!, at("11:20"), at("11:30"));
+
+    expect(chartWindows(metricViews())).toEqual(same(ZOOM, 4));
+    expect(callsOver(RATE_METRICS, at("11:20"), at("11:30"))).toBe(4);
+    expect(errorBoxes()).toHaveLength(2);
+
+    failingRateEnds = [];
+    fireEvent.doubleClick(screen.getAllByText(RATE_ERROR)[1]!);
+    await flush();
+
+    expect(cardPickers()[0]).toHaveTextContent(TimeRange.PAST_ONE_HOUR);
+    expect(chartWindows(metricViews())).toEqual(same(HOUR, 4));
+    expect(resetZoomButtons()).toHaveLength(0);
+    expect(errorBoxes()).toHaveLength(0);
+    expect(zoomCharts()).toHaveLength(2);
+    expect(chartWindows()).toEqual(same(HOUR, 2));
+  });
 });
 
 // ----------------------- ProxmoxRateChart rerendered for another resource

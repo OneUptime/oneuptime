@@ -253,7 +253,21 @@ const ProxmoxRateChart: FunctionComponent<ComponentProps> = (
   if (!shown) {
     // Nothing to keep yet: a retry after a failed first load is a skeleton.
     if (error && !isLoading) {
-      return <ErrorMessage message={error} />;
+      /*
+       * The error holds at least the chart's height, so a retry's skeleton
+       * does not move the page, and takes the double-click back while
+       * zoomed (select-none, so it selects no word), as the empty state
+       * does.
+       */
+      return (
+        <div
+          className="flex select-none flex-col justify-center"
+          style={{ minHeight: `${heightInPx}px` }}
+          onDoubleClick={zoom?.onTimeRangeReset}
+        >
+          <ErrorMessage message={error} />
+        </div>
+      );
     }
     return <ChartLoadingSkeleton heightInPx={heightInPx} />;
   }
