@@ -50,7 +50,7 @@ import { DataSource } from "typeorm";
  * the migrated "ProxmoxResource" table.
  *
  * Opt in with RUN_POSTGRES_PROXMOX_INVENTORY_TESTS=true against a database
- * the registered migrations (1796100000000-AddProxmoxResourceNativePushColumns
+ * the registered migrations (1796200000000-AddProxmoxResourceNativePushColumns
  * included) have been applied to, e.g. from packages/Common:
  *
  *   RUN_POSTGRES_PROXMOX_INVENTORY_TESTS=true \
@@ -1361,7 +1361,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
     });
 
     /*
-     * AddProxmoxResourceNativePushColumns1796100000000: the mark is its own
+     * AddProxmoxResourceNativePushColumns1796200000000: the mark is its own
      * nullable timestamptz with no default, so every row the migration finds
      * reads as never reported down, in the source table and the clone alike.
      */
