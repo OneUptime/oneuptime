@@ -50,6 +50,10 @@ import {
   buildLockedEntityKeyChips,
   normalizeLockedEntityKeys,
 } from "../../Utils/LockedEntityKeyChips";
+import {
+  getSpanStatusDisplayLabelMap,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 /** The Span column every entity chip ultimately filters. */
 export const TRACE_PRIMARY_ENTITY_FACET_KEY: string = "primaryEntityId";
@@ -626,11 +630,32 @@ export const getSpanEntity: GetSpanEntityFunction = (data: {
  * Analytics split-by labels. Kept here (not in the view) so the "Service"
  * dimension's naming is tested with the rest of the entity display rules.
  */
-export const TRACE_ANALYTICS_STATUS_LABEL: Record<string, string> = {
-  "0": "Unset",
-  "1": "Ok",
-  "2": "Error",
-};
+export const TRACE_ANALYTICS_STATUS_LABEL: Record<string, string> =
+  getSpanStatusDisplayLabelMap();
+
+const TRACE_ANALYTICS_STATUS_KEY: string = "statusCode";
+
+/*
+ * The color for one analytics series or top-list row when the split is by
+ * span status alone: each status keeps its own color (Error red, Unset green,
+ * Ok cyan) instead of the palette color its position hands it, which could
+ * paint Error green. Undefined for anything else — another dimension, no
+ * split, or status crossed with a second dimension (several series would
+ * share one color) — and the caller colors by position as before.
+ */
+export function getTraceAnalyticsStatusColor(
+  groupValues: Record<string, string> | undefined,
+): string | undefined {
+  const keys: Array<string> = Object.keys(groupValues || {});
+  if (keys.length !== 1 || keys[0] !== TRACE_ANALYTICS_STATUS_KEY) {
+    return undefined;
+  }
+  const raw: string | undefined = groupValues?.[TRACE_ANALYTICS_STATUS_KEY];
+  if (raw === undefined || TRACE_ANALYTICS_STATUS_LABEL[raw] === undefined) {
+    return undefined;
+  }
+  return getSpanStatusPresentation(raw).color;
+}
 
 export const TRACE_ANALYTICS_KIND_LABEL: Record<string, string> = {
   SPAN_KIND_SERVER: "Server",
@@ -951,6 +976,8 @@ type PivotTraceAnalyticsTimeseriesFunction = (data: {
   pivotedData: Array<TraceAnalyticsPivotedRow>;
   // Unique series labels, in order of first appearance; each is a dataKey.
   seriesKeys: Array<string>;
+  // Each series label's raw group values, e.g. for its status color.
+  seriesGroupValues: Record<string, Record<string, string>>;
 };
 
 /**
@@ -968,6 +995,7 @@ export const pivotTraceAnalyticsTimeseries: PivotTraceAnalyticsTimeseriesFunctio
   }): {
     pivotedData: Array<TraceAnalyticsPivotedRow>;
     seriesKeys: Array<string>;
+    seriesGroupValues: Record<string, Record<string, string>>;
   } => {
     const labels: Map<string, string> = buildTraceAnalyticsGroupLabels({
       groups: data.rows.map(
@@ -986,6 +1014,7 @@ export const pivotTraceAnalyticsTimeseries: PivotTraceAnalyticsTimeseriesFunctio
 
     const rowsByTime: Map<string, TraceAnalyticsPivotedRow> = new Map();
     const seriesKeys: Set<string> = new Set<string>();
+    const seriesGroupValues: Record<string, Record<string, string>> = {};
 
     for (const row of data.rows) {
       let pivotRow: TraceAnalyticsPivotedRow | undefined = rowsByTime.get(
@@ -1002,12 +1031,14 @@ export const pivotTraceAnalyticsTimeseries: PivotTraceAnalyticsTimeseriesFunctio
       )!;
 
       seriesKeys.add(seriesKey);
+      seriesGroupValues[seriesKey] = row.groupValues || {};
       pivotRow[seriesKey] = row.value;
     }
 
     return {
       pivotedData: Array.from(rowsByTime.values()),
       seriesKeys: Array.from(seriesKeys),
+      seriesGroupValues,
     };
   };
 

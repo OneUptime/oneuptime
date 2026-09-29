@@ -136,6 +136,38 @@ export default abstract class GlobalCache {
     return value;
   }
 
+  /*
+   * Several keys of one namespace in a single round-trip (MGET). The result
+   * is positional: one entry per requested key, null where the key is
+   * missing or empty.
+   */
+  @CaptureSpan()
+  public static async getStrings(
+    namespace: string,
+    keys: Array<string>,
+  ): Promise<Array<string | null>> {
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const values: Array<string | null> = await client.mget(
+      keys.map((key: string) => {
+        return `${namespace}-${key}`;
+      }),
+    );
+
+    return keys.map((_key: string, index: number) => {
+      const value: string | null | undefined = values[index];
+      return value ? value : null;
+    });
+  }
+
   @CaptureSpan()
   public static async setJSON(
     namespace: string,
