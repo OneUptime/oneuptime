@@ -32,6 +32,7 @@ import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPub
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
+import { truncateToLength } from "../../../Database/TruncateColumnValue";
 import MicrosoftTeamsCardChoices, {
   MicrosoftTeamsCardChoiceList,
 } from "../MicrosoftTeamsCardChoices";
@@ -498,9 +499,15 @@ export default class MicrosoftTeamsIncidentActions {
           });
         }
 
-        await turnContext.sendActivity("✅ Note added successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "✅ Note added successfully.",
+        );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -579,11 +586,15 @@ export default class MicrosoftTeamsIncidentActions {
           userNotificationEventType: UserNotificationEventType.IncidentCreated,
         });
 
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ On-call policy executed successfully.",
         );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -655,11 +666,15 @@ export default class MicrosoftTeamsIncidentActions {
           props: databaseProps,
         });
 
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ Incident state changed successfully.",
         );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -708,15 +723,19 @@ export default class MicrosoftTeamsIncidentActions {
           onCallPolicyIds,
         });
       } catch (error) {
-        logger.error(
-          `Could not create an incident from Microsoft Teams: ${MicrosoftTeamsReplies.describeError(error)}`,
+        MicrosoftTeamsReplies.logFailure(
+          "Could not create an incident from Microsoft Teams",
+          error,
           {
             projectId: projectId.toString(),
           },
         );
         await MicrosoftTeamsReplies.sendBestEffort(
           turnContext,
-          this.getIncidentCreateFailedMessage(error),
+          await this.getIncidentCreateFailedMessage({
+            error: error,
+            projectId: projectId,
+          }),
         );
         return;
       }
@@ -754,13 +773,26 @@ export default class MicrosoftTeamsIncidentActions {
    * OneUptime wrote one for them (a reference to another project's monitor,
    * say), otherwise a generic line; the details go to the log.
    */
-  private static getIncidentCreateFailedMessage(error: unknown): string {
+  private static async getIncidentCreateFailedMessage(data: {
+    error: unknown;
+    projectId: ObjectID;
+  }): Promise<string> {
     const reason: string | null =
-      MicrosoftTeamsReplies.getUserFacingErrorMessage(error);
+      MicrosoftTeamsReplies.getUserFacingErrorMessage(data.error);
 
-    return reason
-      ? `❌ Could not create the incident: ${reason}`
-      : "❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime.";
+    if (reason) {
+      return `❌ Could not create the incident: ${reason}`;
+    }
+
+    const createInOneUptimeUrl: string | null =
+      await MicrosoftTeamsReplies.getDashboardLink({
+        projectId: data.projectId,
+        route: "/incidents/create",
+      });
+
+    return `❌ Could not create the incident because of an unexpected error. Please try again, or create it in OneUptime${
+      createInOneUptimeUrl ? `: ${createInOneUptimeUrl}` : "."
+    }`;
   }
 
   // The confirmation, with a link to the incident when one can be built.
@@ -1230,8 +1262,8 @@ export default class MicrosoftTeamsIncidentActions {
   /*
    * The "Create New Incident" card with its monitor, label and on-call policy
    * lists shortened until it fits the budget (issue #4111: listing all of
-   * them made Teams refuse the card). Severities are required and are always
-   * listed whole.
+   * them made Teams refuse the card). Severities are required, so they are
+   * never shortened to fit (they are read up to 50).
    */
   public static buildNewIncidentCardForBudget(data: {
     choices: MicrosoftTeamsNewIncidentFormChoices;
@@ -1288,8 +1320,8 @@ export default class MicrosoftTeamsIncidentActions {
         maxLength: MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH,
         ...(initialTitle
           ? {
-              value: initialTitle.substring(
-                0,
+              value: truncateToLength(
+                initialTitle,
                 MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH,
               ),
             }
@@ -1312,15 +1344,16 @@ export default class MicrosoftTeamsIncidentActions {
       list: MicrosoftTeamsCardChoiceList,
       pluralNoun: string,
     ): void => {
-      const note: string | null = MicrosoftTeamsCardChoices.getNotShownNote({
-        list: list,
-        pluralNoun: pluralNoun,
-        addLaterHint: addLaterHint,
-      });
+      const note: JSONObject | null =
+        MicrosoftTeamsCardChoices.buildNotShownNoteElement({
+          list: list,
+          pluralNoun: pluralNoun,
+          addLaterHint: addLaterHint,
+        });
 
       if (note) {
         isAnythingLeftOff = true;
-        bodyElements.push(this.buildNoteElement(note));
+        bodyElements.push(note);
       }
     };
 
@@ -1403,11 +1436,11 @@ export default class MicrosoftTeamsIncidentActions {
     ];
 
     if (isAnythingLeftOff && data.createInOneUptimeUrl) {
-      actions.push({
-        type: "Action.OpenUrl",
-        title: "Create in OneUptime",
-        url: data.createInOneUptimeUrl,
-      });
+      actions.push(
+        MicrosoftTeamsCardChoices.buildCreateInOneUptimeAction(
+          data.createInOneUptimeUrl,
+        ),
+      );
     }
 
     return {
@@ -1416,18 +1449,6 @@ export default class MicrosoftTeamsIncidentActions {
       version: "1.5",
       body: bodyElements,
       actions: actions,
-    };
-  }
-
-  // A small line of text under a list, e.g. what the list leaves out.
-  private static buildNoteElement(text: string): JSONObject {
-    return {
-      type: "TextBlock",
-      text: text,
-      wrap: true,
-      isSubtle: true,
-      size: "Small",
-      spacing: "Small",
     };
   }
 }

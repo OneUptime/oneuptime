@@ -429,9 +429,15 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           userId: oneUptimeUserId,
         });
 
-        await turnContext.sendActivity("✅ Note added successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "✅ Note added successfully.",
+        );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -512,11 +518,15 @@ export default class MicrosoftTeamsAlertEpisodeActions {
             UserNotificationEventType.AlertEpisodeCreated,
         });
 
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ On-call policy executed successfully.",
         );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -593,11 +603,15 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           },
         });
 
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "✅ Alert episode state changed successfully.",
         );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,

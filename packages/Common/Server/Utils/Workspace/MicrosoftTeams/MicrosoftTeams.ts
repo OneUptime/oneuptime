@@ -3088,6 +3088,67 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       .replace(/<at[^>]*>.*?<\/at>/g, "")
       .trim();
 
+    const isCreateIncidentCommand: boolean =
+      cleanText === CREATE_INCIDENT_COMMAND ||
+      cleanText.startsWith(CREATE_INCIDENT_COMMAND + " ");
+
+    const isCreateMaintenanceCommand: boolean =
+      cleanText === CREATE_MAINTENANCE_COMMAND ||
+      cleanText.startsWith(CREATE_MAINTENANCE_COMMAND + " ");
+
+    /*
+     * Explicit commands are matched precisely so that natural-language
+     * questions (which may incidentally contain words like "help" or
+     * "alerts") fall through to the AI assistant instead of a canned command.
+     */
+    const isHelpCommand: boolean =
+      cleanText === "help" || cleanText === "" || cleanText === "?";
+
+    const isShowActiveIncidentsCommand: boolean =
+      cleanText === "show active incidents" || cleanText === "active incidents";
+
+    const isShowScheduledMaintenanceCommand: boolean =
+      cleanText === "show scheduled maintenance" ||
+      cleanText === "scheduled maintenance";
+
+    const isShowOngoingMaintenanceCommand: boolean =
+      cleanText === "show ongoing maintenance" ||
+      cleanText === "ongoing maintenance";
+
+    const isShowActiveAlertsCommand: boolean =
+      cleanText === "show active alerts" || cleanText === "active alerts";
+
+    /*
+     * "ask <question>" is an explicit prefix that always routes to the AI
+     * assistant. When present, strip the prefix and use the remainder as the
+     * question.
+     */
+    const isAskCommand: boolean =
+      cleanText === "ask" || cleanText.startsWith("ask ");
+
+    /*
+     * The command, named for log lines that must not quote the message: a
+     * free-form question can carry things that do not belong in a log.
+     */
+    const commandName: string | undefined = [
+      { matches: isHelpCommand, name: "help" },
+      { matches: isCreateIncidentCommand, name: CREATE_INCIDENT_COMMAND },
+      { matches: isCreateMaintenanceCommand, name: CREATE_MAINTENANCE_COMMAND },
+      { matches: isShowActiveIncidentsCommand, name: "show active incidents" },
+      {
+        matches: isShowScheduledMaintenanceCommand,
+        name: "show scheduled maintenance",
+      },
+      {
+        matches: isShowOngoingMaintenanceCommand,
+        name: "show ongoing maintenance",
+      },
+      { matches: isShowActiveAlertsCommand, name: "show active alerts" },
+      { matches: isAskCommand, name: "ask" },
+    ].find((command: { matches: boolean; name: string }) => {
+      return command.matches;
+    })?.name;
+
     let projectId: ObjectID | undefined = undefined;
     let responseText: string = "";
 
@@ -3124,45 +3185,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(
         `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
       );
-
-      const isCreateIncidentCommand: boolean =
-        cleanText === CREATE_INCIDENT_COMMAND ||
-        cleanText.startsWith(CREATE_INCIDENT_COMMAND + " ");
-
-      const isCreateMaintenanceCommand: boolean =
-        cleanText === CREATE_MAINTENANCE_COMMAND ||
-        cleanText.startsWith(CREATE_MAINTENANCE_COMMAND + " ");
-
-      /*
-       * Explicit commands are matched precisely so that natural-language
-       * questions (which may incidentally contain words like "help" or
-       * "alerts") fall through to the AI assistant instead of a canned command.
-       */
-      const isHelpCommand: boolean =
-        cleanText === "help" || cleanText === "" || cleanText === "?";
-
-      const isShowActiveIncidentsCommand: boolean =
-        cleanText === "show active incidents" ||
-        cleanText === "active incidents";
-
-      const isShowScheduledMaintenanceCommand: boolean =
-        cleanText === "show scheduled maintenance" ||
-        cleanText === "scheduled maintenance";
-
-      const isShowOngoingMaintenanceCommand: boolean =
-        cleanText === "show ongoing maintenance" ||
-        cleanText === "ongoing maintenance";
-
-      const isShowActiveAlertsCommand: boolean =
-        cleanText === "show active alerts" || cleanText === "active alerts";
-
-      /*
-       * "ask <question>" is an explicit prefix that always routes to the AI
-       * assistant. When present, strip the prefix and use the remainder as the
-       * question.
-       */
-      const isAskCommand: boolean =
-        cleanText === "ask" || cleanText.startsWith("ask ");
 
       if (isHelpCommand) {
         responseText = this.getHelpMessage();
@@ -3243,8 +3265,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
        * adapter answered Teams with HTTP 500, Teams delivered the message
        * again, and every failure showed up twice (issue #4111).
        */
-      logger.error(
-        `Microsoft Teams message ${(data.activity["id"] as string) || ""} ("${cleanText}") failed: ${MicrosoftTeamsReplies.describeError(error)}`,
+      /*
+       * The command is named, not quoted: a free-form question can carry
+       * things that do not belong in an error log. The text is in the debug
+       * log above.
+       */
+      MicrosoftTeamsReplies.logFailure(
+        `Microsoft Teams message ${(data.activity["id"] as string) || ""} (${
+          commandName
+            ? `"${commandName}"`
+            : `a ${cleanText.length}-character question`
+        }) failed`,
+        error,
         {
           projectId: projectId?.toString(),
         },
@@ -3290,8 +3322,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const { turnContext, error } = data;
     const activity: Partial<Activity> = turnContext.activity || {};
 
-    logger.error(
-      `Microsoft Teams ${activity.type || "unknown"} activity ${activity.id || ""} failed: ${MicrosoftTeamsReplies.describeError(error)}`,
+    MicrosoftTeamsReplies.logFailure(
+      `Microsoft Teams ${activity.type || "unknown"} activity ${activity.id || ""} failed`,
+      error,
     );
 
     if (activity.type === "message" && !turnContext.responded) {
@@ -3600,6 +3633,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           projectId: projectId,
         });
     } catch (error) {
+      // A failed lookup is not a missing account; the caller answers it.
+      if (!(error instanceof MicrosoftTeamsAccountNotLinkedException)) {
+        throw error;
+      }
+
       logger.debug(
         "No OneUptime user linked to Teams user; prompting to connect account",
         {
@@ -3607,9 +3645,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           workspaceUserId: teamsUserId,
         },
       );
-      logger.debug(error);
       await turnContext.sendActivity(
-        "I couldn't find your OneUptime account. Please connect your Microsoft Teams account in OneUptime User Settings before asking me questions.",
+        await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
+          projectId: projectId,
+          purpose: "ask OneUptime questions from Microsoft Teams",
+        }),
       );
       return;
     }
@@ -3771,8 +3811,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 **Available Commands:**
 - **help** - Show this help message
 - **ask <question>** - Ask OneUptime AI about your logs, traces, metrics, incidents and monitors
-- **create incident** - Create a new incident
-- **create maintenance** - Create a new scheduled maintenance event
+- **create incident [title]** - Create a new incident
+- **create maintenance [title]** - Create a new scheduled maintenance event
 - **show active incidents** - Display all currently active incidents
 - **show scheduled maintenance** - Show upcoming scheduled maintenance events
 - **show ongoing maintenance** - Display currently ongoing maintenance events
@@ -4456,8 +4496,9 @@ All monitoring checks are passing normally.`;
         return;
       }
 
-      logger.error(
-        `Error handling bot invoke activity: ${MicrosoftTeamsReplies.describeError(error)}`,
+      MicrosoftTeamsReplies.logFailure(
+        "Error handling bot invoke activity",
+        error,
         {
           actionType: actionType,
           projectId: projectId?.toString(),

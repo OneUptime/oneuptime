@@ -1,7 +1,10 @@
 import { JSONObject } from "../../../../Types/JSON";
+import ErrorClass from "../../../../Types/Telemetry/ErrorClass";
+import { ERROR_CLASS_ATTRIBUTE_KEY } from "../../../../Types/Telemetry/UnitOfWork";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import InMemoryTTLCache from "../../../Infrastructure/InMemoryTTLCache";
-import logger from "../../Logger";
+import Redis from "../../../Infrastructure/Redis";
+import logger, { LogAttributes } from "../../Logger";
 
 /*
  * Teams delivers an activity again when the bot was slow to answer it
@@ -13,9 +16,9 @@ import logger from "../../Logger";
  * no-op.
  *
  * The claim is shared through Redis, because a redelivery can reach another
- * App instance. When Redis is down or slow the claim falls back to this
- * process's memory, which still covers a single instance and never holds up
- * the reply.
+ * App instance, and kept in this process's memory as well. When Redis is
+ * disconnected the memory decides at once; when it is slow, after at most
+ * REDIS_CLAIM_TIMEOUT_IN_MS. Memory alone still covers a single instance.
  */
 
 const CLAIM_NAMESPACE: string = "microsoft-teams-inbound-activity";
@@ -26,9 +29,14 @@ const CLAIM_TTL_IN_SECONDS: number = 10 * 60;
 // How long a Redis claim may take before this process's memory decides.
 const REDIS_CLAIM_TIMEOUT_IN_MS: number = 2000;
 
+// A Redis fallback is logged at most this often; each message would repeat it.
+const FALLBACK_LOG_INTERVAL_IN_MS: number = 60 * 1000;
+
 export default class MicrosoftTeamsActivityDeduplicator {
   private static localClaims: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache<boolean>(10_000);
+
+  private static lastFallbackLoggedAt: number = 0;
 
   /*
    * The key an activity is claimed under: its conversation and its id. Null
@@ -60,23 +68,26 @@ export default class MicrosoftTeamsActivityDeduplicator {
       return true;
     }
 
-    const claimedInRedis: boolean | null = await this.claimInRedis(key);
+    /*
+     * This process's memory is consulted whatever Redis says: a claim made
+     * here while Redis was down never reached Redis, so once Redis is back it
+     * would let a redelivery of that activity through.
+     */
+    const isClaimedHere: boolean = this.localClaims.has(key);
 
-    if (claimedInRedis !== null) {
-      /*
-       * Remember it locally as well, so a Redis outage right after this does
-       * not let a redelivery to this instance through.
-       */
+    // A repeat leaves the claim alone, so it lapses with the Redis key.
+    if (!isClaimedHere) {
       this.localClaims.set(key, true, CLAIM_TTL_IN_SECONDS * 1000);
-      return claimedInRedis;
     }
 
-    if (this.localClaims.has(key)) {
+    // Asked even then, so that other App instances learn of the claim.
+    const claimedInRedis: boolean | null = await this.claimInRedis(key);
+
+    if (isClaimedHere) {
       return false;
     }
 
-    this.localClaims.set(key, true, CLAIM_TTL_IN_SECONDS * 1000);
-    return true;
+    return claimedInRedis ?? true;
   }
 
   // The Redis answer, or null when Redis could not answer in time.
@@ -90,20 +101,63 @@ export default class MicrosoftTeamsActivityDeduplicator {
         }),
         new Promise<null>((resolve: (value: null) => void) => {
           timeout = setTimeout(() => {
+            this.logFallback(
+              `Redis did not answer within ${REDIS_CLAIM_TIMEOUT_IN_MS} ms`,
+            );
             resolve(null);
           }, REDIS_CLAIM_TIMEOUT_IN_MS);
         }),
       ]);
     } catch (error) {
-      logger.debug(
-        "Could not claim a Microsoft Teams activity in Redis; using this process's memory instead",
-      );
-      logger.debug(error);
+      this.logFallback("Redis refused the claim", error);
       return null;
     } finally {
       if (timeout) {
         clearTimeout(timeout);
       }
+    }
+  }
+
+  /*
+   * Falling back to memory means a redelivery that reaches another App
+   * instance is handled twice, which an operator should hear about. Logged at
+   * error level (warn is dropped at the default LOG_LEVEL) and at most once a
+   * minute. A process that never had a Redis client (a script, a test) has no
+   * other instance to share with, so it only logs at debug.
+   *
+   * It never throws: it runs from the claim's catch and from its timeout, and
+   * a throw there would lose the claim, or the reply, over a log line.
+   */
+  private static logFallback(reason: string, error?: unknown): void {
+    try {
+      const now: number = Date.now();
+
+      if (
+        !Redis.getClient() ||
+        now - this.lastFallbackLoggedAt < FALLBACK_LOG_INTERVAL_IN_MS
+      ) {
+        logger.debug(
+          `Microsoft Teams activity dedupe is using this process's memory: ${reason}`,
+        );
+        return;
+      }
+
+      this.lastFallbackLoggedAt = now;
+
+      const attributes: LogAttributes = {
+        [ERROR_CLASS_ATTRIBUTE_KEY]: ErrorClass.Infrastructure,
+      };
+
+      logger.error(
+        `Microsoft Teams activity dedupe fell back to this process's memory (${reason}); a Teams redelivery that reaches another App instance may be handled twice.`,
+        attributes,
+      );
+
+      if (error) {
+        logger.error(error, attributes);
+      }
+    } catch {
+      // Nothing to do: the claim goes on from memory either way.
     }
   }
 }

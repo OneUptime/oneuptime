@@ -28,6 +28,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../../../../Types/Date";
 import URL from "../../../../../Types/API/URL";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
+import { truncateToLength } from "../../../Database/TruncateColumnValue";
 import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 import MicrosoftTeamsCardChoices, {
   MicrosoftTeamsCardChoiceList,
@@ -41,6 +42,12 @@ import MicrosoftTeamsTimezone, {
 // ScheduledMaintenance.title is a ShortText column.
 const MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH: number =
   ColumnLength.ShortText;
+
+/*
+ * Input.Time has minute precision, so "start now" is already a minute or two
+ * in the past once the form is filled in. A start this recent begins now.
+ */
+const MICROSOFT_TEAMS_MAINTENANCE_START_GRACE_IN_MINUTES: number = 5;
 
 // The lists the "Create New Scheduled Maintenance" card offers.
 export interface MicrosoftTeamsNewScheduledMaintenanceFormChoices {
@@ -210,7 +217,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             timezoneFromCard: actionPayload["timezone"],
           });
 
-        const startsAt: Date | null = MicrosoftTeamsTimezone.toDate({
+        let startsAt: Date | null = MicrosoftTeamsTimezone.toDate({
           date: startDate,
           time: startTime,
           timezone: timezone,
@@ -229,13 +236,23 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         }
 
         if (!OneUptimeDate.isInTheFuture(startsAt)) {
-          await turnContext.sendActivity(
-            `Unable to create scheduled maintenance: the start time (${MicrosoftTeamsTimezone.format(
-              startsAt,
-              timezone,
-            )}) is in the past.`,
+          const earliestStart: Date = OneUptimeDate.addRemoveMinutes(
+            OneUptimeDate.getCurrentDate(),
+            -MICROSOFT_TEAMS_MAINTENANCE_START_GRACE_IN_MINUTES,
           );
-          return;
+
+          if (OneUptimeDate.isBefore(startsAt, earliestStart)) {
+            await turnContext.sendActivity(
+              `Unable to create scheduled maintenance: the start time (${MicrosoftTeamsTimezone.format(
+                startsAt,
+                timezone,
+              )}) is in the past.`,
+            );
+            return;
+          }
+
+          // A start picked for "now" that has just gone by: start now.
+          startsAt = OneUptimeDate.getCurrentDate();
         }
 
         if (!OneUptimeDate.isAfter(endsAt, startsAt)) {
@@ -272,8 +289,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               labelIds,
             });
         } catch (error) {
-          logger.error(
-            `Could not create a scheduled maintenance event from Microsoft Teams: ${MicrosoftTeamsReplies.describeError(error)}`,
+          MicrosoftTeamsReplies.logFailure(
+            "Could not create a scheduled maintenance event from Microsoft Teams",
+            error,
             {
               projectId: request.projectId.toString(),
             },
@@ -282,11 +300,20 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           const reason: string | null =
             MicrosoftTeamsReplies.getUserFacingErrorMessage(error);
 
+          const createInOneUptimeUrl: string | null = reason
+            ? null
+            : await MicrosoftTeamsReplies.getDashboardLink({
+                projectId: request.projectId,
+                route: "/scheduled-maintenance-events/create",
+              });
+
           await MicrosoftTeamsReplies.sendBestEffort(
             turnContext,
             reason
               ? `❌ Could not create the scheduled maintenance event: ${reason}`
-              : "❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime.",
+              : `❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime${
+                  createInOneUptimeUrl ? `: ${createInOneUptimeUrl}` : "."
+                }`,
           );
           return;
         }
@@ -493,9 +520,15 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             });
           }
 
-          await turnContext.sendActivity("Note added successfully");
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
+            "Note added successfully",
+          );
 
-          // Hide the form card. A failed delete must not undo the reply above.
+          /*
+           * The action is done: a refused reply or a failed delete of the
+           * form must not read as a failed action, which invites a repeat.
+           */
           await MicrosoftTeamsReplies.deleteBestEffort(
             turnContext,
             turnContext.activity.replyToId,
@@ -543,11 +576,15 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             },
           });
 
-          await turnContext.sendActivity(
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
             "ScheduledMaintenance state changed successfully",
           );
 
-          // Hide the form card. A failed delete must not undo the reply above.
+          /*
+           * The action is done: a refused reply or a failed delete of the
+           * form must not read as a failed action, which invites a repeat.
+           */
           await MicrosoftTeamsReplies.deleteBestEffort(
             turnContext,
             turnContext.activity.replyToId,
@@ -845,6 +882,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       data.timezone,
     )}`;
 
+    if (MicrosoftTeamsTimezone.isUtcOffsetOnly(data.timezone)) {
+      message += `\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.timezone.label}. If daylight saving time changes before then, check them in OneUptime.`;
+    }
+
     if (data.scheduledMaintenance.id) {
       try {
         const maintenanceLink: URL =
@@ -1058,8 +1099,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         maxLength: MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
         ...(initialTitle
           ? {
-              value: initialTitle.substring(
-                0,
+              value: truncateToLength(
+                initialTitle,
                 MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
               ),
             }
@@ -1073,9 +1114,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         isMultiline: true,
         isRequired: true,
       },
-      this.buildNoteElement(
+      MicrosoftTeamsCardChoices.buildNoteElement(
         timezone
-          ? `Start and end times are in your time zone, ${timezone}.`
+          ? `Start and end times are in ${timezone}.`
           : "Start and end times are in the time zone Microsoft Teams reports for you, or in UTC if it does not report one.",
       ),
       {
@@ -1111,15 +1152,16 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       list: MicrosoftTeamsCardChoiceList,
       pluralNoun: string,
     ): void => {
-      const note: string | null = MicrosoftTeamsCardChoices.getNotShownNote({
-        list: list,
-        pluralNoun: pluralNoun,
-        addLaterHint: addLaterHint,
-      });
+      const note: JSONObject | null =
+        MicrosoftTeamsCardChoices.buildNotShownNoteElement({
+          list: list,
+          pluralNoun: pluralNoun,
+          addLaterHint: addLaterHint,
+        });
 
       if (note) {
         isAnythingLeftOff = true;
-        bodyElements.push(this.buildNoteElement(note));
+        bodyElements.push(note);
       }
     };
 
@@ -1178,11 +1220,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     ];
 
     if (isAnythingLeftOff && data.createInOneUptimeUrl) {
-      actions.push({
-        type: "Action.OpenUrl",
-        title: "Create in OneUptime",
-        url: data.createInOneUptimeUrl,
-      });
+      actions.push(
+        MicrosoftTeamsCardChoices.buildCreateInOneUptimeAction(
+          data.createInOneUptimeUrl,
+        ),
+      );
     }
 
     return {
@@ -1191,18 +1233,6 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       version: "1.5",
       body: bodyElements,
       actions: actions,
-    };
-  }
-
-  // A small line of text on the card, e.g. what a list leaves out.
-  private static buildNoteElement(text: string): JSONObject {
-    return {
-      type: "TextBlock",
-      text: text,
-      wrap: true,
-      isSubtle: true,
-      size: "Small",
-      spacing: "Small",
     };
   }
 }

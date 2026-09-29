@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../../Types/JSON";
+import { truncateToLength } from "../../Database/TruncateColumnValue";
 
 /*
  * How big a message Microsoft Teams takes from a bot.
@@ -30,8 +31,6 @@ export const MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES: number = 40 * 1024;
 
 const DEFAULT_TRUNCATION_NOTE: string =
   "…\n\n_This reply was shortened to fit in Microsoft Teams. Open OneUptime to see everything._";
-
-const ENDS_WITH_HIGH_SURROGATE: RegExp = /[\uD800-\uDBFF]$/;
 
 export default class MicrosoftTeamsMessageSize {
   // Size as Teams counts it: JavaScript strings are UTF-16, two bytes a unit.
@@ -113,9 +112,11 @@ export default class MicrosoftTeamsMessageSize {
   }
 
   /*
-   * A text reply cut down to the budget. The cut is made at the last line
-   * break that fits, so a markdown line is never split, and a note says the
-   * reply was shortened. Text within the budget is returned as it is.
+   * A text reply cut down to the budget, with a note that it was shortened
+   * when the note fits as well. The cut is made at the last line break that
+   * fits, so no markdown line is split, or mid-line (never inside an emoji)
+   * when the first line alone is over the budget. The result is never over
+   * the budget; text within it is returned as it is.
    */
   public static fitTextToBudget(data: {
     text: string;
@@ -129,23 +130,22 @@ export default class MicrosoftTeamsMessageSize {
       return data.text;
     }
 
-    const truncationNote: string =
+    const maxUnits: number = Math.max(0, Math.floor(budgetInBytes / 2));
+    const requestedNote: string =
       data.truncationNote ?? DEFAULT_TRUNCATION_NOTE;
 
-    const maxLength: number = Math.max(
-      0,
-      Math.floor(budgetInBytes / 2) - truncationNote.length,
-    );
+    // A note that does not fit leaves the whole budget to the text.
+    const truncationNote: string =
+      requestedNote.length <= maxUnits ? requestedNote : "";
+    const maxLength: number = maxUnits - truncationNote.length;
 
-    let kept: string = data.text.substring(0, maxLength);
-    const lastLineBreak: number = kept.lastIndexOf("\n");
+    // A line that ends exactly at the cut still fits, so the search includes it.
+    const lastLineBreak: number = data.text.lastIndexOf("\n", maxLength);
 
-    if (lastLineBreak > 0) {
-      kept = kept.substring(0, lastLineBreak);
-    } else if (ENDS_WITH_HIGH_SURROGATE.test(kept)) {
-      // Never leave half of a surrogate pair (an emoji, say) at the cut.
-      kept = kept.substring(0, kept.length - 1);
-    }
+    const kept: string =
+      lastLineBreak > 0
+        ? data.text.substring(0, lastLineBreak)
+        : truncateToLength(data.text, maxLength);
 
     return kept.trimEnd() + truncationNote;
   }

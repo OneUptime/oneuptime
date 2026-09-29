@@ -401,9 +401,15 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           userId: oneUptimeUserId,
         });
 
-        await turnContext.sendActivity("Note added successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "Note added successfully.",
+        );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -484,9 +490,15 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
             UserNotificationEventType.IncidentEpisodeCreated,
         });
 
-        await turnContext.sendActivity("On-call policy executed successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "On-call policy executed successfully.",
+        );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,
@@ -563,11 +575,15 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           },
         });
 
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "Incident episode state changed successfully.",
         );
 
-        // Hide the form card. A failed delete must not undo the reply above.
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
         await MicrosoftTeamsReplies.deleteBestEffort(
           turnContext,
           turnContext.activity.replyToId,

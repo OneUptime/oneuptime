@@ -5,7 +5,8 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import DatabaseConfig from "../../../DatabaseConfig";
-import logger from "../../Logger";
+import { ProjectScopedReferenceException } from "../../Database/ProjectScopedReferenceValidator";
+import logger, { LogAttributes } from "../../Logger";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES,
 } from "./MicrosoftTeamsMessageSize";
@@ -24,6 +25,15 @@ import MicrosoftTeamsMessageSize, {
 
 export const MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE: string =
   "application/vnd.microsoft.card.adaptive";
+
+/*
+ * The reply for a submit that references a record the project does not have
+ * (deleted since the form was sent, or another project's id in a tampered
+ * submit). Fixed text: the validator's own message names the other project's
+ * record, which is not for this chat.
+ */
+export const MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE: string =
+  "One of the values you picked (a monitor, label, on-call policy, severity or status) is not available in this project any more. Please pick it again.";
 
 export default class MicrosoftTeamsReplies {
   // Sends a reply; logs instead of throwing. Returns whether Teams took it.
@@ -129,8 +139,22 @@ export default class MicrosoftTeamsReplies {
       return String(error);
     }
 
+    /*
+     * OneUptime's exceptions keep Error's name, so the class they were thrown
+     * as comes from the constructor instead.
+     */
+    const errorName: string =
+      ((error as { name?: unknown }).name as string | undefined) || "";
+    const constructorName: string =
+      ((error as { constructor?: { name?: unknown } }).constructor?.name as
+        | string
+        | undefined) || "";
     const name: string =
-      ((error as { name?: unknown }).name as string | undefined) || "Error";
+      errorName && errorName !== "Error"
+        ? errorName
+        : constructorName && constructorName !== "Object"
+          ? constructorName
+          : errorName || "Error";
     const message: string = String(
       (error as { message?: unknown }).message ?? "",
     );
@@ -148,11 +172,33 @@ export default class MicrosoftTeamsReplies {
   }
 
   /*
+   * Logs a failure: one line that says what failed and why, then the error
+   * itself, which keeps its stack and lets the log tell a refusal from a
+   * fault. A Bot Framework HTTP error is left at the one line: its status and
+   * code say it all, and the object carries the whole request and response.
+   */
+  public static logFailure(
+    summary: string,
+    error: unknown,
+    attributes?: LogAttributes | undefined,
+  ): void {
+    logger.error(`${summary}: ${this.describeError(error)}`, attributes);
+
+    if (MicrosoftTeamsMessageSize.getErrorStatusCode(error) === undefined) {
+      logger.error(error, attributes);
+    }
+  }
+
+  /*
    * The message of an error OneUptime writes for the person who caused it: a
    * validation or a permission refusal. Null for anything else, whose text is
    * meant for operators.
    */
   public static getUserFacingErrorMessage(error: unknown): string | null {
+    if (error instanceof ProjectScopedReferenceException) {
+      return MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE;
+    }
+
     if (
       (error instanceof BadDataException ||
         error instanceof NotAuthorizedException) &&

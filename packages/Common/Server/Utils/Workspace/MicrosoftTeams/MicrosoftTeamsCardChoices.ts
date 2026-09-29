@@ -11,6 +11,7 @@ import MonitorStatusService from "../../../Services/MonitorStatusService";
 import LabelService from "../../../Services/LabelService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
+import { truncateToLength } from "../../Database/TruncateColumnValue";
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
 
 /*
@@ -19,9 +20,10 @@ import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
  * Those cards used to list every monitor, label and on-call policy of the
  * project (up to 10,000 of each), which Microsoft Teams refuses as too large
  * once a project has a few hundred of them (issue #4111). Each list is now
- * read in name order up to a cap, and fitCardToBudget() shortens the lists
- * until the card fits a size budget. Whatever is left off is named on the
- * card, so the user knows to add it in OneUptime.
+ * read up to a cap (monitors, labels and on-call policies in name order,
+ * severities and monitor statuses in their own order), and fitCardToBudget()
+ * shortens the long lists until the card fits a size budget. Whatever is
+ * left off is named on the card, so the user knows to add it in OneUptime.
  */
 
 // A type, not an interface, so a list of them is a JSONValue on a card.
@@ -81,8 +83,10 @@ export default class MicrosoftTeamsCardChoices {
       choices.push({
         title:
           title.length > MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH
-            ? title.substring(0, MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH - 1) +
-              "…"
+            ? truncateToLength(
+                title,
+                MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH - 1,
+              ) + "…"
             : title,
         value: value,
       });
@@ -111,6 +115,13 @@ export default class MicrosoftTeamsCardChoices {
 
     for (const key of keys) {
       shownCounts[key] = data.lists[key].choices.length;
+    }
+
+    // No budget: leave every trimmable list off in one go.
+    if (data.budgetInBytes <= 0) {
+      for (const key of data.trimmableKeys) {
+        shownCounts[key] = 0;
+      }
     }
 
     const build: () => JSONObject = (): JSONObject => {
@@ -153,6 +164,38 @@ export default class MicrosoftTeamsCardChoices {
     }
 
     return { card: card, shownCounts: shownCounts, fitsBudget: true };
+  }
+
+  // A small line of text on a card, such as what a list leaves out.
+  public static buildNoteElement(text: string): JSONObject {
+    return {
+      type: "TextBlock",
+      text: text,
+      wrap: true,
+      isSubtle: true,
+      size: "Small",
+      spacing: "Small",
+    };
+  }
+
+  // The note element for a list the card could not show in full, or null.
+  public static buildNotShownNoteElement(data: {
+    list: MicrosoftTeamsCardChoiceList;
+    pluralNoun: string;
+    addLaterHint: string;
+  }): JSONObject | null {
+    const note: string | null = this.getNotShownNote(data);
+
+    return note ? this.buildNoteElement(note) : null;
+  }
+
+  // The button a card offers when it had to leave something off.
+  public static buildCreateInOneUptimeAction(url: string): JSONObject {
+    return {
+      type: "Action.OpenUrl",
+      title: "Create in OneUptime",
+      url: url,
+    };
   }
 
   /*

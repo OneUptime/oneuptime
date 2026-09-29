@@ -162,6 +162,14 @@ export function resolveReferenceIds(value: unknown): Array<ObjectID | string> {
   return ids;
 }
 
+/*
+ * Thrown when a payload references another project's records, or records that
+ * do not exist. Still a BadDataException with the same message, so API callers
+ * see no change; its own type lets a chat reply say something fixed instead of
+ * naming another project's record.
+ */
+export class ProjectScopedReferenceException extends BadDataException {}
+
 export default class ProjectScopedReferenceValidator {
   public static async validateReferencesBelongToProject(data: {
     projectId: ObjectID | undefined;
@@ -354,7 +362,7 @@ export default class ProjectScopedReferenceValidator {
       return;
     }
 
-    throw new BadDataException(
+    throw new ProjectScopedReferenceException(
       `This ${data.subject || "request"} ${clauses.join(" It also ")}`,
     );
   }

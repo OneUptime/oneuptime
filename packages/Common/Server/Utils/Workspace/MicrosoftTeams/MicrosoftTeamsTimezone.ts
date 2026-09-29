@@ -9,10 +9,14 @@ import { JSONObject } from "../../../../Types/JSON";
  * containers), so 14:00 typed in New York became 10:00 in New York. Teams
  * tells the bot the sender's zone on the activity (localTimezone, an IANA
  * name, and the clientInfo entity), though not from every client: iOS has
- * been seen to leave localTimezone out. So the zone the form was requested
- * from also travels in the form's submit data, the UTC offset of the
- * activity's local timestamp comes next, and UTC is the last resort. Whichever
- * zone is used is named back to the user.
+ * been seen to leave localTimezone out.
+ *
+ * The form names the zone of whoever asked for it and carries that zone in
+ * its submit data, and the submitted times are read in it: in a channel the
+ * person who fills the form in may be somewhere else, and they typed the times
+ * the form asked for. A form that named no zone is read in the submitter's own
+ * zone, then at the UTC offset of their activity's local timestamp, then in
+ * UTC. Whichever zone is used is named back to the user.
  */
 
 export interface MicrosoftTeamsUserTimezone {
@@ -112,17 +116,17 @@ export default class MicrosoftTeamsTimezone {
   }
 
   /*
-   * The zone to read a submitted date and time in: the submitting activity's
-   * own zone, then the zone the form was sent for, then the submitting
-   * activity's UTC offset, then UTC.
+   * The zone to read a submitted date and time in: the zone the form named,
+   * which is what its reader was told, then the submitting activity's own
+   * zone, then its UTC offset, then UTC.
    */
   public static resolve(data: {
     activity: JSONObject;
     timezoneFromCard?: unknown;
   }): MicrosoftTeamsUserTimezone {
     const timezone: string | undefined =
-      this.getTimezoneFromActivity(data.activity) ||
-      this.getKnownTimezone(data.timezoneFromCard);
+      this.getKnownTimezone(data.timezoneFromCard) ||
+      this.getTimezoneFromActivity(data.activity);
 
     if (timezone) {
       return { timezone: timezone, label: timezone };
@@ -139,6 +143,14 @@ export default class MicrosoftTeamsTimezone {
     }
 
     return this.UTC;
+  }
+
+  /*
+   * Whether only a UTC offset is known. The offset is today's, so a date past
+   * a daylight saving change can be an hour out, and the reply says so.
+   */
+  public static isUtcOffsetOnly(timezone: MicrosoftTeamsUserTimezone): boolean {
+    return !timezone.timezone && timezone.utcOffsetInMinutes !== undefined;
   }
 
   // "UTC", "UTC+05:30", "UTC-04:00".

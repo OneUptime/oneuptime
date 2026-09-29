@@ -28,16 +28,18 @@ import MicrosoftTeamsTimezone from "./MicrosoftTeamsTimezone";
  * shown that says what to do next (issue #4111 answered both with a generic
  * "Sorry, I encountered an error...", twice).
  *
- * 1. The sender must be able to submit the form, so a sender without a
- *    connected account, or who is not a member of the project, is told so
- *    before filling it in, not after.
+ * 1. In a personal chat the sender is the only one who can submit the form,
+ *    so a sender without a connected account, who is not a member of the
+ *    project, or who may not create the thing, is told so before filling it
+ *    in, not after. In a channel or group chat anyone there may submit it, and
+ *    the submit checks whoever does, so the form is posted for everyone.
  * 2. The form's lists (monitors, labels, on-call policies...) are read in name
  *    order up to a cap, and the card is fitted to a size budget that Teams
  *    accepts; a card Teams still refuses as too large is sent again smaller,
  *    and finally without the lists at all.
  */
 
-interface CreateFormText {
+export interface CreateFormText {
   // "an incident", "a scheduled maintenance event": what the form creates.
   what: string;
   // Below the project in the dashboard, where the same thing can be created.
@@ -72,14 +74,15 @@ export default class MicrosoftTeamsCreateCommands {
   }): Promise<void> {
     const { turnContext, activity, projectId } = data;
 
-    const isAuthorized: boolean = await this.authorizeSender({
-      turnContext: turnContext,
-      activity: activity,
-      projectId: projectId,
-      form: INCIDENT_FORM,
-    });
-
-    if (!isAuthorized) {
+    if (
+      this.isPersonalConversation(activity) &&
+      !(await this.authorizeSender({
+        turnContext: turnContext,
+        activity: activity,
+        projectId: projectId,
+        form: INCIDENT_FORM,
+      }))
+    ) {
       return;
     }
 
@@ -101,9 +104,19 @@ export default class MicrosoftTeamsCreateCommands {
     }
 
     if (choices.severities.choices.length === 0) {
+      const severitySettingsUrl: string | null =
+        await MicrosoftTeamsReplies.getDashboardLink({
+          projectId: projectId,
+          route: "/incidents/settings/severity",
+        });
+
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        "An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under Project Settings → Incident Severity, then try again.",
+        `An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under ${
+          severitySettingsUrl
+            ? `[Incidents → Settings → Incident Severity](${severitySettingsUrl})`
+            : "Incidents → Settings → Incident Severity"
+        }, then try again.`,
       );
       return;
     }
@@ -139,19 +152,20 @@ export default class MicrosoftTeamsCreateCommands {
   }): Promise<void> {
     const { turnContext, activity, projectId } = data;
 
-    const isAuthorized: boolean = await this.authorizeSender({
-      turnContext: turnContext,
-      activity: activity,
-      projectId: projectId,
-      form: SCHEDULED_MAINTENANCE_FORM,
-      // Submitting checks the same permission.
-      createPermission: {
-        modelType: ScheduledMaintenance,
-        action: "create a scheduled maintenance event",
-      },
-    });
-
-    if (!isAuthorized) {
+    if (
+      this.isPersonalConversation(activity) &&
+      !(await this.authorizeSender({
+        turnContext: turnContext,
+        activity: activity,
+        projectId: projectId,
+        form: SCHEDULED_MAINTENANCE_FORM,
+        // Submitting checks the same permission.
+        createPermission: {
+          modelType: ScheduledMaintenance,
+          action: "create a scheduled maintenance event",
+        },
+      }))
+    ) {
       return;
     }
 
@@ -199,6 +213,15 @@ export default class MicrosoftTeamsCreateCommands {
         );
       },
     });
+  }
+
+  // A 1:1 chat with the bot, where whoever asks for a form is the one to submit it.
+  private static isPersonalConversation(activity: JSONObject): boolean {
+    return (
+      ((activity["conversation"] as JSONObject | undefined)?.[
+        "conversationType"
+      ] as string | undefined) === "personal"
+    );
   }
 
   /*
@@ -278,8 +301,9 @@ export default class MicrosoftTeamsCreateCommands {
         return false;
       }
 
-      logger.error(
-        `Could not check the Microsoft Teams sender of a create command: ${MicrosoftTeamsReplies.describeError(error)}`,
+      MicrosoftTeamsReplies.logFailure(
+        "Could not check the Microsoft Teams sender of a create command",
+        error,
         {
           projectId: projectId.toString(),
         },
@@ -305,8 +329,9 @@ export default class MicrosoftTeamsCreateCommands {
         buildCard: data.buildCard,
       });
     } catch (error) {
-      logger.error(
-        `Microsoft Teams did not accept the form to create ${data.form.what}: ${MicrosoftTeamsReplies.describeError(error)}`,
+      MicrosoftTeamsReplies.logFailure(
+        `Microsoft Teams did not accept the form to create ${data.form.what}`,
+        error,
         {
           projectId: data.projectId.toString(),
         },
@@ -329,8 +354,9 @@ export default class MicrosoftTeamsCreateCommands {
     form: CreateFormText;
     error: unknown;
   }): Promise<void> {
-    logger.error(
-      `Could not load the Microsoft Teams form to create ${data.form.what}: ${MicrosoftTeamsReplies.describeError(data.error)}`,
+    MicrosoftTeamsReplies.logFailure(
+      `Could not load the Microsoft Teams form to create ${data.form.what}`,
+      data.error,
       {
         projectId: data.projectId.toString(),
       },
@@ -344,7 +370,7 @@ export default class MicrosoftTeamsCreateCommands {
 
     await MicrosoftTeamsReplies.sendBestEffort(
       data.turnContext,
-      `Sorry, I couldn't open the form to create ${data.form.what} because OneUptime could not read this project's ${data.form.lists} just now. Please try again in a minute, ${this.getCreateInOneUptimeHint(
+      `Sorry, I couldn't open the form to create ${data.form.what} because OneUptime could not load the lists it needs just now. Please try again in a minute, ${this.getCreateInOneUptimeHint(
         createInOneUptimeUrl,
         "or create it",
       )}`,
