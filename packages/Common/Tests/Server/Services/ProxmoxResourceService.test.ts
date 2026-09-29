@@ -1,4 +1,4 @@
-import { AddProxmoxResourceNativePushColumns1796100000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddProxmoxResourceNativePushColumns";
+import { AddProxmoxResourceNativePushColumns1796200000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1796200000000-AddProxmoxResourceNativePushColumns";
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
   ProxmoxRemoveNodeResult,
@@ -3125,7 +3125,7 @@ function expectedMarkWrites(
 }
 
 /*
- * AddProxmoxResourceNativePushColumns1796100000000.up: two nullable
+ * AddProxmoxResourceNativePushColumns1796200000000.up: two nullable
  * columns with no DEFAULT, so every row already in the table reads NULL —
  * not native, never reported down.
  */
@@ -3399,7 +3399,7 @@ class SimulatedProxmoxCluster {
   /*
    * The rows a release from before isNativePush and notReportingMarkedAt
    * left behind, last seen now, then the real migration run over them
-   * through this model (AddProxmoxResourceNativePushColumns1796100000000
+   * through this model (AddProxmoxResourceNativePushColumns1796200000000
    * .up). Only on a table nothing has written yet.
    */
   public async upgradeFromPreviousRelease(
@@ -3430,7 +3430,7 @@ class SimulatedProxmoxCluster {
         return this.execute(sql, []);
       },
     } as unknown as QueryRunner;
-    await new AddProxmoxResourceNativePushColumns1796100000000().up(
+    await new AddProxmoxResourceNativePushColumns1796200000000().up(
       queryRunner,
     );
     expect(this.hasIsNativePushColumn).toBe(true);
