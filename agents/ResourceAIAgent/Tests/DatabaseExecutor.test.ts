@@ -929,6 +929,27 @@ describe("the posture", () => {
     assert.deepStrictEqual(h.drivers.connects, []);
   });
 
+  test("a port written in DATABASE_SERVER_ADDRESS is reported apart from the host, as the identity names it", async () => {
+    const h: DatabaseHarness = databaseHarness({
+      env: {
+        DATABASE_SYSTEM: "oracle.db",
+        DATABASE_SERVER_ADDRESS: "DB.Example.com:5433",
+        DATABASE_SERVER_PORT: "",
+      },
+    });
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.deepStrictEqual(probe.details, {
+      databaseSystem: "oracle.db",
+      serverAddress: "db.example.com",
+      serverPort: 5433,
+    });
+    assert.strictEqual(
+      h.config.resourceIdentifier,
+      "oracle.db|db.example.com:5433",
+    );
+  });
+
   test("a connect failure, a silent server and a server that never answers the probe", async () => {
     const refused: DatabaseHarness = harnessWith(postgresAnswers());
     refused.drivers.connectAnswer = (): Error => {

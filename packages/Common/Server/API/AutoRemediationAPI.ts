@@ -694,6 +694,51 @@ async function assertResourceCommandsStillRunnable(data: {
   }
 }
 
+/*
+ * Approving a resource command runs it on the resource as root, so the
+ * approver must be someone who may edit that resource — its update ACL,
+ * label-scoped blocks included — not merely someone who may start runbooks
+ * in the project. Each resource is checked once, however many commands
+ * target it. Called after assertResourceCommandsStillRunnable, which has
+ * already refused a command with no valid resource.
+ */
+async function assertApproverMayChangeResources(data: {
+  plan: AiRemediationCommandPlan;
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+}): Promise<void> {
+  const checked: Set<string> = new Set<string>();
+
+  for (const command of data.plan.commands) {
+    if (
+      command.stepType !== RunbookStepType.ResourceCommand ||
+      !isAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId)
+    ) {
+      continue;
+    }
+
+    const key: string = getResourceStatusKey(
+      command.resourceType,
+      command.resourceId,
+    );
+
+    if (checked.has(key)) {
+      continue;
+    }
+
+    checked.add(key);
+
+    await ResourceAiAccessService.assertCallerMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      resourceType: command.resourceType,
+      resourceId: new ObjectID(command.resourceId),
+    });
+  }
+}
+
 async function loadSuggestionAsRoot(
   suggestionId: ObjectID,
 ): Promise<AutoRemediationSuggestion> {
@@ -971,6 +1016,17 @@ router.post(
           plan,
           projectId: suggestion.projectId,
           statusByResourceKey,
+        });
+
+        /*
+         * And the approver may change every resource the plan changes: the
+         * plan runs as root on the resource, so this is where the
+         * resource's own edit ACL (with its label scope) applies.
+         */
+        await assertApproverMayChangeResources({
+          plan,
+          props,
+          projectId: suggestion.projectId,
         });
 
         const claimedPlan: number =

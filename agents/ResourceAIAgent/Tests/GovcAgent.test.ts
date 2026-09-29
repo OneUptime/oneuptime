@@ -59,7 +59,8 @@ beforeEach((): void => {
     "vm.info": {
       stdout: "Name:           web-01\n  Power state:  poweredOff\n",
     },
-    "vm.power -on web-01": {
+    // One VM named by its inventory path: the SafeWrite form of a power-on.
+    "vm.power -on /DC/vm/web-01": {
       stdout: "Powering on VirtualMachine:vm-42... OK\n",
     },
   });
@@ -202,7 +203,7 @@ test("a fix on a read-only agent is refused before govc starts, and reported as 
   server.script(
     "/claim-next-job",
     govcJob({
-      args: ["vm.power", "-on", "web-01"],
+      args: ["vm.power", "-on", "/DC/vm/web-01"],
       tier: "SafeWrite",
       origin: "AiRemediation",
     }),
@@ -216,7 +217,7 @@ test("a fix on a read-only agent is refused before govc starts, and reported as 
   assert.strictEqual(result!.body["exitCode"], undefined);
   assert.match(
     String(result!.body["errorMessage"]),
-    /^Refused by the VMware AI agent: "govc vm\.power -on web-01" changes the VMware vCenter, and this agent is read-only/,
+    /^Refused by the VMware AI agent: "govc vm\.power -on \/DC\/vm\/web-01" changes the VMware vCenter, and this agent is read-only/,
   );
   assert.strictEqual(invocationsOf("vm.power").length, 0);
 });
@@ -225,7 +226,7 @@ test("with writes allowed, a SafeWrite fix runs with the AI user's credentials",
   server.script(
     "/claim-next-job",
     govcJob({
-      args: ["vm.power", "-on", "web-01"],
+      args: ["vm.power", "-on", "/DC/vm/web-01"],
       tier: "SafeWrite",
       origin: "AiRemediation",
     }),
@@ -259,7 +260,7 @@ test("with writes allowed, a SafeWrite fix runs with the AI user's credentials",
   );
 
   const [run] = invocationsOf("vm.power");
-  assert.deepStrictEqual(run!.argv, ["vm.power", "-on", "web-01"]);
+  assert.deepStrictEqual(run!.argv, ["vm.power", "-on", "/DC/vm/web-01"]);
   assert.strictEqual(run!.env["GOVC_USERNAME"], "oneuptime-ai@vsphere.local");
   assert.strictEqual(run!.env["GOVC_PASSWORD"], "fix-it-password");
 });

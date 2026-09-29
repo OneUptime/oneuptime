@@ -16,6 +16,7 @@ import SpawnSandbox, {
   SandboxCapture,
   SandboxJobDirectory,
   SandboxRunRequest,
+  StderrTail,
   describeKill,
   describeMissingBinary,
   formatResourceOutput,
@@ -710,6 +711,125 @@ describe("with an injected spawn", () => {
   });
 });
 
+describe("the stderr tail never keeps the end of a line without its start", () => {
+  const SECRET: string = "Sup3rS3cretPw!x";
+  const SECRET_LINE: string = `2026-09-29T10:00:00Z connecting DB_PASSWORD=${SECRET} host=db\n`;
+
+  // A program that writes these stderr chunks, then exits 1.
+  function writingStderr(chunks: Array<string>): SpawnFunction {
+    return ((): FakeChild => {
+      const child: FakeChild = new FakeChild();
+      setImmediate((): void => {
+        for (const chunk of chunks) {
+          child.stderr.write(Buffer.from(chunk, "utf8"));
+        }
+        child.stdout.end("");
+        child.stderr.end();
+        child.stderr.on("end", (): void => {
+          child.emit("close", 1, null);
+        });
+        child.stderr.resume();
+      });
+      return child;
+    }) as unknown as SpawnFunction;
+  }
+
+  function split(text: string, size: number): Array<string> {
+    const chunks: Array<string> = [];
+    for (let i: number = 0; i < text.length; i += size) {
+      chunks.push(text.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  test("wherever the cut lands in a credential's line, and however the program writes it, the secret never leaves", async () => {
+    const filler: string = "info: a log line without anything secret in it\n";
+
+    // Put the secret line so the 8 KiB tail starts at every byte of its key.
+    for (let shift: number = 0; shift < 60; shift += 3) {
+      const after: string =
+        "x".repeat(STDERR_MAX_BYTES - shift) + "\nError: the real reason\n";
+      const before: string = filler.repeat(400);
+      const stderr: string = `${before}${SECRET_LINE}${after}`;
+
+      for (const size of [stderr.length, 65_536, 4_096, 1_000]) {
+        const result: ExecResult = await new SpawnSandbox({
+          tmpDir,
+          spawnImpl: writingStderr(split(stderr, size)),
+        }).run(runRequest());
+
+        assert.ok(
+          !result.output.includes("S3cret"),
+          `shift ${shift}, chunks of ${size}: ${result.output.slice(0, 300)}`,
+        );
+        assert.ok(!String(result.errorMessage).includes("S3cret"));
+        assert.match(
+          result.output,
+          /\[stderr\]\n\.\.\. \[earlier stderr truncated\]\n/,
+        );
+        assert.strictEqual(
+          result.errorMessage,
+          "Exit code 1: Error: the real reason",
+        );
+      }
+    }
+  });
+
+  test("a secret line kept whole is still redacted by its name", async () => {
+    const stderr: string = `${"e".repeat(30_000)}\n${SECRET_LINE}Error: the real reason\n`;
+    const result: ExecResult = await new SpawnSandbox({
+      tmpDir,
+      spawnImpl: writingStderr(split(stderr, 4_096)),
+    }).run(runRequest());
+
+    assert.match(result.output, /DB_PASSWORD=\[redacted\] host=db\n/);
+    assert.ok(!result.output.includes("S3cret"));
+  });
+
+  test("one endless line is dropped whole, and the output says stderr was cut", async () => {
+    const stderr: string = `${"k".repeat(20_000)}DB_PASSWORD=${SECRET}${"z".repeat(9_000)}`;
+    const result: ExecResult = await new SpawnSandbox({
+      tmpDir,
+      spawnImpl: writingStderr(split(stderr, 3_000)),
+    }).run(runRequest());
+
+    assert.ok(!result.output.includes("S3cret"), result.output);
+    assert.strictEqual(
+      result.output,
+      "[stderr]\n... [earlier stderr truncated]\n",
+    );
+    assert.strictEqual(result.errorMessage, "Exit code 1");
+  });
+
+  test("StderrTail: whole lines, trimmed only past twice the budget", () => {
+    const tail: StderrTail = new StderrTail(10);
+
+    tail.push(Buffer.from("aaaa\nbbbb\ncc"));
+    assert.strictEqual(tail.toString(), "aaaa\nbbbb\ncc");
+    assert.strictEqual(tail.isTruncated(), false);
+
+    // 21 bytes: the last 10 start inside "cccc", so the tail starts after it.
+    tail.push(Buffer.from("cc\ndddd\ne"));
+    assert.strictEqual(tail.toString(), "dddd\ne");
+    assert.strictEqual(tail.isTruncated(), true);
+
+    // A cut right after a line break keeps the line that follows whole.
+    const aligned: StderrTail = new StderrTail(5);
+    aligned.push(Buffer.from("abcdef\nxyzw\n"));
+    assert.strictEqual(aligned.toString(), "xyzw\n");
+
+    // No line break in the kept tail: everything up to the next one is dropped.
+    const endless: StderrTail = new StderrTail(4);
+    endless.push(Buffer.from("PASSWORD=secret"));
+    assert.strictEqual(endless.toString(), "");
+    endless.push(Buffer.from("-still-the-same-line"));
+    assert.strictEqual(endless.toString(), "");
+    endless.push(Buffer.from("-end\nnext"));
+    assert.strictEqual(endless.toString(), "next");
+    assert.strictEqual(endless.isTruncated(), true);
+  });
+});
+
 describe("pure helpers", () => {
   test("formatResourceOutput sections and markers", () => {
     assert.strictEqual(formatResourceOutput({ stdout: "", stderr: "" }), "");
@@ -732,6 +852,14 @@ describe("pure helpers", () => {
         stderrTruncated: true,
       }),
       "[stderr]\n... [earlier stderr truncated]\nerr",
+    );
+    assert.strictEqual(
+      formatResourceOutput({
+        stdout: "out",
+        stderr: "",
+        stderrTruncated: true,
+      }),
+      "[stdout]\nout\n[stderr]\n... [earlier stderr truncated]\n",
     );
   });
 

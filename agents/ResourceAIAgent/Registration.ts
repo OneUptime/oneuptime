@@ -6,7 +6,11 @@ import IngestClient, {
   IngestResponse,
 } from "./IngestClient";
 import Logger from "./Logger";
-import { AgentPosture } from "./Posture";
+import {
+  AgentPosture,
+  REGISTRATION_HOLD_RETRY_MS,
+  describeRegistrationHold,
+} from "./Posture";
 import { SleepFunction, sleep as defaultSleep, waitAtMost } from "./Sleep";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
@@ -14,6 +18,7 @@ import AiResourceType, {
   isAiResourceType,
 } from "./Common/Types/ResourceAiAgent/AiResourceType";
 import {
+  RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   RESOURCE_AI_AGENT_API_KEY_ENVS,
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
@@ -61,6 +66,20 @@ export const MAX_RATE_LIMIT_WAIT_MS: number = 5 * 60_000;
  * and restarting the container picks it up at once.
  */
 export const OPERATOR_ACTION_RETRY_MS: number = 5 * 60_000;
+
+/*
+ * How long previous_instance_online may last before it is no restart. An
+ * old container that stopped without signing off is admitted once the
+ * server has not heard from it for RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES;
+ * a refusal that outlasts twice that means another live agent registers as
+ * the same resource (two installs sharing one identity, e.g. the
+ * collector's default name). Only an operator fixes that, so from then on
+ * the agent says so as an error and asks every OPERATOR_ACTION_RETRY_MS:
+ * every attempt spends the ingestion key's registration budget, which the
+ * key's other agents need too.
+ */
+export const DUPLICATE_AGENT_AFTER_MS: number =
+  2 * RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES * 60_000;
 
 // An older OneUptime without this API: checked again every 5 minutes.
 export const API_MISSING_RETRY_MS: number = 5 * 60_000;
@@ -117,6 +136,8 @@ export interface RegistrationContext {
   resourceType?: AiResourceType | null | undefined;
   identitySource?: string | null | undefined;
   apiKeySource?: string | null | undefined;
+  // The identity the agent registers with.
+  resourceIdentifier?: string | null | undefined;
 }
 
 function readString(
@@ -191,14 +212,43 @@ function describeRefusal(
   return `OneUptime refused the registration: ${serverMessage}`;
 }
 
+// A refusal that clears on its own (previous_instance_online).
+export function isWaitingRefusal(response: IngestResponse): boolean {
+  return (
+    response.kind === "auth" &&
+    response.status === 403 &&
+    isTransientResourceAiAgentRegistrationRefusal(
+      readString(response.body, "reason"),
+    )
+  );
+}
+
+function describeDuplicateAgent(context: RegistrationContext): string {
+  const resource: string = describeResource(context);
+  const identity: string = context.resourceIdentifier
+    ? ` ("${context.resourceIdentifier}")`
+    : "";
+
+  return `Another AI agent has been online as this ${resource}${identity} for over ${Math.round(
+    DUPLICATE_AGENT_AFTER_MS / 60_000,
+  )} minutes, so OneUptime keeps refusing this one: two agents register with the same identity. Give each ${resource} its own ${describeIdentityVariable(
+    context,
+  )} (on the collector and the agent alike), or stop the other agent. Retrying every ${Math.round(
+    OPERATOR_ACTION_RETRY_MS / 60_000,
+  )} minutes.`;
+}
+
 /*
  * How long to wait after a failed registration, and what to say. Pure, for
- * tests: consecutiveFailures counts this failure too (1 for the first).
+ * tests: consecutiveFailures counts this failure too (1 for the first), and
+ * waitingForMs is how long the agent has been refused as a resource whose
+ * previous agent is online (0 for the first such refusal).
  */
 export function planRegistrationRetry(data: {
   response: IngestResponse;
   consecutiveFailures: number;
   context?: RegistrationContext | undefined;
+  waitingForMs?: number | undefined;
 }): RegistrationRetryPlan {
   const response: IngestResponse = data.response;
   const context: RegistrationContext = data.context || {};
@@ -234,11 +284,17 @@ export function planRegistrationRetry(data: {
     };
   }
 
-  if (
-    response.kind === "auth" &&
-    response.status === 403 &&
-    isTransientResourceAiAgentRegistrationRefusal(reason)
-  ) {
+  if (isWaitingRefusal(response)) {
+    if ((data.waitingForMs ?? 0) >= DUPLICATE_AGENT_AFTER_MS) {
+      return {
+        category: "refused",
+        delayMs: OPERATOR_ACTION_RETRY_MS,
+        message: describeDuplicateAgent(context),
+        reason,
+        detail: response.message,
+      };
+    }
+
     const hintMs: number | null =
       response.retryAfterSeconds === null
         ? null
@@ -301,6 +357,8 @@ export interface AgentSessionDependencies {
   status: AgentStatus;
   getPosture: () => Promise<AgentPosture>;
   sleep?: SleepFunction | undefined;
+  // The clock, in milliseconds (Date.now by default).
+  now?: (() => number) | undefined;
 }
 
 export type RegistrationAttempt =
@@ -315,6 +373,12 @@ export class AgentSession {
   private attemptInFlight: Promise<unknown> | null = null;
   private rejectionsInARow: number = 0;
   private failuresInARow: number = 0;
+  /*
+   * When the current run of previous_instance_online refusals began, or
+   * null outside one. A transient failure (a 429, a 5xx) in between does
+   * not end the run; any other answer does.
+   */
+  private waitingSinceMs: number | null = null;
   private stopped: boolean = false;
   // Ends a wait between attempts at once when stop() is called.
   private readonly stopController: AbortController = new AbortController();
@@ -328,9 +392,15 @@ export class AgentSession {
    */
   private readonly loggedMessages: Set<string> = new Set<string>();
   private readonly sleep: SleepFunction;
+  private readonly now: () => number;
 
   public constructor(private readonly deps: AgentSessionDependencies) {
     this.sleep = deps.sleep || defaultSleep;
+    this.now =
+      deps.now ||
+      ((): number => {
+        return Date.now();
+      });
   }
 
   public getIdentity(): AgentIdentity | null {
@@ -379,6 +449,26 @@ export class AgentSession {
 
     this.deps.status.posture = posture;
 
+    /*
+     * An agent that cannot serve its resource from where it runs must not
+     * take the resource's place (describeRegistrationHold): nothing is
+     * sent, and it looks again after a fresh probe.
+     */
+    const hold: string | null = describeRegistrationHold(posture);
+
+    if (hold) {
+      return {
+        identity: null,
+        plan: {
+          category: "waiting",
+          delayMs: REGISTRATION_HOLD_RETRY_MS,
+          message: hold,
+          reason: null,
+          detail: null,
+        },
+      };
+    }
+
     const request: Promise<IngestResponse> = this.deps.client.register(
       {
         resourceType: posture.resourceType,
@@ -405,20 +495,34 @@ export class AgentSession {
 
     if (identity) {
       this.failuresInARow = 0;
+      this.waitingSinceMs = null;
       return { identity };
     }
 
     this.failuresInARow++;
+
+    const nowMs: number = this.now();
+
+    if (isWaitingRefusal(response)) {
+      this.waitingSinceMs = this.waitingSinceMs ?? nowMs;
+    } else if (response.kind !== "transient") {
+      this.waitingSinceMs = null;
+    }
 
     return {
       identity: null,
       plan: planRegistrationRetry({
         response,
         consecutiveFailures: this.failuresInARow,
+        waitingForMs:
+          this.waitingSinceMs === null
+            ? 0
+            : Math.max(0, nowMs - this.waitingSinceMs),
         context: {
           resourceType: this.deps.config.resourceType,
           identitySource: this.deps.config.identitySource,
           apiKeySource: this.deps.config.apiKeySource,
+          resourceIdentifier: posture.resourceIdentifier,
         },
       }),
     };

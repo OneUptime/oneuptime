@@ -7,10 +7,10 @@
  *
  * Read: docker ps (and container ls), inspect with an explicit --type (and
  * container / image / network / volume inspect), bounded logs (--tail N up
- * to 2000, or --since; never --follow), stats --no-stream, top, bounded
- * events (--since and --until), info, version, system df, images, network
- * ls, volume ls, port and diff. `--format` is json (or table for lists) —
- * never a Go template.
+ * to 2000, or a --since of at most 24h; never --follow), stats --no-stream,
+ * top, bounded events (--since and a relative --until), info, version,
+ * system df (-v only as a table), images, network ls, volume ls, port and
+ * diff. `--format` is json (or table for lists) — never a Go template.
  *
  * SafeWrite — a reversible change to exactly ONE named container:
  * restart (optionally -t N), start and unpause. The container comes back
@@ -469,11 +469,11 @@ const DockerEngineCommandPolicy: ResourceToolPolicy = {
   readCommandGuide: [
     "- `docker ps -a` — list containers (`-q`, `-n N`, `-l`, `-s`, `--no-trunc`, `--filter KEY=VALUE`, `--format json`)",
     "- `docker container inspect NAME` (or `docker inspect --type container|image|network|volume NAME`) — configuration and state; environment values come back redacted; `--format json` only, never a Go template",
-    "- `docker logs --tail 200 NAME` — `--tail N` (N up to 2000) or `--since 30m` is required; `--until`, `-t`, `--details` are fine; never `-f`/`--follow`",
+    "- `docker logs --tail 200 NAME` — `--tail N` (N up to 2000) or `--since 30m` is required (without `--tail`, `--since` must be a duration of at most 24h); `--until`, `-t`, `--details` are fine; never `-f`/`--follow`",
     "- `docker stats --no-stream [NAME...]` — `--no-stream` is required; `-a`, `--no-trunc`, `--format json`",
     "- `docker top NAME`, `docker port NAME`, `docker diff NAME` — processes, published ports and changed files of one container",
-    "- `docker events --since 30m --until 0s` — both bounds are required; `--filter KEY=VALUE`",
-    "- `docker info`, `docker version`, `docker system df [-v]`",
+    "- `docker events --since 30m --until 0s` — both bounds are required, `--until` as a duration (`0s` is now); `--filter KEY=VALUE`",
+    "- `docker info`, `docker version`, `docker system df [-v]` (`--format json` without `-v`)",
     "- `docker images`, `docker image inspect IMAGE`, `docker network ls`, `docker network inspect NAME`, `docker volume ls`, `docker volume inspect NAME`",
     "- One command per call: no pipes, no global flags (`-H`, `--context`, ...), no `exec`",
   ].join("\n"),

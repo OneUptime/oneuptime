@@ -26,7 +26,8 @@ import { redactResourceCommandOutput } from "../Common/Utils/AiRemediation/Resou
  *     removed when the command ends, swept at start-up (an OOM kill runs no
  *     finally block) and removed at shutdown;
  *   - no stdin, stdout capped at MAX_RESOURCE_AGENT_OUTPUT_BYTES, only the
- *     tail of stderr kept (the reason a tool failed is at the end),
+ *     tail of stderr kept (the reason a tool failed is at the end), cut at
+ *     a line boundary so no secret loses the name the redactor finds it by,
  *     U+0000 replaced (a Postgres text column cannot hold it);
  *   - SIGKILL to the whole process group when the time budget runs out, so
  *     a tool that forked (nsenter does) cannot hold the job open;
@@ -94,6 +95,75 @@ function tailBytes(s: string, maxBytes: number): string {
     .toString("utf8");
 }
 
+const NEWLINE_BYTE: number = 0x0a;
+
+/*
+ * The tail of a program's stderr, as the capture keeps it: at most twice
+ * `maxBytes` between trims, and after a trim the last `maxBytes` from the
+ * start of a LINE. A cut at an arbitrary byte would keep the end of a line
+ * without its start — "WORD=Sup3rS3cret" out of "DB_PASSWORD=Sup3rS3cret" —
+ * and the redactor, which finds a secret by its name, could no longer see
+ * it; so the partial line is dropped, and when the kept tail holds no line
+ * break at all, everything up to the next one is dropped as it arrives.
+ */
+export class StderrTail {
+  private buffer: Buffer = Buffer.alloc(0);
+  // Inside a line whose start was dropped: skip up to its end.
+  private skippingPartialLine: boolean = false;
+  private cut: boolean = false;
+
+  public constructor(private readonly maxBytes: number = STDERR_MAX_BYTES) {}
+
+  public push(chunk: Buffer): void {
+    let data: Buffer = chunk;
+
+    if (this.skippingPartialLine) {
+      const newline: number = data.indexOf(NEWLINE_BYTE);
+
+      if (newline === -1) {
+        return;
+      }
+
+      data = data.subarray(newline + 1);
+      this.skippingPartialLine = false;
+    }
+
+    this.buffer = Buffer.concat([this.buffer, data]);
+
+    if (this.buffer.length <= this.maxBytes * 2) {
+      return;
+    }
+
+    this.cut = true;
+    const start: number = this.buffer.length - this.maxBytes;
+
+    // The byte before the cut ends a line: the tail starts with a whole one.
+    if (this.buffer[start - 1] === NEWLINE_BYTE) {
+      this.buffer = this.buffer.subarray(start);
+      return;
+    }
+
+    const newline: number = this.buffer.indexOf(NEWLINE_BYTE, start);
+
+    if (newline === -1) {
+      this.buffer = Buffer.alloc(0);
+      this.skippingPartialLine = true;
+      return;
+    }
+
+    this.buffer = this.buffer.subarray(newline + 1);
+  }
+
+  // Whether anything was dropped.
+  public isTruncated(): boolean {
+    return this.cut;
+  }
+
+  public toString(): string {
+    return this.buffer.toString("utf8");
+  }
+}
+
 /*
  * The output shipped back to the server: `[stdout]` then `[stderr]`, within
  * maxOutputBytes plus the truncation markers. stderr is budgeted first (its
@@ -119,9 +189,11 @@ export function formatResourceOutput(data: {
     stderrCut = true;
   }
 
-  const stderrSection: string = stderr
-    ? `${STDERR_HEADER}${stderrCut ? "... [earlier stderr truncated]\n" : ""}${stderr}`
-    : "";
+  // A stderr cut down to nothing (one endless line) still says it was there.
+  const stderrSection: string =
+    stderr || stderrCut
+      ? `${STDERR_HEADER}${stderrCut ? "... [earlier stderr truncated]\n" : ""}${stderr}`
+      : "";
 
   let stdoutSection: string = "";
 
@@ -667,8 +739,7 @@ export default class SpawnSandbox {
         let stdoutBytes: number = 0;
         let stdoutTruncated: boolean = false;
         // Only the tail of stderr is kept: a tool's error is at the end.
-        let stderrTail: Buffer = Buffer.alloc(0);
-        let stderrTruncated: boolean = false;
+        const stderrTail: StderrTail = new StderrTail(STDERR_MAX_BYTES);
         let timedOut: boolean = false;
         let settled: boolean = false;
         let timer: ReturnType<typeof setTimeout> | null = null;
@@ -700,9 +771,9 @@ export default class SpawnSandbox {
             stdout: replaceNulCharacters(
               Buffer.concat(stdoutChunks).toString("utf8"),
             ),
-            stderr: replaceNulCharacters(stderrTail.toString("utf8")),
+            stderr: replaceNulCharacters(stderrTail.toString()),
             stdoutTruncated,
-            stderrTruncated,
+            stderrTruncated: stderrTail.isTruncated(),
             exitCode,
             signal,
             timedOut,
@@ -746,14 +817,7 @@ export default class SpawnSandbox {
         });
 
         child.stderr?.on("data", (chunk: Buffer): void => {
-          stderrTail = Buffer.concat([stderrTail, chunk]);
-
-          if (stderrTail.length > STDERR_MAX_BYTES * 2) {
-            stderrTail = stderrTail.subarray(
-              stderrTail.length - STDERR_MAX_BYTES,
-            );
-            stderrTruncated = true;
-          }
+          stderrTail.push(chunk);
         });
 
         child.on("error", (err: Error & { code?: string }): void => {

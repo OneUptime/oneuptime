@@ -19,6 +19,7 @@ import {
   MySqlServer,
   describeMySqlError,
   describeMySqlServer,
+  normalizeInnodbStatusStatements,
   parseMySqlServer,
 } from "../Executors/Database/MySqlDiagnostics";
 import { ExecResult } from "../Executors/ResourceExecutor";
@@ -595,6 +596,123 @@ describe("each read", () => {
     assert.match(out, /LATEST DETECTED DEADLOCK/);
     assert.ok(!out.includes("jane@example.com"), out);
     assert.ok(!out.includes("6a616e65"), out);
+  });
+
+  test("innodb-status: a multi-line statement is normalized whole — its continuation lines keep no literal", async () => {
+    const status: string = [
+      "=====================================",
+      "2026-09-29 10:00:00 0x7f00 INNODB MONITOR OUTPUT",
+      "=====================================",
+      "------------------------",
+      "LATEST DETECTED DEADLOCK",
+      "------------------------",
+      "2026-09-29 09:59:58 0x7f01",
+      "*** (1) TRANSACTION:",
+      "TRANSACTION 1235, ACTIVE 1 sec starting index read",
+      "mysql tables in use 1, locked 1",
+      "LOCK WAIT 3 lock struct(s), heap size 1128, 2 row lock(s)",
+      "MySQL thread id 10, OS thread handle 142, query id 70 localhost app updating",
+      "INSERT INTO payments (card, amount, name)",
+      "VALUES",
+      '  (5500005555555559, 98765, "John Smith"),',
+      "  (4012888888881881, 43210, 'Jane Doe')",
+      "*** (1) HOLDS THE LOCK(S):",
+      "RECORD LOCKS space id 2 page no 4 n bits 72 index PRIMARY of table `shop`.`payments` trx id 1235 lock_mode X locks rec but not gap",
+      "*** WE ROLL BACK TRANSACTION (1)",
+      "------------",
+      "TRANSACTIONS",
+      "------------",
+      "Trx id counter 1240",
+      "LIST OF TRANSACTIONS FOR EACH SESSION:",
+      "---TRANSACTION 1233, ACTIVE 3 sec starting index read",
+      "mysql tables in use 1, locked 1",
+      "LOCK WAIT 2 lock struct(s), heap size 1128, 1 row lock(s)",
+      "MariaDB thread id 8, OS thread handle 140, query id 60 localhost app updating",
+      "UPDATE users SET",
+      "  card = 4111111111111111,",
+      '  email = "john@example.com",',
+      "  note = 'vip'",
+      "WHERE id = 7",
+      "------- TRX HAS BEEN WAITING 3 SEC FOR THIS LOCK TO BE GRANTED:",
+      "---TRANSACTION 1232, ACTIVE 10 sec",
+      "MySQL thread id 9, OS thread handle 141, query id 58 localhost app",
+      "Trx read view will not see trx with id >= 1232, sees < 1232",
+      "--------",
+      "FILE I/O",
+      "--------",
+      "I/O thread 0 state: waiting for completed aio requests (insert buffer thread)",
+      "----------------------------",
+      "END OF INNODB MONITOR OUTPUT",
+      "============================",
+      "",
+    ].join("\n");
+    const h: DatabaseHarness = harness({
+      innodbStatus: [{ Type: "InnoDB", Name: "", Status: status }],
+    });
+    const out: string = stdoutOf(await runRead(h, "db innodb-status"));
+
+    for (const secret of [
+      "4111111111111111",
+      "5500005555555559",
+      "4012888888881881",
+      "John Smith",
+      "Jane Doe",
+      "john@example.com",
+      "vip",
+      "98765",
+      "43210",
+    ]) {
+      assert.ok(!out.includes(secret), `${secret} leaked:\n${out}`);
+    }
+
+    // The statements stay readable, and the monitor's own lines are untouched.
+    assert.match(out, /^ {2}card = \?,$/m);
+    assert.match(out, /^ {2}email = "\?",$/m);
+    assert.match(out, /^WHERE id = \?$/m);
+    assert.match(out, /^ {2}\(\?, \?, "\?"\),$/m);
+    assert.match(
+      out,
+      /^---TRANSACTION 1233, ACTIVE 3 sec starting index read$/m,
+    );
+    assert.match(
+      out,
+      /^MySQL thread id 10, OS thread handle 142, query id 70 localhost app updating$/m,
+    );
+    assert.match(
+      out,
+      /^Trx read view will not see trx with id >= 1232, sees < 1232$/m,
+    );
+    assert.match(out, /^I\/O thread 0 state: waiting/m);
+  });
+
+  test("normalizeInnodbStatusStatements: only what follows a thread line, up to the monitor's next line", () => {
+    assert.strictEqual(
+      normalizeInnodbStatusStatements(
+        [
+          "---TRANSACTION 7, ACTIVE 2 sec",
+          "MySQL thread id 3, OS thread handle 9, query id 4 localhost app",
+          "SELECT *",
+          "  FROM t",
+          '  WHERE a IN (1, 2) AND b = "x"',
+          "Trx read view will not see trx with id >= 7, sees < 7",
+          "---TRANSACTION 8, not started",
+          "MySQL thread id 5, OS thread handle 10, query id 6 localhost app",
+          "---TRANSACTION 9, not started",
+        ].join("\n"),
+      ),
+      [
+        "---TRANSACTION 7, ACTIVE 2 sec",
+        "MySQL thread id 3, OS thread handle 9, query id 4 localhost app",
+        "SELECT *",
+        "  FROM t",
+        '  WHERE a IN (?, ?) AND b = "?"',
+        "Trx read view will not see trx with id >= 7, sees < 7",
+        "---TRANSACTION 8, not started",
+        "MySQL thread id 5, OS thread handle 10, query id 6 localhost app",
+        "---TRANSACTION 9, not started",
+      ].join("\n"),
+    );
+    assert.strictEqual(normalizeInnodbStatusStatements(""), "");
   });
 });
 

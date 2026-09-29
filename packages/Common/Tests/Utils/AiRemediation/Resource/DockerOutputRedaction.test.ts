@@ -120,8 +120,98 @@ describe("docker: the pretty service inspect Env line", () => {
   });
 
   test("the docker program has both hooks", () => {
-    expect(getResourceOutputRedactionHooks("docker").length).toBeGreaterThanOrEqual(
-      2,
+    expect(
+      getResourceOutputRedactionHooks("docker").length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("docker: a pretty Env block a multi-line value spread over several lines", () => {
+  /*
+   * The CLI's template prints each entry raw, so the newlines inside
+   * CA_CERT's value push the rest of the list onto the following lines.
+   */
+  const MULTI_LINE_ENV: string = [
+    "",
+    "ID:\t\tx2k9mvq3",
+    "Name:\t\tapp_web",
+    "Service Mode:\tReplicated",
+    " Replicas:\t3",
+    "ContainerSpec:",
+    " Image:\t\tapp:1.4",
+    " Env:\t\tCA_CERT=-----BEGIN CERTIFICATE-----",
+    "MIIBabcCertBody",
+    "-----END CERTIFICATE----- DATABASE=prod-db-01:5432/app?pw=Tr0ub4dor APP_CONFIG=eyJhcGkiOiJ4In0 STRIPE=sk_live_abcdef123 ",
+    " Dir:\t\t/srv/app",
+    "Resources:",
+    " Limits:",
+    "  Memory:\t512MiB",
+    "Endpoint Mode:\tvip",
+  ].join("\n");
+
+  test("masks every entry after the multi-line value, and the value's own lines", () => {
+    const redacted: string = redact(MULTI_LINE_ENV);
+
+    for (const value of [
+      "Tr0ub4dor",
+      "prod-db-01",
+      "eyJhcGkiOiJ4In0",
+      "sk_live_abcdef123",
+      "MIIBabcCertBody",
+      "END CERTIFICATE",
+    ]) {
+      expect(redacted).not.toContain(value);
+    }
+
+    expect(redacted).toContain(
+      " Env:\t\tCA_CERT=[redacted] DATABASE=[redacted] APP_CONFIG=[redacted] STRIPE=[redacted]",
+    );
+  });
+
+  test("the lines the template starts after the Env block stay readable", () => {
+    const redacted: string = redact(MULTI_LINE_ENV);
+
+    expect(redacted).toContain(" Image:\t\tapp:1.4");
+    expect(redacted).toContain(" Dir:\t\t/srv/app");
+    expect(redacted).toContain("  Memory:\t512MiB");
+    expect(redacted).toContain("Endpoint Mode:\tvip");
+  });
+
+  test("a private key in an env value leaves none of its lines, nor the entries after it", () => {
+    const redacted: string = redact(
+      [
+        "ContainerSpec:",
+        " Image:\t\tapp:1",
+        " Env:\t\tTLS_KEY=-----BEGIN PRIVATE KEY-----",
+        "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7",
+        "Zm9vYmFyYmF6cXV4",
+        "-----END PRIVATE KEY----- NEXT_SETTING=plainvalue ",
+        "Endpoint Mode:\tvip",
+      ].join("\n"),
+    );
+
+    expect(redacted).not.toContain("Zm9vYmFyYmF6cXV4");
+    expect(redacted).not.toContain(
+      "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7",
+    );
+    expect(redacted).not.toContain("plainvalue");
+    expect(redacted).toContain(
+      " Env:\t\tTLS_KEY=[redacted] NEXT_SETTING=[redacted]",
+    );
+    expect(redacted).toContain("Endpoint Mode:\tvip");
+  });
+
+  test("with no section after it, the Env block runs to the end of the text", () => {
+    const redacted: string = redact(
+      "ContainerSpec:\n Env:\t\tA=first\nline two B=second",
+    );
+
+    expect(redacted).toBe("ContainerSpec:\n Env:\t\tA=[redacted] B=[redacted]");
+  });
+
+  test("outside a ContainerSpec section only the Env line itself is masked", () => {
+    expect(redact(" Env:\tMODE=prod\nnext line stays")).toBe(
+      " Env:\tMODE=[redacted]\nnext line stays",
     );
   });
 });
@@ -131,31 +221,34 @@ describe("docker: inspect JSON Env lists", () => {
     DOCKER_TYPES.map((type: AiResourceType) => {
       return [type];
     }),
-  )("%s: container inspect keeps names and masks values", (type: AiResourceType) => {
-    const redacted: string = redact(
-      [
-        "[{",
-        '  "Name": "/web",',
-        '  "Config": {',
-        '    "Env": [',
-        '      "APP_CONFIG=eyJob3N0IjoiZGIifQ",',
-        '      "DATABASE_URL=postgres://app:hunter2@db:5432/app",',
-        '      "PATH=/usr/local/bin:/usr/bin"',
-        "    ],",
-        '    "Image": "nginx:1.27"',
-        "  }",
-        "}]",
-      ].join("\n"),
-      type,
-    );
+  )(
+    "%s: container inspect keeps names and masks values",
+    (type: AiResourceType) => {
+      const redacted: string = redact(
+        [
+          "[{",
+          '  "Name": "/web",',
+          '  "Config": {',
+          '    "Env": [',
+          '      "APP_CONFIG=eyJob3N0IjoiZGIifQ",',
+          '      "DATABASE_URL=postgres://app:hunter2@db:5432/app",',
+          '      "PATH=/usr/local/bin:/usr/bin"',
+          "    ],",
+          '    "Image": "nginx:1.27"',
+          "  }",
+          "}]",
+        ].join("\n"),
+        type,
+      );
 
-    expect(redacted).toContain(`"APP_CONFIG=${RESOURCE_REDACTED_MARKER}"`);
-    expect(redacted).toContain(`"DATABASE_URL=${RESOURCE_REDACTED_MARKER}"`);
-    expect(redacted).toContain(`"PATH=${RESOURCE_REDACTED_MARKER}"`);
-    expect(redacted).toContain('"Image": "nginx:1.27"');
-    expect(redacted).not.toContain("hunter2");
-    expect(redacted).not.toContain("eyJob3N0IjoiZGIifQ");
-  });
+      expect(redacted).toContain(`"APP_CONFIG=${RESOURCE_REDACTED_MARKER}"`);
+      expect(redacted).toContain(`"DATABASE_URL=${RESOURCE_REDACTED_MARKER}"`);
+      expect(redacted).toContain(`"PATH=${RESOURCE_REDACTED_MARKER}"`);
+      expect(redacted).toContain('"Image": "nginx:1.27"');
+      expect(redacted).not.toContain("hunter2");
+      expect(redacted).not.toContain("eyJob3N0IjoiZGIifQ");
+    },
+  );
 
   test("service inspect JSON masks the ContainerSpec's Env, previous spec included", () => {
     const redacted: string = redact(
@@ -170,8 +263,46 @@ describe("docker: inspect JSON Env lists", () => {
 
   test("image inspect Env is masked too", () => {
     expect(
-      redact('{"Config":{"Env":["NODE_VERSION=22.1.0"]}}', AiResourceType.DockerHost),
+      redact(
+        '{"Config":{"Env":["NODE_VERSION=22.1.0"]}}',
+        AiResourceType.DockerHost,
+      ),
     ).toBe('{"Config":{"Env":["NODE_VERSION=[redacted]"]}}');
+  });
+
+  test("an Env list escaped inside a label keeps its walker in step past an entry's escaped quote", () => {
+    const inner: string = JSON.stringify({
+      Env: [
+        'A=pa"ss',
+        "SESSION_SIGNING=zq8Xv0PlmN3k",
+        "PLAIN=hello world",
+        "BACKSLASH=C:\\dir\\",
+        "AFTER=still-masked",
+      ],
+    });
+    const text: string = JSON.stringify({
+      Config: { Labels: { "com.example.spec": inner }, Image: "app:1" },
+    });
+
+    const redacted: string = redact(text, AiResourceType.DockerHost);
+
+    for (const value of [
+      "zq8Xv0PlmN3k",
+      "hello world",
+      'pa\\\\\\"ss',
+      "C:\\\\\\\\dir",
+      "still-masked",
+    ]) {
+      expect(redacted).not.toContain(value);
+    }
+
+    expect(redacted).toContain('\\"SESSION_SIGNING=[redacted]\\"');
+    expect(redacted).toContain('\\"AFTER=[redacted]\\"');
+    expect(redacted).toContain('"Image":"app:1"');
+    // The masked label is still one well-formed JSON document.
+    expect(() => {
+      return JSON.parse(redacted);
+    }).not.toThrow();
   });
 });
 
@@ -248,7 +379,7 @@ describe("docker: the generic rules cover the rest", () => {
 
   test("ordinary docker ps output passes through unchanged", () => {
     const text: string =
-      "CONTAINER ID   IMAGE        COMMAND                  STATUS          NAMES\n3f2a9c1b7d4e   nginx:1.27   \"/docker-entrypoint.…\"   Up 3 hours      web";
+      'CONTAINER ID   IMAGE        COMMAND                  STATUS          NAMES\n3f2a9c1b7d4e   nginx:1.27   "/docker-entrypoint.…"   Up 3 hours      web';
 
     expect(redact(text, AiResourceType.DockerHost)).toBe(text);
   });

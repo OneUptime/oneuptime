@@ -402,6 +402,10 @@ describe("isDatabaseCredentialSettingName", () => {
   test.each([
     ["requirepass", true],
     ["masterauth", true],
+    // Valkey 8+ names masterauth primaryauth (and CONFIG GET * lists both)
+    ["primaryauth", true],
+    ["PRIMARYAUTH", true],
+    ["sentinel-masterauth", true],
     ["password_encryption", true],
     ["tls-key-file-pass", true],
     ["ssl_key_file", true],

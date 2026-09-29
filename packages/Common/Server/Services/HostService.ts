@@ -4,6 +4,7 @@ import HostOwnerRuleEngineService from "./HostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Host";
 import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ResourceAiAccessSettings, {
@@ -126,6 +127,13 @@ export class Service extends DatabaseService<Model> {
   public async findOrCreateByHostIdentifier(data: {
     projectId: ObjectID;
     hostIdentifier: string;
+    /*
+     * Skip the in-process memo and look the row up (the memo is then
+     * refreshed with what was found or created). For a caller that learned
+     * the memoed id names a host deleted since: the memo is never
+     * invalidated by a delete, so it keeps that id for up to its TTL.
+     */
+    bypassMemo?: boolean | undefined;
   }): Promise<Model> {
     /*
      * Canonicalize the identifier (trim + lowercase, matching
@@ -148,8 +156,9 @@ export class Service extends DatabaseService<Model> {
      * the resolving call performed within the last minute.
      */
     const memoKey: string = `${data.projectId.toString()}:${hostIdentifier}`;
-    const memoedResolution: HostResolution | undefined =
-      hostResolutionInProcessMemo.get(memoKey);
+    const memoedResolution: HostResolution | undefined = data.bypassMemo
+      ? undefined
+      : hostResolutionInProcessMemo.get(memoKey);
     if (memoedResolution) {
       const memoedHost: Model = new Model();
       memoedHost._id = memoedResolution.hostIdStr;
@@ -778,6 +787,25 @@ export class Service extends DatabaseService<Model> {
     });
 
     return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new host starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.Host,
+      createBy,
+    });
+
+    return { createBy, carryForward: null };
   }
 
   /*

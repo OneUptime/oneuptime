@@ -62,7 +62,7 @@ services:
     # default network reaches whenever this machine does. If mon_host names
     # addresses only this host itself reaches (127.0.0.1 on a monitor host),
     # uncomment to share the host's network — the agent's status port 3877 is
-    # then open on the host (set PORT in environment to move it).
+    # then taken on the host's 127.0.0.1 (set PORT in environment to move it).
     # network_mode: host
     environment:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
@@ -80,6 +80,10 @@ services:
       - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
       - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
       - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides CEPH_CLUSTER_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3877/status/live"]
       interval: 30s

@@ -118,7 +118,8 @@ if [ -f "$ENV_FILE" ]; then
                 VCENTER_INSECURE_SKIP_VERIFY VCENTER_COLLECTION_INTERVAL \
                 ONEUPTIME_AI_ALLOW_WRITES ONEUPTIME_AI_VCENTER_USERNAME \
                 ONEUPTIME_AI_VCENTER_PASSWORD ONEUPTIME_AI_WRITE_TARGETS \
-                ONEUPTIME_AI_PROTECTED_TARGETS VCENTER_CA_FILE GOVC_DATACENTER; do
+                ONEUPTIME_AI_PROTECTED_TARGETS VCENTER_CA_FILE GOVC_DATACENTER \
+                ONEUPTIME_AI_AGENT_RESOURCE_NAME LOG_LEVEL; do
         if [ -z "${!name}" ]; then
             printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
         fi
@@ -212,9 +213,10 @@ if [ -z "$ONEUPTIME_AI_ALLOW_WRITES" ] && [ "$REUSED_ENV" = 0 ]; then
             echo ""
         fi
         if [ -z "$ONEUPTIME_AI_PROTECTED_TARGETS" ]; then
-            echo "VMs OneUptime AI must never change, comma-separated — at least the VM this"
-            echo "agent runs on, if it runs inside this vCenter (the vCenter appliance named"
-            echo "after the endpoint's host is always protected)."
+            echo "VMs OneUptime AI must never change, comma-separated: the VM this agent runs"
+            echo "on, if it runs inside this vCenter, and the vCenter appliance's own VM unless"
+            echo "it is named after the endpoint's host name (\"vcsa\" for https://vcsa.example.com)."
+            echo "An endpoint given as an IP address protects no VM on its own."
             read -rp "Protected VMs [none]: " ONEUPTIME_AI_PROTECTED_TARGETS
         fi
     fi
@@ -260,6 +262,8 @@ ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_WRITE_TARGETS")
 ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_PROTECTED_TARGETS")
 VCENTER_CA_FILE=$(compose_env_quote "$VCENTER_CA_FILE")
 GOVC_DATACENTER=$(compose_env_quote "$GOVC_DATACENTER")
+ONEUPTIME_AI_AGENT_RESOURCE_NAME=$(compose_env_quote "$ONEUPTIME_AI_AGENT_RESOURCE_NAME")
+LOG_LEVEL=$(compose_env_quote "$LOG_LEVEL")
 ENVEOF
 chmod 600 "$ENV_FILE"
 

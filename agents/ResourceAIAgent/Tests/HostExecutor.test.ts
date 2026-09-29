@@ -35,6 +35,7 @@ import HostExecutor, {
   hasNoPagerFlag,
   parseHostnameOutput,
   parseOsReleasePrettyName,
+  parseProcCgroupUnits,
   parseProcStatParentPid,
   parseSystemdVersion,
 } from "../Executors/HostExecutor";
@@ -62,11 +63,15 @@ import FakeBinary, {
 import { fakePolicy } from "./Helpers/FakeExecutor";
 import FakeNsenter, {
   AGENT_PID,
+  COLLECTOR_PID,
   CONTAINER_NAMESPACE,
+  DEFAULT_CGROUPS,
+  DOCKERD_PID,
   FakeHostReply,
   HOST_NAMESPACE,
   HostProcLayout,
   HostResponder,
+  NGINX_PID,
   SYSTEMD_VERSION_OUTPUT,
   execFailure,
   healthyHost,
@@ -544,6 +549,33 @@ describe("describeHostAccessProblem", () => {
 });
 
 describe("reading /proc", () => {
+  test("the units a process runs in, from /proc/<pid>/cgroup", () => {
+    assert.deepStrictEqual(
+      parseProcCgroupUnits("0::/system.slice/docker.service\n"),
+      ["system.slice", "docker.service"],
+    );
+    assert.deepStrictEqual(
+      parseProcCgroupUnits(
+        "12:pids:/system.slice/nginx.service\n1:name=systemd:/system.slice/nginx.service\n0::/\n",
+      ),
+      ["system.slice", "nginx.service"],
+    );
+    assert.deepStrictEqual(
+      parseProcCgroupUnits("0::/../../system.slice/otelcol.service\n"),
+      ["system.slice", "otelcol.service"],
+    );
+    assert.deepStrictEqual(
+      parseProcCgroupUnits("0::/system.slice/docker-3f2a9c1b7d4e.scope\n"),
+      ["system.slice", "docker-3f2a9c1b7d4e.scope"],
+    );
+    assert.deepStrictEqual(
+      parseProcCgroupUnits("0::/user.slice/user-1000.slice/session-2.scope\n"),
+      ["user.slice", "user-1000.slice", "session-2.scope"],
+    );
+    assert.deepStrictEqual(parseProcCgroupUnits("0::/\n"), []);
+    assert.deepStrictEqual(parseProcCgroupUnits(""), []);
+  });
+
   test("the parent pid of /proc/<pid>/stat, whatever the command name holds", () => {
     assert.strictEqual(
       parseProcStatParentPid("4242 (node) S 4200 4242 4242 0 -1"),
@@ -951,6 +983,58 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
         config: { ...WRITES, ONEUPTIME_AI_PROTECTED_TARGETS: "postgresql*" },
       }).executor.prepare(request("systemctl restart postgresql")),
       /would change postgresql\.service, which the Host AI agent protects \(postgresql\*\)/,
+    );
+  });
+
+  test("a process is protected by the unit it runs in: kill cannot reach what systemctl may not", () => {
+    const layout: HostProcLayout = {
+      cgroups: {
+        ...DEFAULT_CGROUPS,
+        // cgroup v1, and a private cgroup namespace's "../.." steps.
+        910: "12:pids:/system.slice/oneuptime-infrastructure-agent.service\n1:name=systemd:/system.slice/oneuptime-infrastructure-agent.service\n",
+        911: "0::/../../system.slice/otelcol.service\n",
+        912: "0::/system.slice/system-postgresql.slice/postgresql@16-main.service\n",
+      },
+    };
+    const built: Built = build({
+      config: { ...WRITES, ONEUPTIME_AI_PROTECTED_TARGETS: "postgresql*" },
+      runtime: "docker",
+      proc: layout,
+    });
+
+    for (const [pid, unit, protectedBy] of [
+      [DOCKERD_PID, "docker.service", "docker.service"],
+      [COLLECTOR_PID, "otelcol-contrib.service", "otelcol-contrib.service"],
+      [910, "oneuptime-infrastructure-agent.service", "oneuptime-*"],
+      [911, "otelcol.service", "otelcol.service"],
+      [912, "postgresql@16-main.service", "postgresql*"],
+    ] as Array<[number, string, string]>) {
+      expectRefused(
+        built.executor.prepare(request(`kill -KILL ${pid}`)),
+        new RegExp(
+          `^Refused by the Host AI agent: process ${pid} runs in ${unit.replace(
+            /\./g,
+            "\\.",
+          )}\\. .* which the Host AI agent protects \\(${protectedBy
+            .replace(/\./g, "\\.")
+            .replace(/\*/g, "\\*")}\\)`,
+        ),
+      );
+    }
+
+    // Several pids: one protected among them refuses the lot.
+    expectRefused(
+      built.executor.prepare(request(`kill -TERM ${NGINX_PID} ${DOCKERD_PID}`)),
+      /process 900 runs in docker\.service/,
+    );
+    expectPrepared(built.executor.prepare(request(`kill -TERM ${NGINX_PID}`)));
+    assert.deepStrictEqual(built.nsenter.calls, []);
+  });
+
+  test("a pid the host has no process for is refused: the agent does not change what it cannot identify", () => {
+    expectRefused(
+      build({ config: WRITES }).executor.prepare(request("kill -TERM 55555")),
+      /"kill -TERM 55555" would change process 55555, and the agent could not read which unit it runs in \(\/proc\/55555\/cgroup\)/,
     );
   });
 

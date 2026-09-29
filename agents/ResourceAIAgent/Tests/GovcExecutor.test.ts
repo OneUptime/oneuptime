@@ -21,6 +21,7 @@ import GovcExecutor, {
   classifyGovcFailure,
   describeGovcAboutVersion,
   describeGovcFailure,
+  findEverythingProtectingEntries,
   findProtectedGovcTarget,
   getCaFileProblem,
   getEndpointProtectedTargets,
@@ -648,8 +649,8 @@ describe("prepare: the shared guard runs first", () => {
     ],
     [
       "a fix during an investigation",
-      request(["govc", "vm.power", "-on", "web-01"]),
-      /an investigation may only run read-only commands, and "govc vm\.power -on web-01" is SafeWrite/,
+      request(["govc", "vm.power", "-on", "/DC/vm/web-01"]),
+      /an investigation may only run read-only commands, and "govc vm\.power -on \/DC\/vm\/web-01" is SafeWrite/,
     ],
     [
       "a fix the server sent as a lower tier than it is",
@@ -698,7 +699,8 @@ describe("prepare: the shared guard runs first", () => {
       }).prepare(remediation(["govc", "vm.power", "-on", "web-01"])),
     );
 
-    assert.strictEqual(prepared.tier, ResourceCommandTier.SafeWrite);
+    // A bare name is every VM that has it, so a power-on by name needs approval.
+    assert.strictEqual(prepared.tier, ResourceCommandTier.RiskyWrite);
     assert.strictEqual(prepared.displayCommand, "govc vm.power -on web-01");
   });
 
@@ -765,15 +767,82 @@ describe("prepare: govc's own checks", () => {
       /would change vcsa, which the VMware AI agent protects \(vcsa\)/,
     );
 
-    // A path: only the executor's own check sees it is the same VM.
-    const refusal: string = expectRefused(
+    /*
+     * A path: the shared write-scope rule reads it by the VM's own name too
+     * (the policy's isProtectedGovcTarget), so OneUptime refuses it before
+     * it is enqueued, exactly as the agent does.
+     */
+    expectRefused(
       exec.prepare(
         remediation(["govc", "vm.power", "-off", "/DC/vm/infra/vcsa"], {}),
       ),
       /"govc vm\.power -off \/DC\/vm\/infra\/vcsa" would change \/DC\/vm\/infra\/vcsa, which the VMware AI agent protects \(vcsa\)/,
     );
-    assert.match(refusal, /whatever inventory path names it\.$/);
     assert.strictEqual(govc.requestedBinaries.length, 0);
+  });
+
+  test("a VM or host named by its managed object reference is refused: govc would reach it whatever it is called", () => {
+    const exec: GovcExecutor = executor({
+      config: { ...WRITES_ON, ONEUPTIME_AI_PROTECTED_TARGETS: "db-prod" },
+    });
+
+    for (const argv of [
+      ["govc", "vm.power", "-r", "vm-42"],
+      ["govc", "vm.power", "-on", "vm-42"],
+      ["govc", "vm.power", "-off", "VirtualMachine:vm-42"],
+      ["govc", "host.maintenance.exit", "host-12"],
+      ["govc", "host.maintenance.enter", "HostSystem:host-12"],
+    ]) {
+      expectRefused(
+        exec.prepare(remediation(argv, {}, { tier: "RiskyWrite" })),
+        /is a managed object reference, which govc resolves to whatever object it is/,
+      );
+    }
+    assert.strictEqual(govc.requestedBinaries.length, 0);
+  });
+
+  test("OneUptime and the agent refuse the same writes as protected", () => {
+    const protectedTargets: Array<string> = [
+      "vcsa.example.com",
+      "vcsa",
+      "critical-db",
+      "db-*",
+    ];
+    const exec: GovcExecutor = executor({
+      config: {
+        ...WRITES_ON,
+        ONEUPTIME_AI_PROTECTED_TARGETS: "critical-db,db-*",
+      },
+    });
+
+    for (const argv of [
+      ["govc", "vm.power", "-off", "/DC/vm/infra/vcsa"],
+      ["govc", "vm.power", "-off", "/DC/vm/critical-db"],
+      ["govc", "vm.power", "-r", "/DC/host/cl/Resources/DB-7"],
+      ["govc", "vm.power", "-off", "/DC/vm/web/web-01"],
+      ["govc", "vm.power", "-off", "vcsa"],
+      ["govc", "host.maintenance.exit", "esx-01"],
+    ]) {
+      const policy: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateArgv({
+          resourceType: AiResourceType.VMwareVCenter,
+          argv,
+        });
+      const server: string | null = ResourceCommandPolicy.getWriteScopeRefusal({
+        result: policy,
+        allowWrites: true,
+        writeTargets: [],
+        protectedTargets,
+        resourceType: AiResourceType.VMwareVCenter,
+      });
+      const agent: PrepareResult = exec.prepare(remediation(argv));
+
+      assert.strictEqual(
+        server !== null,
+        agent.refusal !== null,
+        `${argv.join(" ")}: server ${server}, agent ${agent.refusal}`,
+      );
+    }
   });
 
   test("ONEUPTIME_AI_PROTECTED_TARGETS entries protect a VM under any path, with globs", () => {
@@ -809,9 +878,7 @@ describe("prepare: govc's own checks", () => {
       executor({
         config: WRITES_ON,
         env: { VCENTER_ENDPOINT: "https://esxi01.example.com" },
-      }).prepare(
-        remediation(["govc", "host.maintenance.enter", "/DC/host/esxi01"]),
-      ),
+      }).prepare(remediation(["govc", "host.maintenance.enter", "esxi01"])),
       /protects \(esxi01\)/,
     );
   });
@@ -825,6 +892,81 @@ describe("prepare: govc's own checks", () => {
     assert.deepStrictEqual(exec.getProtectedTargets(), []);
     expectPrepared(
       exec.prepare(remediation(["govc", "vm.power", "-r", "vcsa"])),
+    );
+  });
+
+  test("with fixes allowed, an IP endpoint is a start-up warning: the appliance must be listed by hand", () => {
+    for (const endpoint of ["https://10.0.0.5", "https://[fd00::1]:8443"]) {
+      const logger: ReturnType<typeof recordingLogger> = recordingLogger();
+
+      executor({
+        logger,
+        config: WRITES_ON,
+        env: { VCENTER_ENDPOINT: endpoint },
+      });
+
+      assert.strictEqual(logger.records.length, 1, endpoint);
+      assert.strictEqual(logger.records[0]!.level, "warn");
+      assert.match(
+        logger.records[0]!.message,
+        /^VCENTER_ENDPOINT reaches vCenter by its IP address \((10\.0\.0\.5|fd00::1)\), so the VMware AI agent cannot tell which VM is the vCenter appliance and does not protect it on its own\. Put the appliance's VM name in ONEUPTIME_AI_PROTECTED_TARGETS, unless it is there already\.$/,
+      );
+    }
+
+    // Read-only, the appliance cannot be changed anyway; by host name, it is protected.
+    for (const setup of [
+      { config: {}, env: { VCENTER_ENDPOINT: "https://10.0.0.5" } },
+      {
+        config: WRITES_ON,
+        env: { VCENTER_ENDPOINT: "https://vcsa.example.com" },
+      },
+      { config: WRITES_ON, env: { VCENTER_ENDPOINT: "" } },
+    ]) {
+      const logger: ReturnType<typeof recordingLogger> = recordingLogger();
+
+      executor({ logger, ...setup });
+
+      assert.deepStrictEqual(logger.records, [], JSON.stringify(setup));
+    }
+  });
+
+  test("a protected entry written as a folder glob protects everything, and the agent says so at start-up", () => {
+    const logger: ReturnType<typeof recordingLogger> = recordingLogger();
+    const exec: GovcExecutor = executor({
+      logger,
+      config: {
+        ...WRITES_ON,
+        ONEUPTIME_AI_PROTECTED_TARGETS: "/DC/vm/infra/*,db-*,/DC/vm/web/web-01",
+      },
+    });
+
+    assert.deepStrictEqual(
+      logger.records.map((record: { level: string }): string => {
+        return record.level;
+      }),
+      ["warn"],
+    );
+    assert.match(
+      logger.records[0]!.message,
+      /^ONEUPTIME_AI_PROTECTED_TARGETS entry "\/DC\/vm\/infra\/\*" is read by the object's own name — its last path segment, "\*" — .* so it protects every VM and host, and no fix will run\./,
+    );
+
+    // As it says: every fix is refused, by OneUptime and the agent alike.
+    expectRefused(
+      exec.prepare(
+        remediation(["govc", "vm.power", "-r", "/DC/vm/app/app-01"]),
+      ),
+      /protects \(\/DC\/vm\/infra\/\*\)/,
+    );
+    assert.deepStrictEqual(
+      findEverythingProtectingEntries([
+        "/DC/vm/infra/*",
+        "/DC/vm/infra/**",
+        "*",
+        "db-*",
+        "/DC/vm/infra/db-*",
+      ]),
+      ["/DC/vm/infra/*", "/DC/vm/infra/**"],
     );
   });
 
@@ -1005,14 +1147,14 @@ describe("run: how govc is started", () => {
 
   test("a fix runs the same way, with its tier", async () => {
     govc.setScript({
-      "vm.power -on web-01": {
+      "vm.power -on /DC/vm/web-01": {
         stdout: "Powering on VirtualMachine:vm-42... OK\n",
       },
     });
 
     const prepared: PreparedCommand = expectPrepared(
       executor({ config: WRITES_ON }).prepare(
-        remediation(["govc", "vm.power", "-on", "web-01"]),
+        remediation(["govc", "vm.power", "-on", "/DC/vm/web-01"]),
       ),
     );
     const result: ExecResult = await prepared.run();
@@ -1026,7 +1168,7 @@ describe("run: how govc is started", () => {
     assert.deepStrictEqual(onlyInvocation().argv, [
       "vm.power",
       "-on",
-      "web-01",
+      "/DC/vm/web-01",
     ]);
   });
 });

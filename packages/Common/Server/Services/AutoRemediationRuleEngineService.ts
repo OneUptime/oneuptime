@@ -276,6 +276,44 @@ export function getResourceRoundNameSnapshot(
   }`;
 }
 
+const RESOURCE_ROUND_NAME_SUFFIX: RegExp = /" \(round (\d+)\)$/;
+
+/*
+ * The round a resource round's server-written name carries (see
+ * getResourceRoundNameSnapshot): N for '... "web-1" (round N)', 1 for
+ * anything else. The suffix always follows the closing quote, so a
+ * resource named 'web (round 2)' is never read as a round 2.
+ */
+export function parseResourceRoundNumber(
+  ruleNameSnapshot: string | undefined | null,
+): number {
+  const match: RegExpExecArray | null = RESOURCE_ROUND_NAME_SUFFIX.exec(
+    ruleNameSnapshot || "",
+  );
+
+  const round: number = match ? parseInt(match[1]!, 10) : 1;
+
+  return Number.isFinite(round) && round > 1 ? round : 1;
+}
+
+/*
+ * Does a resource on this mode run this round of a signal unattended?
+ * Bypass approval runs every round unattended; Automatic runs only the
+ * signal's FIRST round unattended and asks for its follow-ups; every other
+ * mode asks. The rule engine announces a round by it, and the execution
+ * runner and the toolkit re-check it against the LIVE mode — a follow-up
+ * announced under Bypass approval asks once the resource is on Automatic.
+ */
+export function doesResourceModeRunRoundUnattended(
+  mode: ResourceAiRemediationMode | undefined | null,
+  round: number,
+): boolean {
+  return (
+    mode === ResourceAiRemediationMode.BypassApproval ||
+    (round <= 1 && mode === ResourceAiRemediationMode.Automatic)
+  );
+}
+
 // 'Docker host "web-1"' — how a resource round names its resource in copy.
 function describeResourceForFeed(status: ResourceAiAccessStatus): string {
   return `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
@@ -299,6 +337,19 @@ function isRoundOrderedBefore(
   }
 
   return (row.id?.toString() || "") < (reference.suggestionId.toString() || "");
+}
+
+/*
+ * Does any of these suggestions belong to a resource-level round? A signal
+ * with one is in the resource lane, so the cluster lane must not start a
+ * round on it (one AI fix lane per signal).
+ */
+function hasResourceRound(
+  suggestions: Array<AutoRemediationSuggestion>,
+): boolean {
+  return suggestions.some((suggestion: AutoRemediationSuggestion): boolean => {
+    return Boolean(suggestion.resourceId);
+  });
 }
 
 function isSameSubject(
@@ -1171,7 +1222,8 @@ class AutoRemediationRuleEngineServiceClass {
     /*
      * Cluster-level remediation first: an operator who set a mode on the
      * cluster's AI page expressed a more specific intent than any project
-     * rule, and it needs no rule to fire.
+     * rule, and it needs no rule to fire. It starts nothing on a signal an
+     * earlier pass already gave a resource round (one lane per signal).
      */
     const clusterRoundsStarted: number =
       await this.applyClusterLevelRemediation({
@@ -1524,6 +1576,12 @@ class AutoRemediationRuleEngineServiceClass {
    * cluster or being verified on it asks instead (see
    * startClusterCommandRun and findRoundHoldingCluster). Returns how much
    * of the per-subject budget it used.
+   *
+   * One AI fix lane per signal holds both ways: a signal that already has
+   * a resource round (started by an earlier pass, while no linked cluster
+   * was ready) gets no cluster round now — the two would each verify and
+   * roll back on top of the other's change. A signal with no resource
+   * round is unaffected.
    */
   private async applyClusterLevelRemediation(data: {
     projectId: ObjectID;
@@ -1532,6 +1590,10 @@ class AutoRemediationRuleEngineServiceClass {
     budget: number;
   }): Promise<number> {
     let consumed: number = 0;
+
+    if (hasResourceRound(data.existingSuggestions)) {
+      return 0;
+    }
 
     let statuses: Array<KubernetesClusterAiAccessStatus> = [];
 
@@ -1643,6 +1705,34 @@ class AutoRemediationRuleEngineServiceClass {
       if (priorRounds >= MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT) {
         logger.debug(
           `AutoRemediationRuleEngine: cluster ${data.kubernetesClusterId.toString()} already used ${priorRounds} remediation round(s) on this subject; not asking again.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return false;
+      }
+
+      /*
+       * One AI fix lane per signal: a signal whose resource lane holds it
+       * (see applyClusterLevelRemediation) never gets another cluster
+       * round from here either. A signal with no resource round is
+       * unaffected.
+       */
+      const resourceRounds: Array<AutoRemediationSuggestion> =
+        await AutoRemediationSuggestionService.findBy({
+          query: {
+            ...(linkage.incidentId
+              ? { incidentId: linkage.incidentId }
+              : { alertId: linkage.alertId! }),
+            resourceId: QueryHelper.notNull(),
+          },
+          props: { isRoot: true },
+          select: { _id: true, resourceId: true },
+          limit: 1,
+          skip: 0,
+        });
+
+      if (hasResourceRound(resourceRounds)) {
+        logger.debug(
+          `AutoRemediationRuleEngine: this subject already has a resource AI round; not starting another round on cluster ${data.kubernetesClusterId.toString()}.`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
         return false;
@@ -2067,10 +2157,10 @@ class AutoRemediationRuleEngineServiceClass {
 
     const isBypass: boolean =
       resource.aiRemediationMode === ResourceAiRemediationMode.BypassApproval;
-    const wantsUnattended: boolean =
-      isBypass ||
-      (data.round === 1 &&
-        resource.aiRemediationMode === ResourceAiRemediationMode.Automatic);
+    const wantsUnattended: boolean = doesResourceModeRunRoundUnattended(
+      resource.aiRemediationMode,
+      data.round,
+    );
 
     let askFirstReason: string | null = data.askFirstReason || null;
 

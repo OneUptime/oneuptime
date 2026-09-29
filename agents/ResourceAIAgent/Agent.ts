@@ -34,7 +34,7 @@ import {
   enableProxyFromEnvironment,
 } from "./Proxy";
 import { AgentIdentity, AgentSession } from "./Registration";
-import { SleepFunction } from "./Sleep";
+import { SleepFunction, sleep as defaultSleep } from "./Sleep";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
@@ -58,7 +58,9 @@ import {
  *   3. stop here, logging what is missing, when a required setting is not
  *      set — the container stays up and says so, it never restarts in a
  *      loop;
- *   4. a Host without HOST_NAME asks its executor for the host's own name;
+ *   4. a Host without HOST_NAME asks its executor for the host's own name
+ *      — and, when that fails (nsenter slow or failing at boot), stays
+ *      misconfigured and asks again, backing off, until it gets one;
  *   5. register with OneUptime (retried forever), then heartbeat and claim
  *      commands.
  *
@@ -92,6 +94,14 @@ export const DEFAULT_SHUTDOWN_GRACE_MS: number = 6_000;
 export const DISCONNECT_TIMEOUT_MS: number = 2_000;
 
 /*
+ * When the executor could not read the resource's own name at start-up,
+ * how long until it is asked again: doubling from the first wait up to the
+ * last, for as long as the agent runs.
+ */
+export const IDENTITY_RETRY_INITIAL_MS: number = 5_000;
+export const IDENTITY_RETRY_MAX_MS: number = 5 * 60_000;
+
+/*
  * Index.ts exits after this long whatever shutdown is doing: inside
  * Docker's default stop timeout, and after the grace, a cancelled call
  * settling and the sign-off.
@@ -104,6 +114,7 @@ export interface AgentOptions {
   tmpDir?: string | undefined;
   // Overrides PORT (tests listen on 0).
   healthPort?: number | undefined;
+  // Overrides ONEUPTIME_AI_AGENT_HEALTH_HOST.
   healthHost?: string | undefined;
   sleep?: SleepFunction | undefined;
   jobTimings?: Partial<JobTimings> | undefined;
@@ -122,6 +133,12 @@ export interface AgentOptions {
   probeTimeoutMs?: number | undefined;
 }
 
+// Why the agent could not name its resource, and whether asking again could help.
+interface IdentityFailure {
+  problem: string;
+  retry: boolean;
+}
+
 export default class ResourceAiAgent {
   public readonly status: AgentStatus = new AgentStatus();
   public readonly config: AgentConfig;
@@ -136,6 +153,9 @@ export default class ResourceAiAgent {
   private jobLoop: JobLoop | null = null;
   private healthServer: http.Server | null = null;
   private shuttingDown: Promise<void> | null = null;
+  // Asking the executor for the resource's name again, after a failure.
+  private identityRetry: Promise<void> | null = null;
+  private readonly identityRetryAbort: AbortController = new AbortController();
 
   public constructor(private readonly options: AgentOptions) {
     const parsed: ParsedConfig = parseConfig(options.env);
@@ -233,7 +253,7 @@ export default class ResourceAiAgent {
     this.healthServer = await startHealthServer({
       status: this.status,
       port: this.options.healthPort ?? this.config.port,
-      host: this.options.healthHost,
+      host: this.options.healthHost ?? this.config.healthHost,
     });
 
     try {
@@ -255,14 +275,28 @@ export default class ResourceAiAgent {
     }
 
     if (!this.config.resourceIdentifier) {
-      const problem: string | null = await this.resolveIdentity(resourceType);
+      const failure: IdentityFailure | null =
+        await this.resolveIdentity(resourceType);
 
-      if (problem) {
-        this.stayMisconfigured([problem]);
+      if (failure) {
+        this.stayMisconfigured([failure.problem]);
+
+        if (failure.retry) {
+          this.identityRetry = this.retryIdentity(resourceType);
+        }
+
         return;
       }
     }
 
+    await this.startServing(resourceType);
+  }
+
+  /*
+   * Register, heartbeat and claim commands: once the agent knows which
+   * resource it serves.
+   */
+  private async startServing(resourceType: AiResourceType): Promise<void> {
     const posture: AgentPosture = await this.getPosture();
     this.status.posture = posture;
     this.logPosture(posture);
@@ -321,40 +355,112 @@ export default class ResourceAiAgent {
   }
 
   /*
+   * Ask the executor for the resource's name again, waiting longer each
+   * time (IDENTITY_RETRY_INITIAL_MS doubling to IDENTITY_RETRY_MAX_MS),
+   * until it answers — then start serving — or the agent shuts down. A
+   * slow or failing nsenter at boot must not leave a Host agent unusable
+   * until someone restarts it: /status/live stays 200 throughout, so
+   * nothing else would.
+   */
+  private async retryIdentity(resourceType: AiResourceType): Promise<void> {
+    const sleep: SleepFunction = this.options.sleep || defaultSleep;
+    const signal: AbortSignal = this.identityRetryAbort.signal;
+    let delayMs: number = IDENTITY_RETRY_INITIAL_MS;
+    let attempts: number = 1;
+
+    try {
+      while (!this.shuttingDown && !signal.aborted) {
+        await sleep(delayMs, signal);
+
+        if (this.shuttingDown || signal.aborted) {
+          return;
+        }
+
+        attempts++;
+        const failure: IdentityFailure | null = await this.resolveIdentity(
+          resourceType,
+          { quiet: true },
+        );
+
+        if (this.shuttingDown || signal.aborted) {
+          return;
+        }
+
+        if (!failure) {
+          this.status.configProblems = [];
+          this.status.phase = "starting";
+          Logger.info(
+            `Read this ${AI_RESOURCE_TYPE_INFO[resourceType].displayName}'s name after ${attempts} attempts; starting.`,
+          );
+          await this.startServing(resourceType);
+          return;
+        }
+
+        this.status.configProblems = [failure.problem];
+
+        if (!failure.retry) {
+          Logger.error(failure.problem);
+          return;
+        }
+
+        delayMs = Math.min(delayMs * 2, IDENTITY_RETRY_MAX_MS);
+      }
+    } catch (err: unknown) {
+      Logger.error("Could not start after reading the resource's name", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /*
    * The identity from the executor (a Host's own hostname), written into
    * the shared config so the executor and the posture see it too. Returns
-   * the problem to report when there is none.
+   * the problem to report when there is none, and whether asking again
+   * could help (the executor may answer next time; a name that is too long,
+   * or an executor that cannot name the resource at all, will not change).
    */
   private async resolveIdentity(
     resourceType: AiResourceType,
-  ): Promise<string | null> {
+    options: { quiet?: boolean } = {},
+  ): Promise<IdentityFailure | null> {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[resourceType];
     const missing: string = `${info.identityEnvVars.join(" / ")} is not set, and the agent could not read this ${info.displayName}'s name itself. Set it (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to the name the ${info.displayName}'s collector reports.`;
 
     if (typeof this.executor.resolveResourceIdentifier !== "function") {
-      return missing;
+      return { problem: missing, retry: false };
     }
 
+    const retrying: string = `${missing} It asks again, less and less often, until it can.`;
     let resolved: string | null;
 
     try {
       resolved = await this.executor.resolveResourceIdentifier();
     } catch (err: unknown) {
-      Logger.warn(`Could not read this ${info.displayName}'s name`, {
+      const details: Record<string, string> = {
         error: err instanceof Error ? err.message : String(err),
-      });
-      return missing;
+      };
+
+      if (options.quiet) {
+        Logger.debug(`Could not read this ${info.displayName}'s name`, details);
+      } else {
+        Logger.warn(`Could not read this ${info.displayName}'s name`, details);
+      }
+
+      return { problem: retrying, retry: true };
     }
 
     const identifier: string =
       typeof resolved === "string" ? resolved.trim() : "";
 
     if (!identifier) {
-      return missing;
+      return { problem: retrying, retry: true };
     }
 
     if (identifier.length > MAX_POSTURE_STRING_LENGTH) {
-      return `This ${info.displayName}'s own name is ${identifier.length} characters long; OneUptime accepts at most ${MAX_POSTURE_STRING_LENGTH}. Set ${info.identityEnvVars.join(" / ")} (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to a shorter name the collector also reports.`;
+      return {
+        problem: `This ${info.displayName}'s own name is ${identifier.length} characters long; OneUptime accepts at most ${MAX_POSTURE_STRING_LENGTH}. Set ${info.identityEnvVars.join(" / ")} (or ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}) to a shorter name the collector also reports.`,
+        retry: false,
+      };
     }
 
     this.config.resourceIdentifier = identifier;
@@ -394,6 +500,11 @@ export default class ResourceAiAgent {
   private async runShutdown(reason: string): Promise<void> {
     Logger.info("Shutting down", { reason });
     this.status.phase = "stopping";
+    this.identityRetryAbort.abort();
+
+    if (this.identityRetry) {
+      await this.identityRetry;
+    }
 
     const graceMs: number =
       this.options.shutdownGraceMs ?? DEFAULT_SHUTDOWN_GRACE_MS;

@@ -3,8 +3,8 @@ import {
   DATABASE_SERVER_ADDRESS_ENV,
   DATABASE_SERVER_PORT_ENV,
   DATABASE_SYSTEM_ENV,
-  formatDatabaseHost,
   parseTcpPort,
+  resolveDatabaseServerEndpoint,
 } from "../Config";
 import PrepareGuard, { GuardResult, refusalPrefix } from "./PrepareGuard";
 import {
@@ -977,12 +977,20 @@ export default class DatabaseExecutor implements ResourceExecutor {
       details["databaseSystem"] = system.trim().toLowerCase();
     }
 
-    if (typeof address === "string" && address.trim()) {
-      details["serverAddress"] = formatDatabaseHost(address);
+    // The port may also be written in the address ("db.example.com:5433").
+    const endpoint: { host: string; port: number | null } | null =
+      typeof address === "string" && address.trim()
+        ? resolveDatabaseServerEndpoint({ address, port })
+        : null;
+
+    if (endpoint) {
+      details["serverAddress"] = endpoint.host;
     }
 
-    if (port !== null) {
-      details["serverPort"] = port;
+    const effectivePort: number | null = endpoint ? endpoint.port : port;
+
+    if (effectivePort !== null) {
+      details["serverPort"] = effectivePort;
     }
 
     return details;

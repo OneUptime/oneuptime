@@ -45,7 +45,8 @@
  *     (cloud-init user data, OVF environments, passwords) live, and
  *     `vm.info -json` / `host.info -json` load EVERY property of the object
  *     (extraConfig included) — all refused; the text form covers the
- *     useful state.
+ *     useful state. So is `ls -json`: with it govc loads every property of
+ *     each object it lists (a VM's extraConfig, vApp properties and notes).
  *   - `object.collect` must name its properties, and each must be one of
  *     COLLECTABLE_PROPERTIES (runtime state, quick stats, health) — without
  *     a property it prints every property. `find` filters only on the same
@@ -55,25 +56,32 @@
  *     program-spawning (`metric.sample -plot`) and file-reading
  *     (`object.collect -R`) flags are refused.
  *
- * SafeWrite (Automatic remediation runs it unattended) is exactly ONE named
- * VM with a reversible power operation:
- *   - `vm.power -on VM` (a guest shutdown undoes it);
- *   - `vm.power -r VM` — a graceful guest reboot through VMware Tools.
+ * SafeWrite (Automatic remediation runs it unattended) is exactly ONE VM,
+ * named by its inventory path, with a reversible power operation:
+ *   - `vm.power -on /DC/vm/FOLDER/VM` (a guest shutdown undoes it);
+ *   - `vm.power -r /DC/vm/FOLDER/VM` — a graceful guest reboot through
+ *     VMware Tools.
+ * A bare name is not one VM: govc searches the whole VM folder tree for it
+ * and acts on EVERY VM with that name, in any folder, so the same operation
+ * on a bare name is RiskyWrite. A path (anything with a "/") resolves to at
+ * most one VM.
  * RiskyWrite (a human approves unless allowlisted or bypassed):
  * `vm.power -s` (guest shutdown), `-off`, `-reset`, `-suspend` (`-force`
  * only with -off or -reset: with -r or -s it falls back to a hard reset or
  * power-off when Tools is not running), any power operation on more than one
- * VM, and `host.maintenance.exit HOST`. RiskyWrite that ALWAYS needs a human
- * (requiresHuman): `vm.migrate` (vMotion / Storage vMotion) and
- * `host.maintenance.enter HOST` (every VM on the host must move).
+ * VM or on a bare name, and `host.maintenance.exit HOST`. RiskyWrite that
+ * ALWAYS needs a human (requiresHuman): `vm.migrate` (vMotion / Storage
+ * vMotion) and `host.maintenance.enter HOST` (every VM on the host must
+ * move). The maintenance commands take the host's bare NAME only: govc
+ * applies them to every host of a cluster that an inventory path names,
+ * while a bare name only ever matches hosts.
  *
  * A write names its objects as arguments — a VM or host name, or an
  * inventory path, exactly as written (those are its targets, which the
  * agent's write scope compares with its globs). govc expands `*`, `?` and
  * `[...]` in a name to every object that matches, so a write's names are
  * refused unless they name exactly one object each (no wildcards, no
- * backslash, no `.`/`..` path segments). A bare name that several VMs share
- * is resolved by vCenter; the guides tell the model to prefer the path.
+ * backslash, no `.`/`..` path segments).
  *
  * Denied: everything else — the endpoint, credential, TLS, debug and dump
  * flags (-u, -k, -cert, -key, -tls-*, -vim-*, -persist-session, -debug,
@@ -100,6 +108,7 @@ import {
   ResourceCommandPolicyResult,
   ResourceToolPolicy,
   deniedResult,
+  globMatchesTarget,
   renderResourceDisplayCommand,
 } from "./ResourceCommandPolicyCore";
 
@@ -171,6 +180,31 @@ const MAX_DEPTH_REGEX: RegExp = /^(?:0|[1-9][0-9]?)$/;
 // Characters govc expands in an inventory name (path.Match), and its escape.
 const NAME_PATTERN_REGEX: RegExp = /[*?[\]\\]/;
 
+/*
+ * A managed object reference, which govc resolves BEFORE it looks for a name
+ * (govmomi find.Finder: any argument without a "/" that
+ * object.ReferenceFromString reads): "Type:value" ("VirtualMachine:vm-42",
+ * "HostSystem:host-12") and a bare id with one of vCenter's prefixes
+ * ("vm-42", "host-12", "domain-c7", "resgroup-v10"). A write that names one
+ * reaches that object whatever it is called, so the protected targets and
+ * ONEUPTIME_AI_WRITE_TARGETS, which compare names, could not see which
+ * object it changes. A path (anything with a "/") is always looked up by
+ * name.
+ */
+const MANAGED_OBJECT_TYPED_REFERENCE_REGEX: RegExp = /^[A-Za-z][A-Za-z0-9]*:/;
+const MANAGED_OBJECT_ID_REGEX: RegExp =
+  /^(?:datacenter|datastore|domain|dvportgroup|dvs|group|host|network|resgroup|vm)-[A-Za-z]?[0-9]+$/i;
+
+// Is this word a managed object reference govc would resolve as one?
+export function isGovcManagedObjectReference(word: string): boolean {
+  return (
+    typeof word === "string" &&
+    !word.includes("/") &&
+    (MANAGED_OBJECT_TYPED_REFERENCE_REGEX.test(word) ||
+      MANAGED_OBJECT_ID_REGEX.test(word))
+  );
+}
+
 // A vSphere property path: runtime.powerState, summary.quickStats.
 const PROPERTY_PATH_REGEX: RegExp =
   /^[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)*$/;
@@ -237,6 +271,10 @@ function objectNameProblem(name: string): string | null {
 
   if (NAME_PATTERN_REGEX.test(name)) {
     return `"${name}" is a pattern: govc expands * ? [ ] to every object that matches, so name exactly one object (no wildcards or backslashes)`;
+  }
+
+  if (isGovcManagedObjectReference(name)) {
+    return `"${name}" is a managed object reference, which govc resolves to whatever object it is, and the agent protects objects by name: name the VM or host by its name or its full inventory path (/DATACENTER/vm/FOLDER/NAME) instead`;
   }
 
   const segments: Array<string> = name.split("/");
@@ -1006,12 +1044,17 @@ const READ_COMMANDS: ReadonlyMap<string, ReadCommand> = new Map<
       spec: {
         summary: "lists inventory objects",
         flags: flagTable([
-          JSON_FLAG,
           DATACENTER_FLAG,
           ["l", switchFlag("l")],
           ["L", switchFlag("L")],
           ["i", switchFlag("i")],
           ["t", valueFlag("-t TYPE", typeNameProblem)],
+        ]),
+        refusedFlags: refusals([
+          [
+            "json",
+            "with -json govc loads EVERY property of each object it lists (a VM's config.extraConfig, vApp properties and notes included); run govc ls without -json, govc find -json for paths, or govc object.collect -s OBJECT runtime.powerState for state",
+          ],
         ]),
         minArguments: 0,
         maxArguments: UNLIMITED,
@@ -1395,12 +1438,19 @@ function evaluatePower(
   }
 
   const vms: Array<string> = parsed.positionals;
-  const what: string = describeObjects(
-    vms,
-    "virtual machine",
-    "virtual machines",
-  );
-  const safe: boolean = operation.safe && vms.length === 1;
+  /*
+   * A bare name is searched for through the whole VM folder tree, and govc
+   * acts on every VM that has it; a path (with a "/") names at most one.
+   */
+  const bareNames: Array<string> = vms.filter((vm: string): boolean => {
+    return !vm.includes("/");
+  });
+  const what: string =
+    vms.length === 1 && bareNames.length === 1
+      ? `every virtual machine named ${vms[0]} (in any folder)`
+      : describeObjects(vms, "virtual machine", "virtual machines");
+  const safe: boolean =
+    operation.safe && vms.length === 1 && bareNames.length === 0;
 
   let reason: string = operation.describe(what);
 
@@ -1408,8 +1458,12 @@ function evaluatePower(
     reason += "; -force ignores an error about the VM's current power state";
   }
 
-  if (operation.safe && !safe) {
+  if (operation.safe && vms.length > 1) {
     reason += "; a power operation on more than one VM needs approval";
+  } else if (operation.safe && !safe) {
+    reason += `; govc applies a bare name to every VM that has it, so this needs approval: name the VM by its inventory path (/DATACENTER/vm/FOLDER/${vms[0]}) to make it a safe change`;
+  } else if (vms.length > 1 && bareNames.length > 0) {
+    reason += "; each bare name covers every VM that has it, in any folder";
   }
 
   return allowedResult({
@@ -1468,12 +1522,32 @@ function evaluateMigrate(
   });
 }
 
+/*
+ * Why the host of host.maintenance.* is refused, or null. govc applies the
+ * command to every host an argument resolves to, and an inventory path
+ * resolves to a CLUSTER as readily as to a host — every host of which
+ * would change. A bare name is searched for among hosts only, so it is the
+ * one form that names a host and nothing else.
+ */
+function maintenanceHostProblem(host: string, command: string): string | null {
+  if (host.includes("/")) {
+    return `govc ${command} takes the ESXi host's own name, not the inventory path "${host}": govc applies it to every host of a cluster a path names, while a bare name only ever matches hosts. Write the host's name as govc ls /DATACENTER/host/CLUSTER lists it`;
+  }
+
+  return null;
+}
+
 function evaluateMaintenanceEnter(
   argv: Array<string>,
   parsed: ParsedGovcArgs,
   command: string,
 ): ResourceCommandPolicyResult {
   const host: string = parsed.positionals[0] || "";
+  const hostProblem: string | null = maintenanceHostProblem(host, command);
+
+  if (hostProblem) {
+    return deniedResult(argv, hostProblem);
+  }
 
   return allowedResult({
     argv,
@@ -1491,6 +1565,11 @@ function evaluateMaintenanceExit(
   command: string,
 ): ResourceCommandPolicyResult {
   const host: string = parsed.positionals[0] || "";
+  const hostProblem: string | null = maintenanceHostProblem(host, command);
+
+  if (hostProblem) {
+    return deniedResult(argv, hostProblem);
+  }
 
   return allowedResult({
     argv,
@@ -1842,7 +1921,7 @@ function evaluateGovcArgv(argv: Array<string>): ResourceCommandPolicyResult {
 
     return deniedResult(
       argv,
-      `"${command}" comes before the command: govc takes the command first and its flags after it (govc ls -json /DATACENTER/vm, not govc -json ls /DATACENTER/vm)`,
+      `"${command}" comes before the command: govc takes the command first and its flags after it (govc ls -l /DATACENTER/vm, not govc -l ls /DATACENTER/vm)`,
     );
   }
 
@@ -1925,7 +2004,7 @@ function evaluateGovcArgv(argv: Array<string>): ResourceCommandPolicyResult {
 const READ_COMMAND_GUIDE: string = [
   "- Order: `govc COMMAND [FLAGS] [ARGUMENTS]` — the command first, flags right after it, then names or paths (govc ignores flags written after an argument). Quote names with spaces.",
   "- `govc about` and `govc datacenter.info [DC]` — vCenter version and datacenters. Add `-json` where listed below; `-dc DATACENTER` picks the datacenter.",
-  "- `govc ls [-l] [-L] [-i] [-t TYPE] [PATH]...` — browse the inventory: `/DC/vm`, `/DC/host`, `/DC/datastore`, `/DC/network` (-json ok).",
+  "- `govc ls [-l] [-L] [-i] [-t TYPE] [PATH]...` — browse the inventory: `/DC/vm`, `/DC/host`, `/DC/datastore`, `/DC/network` (text only: -json is refused because it loads every property of each object).",
   `- \`govc find [-l] [-i] [-type T] [-name GLOB] [-maxdepth N] [ROOT] [-KEY VALUE]...\` — search (types: m VM, h host, s datastore, c cluster, p pool; -json ok). Filters after ROOT: -type, -name and the properties ${COLLECTABLE_PROPERTY_LIST}, e.g. \`govc find . -type m -runtime.powerState poweredOff\`.`,
   "- `govc vm.info [-r] [-t] VM...` — power state, host, guest OS, IP, VMware Tools (text only: -json and -e are refused because they include extraConfig).",
   "- `govc host.info [-host HOST] [HOST...]` (text only), `govc host.service.ls -host HOST`, `govc host.date.info -host HOST` — ESXi host state, services, clock.",
@@ -1938,19 +2017,63 @@ const READ_COMMAND_GUIDE: string = [
 ].join("\n");
 
 const WRITE_COMMAND_GUIDE: string = [
-  "- `govc vm.power -on VM` and `govc vm.power -r VM` (graceful guest reboot through VMware Tools) on ONE VM: SafeWrite — runs unattended in Automatic mode.",
-  "- `govc vm.power -s VM` (guest shutdown), `-off`, `-reset`, `-suspend` (`-force` only with -off or -reset), and any power operation on more than one VM: RiskyWrite — needs approval unless the resource's allowlist names it or approvals are bypassed.",
-  "- `govc host.maintenance.exit HOST` (one host): RiskyWrite.",
-  "- `govc vm.migrate -host HOST|-pool POOL|-ds DATASTORE VM...` and `govc host.maintenance.enter HOST`: RiskyWrite that always needs a human.",
-  "- Name every VM or host exactly — its name or full inventory path (/DC/vm/FOLDER/NAME), no wildcards (* ? [ ]); prefer the path when names repeat. Flags go before the names; one operation per command.",
+  "- `govc vm.power -on VM` and `govc vm.power -r VM` (graceful guest reboot through VMware Tools) on ONE VM named by its inventory path (`/DC/vm/FOLDER/NAME`): SafeWrite — runs unattended in Automatic mode.",
+  "- `govc vm.power -s VM` (guest shutdown), `-off`, `-reset`, `-suspend` (`-force` only with -off or -reset), any power operation on more than one VM, and any power operation on a bare VM name (govc acts on every VM with that name, in any folder): RiskyWrite — needs approval unless the resource's allowlist names it or approvals are bypassed.",
+  "- `govc host.maintenance.exit HOST` (one host, by its bare name): RiskyWrite.",
+  "- `govc vm.migrate -host HOST|-pool POOL|-ds DATASTORE VM...` and `govc host.maintenance.enter HOST` (bare host name): RiskyWrite that always needs a human.",
+  "- Name every VM exactly — by its full inventory path (/DC/vm/FOLDER/NAME), or its name — and every ESXi host by its name only (a path could name a whole cluster); no wildcards (* ? [ ]) and never a managed object reference (vm-42, VirtualMachine:vm-42). Flags go before the names; one operation per command.",
   "- Refused: vm.destroy/create/clone/change/upgrade/register/unregister, vm.console, snapshot.*, device.*, disk.*, guest.*, datastore.rm/upload/download/cp/mv, host.add/remove/reboot/shutdown/esxcli, permissions/role/sso/session, license, import/export/library, option.set.",
 ].join("\n");
+
+/*
+ * ---------------------------------------------------------------------------
+ * Protected objects
+ * ---------------------------------------------------------------------------
+ */
+
+// The object's own name: the last segment of an inventory path.
+export function govcInventoryName(value: string): string {
+  const segments: Array<string> = (typeof value === "string" ? value : "")
+    .trim()
+    .split("/")
+    .filter((segment: string): boolean => {
+      return segment.length > 0;
+    });
+
+  return segments[segments.length - 1] || "";
+}
+
+/*
+ * Does a protected entry name this target? vCenter reaches one VM by many
+ * inventory paths ("vcsa", "/DC/vm/infra/vcsa", "/DC/host/cluster/Resources/
+ * vcsa"), so both are compared by the object's own name — the last segment
+ * — case-insensitively, with `*` in the entry. An entry written as a path is
+ * therefore read by its last segment too: "/DC/vm/infra/*" protects every
+ * object, because a folder is not something a VM's name can show. The
+ * dispatcher asks this on top of its whole-word comparison, so OneUptime
+ * refuses what the agent refuses, before anyone approves it.
+ */
+export function isProtectedGovcTarget(
+  target: string,
+  protectedTarget: string,
+): boolean {
+  const name: string = govcInventoryName(target).toLowerCase();
+  const protectedName: string =
+    govcInventoryName(protectedTarget).toLowerCase();
+
+  return (
+    name.length > 0 &&
+    protectedName.length > 0 &&
+    (protectedName === name || globMatchesTarget(protectedName, name))
+  );
+}
 
 const GovcCommandPolicy: ResourceToolPolicy = {
   name: "govc",
   programs: [GOVC_PROGRAM],
   readCommandGuide: READ_COMMAND_GUIDE,
   writeCommandGuide: WRITE_COMMAND_GUIDE,
+  isProtectedTarget: isProtectedGovcTarget,
   evaluateArgv(argv: Array<string>): ResourceCommandPolicyResult {
     try {
       return evaluateGovcArgv(argv);

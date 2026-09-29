@@ -768,8 +768,11 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
   let alertFind: jest.SpyInstance;
   let monitorFind: jest.SpyInstance;
   let resolveMonitor: jest.SpyInstance;
+  let loadResources: jest.SpyInstance;
   let linked: Record<string, Array<ObjectID>>;
   let monitors: Array<ObjectID>;
+  // Resource ids that read as archived.
+  let archived: Set<string>;
 
   function relationsOf(
     select: Record<string, unknown>,
@@ -796,6 +799,27 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
   beforeEach(() => {
     linked = {};
     monitors = [];
+    archived = new Set<string>();
+    // Every asked-for resource exists; the archived ones only without the filter.
+    loadResources = jest
+      .spyOn(ResourceAiAccessService, "loadResources")
+      .mockImplementation(
+        async (data: {
+          resources: Array<ResourceAiAccessRef>;
+          excludeArchived?: boolean | undefined;
+        }): Promise<Array<ResourceAiAccessRow>> => {
+          return data.resources
+            .filter((ref: ResourceAiAccessRef): boolean => {
+              return !(data.excludeArchived && archived.has(ref.resourceId));
+            })
+            .map((ref: ResourceAiAccessRef): ResourceAiAccessRow => {
+              return row({
+                resourceType: ref.resourceType,
+                id: new ObjectID(ref.resourceId),
+              });
+            });
+        },
+      );
     incidentFind = jest
       .spyOn(IncidentService, "findOneBy")
       .mockImplementation(async (data: unknown): Promise<never> => {
@@ -1003,6 +1027,112 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
         return ref.resourceType === AiResourceType.DockerHost;
       }),
     ).toHaveLength(6);
+  });
+
+  /*
+   * Regression: the cap used to be taken before archived resources were
+   * dropped, so ten archived Docker hosts (a higher-priority type) hid the
+   * incident's one active host and the investigation was offered nothing.
+   */
+  it("drops archived links before the cap, so an active resource behind ten archived ones is kept", async () => {
+    const archivedDockerHosts: Array<ObjectID> = Array.from(
+      { length: MAX_RESOURCES_PER_SUBJECT },
+      (): ObjectID => {
+        return ObjectID.generate();
+      },
+    );
+    archivedDockerHosts.forEach((id: ObjectID): void => {
+      archived.add(id.toString());
+    });
+    linked = { dockerHosts: archivedDockerHosts, hosts: [HOST_ID] };
+    monitors = [MONITOR_ID];
+
+    const refs: Array<ResourceAiAccessRef> =
+      await ResourceAiAccessService.getResourcesForSubject({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(refs).toEqual([
+      { resourceType: AiResourceType.Host, resourceId: HOST_ID.toString() },
+    ]);
+    for (const call of loadResources.mock.calls) {
+      const data: { projectId: ObjectID; excludeArchived?: boolean } = call[0];
+      expect(data.projectId).toBe(PROJECT_ID);
+      expect(data.excludeArchived).toBe(true);
+    }
+    // A linked resource was active: the monitors are not resolved.
+    expect(resolveMonitor).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the monitors' step configuration when every linked resource is archived", async () => {
+    archived.add(DOCKER_ID.toString());
+    linked = { dockerHosts: [DOCKER_ID] };
+    monitors = [MONITOR_ID];
+
+    const refs: Array<ResourceAiAccessRef> =
+      await ResourceAiAccessService.getResourcesForSubject({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(refs).toEqual([
+      { resourceType: AiResourceType.Host, resourceId: HOST_ID.toString() },
+    ]);
+    expect(resolveMonitor).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves out an archived resource the monitors' step configuration names", async () => {
+    archived.add(HOST_ID.toString());
+    monitors = [MONITOR_ID];
+
+    expect(
+      await ResourceAiAccessService.getResourcesForSubject({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      }),
+    ).toEqual([]);
+  });
+
+  it("reads a long list of archived links in batches, not one read per link", async () => {
+    const archivedHosts: Array<ObjectID> = Array.from(
+      { length: 60 },
+      (): ObjectID => {
+        return ObjectID.generate();
+      },
+    );
+    archivedHosts.forEach((id: ObjectID): void => {
+      archived.add(id.toString());
+    });
+    linked = { hosts: [...archivedHosts, HOST_ID] };
+
+    const refs: Array<ResourceAiAccessRef> =
+      await ResourceAiAccessService.getResourcesForSubject({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(refs).toEqual([
+      { resourceType: AiResourceType.Host, resourceId: HOST_ID.toString() },
+    ]);
+    expect(loadResources).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops reading once the cap is reached", async () => {
+    linked = {
+      hosts: Array.from({ length: 120 }, (): ObjectID => {
+        return ObjectID.generate();
+      }),
+    };
+
+    const refs: Array<ResourceAiAccessRef> =
+      await ResourceAiAccessService.getResourcesForSubject({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(refs).toHaveLength(MAX_RESOURCES_PER_SUBJECT);
+    expect(loadResources).toHaveBeenCalledTimes(1);
   });
 
   it("getStatusesForSubject reads statuses of the linked, unarchived resources only", async () => {

@@ -6,6 +6,7 @@ import {
   testConfig,
 } from "./Helpers/TestSupport";
 import assert from "assert";
+import crypto from "crypto";
 import { EventEmitter } from "events";
 import fs from "fs";
 import path from "path";
@@ -29,15 +30,20 @@ import DockerExecutor, {
   DockerInfoFacts,
   DockerVersionFacts,
   ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+  ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
   buildDockerEnvironment,
   describeDockerFailure,
   describeDockerHost,
+  describeDockerTargetIdentity,
+  describeDockerTargetStateRefusal,
   getDefaultDockerHost,
+  getDockerTargetKind,
   getEngineLabel,
   parseContainerIdFromCgroup,
   parseContainerIdFromMountinfo,
   parseDockerInfo,
   parseDockerVersion,
+  parseDockerTargetInspect,
   parseOwnContainerInspect,
   readDockerApiVersion,
   resolveDockerHost,
@@ -191,6 +197,120 @@ function inspectJson(
   ]);
 }
 
+/*
+ * The objects an engine knows, for `docker container|service|node inspect`
+ * of a write's targets. Each is looked up as docker does: by its full id,
+ * then by one of its names, then by a unique id prefix.
+ */
+interface FakeEngineObject {
+  kind: "container" | "service" | "node";
+  id: string;
+  // A container's name, a service's name, a node's host name.
+  name: string;
+  labels?: Record<string, string> | undefined;
+}
+
+// A stable, made-up full id for an object the test did not describe.
+function fakeObjectId(kind: string, name: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(`${kind}:${name}`)
+    .digest("hex")
+    .slice(0, kind === "container" ? 64 : 25);
+}
+
+function fakeObjectJson(object: FakeEngineObject): Record<string, unknown> {
+  if (object.kind === "container") {
+    return {
+      Id: object.id,
+      Name: `/${object.name}`,
+      Config: {
+        Labels: object.labels || {},
+        Env: ["ONEUPTIME_SERVICE_TOKEN=secret-1"],
+      },
+    };
+  }
+
+  if (object.kind === "service") {
+    return { ID: object.id, Spec: { Name: object.name } };
+  }
+
+  return { ID: object.id, Spec: {}, Description: { Hostname: object.name } };
+}
+
+/*
+ * `docker KIND inspect REF...` against these objects: JSON for every REF
+ * the engine resolves; "No such object" (exit 1) for the first it does not.
+ * With `autoCreate`, a REF that names nothing is an object of that name.
+ */
+function inspectObjects(
+  args: Array<string>,
+  objects: Array<FakeEngineObject>,
+  autoCreate: boolean,
+): FakeReply | null {
+  const kind: string = args[0] || "";
+
+  if (
+    args[1] !== "inspect" ||
+    !["container", "service", "node"].includes(kind)
+  ) {
+    return null;
+  }
+
+  const found: Array<Record<string, unknown>> = [];
+
+  for (const ref of args.slice(2)) {
+    const ofKind: Array<FakeEngineObject> = objects.filter(
+      (object: FakeEngineObject): boolean => {
+        return object.kind === kind;
+      },
+    );
+    const byPrefix: Array<FakeEngineObject> = ofKind.filter(
+      (object: FakeEngineObject): boolean => {
+        return object.id.startsWith(ref);
+      },
+    );
+    const match: FakeEngineObject | undefined =
+      ofKind.find((object: FakeEngineObject): boolean => {
+        return object.id === ref;
+      }) ||
+      ofKind.find((object: FakeEngineObject): boolean => {
+        return object.name === ref;
+      }) ||
+      (byPrefix.length === 1 ? byPrefix[0] : undefined);
+
+    if (match) {
+      found.push(fakeObjectJson(match));
+      continue;
+    }
+
+    if (!autoCreate) {
+      return {
+        stdout: `${JSON.stringify(found)}\n`,
+        stderr: `Error: No such ${kind}: ${ref}\n`,
+        exitCode: 1,
+      };
+    }
+
+    found.push(
+      fakeObjectJson({
+        kind: kind as FakeEngineObject["kind"],
+        id: fakeObjectId(kind, ref),
+        name: ref,
+      }),
+    );
+  }
+
+  return { stdout: `${JSON.stringify(found)}\n` };
+}
+
+// The agent's own container, as the engine knows it in these tests.
+const OWN_CONTAINER_OBJECT: FakeEngineObject = {
+  kind: "container",
+  id: OWN_ID,
+  name: "my-ai-agent",
+};
+
 // ---- The fake docker CLI (an injected spawn) ---------------------------------------
 
 interface FakeReply {
@@ -263,7 +383,21 @@ function healthyDocker(args: Array<string>): FakeReply {
   }
 
   if (args[0] === "container" && args[1] === "inspect") {
-    return { stdout: inspectJson("my-ai-agent") };
+    // The agent's own container, looked up by the probe.
+    if (args.length === 3 && args[2] === OWN_ID) {
+      return { stdout: inspectJson("my-ai-agent") };
+    }
+  }
+
+  // A write's targets: whatever it names exists, under that name.
+  const inspected: FakeReply | null = inspectObjects(
+    args,
+    [OWN_CONTAINER_OBJECT],
+    true,
+  );
+
+  if (inspected) {
+    return inspected;
   }
 
   return { stdout: `ran ${args.join(" ")}\n` };
@@ -661,6 +795,31 @@ describe("prepare: what the agent never changes", () => {
     assert.deepStrictEqual(built.docker.calls, []);
   });
 
+  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware and database agents", () => {
+    const built: Built = build({ config: WRITES });
+
+    for (const name of [
+      "oneuptime-host-ai-agent",
+      "oneuptime-ceph-agent",
+      "oneuptime-ceph-ai-agent",
+      "oneuptime-proxmox-agent",
+      "oneuptime-pve-exporter",
+      "oneuptime-proxmox-ai-agent",
+      "oneuptime-vmware-agent",
+      "oneuptime-vmware-ai-agent",
+      // Compose's names for the database agent installed in /opt/oneuptime-database-agent.
+      "oneuptime-database-agent-oneuptime-database-agent-1",
+      "orders-db-oneuptime-database-ai-agent-1",
+    ]) {
+      expectRefused(
+        built.executor.prepare(request(`docker stop ${name}`)),
+        new RegExp(`would change ${name}, which the Docker AI agent protects`),
+      );
+    }
+    expectPrepared(built.executor.prepare(request("docker stop web-1")));
+    assert.deepStrictEqual(built.docker.calls, []);
+  });
+
   test("the same names on a Podman host", () => {
     expectRefused(
       build({ kind: "podman", config: WRITES }).executor.prepare(
@@ -846,6 +1005,569 @@ describe("prepare: what the agent never changes", () => {
       ),
       /^Refused by the Docker Swarm AI agent: docker restart is never allowed for a Docker Swarm cluster/,
     );
+  });
+});
+
+// ---- run(): what a change really touches ----------------------------------------------------
+
+describe("run: a protected object named by its id is still protected", () => {
+  const COLLECTOR_ID: string = "9f8e7d6c5b4a".padEnd(64, "0");
+  const POSTGRES_ID: string = "1234abcd5678".padEnd(64, "1");
+  const WEB_ID: string = "cafe0000beef".padEnd(64, "2");
+
+  const HOST_OBJECTS: Array<FakeEngineObject> = [
+    OWN_CONTAINER_OBJECT,
+    { kind: "container", id: COLLECTOR_ID, name: "oneuptime-docker-agent" },
+    { kind: "container", id: POSTGRES_ID, name: "postgres-prod" },
+    { kind: "container", id: WEB_ID, name: "web-1" },
+    {
+      kind: "container",
+      id: "0bad0bad0bad".padEnd(64, "4"),
+      name: "db.1.x7k2m9q1",
+      labels: { "com.docker.swarm.service.name": "db" },
+    },
+    {
+      kind: "container",
+      id: "db1f00000000".padEnd(64, "3"),
+      name: "billing-prod",
+    },
+    { kind: "container", id: "e".repeat(64), name: "db-main" },
+  ];
+
+  // An engine that knows exactly these objects (and nothing else).
+  function engine(objects: Array<FakeEngineObject>): Responder {
+    return (args: Array<string>): FakeReply => {
+      return inspectObjects(args, objects, false) || healthyDocker(args);
+    };
+  }
+
+  function expectRefusedAtRun(
+    built: Built,
+    result: ExecResult,
+    pattern: RegExp,
+  ): void {
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.output, "");
+    assert.strictEqual(
+      "exitCode" in result,
+      false,
+      "reported as never ran (no exit code)",
+    );
+    assert.match(String(result.errorMessage), pattern);
+    assert.ok(
+      built.docker.argvs().every((argv: Array<string>): boolean => {
+        return argv[1] === "inspect";
+      }),
+      `nothing but the lookup ran: ${JSON.stringify(built.docker.argvs())}`,
+    );
+  }
+
+  test("the collector, by its id, an id prefix or a short prefix: refused before the change runs", async () => {
+    for (const target of [COLLECTOR_ID, COLLECTOR_ID.slice(0, 12), "9f8e"]) {
+      const built: Built = build({
+        config: WRITES,
+        responder: engine(HOST_OBJECTS),
+      });
+
+      // The word itself names nothing the agent protects: prepare() allows it.
+      const result: ExecResult = await runCommand(
+        built,
+        `docker restart ${target}`,
+      );
+
+      expectRefusedAtRun(
+        built,
+        result,
+        new RegExp(
+          `^Refused by the Docker AI agent: docker resolves ${target} to the container oneuptime-docker-agent \\(9f8e7d6c5b4a\\)\\. "docker restart ${target}" would change oneuptime-docker-agent, which the Docker AI agent protects \\(oneuptime-docker-agent\\)`,
+        ),
+      );
+      assert.deepStrictEqual(built.docker.argvs(), [
+        ["container", "inspect", target],
+      ]);
+    }
+  });
+
+  test("a container ONEUPTIME_AI_PROTECTED_TARGETS names, stopped, killed or updated by an id prefix", async () => {
+    for (const command of [
+      "docker stop 1234abcd5678",
+      "docker kill -s KILL 1234",
+      "docker update --memory 1g 1234abcd",
+      "docker restart 1234abcd5678",
+    ]) {
+      const built: Built = build({
+        config: { ...WRITES, ONEUPTIME_AI_PROTECTED_TARGETS: "postgres-*" },
+        responder: engine(HOST_OBJECTS),
+      });
+
+      expectRefusedAtRun(
+        built,
+        await runCommand(built, command),
+        /to the container postgres-prod \(1234abcd5678\)\. .* would change postgres-prod, which the Docker AI agent protects \(postgres-\*\)/,
+      );
+    }
+  });
+
+  test("Podman: the same lookup, the same refusal", async () => {
+    const built: Built = build({
+      kind: "podman",
+      config: WRITES,
+      responder: engine([
+        {
+          kind: "container",
+          id: COLLECTOR_ID,
+          name: "oneuptime-podman-agent",
+        },
+      ]),
+    });
+
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart 9f8e7d6c5b4a", {
+        kind: "podman",
+      }),
+      /^Refused by the Podman AI agent: docker resolves 9f8e7d6c5b4a to the container oneuptime-podman-agent/,
+    );
+  });
+
+  test("a task container of a protected swarm service is protected by that service", async () => {
+    const built: Built = build({
+      config: { ...WRITES, ONEUPTIME_AI_PROTECTED_TARGETS: "db" },
+      responder: engine(HOST_OBJECTS),
+    });
+
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart db.1.x7k2m9q1"),
+      /would change db, which the Docker AI agent protects \(db\)/,
+    );
+  });
+
+  test("an unprotected container named by its id still runs, with the argv as written", async () => {
+    const built: Built = build({
+      config: WRITES,
+      responder: engine(HOST_OBJECTS),
+    });
+    const result: ExecResult = await runCommand(
+      built,
+      "docker restart -t 5 cafe0000beef",
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "cafe0000beef"],
+      ["restart", "-t", "5", "cafe0000beef"],
+    ]);
+  });
+
+  test("several containers are looked up at once, and one protected among them refuses the lot", async () => {
+    const built: Built = build({
+      config: WRITES,
+      responder: engine(HOST_OBJECTS),
+    });
+
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart web-1 9f8e7d6c5b4a"),
+      /docker resolves 9f8e7d6c5b4a to the container oneuptime-docker-agent/,
+    );
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "web-1", "9f8e7d6c5b4a"],
+    ]);
+  });
+
+  test("a target the engine cannot resolve is refused, and nothing changes", async () => {
+    const built: Built = build({
+      config: WRITES,
+      responder: engine(HOST_OBJECTS),
+    });
+
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart ghost-1"),
+      /^Refused by the Docker AI agent: "docker restart ghost-1" changes ghost-1, and the agent could not look up which container docker resolves it to \(docker container inspect: Error: No such container: ghost-1\)\. .* runs no change it cannot check\.$/,
+    );
+  });
+
+  test("an engine that never answers the lookup: refused within the lookup's own budget", async () => {
+    const built: Built = build({
+      config: WRITES,
+      settings: { procRoot: emptyProc, targetLookupTimeoutMs: 50 },
+      responder: (args: Array<string>): FakeReply => {
+        return args[1] === "inspect" ? { hang: true } : healthyDocker(args);
+      },
+    });
+
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart web-1"),
+      /could not look up which container docker resolves it to/,
+    );
+  });
+
+  test("a lookup that answers with something else than one object per target is refused", async () => {
+    for (const stdout of [
+      "not json",
+      "[]",
+      JSON.stringify([{ Name: "/web-1" }]),
+      JSON.stringify({ Id: WEB_ID }),
+    ]) {
+      const built: Built = build({
+        config: WRITES,
+        responder: (args: Array<string>): FakeReply => {
+          return args[1] === "inspect" ? { stdout } : healthyDocker(args);
+        },
+      });
+
+      expectRefusedAtRun(
+        built,
+        await runCommand(built, "docker restart web-1"),
+        /could not look up which container docker resolves it to/,
+      );
+    }
+  });
+
+  test("ONEUPTIME_AI_WRITE_TARGETS: a word inside the globs that resolves outside them is refused", async () => {
+    const built: Built = build({
+      config: { ...WRITES, ONEUPTIME_AI_WRITE_TARGETS: "db*" },
+      responder: engine(HOST_OBJECTS),
+    });
+
+    // "db1" matches db* as written, but docker reads it as an id prefix.
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart db1"),
+      /^Refused by the Docker AI agent: docker resolves db1 to the container billing-prod \(db1f00000000\), which is outside the targets the Docker AI agent may change \(ONEUPTIME_AI_WRITE_TARGETS=db\*\)/,
+    );
+
+    built.docker.clear();
+    const inScope: ExecResult = await runCommand(
+      built,
+      "docker restart db-main",
+    );
+    assert.strictEqual(inScope.success, true, String(inScope.errorMessage));
+  });
+
+  test("swarm: its own service and a protected node, named by their ids", async () => {
+    const OWN_SERVICE_ID: string = "k3j2h1g0f9e8d7c6b5a4z3y2x";
+    const NODE_ID: string = "n0d3a1b2c3d4e5f6g7h8i9j0k";
+    const objects: Array<FakeEngineObject> = [
+      {
+        kind: "container",
+        id: OWN_ID,
+        name: "ops_oneuptime-docker-swarm-ai-agent.1.x7",
+        labels: {
+          "com.docker.swarm.service.name":
+            "ops_oneuptime-docker-swarm-ai-agent",
+          "com.docker.stack.namespace": "ops",
+        },
+      },
+      {
+        kind: "service",
+        id: OWN_SERVICE_ID,
+        name: "ops_oneuptime-docker-swarm-ai-agent",
+      },
+      {
+        kind: "service",
+        id: "a1".padEnd(25, "q"),
+        name: "ops_oneuptime-docker-swarm-agent",
+      },
+      { kind: "service", id: "b2".padEnd(25, "r"), name: "api" },
+      { kind: "node", id: NODE_ID, name: "manager-1" },
+    ];
+    const built: Built = build({
+      kind: "swarm",
+      config: { ...WRITES, ONEUPTIME_AI_PROTECTED_TARGETS: "manager-*" },
+      settings: { procRoot: ownProc },
+      responder: (args: Array<string>): FakeReply => {
+        if (args[0] === "info") {
+          return {
+            stdout: infoJson({ swarmState: "active", controlAvailable: true }),
+          };
+        }
+        return inspectObjects(args, objects, false) || healthyDocker(args);
+      },
+    });
+
+    await built.executor.probePosture();
+    assert.strictEqual(built.executor.isOwnContainerKnown(), true);
+
+    const cases: Array<[string, RegExp]> = [
+      [
+        `docker service update --force ${OWN_SERVICE_ID.slice(0, 12)}`,
+        /docker resolves k3j2h1g0f9e8 to the service ops_oneuptime-docker-swarm-ai-agent \(k3j2h1g0f9e8\)\. .* which the Docker Swarm AI agent protects \(ops_oneuptime-docker-swarm-ai-agent\)/,
+      ],
+      [
+        `docker service scale ${OWN_SERVICE_ID}=0`,
+        /to the service ops_oneuptime-docker-swarm-ai-agent/,
+      ],
+      [
+        "docker service rollback a1qq",
+        /to the service ops_oneuptime-docker-swarm-agent .* protects \(ops_oneuptime-docker-swarm-agent\)/,
+      ],
+      [
+        `docker node update --availability active ${NODE_ID}`,
+        /docker resolves n0d3a1b2c3d4e5f6g7h8i9j0k to the node manager-1 \(n0d3a1b2c3d4\)\. .* protects \(manager-\*\)/,
+      ],
+    ];
+
+    for (const [command, pattern] of cases) {
+      built.docker.clear();
+      expectRefusedAtRun(
+        built,
+        await runCommand(built, command, { kind: "swarm" }),
+        pattern,
+      );
+    }
+
+    built.docker.clear();
+    const api: ExecResult = await runCommand(
+      built,
+      "docker service update --force b2rr",
+      { kind: "swarm" },
+    );
+    assert.strictEqual(api.success, true, String(api.errorMessage));
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["service", "inspect", "b2rr"],
+      ["service", "update", "--force", "b2rr"],
+    ]);
+  });
+});
+
+// ---- run(): what the target's state makes of a change ------------------------------------------
+
+describe("run: the target's state can make a change something its tier does not say", () => {
+  /*
+   * `docker KIND inspect TARGET` answered with exactly these objects, in
+   * the order named; every other command as a healthy engine would.
+   */
+  function engineWith(
+    objects: Record<string, Record<string, unknown>>,
+  ): Responder {
+    return (args: Array<string>): FakeReply => {
+      if (
+        args[1] === "inspect" &&
+        ["container", "service", "node"].includes(args[0] || "") &&
+        args.length > 2
+      ) {
+        const found: Array<Record<string, unknown>> = [];
+
+        for (const ref of args.slice(2)) {
+          const object: Record<string, unknown> | undefined = objects[ref];
+
+          if (!object) {
+            return {
+              stdout: `${JSON.stringify(found)}\n`,
+              stderr: `Error: No such object: ${ref}\n`,
+              exitCode: 1,
+            };
+          }
+
+          found.push(object);
+        }
+
+        return { stdout: `${JSON.stringify(found)}\n` };
+      }
+
+      return healthyDocker(args);
+    };
+  }
+
+  function container(data: {
+    name: string;
+    running: boolean;
+    autoRemove?: boolean;
+    labels?: Record<string, string>;
+  }): Record<string, unknown> {
+    return {
+      Id: `${data.name}`.padEnd(64, "0").replace(/[^0-9a-f]/g, "a"),
+      Name: `/${data.name}`,
+      State: {
+        Running: data.running,
+        Status: data.running ? "running" : "exited",
+      },
+      HostConfig: { AutoRemove: data.autoRemove === true },
+      Config: { Labels: data.labels || {} },
+    };
+  }
+
+  function service(
+    name: string,
+    mode: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return {
+      ID: name.padEnd(25, "q"),
+      Spec: { Name: name, Mode: mode },
+    };
+  }
+
+  function expectRefusedBeforeItRuns(
+    built: Built,
+    result: ExecResult,
+    pattern: RegExp,
+  ): void {
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.output, "");
+    assert.strictEqual("exitCode" in result, false, "reported as never ran");
+    assert.match(String(result.errorMessage), pattern);
+    assert.ok(
+      built.docker.argvs().every((argv: Array<string>): boolean => {
+        return argv[1] === "inspect";
+      }),
+      `nothing but the lookup ran: ${JSON.stringify(built.docker.argvs())}`,
+    );
+  }
+
+  test("stop or kill of a container started with --rm: docker would delete it and its anonymous volumes", async () => {
+    for (const command of [
+      "docker stop scratch",
+      "docker stop -t 5 scratch",
+      "docker kill -s KILL scratch",
+      "docker container kill scratch",
+    ]) {
+      const built: Built = build({
+        config: WRITES,
+        responder: engineWith({
+          scratch: container({
+            name: "scratch",
+            running: true,
+            autoRemove: true,
+          }),
+        }),
+      });
+
+      expectRefusedBeforeItRuns(
+        built,
+        await runCommand(built, command),
+        /^Refused by the Docker AI agent: the container scratch \([0-9a-f]{12}\) was started with --rm \(AutoRemove\), so ".*" would not just stop it: docker deletes the container, and its anonymous volumes with it, the moment it exits/,
+      );
+    }
+  });
+
+  test("a restart of a --rm container runs (docker keeps it across a restart), and so does a stop of one without --rm", async () => {
+    for (const [command, objects] of [
+      [
+        "docker restart scratch",
+        {
+          scratch: container({
+            name: "scratch",
+            running: true,
+            autoRemove: true,
+          }),
+        },
+      ],
+      [
+        "docker stop web-1",
+        { "web-1": container({ name: "web-1", running: true }) },
+      ],
+    ] as Array<[string, Record<string, Record<string, unknown>>]>) {
+      const built: Built = build({
+        config: WRITES,
+        responder: engineWith(objects),
+      });
+      const result: ExecResult = await runCommand(built, command);
+
+      assert.strictEqual(result.success, true, String(result.errorMessage));
+      assert.strictEqual(built.docker.argvs().length, 2, command);
+    }
+  });
+
+  test("start or restart of a stopped one-off container (docker compose run): its job would run again", async () => {
+    for (const command of [
+      "docker start db-migrate",
+      "docker restart db-migrate",
+    ]) {
+      const built: Built = build({
+        config: WRITES,
+        responder: engineWith({
+          "db-migrate": container({
+            name: "db-migrate",
+            running: false,
+            labels: { "com.docker.compose.oneoff": "True" },
+          }),
+        }),
+      });
+
+      expectRefusedBeforeItRuns(
+        built,
+        await runCommand(built, command),
+        /the container db-migrate \([0-9a-f]{12}\) is a one-off container \(docker compose run\) that is not running, so ".*" would run its command again from the start/,
+      );
+    }
+  });
+
+  test("a stopped service container starts again as before: starting it is the undo of a stop", async () => {
+    const built: Built = build({
+      config: WRITES,
+      responder: engineWith({
+        web: container({
+          name: "web",
+          running: false,
+          labels: { "com.docker.compose.oneoff": "False" },
+        }),
+      }),
+    });
+    const result: ExecResult = await runCommand(built, "docker start web");
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "web"],
+      ["start", "web"],
+    ]);
+  });
+
+  test("swarm: an update, scale or rollback of a job service would run the job again", async () => {
+    for (const [mode, shown] of [
+      [
+        { ReplicatedJob: { MaxConcurrent: 1, TotalCompletions: 1 } },
+        "replicated-job",
+      ],
+      [{ GlobalJob: {} }, "global-job"],
+    ] as Array<[Record<string, unknown>, string]>) {
+      for (const command of [
+        "docker service update --force restore-backup",
+        "docker service scale restore-backup=2",
+        "docker service rollback restore-backup",
+        "docker service update --image app:2 restore-backup",
+      ]) {
+        const built: Built = build({
+          kind: "swarm",
+          config: WRITES,
+          responder: engineWith({
+            "restore-backup": service("restore-backup", mode),
+          }),
+        });
+
+        expectRefusedBeforeItRuns(
+          built,
+          await runCommand(built, command, { kind: "swarm" }),
+          new RegExp(
+            `^Refused by the Docker Swarm AI agent: the service restore-backup \\(restore-back\\) is a ${shown} service, so ".*" would run the job again`,
+          ),
+        );
+      }
+    }
+  });
+
+  test("swarm: a replicated service still gets its rolling restart", async () => {
+    const built: Built = build({
+      kind: "swarm",
+      config: WRITES,
+      responder: engineWith({
+        api: service("api", { Replicated: { Replicas: 3 } }),
+      }),
+    });
+    const result: ExecResult = await runCommand(
+      built,
+      "docker service update --force api",
+      { kind: "swarm" },
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["service", "inspect", "api"],
+      ["service", "update", "--force", "api"],
+    ]);
   });
 });
 
@@ -1054,23 +1776,28 @@ describe("run: the argv and the closed environment", () => {
     });
   });
 
-  test("a change runs too, once every check allows it", async () => {
+  test("a change runs too, once every check allows it — right after the engine says what its target is", async () => {
     const built: Built = build({ config: WRITES });
     const result: ExecResult = await runCommand(built, "docker restart web-1");
 
     assert.strictEqual(result.success, true);
-    assert.deepStrictEqual(built.docker.argvs(), [["restart", "web-1"]]);
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "web-1"],
+      ["restart", "web-1"],
+    ]);
   });
 
   test("Podman: the same CLI and argv, against Podman's socket", async () => {
     const built: Built = build({ kind: "podman", config: WRITES });
     await runCommand(built, "docker restart web-1", { kind: "podman" });
 
-    assert.deepStrictEqual(built.docker.calls[0]!.args, ["restart", "web-1"]);
-    assert.strictEqual(
-      built.docker.calls[0]!.env["DOCKER_HOST"],
-      DEFAULT_PODMAN_ENGINE_HOST,
-    );
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "web-1"],
+      ["restart", "web-1"],
+    ]);
+    for (const call of built.docker.calls) {
+      assert.strictEqual(call.env["DOCKER_HOST"], DEFAULT_PODMAN_ENGINE_HOST);
+    }
   });
 
   test("swarm: a service fix on the manager", async () => {
@@ -1078,7 +1805,17 @@ describe("run: the argv and the closed environment", () => {
     await runCommand(built, "docker service scale api=3", { kind: "swarm" });
 
     assert.deepStrictEqual(built.docker.argvs(), [
+      ["service", "inspect", "api"],
       ["service", "scale", "api=3"],
+    ]);
+  });
+
+  test("a read is never looked up first", async () => {
+    const built: Built = build({ config: WRITES });
+    await runCommand(built, "docker logs --tail 20 web-1");
+
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["logs", "--tail", "20", "web-1"],
     ]);
   });
 });
@@ -1568,7 +2305,10 @@ describe("probePosture", () => {
         swarmRole: "inactive",
         rootless: false,
       },
-      protectedTargets: [...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES],
+      protectedTargets: [
+        ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+        ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
+      ],
     });
   });
 
@@ -1758,7 +2498,10 @@ describe("probePosture", () => {
       reachError:
         "The agent cannot reach the Docker engine at unix:///var/run/docker.sock (docker version: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?). The AI agent cannot reach the Docker engine at unix:///var/run/docker.sock: mount the socket into the AI agent container (-v /var/run/docker.sock:/var/run/docker.sock:ro, as the collector does) and check that the Docker daemon is running.",
       details: { dockerHost: DEFAULT_DOCKER_ENGINE_HOST },
-      protectedTargets: [...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES],
+      protectedTargets: [
+        ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+        ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
+      ],
     });
   });
 
@@ -1923,6 +2666,7 @@ describe("probePosture", () => {
       OWN_ID,
       "my-ai-agent",
       ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
     ]);
     assert.deepStrictEqual(second.protectedTargets, first.protectedTargets);
     assert.strictEqual(
@@ -1941,6 +2685,7 @@ describe("probePosture", () => {
 
     assert.deepStrictEqual(probe.protectedTargets, [
       ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
       "db-*",
       "traefik",
     ]);
@@ -2043,6 +2788,7 @@ describe("end to end: OneUptime, the job loop and this executor", () => {
       OWN_ID,
       "my-ai-agent",
       ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
     ]);
     assert.strictEqual(posture["allowWrites"], false);
   });
@@ -2059,7 +2805,10 @@ describe("end to end: OneUptime, the job loop and this executor", () => {
 
     assert.strictEqual(await loop!.tick(), true);
 
-    assert.deepStrictEqual(built.docker.argvs(), [["restart", "web-1"]]);
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "web-1"],
+      ["restart", "web-1"],
+    ]);
     assert.deepStrictEqual(results(), [
       { success: true, output: "[stdout]\nran restart web-1\n", exitCode: 0 },
     ]);
@@ -2089,6 +2838,193 @@ describe("end to end: OneUptime, the job loop and this executor", () => {
 });
 
 describe("pure helpers", () => {
+  test("the state a target's inspect reports, and what it makes of a change", () => {
+    const [scratch, oneOff, job, plain] = [
+      parseDockerTargetInspect({
+        kind: "container",
+        targets: ["scratch"],
+        text: JSON.stringify([
+          {
+            Id: "a".repeat(64),
+            Name: "/scratch",
+            State: { Running: true },
+            HostConfig: { AutoRemove: true },
+            Config: { Labels: {} },
+          },
+        ]),
+      })![0]!,
+      parseDockerTargetInspect({
+        kind: "container",
+        targets: ["migrate"],
+        text: JSON.stringify([
+          {
+            Id: "b".repeat(64),
+            Name: "/migrate",
+            State: { Running: false },
+            HostConfig: { AutoRemove: false },
+            Config: { Labels: { "com.docker.compose.oneoff": "True" } },
+          },
+        ]),
+      })![0]!,
+      parseDockerTargetInspect({
+        kind: "service",
+        targets: ["backup"],
+        text: JSON.stringify([
+          {
+            ID: "c".repeat(25),
+            Spec: { Name: "backup", Mode: { ReplicatedJob: {} } },
+          },
+        ]),
+      })![0]!,
+      parseDockerTargetInspect({
+        kind: "service",
+        targets: ["api"],
+        text: JSON.stringify([
+          {
+            ID: "d".repeat(25),
+            Spec: { Name: "api", Mode: { Replicated: { Replicas: 2 } } },
+          },
+        ]),
+      })![0]!,
+    ];
+
+    assert.strictEqual(scratch.autoRemove, true);
+    assert.strictEqual(scratch.running, true);
+    assert.strictEqual(oneOff.oneOff, true);
+    assert.strictEqual(oneOff.running, false);
+    assert.strictEqual(job.jobMode, "replicated-job");
+    assert.strictEqual(plain.jobMode, undefined);
+
+    const refusal: (verb: string, identity: typeof scratch) => string | null = (
+      verb: string,
+      identity: typeof scratch,
+    ): string | null => {
+      return describeDockerTargetStateRefusal({
+        verb,
+        displayCommand: `docker ${verb} x`,
+        identity,
+      });
+    };
+
+    assert.match(String(refusal("stop", scratch)), /started with --rm/);
+    assert.match(
+      String(refusal("container kill", scratch)),
+      /started with --rm/,
+    );
+    assert.strictEqual(refusal("restart", scratch), null);
+    assert.strictEqual(refusal("pause", scratch), null);
+    assert.match(String(refusal("start", oneOff)), /one-off container/);
+    assert.match(
+      String(refusal("container restart", oneOff)),
+      /one-off container/,
+    );
+    assert.strictEqual(refusal("stop", oneOff), null);
+    assert.strictEqual(
+      refusal("start", { ...oneOff, running: true }),
+      null,
+      "a running one-off: start does nothing",
+    );
+    assert.match(
+      String(refusal("service update", job)),
+      /replicated-job service/,
+    );
+    assert.match(String(refusal("service scale", job)), /run the job again/);
+    assert.strictEqual(refusal("service update", plain), null);
+  });
+
+  test("what a write's targets are, from docker container|service|node inspect", () => {
+    assert.strictEqual(getDockerTargetKind(["restart", "web-1"]), "container");
+    assert.strictEqual(
+      getDockerTargetKind(["container", "update", "-m", "1g", "web-1"]),
+      "container",
+    );
+    assert.strictEqual(
+      getDockerTargetKind(["service", "scale", "api=3"]),
+      "service",
+    );
+    assert.strictEqual(
+      getDockerTargetKind(["node", "update", "--availability", "drain", "n1"]),
+      "node",
+    );
+
+    assert.deepStrictEqual(
+      parseDockerTargetInspect({
+        kind: "container",
+        targets: ["9f8e"],
+        text: JSON.stringify([
+          {
+            Id: "9f8e".padEnd(64, "0"),
+            Name: "/web.1.abc",
+            Config: {
+              Labels: { "com.docker.swarm.service.name": "web" },
+              Env: ["PASSWORD=secret"],
+            },
+          },
+        ]),
+      }),
+      [
+        {
+          target: "9f8e",
+          kind: "container",
+          id: "9f8e".padEnd(64, "0"),
+          names: ["web.1.abc"],
+          memberOf: ["web"],
+        },
+      ],
+    );
+    assert.deepStrictEqual(
+      parseDockerTargetInspect({
+        kind: "node",
+        targets: ["n1"],
+        text: JSON.stringify([
+          {
+            ID: "n1x",
+            Spec: { Name: "edge" },
+            Description: { Hostname: "m-1" },
+          },
+        ]),
+      }),
+      [
+        {
+          target: "n1",
+          kind: "node",
+          id: "n1x",
+          names: ["edge", "m-1"],
+          memberOf: [],
+        },
+      ],
+    );
+
+    // One object per target, each with an id, or nothing at all.
+    for (const text of [
+      "",
+      "{}",
+      JSON.stringify([{ ID: "s1", Spec: { Name: "api" } }]),
+      JSON.stringify([{ Spec: { Name: "api" } }, { ID: "s2" }]),
+    ]) {
+      assert.strictEqual(
+        parseDockerTargetInspect({
+          kind: "service",
+          targets: ["api", "web"],
+          text,
+        }),
+        null,
+        text,
+      );
+    }
+
+    assert.strictEqual(
+      describeDockerTargetIdentity({
+        target: "9f8e",
+        kind: "container",
+        id: "9f8e7d6c5b4a3210",
+        names: ["oneuptime-docker-agent"],
+        memberOf: [],
+      }),
+      "the container oneuptime-docker-agent (9f8e7d6c5b4a)",
+    );
+  });
+
   test("the container id from /proc/self/mountinfo: Docker, rootful and rootless Podman", () => {
     const podmanId: string = "c0ffee".padEnd(64, "1");
 
@@ -2418,6 +3354,48 @@ describe("pure helpers", () => {
       [...named].sort(),
       [...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES].sort(),
     );
+  });
+
+  test("every OneUptime agent container any agent's compose file or install script names is protected", () => {
+    const repoAgents: string = path.resolve(__dirname, "..", "..", "..", "..");
+    const protectedNames: Array<string> = [
+      ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
+    ];
+    const named: Set<string> = new Set<string>();
+
+    for (const agent of fs.readdirSync(repoAgents)) {
+      for (const file of ["docker-compose.yml", "install.sh"]) {
+        const filePath: string = path.join(repoAgents, agent, file);
+
+        if (!fs.existsSync(filePath)) {
+          continue;
+        }
+
+        for (const match of fs
+          .readFileSync(filePath, "utf8")
+          .matchAll(/(?:container_name:\s*|--name\s+)(oneuptime-[a-z-]+)/g)) {
+          named.add(match[1]!);
+        }
+      }
+    }
+
+    assert.ok(named.size >= 15, [...named].join(", "));
+    for (const name of named) {
+      assert.ok(protectedNames.includes(name), `${name} is not protected`);
+    }
+
+    // The database agent's containers are named by Compose after its services.
+    const databaseCompose: string = fs.readFileSync(
+      path.join(repoAgents, "DatabaseAgent", "docker-compose.yml"),
+      "utf8",
+    );
+    for (const service of [
+      "oneuptime-database-agent",
+      "oneuptime-database-ai-agent",
+    ]) {
+      assert.match(databaseCompose, new RegExp(`^  ${service}:$`, "m"));
+    }
   });
 });
 

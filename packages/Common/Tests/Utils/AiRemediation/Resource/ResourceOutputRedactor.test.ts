@@ -246,21 +246,28 @@ describe("the generic rules apply to every program", () => {
 describe("the hook table", () => {
   test("lists the programs whose kits extend it", () => {
     expect(Object.keys(RESOURCE_OUTPUT_REDACTION_HOOKS).sort()).toEqual(
-      ["ceph", "db", "docker", "govc", "ps", "pvesh", "top"].sort(),
+      [
+        "ceph",
+        "db",
+        "docker",
+        "govc",
+        "journalctl",
+        "ps",
+        "pvesh",
+        "systemctl",
+        "top",
+      ].sort(),
     );
     expect(getResourceOutputRedactionHooks("docker").length).toBeGreaterThan(0);
     expect(getResourceOutputRedactionHooks("ceph").length).toBeGreaterThan(0);
   });
 
-  test.each([
-    ["systemctl"],
-    ["__proto__"],
-    ["constructor"],
-    ["toString"],
-    [""],
-  ])("%p has no hooks", (program: string) => {
-    expect(getResourceOutputRedactionHooks(program)).toEqual([]);
-  });
+  test.each([["df"], ["__proto__"], ["constructor"], ["toString"], [""]])(
+    "%p has no hooks",
+    (program: string) => {
+      expect(getResourceOutputRedactionHooks(program)).toEqual([]);
+    },
+  );
 
   test("a non-string program has no hooks", () => {
     expect(getResourceOutputRedactionHooks(null as unknown as string)).toEqual(

@@ -1,7 +1,7 @@
 import fs from "fs";
 import net from "net";
 import path from "path";
-import { parseSwitch } from "../Config";
+import { PROTECTED_TARGETS_ENV, parseSwitch } from "../Config";
 import PrepareGuard, {
   GuardResult,
   GuardedCommand,
@@ -28,7 +28,10 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
 } from "../Common/Types/ResourceAiAgent/AiResourceType";
 import { ResourceCommandTier } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
-import { globMatchesTarget } from "../Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import {
+  govcInventoryName,
+  isProtectedGovcTarget,
+} from "../Common/Utils/AiRemediation/Resource/GovcCommandPolicy";
 
 /*
  * The executor for VMware vCenters: runs the govc commands OneUptime AI
@@ -45,10 +48,14 @@ import { globMatchesTarget } from "../Common/Utils/AiRemediation/Resource/Resour
  *     is really there;
  *   - a write never touches a protected object by its NAME, whatever
  *     inventory path the command wrote it with: "/DC/vm/vcsa" is the same
- *     VM as "vcsa" to vCenter, so a protected "vcsa" covers both (the shared
- *     write-scope rule compares whole strings). The vCenter appliance
- *     itself is protected by the host name in VCENTER_ENDPOINT — powering
- *     it off would cut OneUptime AI and every operator off at once.
+ *     VM as "vcsa" to vCenter, so a protected "vcsa" covers both (the
+ *     policy's isProtectedGovcTarget, which the shared write-scope rule —
+ *     and so OneUptime itself — applies too). A managed object reference
+ *     ("vm-42", "VirtualMachine:vm-42"), which govc would resolve whatever
+ *     the object is called, is never a write's target: the policy refuses
+ *     it. The vCenter appliance itself is protected by the host name in
+ *     VCENTER_ENDPOINT — powering it off would cut OneUptime AI and every
+ *     operator off at once.
  *
  * govc then runs as /usr/bin/govc (the image's) with the argv exactly as
  * the payload sent it, and a CLOSED environment built for that one command:
@@ -424,20 +431,35 @@ export function getEndpointProtectedTargets(
 
 // The object's own name: the last segment of an inventory path.
 export function inventoryName(value: string): string {
-  const segments: Array<string> = value
-    .trim()
-    .split("/")
-    .filter((segment: string): boolean => {
-      return segment.length > 0;
-    });
+  return govcInventoryName(value);
+}
 
-  return segments[segments.length - 1] || "";
+/*
+ * The protected entries written as a path whose last segment is nothing
+ * but wildcards ("/DC/vm/infra/*"): read by that segment, like every entry,
+ * they protect every object — a folder is not something a VM's name shows.
+ */
+const ONLY_WILDCARDS_REGEX: RegExp = /^\*+$/;
+
+export function findEverythingProtectingEntries(
+  protectedTargets: ReadonlyArray<string> | undefined,
+): Array<string> {
+  return (protectedTargets || []).filter((entry: string): boolean => {
+    return (
+      typeof entry === "string" &&
+      entry.includes("/") &&
+      ONLY_WILDCARDS_REGEX.test(inventoryName(entry))
+    );
+  });
 }
 
 /*
  * The first target of a write that a protected entry names, compared by
  * the objects' own names (case-insensitive, `*` in the entry): a VM is the
- * same VM whether the command names it "vcsa" or "/DC/vm/infra/vcsa".
+ * same VM whether the command names it "vcsa" or "/DC/vm/infra/vcsa". The
+ * comparison is the policy's own (isProtectedGovcTarget), which OneUptime
+ * also applies before it enqueues a fix, so both sides refuse the same
+ * commands.
  */
 export function findProtectedGovcTarget(data: {
   targets: Array<string>;
@@ -448,23 +470,10 @@ export function findProtectedGovcTarget(data: {
       continue;
     }
 
-    const name: string = inventoryName(target).toLowerCase();
-
-    if (!name) {
-      continue;
-    }
-
     for (const protectedTarget of data.protectedTargets) {
-      if (typeof protectedTarget !== "string") {
-        continue;
-      }
-
-      const protectedName: string =
-        inventoryName(protectedTarget).toLowerCase();
-
       if (
-        protectedName &&
-        (protectedName === name || globMatchesTarget(protectedName, name))
+        typeof protectedTarget === "string" &&
+        isProtectedGovcTarget(target, protectedTarget)
       ) {
         return { target, protectedTarget };
       }
@@ -736,6 +745,31 @@ export default class GovcExecutor implements ResourceExecutor {
     if (this.settings.endpointHadCredentials) {
       options.logger.warn(
         `${VCENTER_ENDPOINT_ENV} contains a user name or password. The ${AGENT_DISPLAY_NAME} ignores them and logs in with ${this.settings.usernameVariable} / ${this.settings.passwordVariable}; remove them from ${VCENTER_ENDPOINT_ENV}.`,
+      );
+    }
+
+    /*
+     * The appliance is protected by name only (getEndpointProtectedTargets),
+     * and an IP address names no VM. With fixes allowed, say so: nothing
+     * else stops a fix from rebooting the vCenter this agent works through.
+     */
+    if (
+      options.config.allowWrites &&
+      this.settings.host &&
+      this.getProtectedTargets().length === 0
+    ) {
+      options.logger.warn(
+        `${VCENTER_ENDPOINT_ENV} reaches vCenter by its IP address (${this.settings.host}), so the ${AGENT_DISPLAY_NAME} cannot tell which VM is the vCenter appliance and does not protect it on its own. Put the appliance's VM name in ${PROTECTED_TARGETS_ENV}, unless it is there already.`,
+      );
+    }
+
+    for (const entry of findEverythingProtectingEntries(
+      options.config.protectedTargets,
+    )) {
+      options.logger.warn(
+        `${PROTECTED_TARGETS_ENV} entry "${entry}" is read by the object's own name — its last path segment, "${inventoryName(
+          entry,
+        )}" — because vCenter reaches one VM by many paths; so it protects every VM and host, and no fix will run. Name the VMs to protect (or a name glob such as db-*) instead.`,
       );
     }
   }

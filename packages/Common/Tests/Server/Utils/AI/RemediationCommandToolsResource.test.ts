@@ -395,6 +395,12 @@ describe("the tools a resource round offers", () => {
     expect(properties["resourceId"]).toBeUndefined();
   });
 
+  /*
+   * A Kubernetes or rule round never offered ResourceCommand: to it the
+   * step type is as unknown as before the resource lane existed, and its
+   * refusal lists exactly the step types it offers — the words it always
+   * had ("stepType must be one of: Bash, SSH, Kubectl.").
+   */
   it("a non-resource round refuses a ResourceCommand step with the original words", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit({
       resourceTargets: [],
@@ -403,7 +409,37 @@ describe("the tools a resource round offers", () => {
     const outcome: ToolCallOutcome = await execute(toolkit, resourceArgs());
 
     expect(outcome.textForLlm).toBe(
-      "stepType ResourceCommand is not available in this remediation round: use Bash, SSH or Kubectl with a target from list_command_targets.",
+      "stepType must be one of: Bash, SSH, Kubectl.",
+    );
+    expectNothingRanOrRecorded(toolkit, outcome);
+  });
+
+  it("a non-resource round refuses an unknown step type naming only Bash, SSH and Kubectl — never ResourceCommand", async () => {
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      resourceTargets: [],
+    });
+
+    const outcome: ToolCallOutcome = await execute(
+      toolkit,
+      resourceArgs({ stepType: "kubectl" }),
+    );
+
+    expect(outcome.textForLlm).toBe(
+      "stepType must be one of: Bash, SSH, Kubectl.",
+    );
+    expectNothingRanOrRecorded(toolkit, outcome);
+  });
+
+  it("a resource round refuses an unknown step type naming only ResourceCommand", async () => {
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+
+    const outcome: ToolCallOutcome = await execute(
+      toolkit,
+      resourceArgs({ stepType: "Docker" }),
+    );
+
+    expect(outcome.textForLlm).toBe(
+      "stepType must be one of: ResourceCommand.",
     );
     expectNothingRanOrRecorded(toolkit, outcome);
   });
@@ -807,6 +843,71 @@ describe("execute_remediation_command on a resource round", () => {
     expect(kept(toolkit)[0]!.reason).toContain(
       "was changed to ask for approval during the round",
     );
+  });
+
+  /*
+   * Automatic runs only a signal's FIRST round unattended. A follow-up that
+   * started under Bypass approval must stop running changes once the
+   * operator moves the resource to Automatic mid-run — Automatic is still
+   * an "unattended" mode, but not for round 2.
+   */
+  it("keeps a change on a follow-up round when the operator moved the resource from Bypass approval to Automatic mid-run", async () => {
+    liveStatus.mockResolvedValue(
+      resource({ aiRemediationMode: ResourceAiRemediationMode.Automatic }),
+    );
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      resourceTargets: [
+        resource({
+          aiRemediationMode: ResourceAiRemediationMode.BypassApproval,
+        }),
+      ],
+      resourceRoundNumber: 2,
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, resourceArgs());
+
+    expect(outcome.textForLlm).toContain(
+      "was changed to Automatic during this run, and Automatic asks for approval of every change after a signal's first round (this is round 2)",
+    );
+    expectNothingRanOrRecorded(toolkit, outcome);
+    expect(kept(toolkit)[0]!.reason).toContain(
+      "was changed to Automatic during the round",
+    );
+  });
+
+  it("negative control: the same move on round 1 keeps running safe changes (Automatic runs round 1 unattended)", async () => {
+    liveStatus.mockResolvedValue(
+      resource({ aiRemediationMode: ResourceAiRemediationMode.Automatic }),
+    );
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      resourceTargets: [
+        resource({
+          aiRemediationMode: ResourceAiRemediationMode.BypassApproval,
+        }),
+      ],
+      resourceRoundNumber: 1,
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, resourceArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it("negative control: a follow-up round on a resource still on Bypass approval keeps running", async () => {
+    const bypass: ResourceAiAccessStatus = resource({
+      aiRemediationMode: ResourceAiRemediationMode.BypassApproval,
+    });
+    liveStatus.mockResolvedValue(bypass);
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      resourceTargets: [bypass],
+      resourceRoundNumber: 2,
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, resourceArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
   it.each([

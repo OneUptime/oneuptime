@@ -220,7 +220,22 @@ export interface HostProcLayout {
   parents?: Record<number, number> | undefined;
   // /proc/1/root/etc/os-release; null leaves it out.
   osRelease?: string | null | undefined;
+  // pid -> /proc/<pid>/cgroup (DEFAULT_CGROUPS when left out).
+  cgroups?: Record<number, string> | undefined;
 }
+
+/*
+ * The host's other processes in the default layout, by the unit they run
+ * in: nginx's worker, dockerd, the collector and an ordinary service.
+ */
+export const NGINX_PID: number = 31337;
+export const DOCKERD_PID: number = 900;
+export const COLLECTOR_PID: number = 901;
+export const DEFAULT_CGROUPS: Record<number, string> = {
+  [NGINX_PID]: "0::/system.slice/nginx.service\n",
+  [DOCKERD_PID]: "0::/system.slice/docker.service\n",
+  [COLLECTOR_PID]: "0::/system.slice/otelcol-contrib.service\n",
+};
 
 // The agent's own process tree in the default layout: node, tini, the shim.
 export const AGENT_PID: number = 4242;
@@ -265,6 +280,13 @@ export function makeHostProc(layout: HostProcLayout = {}): string {
       path.join(root, pid, "stat"),
       `${pid} (node) S ${parent} ${pid} ${pid} 0 -1 4194560 1234 0 0 0 5 3 0 0 20 0 11 0 8123 1103101952 12000\n`,
     );
+  }
+
+  for (const [pid, cgroup] of Object.entries(
+    layout.cgroups ?? DEFAULT_CGROUPS,
+  )) {
+    fs.mkdirSync(path.join(root, pid), { recursive: true });
+    fs.writeFileSync(path.join(root, pid, "cgroup"), cgroup);
   }
 
   const osRelease: string | null =

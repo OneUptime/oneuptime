@@ -314,6 +314,17 @@ export interface ResourceToolPolicy {
    */
   readonly allowlistStandIns?: ReadonlyArray<string> | undefined;
   /*
+   * Optional: whether a protected entry names this target in a way the
+   * dispatcher's own comparison (the whole word, a glob, a hex id prefix)
+   * cannot see — for a tool whose objects go by several spellings (govc:
+   * "vcsa" and "/DC/vm/infra/vcsa" are the same VM). Asked on top of that
+   * comparison, never instead of it, so it can only protect more. MUST
+   * NOT throw (a throw is read as "protected").
+   */
+  readonly isProtectedTarget?:
+    | ((target: string, protectedTarget: string) => boolean)
+    | undefined;
+  /*
    * argv includes the program. MUST be total — never throw, whatever the
    * argv holds — and fail closed: anything the tool does not recognise is
    * Denied.

@@ -428,6 +428,8 @@ Its own variables, in the same `.env` (the compose file passes them to the AI ag
 | `ONEUPTIME_AI_DATABASE_PASSWORD` | — | That login's password; single-quote it |
 | `ONEUPTIME_AI_DATABASE_NAME` | `postgres` / `admin` | PostgreSQL: the database the agent connects to. MongoDB: the login's authentication database |
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | A PEM CA bundle, mounted into the container (see the commented `volumes` of `oneuptime-database-ai-agent`), to verify the server's certificate against when `DATABASE_TLS_INSECURE=false` |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | the collector's identity | Registers the AI agent as another database than the collector's: its id in OneUptime, or `<engine>\|<address>:<port>`. Leave it empty |
+| `LOG_LEVEL` | `info` | The AI agent's log level: `debug`, `info`, `warn` or `error` |
 
 What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#database-servers).
 

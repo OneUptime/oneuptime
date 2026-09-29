@@ -614,6 +614,40 @@ describe("RiskyWrite that always needs a human", () => {
       ["serial-getty@ttyS0.service"],
       "protected",
     ],
+    // the aliases systemd ships for protected units
+    ["systemctl restart autovt@tty1", ["autovt@tty1.service"], "protected"],
+    ["systemctl restart udev", ["udev.service"], "protected"],
+    [
+      "systemctl restart container-getty@1",
+      ["container-getty@1.service"],
+      "protected",
+    ],
+    [
+      "systemctl restart dbus-org.freedesktop.login1",
+      ["dbus-org.freedesktop.login1.service"],
+      "protected",
+    ],
+    // package upgrades: they install packages and may reboot the host
+    [
+      "systemctl start apt-daily-upgrade",
+      ["apt-daily-upgrade.service"],
+      "protected",
+    ],
+    [
+      "systemctl start unattended-upgrades",
+      ["unattended-upgrades.service"],
+      "protected",
+    ],
+    [
+      "systemctl start dnf-automatic-install.service",
+      ["dnf-automatic-install.service"],
+      "protected",
+    ],
+    [
+      "systemctl start packagekit-offline-update",
+      ["packagekit-offline-update.service"],
+      "protected",
+    ],
     ["systemctl restart docker", ["docker.service"], "protected"],
     ["systemctl stop docker.socket", ["docker.socket"], "protected"],
     ["systemctl restart containerd", ["containerd.service"], "protected"],
@@ -736,6 +770,17 @@ describe("Denied, with a reason that names what is allowed", () => {
     ["systemctl start Reboot.target", "power or run-state"],
     ["systemctl restart default.target", "power or run-state"],
     ["systemctl reset-failed reboot.target", "power or run-state"],
+    // the SysV runlevel aliases of the power and run-state targets
+    ["systemctl start runlevel6.target", "power or run-state"],
+    ["systemctl start runlevel0.target", "power or run-state"],
+    ["systemctl restart runlevel1.target", "power or run-state"],
+    ["systemctl start runlevel3.target", "power or run-state"],
+    ["systemctl start RUNLEVEL6.target", "power or run-state"],
+    // a root shell with no password on tty9
+    ["systemctl start debug-shell", "root shell with no password"],
+    ["systemctl start debug-shell.service", "root shell with no password"],
+    ["systemctl restart debug-shell", "root shell with no password"],
+    ["systemctl start nginx debug-shell", "root shell with no password"],
     ["systemctl stop system.slice", "slice unit"],
     ["systemctl stop user.slice", "slice unit"],
     ["systemctl stop init.scope", "scope unit"],
@@ -1730,12 +1775,112 @@ describe("process listings are redacted (ps, top)", () => {
     return hooks[0] as ResourceOutputRedactionHook;
   }
 
-  test("ps and top have the hook, other host programs rely on the generic rules", () => {
+  test("ps, top and systemctl share the hook, journalctl has its own, other host programs rely on the generic rules", () => {
     expect(RESOURCE_OUTPUT_REDACTION_HOOKS["ps"]).toBeDefined();
     expect(RESOURCE_OUTPUT_REDACTION_HOOKS["top"]).toBeDefined();
     expect(hook("ps")).toBe(hook("top"));
-    expect(getResourceOutputRedactionHooks("journalctl")).toEqual([]);
-    expect(getResourceOutputRedactionHooks("systemctl")).toEqual([]);
+    expect(hook("systemctl")).toBe(hook("ps"));
+    expect(hook("journalctl")).not.toBe(hook("ps"));
+    expect(getResourceOutputRedactionHooks("df")).toEqual([]);
+    expect(getResourceOutputRedactionHooks("ss")).toEqual([]);
+  });
+
+  test("systemctl status: the command lines in a unit's cgroup tree are masked as ps masks them", () => {
+    const text: string = [
+      "● backup.service - Nightly backup",
+      "     Loaded: loaded (/etc/systemd/system/backup.service; enabled; preset: enabled)",
+      "     Active: active (running) since Tue 2026-09-29 10:00:00 UTC; 1min ago",
+      "   Main PID: 1234 (curl)",
+      "      Tasks: 2 (limit: 4915)",
+      "     CGroup: /system.slice/backup.service",
+      "             ├─1234 /usr/bin/curl -u admin:pw12345 https://backup.example.com/upload",
+      "             └─1240 /opt/app --token abcdef123456 -Dapp.db.password=hunter2 --port 80",
+      "",
+      "Sep 29 10:00:00 host systemd[1]: Started backup.service - Nightly backup.",
+    ].join("\n");
+    const redacted: string = redactPs(text, "systemctl");
+
+    for (const secret of ["pw12345", "abcdef123456", "hunter2"]) {
+      expect(redacted).not.toContain(secret);
+    }
+    expect(redacted).toContain(
+      "-u admin:[redacted] https://backup.example.com/upload",
+    );
+    expect(redacted).toContain(
+      "--token [redacted] -Dapp.db.password=[redacted] --port 80",
+    );
+    expect(redacted).toContain("Main PID: 1234 (curl)");
+    expect(redacted).toContain("Tasks: 2 (limit: 4915)");
+  });
+
+  test("journalctl: a message's command line, and -o json's _CMDLINE, decoded and re-encoded as valid JSON", () => {
+    const record: Record<string, unknown> = {
+      __CURSOR: "s=abc;i=1",
+      __REALTIME_TIMESTAMP: "1790000000000000",
+      _PID: "1234",
+      _COMM: "curl",
+      _CMDLINE: "/usr/bin/curl -u admin:pw12345 https://backup.example.com",
+      MESSAGE: "upload started",
+      PRIORITY: "6",
+      _BINARY: [1, 2, 3],
+    };
+    const json: string = redactPs(
+      [JSON.stringify(record), JSON.stringify({ MESSAGE: "all quiet" })].join(
+        "\n",
+      ),
+      "journalctl",
+    );
+    const lines: Array<string> = json.split("\n");
+    const first: Record<string, unknown> = JSON.parse(lines[0]!);
+
+    expect(json).not.toContain("pw12345");
+    expect(first["_CMDLINE"]).toBe(
+      "/usr/bin/curl -u admin:[redacted] https://backup.example.com",
+    );
+    expect(first["_BINARY"]).toEqual([1, 2, 3]);
+    expect(first["MESSAGE"]).toBe("upload started");
+    expect(lines[1]).toBe(JSON.stringify({ MESSAGE: "all quiet" }));
+
+    // The last word of a command line: the record still parses.
+    const last: string = redactPs(
+      JSON.stringify({ _CMDLINE: "app --password hunter2" }),
+      "journalctl",
+    );
+    expect(JSON.parse(last)).toEqual({ _CMDLINE: "app --password [redacted]" });
+
+    /*
+     * A record whose MESSAGE holds a replacement pattern ("$&", "$'", "$`")
+     * never gets the original, unmasked record pasted back in, and keeps
+     * its surrounding whitespace.
+     */
+    for (const pattern of ["$&", "$'", "$`", "$$"]) {
+      const patterned: string = redactPs(
+        `  ${JSON.stringify({
+          _CMDLINE: "/usr/bin/curl -u admin:pw12345 https://x",
+          MESSAGE: `cost went up by ${pattern} today`,
+        })} `,
+        "journalctl",
+      );
+
+      expect(patterned).not.toContain("pw12345");
+      expect(patterned.startsWith("  {")).toBe(true);
+      expect(patterned.endsWith("} ")).toBe(true);
+      expect(JSON.parse(patterned)).toEqual({
+        _CMDLINE: "/usr/bin/curl -u admin:[redacted] https://x",
+        MESSAGE: `cost went up by ${pattern} today`,
+      });
+    }
+
+    const short: string = redactPs(
+      "Sep 29 10:00:00 host backup[1234]: running curl -u admin:pw12345 https://x",
+      "journalctl",
+    );
+    expect(short).not.toContain("pw12345");
+    expect(short).toContain("-u admin:[redacted] https://x");
+
+    const plain: string =
+      "Sep 29 10:00:00 host systemd[1]: Started nginx.service.";
+    expect(redactPs(plain, "journalctl")).toBe(plain);
   });
 
   test.each([

@@ -2,8 +2,12 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
@@ -23,7 +27,9 @@ import {
   ResourceAiRemediationMode,
   parseResourceAiRemediationMode,
 } from "../../Types/ResourceAiAgent/ResourceAiAccess";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import MonitorResourceContextUtil from "../Utils/Monitor/MonitorResourceContext";
 import { SeriesResolvedResourceIds } from "../Utils/Monitor/SeriesResourceLinker";
 import logger from "../Utils/Logger";
@@ -114,6 +120,14 @@ export interface LoadedResourceAiAccessTarget {
 
 // The most resources one incident or alert offers an investigation.
 export const MAX_RESOURCES_PER_SUBJECT: number = 10;
+
+/*
+ * How many of a subject's linked resources are read per query while
+ * looking for its unarchived ones (getResourcesForSubject): one read covers
+ * any ordinary subject, and a subject linked to many archived resources is
+ * read on in batches until the cap is reached.
+ */
+const SUBJECT_RESOURCE_READ_BATCH_SIZE: number = MAX_RESOURCES_PER_SUBJECT * 5;
 
 // The columns every resource model carries for AI access.
 const AI_ACCESS_COLUMNS: Record<string, boolean> = {
@@ -933,14 +947,18 @@ export class ResourceAiAccessServiceClass {
    */
 
   /*
-   * The resources an incident or alert is linked to, in the order
-   * ALL_AI_RESOURCE_TYPES lists the types, at most
+   * The unarchived resources of the project an incident or alert is linked
+   * to, in the order ALL_AI_RESOURCE_TYPES lists the types, at most
    * MAX_RESOURCES_PER_SUBJECT. Linked means the subject's resource
    * relations (written when it was created, from its series labels and its
-   * monitors' configuration); when there are none, the subject's monitors'
-   * step configuration is resolved again now (the resource may have
-   * appeared after the subject was created), matching names
+   * monitors' configuration); when none of those is an unarchived resource
+   * of the project, the subject's monitors' step configuration is resolved
+   * again now (the resource may have appeared after the subject was
+   * created, or replaced an archived one), matching names
    * case-insensitively like the linker does.
+   *
+   * Archived and missing resources are dropped BEFORE the cap: capping
+   * first would let ten archived links hide an active one behind them.
    */
   @CaptureSpan()
   public async getResourcesForSubject(data: {
@@ -989,18 +1007,60 @@ export class ResourceAiAccessServiceClass {
       );
     }
 
-    let refs: Array<ResourceAiAccessRef> = this.flattenRefs(linked);
+    let refs: Array<ResourceAiAccessRef> = await this.keepUnarchivedRefs({
+      projectId: data.projectId,
+      refs: this.flattenRefs(linked),
+    });
 
     if (refs.length === 0 && monitorIds.length > 0) {
-      refs = this.flattenRefs(
-        await this.resolveMonitorResources({
-          projectId: data.projectId,
-          monitorIds,
-        }),
-      );
+      refs = await this.keepUnarchivedRefs({
+        projectId: data.projectId,
+        refs: this.flattenRefs(
+          await this.resolveMonitorResources({
+            projectId: data.projectId,
+            monitorIds,
+          }),
+        ),
+      });
     }
 
-    return refs.slice(0, MAX_RESOURCES_PER_SUBJECT);
+    return refs;
+  }
+
+  /*
+   * The first MAX_RESOURCES_PER_SUBJECT of these refs (in their order) that
+   * are unarchived resources of the project, read in batches so a long
+   * list of archived links costs a few reads, not one per link.
+   */
+  private async keepUnarchivedRefs(data: {
+    projectId: ObjectID;
+    refs: Array<ResourceAiAccessRef>;
+  }): Promise<Array<ResourceAiAccessRef>> {
+    const kept: Array<ResourceAiAccessRef> = [];
+
+    for (
+      let start: number = 0;
+      start < data.refs.length && kept.length < MAX_RESOURCES_PER_SUBJECT;
+      start += SUBJECT_RESOURCE_READ_BATCH_SIZE
+    ) {
+      const rows: Array<ResourceAiAccessRow> = await this.loadResources({
+        projectId: data.projectId,
+        resources: data.refs.slice(
+          start,
+          start + SUBJECT_RESOURCE_READ_BATCH_SIZE,
+        ),
+        excludeArchived: true,
+      });
+
+      for (const row of rows) {
+        kept.push({
+          resourceType: row.resourceType,
+          resourceId: row.id.toString(),
+        });
+      }
+    }
+
+    return kept.slice(0, MAX_RESOURCES_PER_SUBJECT);
   }
 
   @CaptureSpan()
@@ -1185,6 +1245,141 @@ export class ResourceAiAccessServiceClass {
     }
 
     return byType;
+  }
+
+  /*
+   * ------------------------------------------------------------------
+   * Who may change a resource
+   * ------------------------------------------------------------------
+   */
+
+  /*
+   * Throws unless the caller may EDIT this resource: its update ACL, with
+   * label-scoped allow and block rows decided from the row's own labels,
+   * and the caller's Owned scope — exactly what a CRUD update of the row
+   * would check. Approving an AI plan runs its commands on the resource as
+   * root, so being allowed to start runbooks in the project is not enough
+   * on its own: someone blocked from editing (or reading) a resource must
+   * not be able to change it by approving a plan. Root and master admins
+   * are not gated. A resource that does not exist in the project is
+   * refused like one the caller may not edit.
+   */
+  @CaptureSpan()
+  public async assertCallerMayChangeResource(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    resourceType: AiResourceType;
+    resourceId: ObjectID;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    if (!isAiResourceType(data.resourceType)) {
+      throw new BadDataException(
+        `"${String(data.resourceType)}" is not a resource type.`,
+      );
+    }
+
+    const noun: string = describeResourceNoun(data.resourceType);
+    const refusal: string = `You do not have permission to edit this ${noun}, so you cannot approve an AI plan that changes it. Ask someone who may edit the ${noun} to approve it, or dismiss the suggestion.`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const service: DatabaseService<any> =
+      MODEL_SPECS[data.resourceType].service;
+
+    const query: Record<string, unknown> = {
+      _id: data.resourceId.toString(),
+      projectId: data.projectId,
+    };
+
+    /*
+     * The caller's permissions are read for the resource's own project —
+     * the permission layer reads the rows of props.tenantId.
+     */
+    const callerProps: DatabaseCommonInteractionProps = {
+      ...data.props,
+      tenantId: data.projectId,
+      isMultiTenantRequest: false,
+    };
+
+    /*
+     * The row's labels, read as root: label-scoped allow and block rows are
+     * decided per row, from them (DatabaseService.updateOneById's read).
+     */
+    const select: Select<BaseModel> = { _id: true };
+    const accessControlColumn: string | null = service
+      .getModel()
+      .getAccessControlColumn();
+
+    if (accessControlColumn) {
+      (select as Record<string, unknown>)[accessControlColumn] = {
+        _id: true,
+        name: true,
+      };
+    }
+
+    const row: BaseModel | null = (await service.findOneBy({
+      query,
+      select,
+      props: { isRoot: true },
+    })) as BaseModel | null;
+
+    if (!row) {
+      throw new NotAuthorizedException(refusal);
+    }
+
+    try {
+      // Readable to the caller at all (a label-scoped read block refuses).
+      const readable: BaseModel | null = (await service.findOneBy({
+        query,
+        select: { _id: true },
+        props: callerProps,
+      })) as BaseModel | null;
+
+      if (!readable) {
+        throw new NotAuthorizedException(refusal);
+      }
+
+      await ModelPermission.checkUpdatePermissionByModel({
+        modelType: service.modelType,
+        fetchModelWithAccessControlIds: async (): Promise<BaseModel> => {
+          return row;
+        },
+        props: callerProps,
+      });
+
+      /*
+       * The caller's whole update scope as a query (labels, Owned scope):
+       * the row must still be in it.
+       */
+      const permittedQuery: Record<string, unknown> =
+        (await ModelPermission.checkUpdateQueryPermissions(
+          service.modelType,
+          query,
+          {},
+          callerProps,
+        )) as Record<string, unknown>;
+
+      const permitted: BaseModel | null = (await service.findOneBy({
+        query: permittedQuery,
+        select: { _id: true },
+        props: { isRoot: true },
+      })) as BaseModel | null;
+
+      if (!permitted) {
+        throw new NotAuthorizedException(refusal);
+      }
+    } catch (error) {
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof NotAuthenticatedException
+      ) {
+        throw new NotAuthorizedException(refusal);
+      }
+
+      throw error;
+    }
   }
 
   /*

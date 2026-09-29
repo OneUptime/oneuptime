@@ -167,8 +167,8 @@ Every command is checked by the same policy three times — by OneUptime's AI to
 | Kind | Commands | When it runs |
 |---|---|---|
 | **Read** | `govc about`, `ls`, `find`, `vm.info`, `host.info`, `host.service.ls`, `host.date.info`, `datastore.info`, `pool.info`, `events`, `tasks`, `metric.ls`, `metric.sample`, `object.collect` (runtime and health properties only), `tags.ls`, `version` | Investigations, always |
-| **Safe fix** | `govc vm.power -on VM`, `govc vm.power -r VM` (graceful guest reboot through VMware Tools), one VM at a time | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; can run unattended in *Automatic* mode |
-| **Risky fix** | `govc vm.power -s` (guest shutdown), `-off`, `-reset`, `-suspend`, a power operation on several VMs, `govc host.maintenance.exit HOST` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; a person approves it unless your settings say otherwise |
+| **Safe fix** | `govc vm.power -on /DC/vm/FOLDER/VM`, `govc vm.power -r /DC/vm/FOLDER/VM` (graceful guest reboot through VMware Tools), one VM at a time, named by its inventory path | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; can run unattended in *Automatic* mode |
+| **Risky fix** | `govc vm.power -s` (guest shutdown), `-off`, `-reset`, `-suspend`, a power operation on several VMs or on a bare VM name (govc acts on every VM with that name), `govc host.maintenance.exit HOST` (the host's name, never a path) | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`; a person approves it unless your settings say otherwise |
 | **Always a person** | `govc vm.migrate`, `govc host.maintenance.enter HOST` | Only with `ONEUPTIME_AI_ALLOW_WRITES=true`, and always after a person approves |
 | **Never** | Anything else: guest operations (`guest.*`), creating, cloning, changing or destroying VMs, snapshots, devices and disks, datastore file access, `esxcli`, host add/remove/reboot, permissions, roles, sessions, licenses, `govc env`, a VM's `extraConfig` (`vm.info -e`, `-json`), and the endpoint, credential, TLS and debug flags (`-u`, `-k`, `-cert`, `-debug`, `-dump`, ...) | — |
 
@@ -191,7 +191,8 @@ Secrets `govc` prints (guestinfo values such as cloud-init user data, session id
    ONEUPTIME_AI_ALLOW_WRITES=true
    ONEUPTIME_AI_VCENTER_USERNAME=oneuptime-ai@vsphere.local
    ONEUPTIME_AI_VCENTER_PASSWORD='a-strong-password'
-   # Recommended: the VM this agent runs on, if it runs inside this vCenter.
+   # Recommended: the VM this agent runs on, if it runs inside this vCenter, and
+   # the vCenter appliance's VM when it is not named after VCENTER_ENDPOINT's host.
    ONEUPTIME_AI_PROTECTED_TARGETS=monitoring-vm-01
    ```
 
@@ -199,7 +200,7 @@ Secrets `govc` prints (guestinfo values such as cloud-init user data, session id
 
 Without `ONEUPTIME_AI_VCENTER_USERNAME` the agent uses `VCENTER_USERNAME` for everything; with the collector's Read-Only user, vCenter itself then refuses every fix (and the agent's message lists the privileges the role needs). `install.sh` asks about fixes on a fresh install and writes these settings for you.
 
-The agent **never** changes the vCenter appliance itself — the VM named after the host in `VCENTER_ENDPOINT` (`vcsa` for `https://vcsa.example.com`, or the full host name) — nor anything in `ONEUPTIME_AI_PROTECTED_TARGETS`, whatever inventory path a command names it by (`vcsa` and `/DC/vm/infra/vcsa` are the same VM). To restrict fixes to certain VMs or hosts, set `ONEUPTIME_AI_WRITE_TARGETS`: its globs are matched against each name exactly as the command writes it, so list both forms when you use paths (`web-*,/DC/vm/web/*`).
+The agent **never** changes the VM named after the host in `VCENTER_ENDPOINT` (`vcsa` for `https://vcsa.example.com`, or the full host name) — normally the vCenter appliance itself — nor anything in `ONEUPTIME_AI_PROTECTED_TARGETS`, whatever inventory path a command names it by (`vcsa` and `/DC/vm/infra/vcsa` are the same VM). It knows the appliance by that name only: when `VCENTER_ENDPOINT` is an IP address (the agent then warns at start-up), or the appliance's VM has another name, put that VM's name in `ONEUPTIME_AI_PROTECTED_TARGETS`, or nothing stops a fix from rebooting the vCenter. To restrict fixes to certain VMs or hosts, set `ONEUPTIME_AI_WRITE_TARGETS`: its globs are matched against each name exactly as the command writes it, so list both forms when you use paths (`web-*,/DC/vm/web/*`).
 
 ### AI agent settings
 
@@ -210,7 +211,7 @@ These go in the same `.env`; the agent also reads `VMWARE_VCENTER_NAME`, `VCENTE
 | `ONEUPTIME_AI_ALLOW_WRITES` | `false` | `true` lets OneUptime AI apply fixes. Anything else keeps the agent read-only |
 | `ONEUPTIME_AI_VCENTER_USERNAME` / `ONEUPTIME_AI_VCENTER_PASSWORD` | — | The vSphere user the agent logs in as instead of `VCENTER_USERNAME` / `VCENTER_PASSWORD` — one whose role allows the fixes. Set both or neither |
 | `ONEUPTIME_AI_WRITE_TARGETS` | all | Comma-separated globs of the VMs and hosts fixes may touch. Empty means any, except the protected ones |
-| `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated names (or globs) of VMs and hosts OneUptime AI must never change, on top of the vCenter appliance |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated names (or globs) of VMs and hosts OneUptime AI must never change, on top of the VM named after `VCENTER_ENDPOINT`'s host. List the vCenter appliance's VM here when the endpoint is an IP address or the VM is named otherwise |
 | `VCENTER_CA_FILE` | — | Path, inside the agent's container, of a PEM file with the CA that signed vCenter's certificate (its VMCA root, from `https://<vcenter>/certs/download.zip`). Mount it with the commented `volumes:` lines of the service. Lets you keep `VCENTER_INSECURE_SKIP_VERIFY=false` with vCenter's own certificate |
 | `GOVC_DATACENTER` | — | The datacenter commands use when they name none; set it when this vCenter has more than one |
 
@@ -230,7 +231,7 @@ docker exec oneuptime-vmware-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `VCENTER_ENDPOINT ... is a plain http:// address` | Use `https://`: the agent never sends its password unencrypted. |
 | `... this agent is read-only` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env` and `docker compose up -d`. |
 | `... may not make this change: give the user ... a role with VirtualMachine.Interact...` | Grant the fixes role to `ONEUPTIME_AI_VCENTER_USERNAME` on those VMs (see [Allowing fixes](#allowing-fixes)). |
-| `... which the VMware AI agent protects` | The VM is the vCenter appliance or in `ONEUPTIME_AI_PROTECTED_TARGETS`; leave that change to a person. |
+| `... which the VMware AI agent protects` | The VM is named after `VCENTER_ENDPOINT`'s host or is in `ONEUPTIME_AI_PROTECTED_TARGETS`; leave that change to a person. |
 | `This vCenter has more than one datacenter` | Set `GOVC_DATACENTER`, or OneUptime AI names objects by their full path. |
 | `Killed (timeout ...): govc produced no output at all` | vCenter is unreachable from the agent: check `VCENTER_ENDPOINT` and the network to it on TCP 443. |
 

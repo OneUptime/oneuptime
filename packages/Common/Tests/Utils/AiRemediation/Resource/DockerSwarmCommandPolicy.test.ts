@@ -74,6 +74,10 @@ const READS: Array<[string, string]> = [
     "service logs",
   ],
   ["docker service logs --since 10m web", "service logs"],
+  [
+    "docker service logs --tail 200 --since 2026-09-29T10:00:00Z web",
+    "service logs",
+  ],
   ["docker service logs --tail 10 web.1.x2k9", "service logs"],
   ["docker service logs web --tail=2000", "service logs"],
   ["docker stack ls", "stack ls"],
@@ -100,7 +104,11 @@ const SAFE_WRITES: Array<[string, string, Array<string>]> = [
   ["docker service update --force web", "service update", ["web"]],
   ["docker service update --force -d web", "service update", ["web"]],
   ["docker service update web --force --detach", "service update", ["web"]],
-  ["docker service update --force --detach=false web", "service update", ["web"]],
+  [
+    "docker service update --force --detach=false web",
+    "service update",
+    ["web"],
+  ],
   ["docker service update --force=true app_web", "service update", ["app_web"]],
   ["docker service rollback web", "service rollback", ["web"]],
   ["docker service rollback -d web", "service rollback", ["web"]],
@@ -185,7 +193,10 @@ const DENIED: Array<[string, string]> = [
   ["docker node update --label-rm zone node-1", "node labels"],
   ["docker node update --role manager node-1", "Raft quorum"],
   ["docker node update node-1", "needs --availability"],
-  ["docker node update --availability maintenance node-1", "active, pause or drain"],
+  [
+    "docker node update --availability maintenance node-1",
+    "active, pause or drain",
+  ],
   ["docker node update --availability drain a b", "exactly one node"],
   ["docker node update --availability drain", "exactly one node"],
   ["docker swarm leave --force", "swarm membership"],
@@ -198,8 +209,14 @@ const DENIED: Array<[string, string]> = [
     "docker service update --mount-add type=bind,src=/,dst=/host web",
     "what the service runs",
   ],
-  ["docker service update --secret-add db_password web", "what the service runs"],
-  ["docker service update --config-add nginx_conf web", "what the service runs"],
+  [
+    "docker service update --secret-add db_password web",
+    "what the service runs",
+  ],
+  [
+    "docker service update --config-add nginx_conf web",
+    "what the service runs",
+  ],
   ["docker service update --cap-add SYS_ADMIN web", "what the service runs"],
   ["docker service update --user root web", "what the service runs"],
   ["docker service update -u root web", "what the service runs"],
@@ -208,8 +225,14 @@ const DENIED: Array<[string, string]> = [
   ["docker service update --entrypoint sh web", "what the service runs"],
   ["docker service update --args 'sh -c id' web", "what the service runs"],
   ["docker service update --hostname evil web", "what the service runs"],
-  ["docker service update --credential-spec file://x web", "what the service runs"],
-  ["docker service update --with-registry-auth --force web", "what the service runs"],
+  [
+    "docker service update --credential-spec file://x web",
+    "what the service runs",
+  ],
+  [
+    "docker service update --with-registry-auth --force web",
+    "what the service runs",
+  ],
   ["docker service update --force --workdir / web", "what the service runs"],
   ["docker service update --rollback web", "not one OneUptime AI may use"],
   ["docker service update --quiet --force web", "not one OneUptime AI may use"],
@@ -221,7 +244,10 @@ const DENIED: Array<[string, string]> = [
   ["docker service update --replicas -1 web", "--replicas takes"],
   ["docker service update --limit-memory lots web", "--limit-memory takes"],
   ["docker service update --limit-cpu two web", "--limit-cpu takes"],
-  ["docker service update --update-failure-action explode web", "pause, continue or rollback"],
+  [
+    "docker service update --update-failure-action explode web",
+    "pause, continue or rollback",
+  ],
   ["docker service update --update-delay soon web", "a duration"],
   ["docker service update web", "changes nothing as written"],
   ["docker service update --force=false web", "changes nothing as written"],
@@ -250,6 +276,10 @@ const DENIED: Array<[string, string]> = [
   ["docker service logs --tail 5000 web", "from 0 to 2000"],
   ["docker service logs --tail 10 web api", "exactly one service"],
   ["docker service logs --tail 10 --until 5m web", "not one OneUptime AI"],
+  ["docker service logs --since 2001-01-01 web", "is an absolute time"],
+  ["docker service logs --since 100000h web", "further back than 24h"],
+  ["docker system df -v --format json", "build-cache record's Description"],
+  ["docker events --since 1m --until 2099-12-31", "--until must be a duration"],
   // reads with bad shapes
   ["docker service ps", "at least 1 service"],
   ["docker service inspect", "at least 1 service"],
@@ -526,8 +556,10 @@ describe("docker-swarm: the auto-execution ladder through the dispatcher", () =>
       AiRemediationCommandPolicyVerdict.RequiresApproval,
     );
     expect(
-      verdictFor({ command: "docker service scale web=0", bypassApproval: true })
-        .verdict,
+      verdictFor({
+        command: "docker service scale web=0",
+        bypassApproval: true,
+      }).verdict,
     ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
     expect(
       verdictFor({

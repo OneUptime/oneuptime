@@ -4,6 +4,7 @@ import {
   OutputSection,
   formatBytes,
   limitRows,
+  normalizeQueryText,
 } from "./DatabaseOutput";
 import {
   DiagnosticOutcome,
@@ -741,7 +742,9 @@ async function runRead(
       return ok([
         {
           kind: "text",
-          text: String((rows[0] || {})["Status"] ?? ""),
+          text: normalizeInnodbStatusStatements(
+            String((rows[0] || {})["Status"] ?? ""),
+          ),
         },
       ]);
     }
@@ -751,6 +754,78 @@ async function runRead(
         `db ${command.operation.name} is not available on ${describeMySqlServer(server)}.`,
       );
   }
+}
+
+/*
+ * SHOW ENGINE INNODB STATUS prints each transaction's statement verbatim —
+ * newlines, literals and all — on the lines after its "MySQL thread id ..."
+ * line (TRANSACTIONS, LATEST DETECTED DEADLOCK, LATEST FOREIGN KEY ERROR).
+ * The output redactor reads plain text line by line, and cannot tell a
+ * statement's continuation line ("  card = 4111111111111111,") from the
+ * monitor's own text, so each statement is normalized here as ONE statement
+ * (literals become ?, as a query column is): from the line after the thread
+ * line up to the next line the monitor writes itself. A monitor line this
+ * list does not know is normalized with the statement — over-masking is
+ * accepted, a literal left in place is not.
+ */
+const INNODB_THREAD_LINE_REGEX: RegExp = /^(?:MySQL|MariaDB) thread id [0-9]+/;
+const INNODB_MONITOR_LINE_REGEXES: ReadonlyArray<RegExp> = [
+  // ---TRANSACTION, ------- TRX HAS BEEN WAITING, section rules
+  /^-{3,}/,
+  /^={3,}/,
+  // *** (1) TRANSACTION:, *** (1) HOLDS THE LOCK(S):, *** WE ROLL BACK
+  /^\*{3}/,
+  /^TRANSACTION [0-9]+,/,
+  INNODB_THREAD_LINE_REGEX,
+  /^Trx read view /,
+  /^Trx #rec lock waits /,
+  /^RECORD LOCKS /,
+  /^TABLE LOCK /,
+  /^Record lock, /,
+  /^LOCK WAIT /,
+  /^mysql tables in use /,
+  /^[0-9]+ lock struct\(s\)/,
+  /^Foreign key constraint fails /,
+  /^Trying to /,
+  /^DATA TUPLE: /,
+  /^But (?:the parent|in parent) /,
+  /^END OF INNODB MONITOR OUTPUT/,
+];
+
+function isInnodbMonitorLine(line: string): boolean {
+  return INNODB_MONITOR_LINE_REGEXES.some((pattern: RegExp): boolean => {
+    return pattern.test(line);
+  });
+}
+
+// The InnoDB monitor's report with every statement in it normalized.
+export function normalizeInnodbStatusStatements(status: string): string {
+  const lines: Array<string> = (status || "").split("\n");
+  const out: Array<string> = [];
+  let index: number = 0;
+
+  while (index < lines.length) {
+    const line: string = lines[index] || "";
+    out.push(line);
+    index++;
+
+    if (!INNODB_THREAD_LINE_REGEX.test(line)) {
+      continue;
+    }
+
+    const statement: Array<string> = [];
+
+    while (index < lines.length && !isInnodbMonitorLine(lines[index] || "")) {
+      statement.push(lines[index] || "");
+      index++;
+    }
+
+    if (statement.length > 0) {
+      out.push(normalizeQueryText(statement.join("\n")));
+    }
+  }
+
+  return out.join("\n");
 }
 
 // MySQL 8 serves table statistics from a cache (a day old at most, by default).

@@ -1,5 +1,6 @@
 import DatabaseService from "../../../Services/DatabaseService";
 import UserService from "../../../Services/UserService";
+import CreateBy from "../../../Types/Database/CreateBy";
 import { OnUpdate } from "../../../Types/Database/Hooks";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import UpdateBy from "../../../Types/Database/UpdateBy";
@@ -36,8 +37,8 @@ import ResourceCommandPolicy, {
  * settings — shared by every resource a resource AI agent serves (Docker,
  * Podman and Docker Swarm hosts, Proxmox clusters, VMware vCenters, Ceph
  * clusters, database servers and hosts), whose services call it from their
- * update hooks. The same rules KubernetesClusterService applies to a
- * cluster (getAiAccessLoosening and friends), minus the Runner and
+ * create and update hooks. The same rules KubernetesClusterService applies
+ * to a cluster (getAiAccessLoosening and friends), minus the Runner and
  * credential bindings a resource AI agent never has:
  *
  * - validation: the remediation mode must be a ResourceAiRemediationMode
@@ -560,6 +561,68 @@ export default class ResourceAiAccessSettings {
       resourceType: data.resourceType,
       previousResourceAiAccessSettings,
     };
+  }
+
+  /*
+   * The same rule for a resource service's onBeforeCreate, judged against
+   * the never-configured defaults a new resource starts from (as
+   * KubernetesClusterService.onBeforeCreate judges a new cluster): validate
+   * (every caller, root included), refuse the server-only columns (every
+   * caller but root — a master admin included, whom the create column ACLs
+   * never check) and gate a loosening (every caller but root and master
+   * admins). The create column ACLs of the AI columns are empty, so a
+   * user's create cannot carry them today and the gate is defence in depth.
+   * Normalizes the allowlist in `createBy.data` in place.
+   */
+  public static checkCreate<TBaseModel extends BaseModel>(data: {
+    resourceType: AiResourceType;
+    createBy: CreateBy<TBaseModel>;
+  }): void {
+    const createData: JSONObject = (data.createBy.data ||
+      {}) as unknown as JSONObject;
+    const props: DatabaseCommonInteractionProps = data.createBy.props;
+
+    ResourceAiAccessSettings.validateSettings({
+      resourceType: data.resourceType,
+      data: createData,
+    });
+
+    if (props.isRoot) {
+      return;
+    }
+
+    const serverOnlyRefusal: string | null =
+      ResourceAiAccessSettings.getServerOnlyColumnRefusal(createData);
+
+    if (serverOnlyRefusal) {
+      throw new NotAuthorizedException(serverOnlyRefusal);
+    }
+
+    if (
+      props.isMasterAdmin ||
+      !ResourceAiAccessSettings.isSettingWritten(createData)
+    ) {
+      return;
+    }
+
+    // The tenant column is stamped from props.tenantId before this hook.
+    const projectId: ObjectID | undefined =
+      props.tenantId ||
+      (createData["projectId"] as ObjectID | undefined) ||
+      undefined;
+
+    const refusal: string | null = ResourceAiAccessSettings.getLooseningRefusal(
+      {
+        resourceType: data.resourceType,
+        data: createData,
+        props,
+        current: [{ ...NEVER_CONFIGURED_RESOURCE_AI_ACCESS, projectId }],
+      },
+    );
+
+    if (refusal) {
+      throw new NotAuthorizedException(refusal);
+    }
   }
 
   /*

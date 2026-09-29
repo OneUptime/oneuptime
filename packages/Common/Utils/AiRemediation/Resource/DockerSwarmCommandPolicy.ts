@@ -150,7 +150,10 @@ const TASK_LIST_FLAGS: ReadonlyArray<DockerFlagSpec> = [
   DOCKER_QUIET_FLAG,
 ];
 
-const PRETTY_FLAG: DockerFlagSpec = { name: "pretty", kind: DockerFlagKind.Bool };
+const PRETTY_FLAG: DockerFlagSpec = {
+  name: "pretty",
+  kind: DockerFlagKind.Bool,
+};
 
 const MANY: number = Number.MAX_SAFE_INTEGER;
 
@@ -488,14 +491,16 @@ const SERVICE_ROLLBACK_SPEC: DockerCommandSpec = {
       ? deniedJudgement(problem)
       : {
           tier: ResourceCommandTier.SafeWrite,
-          reason: "rolls one service back to the spec it had before its last update",
+          reason:
+            "rolls one service back to the spec it had before its last update",
           targets: parsed.positionals,
         };
   },
 };
 
 // SERVICE=REPLICAS, as `docker service scale` reads each argument.
-const SCALE_PAIR_REGEX: RegExp = /^([A-Za-z0-9][A-Za-z0-9_.-]{0,254})=([0-9]{1,9})$/;
+const SCALE_PAIR_REGEX: RegExp =
+  /^([A-Za-z0-9][A-Za-z0-9_.-]{0,254})=([0-9]{1,9})$/;
 
 const SERVICE_SCALE_SPEC: DockerCommandSpec = {
   verb: "service scale",
@@ -663,7 +668,7 @@ const DockerSwarmCommandPolicy: ResourceToolPolicy = {
   readCommandGuide: [
     "- `docker node ls`, `docker node ps [NODE...]`, `docker node inspect NODE --pretty` — nodes, their state and their tasks",
     "- `docker service ls`, `docker service ps SERVICE` (`--no-trunc` shows full errors; `--filter KEY=VALUE`, `-q`), `docker service inspect SERVICE --pretty` — environment values come back redacted",
-    "- `docker service logs --tail 200 SERVICE` — `--tail N` (N up to 2000) or `--since 30m` is required; `-t`, `--no-trunc`, `--raw`, `--no-task-ids` are fine; never `-f`/`--follow`",
+    "- `docker service logs --tail 200 SERVICE` — `--tail N` (N up to 2000) or `--since 30m` is required (without `--tail`, `--since` must be a duration of at most 24h); `-t`, `--no-trunc`, `--raw`, `--no-task-ids` are fine; never `-f`/`--follow`",
     "- `docker stack ls`, `docker stack ps STACK`, `docker stack services STACK`",
     "- This manager's engine: `docker ps -a`, `docker container inspect NAME`, `docker logs --tail 200 NAME`, `docker stats --no-stream`, `docker events --since 30m --until 0s`, `docker info`, `docker version`, `docker network ls`, `docker network inspect NAME`, ...",
     "- `--format json` (or `table` for lists) only, never a Go template; one command per call, no pipes, no global flags (`-H`, `--context`, ...)",

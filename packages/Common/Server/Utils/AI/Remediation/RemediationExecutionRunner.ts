@@ -49,7 +49,6 @@ import {
   ResourceAiAccessGap,
   ResourceAiAccessStatus,
   ResourceAiRemediationMode,
-  isUnattendedResourceRemediationMode,
 } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceCommandPolicy from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import ResourceAiAccessService, {
@@ -84,7 +83,9 @@ import AutoRemediationRuleEngineService, {
   ResourceBreakerState,
   ResourceRoundHold,
   ResourceRoundReference,
+  doesResourceModeRunRoundUnattended,
   parseClusterRoundNameSnapshot,
+  parseResourceRoundNumber,
 } from "../../../Services/AutoRemediationRuleEngineService";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
@@ -519,7 +520,7 @@ const RESOURCE_UNDO_EXAMPLES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.ProxmoxCluster]:
     "pvesh create /nodes/<node>/qemu/<vmid>/status/start undoes a stop or shutdown of that VM",
   [AiResourceType.VMwareVCenter]:
-    "govc vm.power -on <vm> undoes a power-off of that VM",
+    "govc vm.power -on /<datacenter>/vm/<folder>/<vm> undoes a power-off of that VM (name it by its inventory path: a bare name is every VM that has it, which is not a safe change)",
   [AiResourceType.CephCluster]:
     "ceph osd in <id> undoes ceph osd out <id>; ceph osd unset noout undoes ceph osd set noout",
   [AiResourceType.DatabaseServer]:
@@ -1009,6 +1010,14 @@ export default class RemediationExecutionRunner {
           allowedRunnerIds: [],
           clusterTargets: [],
           resourceTargets: [resourceTarget],
+          /*
+           * Which round of the signal this is: the toolkit re-checks the
+           * live mode before every change, and Automatic runs only round 1
+           * unattended.
+           */
+          resourceRoundNumber: parseResourceRoundNumber(
+            suggestion.ruleNameSnapshot,
+          ),
           suggestionCreatedAt: suggestion.createdAt,
           proposesRefusedCommands: true,
           /*
@@ -2256,9 +2265,24 @@ export default class RemediationExecutionRunner {
       };
     }
 
-    if (!isUnattendedResourceRemediationMode(data.resource.aiRemediationMode)) {
+    /*
+     * The live mode must still run THIS round unattended: Automatic runs
+     * only a signal's first round on its own, so a follow-up announced
+     * unattended under Bypass approval asks once the resource is on
+     * Automatic — exactly as the rule engine would have announced it.
+     */
+    const round: number = parseResourceRoundNumber(
+      data.suggestion.ruleNameSnapshot,
+    );
+
+    if (
+      !doesResourceModeRunRoundUnattended(
+        data.resource.aiRemediationMode,
+        round,
+      )
+    ) {
       logger.warn(
-        `RemediationExecutionRunner: ${data.resource.resourceType} ${data.resource.resourceId} no longer runs unattended (mode ${data.resource.aiRemediationMode}) although this round was started as FullAuto; downgrading this run to Suggest.`,
+        `RemediationExecutionRunner: ${data.resource.resourceType} ${data.resource.resourceId} no longer runs round ${round} unattended (mode ${data.resource.aiRemediationMode}) although this round was started as FullAuto; downgrading this run to Suggest.`,
       );
       return {
         ...noDowngrade,
@@ -2377,7 +2401,17 @@ export default class RemediationExecutionRunner {
     let note: string;
     let feedMarkdown: string;
 
-    if (resolution.downgradedByModeChange) {
+    if (
+      resolution.downgradedByModeChange &&
+      resource.aiRemediationMode === ResourceAiRemediationMode.Automatic
+    ) {
+      // Still unattended — but Automatic asks for every follow-up round.
+      const modeLabel: string = this.describeResourceRemediationMode(
+        resource.aiRemediationMode,
+      );
+      note = `The AI remediation mode of ${label} changed to "${modeLabel}" after this follow-up round was started as unattended remediation. "${modeLabel}" runs only a signal's first round on its own and asks for approval of every follow-up round, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of ${label} was changed to "${modeLabel}" after this follow-up round was announced as unattended, and "${modeLabel}" asks for approval of every follow-up round, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+    } else if (resolution.downgradedByModeChange) {
       const modeLabel: string = this.describeResourceRemediationMode(
         resource.aiRemediationMode,
       );

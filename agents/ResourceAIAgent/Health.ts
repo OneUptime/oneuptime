@@ -3,7 +3,9 @@ import AgentStatus from "./AgentStatus";
 
 /*
  * The health server, on PORT (3877; the Kubernetes AI agent uses 3876, so
- * both can run on one host). Three routes:
+ * both can run on one host) at ONEUPTIME_AI_AGENT_HEALTH_HOST (127.0.0.1:
+ * an agent on the host's network must not serve /status to the network;
+ * see Config.ts). Three routes:
  *
  *   GET /status/live   liveness: 200 while the process is up.
  *   GET /status/ready  readiness: 200 once the agent has started. It never
@@ -15,6 +17,7 @@ import AgentStatus from "./AgentStatus";
  *                      it is registered, its agent id, the resource, the
  *                      last heartbeat, the last error, and whether OneUptime
  *                      lacks the API. `docker exec` into the container (or
+ *                      set ONEUPTIME_AI_AGENT_HEALTH_HOST=0.0.0.0 and
  *                      publish the port) and open it when the AI agent page
  *                      says "not connected".
  *

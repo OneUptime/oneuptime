@@ -7,6 +7,7 @@ import {
   normalizeSqlText,
   redactDatabaseOutput,
   redactDatabaseQueryText,
+  redactRedisCommandArguments,
 } from "../../../../Utils/AiRemediation/Resource/DatabaseQueryRedactor";
 import {
   RESOURCE_REDACTED_MARKER,
@@ -449,6 +450,10 @@ describe("credentials", () => {
       '{"name": "masterauth", "setting": "[redacted]"}',
     ],
     [
+      '{"name": "primaryauth", "value": "Hunter2Secret!"}',
+      '{"name": "primaryauth", "value": "[redacted]"}',
+    ],
+    [
       '[{"Variable_name": "some_password", "Value": "x"}]',
       '[{"Variable_name": "some_password", "Value": "[redacted]"}]',
     ],
@@ -541,6 +546,15 @@ describe("Redis secrets and data", () => {
     ["config set requirepass hunter2", "config set requirepass [redacted]"],
     ['1) "requirepass"\n2) "hunter2"', '1) "requirepass"\n2) "[redacted]"'],
     ["masterauth\nhunter2", "masterauth\n[redacted]"],
+    ["primaryauth\nHunter2Secret", "primaryauth\n[redacted]"],
+    [
+      '1) "primaryauth"\n2) "Hunter2Secret"',
+      '1) "primaryauth"\n2) "[redacted]"',
+    ],
+    [
+      "config set primaryauth Hunter2Secret",
+      "config set primaryauth [redacted]",
+    ],
   ])("plain text %p", (text: string, expected: string) => {
     expect(redact(text)).toBe(expected);
   });
@@ -551,6 +565,90 @@ describe("Redis secrets and data", () => {
     ["oauth tokens expire"],
   ])("CLIENT LIST and prose keep their words: %p", (text: string) => {
     expect(redact(text)).toBe(text);
+  });
+});
+
+describe("redactRedisCommandArguments: a command masked before it is printed", () => {
+  test.each([
+    [
+      ["AUTH", "app", "hunter2"],
+      ["AUTH", "[redacted]", "[redacted]"],
+    ],
+    [
+      ["HSET", "user:1", "email", "a@b.com"],
+      ["HSET", "user:1", "[redacted]", "[redacted]"],
+    ],
+    [
+      ["CONFIG", "SET", "requirepass", "x", "maxmemory", "1gb"],
+      ["CONFIG", "SET", "requirepass", "[redacted]", "maxmemory", "1gb"],
+    ],
+    [
+      ["GET", "k"],
+      ["GET", "k"],
+    ],
+    [
+      ["SET", "k", "?"],
+      ["SET", "k", "?"],
+    ],
+    [
+      ["SMOVE", "pending", "done", "card-4111"],
+      ["SMOVE", "pending", "[redacted]", "[redacted]"],
+    ],
+    [
+      ["HSETEX", "h", "EX", "60", "FIELDS", "1", "f", "v"],
+      [
+        "HSETEX",
+        "h",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+      ],
+    ],
+    [
+      ["LPOS", "l", "john@example.com"],
+      ["LPOS", "l", "[redacted]"],
+    ],
+    [
+      ["ZSCORE", "z", "john@example.com"],
+      ["ZSCORE", "z", "[redacted]"],
+    ],
+    [
+      ["JSON.MSET", "d", "$", '{"a":1}'],
+      ["JSON.MSET", "d", "[redacted]", "[redacted]"],
+    ],
+    [
+      ["JSON.ARRAPPEND", "d", "$.tags", '"vip"'],
+      ["JSON.ARRAPPEND", "d", "[redacted]", "[redacted]"],
+    ],
+    [
+      ["BF.ADD", "seen", "john@example.com"],
+      ["BF.ADD", "seen", "[redacted]"],
+    ],
+  ])("%j", (args: Array<string>, expected: Array<string>) => {
+    expect(redactRedisCommandArguments(args)).toEqual(expected);
+  });
+
+  test("what is not a string is read as its text; what is not a list is nothing", () => {
+    expect(redactRedisCommandArguments(["SET", "k", 42, null])).toEqual([
+      "SET",
+      "k",
+      "[redacted]",
+      "[redacted]",
+    ]);
+    expect(
+      redactRedisCommandArguments("AUTH x" as unknown as Array<string>),
+    ).toEqual([]);
+  });
+
+  test("the hook masks the same arguments in a printed array", () => {
+    const args: Array<string> = ["JSON.MSET", "d", "$", '{"a":1}'];
+
+    expect(redact(JSON.stringify(args))).toBe(
+      JSON.stringify(redactRedisCommandArguments(args)),
+    );
   });
 });
 

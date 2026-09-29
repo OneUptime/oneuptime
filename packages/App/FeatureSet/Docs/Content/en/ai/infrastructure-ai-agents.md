@@ -51,7 +51,7 @@ Database servers: the Database AI agent has diagnostics for PostgreSQL, MySQL (a
 | Database server      | `db ping`, `db version`                              |
 | Host                 | `uptime`, `systemctl list-units --failed --no-pager` |
 
-On a Docker Swarm worker `docker node ls` fails: the Docker Swarm AI agent must run on a manager node.
+On a Docker Swarm worker `docker node ls` fails: the Docker Swarm AI agent must run on a manager node. One started on a worker does not register for the cluster until its node is a manager, and the Docker Swarm installer leaves it out on a node that is not a manager.
 
 ## Installing an AI agent
 
@@ -110,7 +110,7 @@ The agent registers with the **same identity the collector reports** — `DOCKER
 
 If the collector still uses its default name (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`), every resource installed with that default reports into the same resource in OneUptime, and commands for it could reach any of them. The agent warns about this in its log; give each resource a unique name, on the collector and the agent alike.
 
-It authenticates with the project's telemetry ingestion key — the first one set of `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` and `ONEUPTIME_SERVICE_TOKEN`, which the collectors already set — and receives a key of its own. All of its calls are HTTPS `POST`s to `<ONEUPTIME_URL>/resource-ai-agent-ingest/…`: it registers once at start, heartbeats every 30 seconds (it counts as online for 5 minutes after the last one), asks for work every 3 seconds, and signs off when it stops. A second agent with the same identity is refused while the first one is online; after a restart the new container waits for the old one to go quiet, which takes about a minute. A project holds at most 250 resource AI agents, and at most 30 new ones register per hour.
+It authenticates with the project's telemetry ingestion key — the first one set of `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` and `ONEUPTIME_SERVICE_TOKEN`, which the collectors already set — and receives a key of its own. All of its calls are HTTPS `POST`s to `<ONEUPTIME_URL>/resource-ai-agent-ingest/…`: it registers once at start, heartbeats every 30 seconds (it counts as online for 5 minutes after the last one), asks for work every 3 seconds, and signs off when it stops. A second agent with the same identity is refused while the first one is online: a container that stops cleanly signs off, so its replacement is admitted at once, but after a crash or a kill the replacement waits until the old one has been quiet for 5 minutes. If it is still refused after 10 minutes, another live agent uses the same identity: the agent logs an error saying so and asks only every 5 minutes until you give each resource its own name or stop the other agent. A project holds at most 250 resource AI agents, and at most 30 new ones register per hour. Once the 250 are reached, agents not heard from in 7 days are removed to make room for a new one (the resource keeps its AI settings, and such an agent that comes back simply registers again).
 
 On its first connection the agent turns **investigation** on for its resource and, if it allows writes (`ONEUPTIME_AI_ALLOW_WRITES=true`), sets **Fixes** to **Ask for approval**. It does this only on a resource whose AI settings nobody has changed yet: once someone saves them on the AI agent page, the agent never changes them again.
 
@@ -125,8 +125,8 @@ What each kind of resource may read is below. It is the same list the AI itself 
 ### Docker and Podman hosts
 
 - Containers: `docker ps -a` (also `-q`, `-n`, `-l`, `-s`, `--no-trunc`, `--filter`, `--format json`), `docker container inspect web`, `docker inspect --type container web`, `docker top web`, `docker port web`, `docker diff web`. Environment values in inspect output come back masked.
-- Logs and activity: `docker logs --tail 200 web` or `docker logs --since 30m web` — a `--tail` of at most 2000 or a `--since` is required, and `-f` is never allowed; `docker stats --no-stream`; `docker events --since 30m --until 0s` (both bounds required).
-- The engine: `docker info`, `docker version`, `docker system df`, `docker images`, `docker image inspect nginx:1.27`, `docker network ls`, `docker network inspect bridge`, `docker volume ls`, `docker volume inspect data`.
+- Logs and activity: `docker logs --tail 200 web` or `docker logs --since 30m web` — a `--tail` of at most 2000 or a `--since` is required (without `--tail`, `--since` must be a duration of at most 24h), and `-f` is never allowed; `docker stats --no-stream`; `docker events --since 30m --until 0s` (both bounds required, `--until` as a duration, so the window always closes in the past).
+- The engine: `docker info`, `docker version`, `docker system df` (`-v` as a table only: `-v --format json` prints every build step's command line), `docker images`, `docker image inspect nginx:1.27`, `docker network ls`, `docker network inspect bridge`, `docker volume ls`, `docker volume inspect data`.
 - `--format json` (or `table` for lists) only, never a Go template, and none of docker's global flags (`-H`, `--context`, `--config`, …): they would point the CLI at another engine.
 
 A Podman host runs the same `docker` CLI and the same policy, through Podman's Docker-compatible API.
@@ -134,7 +134,7 @@ A Podman host runs the same `docker` CLI and the same policy, through Podman's D
 ### Docker Swarm clusters
 
 - Nodes: `docker node ls`, `docker node ps node-1`, `docker node inspect node-1 --pretty`.
-- Services: `docker service ls`, `docker service ps web --no-trunc`, `docker service inspect web --pretty` (environment values come back masked), `docker service logs --tail 200 web` (a `--tail` of at most 2000 or a `--since` is required, never `-f`).
+- Services: `docker service ls`, `docker service ps web --no-trunc`, `docker service inspect web --pretty` (environment values come back masked), `docker service logs --tail 200 web` (a `--tail` of at most 2000 or a `--since` is required — alone, a duration of at most 24h — never `-f`).
 - Stacks: `docker stack ls`, `docker stack ps shop`, `docker stack services shop`.
 - The manager's own engine: `docker ps -a`, `docker container inspect web`, `docker logs --tail 200 web`, `docker stats --no-stream`, `docker info`, `docker version`, `docker network ls`, and the rest of the Docker host reads.
 
@@ -152,7 +152,7 @@ There is no `pvesh` in the agent. A command is written in `pvesh` grammar — `g
 
 The command comes first, then its flags, then names or inventory paths (govc ignores flags written after an argument); `-dc DATACENTER` picks a datacenter.
 
-- `govc about`, `govc datacenter.info`, `govc ls /DC/vm`, `govc find . -type m -runtime.powerState poweredOff` — the vCenter's version and inventory (`find` filters on names, types, health and runtime properties only).
+- `govc about`, `govc datacenter.info`, `govc ls /DC/vm`, `govc find . -type m -runtime.powerState poweredOff` — the vCenter's version and inventory (`find` filters on names, types, health and runtime properties only; `ls -json` is refused, because it loads every property of each object it lists).
 - `govc vm.info web-01`, `govc host.info esx-01`, `govc datastore.info datastore1`, `govc pool.info /DC/host/cluster1/Resources` — power state, host, guest OS, IP address, VMware Tools, capacity. `vm.info` is text only: `-json` and `-e` are refused because they print the VM's `extraConfig`, where cloud-init data and passwords live.
 - `govc events -n 50 /DC/vm/web-01`, `govc tasks -n 50` — recent events and tasks (at most 500, never `-f`).
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`, `govc metric.ls /DC/vm/web-01`, `govc object.collect -s /DC/vm/web-01 runtime.powerState` (runtime and health properties only), `govc host.service.ls -host esx-01`, `govc host.date.info -host esx-01`, `govc tags.ls`.
@@ -235,6 +235,8 @@ Some riskier changes **always need a person** in every mode, Bypass approval inc
 | **Always a person** | `docker node update --availability drain node-1`, `docker node update --availability pause node-1`                                                                                                                                                                                                                                      |
 | **Never**           | `docker service rm web`, `docker stack deploy -c stack.yml shop`, `docker secret ls`, `docker node rm node-1`, `docker service update --env-add A=b web` (environment, mounts, secrets, networks, ports, user), configs, node promotion and labels, and `docker restart web` — changing one container on the manager is not a Swarm fix |
 
+Right before a change runs, the Docker, Podman and Docker Swarm AI agents look its target up on the engine, and refuse a change whose target makes it more than its tier says: stopping or killing a container started with `--rm` (docker would delete it and its anonymous volumes), starting a stopped one-off container made by `docker compose run` (its job would run again), and any update, scale or rollback of a Swarm job service (`replicated-job` or `global-job`: each one runs the job again). Such a change is left to a person, whoever approved it.
+
 ### Fixes on Proxmox clusters
 
 A fix is `create` and an API path — one `POST` to the Proxmox VE API. `{type}` is `qemu` for a VM and `lxc` for a container. The agent follows the task a fix starts until it stops, so a guest that fails to start is reported as a failed fix, with the task's log.
@@ -248,12 +250,12 @@ A fix is `create` and an API path — one `POST` to the Proxmox VE API. `{type}`
 
 ### Fixes on VMware vCenter
 
-Every VM or host is named exactly — its name or full inventory path, no wildcards — with the flags before the names.
+Every VM is named exactly — best by its full inventory path, since govc applies a bare name to every VM that has it, in any folder — and every ESXi host by its name alone, since a path can name a whole cluster. No wildcards and no managed object references (`vm-42`), with the flags before the names.
 
 |                     | Commands                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Safe**            | `govc vm.power -on web-01`, `govc vm.power -r web-01` (a graceful guest reboot through VMware Tools) — one VM                                                                                                                                                                                                                                                  |
-| **Riskier**         | `govc vm.power -s web-01` (guest shutdown), `govc vm.power -off web-01`, `govc vm.power -reset web-01`, `govc vm.power -suspend web-01` (`-force` only with `-off` or `-reset`), `govc vm.power -on web-01 web-02` (several VMs), `govc host.maintenance.exit esx-01`                                                                                          |
+| **Safe**            | `govc vm.power -on /DC/vm/web-01`, `govc vm.power -r /DC/vm/web-01` (a graceful guest reboot through VMware Tools) — one VM, named by its inventory path                                                                                                                                                                                                      |
+| **Riskier**         | `govc vm.power -s web-01` (guest shutdown), `govc vm.power -off web-01`, `govc vm.power -reset web-01`, `govc vm.power -suspend web-01` (`-force` only with `-off` or `-reset`), `govc vm.power -on web-01 web-02` (several VMs), `govc vm.power -on web-01` (a bare name: every VM called web-01), `govc host.maintenance.exit esx-01`                        |
 | **Always a person** | `govc vm.migrate -host esx-02 web-01`, `govc host.maintenance.enter esx-01`                                                                                                                                                                                                                                                                                    |
 | **Never**           | `govc vm.destroy web-01` (and create, clone, change, register), `govc snapshot.create -vm web-01 before`, `govc guest.run -vm web-01 ls`, `govc vm.info -e web-01`, `govc env`, `govc host.esxcli -host esx-01 system version get`, devices and disks, datastore file access, host add, remove, reboot and shutdown, permissions, roles, sessions and licenses |
 
@@ -287,8 +289,8 @@ Units are named by their full name: `systemctl restart nginx` restarts `nginx.se
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Safe**            | `systemctl restart nginx`, `systemctl start nginx`, `systemctl reload nginx`, `systemctl reset-failed nginx` (also `try-restart` and `reload-or-restart`) — one service, socket, timer or path unit                                                                                                                                                                  |
 | **Riskier**         | `systemctl stop nginx`, `systemctl restart nginx php-fpm` (several units), `journalctl --vacuum-size=500M` (also `--vacuum-time`, `--vacuum-files`), and `systemctl reset-failed` without a unit                                                                                                                                                                     |
-| **Always a person** | `systemctl restart sshd` and any other change to a protected unit (ssh, `systemd-*`, dbus, polkit, NetworkManager, networking, getty, docker, containerd, podman, kubelet, the firewall, `user@`), `systemctl restart docker`, `systemctl restart local-fs.target` (any `.target`, `.mount`, `.automount` or `.swap` unit), `kill -TERM 4242` (signalling a process) |
-| **Never**           | `systemctl enable nginx` (and disable, mask, edit), `systemctl daemon-reload`, `systemctl reboot` (and poweroff, halt, suspend, rescue), `systemctl cat nginx`, `systemctl show nginx -p Environment`, `journalctl -f -u nginx`, `ip link set eth0 down`, `kill -9 1`, `cat /etc/shadow`, `bash -c uptime`, `sudo systemctl restart nginx`, `dmesg --clear`, `ss -K` |
+| **Always a person** | `systemctl restart sshd` and any other change to a protected unit (ssh, `systemd-*`, udev, dbus, polkit, NetworkManager, networking, getty and autovt, docker, containerd, podman, kubelet, the firewall, `user@`, and the package-upgrade units such as `apt-daily-upgrade` and `unattended-upgrades`), `systemctl restart docker`, `systemctl restart local-fs.target` (any `.target`, `.mount`, `.automount` or `.swap` unit), `kill -TERM 4242` (signalling a process) |
+| **Never**           | `systemctl enable nginx` (and disable, mask, edit), `systemctl daemon-reload`, `systemctl reboot` (and poweroff, halt, suspend, rescue, and their units such as `reboot.target` and `runlevel6.target`), `systemctl start debug-shell` (a root shell with no password), `systemctl cat nginx`, `systemctl show nginx -p Environment`, `journalctl -f -u nginx`, `ip link set eth0 down`, `kill -9 1`, `cat /etc/shadow`, `bash -c uptime`, `sudo systemctl restart nginx`, `dmesg --clear`, `ss -K` |
 
 ### The command allowlist
 
@@ -338,7 +340,7 @@ The agent reports these settings to OneUptime with every heartbeat, so OneUptime
 OneUptime AI never changes the agent itself or what it runs in, whatever `ONEUPTIME_AI_WRITE_TARGETS` says:
 
 - **Docker, Podman and Docker Swarm:** the agent's own container (by name and id) and its Swarm service, and the containers of OneUptime's Docker, Podman and Docker Swarm agents — the collectors, the Swarm inventory poller and their AI agents. Until the agent has found its own container, it refuses every change.
-- **VMware vCenter:** the vCenter appliance itself — the VM named after the host in `VCENTER_ENDPOINT` — by whatever inventory path a command names it.
+- **VMware vCenter:** the VM named after the host in `VCENTER_ENDPOINT` (and its short name) — normally the vCenter appliance itself — by whatever inventory path a command names it. The agent knows the appliance by that name only: when `VCENTER_ENDPOINT` is an IP address (the agent then warns at start-up), or the appliance's VM has another name, put that VM in `ONEUPTIME_AI_PROTECTED_TARGETS`.
 - **Database servers:** the agent's own session.
 - **Hosts:** every OneUptime unit (`oneuptime-*`, the Host AI agent's own included), the OpenTelemetry collector (`otelcol-contrib.service`, `otelcol.service`), the Docker engine it runs in (`docker.service`, `docker.socket`, `containerd.service`), and the agent's own process and the processes above it.
 - **Proxmox:** the agent cannot tell which guest it runs in. If it runs in a VM or container of the same cluster, put that VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`; do the same with the agent's VM on VMware.
@@ -393,7 +395,7 @@ OneUptime sends an agent a command — the program, its arguments and its tier �
 
 ### Logs and status
 
-Start with the agent's log, then its status. Each agent answers on port `3877` (the Kubernetes AI agent uses 3876, so both can run on one machine) with `/status/live`, `/status/ready` (neither waits for OneUptime) and `/status` — whether it registered, the resource it serves, its last heartbeat and error, whether it can reach the resource and why not, and whether your OneUptime is too old for it:
+Start with the agent's log, then its status. Each agent answers on port `3877` (the Kubernetes AI agent uses 3876, so both can run on one machine), on `127.0.0.1` of its own network only (`ONEUPTIME_AI_AGENT_HEALTH_HOST=0.0.0.0` serves it on every interface, to publish the port), with `/status/live`, `/status/ready` (neither waits for OneUptime) and `/status` — whether it registered, the resource it serves, its last heartbeat and error, whether it can reach the resource and why not, and whether your OneUptime is too old for it:
 
 ```bash
 docker logs --tail 100 oneuptime-docker-ai-agent
@@ -412,7 +414,7 @@ A missing setting does not crash the agent: it stays up and healthy, says what i
 | `This OneUptime server does not have the resource AI agent API`                       | Upgrade OneUptime, or run the agent image version that matches your server. The agent checks again every 5 minutes.                                                         |
 | `OneUptime refused the agent's API key`                                               | Use an unpinned telemetry ingestion key of the project.                                                                                                                     |
 | `OneUptime refused the registration: …`                                               | Read the rest of the line: an unknown resource type, an identity that is empty or too long, a `DATABASE_SERVER_ID` of another project, or the project's agent limit.        |
-| `Waiting for this …'s previous AI agent to go offline`                                | Normal for about a minute after a restart. If it stays, another agent uses the same identity.                                                                               |
+| `Waiting for this …'s previous AI agent to go offline`                                | The old container did not sign off (a crash or a kill), so it counts as online for 5 minutes after its last heartbeat. Any longer: another agent uses this identity.        |
 | A warning that the name is the collector's default                                    | Give the resource a unique name on the collector and the agent.                                                                                                             |
 | `The agent cannot reach this … right now`                                             | Check the socket mount, the address, the credentials or the keyring the message names. The AI agent page shows the same reason.                                             |
 | `Refused by the …: … this agent is read-only`                                         | Set `ONEUPTIME_AI_ALLOW_WRITES=true` and restart the agent.                                                                                                                 |

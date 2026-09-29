@@ -791,13 +791,16 @@ export class Service extends DatabaseService<Model> {
      * approved-plan and rollback paths — not just the FullAuto inline tool
      * that has its own pre-check for a friendlier message to the model.
      * Check-then-act, so a burst of concurrent runs can overshoot slightly;
-     * the cap is a storm brake, not a quota.
+     * the cap is a storm brake, not a quota. Resource commands share the
+     * table and the origin but have their own brake, so they never count
+     * here (see MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR).
      */
     const jobsInLastHour: number = (
       await this.countBy({
         query: {
           projectId: data.projectId,
           origin: RunnerJobOrigin.AiRemediation,
+          stepType: QueryHelper.notEquals(RunbookStepType.ResourceCommand),
           createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
         },
         props: { isRoot: true },
@@ -993,7 +996,9 @@ export class Service extends DatabaseService<Model> {
     /*
      * The access test is bounded by its own route limits instead, and an
      * investigation's brake counts only rows with an AI run, so tests never
-     * spend the budget real investigations share.
+     * spend the budget real investigations share. Resource commands have
+     * their own brake and never count here, so a busy hour on the project's
+     * other infrastructure never starves the cluster lane.
      */
     if (!isAccessTest) {
       const hourlyCap: number =
@@ -1006,6 +1011,7 @@ export class Service extends DatabaseService<Model> {
           query: {
             projectId: data.projectId,
             origin: data.origin,
+            stepType: QueryHelper.notEquals(RunbookStepType.ResourceCommand),
             createdAt: QueryHelper.greaterThan(
               OneUptimeDate.getSomeHoursAgo(1),
             ),

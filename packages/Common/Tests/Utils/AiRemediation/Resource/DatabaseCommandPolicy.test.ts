@@ -543,6 +543,7 @@ describe("Denied: arguments", () => {
     [`db settings ${"a".repeat(65)}`, "no wildcards"],
     ["db settings requirepass", "credential setting"],
     ["db settings masterauth", "credential setting"],
+    ["db settings primaryauth", "credential setting"],
     ["db settings password_encryption", "credential setting"],
     ["db settings ssl_key_file", "credential setting"],
     ["db settings security.keyFile", "credential setting"],

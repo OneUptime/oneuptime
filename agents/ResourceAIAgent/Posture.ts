@@ -292,3 +292,36 @@ export function buildPosture(data: {
 
   return posture;
 }
+
+/*
+ * How long an agent held back from registering (describeRegistrationHold)
+ * waits before it looks again: one probe refresh, so every look is a fresh
+ * probe.
+ */
+export const REGISTRATION_HOLD_RETRY_MS: number = DEFAULT_PROBE_REFRESH_MS;
+
+/*
+ * Why this agent must not register for its resource from where it runs, or
+ * null. Registering makes an agent THE resource's AI agent, and the server
+ * keeps it for as long as it heartbeats, refusing any other agent for the
+ * resource. A Docker Swarm agent on a worker node can run nothing (node,
+ * service and task commands only work on a manager), so if it registered —
+ * say, because the collector's compose file runs on every node, or workers
+ * came up first after a reboot — it would keep the manager's agent out and
+ * leave the cluster with an AI agent that cannot reach it. It registers as
+ * soon as the node is a manager. Only a definite "worker" holds it back: an
+ * engine whose role the agent could not read registers, and says why it is
+ * unreachable.
+ */
+export function describeRegistrationHold(posture: AgentPosture): string | null {
+  if (
+    posture.resourceType === AiResourceType.DockerSwarmCluster &&
+    posture.details?.["swarmRole"] === "worker"
+  ) {
+    return `This node is a swarm worker, and the Docker Swarm AI agent only works on a manager, so it does not register for the cluster "${posture.resourceIdentifier}" from here: a registered agent that cannot run anything would keep the manager's agent out. It checks again every ${Math.round(
+      REGISTRATION_HOLD_RETRY_MS / 1000,
+    )}s and registers once this node is a manager. Run the AI agent on one manager node (install.sh leaves it out on the others).`;
+  }
+
+  return null;
+}

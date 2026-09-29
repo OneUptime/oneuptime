@@ -59,7 +59,10 @@ export interface ResourceAiAccessResetAgentResponse {
  * changed on one resource, as summaries. Nothing here carries command
  * output, a prompt or a command plan: the route is readable by everyone who
  * may read the resource, a wider audience than the AI runs, suggestions and
- * jobs it summarises.
+ * jobs it summarises. So an investigation whose incident or alert the
+ * caller cannot read is left out, a TL;DR is there only with a readable
+ * subject (or, for a run with none, for a caller who may read AIRun), and a
+ * fix's rationale only for a caller who may read that suggestion.
  */
 
 // How many investigations, and how many fixes, the route returns (newest).

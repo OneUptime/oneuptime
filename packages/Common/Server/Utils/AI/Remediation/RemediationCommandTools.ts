@@ -101,6 +101,7 @@ import AutoRemediationRuleEngineService, {
   RESOURCE_BREAKER_LOCK_NAMESPACE,
   ResourceBreakerState,
   ResourceRoundHold,
+  doesResourceModeRunRoundUnattended,
   getResourceBreakerLockKey,
 } from "../../../Services/AutoRemediationRuleEngineService";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
@@ -414,6 +415,13 @@ export interface RemediationCommandToolkitOptions {
           | undefined;
       }
     | undefined;
+  /*
+   * A resource round's number for its signal (1 when absent). The live
+   * mode is re-checked against it before every change: Automatic runs only
+   * round 1 unattended, so a follow-up that started under Bypass approval
+   * stops running changes once the resource is on Automatic.
+   */
+  resourceRoundNumber?: number | undefined;
 }
 
 interface CommandArgsParseResult {
@@ -1347,7 +1355,7 @@ export default class RemediationCommandToolkit {
       command: {
         type: "string",
         description:
-          'The exact command, one line starting with one of the resource\'s programs (list_command_targets), e.g. "docker restart web", "docker service update --force api", "systemctl restart nginx", "pvesh create /nodes/pve1/qemu/100/status/start", "govc vm.power -on web-01", "ceph osd in 3" or "db cancel-query 4242". No pipes, redirects, chaining, substitution or sudo.',
+          'The exact command, one line starting with one of the resource\'s programs (list_command_targets), e.g. "docker restart web", "docker service update --force api", "systemctl restart nginx", "pvesh create /nodes/pve1/qemu/100/status/start", "govc vm.power -on /DC/vm/web-01", "ceph osd in 3" or "db cancel-query 4242". No pipes, redirects, chaining, substitution or sudo.',
       },
       timeoutInMs: {
         type: "number",
@@ -1580,12 +1588,17 @@ export default class RemediationCommandToolkit {
         );
       }
     } else {
-      // Project-wide hourly storm brake across all AI command jobs.
+      /*
+       * Project-wide hourly storm brake across the kubectl and Runner AI
+       * command jobs, counted the way the enqueue chokepoints count it:
+       * resource commands have their own brake above and never count here.
+       */
       const jobsInLastHour: number = (
         await RunnerJobService.countBy({
           query: {
             projectId: this.options.projectId,
             origin: RunnerJobOrigin.AiRemediation,
+            stepType: QueryHelper.notEquals(RunbookStepType.ResourceCommand),
             createdAt: QueryHelper.greaterThan(
               OneUptimeDate.getSomeHoursAgo(1),
             ),
@@ -2947,11 +2960,28 @@ export default class RemediationCommandToolkit {
 
     this.replaceResourceTarget(status);
 
+    const round: number = this.options.resourceRoundNumber || 1;
+
     if (
-      !isUnattendedResourceRemediationMode(status.aiRemediationMode) &&
       snapshot &&
-      isUnattendedResourceRemediationMode(snapshot.aiRemediationMode)
+      doesResourceModeRunRoundUnattended(snapshot.aiRemediationMode, round) &&
+      !doesResourceModeRunRoundUnattended(status.aiRemediationMode, round)
     ) {
+      /*
+       * On a follow-up round, Automatic is still an unattended mode — but
+       * one that asks for every round after the first, so it stops this
+       * round's unattended changes like a move to "ask for approval" does.
+       */
+      if (
+        isUnattendedResourceRemediationMode(status.aiRemediationMode) &&
+        round > 1
+      ) {
+        return {
+          text: `The AI remediation mode of ${liveLabel} was changed to Automatic during this run, and Automatic asks for approval of every change after a signal's first round (this is round ${round}), so no change runs on it unattended any more. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT try other changes on this ${noun}.`,
+          approvalReason: `the AI remediation mode of ${liveLabel} was changed to Automatic during the round, which asks for approval after a signal's first round`,
+        };
+      }
+
       return {
         text: `The AI remediation mode of ${liveLabel} was changed to ask for approval during this run, so no change runs on it unattended any more. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT try other changes on this ${noun}.`,
         approvalReason: `the AI remediation mode of ${liveLabel} was changed to ask for approval during the round`,
@@ -3313,9 +3343,24 @@ export default class RemediationCommandToolkit {
     const stepTypeRaw: string = ToolArgs.getString(args, "stepType") || "";
     const stepType: RunbookStepType = stepTypeRaw as RunbookStepType;
 
-    if (!AI_COMMAND_STEP_TYPES.includes(stepType)) {
+    /*
+     * The step types this round offers — what its schema's stepType enum
+     * lists: ResourceCommand on a resource round; Bash, SSH and Kubectl on
+     * every other round, where ResourceCommand is as unknown as it always
+     * was (so a Kubernetes or rule round's refusal keeps its words).
+     */
+    const offeredStepTypes: Array<RunbookStepType> = this.isResourceRound()
+      ? [RunbookStepType.ResourceCommand]
+      : AI_COMMAND_STEP_TYPES.filter((type: RunbookStepType): boolean => {
+          return type !== RunbookStepType.ResourceCommand;
+        });
+
+    if (
+      !AI_COMMAND_STEP_TYPES.includes(stepType) ||
+      (!this.isResourceRound() && stepType === RunbookStepType.ResourceCommand)
+    ) {
       return {
-        errorText: `stepType must be one of: ${AI_COMMAND_STEP_TYPES.join(", ")}.`,
+        errorText: `stepType must be one of: ${offeredStepTypes.join(", ")}.`,
       };
     }
 
@@ -3374,13 +3419,14 @@ export default class RemediationCommandToolkit {
     /*
      * A resource command runs on the resource's own AI agent, never on a
      * Runner, so it must never fall through to the Bash/SSH path below.
-     * Only a resource round (resourceTargets) offers it.
+     * Only a resource round (resourceTargets) offers it — any other round
+     * refused it with the step types it offers, above; this is the belt
+     * and braces.
      */
     if (stepType === RunbookStepType.ResourceCommand) {
       if (!this.isResourceRound()) {
         return {
-          errorText:
-            "stepType ResourceCommand is not available in this remediation round: use Bash, SSH or Kubectl with a target from list_command_targets.",
+          errorText: `stepType must be one of: ${offeredStepTypes.join(", ")}.`,
         };
       }
 

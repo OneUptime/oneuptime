@@ -1,4 +1,6 @@
-import RunnerJobService from "../../../Server/Services/RunnerJobService";
+import RunnerJobService, {
+  MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
+} from "../../../Server/Services/RunnerJobService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import RunbookStepType, {
@@ -6,10 +8,15 @@ import RunbookStepType, {
   RUNNER_EXECUTED_STEP_TYPES,
 } from "../../../Types/Runbook/RunbookStepType";
 import { AI_COMMAND_STEP_TYPES } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import logger from "../../../Server/Utils/Logger";
+import {
+  fakeRunnerJobCountBy,
+  fakeRunnerJobRows,
+} from "../TestingUtils/Services/FakeRunnerJobCount";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -137,5 +144,68 @@ describe("ResourceCommand never enters a Runner lane", () => {
     });
 
     expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Resource commands are braked on their own ResourceCommand rows, so the
+   * Runner lane's hourly brake must not count them: a full hour of fixes on
+   * Docker hosts or database servers leaves every Bash and SSH fix its own
+   * budget. Counted against an in-memory RunnerJob table.
+   */
+  describe("the Runner lane's hourly brake never counts resource-command rows", () => {
+    function bashCommand(): Parameters<
+      typeof RunnerJobService.enqueueAiCommand
+    >[0] {
+      return {
+        projectId: PROJECT_ID,
+        aiRunId: new ObjectID("88888888-8888-4888-8888-888888888888"),
+        autoRemediationSuggestionId: new ObjectID(
+          "77777777-7777-4777-8777-777777777777",
+        ),
+        stepId: "ai-approved-1",
+        stepType: RunbookStepType.Bash,
+        targetAgentId: RUNNER_ID,
+        command: "systemctl restart nginx",
+        timeoutInMs: 30000,
+      };
+    }
+
+    it("runs a Bash fix after a full hour of resource fixes", async () => {
+      countBy.mockImplementation(
+        fakeRunnerJobCountBy(
+          fakeRunnerJobRows(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR, {
+            projectId: PROJECT_ID,
+            origin: RunnerJobOrigin.AiRemediation,
+            stepType: RunbookStepType.ResourceCommand,
+          }),
+        ) as never,
+      );
+
+      await RunnerJobService.enqueueAiCommand(bashCommand());
+
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    it("negative control: a full hour of kubectl and SSH fixes still stops it", async () => {
+      countBy.mockImplementation(
+        fakeRunnerJobCountBy([
+          ...fakeRunnerJobRows(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR - 1, {
+            projectId: PROJECT_ID,
+            origin: RunnerJobOrigin.AiRemediation,
+            stepType: RunbookStepType.Kubectl,
+          }),
+          ...fakeRunnerJobRows(1, {
+            projectId: PROJECT_ID,
+            origin: RunnerJobOrigin.AiRemediation,
+            stepType: RunbookStepType.SSH,
+          }),
+        ]) as never,
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiCommand(bashCommand()),
+      ).rejects.toThrow(/AI remediation commands in the last hour/);
+      expect(create).not.toHaveBeenCalled();
+    });
   });
 });

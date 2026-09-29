@@ -1735,7 +1735,42 @@ export type ResourceOutputRedactionHook = (data: {
  */
 const DOCKER_ENV_LIST_REGEX: RegExp = /(\\?)"Env\1"\s*:\s*\[/g;
 
-// A JSON string literal body (plain, or escaped one level).
+const FOUR_HEX_DIGITS_REGEX: RegExp = /^[0-9A-Fa-f]{4}$/;
+
+// The character one escape sequence of an enclosing JSON string stands for.
+function decodeJsonEscape(
+  text: string,
+  index: number,
+): {
+  char: string;
+  width: number;
+} {
+  const next: string = text.charAt(index + 1);
+
+  if (
+    next === "u" &&
+    FOUR_HEX_DIGITS_REGEX.test(text.slice(index + 2, index + 6))
+  ) {
+    return {
+      char: String.fromCharCode(parseInt(text.slice(index + 2, index + 6), 16)),
+      width: 6,
+    };
+  }
+
+  return { char: next, width: 2 };
+}
+
+/*
+ * Where a JSON string literal's body ends: the index of its closing quote
+ * (`"`, or `\"` when the literal is itself escaped one level inside another
+ * JSON string), or text.length when it never closes.
+ *
+ * Escaped one level, the body is read through the enclosing string's
+ * escapes: `\\\"` is the entry's own escaped quote (`\"` once decoded) and
+ * `\\\\` its own escaped backslash, so neither is taken for the entry's end
+ * — which would leave every entry after it unmasked. A bare `"` ends the
+ * enclosing string, so the entry cannot go on past it either.
+ */
 function readJsonStringEnd(
   text: string,
   start: number,
@@ -1743,30 +1778,41 @@ function readJsonStringEnd(
 ): number {
   let index: number = start;
 
-  while (index < text.length) {
-    const ch: string = text.charAt(index);
+  if (!isEscaped) {
+    while (index < text.length) {
+      const ch: string = text.charAt(index);
 
-    if (isEscaped) {
-      if (text.startsWith('\\"', index)) {
-        return index;
-      }
-
-      if (text.startsWith("\\\\", index)) {
-        index += 2;
-        continue;
-      }
-    } else {
       if (ch === '"') {
         return index;
       }
 
-      if (ch === "\\") {
-        index += 2;
-        continue;
-      }
+      index += ch === "\\" ? 2 : 1;
     }
 
-    index++;
+    return text.length;
+  }
+
+  let innerEscape: boolean = false;
+
+  while (index < text.length) {
+    const ch: string = text.charAt(index);
+
+    if (ch === '"') {
+      return index;
+    }
+
+    const decoded: { char: string; width: number } =
+      ch === "\\" ? decodeJsonEscape(text, index) : { char: ch, width: 1 };
+
+    if (innerEscape) {
+      innerEscape = false;
+    } else if (decoded.char === "\\") {
+      innerEscape = true;
+    } else if (decoded.char === '"') {
+      return index;
+    }
+
+    index += decoded.width;
   }
 
   return text.length;
@@ -1818,8 +1864,9 @@ function maskDockerEnvValues(data: {
         out += `${quote}${entry}`;
       }
 
-      if (bodyEnd >= text.length) {
-        index = text.length;
+      if (bodyEnd >= text.length || !text.startsWith(quote, bodyEnd)) {
+        // The text ended, or (escaped) the enclosing string closed first.
+        index = bodyEnd;
         break;
       }
 
@@ -1838,50 +1885,101 @@ function maskDockerEnvValues(data: {
 }
 
 /*
- * `docker service inspect --pretty` prints a service's environment on ONE
- * line, where the JSON hook above cannot see it:
+ * `docker service inspect --pretty` prints a service's environment on the
+ * " Env:" line of its ContainerSpec section, where the JSON hook above
+ * cannot see it:
  *   " Env:\t\tAPP_KEY=abc LOG_LEVEL=debug JAVA_OPTS=-Xmx1g -Dx=y "
- * A value may hold spaces, so the line cannot be split back into its
- * entries reliably. Every word shaped like NAME= keeps its NAME and has
- * the rest of it masked, and every other word (the tail of a value that
- * held a space) is dropped: over-masking accepted, never a value left.
+ * The CLI's template prints each entry raw, so a value holding a newline (a
+ * PEM certificate, a JSON blob from a YAML block) carries the rest of the
+ * list onto the next physical lines. Inside a ContainerSpec section the Env
+ * block therefore runs until the next line the template itself starts
+ * (" Dir:", " Init:", " User:", "Mounts:", ... and "Endpoint Mode:", which
+ * it always prints), or to the end of the text.
+ *
+ * A value may hold spaces, so the block cannot be split back into its
+ * entries reliably. Every word shaped like NAME= keeps its NAME and has the
+ * rest of it masked, and every other word (the tail of a value that held a
+ * space or a newline) is dropped: over-masking accepted, never a value left.
  */
-const DOCKER_PRETTY_ENV_LINE_REGEX: RegExp = /^([ \t]*Env:[ \t]+)(\S.*)$/gm;
+const DOCKER_PRETTY_ENV_LINE_REGEX: RegExp = /^([ \t]*Env:[ \t]+)(\S.*?)(\r?)$/;
 const DOCKER_PRETTY_ENV_NAME_REGEX: RegExp = /^[A-Za-z_][A-Za-z0-9_.-]*=/;
+const DOCKER_PRETTY_CONTAINER_SPEC_REGEX: RegExp = /^ContainerSpec:[ \t]*\r?$/;
+// The lines the pretty template may start after the Env line (and the next service's ID).
+const DOCKER_PRETTY_SECTION_REGEX: RegExp =
+  /^(?: (?:Dir|Init|User|Healthcheck):|(?:ID|Capabilities|SysCtls|Ulimits|Mounts|Configs|Secrets|Log Driver|Resources|Networks|Endpoint Mode|Ports):)/;
+
+function maskDockerPrettyEnvEntries(entries: string): {
+  text: string;
+  count: number;
+} {
+  const masked: Array<string> = [];
+  let count: number = 0;
+
+  for (const word of entries.split(/\s+/)) {
+    const name: RegExpExecArray | null =
+      DOCKER_PRETTY_ENV_NAME_REGEX.exec(word);
+
+    if (!name) {
+      continue;
+    }
+
+    if (word.length > name[0].length) {
+      count++;
+      masked.push(`${name[0]}${RESOURCE_REDACTED_MARKER}`);
+    } else {
+      masked.push(word);
+    }
+  }
+
+  return { text: masked.join(" "), count };
+}
 
 function maskDockerPrettyEnvLines(data: {
   resourceType: AiResourceType;
   program: string;
   text: string;
 }): ResourceOutputRedaction {
+  const lines: Array<string> = data.text.split("\n");
+  const out: Array<string> = [];
   let count: number = 0;
+  let inContainerSpec: boolean = false;
 
-  const text: string = data.text.replace(
-    DOCKER_PRETTY_ENV_LINE_REGEX,
-    (_whole: string, prefix: string, entries: string): string => {
-      const masked: Array<string> = [];
+  for (let index: number = 0; index < lines.length; index++) {
+    const line: string = lines[index] || "";
 
-      for (const word of entries.split(/[ \t]+/)) {
-        const name: RegExpExecArray | null =
-          DOCKER_PRETTY_ENV_NAME_REGEX.exec(word);
+    if (DOCKER_PRETTY_CONTAINER_SPEC_REGEX.test(line)) {
+      inContainerSpec = true;
+    }
 
-        if (!name) {
-          continue;
-        }
+    const match: RegExpExecArray | null =
+      DOCKER_PRETTY_ENV_LINE_REGEX.exec(line);
 
-        if (word.length > name[0].length) {
-          count++;
-          masked.push(`${name[0]}${RESOURCE_REDACTED_MARKER}`);
-        } else {
-          masked.push(word);
-        }
-      }
+    if (!match) {
+      out.push(line);
+      continue;
+    }
 
-      return `${prefix}${masked.join(" ")}`;
-    },
-  );
+    const block: Array<string> = [match[2] || ""];
 
-  return { text, redactionCount: count };
+    // The lines a multi-line value carried the list onto.
+    while (
+      inContainerSpec &&
+      index + 1 < lines.length &&
+      !DOCKER_PRETTY_SECTION_REGEX.test(lines[index + 1] || "")
+    ) {
+      index++;
+      block.push(lines[index] || "");
+    }
+
+    const masked: { text: string; count: number } = maskDockerPrettyEnvEntries(
+      block.join(" "),
+    );
+
+    count += masked.count;
+    out.push(`${match[1] || ""}${masked.text}${match[3] || ""}`);
+  }
+
+  return { text: out.join("\n"), redactionCount: count };
 }
 
 /*
@@ -2289,7 +2387,8 @@ function maskProxmoxSecrets(data: {
 }
 
 /*
- * Credentials on the command lines a process listing prints (ps, top -c):
+ * Credentials on the command lines a process listing prints (ps, top -c,
+ * the cgroup tree of systemctl status, journalctl):
  * the value after a credential-named flag (`--password=x`, `--token x`,
  * `-Dapp.db.password=x`), a credential-named assignment (`PASSWORD=x`,
  * `DB_TOKEN=x`) and the password half of `-u user:password` (curl, wget).
@@ -2392,6 +2491,83 @@ function maskProcessCredentialArguments(data: {
   const lines: Array<string> = data.text
     .split("\n")
     .map((line: string): string => {
+      const masked: { text: string; count: number } = maskProcessLine(line);
+      count += masked.count;
+      return masked.text;
+    });
+
+  return { text: lines.join("\n"), redactionCount: count };
+}
+
+/*
+ * journalctl prints the command lines of the processes it logged: in a
+ * message, and with -o json in each record's _CMDLINE field. A JSON record
+ * (one per line) has each of its string values masked as a process line —
+ * decoded first and re-encoded after, so the record stays valid JSON; any
+ * other line is masked as a process line itself.
+ */
+function maskJournalCredentialArguments(data: {
+  resourceType: AiResourceType;
+  program: string;
+  text: string;
+}): ResourceOutputRedaction {
+  let count: number = 0;
+
+  const lines: Array<string> = data.text
+    .split("\n")
+    .map((line: string): string => {
+      const trimmed: string = line.trim();
+
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        let record: unknown = null;
+
+        try {
+          record = JSON.parse(trimmed);
+        } catch {
+          record = null;
+        }
+
+        if (record && typeof record === "object" && !Array.isArray(record)) {
+          const fields: Record<string, unknown> = record as Record<
+            string,
+            unknown
+          >;
+          let changed: boolean = false;
+
+          for (const key of Object.keys(fields)) {
+            const value: unknown = fields[key];
+
+            if (typeof value !== "string") {
+              continue;
+            }
+
+            const masked: { text: string; count: number } =
+              maskProcessLine(value);
+
+            if (masked.count > 0) {
+              fields[key] = masked.text;
+              count += masked.count;
+              changed = true;
+            }
+          }
+
+          if (!changed) {
+            return line;
+          }
+
+          /*
+           * Spliced in by position, never through String.replace: a
+           * replacement string's "$&" (a MESSAGE may hold one) would paste
+           * the original, unmasked record back in.
+           */
+          const start: number = line.indexOf(trimmed);
+
+          return `${line.slice(0, start)}${JSON.stringify(fields)}${line.slice(
+            start + trimmed.length,
+          )}`;
+        }
+      }
+
       const masked: { text: string; count: number } = maskProcessLine(line);
       count += masked.count;
       return masked.text;
@@ -2551,6 +2727,9 @@ export const RESOURCE_OUTPUT_REDACTION_HOOKS: Readonly<
 > = {
   ps: [maskProcessCredentialArguments],
   top: [maskProcessCredentialArguments],
+  // systemctl status prints every process of a unit's cgroup, argv and all.
+  systemctl: [maskProcessCredentialArguments],
+  journalctl: [maskJournalCredentialArguments],
   docker: [maskDockerEnvValues, maskDockerPrettyEnvLines],
   ceph: [maskCephKeys, maskCephSecretValues],
   pvesh: [maskProxmoxSecrets],

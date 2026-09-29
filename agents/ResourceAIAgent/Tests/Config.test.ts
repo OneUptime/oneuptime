@@ -361,6 +361,91 @@ describe("the database identity", () => {
     );
   });
 
+  /*
+   * The collector stamps DATABASE_SERVER_ADDRESS as server.address and the
+   * server splits a port written in it off the host (DATABASE_SERVER_PORT
+   * winning): the agent's identity must name that same endpoint, never
+   * "[db.example.com:5433]" (read as an IPv6 address, which it is not).
+   */
+  test("a port written in the address is split off the host, like the collector's server.address", () => {
+    const cases: Array<{
+      address: string;
+      port?: string;
+      identity: string;
+      details: Record<string, string | number>;
+    }> = [
+      {
+        address: "db.example.com:5433",
+        identity: "postgresql|db.example.com:5433",
+        details: { serverAddress: "db.example.com", serverPort: 5433 },
+      },
+      {
+        address: "db.example.com:5433",
+        port: "5433",
+        identity: "postgresql|db.example.com:5433",
+        details: { serverAddress: "db.example.com", serverPort: 5433 },
+      },
+      // The explicit port wins, as the collector's server.port does.
+      {
+        address: "DB.Example.com.:5433",
+        port: "6000",
+        identity: "postgresql|db.example.com:6000",
+        details: { serverAddress: "db.example.com", serverPort: 6000 },
+      },
+      {
+        address: "[2001:DB8::1]:5433",
+        identity: "postgresql|[2001:db8::1]:5433",
+        details: { serverAddress: "[2001:db8::1]", serverPort: 5433 },
+      },
+      {
+        address: "10.1.2.3:5433",
+        identity: "postgresql|10.1.2.3:5433",
+        details: { serverAddress: "10.1.2.3", serverPort: 5433 },
+      },
+      // SQL Server's "host,port".
+      {
+        address: "sql.example.com,1433",
+        identity: "postgresql|sql.example.com:1433",
+        details: { serverAddress: "sql.example.com", serverPort: 1433 },
+      },
+      // A bare IPv6 address has no port to split off.
+      {
+        address: "2001:db8::1",
+        port: "5432",
+        identity: "postgresql|[2001:db8::1]:5432",
+        details: { serverAddress: "[2001:db8::1]", serverPort: 5432 },
+      },
+      // A port out of range in the address is dropped, as the server drops it.
+      {
+        address: "db.example.com:99999",
+        identity: "postgresql|db.example.com",
+        details: { serverAddress: "db.example.com" },
+      },
+    ];
+
+    for (const entry of cases) {
+      const parsed: ParsedConfig = database({
+        DATABASE_SYSTEM: "postgresql",
+        DATABASE_SERVER_ADDRESS: entry.address,
+        ...(entry.port !== undefined
+          ? { DATABASE_SERVER_PORT: entry.port }
+          : {}),
+      });
+
+      assert.deepStrictEqual(parsed.problems, [], entry.address);
+      assert.strictEqual(
+        parsed.config.resourceIdentifier,
+        entry.identity,
+        entry.address,
+      );
+      assert.deepStrictEqual(
+        parsed.config.identityDetails,
+        { databaseSystem: "postgresql", ...entry.details },
+        entry.address,
+      );
+    }
+  });
+
   test("a DATABASE_SERVER_ID that is not a UUID is ignored with a warning, like the collector does", () => {
     const parsed: ParsedConfig = database({
       DATABASE_SERVER_ID: "orders",

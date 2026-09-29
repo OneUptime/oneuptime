@@ -4,6 +4,7 @@ import DockerHostOwnerRuleEngineService from "./DockerHostOwnerRuleEngineService
 import Model from "../../Models/DatabaseModels/DockerHost";
 import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ResourceAiAccessSettings, {
@@ -511,6 +512,25 @@ export class Service extends DatabaseService<Model> {
     });
 
     return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new Docker host starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.DockerHost,
+      createBy,
+    });
+
+    return { createBy, carryForward: null };
   }
 
   /*

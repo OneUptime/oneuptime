@@ -231,6 +231,37 @@ describe("each read", () => {
     );
   });
 
+  /*
+   * Valkey 8+ registers the replica password as primaryauth, with masterauth
+   * as an alias, and CONFIG GET * lists it under both names.
+   */
+  test("settings: Valkey's primaryauth is a credential too, never listed", async () => {
+    const h: DatabaseHarness = harness(
+      {
+        "CONFIG GET *": [
+          "requirepass",
+          "hunter2",
+          "primaryauth",
+          "Hunter2Secret!",
+          "masterauth",
+          "Hunter2Secret!",
+          "maxmemory",
+          "0",
+        ],
+      },
+      {},
+      "valkey",
+    );
+
+    const all: ExecResult = await runRead(h, "db settings");
+    assert.strictEqual(
+      stdoutOf(all),
+      "NAME        VALUE\nmaxmemory   0\n\n3 credential parameter(s) are not shown.",
+    );
+    assert.ok(!all.output.includes("Hunter2Secret"));
+    assert.ok(!all.output.includes("primaryauth"));
+  });
+
   test("slowlog: SLOWLOG GET N; arguments as a JSON array, so AUTH secrets and written values are masked", async () => {
     const h: DatabaseHarness = harness({
       "SLOWLOG GET 5": [
@@ -264,6 +295,55 @@ describe("each read", () => {
     );
     assert.match(out, /\["SET","session:1","\[redacted\]"\]$/m);
     assert.match(out, /\["KEYS","\*"\]$/m);
+  });
+
+  test("slowlog: a long command's values are masked before the cell is cut, so none survives half-cut", async () => {
+    // As Redis keeps it: at most 32 arguments, each at most 128 bytes.
+    const hset: Array<string> = ["HSET", "customer:1"];
+    for (let field: number = 0; field < 14; field++) {
+      hset.push(
+        `field-${field}`,
+        `SSN-078-05-1120-customer-private-value-${field}-${"x".repeat(70)}`.slice(
+          0,
+          128,
+        ),
+      );
+    }
+    hset.push("... (6 more arguments)");
+
+    const h: DatabaseHarness = harness({
+      "SLOWLOG GET 5": [
+        [15, 1790000000, 30000, hset, "10.0.0.8:50000", "api"],
+        [
+          16,
+          1790000000,
+          9000,
+          ["JSON.MSET", "doc:1", "$", '{"email":"john@example.com"}'],
+          "10.0.0.8:50000",
+          "api",
+        ],
+        [
+          17,
+          1790000000,
+          9000,
+          ["SMOVE", "pending", "done", "card-4111111111111111"],
+          "10.0.0.8:50000",
+          "api",
+        ],
+      ],
+    });
+    const out: string = stdoutOf(await runRead(h, "db slowlog --limit 5"));
+
+    assert.ok(!out.includes("SSN-"), out);
+    assert.ok(!out.includes("private"), out);
+    assert.ok(!out.includes("john@example.com"), out);
+    assert.ok(!out.includes("4111111111111111"), out);
+    assert.match(out, /\["HSET","customer:1","\[redacted\]","\[redacted\]",/);
+    assert.match(
+      out,
+      /\["JSON\.MSET","doc:1","\[redacted\]","\[redacted\]"\]$/m,
+    );
+    assert.match(out, /\["SMOVE","pending","\[redacted\]","\[redacted\]"\]$/m);
   });
 
   test("memory: INFO memory and MEMORY STATS flattened; a server without MEMORY STATS says so", async () => {

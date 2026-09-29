@@ -58,6 +58,10 @@ services:
       - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
       # Comma-separated container-name globs OneUptime AI must never change.
       - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides PODMAN_HOST_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       # Empty: the docker CLI negotiates the API version with the socket.
       - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
     healthcheck:

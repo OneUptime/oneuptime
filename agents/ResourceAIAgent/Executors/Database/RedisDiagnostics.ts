@@ -26,6 +26,7 @@ import {
   DATABASE_MAX_ROW_LIMIT,
   isDatabaseCredentialSettingName,
 } from "../../Common/Utils/AiRemediation/Resource/DatabaseDiagnosticCatalog";
+import { redactRedisCommandArguments } from "../../Common/Utils/AiRemediation/Resource/DatabaseQueryRedactor";
 
 /*
  * The db catalog on Redis and its drop-ins (Valkey, KeyDB, Dragonfly),
@@ -452,9 +453,16 @@ async function runRead(
             duration_ms: micros === null ? null : (micros / 1000).toFixed(3),
             client: fields[4],
             name: fields[5],
-            // As JSON, so the redactor masks AUTH secrets and written values.
+            /*
+             * AUTH secrets and written values masked HERE, before the table
+             * cuts the cell (a value cut open is one the output redactor can
+             * no longer see) or --format json encodes the array as a string;
+             * as a JSON array, so the redactor masks it again all the same.
+             */
             command: Array.isArray(fields[3])
-              ? JSON.stringify(fields[3].map(valueToText))
+              ? JSON.stringify(
+                  redactRedisCommandArguments(fields[3].map(valueToText)),
+                )
               : null,
           };
         },

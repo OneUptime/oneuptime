@@ -705,10 +705,27 @@ export default class ResourceCommandPolicy {
         })
       : [];
 
+    const toolPolicy: ResourceToolPolicy = ResourceCommandPolicy.getToolPolicy(
+      data.resourceType,
+    );
+
     for (const target of targets) {
       const protectedTarget: string | undefined = protectedTargets.find(
         (entry: string): boolean => {
-          return isProtectedTarget(target, entry);
+          if (isProtectedTarget(target, entry)) {
+            return true;
+          }
+
+          if (!toolPolicy.isProtectedTarget) {
+            return false;
+          }
+
+          try {
+            return toolPolicy.isProtectedTarget(target, entry) !== false;
+          } catch {
+            // Over-matching is the safe direction.
+            return true;
+          }
         },
       );
 

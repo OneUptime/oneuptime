@@ -7,8 +7,10 @@ import AutoRemediationRuleEngineService, {
   ResourceBreakerState,
   ResourceRoundHold,
   getResourceBreakerLockKey,
+  doesResourceModeRunRoundUnattended,
   getResourceRoundNameSnapshot,
   parseClusterRoundNameSnapshot,
+  parseResourceRoundNumber,
 } from "../../../Server/Services/AutoRemediationRuleEngineService";
 import AutoRemediationRuleService from "../../../Server/Services/AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
@@ -619,6 +621,131 @@ describe("AutoRemediationRuleEngineService resource-level remediation", () => {
   });
 });
 
+/*
+ * One AI fix lane per signal holds BOTH ways. A resource round started by
+ * an earlier pass (while no linked cluster was ready) keeps the signal in
+ * the resource lane: a later pass — a second investigation settling after
+ * the cluster came back — must not start a cluster round next to it, and
+ * the cluster lane's "ask again" must not either. A signal with no
+ * resource round is untouched (the Kubernetes lane behaves as before).
+ */
+describe("AutoRemediationRuleEngineService one AI fix lane per signal — a resource round keeps the cluster lane out", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function existingResourceRound(): AutoRemediationSuggestion {
+    return {
+      id: OTHER_SUGGESTION_ID,
+      _id: OTHER_SUGGESTION_ID.toString(),
+      resourceType: AiResourceType.DockerHost,
+      resourceId: new ObjectID(RESOURCE_ID),
+      incidentId: INCIDENT_ID,
+    } as unknown as AutoRemediationSuggestion;
+  }
+
+  it("a later rule pass starts no cluster round on a signal that already has a resource round, even when the cluster is ready now", async () => {
+    mockBaseline({
+      existing: [existingResourceRound()],
+      clusters: [readyCluster()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(0);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(
+      KubernetesClusterAiAccessService.getStatusesForSubject,
+    ).not.toHaveBeenCalled();
+    // Nor a second resource round.
+    expect(resourceStatuses).not.toHaveBeenCalled();
+    // Project rules are still evaluated.
+    expect(AutoRemediationRuleService.findBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("negative control: a signal whose existing rounds are not resource rounds still gets its cluster round", async () => {
+    mockBaseline({
+      existing: [
+        {
+          id: OTHER_SUGGESTION_ID,
+          _id: OTHER_SUGGESTION_ID.toString(),
+          autoRemediationRuleId: ObjectID.generate(),
+        } as unknown as AutoRemediationSuggestion,
+      ],
+      clusters: [readyCluster()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(1);
+    expect(createdSuggestions[0]!.kubernetesClusterId?.toString()).toBe(
+      CLUSTER_ID,
+    );
+  });
+
+  describe("startFollowUpClusterRemediation", () => {
+    let getStatusForCluster: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockBaseline({});
+      suggestionFindBy.mockReset();
+      suggestionFindBy.mockResolvedValue([]);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "countBy")
+        .mockResolvedValue(new PositiveNumber(1));
+      getStatusForCluster = jest
+        .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+        .mockResolvedValue({
+          ...readyCluster(),
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        });
+    });
+
+    function followUpCluster(): Promise<boolean> {
+      return AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: new ObjectID(CLUSTER_ID),
+        incidentId: INCIDENT_ID,
+      });
+    }
+
+    it("does not ask again on the cluster when the signal has a resource round", async () => {
+      suggestionFindBy.mockResolvedValueOnce([existingResourceRound()]);
+
+      expect(await followUpCluster()).toBe(false);
+
+      expect(createdSuggestions).toHaveLength(0);
+      expect(enqueue).not.toHaveBeenCalled();
+      expect(getStatusForCluster).not.toHaveBeenCalled();
+
+      // It looked for a resource round of THIS subject.
+      const query: Record<string, unknown> = (
+        suggestionFindBy.mock.calls[0]![0] as {
+          query: Record<string, unknown>;
+        }
+      ).query;
+      expect(query["incidentId"]).toEqual(INCIDENT_ID);
+      expect(
+        (query["resourceId"] as { getSql: (alias: string) => string }).getSql(
+          "resourceId",
+        ),
+      ).toBe("(resourceId IS NOT NULL)");
+    });
+
+    it("negative control: with no resource round the cluster follow-up starts as before", async () => {
+      expect(await followUpCluster()).toBe(true);
+
+      expect(createdSuggestions).toHaveLength(1);
+      expect(createdSuggestions[0]!.kubernetesClusterId?.toString()).toBe(
+        CLUSTER_ID,
+      );
+      expect(createdSuggestions[0]!.executionMode).toBe(
+        AutoRemediationExecutionMode.FullAuto,
+      );
+    });
+  });
+});
+
 describe("AutoRemediationRuleEngineService.startFollowUpResourceRemediation", () => {
   let getStatusForResource: jest.SpyInstance;
   let countBy: jest.SpyInstance;
@@ -1057,6 +1184,67 @@ describe("resource round names and the breaker lock", () => {
     expect(
       getResourceRoundNameSnapshot(AiResourceType.ProxmoxCluster, "pve", 2),
     ).toBe('AI remediation for Proxmox cluster "pve" (round 2)');
+  });
+
+  it("reads a round's number back from its name — never from the resource's own name", () => {
+    for (const round of [1, 2, 3]) {
+      expect(
+        parseResourceRoundNumber(
+          getResourceRoundNameSnapshot(AiResourceType.DockerHost, "web", round),
+        ),
+      ).toBe(round);
+      expect(
+        parseResourceRoundNumber(
+          getResourceRoundNameSnapshot(
+            AiResourceType.Host,
+            'web" (round 7)',
+            round,
+          ),
+        ),
+      ).toBe(round);
+    }
+    expect(
+      parseResourceRoundNumber(
+        getResourceRoundNameSnapshot(AiResourceType.Host, "web (round 7)", 1),
+      ),
+    ).toBe(1);
+    expect(parseResourceRoundNumber(undefined)).toBe(1);
+    expect(parseResourceRoundNumber("")).toBe(1);
+  });
+
+  it("Automatic runs only round 1 unattended; Bypass approval every round; the rest never", () => {
+    expect(
+      doesResourceModeRunRoundUnattended(
+        ResourceAiRemediationMode.Automatic,
+        1,
+      ),
+    ).toBe(true);
+    expect(
+      doesResourceModeRunRoundUnattended(
+        ResourceAiRemediationMode.Automatic,
+        2,
+      ),
+    ).toBe(false);
+    for (const round of [1, 2]) {
+      expect(
+        doesResourceModeRunRoundUnattended(
+          ResourceAiRemediationMode.BypassApproval,
+          round,
+        ),
+      ).toBe(true);
+      expect(
+        doesResourceModeRunRoundUnattended(
+          ResourceAiRemediationMode.RequireApproval,
+          round,
+        ),
+      ).toBe(false);
+      expect(
+        doesResourceModeRunRoundUnattended(
+          ResourceAiRemediationMode.Disabled,
+          round,
+        ),
+      ).toBe(false);
+    }
   });
 
   it("a resource round's name is never read as a deleted cluster round's", () => {

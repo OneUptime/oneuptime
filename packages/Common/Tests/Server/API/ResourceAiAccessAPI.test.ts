@@ -29,7 +29,14 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import Host from "../../../Models/DatabaseModels/Host";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import Label from "../../../Models/DatabaseModels/Label";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import {
@@ -288,6 +295,14 @@ const COVERED: Array<Kind> = KINDS.filter((kind: Kind) => {
   ].includes(kind.resourceType);
 });
 
+// The models of the covered types, for rows that carry their labels.
+const LABELLED_MODELS: Partial<Record<AiResourceType, { new (): BaseModel }>> =
+  {
+    [AiResourceType.DockerHost]: DockerHost,
+    [AiResourceType.DatabaseServer]: DatabaseServer,
+    [AiResourceType.Host]: Host,
+  };
+
 function kindOf(resourceType: AiResourceType): Kind {
   return KINDS.find((kind: Kind) => {
     return kind.resourceType === resourceType;
@@ -363,6 +378,20 @@ function isWithinTheLastHourOnly(query: Record<string, unknown>): boolean {
   return since instanceof Date && Date.now() - since.getTime() > 10 * 60 * 1000;
 }
 
+// The ids a QueryHelper.any(...) filter asks for.
+function idsIn(filter: unknown): Array<string> {
+  const parameters: Record<string, unknown> =
+    (filter as { objectLiteralParameters?: Record<string, unknown> })
+      ?.objectLiteralParameters || {};
+  const values: unknown = Object.values(parameters)[0];
+
+  return Array.isArray(values)
+    ? values.map((value: unknown) => {
+        return String(value);
+      })
+    : [];
+}
+
 function lastResponse(): JSONObject {
   const calls: Array<Array<unknown>> = sendJsonObjectResponseMock.mock
     .calls as Array<Array<unknown>>;
@@ -370,9 +399,21 @@ function lastResponse(): JSONObject {
   return calls[calls.length - 1]![2] as JSONObject;
 }
 
+/*
+ * A caller's permission rows as an access token carries them: every row is
+ * a grant or a block (isBlockPermission is always set), optionally limited
+ * to some labels (`scoped`).
+ */
 function userProps(data: {
   permissions: Array<Permission>;
   blocked?: Array<Permission> | undefined;
+  scoped?:
+    | Array<{
+        permission: Permission;
+        labelIds: Array<ObjectID>;
+        isBlockPermission?: boolean | undefined;
+      }>
+    | undefined;
   userId?: ObjectID | undefined | null;
   isMasterAdmin?: boolean | undefined;
 }): DatabaseCommonInteractionProps {
@@ -387,6 +428,7 @@ function userProps(data: {
           _type: "UserPermission",
           permission,
           labelIds: [],
+          isBlockPermission: false,
         } as UserPermission;
       }),
       ...(data.blocked || []).map((permission: Permission): UserPermission => {
@@ -397,6 +439,20 @@ function userProps(data: {
           isBlockPermission: true,
         } as UserPermission;
       }),
+      ...(data.scoped || []).map(
+        (row: {
+          permission: Permission;
+          labelIds: Array<ObjectID>;
+          isBlockPermission?: boolean | undefined;
+        }): UserPermission => {
+          return {
+            _type: "UserPermission",
+            permission: row.permission,
+            labelIds: row.labelIds,
+            isBlockPermission: Boolean(row.isBlockPermission),
+          } as UserPermission;
+        },
+      ),
     ],
   };
 
@@ -749,8 +805,11 @@ describe("ResourceAiAccessAPI", () => {
         );
         expect(runSpy).not.toHaveBeenCalled();
 
+        // A custom role that may read and edit this type (the route reads it first).
         propsSpy.mockResolvedValue(
-          userProps({ permissions: [kind.editPermission] }),
+          userProps({
+            permissions: [kind.readPermission, kind.editPermission],
+          }),
         );
 
         const admitted: RouteCallResult = await callRoute(
@@ -1010,7 +1069,9 @@ describe("ResourceAiAccessAPI", () => {
         for (const props of [
           userProps({ permissions: [Permission.ProjectMember] }),
           userProps({ permissions: [Permission.SettingsMember] }),
-          userProps({ permissions: [kind.editPermission] }),
+          userProps({
+            permissions: [kind.readPermission, kind.editPermission],
+          }),
           userProps({ permissions: [], isMasterAdmin: true }),
         ]) {
           jest.clearAllMocks();
@@ -1026,6 +1087,161 @@ describe("ResourceAiAccessAPI", () => {
             AI_RESOURCE_TYPE_INFO[kind.resourceType].testCommands.length,
           );
         }
+      });
+
+      test("a table-wide block row on the edit permission refuses even a project member", async () => {
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectMember],
+            blocked: [kind.editPermission],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_TEST_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect(reserveSpy).not.toHaveBeenCalled();
+        expect(runSpy).not.toHaveBeenCalled();
+      });
+    },
+  );
+
+  /*
+   * Edit access is decided for THIS resource, from its own labels, as a CRUD
+   * update of it would be — not "may the caller edit some resource of this
+   * type somewhere in the project".
+   */
+  describe.each(COVERED)(
+    "$resourceType: POST /test — edit access to THIS resource, labels included",
+    (kind: Kind) => {
+      const PROD_LABEL_ID: ObjectID = new ObjectID(
+        "44444444-4444-4444-8444-444444444444",
+      );
+      const STAGING_LABEL_ID: ObjectID = new ObjectID(
+        "55555555-5555-4555-8555-555555555555",
+      );
+
+      // The resource as its table holds it: a model with its labels.
+      function serveResourceLabelled(labelId: ObjectID, name: string): void {
+        const label: Label = new Label();
+        label.id = labelId;
+        label.name = name;
+
+        const row: BaseModel = new LABELLED_MODELS[kind.resourceType]!();
+        row.id = RESOURCE_ID;
+        const record: Record<string, unknown> = row as unknown as Record<
+          string,
+          unknown
+        >;
+        record["projectId"] = PROJECT_ID;
+        record["name"] = "prod-1";
+        record["labels"] = [label];
+
+        findSpies.get(kind.resourceType)!.mockResolvedValue(row);
+      }
+
+      function refusedBeforeAnythingRan(result: RouteCallResult): void {
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          `You need permission to edit this ${kind.sentenceName} to run its AI access test.`,
+        );
+        expect(reserveSpy).not.toHaveBeenCalled();
+        expect(countSpy).not.toHaveBeenCalled();
+        expect(statusSpy).not.toHaveBeenCalled();
+        expect(runSpy).not.toHaveBeenCalled();
+      }
+
+      test("an edit grant limited to another label does not reach this resource", async () => {
+        serveResourceLabelled(PROD_LABEL_ID, "prod");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [kind.readPermission],
+            scoped: [
+              { permission: kind.editPermission, labelIds: [STAGING_LABEL_ID] },
+            ],
+          }),
+        );
+
+        refusedBeforeAnythingRan(
+          await callRoute(
+            RESOURCE_AI_ACCESS_TEST_PATH,
+            body(kind.resourceType),
+          ),
+        );
+      });
+
+      test("negative control: the same grant reaches a resource with its label", async () => {
+        serveResourceLabelled(STAGING_LABEL_ID, "staging");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [kind.readPermission],
+            scoped: [
+              { permission: kind.editPermission, labelIds: [STAGING_LABEL_ID] },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_TEST_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.nextCallCount).toBe(0);
+        expect(runSpy).toHaveBeenCalledTimes(
+          AI_RESOURCE_TYPE_INFO[kind.resourceType].testCommands.length,
+        );
+      });
+
+      test("a block row on the edit permission for this resource's label refuses a project member", async () => {
+        serveResourceLabelled(PROD_LABEL_ID, "prod");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectMember],
+            scoped: [
+              {
+                permission: kind.editPermission,
+                labelIds: [PROD_LABEL_ID],
+                isBlockPermission: true,
+              },
+            ],
+          }),
+        );
+
+        refusedBeforeAnythingRan(
+          await callRoute(
+            RESOURCE_AI_ACCESS_TEST_PATH,
+            body(kind.resourceType),
+          ),
+        );
+      });
+
+      test("negative control: that block does not touch a resource without the label", async () => {
+        serveResourceLabelled(STAGING_LABEL_ID, "staging");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectMember],
+            scoped: [
+              {
+                permission: kind.editPermission,
+                labelIds: [PROD_LABEL_ID],
+                isBlockPermission: true,
+              },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_TEST_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.nextCallCount).toBe(0);
+        expect(runSpy).toHaveBeenCalledTimes(
+          AI_RESOURCE_TYPE_INFO[kind.resourceType].testCommands.length,
+        );
       });
     },
   );
@@ -1750,12 +1966,32 @@ describe("ResourceAiAccessAPI", () => {
         .spyOn(AutoRemediationSuggestionService, "findBy")
         .mockResolvedValue([]);
       countSpy.mockResolvedValue(new PositiveNumber(0));
+      // Someone who may read everything summarised here.
       propsSpy.mockResolvedValue(
-        userProps({ permissions: [kind.readPermission] }),
+        userProps({ permissions: [Permission.ProjectMember] }),
       );
     });
 
+    function isCallerProps(call: Array<unknown>): boolean {
+      const props: DatabaseCommonInteractionProps = (
+        call[0] as { props: DatabaseCommonInteractionProps }
+      ).props;
+      return !props.isRoot && String(props.userId) === USER_ID.toString();
+    }
+
+    function isRootProps(call: Array<unknown>): boolean {
+      return (
+        JSON.stringify(
+          (call[0] as { props: DatabaseCommonInteractionProps }).props,
+        ) === JSON.stringify({ isRoot: true })
+      );
+    }
+
     test("needs only read access to the resource", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [kind.readPermission] }),
+      );
+
       const ok: RouteCallResult = await callRoute(
         RESOURCE_AI_ACCESS_INSIGHTS_PATH,
         body(kind.resourceType),
@@ -1763,32 +1999,24 @@ describe("ResourceAiAccessAPI", () => {
       expect(ok.thrownToNext).toBeUndefined();
     });
 
-    test("reads the resource under the USER's props, and everything else as root", async () => {
+    test("reads the resource, incidents and alerts under the USER's props, and the jobs, runs, suggestions and counts as root", async () => {
       await callRoute(
         RESOURCE_AI_ACCESS_INSIGHTS_PATH,
         body(kind.resourceType),
       );
 
-      const resourceProps: DatabaseCommonInteractionProps = (
-        findSpies.get(kind.resourceType)!.mock.calls[0]![0] as {
-          props: DatabaseCommonInteractionProps;
-        }
-      ).props;
-      expect(resourceProps.isRoot).toBeUndefined();
+      expect(
+        isCallerProps(findSpies.get(kind.resourceType)!.mock.calls[0]!),
+      ).toBe(true);
 
-      for (const spy of [
-        jobFind,
-        incidentFind,
-        alertFind,
-        suggestionFind,
-        countSpy,
-      ]) {
+      for (const spy of [incidentFind, alertFind]) {
         expect(spy).toHaveBeenCalled();
-        for (const call of spy.mock.calls) {
-          expect(
-            (call[0] as { props: DatabaseCommonInteractionProps }).props,
-          ).toEqual({ isRoot: true });
-        }
+        expect(spy.mock.calls.every(isCallerProps)).toBe(true);
+      }
+
+      for (const spy of [jobFind, suggestionFind, countSpy]) {
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls.every(isRootProps)).toBe(true);
       }
     });
 
@@ -1941,6 +2169,16 @@ describe("ResourceAiAccessAPI", () => {
       jobFind.mockResolvedValue([
         { autoRemediationSuggestionId: ruleRound },
       ] as unknown as Array<RunnerJob>);
+
+      const rows: Array<AutoRemediationSuggestion> = [
+        suggestion(round, 10, {
+          rationaleMarkdown: "x".repeat(1000),
+          incidentId: INCIDENT_ID,
+          approvedAt: new Date("2026-09-01T00:00:00.000Z"),
+        }),
+        suggestion(ruleRound, 2, { alertId: ALERT_ID }),
+      ];
+
       suggestionFind.mockImplementation(async (args: unknown) => {
         const query: Record<string, unknown> = (
           args as { query: Record<string, unknown> }
@@ -1948,16 +2186,14 @@ describe("ResourceAiAccessAPI", () => {
 
         if (query["resourceId"]) {
           expect(query["resourceType"]).toBe(kind.resourceType);
-          return [
-            suggestion(round, 10, {
-              rationaleMarkdown: "x".repeat(1000),
-              incidentId: INCIDENT_ID,
-              approvedAt: new Date("2026-09-01T00:00:00.000Z"),
-            }),
-          ];
+          return [rows[0]!];
         }
 
-        return [suggestion(ruleRound, 2, { alertId: ALERT_ID })];
+        const ids: Array<string> = idsIn(query["_id"]);
+
+        return rows.filter((row: AutoRemediationSuggestion) => {
+          return ids.includes(row.id!.toString());
+        });
       });
 
       await callRoute(
@@ -2065,6 +2301,421 @@ describe("ResourceAiAccessAPI", () => {
           ),
         ).toEqual([RESOURCE_ID.toString()]);
       }
+    });
+
+    /*
+     * ---------------------------------------------------------------------
+     * What the insights say about incidents, alerts, AI runs and suggestions
+     * follows the caller's own read access to them. The world below is one
+     * resource's AI history, served the way the permission layer would serve
+     * it: as root everything; under the caller's props a table the caller
+     * may not read is refused outright (the table-level check), and only the
+     * incidents and suggestions the caller's labels and private-incident
+     * membership reach come back.
+     * ---------------------------------------------------------------------
+     */
+    describe("reading what the caller may read", () => {
+      const OTHER_INCIDENT_ID: ObjectID = ObjectID.generate();
+      const INSIGHT_ID: ObjectID = ObjectID.generate();
+      const TRIAGE_RUN: ObjectID = ObjectID.generate();
+      const INCIDENT_RUN: ObjectID = ObjectID.generate();
+      const OTHER_INCIDENT_RUN: ObjectID = ObjectID.generate();
+      const ALERT_RUN: ObjectID = ObjectID.generate();
+      const OWN_FIX: ObjectID = ObjectID.generate();
+      const RULE_FIX: ObjectID = ObjectID.generate();
+      const STAGING_LABEL_ID: ObjectID = ObjectID.generate();
+
+      const INCIDENT_TITLES: Dictionary<{ title: string; number: number }> = {
+        [INCIDENT_ID.toString()]: { title: "Web down", number: 42 },
+        [OTHER_INCIDENT_ID.toString()]: {
+          title: "Payroll database breach",
+          number: 7,
+        },
+      };
+
+      function refuseUnlessTableReadable(
+        props: DatabaseCommonInteractionProps,
+        modelType: { new (): BaseModel },
+      ): void {
+        if (props.isRoot || props.isMasterAdmin) {
+          return;
+        }
+
+        const allowed: Array<Permission> = new modelType().getReadPermissions();
+        const rows: Array<UserPermission> =
+          props.userTenantAccessPermission?.[PROJECT_ID.toString()]
+            ?.permissions || [];
+
+        if (
+          !rows.some((row: UserPermission) => {
+            return !row.isBlockPermission && allowed.includes(row.permission);
+          })
+        ) {
+          throw new NotAuthorizedException(
+            `You do not have permissions to read ${new modelType().singularName}.`,
+          );
+        }
+      }
+
+      function serveHistory(
+        reach: {
+          incidentIds?: Array<ObjectID> | undefined;
+          suggestionIds?: Array<ObjectID> | undefined;
+        } = {},
+      ): void {
+        const reaches: (
+          props: DatabaseCommonInteractionProps,
+          id: string,
+          reachable: Array<ObjectID> | undefined,
+        ) => boolean = (
+          props: DatabaseCommonInteractionProps,
+          id: string,
+          reachable: Array<ObjectID> | undefined,
+        ): boolean => {
+          return (
+            Boolean(props.isRoot) ||
+            !reachable ||
+            reachable.some((reachableId: ObjectID) => {
+              return reachableId.toString() === id;
+            })
+          );
+        };
+
+        jobFind.mockResolvedValue([
+          { aiRunId: TRIAGE_RUN },
+          { autoRemediationSuggestionId: RULE_FIX },
+        ] as unknown as Array<RunnerJob>);
+
+        incidentFind.mockImplementation(async (args: unknown) => {
+          const { query, props } = args as {
+            query: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+          refuseUnlessTableReadable(props, Incident);
+
+          const ids: Array<string> = query[kind.subjectRelation]
+            ? [INCIDENT_ID.toString(), OTHER_INCIDENT_ID.toString()]
+            : idsIn(query["_id"]);
+
+          return ids
+            .filter((id: string) => {
+              return reaches(props, id, reach.incidentIds);
+            })
+            .map((id: string) => {
+              return query[kind.subjectRelation]
+                ? { id: new ObjectID(id) }
+                : {
+                    id: new ObjectID(id),
+                    title: INCIDENT_TITLES[id]!.title,
+                    incidentNumber: INCIDENT_TITLES[id]!.number,
+                  };
+            });
+        });
+
+        alertFind.mockImplementation(async (args: unknown) => {
+          const { query, props } = args as {
+            query: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+          refuseUnlessTableReadable(props, Alert);
+
+          return query[kind.subjectRelation]
+            ? [{ id: ALERT_ID }]
+            : [{ id: ALERT_ID, title: "High memory" }];
+        });
+
+        // AI runs are only ever read as root: they are private to their author.
+        runFind.mockImplementation(async (args: unknown) => {
+          const { query } = args as { query: Record<string, unknown> };
+
+          if (query["triggeredByIncidentId"]) {
+            const ids: Array<string> = idsIn(query["triggeredByIncidentId"]);
+            return [
+              run(INCIDENT_RUN, 2, { triggeredByIncidentId: INCIDENT_ID }),
+              run(OTHER_INCIDENT_RUN, 3, {
+                triggeredByIncidentId: OTHER_INCIDENT_ID,
+              }),
+            ].filter((row: AIRun) => {
+              return ids.includes(row.triggeredByIncidentId!.toString());
+            });
+          }
+
+          if (query["triggeredByAlertId"]) {
+            return [run(ALERT_RUN, 4, { triggeredByAlertId: ALERT_ID })];
+          }
+
+          // An AI insight's triage ran commands here: no incident, no alert.
+          return [run(TRIAGE_RUN, 1, { triggeredByAiInsightId: INSIGHT_ID })];
+        });
+
+        const suggestions: Array<AutoRemediationSuggestion> = [
+          suggestion(OWN_FIX, 5, {
+            rationaleMarkdown: "Restart the web container.",
+            incidentId: INCIDENT_ID,
+          }),
+          suggestion(RULE_FIX, 6, {
+            rationaleMarkdown: "Free memory on the host.",
+            alertId: ALERT_ID,
+          }),
+        ];
+
+        // Only the columns asked for come back, as from the database.
+        suggestionFind.mockImplementation(async (args: unknown) => {
+          const { query, select, props } = args as {
+            query: Record<string, unknown>;
+            select: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+          refuseUnlessTableReadable(props, AutoRemediationSuggestion);
+
+          const ids: Array<string> = query["resourceId"]
+            ? [OWN_FIX.toString()]
+            : idsIn(query["_id"]);
+
+          return suggestions
+            .filter((row: AutoRemediationSuggestion) => {
+              return (
+                ids.includes(row.id!.toString()) &&
+                reaches(props, row.id!.toString(), reach.suggestionIds)
+              );
+            })
+            .map((row: AutoRemediationSuggestion) => {
+              return select["rationaleMarkdown"]
+                ? row
+                : ({
+                    ...row,
+                    rationaleMarkdown: undefined,
+                  } as unknown as AutoRemediationSuggestion);
+            });
+        });
+      }
+
+      async function insightsFor(
+        props: DatabaseCommonInteractionProps,
+      ): Promise<ResourceAiInsights> {
+        propsSpy.mockResolvedValue(props);
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.nextCallCount).toBe(0);
+        return lastResponse() as unknown as ResourceAiInsights;
+      }
+
+      function investigationIds(insights: ResourceAiInsights): Array<string> {
+        return insights.investigations.map((row: { aiRunId: string }) => {
+          return row.aiRunId;
+        });
+      }
+
+      function fixFor(
+        insights: ResourceAiInsights,
+        id: ObjectID,
+      ): ResourceAiInsights["fixes"][number] {
+        return insights.fixes.find((fix: { id: string }) => {
+          return fix.id === id.toString();
+        })!;
+      }
+
+      test("a role that may read only the resource gets no incident or alert, no TL;DR and no rationale", async () => {
+        serveHistory();
+
+        const insights: ResourceAiInsights = await insightsFor(
+          userProps({ permissions: [kind.readPermission] }),
+        );
+
+        // Only the run with no subject is left, and without its TL;DR.
+        expect(investigationIds(insights)).toEqual([TRIAGE_RUN.toString()]);
+        expect(insights.investigations[0]!.analysisTldr).toBeUndefined();
+        expect(insights.investigations[0]!.incident).toBeUndefined();
+        expect(insights.investigations[0]!.alert).toBeUndefined();
+
+        // The fixes on the resource are listed, their rationale is not.
+        expect(
+          insights.fixes.map((fix: { id: string }) => {
+            return fix.id;
+          }),
+        ).toEqual([OWN_FIX.toString(), RULE_FIX.toString()]);
+        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+
+        const serialized: string = JSON.stringify(insights);
+        for (const secret of [
+          "Web down",
+          "High memory",
+          "Payroll database breach",
+          "tldr ",
+          "Restart the web container.",
+          "Free memory on the host.",
+        ]) {
+          expect(serialized).not.toContain(secret);
+        }
+        expect(serialized).not.toContain(INCIDENT_RUN.toString());
+        expect(serialized).not.toContain(ALERT_RUN.toString());
+      });
+
+      test("a caller whose incident read is label-scoped sees only the incidents their labels reach", async () => {
+        serveHistory({ incidentIds: [INCIDENT_ID] });
+
+        const insights: ResourceAiInsights = await insightsFor(
+          userProps({
+            permissions: [kind.readPermission, Permission.AlertViewer],
+            scoped: [
+              {
+                permission: Permission.ReadProjectIncident,
+                labelIds: [STAGING_LABEL_ID],
+              },
+            ],
+          }),
+        );
+
+        expect(investigationIds(insights)).toEqual([
+          TRIAGE_RUN.toString(),
+          INCIDENT_RUN.toString(),
+          ALERT_RUN.toString(),
+        ]);
+        expect(JSON.stringify(insights)).not.toContain(
+          "Payroll database breach",
+        );
+        expect(JSON.stringify(insights)).not.toContain(
+          OTHER_INCIDENT_RUN.toString(),
+        );
+
+        /*
+         * With a subject the caller may read, the TL;DR is shown — the
+         * incident's own AI panel shows them the whole analysis.
+         */
+        expect(insights.investigations[1]!.incident).toEqual({
+          id: INCIDENT_ID.toString(),
+          title: "Web down",
+          number: 42,
+        });
+        expect(insights.investigations[1]!.analysisTldr).toBe(
+          `tldr ${INCIDENT_RUN.toString()}`,
+        );
+        expect(insights.investigations[2]!.alert).toEqual({
+          id: ALERT_ID.toString(),
+          title: "High memory",
+        });
+        expect(insights.investigations[2]!.analysisTldr).toBe(
+          `tldr ${ALERT_RUN.toString()}`,
+        );
+
+        // A run with no subject: only for those who may read AIRun.
+        expect(insights.investigations[0]!.analysisTldr).toBeUndefined();
+
+        // Suggestions are not theirs to read.
+        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+      });
+
+      test("a viewer (incidents, alerts and AI runs, not suggestions) gets every TL;DR but no rationale", async () => {
+        serveHistory();
+
+        const insights: ResourceAiInsights = await insightsFor(
+          userProps({ permissions: [Permission.Viewer] }),
+        );
+
+        expect(investigationIds(insights)).toEqual([
+          TRIAGE_RUN.toString(),
+          INCIDENT_RUN.toString(),
+          OTHER_INCIDENT_RUN.toString(),
+          ALERT_RUN.toString(),
+        ]);
+        for (const investigation of insights.investigations) {
+          expect(investigation.analysisTldr).toBe(
+            `tldr ${investigation.aiRunId}`,
+          );
+        }
+        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+      });
+
+      test("a project member gets everything; a suggestion hidden by its incident's privacy loses only its rationale", async () => {
+        serveHistory();
+
+        const all: ResourceAiInsights = await insightsFor(
+          userProps({ permissions: [Permission.ProjectMember] }),
+        );
+
+        expect(investigationIds(all)).toHaveLength(4);
+        expect(all.investigations[2]!.incident).toEqual({
+          id: OTHER_INCIDENT_ID.toString(),
+          title: "Payroll database breach",
+          number: 7,
+        });
+        expect(all.investigations[0]!.analysisTldr).toBe(
+          `tldr ${TRIAGE_RUN.toString()}`,
+        );
+        expect(fixFor(all, OWN_FIX).rationale).toBe(
+          "Restart the web container.",
+        );
+        expect(fixFor(all, RULE_FIX).rationale).toBe(
+          "Free memory on the host.",
+        );
+
+        jest.clearAllMocks();
+        serveHistory({ suggestionIds: [RULE_FIX] });
+
+        const partly: ResourceAiInsights = await insightsFor(
+          userProps({ permissions: [Permission.ProjectMember] }),
+        );
+
+        expect(fixFor(partly, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(partly, RULE_FIX).rationale).toBe(
+          "Free memory on the host.",
+        );
+      });
+
+      test("a master admin gets everything", async () => {
+        serveHistory();
+
+        const insights: ResourceAiInsights = await insightsFor(
+          userProps({ permissions: [], isMasterAdmin: true }),
+        );
+
+        expect(investigationIds(insights)).toHaveLength(4);
+        expect(insights.investigations[0]!.analysisTldr).toBe(
+          `tldr ${TRIAGE_RUN.toString()}`,
+        );
+        expect(fixFor(insights, OWN_FIX).rationale).toBe(
+          "Restart the web container.",
+        );
+      });
+
+      test("titles, numbers and rationales are only ever read under the caller's props", async () => {
+        serveHistory();
+
+        await insightsFor(
+          userProps({ permissions: [Permission.ProjectMember] }),
+        );
+
+        for (const [spy, columns] of [
+          [incidentFind, ["title", "incidentNumber"]],
+          [alertFind, ["title"]],
+          [suggestionFind, ["rationaleMarkdown"]],
+        ] as Array<[jest.SpyInstance, Array<string>]>) {
+          const reading: Array<Array<unknown>> = spy.mock.calls.filter(
+            (call: Array<unknown>) => {
+              const select: Record<string, unknown> = (
+                call[0] as { select: Record<string, unknown> }
+              ).select;
+              return columns.some((column: string) => {
+                return Boolean(select[column]);
+              });
+            },
+          );
+
+          expect(reading.length).toBeGreaterThan(0);
+          expect(reading.every(isCallerProps)).toBe(true);
+        }
+
+        // The runs (private to their author) are read as root.
+        expect(runFind).toHaveBeenCalled();
+        expect(runFind.mock.calls.every(isRootProps)).toBe(true);
+      });
     });
   });
 

@@ -48,8 +48,14 @@ fi
 
 IMAGE="${ONEUPTIME_DOCKER_AGENT_IMAGE:-oneuptime/docker-agent:release}"
 AI_IMAGE="${ONEUPTIME_AI_AGENT_IMAGE:-oneuptime/resource-ai-agent:release}"
-# "true" lets OneUptime AI apply fixes; anything else keeps the AI agent read-only.
-ONEUPTIME_AI_ALLOW_WRITES="${ONEUPTIME_AI_ALLOW_WRITES:-false}"
+# "true" lets OneUptime AI apply fixes; anything else keeps the AI agent
+# read-only. Read the way the agent reads it (case and surrounding blanks
+# ignored), and passed on as exactly true or false, so what this script says
+# below is what the agent does.
+case "$(printf '%s' "${ONEUPTIME_AI_ALLOW_WRITES:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')" in
+    true) ONEUPTIME_AI_ALLOW_WRITES="true" ;;
+    *) ONEUPTIME_AI_ALLOW_WRITES="false" ;;
+esac
 
 echo ""
 echo "Pulling image: $IMAGE"

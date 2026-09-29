@@ -692,12 +692,14 @@ export function getDatabaseOperation(
 
 /*
  * Setting names that hold (or name) a credential: Redis requirepass and
- * masterauth, MySQL/PostgreSQL password settings, anything with a secret or
- * token in its name. `db settings` refuses them by name, and the executor
- * leaves them out when it lists every setting.
+ * masterauth — which Valkey 8 and later name primaryauth, and list under
+ * both names — and any other *auth setting, MySQL/PostgreSQL password
+ * settings, anything with a secret or token in its name. `db settings`
+ * refuses them by name, and the executor leaves them out when it lists
+ * every setting.
  */
 const CREDENTIAL_SETTING_NAME_REGEX: RegExp =
-  /pass|pwd|secret|token|credential|masterauth|private[-_.]?key|api[-_.]?key|keyfile|key[-_.]?file/i;
+  /pass|pwd|secret|token|credential|masterauth|primaryauth|auth$|private[-_.]?key|api[-_.]?key|keyfile|key[-_.]?file/i;
 
 export function isDatabaseCredentialSettingName(name: unknown): boolean {
   return typeof name === "string" && CREDENTIAL_SETTING_NAME_REGEX.test(name);

@@ -276,6 +276,22 @@ only a log line's `error` field, reports a failed EXPLAIN as a warning rather
 than a missing grant, and hands the ingestion key to a digest-pinned curl image
 on stdin, never on a command line.
 
+### `ContainerAgentAiInstallers.test.js`
+
+Runs the Docker, Podman and Docker Swarm agents' `install.sh` for real in a
+scratch directory, with `docker`, `podman` and `curl` replaced by recording
+stubs (no daemon or network needed; the Swarm installer runs under `sh`, and
+`INSTALL_DIR` points it at the scratch directory). It pins what they hand the
+OneUptime AI agent: `ONEUPTIME_AI_ALLOW_WRITES` reaches it as exactly `true`
+or `false`, read the way the agent reads it, so the script never says
+"read-only" over an agent that applies fixes; the Swarm installer writes
+`ONEUPTIME_AI_PROTECTED_TARGETS` into `.env` next to the write switch and the
+write targets (so a later `docker compose up -d` cannot drop the protection),
+keeps both target lists on a re-run unless the variable is passed, and makes
+the `.env` (it holds the ingestion key) mode 600; and on a node that is not a
+swarm manager it leaves the AI agent out and stops (never `rm -f`s) one it
+installed there before.
+
 ### `AgentTroubleshootTokenCheck.test.js`
 
 Runs the ingestion-key check of the Ceph, Proxmox, VMware and Docker Swarm

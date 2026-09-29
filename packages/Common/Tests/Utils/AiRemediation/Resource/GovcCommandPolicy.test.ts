@@ -1,6 +1,8 @@
 import GovcCommandPolicy, {
   GOVC_MAX_RECORD_COUNT,
+  govcInventoryName,
   isCollectableGovcProperty,
+  isProtectedGovcTarget,
 } from "../../../../Utils/AiRemediation/Resource/GovcCommandPolicy";
 import ResourceCommandPolicy from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import {
@@ -41,9 +43,12 @@ import { describe, expect, test } from "@jest/globals";
  * - Read: the modelled read commands with their own flag tables; secrets
  *   stay out of reach (vm.info -e/-json, host.info -json, object.collect
  *   without an allowlisted property, find filters outside the allowlist).
- * - SafeWrite: one named VM powered on or guest-rebooted. RiskyWrite: every
- *   other power operation, several VMs, host.maintenance.exit.
- *   requiresHuman: vm.migrate, host.maintenance.enter.
+ * - SafeWrite: one VM, named by its inventory path, powered on or
+ *   guest-rebooted. RiskyWrite: every other power operation, several VMs,
+ *   a bare VM name (govc acts on every VM with that name),
+ *   host.maintenance.exit. requiresHuman: vm.migrate,
+ *   host.maintenance.enter. The maintenance commands take a bare host
+ *   name only (a path can name a whole cluster).
  * - Denied: every other command, the endpoint/credential/debug/dump flags,
  *   patterns as write targets, look-alike and invisible characters.
  * - Totality, the dispatcher's ladder / allowlist / write scope for
@@ -172,7 +177,7 @@ describe("Read commands", () => {
     ["govc ls -i -l /DC1/host", "ls"],
     ["govc ls -t VirtualMachine /DC1/vm", "ls"],
     ["govc ls -t=HostSystem '/DC1/host/*'", "ls"],
-    ["govc ls -json -dc DC1 vm", "ls"],
+    ["govc ls -dc DC1 vm", "ls"],
     ["govc ls -dc=DC1 host", "ls"],
     ["govc ls '/DC1/vm/My Folder'", "ls"],
     ["govc ls -- /DC1/vm", "ls"],
@@ -295,21 +300,23 @@ describe("Read commands", () => {
   });
 });
 
-describe("SafeWrite: one named VM, a reversible power operation", () => {
+describe("SafeWrite: one VM named by its path, a reversible power operation", () => {
   test.each([
-    ["govc vm.power -on web-01", "web-01"],
-    ["govc vm.power -r web-01", "web-01"],
-    ["govc vm.power --on web-01", "web-01"],
-    ["govc vm.power -on=true web-01", "web-01"],
-    ["govc vm.power --r=true web-01", "web-01"],
+    ["govc vm.power -on /DC1/vm/web-01", "/DC1/vm/web-01"],
+    ["govc vm.power -r /DC1/vm/web-01", "/DC1/vm/web-01"],
+    ["govc vm.power --on /DC1/vm/web-01", "/DC1/vm/web-01"],
+    ["govc vm.power -on=true /DC1/vm/web-01", "/DC1/vm/web-01"],
+    ["govc vm.power --r=true /DC1/vm/web-01", "/DC1/vm/web-01"],
     ["govc vm.power -on /DC1/vm/Prod/web-01", "/DC1/vm/Prod/web-01"],
-    ["govc vm.power -dc DC1 -on web-01", "web-01"],
-    ["govc vm.power -on -- web-01", "web-01"],
-    ["govc vm.power -on 'Windows Server 2019'", "Windows Server 2019"],
-    ["govc vm.power -r -force=false web-01", "web-01"],
-    ["govc vm.power -on -off=false web-01", "web-01"],
-    ["govc vm.power -on VirtualMachine:vm-42", "VirtualMachine:vm-42"],
-    ["govc vm.power -on 'web;01'", "web;01"],
+    ["govc vm.power -dc DC1 -on Prod/web-01", "Prod/web-01"],
+    ["govc vm.power -on -- /DC1/vm/web-01", "/DC1/vm/web-01"],
+    [
+      "govc vm.power -on '/DC1/vm/Windows Server 2019'",
+      "/DC1/vm/Windows Server 2019",
+    ],
+    ["govc vm.power -r -force=false /DC1/vm/web-01", "/DC1/vm/web-01"],
+    ["govc vm.power -on -off=false /DC1/vm/web-01", "/DC1/vm/web-01"],
+    ["govc vm.power -on '/DC1/vm/web;01'", "/DC1/vm/web;01"],
   ])("%s", (command: string, target: string) => {
     const result: ResourceCommandPolicyResult = govc(command);
 
@@ -321,11 +328,51 @@ describe("SafeWrite: one named VM, a reversible power operation", () => {
   });
 
   test("the reasons say what happens", () => {
-    expect(govc("govc vm.power -on web-01").reason).toBe(
-      "powers on one virtual machine (web-01)",
+    expect(govc("govc vm.power -on /DC1/vm/web-01").reason).toBe(
+      "powers on one virtual machine (/DC1/vm/web-01)",
     );
-    expect(govc("govc vm.power -r web-01").reason).toContain(
+    expect(govc("govc vm.power -r /DC1/vm/web-01").reason).toContain(
       "gracefully through VMware Tools",
+    );
+  });
+});
+
+describe("a bare VM name is every VM with that name", () => {
+  /*
+   * govc searches the whole VM folder tree for a bare name and powers on
+   * (or reboots) every VM that has it — web-01 in /DC1/vm/prod and in
+   * /DC1/vm/staging alike — so it is not one VM, and never unattended.
+   */
+  test.each([
+    ["govc vm.power -on web-01", "web-01"],
+    ["govc vm.power -r web-01", "web-01"],
+    ["govc vm.power -dc DC1 -on web-01", "web-01"],
+    ["govc vm.power -on 'Windows Server 2019'", "Windows Server 2019"],
+    ["govc vm.power -on -- web-01", "web-01"],
+  ])("%s is RiskyWrite", (command: string, target: string) => {
+    const result: ResourceCommandPolicyResult = govc(command);
+
+    expect(result.tier).toBe(ResourceCommandTier.RiskyWrite);
+    expect(result.targets).toEqual([target]);
+    expect(result.requiresHuman).toBeUndefined();
+    expect(result.reason).toContain(
+      `every virtual machine named ${target} (in any folder)`,
+    );
+    expect(result.reason).toContain("name the VM by its inventory path");
+  });
+
+  test("Automatic mode asks before it acts on a bare name", () => {
+    expect(autoExecution("govc vm.power -r web-01").verdict).toBe(
+      AiRemediationCommandPolicyVerdict.RequiresApproval,
+    );
+    expect(autoExecution("govc vm.power -r /DC1/vm/prod/web-01").verdict).toBe(
+      AiRemediationCommandPolicyVerdict.AutoApproved,
+    );
+  });
+
+  test("several VMs with a bare name among them say so", () => {
+    expect(govc("govc vm.power -off /DC1/vm/a web-01").reason).toContain(
+      "each bare name covers every VM that has it",
     );
   });
 });
@@ -359,11 +406,6 @@ describe("RiskyWrite", () => {
     [
       "govc host.maintenance.exit esx-01",
       ["esx-01"],
-      "out of maintenance mode",
-    ],
-    [
-      "govc host.maintenance.exit /DC1/host/Cluster1/esx-01",
-      ["/DC1/host/Cluster1/esx-01"],
       "out of maintenance mode",
     ],
     [
@@ -404,11 +446,6 @@ describe("RiskyWrite that always needs a human", () => {
     ],
     ["govc vm.migrate -dc DC1 -host=esx-02 web-01", ["web-01"], "host esx-02"],
     ["govc host.maintenance.enter esx-01", ["esx-01"], "maintenance mode"],
-    [
-      "govc host.maintenance.enter /DC1/host/Cluster1/esx-01",
-      ["/DC1/host/Cluster1/esx-01"],
-      "maintenance mode",
-    ],
   ])("%s", (command: string, targets: Array<string>, mentions: string) => {
     const result: ResourceCommandPolicyResult = govc(command);
 
@@ -631,6 +668,11 @@ describe("Denied flags", () => {
     ["govc vm.info -vm.ipath /DC1/vm/web-01", "as an argument"],
     ["govc vm.info -vm.uuid 4210-aa", "as an argument"],
     ["govc host.info -json esx-01", "EVERY property"],
+    // ls -json loads every property of each VM it lists (extraConfig, vApp properties)
+    ["govc ls -json /DC1/vm", "EVERY property of each object it lists"],
+    ["govc ls -json -dc DC1 vm", "EVERY property of each object it lists"],
+    ["govc ls --json=true /DC1/vm", "EVERY property of each object it lists"],
+    ["govc ls -l -json /DC1/host", "EVERY property of each object it lists"],
     ["govc events -f", "follows the event stream"],
     ["govc tasks -f", "follows task updates"],
     ["govc metric.sample -plot png vm/x cpu.usage.average", "gnuplot"],
@@ -656,6 +698,25 @@ describe("Denied flags", () => {
     "%s: a flag this command has, refused",
     (command: string, mentions: string) => {
       expectDenied(command, mentions);
+    },
+  );
+
+  /*
+   * govc applies host.maintenance.* to every host an argument resolves to,
+   * and an inventory path resolves to a cluster as readily as to a host:
+   * only a bare host name is sure to name hosts and nothing else.
+   */
+  test.each([
+    ["govc host.maintenance.exit /DC1/host/Cluster1"],
+    ["govc host.maintenance.enter /DC1/host/Cluster1"],
+    ["govc host.maintenance.exit /DC1/host/Cluster1/esx-01"],
+    ["govc host.maintenance.enter /DC1/host/Cluster1/esx-01"],
+    ["govc host.maintenance.exit Cluster1/esx-01"],
+    ["govc host.maintenance.exit -dc DC1 host/Cluster1"],
+  ])(
+    "%s: a maintenance command takes a bare host name only",
+    (command: string) => {
+      expectDenied(command, "takes the ESXi host's own name");
     },
   );
 
@@ -691,7 +752,7 @@ describe("Denied flags", () => {
 
   test("the unknown-flag refusal lists what the command takes", () => {
     expect(govc("govc ls -x").reason).toContain(
-      "-json, -dc DATACENTER, -l, -L, -i and -t TYPE",
+      "-dc DATACENTER, -l, -L, -i and -t TYPE",
     );
     expect(govc("govc vm.power -x web").reason).toContain("-on");
   });
@@ -795,7 +856,7 @@ describe("flag syntax as Go's flag package reads it", () => {
 
   test.each([
     ["govc ls -l -l /"],
-    ["govc ls -json -json=false /"],
+    ["govc ls -l -l=false /"],
     ["govc ls -l --l /"],
     ["govc vm.power -on -on web-01"],
     ["govc vm.power -on --on=true web-01"],
@@ -869,7 +930,7 @@ describe("flag syntax as Go's flag package reads it", () => {
   });
 
   test("after -- a name is a name", () => {
-    expect(govc("govc vm.power -on -- web-01").tier).toBe(
+    expect(govc("govc vm.power -on -- /DC1/vm/web-01").tier).toBe(
       ResourceCommandTier.SafeWrite,
     );
     expect(govc("govc vm.info -r -- web-01").tier).toBe(
@@ -943,7 +1004,7 @@ describe("vm.power semantics", () => {
 
   test("an operation turned off with =false does not count", () => {
     const result: ResourceCommandPolicyResult = govc(
-      "govc vm.power -off=false -reset=false -on web-01",
+      "govc vm.power -off=false -reset=false -on /DC1/vm/web-01",
     );
 
     expect(result.tier).toBe(ResourceCommandTier.SafeWrite);
@@ -951,7 +1012,7 @@ describe("vm.power semantics", () => {
   });
 
   test("-force=false is no force", () => {
-    expect(govc("govc vm.power -on -force=false web-01").tier).toBe(
+    expect(govc("govc vm.power -on -force=false /DC1/vm/web-01").tier).toBe(
       ResourceCommandTier.SafeWrite,
     );
   });
@@ -1001,6 +1062,55 @@ describe("write targets name exactly one object each", () => {
     expect(
       govc("govc host.maintenance.exit esx-01.example.com").targets,
     ).toEqual(["esx-01.example.com"]);
+  });
+
+  /*
+   * govc resolves a slash-free word that reads as a managed object
+   * reference to that object before it looks for a name, so the protected
+   * targets (names) could never see which VM or host such a write changes.
+   */
+  test.each([
+    "govc vm.power -r vm-42",
+    "govc vm.power -on vm-1001",
+    "govc vm.power -off VirtualMachine:vm-42",
+    "govc vm.power -reset virtualmachine:vm-42",
+    "govc vm.power -s web-01 vm-42",
+    "govc host.maintenance.exit host-12",
+    "govc host.maintenance.enter HostSystem:host-12",
+    "govc host.maintenance.exit HostSystem:ha-host",
+    "govc vm.migrate -host host-12 web-01",
+    "govc vm.migrate -pool resgroup-v10 web-01",
+    "govc vm.migrate -ds datastore-15 web-01",
+    "govc vm.migrate -host esx-02 VirtualMachine:vm-7",
+    "govc vm.power -dc datacenter-3 -on web-01",
+    "govc vm.power -on domain-c7",
+    "govc vm.power -on group-v3",
+  ])(
+    "a managed object reference is never a write's object: %s",
+    (command: string) => {
+      expectDenied(command, "is a managed object reference");
+    },
+  );
+
+  test.each([
+    ["govc vm.power -r /DC1/vm/vm-42", "/DC1/vm/vm-42"],
+    ["govc vm.power -on vm-web-01", "vm-web-01"],
+    ["govc vm.power -on host-esx-mgmt", "host-esx-mgmt"],
+    ["govc vm.power -on vm42", "vm42"],
+    ["govc host.maintenance.exit esx-12.example.com", "esx-12.example.com"],
+  ])(
+    "a name or a path is still one object: %s",
+    (command: string, target: string) => {
+      expect(govc(command).targets).toEqual([target]);
+    },
+  );
+
+  test("reads may still name managed object references", () => {
+    expect(govc("govc vm.info vm-42").tier).toBe(ResourceCommandTier.Read);
+    expect(
+      govc("govc object.collect -s VirtualMachine:vm-42 runtime.powerState")
+        .tier,
+    ).toBe(ResourceCommandTier.Read);
   });
 
   test("reads may still use patterns", () => {
@@ -1189,7 +1299,7 @@ describe("characters that could fool a reader", () => {
   });
 
   test("ordinary non-ASCII names are fine", () => {
-    expect(govc("govc vm.power -on 'B\u00fcro-Server'").tier).toBe(
+    expect(govc("govc vm.power -on '/DC1/vm/B\u00fcro-Server'").tier).toBe(
       ResourceCommandTier.SafeWrite,
     );
     expect(govc("govc vm.info '\u30b5\u30fc\u30d0\u30fc'").tier).toBe(
@@ -1221,12 +1331,12 @@ describe("shell syntax, quoting and size", () => {
 
   test("a quoted metacharacter is part of the name", () => {
     const result: ResourceCommandPolicyResult = govc(
-      "govc vm.power -on 'web|01'",
+      "govc vm.power -on '/DC1/vm/web|01'",
     );
 
     expect(result.tier).toBe(ResourceCommandTier.SafeWrite);
-    expect(result.targets).toEqual(["web|01"]);
-    expect(result.displayCommand).toBe("govc vm.power -on 'web|01'");
+    expect(result.targets).toEqual(["/DC1/vm/web|01"]);
+    expect(result.displayCommand).toBe("govc vm.power -on '/DC1/vm/web|01'");
   });
 
   test("double and single quotes read the same", () => {
@@ -1439,6 +1549,9 @@ describe("totality", () => {
       "web-02",
       "web-*",
       "/DC1/vm/web-01",
+      "/DC1/vm/db-01",
+      "vm/web-02",
+      "/DC2/vm/app",
       ".",
       "runtime.powerState",
       "config.extraConfig",
@@ -1583,7 +1696,7 @@ describe("the dispatcher's ladder for a VMware vCenter", () => {
 
   test("a SafeWrite runs unattended", () => {
     for (const command of [
-      "govc vm.power -on web-01",
+      "govc vm.power -on /DC1/vm/web-01",
       "govc vm.power -r /DC1/vm/web-01",
     ]) {
       const verdict: ResourceAutoExecutionVerdict = autoExecution(command);
@@ -1843,6 +1956,77 @@ describe("the agent's write scope for a VMware vCenter", () => {
 
   test("a Denied command is refused here too", () => {
     expect(refusal("govc vm.destroy web-01")).toContain("denied");
+  });
+
+  /*
+   * OneUptime refuses what the agent refuses: a protected name covers every
+   * inventory path that ends in it, as the agent reads it (vCenter reaches
+   * one VM by many paths).
+   */
+  test("a protected name covers every inventory path that ends in it", () => {
+    for (const [command, protectedTarget] of [
+      ["govc vm.power -off /DC/vm/infra/vcsa", "vcsa"],
+      ["govc vm.power -off /DC/host/cluster-1/Resources/VCSA", "vcsa"],
+      ["govc vm.power -r /DC/vm/critical-db", "critical-*"],
+      ["govc host.maintenance.exit ESX-01", "esx-*"],
+      ["govc vm.power -off vcsa", "/DC/vm/infra/vcsa"],
+    ] as Array<[string, string]>) {
+      const message: string | null = refusal(command, {
+        protectedTargets: [protectedTarget],
+      });
+
+      expect(message).toContain("protects");
+      expect(message).toContain(protectedTarget);
+    }
+
+    expect(
+      refusal("govc vm.power -off /DC/vm/infra/vcsa-old", {
+        protectedTargets: ["vcsa"],
+      }),
+    ).toBeNull();
+  });
+
+  test("the name comparison is govc's alone: other resource types compare whole words", () => {
+    const docker: ResourceCommandPolicyResult =
+      ResourceCommandPolicy.evaluateCommand({
+        resourceType: AiResourceType.DockerHost,
+        command: "docker restart vcsa",
+      });
+
+    expect(
+      ResourceCommandPolicy.getWriteScopeRefusal({
+        result: { ...docker, targets: ["/DC/vm/infra/vcsa"] },
+        allowWrites: true,
+        writeTargets: [],
+        protectedTargets: ["vcsa"],
+        resourceType: AiResourceType.DockerHost,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("isProtectedGovcTarget", () => {
+  test.each([
+    ["vcsa", "vcsa", true],
+    ["/DC/vm/infra/vcsa", "vcsa", true],
+    ["VCSA", "vcsa", true],
+    ["/DC/vm/db-01", "db-*", true],
+    ["web-01", "/DC/vm/web/web-01", true],
+    ["web-01", "/DC/vm/infra/*", true],
+    ["web-01", "vcsa", false],
+    ["/DC/vm/vcsa/web-01", "vcsa", false],
+    ["", "vcsa", false],
+    ["vcsa", "", false],
+    ["/", "*", false],
+  ])("%s against %s", (target: string, entry: string, expected: boolean) => {
+    expect(isProtectedGovcTarget(target, entry)).toBe(expected);
+  });
+
+  test("the inventory name is the last path segment", () => {
+    expect(govcInventoryName("/DC/vm/infra/vcsa")).toBe("vcsa");
+    expect(govcInventoryName("vcsa")).toBe("vcsa");
+    expect(govcInventoryName(" /DC/vm/web/ ")).toBe("web");
+    expect(govcInventoryName("/")).toBe("");
   });
 });
 

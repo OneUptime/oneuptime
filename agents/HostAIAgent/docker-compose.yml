@@ -26,7 +26,9 @@ services:
     user: "0:0"
     # The host's network, like the collector's (its commands enter the
     # host's network namespace either way). The health server listens on
-    # the host's port 3877 (PORT to change it).
+    # the host's 127.0.0.1:3877 only (PORT in .env to change the port; the
+    # healthcheck below follows it; ONEUPTIME_AI_AGENT_HEALTH_HOST=0.0.0.0
+    # would serve /status on every interface of the host).
     network_mode: host
     read_only: true
     tmpfs:
@@ -48,11 +50,17 @@ services:
       - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
       # Comma-separated unit-name globs OneUptime AI must never change.
       - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides HOST_NAME as the name the agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The health server's port on the host's network.
+      - PORT=${PORT:-3877}
+      # debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       # With pid: host, tini is not pid 1: register it as a subreaper so it
       # still reaps what the agent's commands leave behind.
       - TINI_SUBREAPER=1
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3877/status/live"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${PORT:-3877}/status/live"]
       interval: 30s
       timeout: 5s
       retries: 3

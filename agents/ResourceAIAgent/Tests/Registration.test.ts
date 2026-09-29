@@ -25,6 +25,7 @@ import {
   API_MISSING_RETRY_MS,
   AgentIdentity,
   AgentSession,
+  DUPLICATE_AGENT_AFTER_MS,
   OPERATOR_ACTION_RETRY_MS,
   REREGISTER_AFTER_REJECTIONS,
   RegistrationAttempt,
@@ -157,6 +158,48 @@ describe("the retry schedule", () => {
       }).message,
       /this resource's previous AI agent/,
     );
+  });
+
+  test("previous_instance_online that outlasts twice the alive window is a duplicate agent: an error, every 5 minutes", () => {
+    const refusal: IngestResponse = response({
+      kind: "auth",
+      status: 403,
+      body: { reason: "previous_instance_online" },
+      message: "This Docker host's AI agent is still online.",
+      retryAfterSeconds: 20,
+    });
+    const context: RegistrationContext = {
+      resourceType: AiResourceType.DockerHost,
+      identitySource: "DOCKER_HOST_NAME",
+      resourceIdentifier: "docker-host",
+    };
+
+    assert.strictEqual(DUPLICATE_AGENT_AFTER_MS, 10 * 60_000);
+
+    const stillWaiting: RegistrationRetryPlan = planRegistrationRetry({
+      response: refusal,
+      consecutiveFailures: 29,
+      context,
+      waitingForMs: DUPLICATE_AGENT_AFTER_MS - 1,
+    });
+    assert.strictEqual(stillWaiting.category, "waiting");
+    assert.strictEqual(stillWaiting.delayMs, 20_000);
+
+    const duplicate: RegistrationRetryPlan = planRegistrationRetry({
+      response: refusal,
+      consecutiveFailures: 30,
+      context,
+      waitingForMs: DUPLICATE_AGENT_AFTER_MS,
+    });
+    assert.strictEqual(duplicate.category, "refused");
+    assert.strictEqual(duplicate.delayMs, OPERATOR_ACTION_RETRY_MS);
+    assert.strictEqual(duplicate.reason, "previous_instance_online");
+    assert.strictEqual(duplicate.detail, refusal.message);
+    assert.match(
+      duplicate.message,
+      /^Another AI agent has been online as this Docker host \("docker-host"\) for over 10 minutes/,
+    );
+    assert.match(duplicate.message, /its own DOCKER_HOST_NAME/);
   });
 
   test("legacy_runner_online is not a resource agent refusal: it waits for an operator", () => {
@@ -539,6 +582,87 @@ describe("the session", () => {
       1,
     );
     assert.deepStrictEqual(logs.messages("error"), []);
+  });
+
+  test("a previous agent that stays online past twice the alive window is a duplicate: one error, then every 5 minutes; a 429 does not restart the count", async () => {
+    const waiting: FakeReply = {
+      status: 403,
+      json: {
+        message: "This Docker host's AI agent is still online.",
+        reason: "previous_instance_online",
+        retryAfterSeconds: 20,
+      },
+      headers: { "Retry-After": "20" },
+    };
+    const rateLimited: FakeReply = {
+      status: 429,
+      json: { message: "slow down" },
+      headers: { "Retry-After": "20" },
+    };
+    // A virtual clock: the time the agent has slept so far.
+    let clockMs: number = 0;
+    const sleep: SleepFunction = (
+      ms: number,
+      signal?: AbortSignal,
+    ): Promise<void> => {
+      clockMs += ms;
+      return sleeper.sleep(ms, signal);
+    };
+    const agentSession: AgentSession = new AgentSession({
+      client: new IngestClient({
+        oneuptimeUrl: server.url,
+        apiKey: "ingestion-key-1",
+      }),
+      config: testConfig(server.url),
+      status,
+      getPosture: (): Promise<AgentPosture> => {
+        return Promise.resolve(POSTURE);
+      },
+      sleep,
+      now: (): number => {
+        return clockMs;
+      },
+    });
+
+    // 10 refusals, a 429, 19 refusals, then the registration gets in.
+    server.script(
+      "/register",
+      ...Array.from({ length: 10 }, (): FakeReply => {
+        return waiting;
+      }),
+      rateLimited,
+      ...Array.from({ length: 19 }, (): FakeReply => {
+        return waiting;
+      }),
+    );
+
+    const identity: AgentIdentity | null =
+      await agentSession.ensureRegistered();
+
+    assert.ok(identity);
+    /*
+     * Refused at 0..180s; the 429 at 200s waits the transient backoff
+     * (60s); refused at 260..580s; at 600s the run has lasted 10 minutes
+     * (counted from 0s, not from the 429): 5 minutes from then on.
+     */
+    assert.deepStrictEqual(sleeper.delays, [
+      ...Array.from({ length: 10 }, (): number => {
+        return 20_000;
+      }),
+      60_000,
+      ...Array.from({ length: 17 }, (): number => {
+        return 20_000;
+      }),
+      OPERATOR_ACTION_RETRY_MS,
+      OPERATOR_ACTION_RETRY_MS,
+    ]);
+
+    const errors: Array<string> = logs.messages("error");
+    assert.strictEqual(errors.length, 1);
+    assert.match(
+      errors[0]!,
+      /^Another AI agent has been online as this Docker host \("web-host-1"\) for over 10 minutes/,
+    );
   });
 
   test("single flight: concurrent callers share one registration", async () => {

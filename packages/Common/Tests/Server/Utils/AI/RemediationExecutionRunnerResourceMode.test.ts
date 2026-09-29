@@ -443,6 +443,66 @@ describe("RemediationExecutionRunner.resolveResourceMode", () => {
     expect(countBy).not.toHaveBeenCalled();
   });
 
+  /*
+   * Automatic runs only a signal's FIRST round unattended. A follow-up
+   * round started FullAuto under Bypass approval must ask once the
+   * resource is on Automatic — the round is read off the round's
+   * server-written name.
+   */
+  it("downgrades a FullAuto follow-up round when the operator moved the resource from Bypass approval to Automatic", async () => {
+    const followUp: AutoRemediationSuggestion = {
+      ...suggestion(AutoRemediationExecutionMode.FullAuto),
+      ruleNameSnapshot: 'AI remediation for Docker host "web-1" (round 2)',
+    } as unknown as AutoRemediationSuggestion;
+
+    const resolution: ResourceModeResolution =
+      await RemediationExecutionRunner.resolveResourceMode({
+        suggestion: followUp,
+        resource: resource({
+          aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        }),
+      });
+
+    expect(resolution.mode).toBe("Suggest");
+    expect(resolution.downgradedByModeChange).toBe(true);
+    expect(countBy).not.toHaveBeenCalled();
+  });
+
+  it("negative control: a FullAuto follow-up round still on Bypass approval runs FullAuto", async () => {
+    const followUp: AutoRemediationSuggestion = {
+      ...suggestion(AutoRemediationExecutionMode.FullAuto),
+      ruleNameSnapshot: 'AI remediation for Docker host "web-1" (round 2)',
+    } as unknown as AutoRemediationSuggestion;
+
+    const resolution: ResourceModeResolution =
+      await RemediationExecutionRunner.resolveResourceMode({
+        suggestion: followUp,
+        resource: resource({
+          aiRemediationMode: ResourceAiRemediationMode.BypassApproval,
+        }),
+      });
+
+    expect(resolution.mode).toBe("FullAuto");
+    expect(resolution.downgradedByModeChange).toBe(false);
+  });
+
+  it("negative control: a resource NAMED like a follow-up is still round 1, and Automatic runs it FullAuto", async () => {
+    const roundOne: AutoRemediationSuggestion = {
+      ...suggestion(AutoRemediationExecutionMode.FullAuto),
+      ruleNameSnapshot: 'AI remediation for Docker host "web (round 2)"',
+    } as unknown as AutoRemediationSuggestion;
+
+    const resolution: ResourceModeResolution =
+      await RemediationExecutionRunner.resolveResourceMode({
+        suggestion: roundOne,
+        resource: resource({
+          aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        }),
+      });
+
+    expect(resolution.mode).toBe("FullAuto");
+  });
+
   it("downgrades when the hourly breaker tripped, even under Bypass approval", async () => {
     countBy.mockResolvedValue(
       new PositiveNumber(MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR),
@@ -877,6 +937,38 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
     expect(markdown).toContain(
       'The AI remediation mode of Docker host "web-1" was changed to "Ask for approval"',
     );
+  });
+
+  it("a follow-up round moved from Bypass approval to Automatic is downgraded, and the feed says Automatic asks for follow-ups", async () => {
+    mockSuggestionHonouringSelect(
+      resourceRow({
+        ruleNameSnapshot: 'AI remediation for Docker host "web-1" (round 2)',
+      }),
+    );
+    statusForResource.mockResolvedValue(
+      resource({ aiRemediationMode: ResourceAiRemediationMode.Automatic }),
+    );
+    captureRequest();
+
+    await run();
+
+    // The row stops claiming an unattended round.
+    expect(suggestionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.Suggest,
+          autoResolveOnRecovery: false,
+        }),
+      }),
+    );
+
+    const markdown: string = (
+      incidentFeed.mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+    expect(markdown).toContain(
+      'The AI remediation mode of Docker host "web-1" was changed to "Automatic" after this follow-up round was announced as unattended',
+    );
+    expect(markdown).toContain("asks for approval of every follow-up round");
   });
 
   it("settles AutoExecuted with verification once the round ran a change", async () => {

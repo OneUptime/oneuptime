@@ -148,6 +148,19 @@ export const MAX_RESOURCE_AI_AGENTS_PER_PROJECT: number = 250;
 export const MAX_NEW_RESOURCE_AI_AGENTS_PER_PROJECT_PER_HOUR: number = 30;
 
 /*
+ * An agent row not heard from in this long is removed when the project's
+ * cap would otherwise refuse a new agent. Unlike a Kubernetes cluster, a
+ * Docker, Podman or Linux host runs one agent per machine, and machines
+ * come and go (an autoscaled fleet names every instance anew) while their
+ * resources, and so their agent rows, stay: without this, 250 machines
+ * that ever registered would lock every later one out for good. The rows
+ * still never pass the cap, and a row holds only the agent's connection
+ * (the resource keeps its AI settings); an agent that comes back simply
+ * registers again.
+ */
+export const RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS: number = 7;
+
+/*
  * When a transient refusal (previous_instance_online) tells the agent to
  * try again. It clears within seconds when a container is replaced, and an
  * agent that is refused for longer just keeps asking at this pace.
@@ -288,12 +301,15 @@ export interface ResourceAiAgentResourceBinding {
   /*
    * The row the collector's identity (a host identifier or a name) names,
    * created when OneUptime has not seen it yet. Null for DatabaseServer,
-   * which is resolved by id or endpoint instead.
+   * which is resolved by id or endpoint instead. `fresh` skips any
+   * in-process memo of the answer (HostService keeps one), for a caller
+   * that found the memoed row deleted.
    */
   findOrCreateByIdentity:
     | ((data: {
         projectId: ObjectID;
         identifier: string;
+        fresh?: boolean | undefined;
       }) => Promise<DatabaseBaseModel>)
     | null;
   // Never throws: every resource feed service swallows its own errors.
@@ -530,10 +546,12 @@ export function getResourceAiAgentResourceBinding(
         findOrCreateByIdentity: async (data: {
           projectId: ObjectID;
           identifier: string;
+          fresh?: boolean | undefined;
         }): Promise<DatabaseBaseModel> => {
           return await HostService.findOrCreateByHostIdentifier({
             projectId: data.projectId,
             hostIdentifier: data.identifier,
+            ...(data.fresh ? { bypassMemo: true } : {}),
           });
         },
         writeFeedItem: async (item: ResourceAiAgentFeedItem): Promise<void> => {
@@ -1357,35 +1375,59 @@ export class Service extends DatabaseService<Model> {
     posture: ResourceAiAgentPosture;
   }): Promise<ResourceAiAgentResource> {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
-    let resourceId: ObjectID;
 
     if (data.resourceType === AiResourceType.DatabaseServer) {
-      resourceId = await this.resolveDatabaseServerId(data);
-    } else {
-      const binding: ResourceAiAgentResourceBinding =
-        Service.getResourceBinding(data.resourceType);
+      const databaseServerId: ObjectID =
+        await this.resolveDatabaseServerId(data);
 
-      const found: DatabaseBaseModel | null = binding.findOrCreateByIdentity
-        ? await binding.findOrCreateByIdentity({
-            projectId: data.projectId,
-            identifier: data.identifier,
-          })
-        : null;
+      const databaseServer: ResourceAiAgentResource | null =
+        await this.findResource({
+          projectId: data.projectId,
+          resourceType: data.resourceType,
+          resourceId: databaseServerId,
+        });
 
-      if (!found || !found.id) {
+      if (!databaseServer) {
         throw new BadDataException(
           `The ${info.displayName} could not be resolved.`,
         );
       }
 
-      resourceId = found.id;
+      return databaseServer;
     }
 
-    const resource: ResourceAiAgentResource | null = await this.findResource({
+    const resourceId: ObjectID = await this.findOrCreateResourceId({
+      ...data,
+      fresh: false,
+    });
+
+    let resource: ResourceAiAgentResource | null = await this.findResource({
       projectId: data.projectId,
       resourceType: data.resourceType,
       resourceId,
     });
+
+    /*
+     * The id can come from an in-process memo (HostService keeps a host's
+     * id for a minute, and a delete does not clear it) and name a resource
+     * deleted since: an operator deleted it while its agent ran, and the
+     * agent registers again within seconds. Resolve it once more past the
+     * memo, which creates the resource anew, as a first registration does.
+     */
+    if (!resource) {
+      const freshId: ObjectID = await this.findOrCreateResourceId({
+        ...data,
+        fresh: true,
+      });
+
+      if (freshId.toString() !== resourceId.toString()) {
+        resource = await this.findResource({
+          projectId: data.projectId,
+          resourceType: data.resourceType,
+          resourceId: freshId,
+        });
+      }
+    }
 
     if (!resource) {
       throw new BadDataException(
@@ -1394,6 +1436,36 @@ export class Service extends DatabaseService<Model> {
     }
 
     return resource;
+  }
+
+  // The id of the row a named type's identity finds or creates.
+  private async findOrCreateResourceId(data: {
+    projectId: ObjectID;
+    resourceType: AiResourceType;
+    identifier: string;
+    fresh: boolean;
+  }): Promise<ObjectID> {
+    const binding: ResourceAiAgentResourceBinding = Service.getResourceBinding(
+      data.resourceType,
+    );
+
+    const found: DatabaseBaseModel | null = binding.findOrCreateByIdentity
+      ? await binding.findOrCreateByIdentity({
+          projectId: data.projectId,
+          identifier: data.identifier,
+          ...(data.fresh ? { fresh: true } : {}),
+        })
+      : null;
+
+    if (!found || !found.id) {
+      throw new BadDataException(
+        `The ${
+          AI_RESOURCE_TYPE_INFO[data.resourceType].displayName
+        } could not be resolved.`,
+      );
+    }
+
+    return found.id;
   }
 
   /*
@@ -1489,6 +1561,13 @@ export class Service extends DatabaseService<Model> {
         discoverySource: DatabaseServerDiscoverySource.Collector,
         displayName: resolved.displayName || undefined,
         allowCreate: resolved.allowCreate,
+        /*
+         * An agent registering (every restart, and every refused retry of
+         * a duplicate) is no sign the database is in use: it must not
+         * restore a database discovery archived for going quiet, nor move
+         * its endpoint's last match or weigh its engine.
+         */
+        isSighting: false,
       });
 
     if (!row || !row.id) {
@@ -1661,7 +1740,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Bounds what an ingestion key can create (see the caps above). One
    * table serves every resource type, so the caps count every type's
-   * agents together.
+   * agents together. At the cap, agents not heard from in
+   * RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS make room first.
    */
   private async assertAgentMayBeCreated(data: {
     projectId: ObjectID;
@@ -1671,12 +1751,14 @@ export class Service extends DatabaseService<Model> {
     const displayName: string =
       AI_RESOURCE_TYPE_INFO[data.resourceType].displayName;
 
-    const total: number = (
-      await this.countBy({
-        query: { projectId: data.projectId },
-        props: { isRoot: true },
-      })
-    ).toNumber();
+    let total: number = await this.countAgentsInProject(data.projectId);
+
+    if (
+      total >= MAX_RESOURCE_AI_AGENTS_PER_PROJECT &&
+      (await this.reclaimLongOfflineAgents(data.projectId)) > 0
+    ) {
+      total = await this.countAgentsInProject(data.projectId);
+    }
 
     if (total >= MAX_RESOURCE_AI_AGENTS_PER_PROJECT) {
       logger.warn(
@@ -1685,7 +1767,7 @@ export class Service extends DatabaseService<Model> {
 
       throw new ResourceAiAgentRegistrationRefusedException({
         reason: "agent_cap_reached",
-        message: `This project already has ${total} resource AI agents, which is its limit (${MAX_RESOURCE_AI_AGENTS_PER_PROJECT}). Delete the resources you no longer use in OneUptime; the agent then connects on its next retry.`,
+        message: `This project already has ${total} resource AI agents, which is its limit (${MAX_RESOURCE_AI_AGENTS_PER_PROJECT}). An agent not heard from in ${RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS} days makes room for a new one; to make room now, delete the resources you no longer use in OneUptime. The agent connects on its next retry.`,
       });
     }
 
@@ -1708,6 +1790,49 @@ export class Service extends DatabaseService<Model> {
         reason: "agent_cap_reached",
         message: `${createdInLastHour} resource AI agents connected to this project in the last hour, which is its limit (${MAX_NEW_RESOURCE_AI_AGENTS_PER_PROJECT_PER_HOUR}). The agent connects on a later retry.`,
       });
+    }
+  }
+
+  private async countAgentsInProject(projectId: ObjectID): Promise<number> {
+    return (
+      await this.countBy({
+        query: { projectId },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+  }
+
+  /*
+   * Removes the project's agent rows not heard from in
+   * RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS; how many. Best-effort: a failure
+   * leaves the cap to refuse as before.
+   */
+  private async reclaimLongOfflineAgents(projectId: ObjectID): Promise<number> {
+    try {
+      const reclaimed: number = await this.deleteBy({
+        query: {
+          projectId,
+          lastAliveAt: QueryHelper.lessThanOrNull(
+            OneUptimeDate.getSomeDaysAgo(RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS),
+          ),
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      if (reclaimed > 0) {
+        logger.info(
+          `ResourceAiAgent: removed ${reclaimed} agent(s) of project ${projectId.toString()} not heard from in ${RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS} days, to make room for a new one.`,
+        );
+      }
+
+      return reclaimed;
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not remove the long-offline agents of project ${projectId.toString()}: ${error}`,
+      );
+      return 0;
     }
   }
 

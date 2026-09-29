@@ -342,6 +342,15 @@ export interface FindOrCreateDatabaseServerByEndpointData {
    * its Created feed item says whether the Database Agent found it.
    */
   collector?: DatabaseServerCollectorReport | undefined;
+  /*
+   * False when the caller only looks the row up and saw no traffic or
+   * telemetry: a resource AI agent registering names its database's
+   * endpoint without being evidence the database is in use. The owner is
+   * then returned as it is: its endpoint's lastMatchedAt does not move, its
+   * engine is not weighed, and a row discovery archived stays archived.
+   * Defaults to true.
+   */
+  isSighting?: boolean | undefined;
 }
 
 export interface DatabaseServerCollectorReport {
@@ -495,6 +504,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * A create is held to the same AI access rules as an update, judged
+     * against the never-configured defaults a new database starts from: an
+     * unusable mode or allowlist is refused for every caller, root included,
+     * and the server-only aiAccess* columns for every caller but root (a
+     * master admin included, whom the create column ACLs never check). It
+     * looks nothing up, so it may run before the permission check.
+     */
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.DatabaseServer,
+      createBy,
+    });
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }
@@ -825,6 +847,10 @@ export class Service extends DatabaseService<Model> {
 
       if (ownerRow && this.isRetiredFor(ownerRow, data.discoverySource)) {
         return null;
+      }
+
+      if (data.isSighting === false) {
+        return ownerRow;
       }
 
       await DatabaseServerEndpointService.markEndpointMatched(owner);

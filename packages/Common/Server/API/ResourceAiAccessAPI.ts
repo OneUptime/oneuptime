@@ -54,17 +54,9 @@ import AIRun from "../../Models/DatabaseModels/AIRun";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import CephCluster from "../../Models/DatabaseModels/CephCluster";
-import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
-import DockerHost from "../../Models/DatabaseModels/DockerHost";
-import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
-import Host from "../../Models/DatabaseModels/Host";
 import Incident from "../../Models/DatabaseModels/Incident";
-import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
-import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
-import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import AIRunService from "../Services/AIRunService";
@@ -85,10 +77,7 @@ import RunnerJobService from "../Services/RunnerJobService";
 import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
-import {
-  holdsAnyPermission,
-  holdsAnyUnblockedPermission,
-} from "../Utils/Runbook/RunbookExecutePermission";
+import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
   ResourceCommandJobOutcome,
@@ -123,7 +112,8 @@ const router: ExpressRouter = Express.getRouter();
  *     (AI_RESOURCE_TYPE_INFO[type].testCommands) through the resource's AI
  *     agent and returns their output, so an operator can see the access
  *     work before an incident does. Read-only, but it spends the agent's
- *     time, so it requires edit access to the resource and has its own
+ *     time, so it requires edit access to THIS resource (decided for the
+ *     row, labels included, as a CRUD update of it would be) and has its own
  *     limits instead of spending the project's investigation budget: one
  *     test at a time per resource (an atomic reservation), a few per minute
  *     and a cumulative ceiling per hour per resource, and a few per minute
@@ -137,18 +127,19 @@ const router: ExpressRouter = Express.getRouter();
  *
  *   POST /resource-ai-access/insights     { resourceType, resourceId }
  *     What AI investigated and changed on the resource, as summaries. Same
- *     read gate as the status.
+ *     read gate as the status; what it says about incidents, alerts, AI runs
+ *     and suggestions follows the caller's own read access to those (see
+ *     getResourceAiInsights).
  */
 
 /*
  * How each resource type is read: its table's service (under the caller's
- * props — that is the access check), its model (whose update ACL gates the
- * access test), and the Incident/Alert relation that links it to a subject.
+ * props — that is the access check) and the Incident/Alert relation that
+ * links it to a subject.
  */
 interface ResourceAiAccessKind {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   service: DatabaseService<any>;
-  modelType: { new (): BaseModel };
   subjectRelation: string;
 }
 
@@ -157,42 +148,34 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
 > = {
   [AiResourceType.DockerHost]: {
     service: DockerHostService,
-    modelType: DockerHost,
     subjectRelation: "dockerHosts",
   },
   [AiResourceType.PodmanHost]: {
     service: PodmanHostService,
-    modelType: PodmanHost,
     subjectRelation: "podmanHosts",
   },
   [AiResourceType.DockerSwarmCluster]: {
     service: DockerSwarmClusterService,
-    modelType: DockerSwarmCluster,
     subjectRelation: "dockerSwarmClusters",
   },
   [AiResourceType.ProxmoxCluster]: {
     service: ProxmoxClusterService,
-    modelType: ProxmoxCluster,
     subjectRelation: "proxmoxClusters",
   },
   [AiResourceType.VMwareVCenter]: {
     service: VMwareVCenterService,
-    modelType: VMwareVCenter,
     subjectRelation: "vmwareVCenters",
   },
   [AiResourceType.CephCluster]: {
     service: CephClusterService,
-    modelType: CephCluster,
     subjectRelation: "cephClusters",
   },
   [AiResourceType.DatabaseServer]: {
     service: DatabaseServerService,
-    modelType: DatabaseServer,
     subjectRelation: "databaseServers",
   },
   [AiResourceType.Host]: {
     service: HostService,
-    modelType: Host,
     subjectRelation: "hosts",
   },
 };
@@ -309,36 +292,38 @@ async function findAccessibleResource(data: {
 }
 
 /*
- * Mirrors the resource model's update ACL; a block row is a denial, not a
- * grant. The access test is read-only, but it spends the agent's time and
- * prints what the agent can see, so it is for the people who may edit the
- * resource — the rule a Kubernetes cluster's access test applies.
+ * The access test is read-only, but it spends the agent's time and prints
+ * what the agent can see, so it is for the people who may EDIT this
+ * resource — decided for this row exactly as a CRUD update of it would be
+ * (ResourceAiAccessService.assertCallerMayChangeResource): the update ACL,
+ * label-scoped allow and block rows against the row's own labels, a
+ * table-wide block row, and the caller's Owned scope. Holding an edit
+ * permission somewhere in the project is not enough: an edit grant limited
+ * to "staging" does not reach the "prod" host, and a block row for "prod"
+ * refuses it. Master admins are not gated.
  */
-function assertCanEditResource(data: {
+async function assertCanEditResource(data: {
   props: DatabaseCommonInteractionProps;
   projectId: ObjectID;
-  resourceType: AiResourceType;
-}): void {
-  if (data.props.isMasterAdmin) {
-    return;
-  }
-
-  const allowed: Array<Permission> = new RESOURCE_AI_ACCESS_KINDS[
-    data.resourceType
-  ].modelType().getUpdatePermissions();
-
-  if (
-    !holdsAnyPermission({
+  resource: AccessibleResource;
+}): Promise<void> {
+  try {
+    await ResourceAiAccessService.assertCallerMayChangeResource({
       props: data.props,
       projectId: data.projectId,
-      allowed,
-    })
-  ) {
-    throw new NotAuthorizedException(
-      `You need permission to edit this ${getResourceSentenceName(
-        data.resourceType,
-      )} to run its AI access test.`,
-    );
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+    });
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      throw new NotAuthorizedException(
+        `You need permission to edit this ${getResourceSentenceName(
+          data.resource.resourceType,
+        )} to run its AI access test.`,
+      );
+    }
+
+    throw error;
   }
 }
 
@@ -849,10 +834,10 @@ router.post(
         tenantId,
       });
 
-      assertCanEditResource({
+      await assertCanEditResource({
         props,
         projectId: tenantId,
-        resourceType: resource.resourceType,
+        resource,
       });
 
       const agentName: string = getResourceAgentName(resource.resourceType);
@@ -1093,10 +1078,13 @@ function newestFirst<T extends { createdAt?: Date | undefined }>(
   });
 }
 
-// The union of several newest-first reads: one row per id, newest first.
+/*
+ * The union of several newest-first reads: one row per id, newest first,
+ * at most `limit` of them (all of them without one).
+ */
 function mergeNewest<T extends BaseRow>(
   groups: Array<Array<T>>,
-  limit: number,
+  limit?: number | undefined,
 ): Array<T> {
   const byId: Map<string, T> = new Map<string, T>();
 
@@ -1138,13 +1126,53 @@ function getUniqueIds(ids: Array<ObjectID | undefined>): Array<ObjectID> {
 }
 
 /*
+ * A read made under the caller's own props, which the permission layer
+ * refuses outright for a role that cannot read the table at all (a
+ * ReadDockerHost-only role reading Incident): that caller gets nothing from
+ * it, the same as a caller whose labels or private-incident membership
+ * leave no row readable.
+ */
+async function readIfPermitted<T>(
+  read: () => Promise<Array<T>>,
+): Promise<Array<T>> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+/*
  * What OneUptime AI investigated and changed on one resource, as summaries
- * (ResourceAiInsights). Read as root: the caller has already been checked
- * for read access to the resource (findAccessibleResource), and the rows it
- * summarises — AI runs, suggestions, agent jobs — have narrower read ACLs
- * of their own, so reading them under the viewer's props would break the
- * page for exactly the people it is for. That is why nothing here returns
- * command output, prompts or command plans.
+ * (ResourceAiInsights). The caller has already been checked for read
+ * access to the resource (findAccessibleResource), which is a wider
+ * audience than the incidents, alerts, AI runs and suggestions summarised
+ * here, so what is said about THOSE follows the caller's own read access to
+ * them:
+ *
+ * - incidents and alerts are read under the caller's props (tenant, labels,
+ *   private incidents), both to find the ones linked to the resource and to
+ *   name a run's subject; an investigation whose incident or alert the
+ *   caller cannot read is left out altogether;
+ * - an investigation's TL;DR is shown with its readable incident or alert —
+ *   the incident's and alert's own AI investigation panel shows the whole
+ *   analysis to anyone who may read the subject — and, for a run with
+ *   neither (an AI insight's triage), only to a caller who may read AIRun;
+ * - a fix's rationale is read under the caller's props, so only a caller who
+ *   may read that AutoRemediationSuggestion (its ACL and its incident's or
+ *   alert's privacy) gets it.
+ *
+ * The rest — which AI runs and suggestions touched the resource, their
+ * status and dates, the command counts — is about the resource itself and
+ * is read as root: AI runs, suggestions and agent jobs have narrower read
+ * ACLs of their own (an investigation run is private to its author), so
+ * reading them under the caller's props would empty the page for exactly
+ * the people it is for. Nothing here returns command output, prompts or
+ * command plans.
  *
  * - investigations: AI investigations that ran a command on this resource
  *   (their RunnerJob rows name it), UNION investigations of incidents and
@@ -1163,8 +1191,10 @@ export async function getResourceAiInsights(data: {
   projectId: ObjectID;
   resourceType: AiResourceType;
   resourceId: ObjectID;
+  // The caller's own (tenant-pinned) props.
+  props: DatabaseCommonInteractionProps;
 }): Promise<ResourceAiInsights> {
-  const { projectId, resourceType, resourceId } = data;
+  const { projectId, resourceType, resourceId, props } = data;
   const limit: number = RESOURCE_AI_INSIGHTS_LIMIT;
   const subjectRelation: string =
     RESOURCE_AI_ACCESS_KINDS[resourceType].subjectRelation;
@@ -1202,35 +1232,41 @@ export async function getResourceAiInsights(data: {
     }
   }
 
+  // Only the incidents and alerts the caller may read (see above).
   const [linkedIncidents, linkedAlerts]: [Array<Incident>, Array<Alert>] =
     await Promise.all([
-      IncidentService.findBy({
-        query: {
-          projectId,
-          [subjectRelation]: QueryHelper.inRelationArray([resourceId]),
-        } as never,
-        select: { _id: true },
-        sort: { createdAt: SortOrder.Descending },
-        limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
-        skip: 0,
-        props: { isRoot: true },
+      readIfPermitted<Incident>(() => {
+        return IncidentService.findBy({
+          query: {
+            projectId,
+            [subjectRelation]: QueryHelper.inRelationArray([resourceId]),
+          } as never,
+          select: { _id: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+          skip: 0,
+          props,
+        });
       }),
-      AlertService.findBy({
-        query: {
-          projectId,
-          [subjectRelation]: QueryHelper.inRelationArray([resourceId]),
-        } as never,
-        select: { _id: true },
-        sort: { createdAt: SortOrder.Descending },
-        limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
-        skip: 0,
-        props: { isRoot: true },
+      readIfPermitted<Alert>(() => {
+        return AlertService.findBy({
+          query: {
+            projectId,
+            [subjectRelation]: QueryHelper.inRelationArray([resourceId]),
+          } as never,
+          select: { _id: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+          skip: 0,
+          props,
+        });
       }),
     ]);
 
   const investigations: Array<ResourceAiInsightInvestigation> =
     await getInsightInvestigations({
       projectId,
+      props,
       runIds: Array.from(runIdsFromJobs.values()),
       incidentIds: getIds(linkedIncidents),
       alertIds: getIds(linkedAlerts),
@@ -1239,6 +1275,7 @@ export async function getResourceAiInsights(data: {
 
   const fixes: Array<ResourceAiInsightFix> = await getInsightFixes({
     projectId,
+    props,
     resourceType,
     resourceId,
     suggestionIds: Array.from(suggestionIdsFromJobs.values()),
@@ -1301,8 +1338,17 @@ const INSIGHT_RUN_SELECT: Record<string, boolean> = {
   triggeredByAlertId: true,
 };
 
+/*
+ * Who may read the TL;DR of a run that has no incident or alert to decide
+ * it: the people who may read that column of AIRun.
+ */
+function getSubjectlessRunTldrReadPermissions(): Array<Permission> {
+  return new AIRun().getColumnAccessControlFor("analysisTldr")?.read || [];
+}
+
 async function getInsightInvestigations(data: {
   projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
   runIds: Array<ObjectID>;
   incidentIds: Array<ObjectID>;
   alertIds: Array<ObjectID>;
@@ -1347,43 +1393,53 @@ async function getInsightInvestigations(data: {
     return [];
   }
 
-  const runs: Array<AIRun> = mergeNewest(await Promise.all(reads), data.limit);
+  // Every candidate, newest first: the limit applies after the subject check.
+  const candidates: Array<AIRun> = mergeNewest(await Promise.all(reads));
 
   const incidentIds: Array<ObjectID> = getUniqueIds(
-    runs.map((run: AIRun): ObjectID | undefined => {
+    candidates.map((run: AIRun): ObjectID | undefined => {
       return run.triggeredByIncidentId;
     }),
   );
   const alertIds: Array<ObjectID> = getUniqueIds(
-    runs.map((run: AIRun): ObjectID | undefined => {
+    candidates.map((run: AIRun): ObjectID | undefined => {
       return run.triggeredByAlertId;
     }),
   );
 
+  /*
+   * The subjects under the CALLER's props: tenant, labels and private
+   * incidents apply exactly as on a CRUD read, and a role that may not read
+   * incidents (or alerts) at all reads none.
+   */
   const [incidents, alerts]: [Array<Incident>, Array<Alert>] =
     await Promise.all([
       incidentIds.length > 0
-        ? IncidentService.findBy({
-            query: {
-              projectId: data.projectId,
-              _id: QueryHelper.any(incidentIds),
-            },
-            select: { _id: true, title: true, incidentNumber: true },
-            limit: incidentIds.length,
-            skip: 0,
-            props: { isRoot: true },
+        ? readIfPermitted<Incident>(() => {
+            return IncidentService.findBy({
+              query: {
+                projectId: data.projectId,
+                _id: QueryHelper.any(incidentIds),
+              },
+              select: { _id: true, title: true, incidentNumber: true },
+              limit: incidentIds.length,
+              skip: 0,
+              props: data.props,
+            });
           })
         : Promise.resolve([]),
       alertIds.length > 0
-        ? AlertService.findBy({
-            query: {
-              projectId: data.projectId,
-              _id: QueryHelper.any(alertIds),
-            },
-            select: { _id: true, title: true },
-            limit: alertIds.length,
-            skip: 0,
-            props: { isRoot: true },
+        ? readIfPermitted<Alert>(() => {
+            return AlertService.findBy({
+              query: {
+                projectId: data.projectId,
+                _id: QueryHelper.any(alertIds),
+              },
+              select: { _id: true, title: true },
+              limit: alertIds.length,
+              skip: 0,
+              props: data.props,
+            });
           })
         : Promise.resolve([]),
     ]);
@@ -1399,6 +1455,33 @@ async function getInsightInvestigations(data: {
     }),
   );
 
+  // A run whose incident or alert the caller cannot read is left out.
+  const runs: Array<AIRun> = candidates
+    .filter((run: AIRun): boolean => {
+      if (
+        run.triggeredByIncidentId &&
+        !incidentsById.has(run.triggeredByIncidentId.toString())
+      ) {
+        return false;
+      }
+
+      if (
+        run.triggeredByAlertId &&
+        !alertsById.has(run.triggeredByAlertId.toString())
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .slice(0, data.limit);
+
+  const mayReadSubjectlessTldr: boolean = holdsAnyUnblockedPermission({
+    props: data.props,
+    projectId: data.projectId,
+    allowed: getSubjectlessRunTldrReadPermissions(),
+  });
+
   return runs.map((run: AIRun): ResourceAiInsightInvestigation => {
     const incident: Incident | undefined = run.triggeredByIncidentId
       ? incidentsById.get(run.triggeredByIncidentId.toString())
@@ -1407,10 +1490,18 @@ async function getInsightInvestigations(data: {
       ? alertsById.get(run.triggeredByAlertId.toString())
       : undefined;
 
+    /*
+     * Every run left here with a subject has a subject the caller may read,
+     * and the subject's own AI panel shows its analysis to them.
+     */
+    const mayReadTldr: boolean =
+      Boolean(run.triggeredByIncidentId || run.triggeredByAlertId) ||
+      mayReadSubjectlessTldr;
+
     return {
       aiRunId: run.id!.toString(),
       status: run.status,
-      analysisTldr: run.analysisTldr || undefined,
+      analysisTldr: mayReadTldr ? run.analysisTldr || undefined : undefined,
       createdAt: toIsoString(run.createdAt),
       completedAt: toIsoString(run.completedAt),
       incident: run.triggeredByIncidentId
@@ -1430,12 +1521,15 @@ async function getInsightInvestigations(data: {
   });
 }
 
+/*
+ * Read as root, so never the rationale: that is read under the caller's
+ * props (getInsightFixes).
+ */
 const INSIGHT_FIX_SELECT: Record<string, boolean> = {
   _id: true,
   status: true,
   executionMode: true,
   suggestionType: true,
-  rationaleMarkdown: true,
   createdAt: true,
   approvedAt: true,
   incidentId: true,
@@ -1444,6 +1538,7 @@ const INSIGHT_FIX_SELECT: Record<string, boolean> = {
 
 async function getInsightFixes(data: {
   projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
   resourceType: AiResourceType;
   resourceId: ObjectID;
   suggestionIds: Array<ObjectID>;
@@ -1475,18 +1570,54 @@ async function getInsightFixes(data: {
     reads.push(readSuggestions({ _id: QueryHelper.any(data.suggestionIds) }));
   }
 
-  return mergeNewest(await Promise.all(reads), data.limit).map(
+  const suggestions: Array<AutoRemediationSuggestion> = mergeNewest(
+    await Promise.all(reads),
+    data.limit,
+  );
+  const ids: Array<ObjectID> = getIds(suggestions);
+
+  /*
+   * The rationale quotes the AI's analysis of the incident or alert, so it
+   * is read under the CALLER's props: the suggestion's read ACL and its
+   * subject's privacy decide it, as on a CRUD read.
+   */
+  const readable: Array<AutoRemediationSuggestion> =
+    ids.length > 0
+      ? await readIfPermitted<AutoRemediationSuggestion>(() => {
+          return AutoRemediationSuggestionService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(ids),
+            } as never,
+            select: { _id: true, rationaleMarkdown: true },
+            limit: ids.length,
+            skip: 0,
+            props: data.props,
+          });
+        })
+      : [];
+
+  const rationaleById: Map<string, string> = new Map<string, string>();
+
+  for (const suggestion of readable) {
+    if (suggestion.id && suggestion.rationaleMarkdown) {
+      rationaleById.set(suggestion.id.toString(), suggestion.rationaleMarkdown);
+    }
+  }
+
+  return suggestions.map(
     (suggestion: AutoRemediationSuggestion): ResourceAiInsightFix => {
+      const rationale: string | undefined = rationaleById.get(
+        suggestion.id!.toString(),
+      );
+
       return {
         id: suggestion.id!.toString(),
         status: suggestion.status,
         executionMode: suggestion.executionMode,
         suggestionType: suggestion.suggestionType,
-        rationale: suggestion.rationaleMarkdown
-          ? suggestion.rationaleMarkdown.slice(
-              0,
-              RESOURCE_AI_INSIGHTS_RATIONALE_MAX_LENGTH,
-            )
+        rationale: rationale
+          ? rationale.slice(0, RESOURCE_AI_INSIGHTS_RATIONALE_MAX_LENGTH)
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
@@ -1519,6 +1650,7 @@ router.post(
         projectId: tenantId,
         resourceType: resource.resourceType,
         resourceId: resource.id,
+        props,
       });
 
       Response.sendJsonObjectResponse(

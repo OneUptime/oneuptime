@@ -16,6 +16,8 @@ import ResourceAiAgent, {
   DISCONNECT_TIMEOUT_MS,
   DOCKER_DEFAULT_STOP_TIMEOUT_MS,
   FORCE_EXIT_AFTER_MS,
+  IDENTITY_RETRY_INITIAL_MS,
+  IDENTITY_RETRY_MAX_MS,
 } from "../Agent";
 import { AgentStatusSnapshot } from "../AgentStatus";
 import {
@@ -505,6 +507,117 @@ UNNAMED_HOST_CASES.forEach(
     });
   },
 );
+
+test("a Host whose executor cannot read its name at boot asks again, backing off, and starts once it can", async () => {
+  const waits: ReturnType<typeof recordingSleep> = recordingSleep();
+  let asked: number = 0;
+  const agent: ResourceAiAgent = createAgent({
+    env: agentEnv({
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "host",
+      DOCKER_HOST_NAME: "",
+    }),
+    sleep: waits.sleep,
+    createExecutor: fakeExecutorFactory({
+      resolvedIdentifier: (): Promise<string | null> => {
+        asked++;
+
+        if (asked === 1) {
+          return Promise.resolve(null);
+        }
+
+        if (asked === 2) {
+          return Promise.reject(new Error("nsenter: timed out"));
+        }
+
+        return Promise.resolve("node-17");
+      },
+    }),
+  });
+
+  await agent.start();
+
+  // The first answer failed: misconfigured, saying it will ask again.
+  const before: AgentStatusSnapshot = await statusOf(agent);
+  assert.strictEqual(before.phase, "misconfigured");
+  assert.match(before.configProblems[0]!, /It asks again/);
+
+  const [registration] = await server.waitFor("/register");
+
+  assert.strictEqual(asked, 3);
+  assert.strictEqual(registration!.body["resourceIdentifier"], "node-17");
+  assert.strictEqual(agent.config.resourceIdentifier, "node-17");
+  assert.deepStrictEqual(waits.delays.slice(0, 2), [
+    IDENTITY_RETRY_INITIAL_MS,
+    IDENTITY_RETRY_INITIAL_MS * 2,
+  ]);
+  const after: AgentStatusSnapshot = await statusOf(agent);
+  assert.notStrictEqual(after.phase, "misconfigured");
+  assert.deepStrictEqual(after.configProblems, []);
+});
+
+test("the waits between asks double up to a ceiling, and shutdown stops the asking", async () => {
+  const waits: ReturnType<typeof recordingSleep> = recordingSleep();
+  let asked: number = 0;
+  const agent: ResourceAiAgent = createAgent({
+    env: agentEnv({
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "host",
+      DOCKER_HOST_NAME: "",
+    }),
+    sleep: waits.sleep,
+    createExecutor: fakeExecutorFactory({
+      resolvedIdentifier: (): Promise<string | null> => {
+        asked++;
+        return Promise.resolve(null);
+      },
+    }),
+  });
+
+  await agent.start();
+  await eventually(
+    (): boolean => {
+      return asked >= 12;
+    },
+    5_000,
+    "twelve asks",
+  );
+
+  assert.strictEqual(waits.delays[0], IDENTITY_RETRY_INITIAL_MS);
+  assert.ok(
+    waits.delays.every((ms: number): boolean => {
+      return ms <= IDENTITY_RETRY_MAX_MS;
+    }),
+  );
+  assert.ok(waits.delays.includes(IDENTITY_RETRY_MAX_MS));
+
+  await agent.shutdown("test");
+  const stoppedAt: number = asked;
+  await realSleep(30);
+
+  assert.strictEqual(asked, stoppedAt);
+  assert.strictEqual(server.requests.length, 0);
+});
+
+test("a name that is too long is not asked for again: it will not change", async () => {
+  let asked: number = 0;
+  const agent: ResourceAiAgent = createAgent({
+    env: agentEnv({
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "host",
+      DOCKER_HOST_NAME: "",
+    }),
+    createExecutor: fakeExecutorFactory({
+      resolvedIdentifier: (): Promise<string | null> => {
+        asked++;
+        return Promise.resolve("h".repeat(300));
+      },
+    }),
+  });
+
+  await agent.start();
+  await realSleep(30);
+
+  assert.strictEqual(asked, 1);
+  assert.strictEqual((await statusOf(agent)).phase, "misconfigured");
+});
 
 test("a Host without HOST_NAME and an executor that cannot name it stays misconfigured", async () => {
   const agent: ResourceAiAgent = createAgent({

@@ -105,13 +105,16 @@ const READS: Array<[string, string]> = [
   ["docker logs --tail 0 web", "logs"],
   ["docker logs --since 30m web", "logs"],
   ["docker logs --since 1h30m --until 5m web", "logs"],
+  ["docker logs --since 24h web", "logs"],
+  ["docker logs --since 23h59m web", "logs"],
   [
-    "docker logs --since 2026-09-29T10:00:00Z --until 2026-09-29T11:00:00+02:00 web",
+    "docker logs --tail 500 --since 2026-09-29T10:00:00Z --until 2026-09-29T11:00:00+02:00 web",
     "logs",
   ],
-  ["docker logs --since 2026-09-29 web", "logs"],
-  ["docker logs --since 1758000000 web", "logs"],
-  ["docker logs --since 1758000000.5 web", "logs"],
+  ["docker logs --tail 500 --since 2026-09-29 web", "logs"],
+  ["docker logs --tail 500 --since 1758000000 web", "logs"],
+  ["docker logs --tail 500 --since 1758000000.5 web", "logs"],
+  ["docker logs --tail 100 --since 100000h web", "logs"],
   ["docker logs -t --details --tail 50 web", "logs"],
   ["docker logs -tn 50 web", "logs"],
   ["docker logs -tn50 web", "logs"],
@@ -140,7 +143,9 @@ const READS: Array<[string, string]> = [
   ["docker version -f json", "version"],
   ["docker system df", "system df"],
   ["docker system df -v", "system df"],
+  ["docker system df -v --format table", "system df"],
   ["docker system df --format json", "system df"],
+  ["docker system df -v=false --format json", "system df"],
   ["docker images", "images"],
   ["docker images -a", "images"],
   ["docker images nginx", "images"],
@@ -214,7 +219,11 @@ const RISKY_WRITES: Array<[string, string, Array<string>]> = [
   ["docker update --pids-limit 200 web", "update", ["web"]],
   ["docker update --pids-limit -1 web", "update", ["web"]],
   ["docker update web --cpus 2", "update", ["web"]],
-  ["docker container update --cpus 2 web api", "container update", ["web", "api"]],
+  [
+    "docker container update --cpus 2 web api",
+    "container update",
+    ["web", "api"],
+  ],
 ];
 
 // [command, a phrase the reason must contain]
@@ -380,6 +389,13 @@ const DENIED: Array<[string, string]> = [
   ["docker logs --since -10m web", "--since takes a duration"],
   ["docker logs --tail 10 --until soon web", "--until takes a duration"],
   ["docker logs --until 5m web", "needs --tail N"],
+  // --since alone must bound the slice: a duration of at most 24h
+  ["docker logs --since 2001-01-01 web", "is an absolute time"],
+  ["docker logs --since 2026-09-29T10:00:00Z web", "is an absolute time"],
+  ["docker logs --since 1758000000 web", "is an absolute time"],
+  ["docker logs --since 100000h web", "further back than 24h"],
+  ["docker logs --since 24h1s web", "further back than 24h"],
+  ["docker logs --since 1441m web", "further back than 24h"],
   ["docker logs --tail 10 web api", "exactly one container"],
   ["docker logs --tail 10", "exactly one container"],
   ["docker logs --tail 10 --tail 20 web", "more than once"],
@@ -403,14 +419,42 @@ const DENIED: Array<[string, string]> = [
   ["docker events --since 10m", "needs both --since and --until"],
   ["docker events --until 0s", "needs both --since and --until"],
   ["docker events --since 10m --until 0s web", "takes no names"],
-  ["docker events --since 10m --until 0s --format '{{json .}}'", "Go templates"],
+  [
+    "docker events --since 10m --until 0s --format '{{json .}}'",
+    "Go templates",
+  ],
   ["docker events --since=0 --until 0s", "take a duration"],
   ["docker events --since 10m --until never", "take a duration"],
+  // an absolute --until can lie in the future: docker events would stream
+  [
+    "docker events --since 30m --until 2099-12-31",
+    "--until must be a duration",
+  ],
+  [
+    "docker events --since 30m --until 9999999999",
+    "--until must be a duration",
+  ],
+  [
+    "docker events --since 30m --until 2026-09-29T11:00:00Z",
+    "--until must be a duration",
+  ],
+  [
+    "docker system events --since 1m --until 2099-12-31",
+    "--until must be a duration",
+  ],
   // info, version, df
   ["docker info --format '{{.ServerVersion}}'", "Go templates"],
   ["docker info extra", "takes no arguments"],
   ["docker version --format '{{.Server.Version}}'", "Go templates"],
   ["docker system df -v --format '{{.Size}}'", "Go templates"],
+  // -v with json prints every build-cache record's RUN command line
+  ["docker system df -v --format json", "build-cache record's Description"],
+  [
+    "docker system df --verbose --format=json",
+    "build-cache record's Description",
+  ],
+  ["docker system df --format json -v", "build-cache record's Description"],
+  ["docker system df extra", "takes no arguments"],
   // images, networks, volumes
   ["docker images a b", "at most one"],
   ["docker images --tree", "not one OneUptime AI"],
@@ -536,9 +580,9 @@ describe("docker-engine: reads", () => {
       expect(result.targets).toEqual([]);
       expect(result.requiresHuman).toBeUndefined();
       expect(result.program).toBe("docker");
-      expect(ResourceCommandPolicy.isReadOnly({ resourceType: type, command })).toBe(
-        true,
-      );
+      expect(
+        ResourceCommandPolicy.isReadOnly({ resourceType: type, command }),
+      ).toBe(true);
     }
   });
 
@@ -653,9 +697,7 @@ describe("docker-engine: Denied", () => {
   });
 
   test("a refused flag with no allowed alternatives says so", () => {
-    expect(evaluate("docker top -x web").reason).toContain(
-      "allows: none",
-    );
+    expect(evaluate("docker top -x web").reason).toContain("allows: none");
   });
 
   test("the verb of a Denied command is kept for the audit trail when known", () => {
@@ -801,19 +843,25 @@ describe("docker-engine: evaluateArgv is total and fail-closed", () => {
     [["kubectl", "get", "pods"]],
     [["docker "]],
     [["Docker", "ps"]],
-    [Array.from({ length: 200 }, (): string => {
-      return "ps";
-    })],
-    [["docker", "restart", ...Array.from({ length: 70 }, (): string => {
-      return "web";
-    })]],
+    [
+      Array.from({ length: 200 }, (): string => {
+        return "ps";
+      }),
+    ],
+    [
+      [
+        "docker",
+        "restart",
+        ...Array.from({ length: 70 }, (): string => {
+          return "web";
+        }),
+      ],
+    ],
   ])("%p is Denied without throwing", (argv: unknown) => {
     let result: ResourceCommandPolicyResult | undefined;
 
     expect(() => {
-      result = DockerEngineCommandPolicy.evaluateArgv(
-        argv as Array<string>,
-      );
+      result = DockerEngineCommandPolicy.evaluateArgv(argv as Array<string>);
     }).not.toThrow();
     expect(result && result.tier).toBe(ResourceCommandTier.Denied);
     expect(result && result.targets).toEqual([]);
@@ -856,11 +904,8 @@ describe("docker-engine: the result's shape", () => {
       "docker ps --filter 'label=com.example.team=a b'",
       "docker ps --filter 'label=com.example.team=a b'",
     ],
-    [
-      "docker ps --format '{{.Names}}'",
-      "docker ps --format '{{.Names}}'",
-    ],
-    ["docker logs --tail 10 \"my app\"", "docker logs --tail 10 'my app'"],
+    ["docker ps --format '{{.Names}}'", "docker ps --format '{{.Names}}'"],
+    ['docker logs --tail 10 "my app"', "docker logs --tail 10 'my app'"],
     ["docker restart ''", "docker restart ''"],
   ])("%p is displayed as %p", (command: string, display: string) => {
     const result: ResourceCommandPolicyResult = evaluate(command);
@@ -914,15 +959,20 @@ describe("docker-engine: the auto-execution ladder through the dispatcher", () =
     DOCKER_TYPES.map((type: AiResourceType) => {
       return [type];
     }),
-  )("%s: a restart of one container is AutoApproved", (type: AiResourceType) => {
-    const verdict: ResourceAutoExecutionVerdict = verdictFor({
-      command: "docker restart web",
-      resourceType: type,
-    });
+  )(
+    "%s: a restart of one container is AutoApproved",
+    (type: AiResourceType) => {
+      const verdict: ResourceAutoExecutionVerdict = verdictFor({
+        command: "docker restart web",
+        resourceType: type,
+      });
 
-    expect(verdict.verdict).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
-    expect(verdict.tier).toBe(ResourceCommandTier.SafeWrite);
-  });
+      expect(verdict.verdict).toBe(
+        AiRemediationCommandPolicyVerdict.AutoApproved,
+      );
+      expect(verdict.tier).toBe(ResourceCommandTier.SafeWrite);
+    },
+  );
 
   test("a restart of several containers needs approval", () => {
     expect(verdictFor({ command: "docker restart web api" }).verdict).toBe(

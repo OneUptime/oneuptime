@@ -3,7 +3,9 @@ import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
 import {
+  COMPOSE_DIRECTORY_COMMENT,
   RESOURCE_AI_AGENT_IMAGE,
+  RESOURCE_AI_PROTECTED_TARGETS_ENV,
   ResourceAiAgentInstall,
   ResourceAiAgentInstallVariable,
   ResourceAiAgentWriteAccessCommands,
@@ -26,6 +28,7 @@ import AiResourceType, {
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
+  RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
@@ -149,6 +152,23 @@ function collectorAgentService(
   return null;
 }
 
+/*
+ * The directory the collector's install.sh installs into (its
+ * INSTALL_DIR default), or null when it creates none (it starts plain
+ * containers instead).
+ */
+function installerDirectory(type: AiResourceType): string | null {
+  const installer: string = fs.readFileSync(
+    path.join(REPO_ROOT, "agents", COLLECTOR_DIRECTORIES[type], "install.sh"),
+    "utf8",
+  );
+  const match: RegExpMatchArray | null = installer.match(
+    /^INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
+  );
+
+  return match ? match[1]! : null;
+}
+
 describe("the agent's service", () => {
   test("is named after the agent alias, the collectors' convention", () => {
     expect(
@@ -195,6 +215,10 @@ describe("the compose snippet", () => {
       );
       expect(environment[RESOURCE_AI_WRITE_TARGETS_ENV]).toBe(
         `\${${RESOURCE_AI_WRITE_TARGETS_ENV}:-}`,
+      );
+      // What the operator protects in .env reaches the agent.
+      expect(environment[RESOURCE_AI_PROTECTED_TARGETS_ENV]).toBe(
+        "${ONEUPTIME_AI_PROTECTED_TARGETS:-}",
       );
       // One key the collector already has.
       expect(
@@ -255,6 +279,23 @@ describe("the compose snippet", () => {
     expect(
       snippetService(AiResourceType.DatabaseServer).container_name,
     ).toBeUndefined();
+  });
+
+  test("a snippet pinned to this resource does not let the .env's resource name move the agent", () => {
+    expect(
+      environmentOf(
+        snippetService(AiResourceType.DockerHost, "prod-docker-01"),
+      ),
+    ).not.toHaveProperty(RESOURCE_AI_AGENT_RESOURCE_NAME_ENV);
+    expect(
+      environmentOf(snippetService(AiResourceType.DatabaseServer)),
+    ).not.toHaveProperty(RESOURCE_AI_AGENT_RESOURCE_NAME_ENV);
+    // Unpinned, it is passed like the collector's own service passes it.
+    expect(
+      environmentOf(snippetService(AiResourceType.DockerHost))[
+        RESOURCE_AI_AGENT_RESOURCE_NAME_ENV
+      ],
+    ).toBe("${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}");
   });
 
   test("an identity with odd characters survives YAML and compose interpolation", () => {
@@ -363,6 +404,52 @@ describe("the compose snippet", () => {
       ]),
     );
   });
+
+  test("the agent's own credentials in .env reach it, so fixes do not fall back to the collector's read-only ones", () => {
+    expect(
+      environmentOf(snippetService(AiResourceType.ProxmoxCluster)),
+    ).toEqual(
+      expect.objectContaining({
+        ONEUPTIME_AI_PVE_API_TOKEN_ID: "${ONEUPTIME_AI_PVE_API_TOKEN_ID:-}",
+        ONEUPTIME_AI_PVE_API_TOKEN_SECRET:
+          "${ONEUPTIME_AI_PVE_API_TOKEN_SECRET:-}",
+        PVE_PORT: "${PVE_PORT:-}",
+        PVE_CA_FILE: "${PVE_CA_FILE:-}",
+      }),
+    );
+    expect(environmentOf(snippetService(AiResourceType.VMwareVCenter))).toEqual(
+      expect.objectContaining({
+        ONEUPTIME_AI_VCENTER_USERNAME: "${ONEUPTIME_AI_VCENTER_USERNAME:-}",
+        ONEUPTIME_AI_VCENTER_PASSWORD: "${ONEUPTIME_AI_VCENTER_PASSWORD:-}",
+        VCENTER_CA_FILE: "${VCENTER_CA_FILE:-}",
+        GOVC_DATACENTER: "${GOVC_DATACENTER:-}",
+      }),
+    );
+    expect(
+      environmentOf(snippetService(AiResourceType.DatabaseServer)),
+    ).toEqual(
+      expect.objectContaining({
+        ONEUPTIME_AI_DATABASE_USERNAME: "${ONEUPTIME_AI_DATABASE_USERNAME:-}",
+        ONEUPTIME_AI_DATABASE_PASSWORD: "${ONEUPTIME_AI_DATABASE_PASSWORD:-}",
+        ONEUPTIME_AI_DATABASE_NAME: "${ONEUPTIME_AI_DATABASE_NAME:-}",
+      }),
+    );
+  });
+
+  test("a database agent connects the way the collector does: TLS as .env says, never silently without it", () => {
+    expect(
+      environmentOf(snippetService(AiResourceType.DatabaseServer)),
+    ).toEqual(
+      expect.objectContaining({
+        DATABASE_TLS_INSECURE: "${DATABASE_TLS_INSECURE:-true}",
+        DATABASE_TLS_INSECURE_SKIP_VERIFY:
+          "${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}",
+        DATABASE_ENDPOINT_HOST: "${DATABASE_ENDPOINT_HOST:-}",
+        DATABASE_ENDPOINT_PORT: "${DATABASE_ENDPOINT_PORT:-}",
+        ONEUPTIME_AI_DATABASE_CA_FILE: "${ONEUPTIME_AI_DATABASE_CA_FILE:-}",
+      }),
+    );
+  });
 });
 
 describe("the snippet matches what the collectors ship", () => {
@@ -373,6 +460,56 @@ describe("the snippet matches what the collectors ship", () => {
       }
     }
   });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the page says the collector ships the agent exactly when its compose file does",
+    (type: AiResourceType) => {
+      // Otherwise the page asks for a second copy of a service the file has.
+      expect(doesCollectorShipResourceAiAgent(type)).toBe(
+        collectorAgentService(type) !== null,
+      );
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the snippet passes every variable the shipped service passes, with its value",
+    (type: AiResourceType) => {
+      const shipped: { name: string; service: ComposeService } | null =
+        collectorAgentService(type);
+
+      if (!shipped) {
+        return;
+      }
+
+      const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[type];
+      const ours: Record<string, string> = environmentOf(snippetService(type));
+      const theirs: Record<string, string> = environmentOf(shipped.service);
+
+      for (const [name, value] of Object.entries(theirs)) {
+        if (
+          name === RESOURCE_AI_AGENT_RESOURCE_NAME_ENV &&
+          type === AiResourceType.DatabaseServer
+        ) {
+          // Pinned by its id: the .env must not move it (see below).
+          continue;
+        }
+        /*
+         * Compose passes a container only what its service lists: a
+         * variable missing here is a .env setting the agent never sees.
+         */
+        expect(ours).toHaveProperty(name);
+        if (name === "DATABASE_SERVER_ID") {
+          // The page pins its own id.
+          continue;
+        }
+        if (name === info.identityEnvVars[0]) {
+          // Without the identity known, the collector's own default.
+          continue;
+        }
+        expect(`${name}=${ours[name]}`).toBe(`${name}=${value}`);
+      }
+    },
+  );
 
   test.each(ALL_AI_RESOURCE_TYPES)(
     "%s: a shipped agent service has the snippet's name, type, identity and variables",
@@ -431,7 +568,11 @@ describe("the install instructions", () => {
         },
       );
 
-      expect(install.whereText).toContain(getResourceAiAgentDirectory(type));
+      const directory: string | null = getResourceAiAgentDirectory(type);
+
+      expect(install.whereText).toContain(
+        directory || "your docker-compose.yml",
+      );
       expect(install.composeSnippet).toBe(
         getResourceAiAgentComposeSnippet({
           resourceType: type,
@@ -439,7 +580,7 @@ describe("the install instructions", () => {
         }),
       );
       expect(install.startCommand).toBe(
-        `cd ${getResourceAiAgentDirectory(type)}\n${
+        `${directory ? `cd ${directory}` : COMPOSE_DIRECTORY_COMMENT}\n${
           type === AiResourceType.PodmanHost ? "podman" : "docker"
         } compose up -d ${getResourceAiAgentServiceName(type)}`,
       );
@@ -449,6 +590,7 @@ describe("the install instructions", () => {
       expect(names).toContain("ONEUPTIME_URL");
       expect(names).toContain(RESOURCE_AI_ALLOW_WRITES_ENV);
       expect(names).toContain(RESOURCE_AI_WRITE_TARGETS_ENV);
+      expect(names).toContain(RESOURCE_AI_PROTECTED_TARGETS_ENV);
       expect(new Set(names).size).toBe(names.length);
       // The identity variable the agent registers with.
       expect(names).toContain(
@@ -467,21 +609,31 @@ describe("the install instructions", () => {
   );
 
   test("says the collector's compose already ships it where it does", () => {
+    // Usually installed with install.sh: that comes first.
     expect(
       getResourceAiAgentInstall({
         resourceType: AiResourceType.DockerHost,
         resourceId: RESOURCE_ID,
       }).whereText,
     ).toBe(
-      "The Docker agent's docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in /opt/oneuptime-docker-agent — it reads the same .env.",
+      "Installed the Docker agent with install.sh? Run it again: it now starts this agent too, as the container oneuptime-docker-ai-agent. With Compose, the Docker agent's docker-compose.yml ships this service; for an older Compose install, add it to your docker-compose.yml — it takes every variable below from the same .env.",
     );
+    expect(
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.ProxmoxCluster,
+        resourceId: RESOURCE_ID,
+      }).whereText,
+    ).toBe(
+      "The Proxmox agent's docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in /opt/oneuptime-proxmox-agent — it takes every variable below from the same .env.",
+    );
+    // Its compose file ships the service: never "add" a second copy.
     expect(
       getResourceAiAgentInstall({
         resourceType: AiResourceType.DatabaseServer,
         resourceId: RESOURCE_ID,
       }).whereText,
     ).toBe(
-      "Add this service to the database agent's docker-compose.yml (in /opt/oneuptime-database-agent by default). It reads the same .env.",
+      "The database agent's docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in /opt/oneuptime-database-agent — it takes every variable below from the same .env.",
     );
     expect(
       getResourceAiAgentInstall({
@@ -527,6 +679,64 @@ describe("the install instructions", () => {
       }),
     );
   });
+
+  test("the protected targets row says what the agent protects on its own", () => {
+    const proxmox: ResourceAiAgentInstallVariable | undefined =
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.ProxmoxCluster,
+        resourceId: RESOURCE_ID,
+      }).variables.find((variable: ResourceAiAgentInstallVariable) => {
+        return variable.name === RESOURCE_AI_PROTECTED_TARGETS_ENV;
+      });
+
+    expect(proxmox?.value).toBe("(empty)");
+    expect(proxmox?.description).toContain("VMID of the guest it runs in");
+  });
+
+  test("a literal the service sets is shown as it is, not as from .env", () => {
+    expect(
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.Host,
+        resourceId: RESOURCE_ID,
+      }).variables.find((variable: ResourceAiAgentInstallVariable) => {
+        return variable.name === "TINI_SUBREAPER";
+      })?.value,
+    ).toBe("1");
+  });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: every command and sentence names only a directory the collector's installer creates",
+    (type: AiResourceType) => {
+      const expected: string | null = installerDirectory(type);
+      const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
+      const write: ResourceAiAgentWriteAccessCommands =
+        getResourceAiAgentWriteAccessCommands(type);
+      const texts: Array<string> = [
+        install.whereText,
+        install.startCommand,
+        ...install.prerequisites,
+        getResourceAiAgentLogsCommand(type),
+        getResourceAiAgentStatusCommand(type),
+        write.envIntro,
+        write.restartCommand,
+        write.installerNote || "",
+      ];
+
+      expect(getResourceAiAgentDirectory(type)).toBe(expected);
+
+      for (const text of texts) {
+        for (const match of text.matchAll(/(?:^|\s)cd (\S+)/g)) {
+          expect(match[1]).toBe(expected);
+        }
+        for (const match of text.matchAll(/\/opt\/[\w.-]+/g)) {
+          expect(match[0]).toBe(expected);
+        }
+      }
+    },
+  );
 
   test.each(ALL_AI_RESOURCE_TYPES)(
     "%s: the prerequisites are there, for the types that have any",
@@ -600,20 +810,42 @@ describe("the write switch", () => {
   );
 
   test("says how to do it with install.sh where that is how the collector is installed", () => {
-    expect(
-      getResourceAiAgentWriteAccessCommands(AiResourceType.DockerHost)
-        .installerNote,
-    ).toBe(
-      "Installed the Docker agent with install.sh instead? Run it again with ONEUPTIME_AI_ALLOW_WRITES=true (and ONEUPTIME_AI_WRITE_TARGETS) set in its environment.",
+    const docker: ResourceAiAgentWriteAccessCommands =
+      getResourceAiAgentWriteAccessCommands(AiResourceType.DockerHost);
+
+    expect(docker.installerNote).toBe(
+      "Installed the Docker agent with install.sh? Run it again with ONEUPTIME_AI_ALLOW_WRITES=true (and ONEUPTIME_AI_WRITE_TARGETS) set in its environment: it starts the agent again with them. Started the agent with docker run? Remove it (docker rm -f oneuptime-docker-ai-agent) and start it again with -e ONEUPTIME_AI_ALLOW_WRITES=true.",
+    );
+    // Compose second, from wherever its docker-compose.yml is.
+    expect(docker.envIntro).toBe(
+      "With Compose instead? Recommended: allow only the targets AI may fix. Set these in the .env next to your docker-compose.yml:",
+    );
+    expect(docker.restartCommand).toBe(
+      `${COMPOSE_DIRECTORY_COMMENT}\ndocker compose up -d oneuptime-docker-ai-agent`,
+    );
+
+    const podman: ResourceAiAgentWriteAccessCommands =
+      getResourceAiAgentWriteAccessCommands(AiResourceType.PodmanHost);
+
+    expect(podman.installerNote).toContain("Podman agent with install.sh");
+    expect(podman.installerNote).toContain(
+      "podman rm -f oneuptime-podman-ai-agent",
+    );
+    expect(podman.restartCommand).toBe(
+      `${COMPOSE_DIRECTORY_COMMENT}\npodman compose up -d oneuptime-podman-ai-agent`,
+    );
+
+    const ceph: ResourceAiAgentWriteAccessCommands =
+      getResourceAiAgentWriteAccessCommands(AiResourceType.CephCluster);
+
+    expect(ceph.installerNote).toBeNull();
+    expect(ceph.envIntro).toBe(
+      "Recommended: allow only the targets AI may fix. Set these in the .env next to its docker-compose.yml:",
     );
     expect(
-      getResourceAiAgentWriteAccessCommands(AiResourceType.PodmanHost)
-        .installerNote,
-    ).toContain("Podman agent with install.sh");
-    expect(
-      getResourceAiAgentWriteAccessCommands(AiResourceType.CephCluster)
-        .installerNote,
-    ).toBeNull();
+      getResourceAiAgentWriteAccessCommands(AiResourceType.DatabaseServer)
+        .envIntro,
+    ).toBe("Set this in the .env next to its docker-compose.yml:");
   });
 
   test.each(ALL_AI_RESOURCE_TYPES)(

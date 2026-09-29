@@ -209,8 +209,7 @@ function describeUnknownFlag(data: {
 }): string {
   const isGlobal: boolean = data.isShort
     ? GLOBAL_SHORT_FLAGS.has(data.bareName)
-    : GLOBAL_LONG_FLAGS.has(data.bareName) ||
-      data.bareName.startsWith("tls");
+    : GLOBAL_LONG_FLAGS.has(data.bareName) || data.bareName.startsWith("tls");
 
   const allowed: string = `flags ${data.command} allows: ${describeAllowedDockerFlags(
     data.flags,
@@ -488,9 +487,12 @@ export function findBadDockerName(
   return null;
 }
 
+// Plain digits: no sign, no spaces, at most nine of them.
+const DOCKER_COUNT_DIGITS_REGEX: RegExp = /^[0-9]{1,9}$/;
+
 // A whole number 0..max written in plain digits (no sign, no spaces), or null.
 export function parseDockerCount(value: string, max: number): number | null {
-  if (typeof value !== "string" || !/^[0-9]{1,9}$/.test(value)) {
+  if (typeof value !== "string" || !DOCKER_COUNT_DIGITS_REGEX.test(value)) {
     return null;
   }
 
@@ -532,6 +534,46 @@ export function isGoDuration(value: string): boolean {
     value.length <= 64 &&
     (value === "0" || GO_DURATION_REGEX.test(value))
   );
+}
+
+const GO_DURATION_PART_REGEX: RegExp =
+  /([0-9]{1,9}(?:\.[0-9]{1,9})?)(ns|us|ms|s|m|h)/g;
+
+const GO_DURATION_UNIT_SECONDS: Readonly<Record<string, number>> = {
+  ns: 1e-9,
+  us: 1e-6,
+  ms: 1e-3,
+  s: 1,
+  m: 60,
+  h: 3600,
+};
+
+/*
+ * A relative --since / --until value ("30m", "1h30m", "0s") in seconds, or
+ * null when the value is not one (an RFC 3339 time, a Unix timestamp). docker
+ * reads it as that long before now, so it always points into the past.
+ */
+export function parseDockerRelativeTimeSeconds(value: string): number | null {
+  if (typeof value !== "string" || !isDockerTimeValue(value)) {
+    return null;
+  }
+
+  if (!GO_DURATION_REGEX.test(value)) {
+    return null;
+  }
+
+  let seconds: number = 0;
+
+  GO_DURATION_PART_REGEX.lastIndex = 0;
+  let part: RegExpExecArray | null = GO_DURATION_PART_REGEX.exec(value);
+
+  while (part) {
+    seconds +=
+      Number(part[1] || "0") * (GO_DURATION_UNIT_SECONDS[part[2] || ""] || 0);
+    part = GO_DURATION_PART_REGEX.exec(value);
+  }
+
+  return seconds;
 }
 
 /*
@@ -865,10 +907,7 @@ export const DOCKER_COMMAND_REFUSALS: ReadonlyMap<string, string> = new Map<
     "container run",
     "creates and starts a new container, with any image, mounts and privileges",
   ],
-  [
-    "create",
-    "creates a new container, with any image, mounts and privileges",
-  ],
+  ["create", "creates a new container, with any image, mounts and privileges"],
   [
     "container create",
     "creates a new container, with any image, mounts and privileges",
@@ -1159,6 +1198,14 @@ export const DOCKER_FOLLOW_REFUSAL: string =
 // The most log lines one command may ask for.
 export const DOCKER_MAX_LOG_TAIL_LINES: number = 2000;
 
+/*
+ * How far back --since alone (no --tail) may reach, in hours. Without
+ * --tail, --since is the only bound on what a logs command streams: an old
+ * --since (2001-01-01, 100000h) reads the whole log history, which the
+ * daemon and the CLI keep producing until the command ends or is killed.
+ */
+export const DOCKER_MAX_LOG_SINCE_HOURS: number = 24;
+
 // The flags `docker logs` and `docker service logs` share.
 export const DOCKER_LOG_FLAGS: ReadonlyArray<DockerFlagSpec> = [
   { name: "details", kind: DockerFlagKind.Bool },
@@ -1175,8 +1222,11 @@ export const DOCKER_LOG_FLAGS: ReadonlyArray<DockerFlagSpec> = [
 
 /*
  * Why a logs command does not read a bounded slice, or null when it does:
- * --tail N with N up to DOCKER_MAX_LOG_TAIL_LINES, or --since; --until (for
- * docker logs) a time too.
+ * --tail N with N up to DOCKER_MAX_LOG_TAIL_LINES, or — without --tail — a
+ * relative --since of at most DOCKER_MAX_LOG_SINCE_HOURS (an absolute time
+ * can lie any distance back, so it needs --tail too); --until (for docker
+ * logs) a time too. Relative, so the verdict is the same whenever the
+ * command is checked (at enqueue, and again on the agent).
  */
 export function findUnboundedLogProblem(
   parsed: DockerParsedArgs,
@@ -1203,6 +1253,18 @@ export function findUnboundedLogProblem(
 
   if (tail === undefined && since === undefined) {
     return `${command} needs --tail N (N up to ${DOCKER_MAX_LOG_TAIL_LINES}) or --since (e.g. --since 30m), so it reads a bounded slice of the log`;
+  }
+
+  if (tail === undefined && since !== undefined) {
+    const sinceSeconds: number | null = parseDockerRelativeTimeSeconds(since);
+
+    if (sinceSeconds === null) {
+      return `--since ${since} is an absolute time, which alone does not bound how much of the log ${command} reads: add --tail N (N up to ${DOCKER_MAX_LOG_TAIL_LINES}), or write --since as a duration of at most ${DOCKER_MAX_LOG_SINCE_HOURS}h (e.g. --since 30m)`;
+    }
+
+    if (sinceSeconds > DOCKER_MAX_LOG_SINCE_HOURS * 3600) {
+      return `--since ${since} reaches further back than ${DOCKER_MAX_LOG_SINCE_HOURS}h, which alone does not bound how much of the log ${command} reads: add --tail N (N up to ${DOCKER_MAX_LOG_TAIL_LINES}), or use a shorter --since`;
+    }
   }
 
   return null;
@@ -1438,6 +1500,18 @@ const EVENTS_SPEC: (verb: string) => DockerCommandSpec = (
         );
       }
 
+      /*
+       * docker reads a duration as that long before now, so a relative
+       * --until always closes the window in the past; an absolute one can
+       * lie in the future (2099-12-31, 9999999999), and docker events then
+       * streams until the command is killed.
+       */
+      if (parseDockerRelativeTimeSeconds(until) === null) {
+        return deniedJudgement(
+          `--until must be a duration (e.g. --until 0s, or --until 30m for a window that closed 30 minutes ago), not the absolute time "${until}": an absolute --until can lie in the future, and docker events then streams until the command is killed`,
+        );
+      }
+
       const problem: string | null =
         findBadDockerFilter(parsed) || findBadDockerFormat(parsed, ["json"]);
 
@@ -1486,6 +1560,48 @@ export const dockerNoArgumentReadSpec: (
 const INFO_REASON: string =
   "shows the engine's configuration and health; it changes nothing";
 
+/*
+ * docker system df [-v] [--format json|table]. -v with --format json is
+ * refused: it prints every build-cache record's full Description — the
+ * command line of each RUN step (`mount / from exec /bin/sh -c ...`), the
+ * very build steps `docker history` is refused for. The verbose table
+ * leaves Description out.
+ */
+const SYSTEM_DF_SPEC: DockerCommandSpec = {
+  verb: "system df",
+  flags: [
+    FORMAT_FLAG,
+    { name: "verbose", shorthand: "v", kind: DockerFlagKind.Bool },
+  ],
+  judge(parsed: DockerParsedArgs): DockerJudgement {
+    if (parsed.positionals.length > 0) {
+      return deniedJudgement(
+        `it takes no arguments (got "${parsed.positionals[0]}")`,
+      );
+    }
+
+    const problem: string | null = findBadDockerFormat(parsed, [
+      "json",
+      "table",
+    ]);
+
+    if (problem) {
+      return deniedJudgement(problem);
+    }
+
+    if (
+      isDockerSwitchOn(parsed, "verbose") &&
+      dockerFlagValue(parsed, "format") === "json"
+    ) {
+      return deniedJudgement(
+        "-v/--verbose with --format json is not allowed: it prints each build-cache record's Description, the command line of every RUN build step, which can carry secrets (the reason docker history is refused). Use docker system df -v (its table leaves Description out) or docker system df --format json",
+      );
+    }
+
+    return readJudgement("shows the engine's disk usage; it changes nothing");
+  },
+};
+
 const IMAGES_SPEC: (verb: string) => DockerCommandSpec = (
   verb: string,
 ): DockerCommandSpec => {
@@ -1501,13 +1617,15 @@ const IMAGES_SPEC: (verb: string) => DockerCommandSpec = (
     ],
     judge(parsed: DockerParsedArgs): DockerJudgement {
       if (parsed.positionals.length > 1) {
-        return deniedJudgement(
-          "it takes at most one REPOSITORY[:TAG] to list",
-        );
+        return deniedJudgement("it takes at most one REPOSITORY[:TAG] to list");
       }
 
       const problem: string | null =
-        findBadDockerName(parsed.positionals, "image", isDockerImageReference) ||
+        findBadDockerName(
+          parsed.positionals,
+          "image",
+          isDockerImageReference,
+        ) ||
         findBadDockerFilter(parsed) ||
         findBadDockerFormat(parsed, ["json", "table"]);
 
@@ -1517,6 +1635,10 @@ const IMAGES_SPEC: (verb: string) => DockerCommandSpec = (
     },
   };
 };
+
+// PORT[/PROTOCOL], as `docker port` reads it: 80, 80/tcp, 53/udp, 9/sctp.
+const DOCKER_PORT_ARGUMENT_REGEX: RegExp =
+  /^[0-9]{1,5}(?:\/(?:tcp|udp|sctp))?$/;
 
 const PORT_SPEC: (verb: string) => DockerCommandSpec = (
   verb: string,
@@ -1534,16 +1656,16 @@ const PORT_SPEC: (verb: string) => DockerCommandSpec = (
         );
       }
 
-      if (
-        port !== undefined &&
-        !/^[0-9]{1,5}(?:\/(?:tcp|udp|sctp))?$/.test(port)
-      ) {
+      if (port !== undefined && !DOCKER_PORT_ARGUMENT_REGEX.test(port)) {
         return deniedJudgement(
           `"${port}" is not a PORT[/PROTOCOL] (e.g. 80 or 53/udp)`,
         );
       }
 
-      const problem: string | null = findBadDockerName([container], "container");
+      const problem: string | null = findBadDockerName(
+        [container],
+        "container",
+      );
 
       return problem
         ? deniedJudgement(problem)
@@ -1640,18 +1762,7 @@ export const DOCKER_ENGINE_READ_COMMANDS: ReadonlyMap<
       ["json"],
     ),
   ],
-  [
-    "system df",
-    dockerNoArgumentReadSpec(
-      "system df",
-      "shows the engine's disk usage; it changes nothing",
-      [
-        FORMAT_FLAG,
-        { name: "verbose", shorthand: "v", kind: DockerFlagKind.Bool },
-      ],
-      ["json", "table"],
-    ),
-  ],
+  ["system df", SYSTEM_DF_SPEC],
   ["images", IMAGES_SPEC("images")],
   ["image ls", IMAGES_SPEC("image ls")],
   [

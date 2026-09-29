@@ -48,14 +48,16 @@
  *   - RiskyWrite + requiresHuman (never unattended, whatever the mode or
  *     allowlist): any write to a unit in PROTECTED_HOST_UNIT_PATTERNS (ssh,
  *     systemd-*, dbus, the network stack, getty, the container runtimes,
- *     the firewall, ...); start/stop/restart/reload of a target, mount,
+ *     the firewall, the package-upgrade units, ...); start/stop/restart/reload of a target, mount,
  *     automount or swap unit (they fan out to other units or filesystems);
  *     and kill of a pid.
  *   - Denied: every other systemctl command (enable/disable/mask/edit/cat/
  *     daemon-reload/isolate/kill/set-property/the environment verbs/the
  *     power and run-state verbs, ...), writes to slices, scopes, devices,
- *     templates without an instance and the power or run-state units
- *     (reboot.target, rescue.target, systemd-poweroff.service, ...), the
+ *     templates without an instance, the power or run-state units
+ *     (reboot.target, rescue.target, runlevel6.target,
+ *     systemd-poweroff.service, ...) and debug-shell.service (a root shell
+ *     with no password on tty9), the
  *     flags that reach another machine, root, image or user manager or that
  *     force a change, journalctl -f and every journal-maintenance flag but
  *     vacuum, kill of pid 1, pid 0 or a process group, and every other
@@ -167,9 +169,13 @@ export const SYSTEMCTL_SHOW_PROPERTIES: ReadonlyArray<string> = [
  * Units a write never touches without a human, whatever the mode or the
  * allowlist: remote access, the service manager and its helpers, the
  * message bus and authorization, the network stack, consoles, the
- * container runtimes and node agents, the firewall, and user managers.
- * Globs over the unit's name without its type suffix, compared
- * case-insensitively (over-matching is the safe direction).
+ * container runtimes and node agents, the firewall, user managers, and
+ * the package upgrades a distribution runs on a timer (they install
+ * packages and may reboot the host). Globs over the unit's name without
+ * its type suffix, compared case-insensitively (over-matching is the safe
+ * direction). The check sees the name as written, so the aliases systemd
+ * ships for these units are listed too: autovt@ is getty@, udev is
+ * systemd-udevd (Debian, Ubuntu), dbus-org.freedesktop.* name systemd-*.
  */
 export const PROTECTED_HOST_UNIT_PATTERNS: ReadonlyArray<string> = [
   "ssh",
@@ -178,6 +184,7 @@ export const PROTECTED_HOST_UNIT_PATTERNS: ReadonlyArray<string> = [
   "sshd@*",
   "sshd-*",
   "systemd-*",
+  "udev",
   "dbus*",
   "polkit*",
   "NetworkManager*",
@@ -185,6 +192,15 @@ export const PROTECTED_HOST_UNIT_PATTERNS: ReadonlyArray<string> = [
   "network*",
   "getty@*",
   "serial-getty@*",
+  "autovt@*",
+  "console-getty",
+  "container-getty@*",
+  "apt-daily*",
+  "unattended-upgrades",
+  "dnf-automatic*",
+  "yum-cron",
+  "packagekit*",
+  "system-update*",
   "docker",
   "containerd",
   "podman*",
@@ -207,6 +223,9 @@ export const PROTECTED_HOST_UNIT_PATTERNS: ReadonlyArray<string> = [
  * whole host when started (reboot.target, rescue.target,
  * systemd-poweroff.service, ...). Every write to one is Denied: it is the
  * same change as the systemctl reboot/rescue/... verbs, reached another way.
+ * The SysV runlevel targets are aliases systemd ships for them
+ * (runlevel0.target is poweroff.target, runlevel1 rescue, runlevel6
+ * reboot, runlevel2-5 multi-user or graphical), so every one is here.
  */
 const HOST_STATE_UNIT_PATTERNS: ReadonlyArray<string> = [
   "poweroff",
@@ -227,6 +246,7 @@ const HOST_STATE_UNIT_PATTERNS: ReadonlyArray<string> = [
   "final",
   "umount",
   "default",
+  "runlevel*",
   "initrd*",
   "factory-reset",
   "systemd-poweroff",
@@ -240,6 +260,16 @@ const HOST_STATE_UNIT_PATTERNS: ReadonlyArray<string> = [
   "systemd-soft-reboot",
   "systemd-exit",
 ];
+
+/*
+ * Units no AI change ever starts, whatever a human approves: they hand out
+ * a root shell with no password (debug-shell.service runs /bin/sh on tty9
+ * for anyone at the console, serial line, IPMI or VNC session).
+ */
+const ROOT_SHELL_UNIT_PATTERNS: ReadonlyArray<string> = ["debug-shell"];
+
+const ROOT_SHELL_REASON: string =
+  "it opens a root shell with no password on a console (tty9), for anyone who can reach the console, serial line, IPMI or VNC session";
 
 // The unit types systemd knows; a name without one of these is a service.
 const SYSTEMD_UNIT_TYPES: ReadonlyArray<string> = [
@@ -1272,6 +1302,18 @@ function evaluateSystemctlWrite(
       );
     }
 
+    const rootShellUnit: string | undefined = matchingUnitPattern(
+      ROOT_SHELL_UNIT_PATTERNS,
+      stem,
+    );
+
+    if (rootShellUnit !== undefined && verb !== "reset-failed") {
+      return deniedResult(
+        argv,
+        `systemctl ${verb} ${unit} is never allowed: ${ROOT_SHELL_REASON}; ${SYSTEMCTL_ALLOWED}`,
+      );
+    }
+
     if (verb !== "reset-failed") {
       if (UNWRITABLE_UNIT_TYPES.includes(type)) {
         return deniedResult(
@@ -1295,7 +1337,7 @@ function evaluateSystemctlWrite(
     );
 
     if (humanReason === null && protectedPattern !== undefined) {
-      humanReason = `${unit} is a protected unit (${protectedPattern}): remote access, the service manager, the network, the firewall and the container runtimes are only ever changed with a human's approval`;
+      humanReason = `${unit} is a protected unit (${protectedPattern}): remote access, the service manager, the network, consoles, the firewall, the container runtimes and package upgrades are only ever changed with a human's approval`;
     }
 
     if (!targets.includes(unit)) {
@@ -2916,8 +2958,8 @@ const READ_COMMAND_GUIDE: string = [
 const WRITE_COMMAND_GUIDE: string = [
   "- SafeWrite (runs unattended when allowed): `systemctl restart|start|reload|try-restart|reload-or-restart|reset-failed UNIT` for exactly ONE service, socket, timer or path unit (targets are full unit names: nginx is nginx.service)",
   "- RiskyWrite (needs approval unless the allowlist or Bypass approval covers it): `systemctl stop UNIT`; any of the verbs above on several units; `systemctl reset-failed` with no unit; `journalctl --vacuum-time=7d` / `--vacuum-size=500M` / `--vacuum-files=N` (target journal)",
-  "- Always a human: any change to a protected unit (ssh/sshd, systemd-*, dbus, polkit, NetworkManager, networking, getty, docker, containerd, podman, kubelet, firewalld, nftables, iptables, ufw, user@), start/stop/restart/reload of a .target, .mount, .automount or .swap unit, and `kill [-TERM|-15|-HUP|-INT|-KILL|-9] PID` (pids from 2 up)",
-  "- Never: systemctl enable/disable/mask/unmask/edit/cat/daemon-reload/daemon-reexec/isolate/kill/set-property/*-environment/clean, the power and run-state verbs and units (reboot, poweroff, halt, suspend, rescue, emergency, ...), slices, scopes and devices, --force/--user/--host/--machine/--root, journalctl -f/--rotate/--flush, dmesg --clear, ss -K, ip changes, killing pid 1 or a process group",
+  "- Always a human: any change to a protected unit (ssh/sshd, systemd-*, udev, dbus, polkit, NetworkManager, networking, getty/autovt, docker, containerd, podman, kubelet, firewalld, nftables, iptables, ufw, user@, and the package-upgrade units apt-daily*, unattended-upgrades, dnf-automatic*, packagekit*), start/stop/restart/reload of a .target, .mount, .automount or .swap unit, and `kill [-TERM|-15|-HUP|-INT|-KILL|-9] PID` (pids from 2 up)",
+  "- Never: systemctl enable/disable/mask/unmask/edit/cat/daemon-reload/daemon-reexec/isolate/kill/set-property/*-environment/clean, the power and run-state verbs and units (reboot, poweroff, halt, suspend, rescue, emergency, runlevelN, ...), debug-shell (a passwordless root shell), slices, scopes and devices, --force/--user/--host/--machine/--root, journalctl -f/--rotate/--flush, dmesg --clear, ss -K, ip changes, killing pid 1 or a process group",
 ].join("\n");
 
 const HostCommandPolicy: ResourceToolPolicy = {

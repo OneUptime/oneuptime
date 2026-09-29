@@ -86,6 +86,13 @@ const COMPOSE_SERVICE_LINE: RegExp = /^ {2}([a-z0-9][a-z0-9-]*):\s*$/;
 // A compose key that ends the services block (volumes:, networks:, ...).
 const TOP_LEVEL_LINE: RegExp = /^\S/;
 const DROPS_ALL_CAPABILITIES: RegExp = /cap_drop:\s*\n\s*- ALL/;
+// A compose service on the host's network (a commented-out line is not).
+const HOST_NETWORK_LINE: RegExp = /^\s*network_mode: host\s*$/m;
+// The appliance promised as protected with no condition attached.
+const UNCONDITIONAL_APPLIANCE: RegExp =
+  /never changes the vCenter appliance itself[;.]/;
+const A_MINUTE: RegExp = /\ba minute\b/;
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
 const HEADING_LINE: RegExp = /^#{1,6} \S/;
 // `export const NAME: string = "value";`, the value on the same or the next line.
 const STRING_CONSTANT: RegExp =
@@ -757,11 +764,23 @@ describe("Infrastructure AI Agents docs", (): void => {
       );
 
       for (const type of ALL_AI_RESOURCE_TYPES) {
-        const service: string | undefined = composeServices(
-          COMPOSE_FILES[type],
-        ).get(getResourceAiAgentServiceName(type));
+        const service: string =
+          composeServices(COMPOSE_FILES[type]).get(
+            getResourceAiAgentServiceName(type),
+          ) || "";
+        // A service that passes PORT checks its health on that same setting.
+        const passedPort: RegExpMatchArray | null = service.match(
+          /^\s*- PORT=(\$\{[A-Z][A-Z0-9_]*:-(\d+)\})$/m,
+        );
 
-        expect(service).toContain(`http://127.0.0.1:${port}/status/live`);
+        if (passedPort) {
+          expect(passedPort[2]).toBe(port);
+          expect(service).toContain(
+            `http://127.0.0.1:${passedPort[1]}/status/live`,
+          );
+        } else {
+          expect(service).toContain(`http://127.0.0.1:${port}/status/live`);
+        }
       }
 
       for (const route of ["/status/live", "/status/ready", "/status"]) {
@@ -1023,6 +1042,54 @@ describe("Infrastructure AI Agents docs", (): void => {
       );
       expect(host).toContain(
         "`nsenter --target 1 --mount --uts --ipc --net --pid -- PROGRAM ARGS`",
+      );
+    });
+
+    it("passes the settings the agent's messages and READMEs send to the .env: the identity override and the log level, and the port on the host's network", (): void => {
+      // The names the agent reads.
+      expect(readRepoFile("agents/ResourceAIAgent/Config.ts")).toContain(
+        'parsePort(env["PORT"])',
+      );
+      expect(readRepoFile("agents/ResourceAIAgent/Logger.ts")).toContain(
+        'process.env["LOG_LEVEL"]',
+      );
+
+      const port: number = RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT;
+
+      for (const type of ALL_AI_RESOURCE_TYPES) {
+        const file: string = COMPOSE_FILES[type];
+        const service: string =
+          composeServices(file).get(getResourceAiAgentServiceName(type)) || "";
+
+        for (const line of [
+          `- ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}=\${${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}:-}`,
+          "- LOG_LEVEL=${LOG_LEVEL:-info}",
+        ]) {
+          expect({ file, line, passed: service.includes(`${line}\n`) }).toEqual(
+            { file, line, passed: true },
+          );
+        }
+
+        // On the host's network the port can clash, so the .env moves it.
+        if (HOST_NETWORK_LINE.test(service)) {
+          expect({
+            file,
+            port: service.includes(`- PORT=\${PORT:-${port}}\n`),
+            healthcheck: service.includes(
+              `http://127.0.0.1:\${PORT:-${port}}/status/live`,
+            ),
+          }).toEqual({ file, port: true, healthcheck: true });
+        }
+      }
+
+      // The one that shares the host's network by default.
+      expect(
+        composeServices(COMPOSE_FILES[AiResourceType.Host]).get(
+          getResourceAiAgentServiceName(AiResourceType.Host),
+        ),
+      ).toMatch(HOST_NETWORK_LINE);
+      expect(readRepoFile("agents/HostAIAgent/README.md")).toContain(
+        "| Port `3877` already in use | Set `PORT` in `.env`",
       );
     });
 
@@ -1611,6 +1678,78 @@ describe("Infrastructure AI Agents docs", (): void => {
         });
       }
     });
+
+    it("says the vCenter appliance is protected by its name only, so with an IP endpoint it must be listed by hand", (): void => {
+      // The agent: the VM named after the endpoint's host, nothing for an IP address.
+      const govc: string = readRepoFile(
+        "agents/ResourceAIAgent/Executors/GovcExecutor.ts",
+      );
+
+      expect(govc).toContain("net.isIP(host) !== 0");
+      expect(govc).toContain("reaches vCenter by its IP address");
+
+      const vmwarePage: string = TELEMETRY_PAGES[AiResourceType.VMwareVCenter];
+      const prose: Array<[string, string]> = [
+        [PAGE, section(writeAccess, "### What the agent protects on its own")],
+        [vmwarePage, section(readPage(vmwarePage), "## AI agent")],
+        [
+          "agents/VMwareAgent/README.md",
+          readRepoFile("agents/VMwareAgent/README.md"),
+        ],
+        [
+          "agents/ResourceAIAgent/README.md",
+          section(
+            readRepoFile("agents/ResourceAIAgent/README.md"),
+            "### VMware vCenter",
+          ),
+        ],
+      ];
+
+      for (const [source, text] of prose) {
+        const flat: string = text.replace(/\s+/g, " ");
+
+        expect({
+          source,
+          unconditional: UNCONDITIONAL_APPLIANCE.test(flat),
+          ipAddress:
+            flat.includes("`VCENTER_ENDPOINT`") &&
+            flat.includes("an IP address"),
+          listIt: flat.includes("`ONEUPTIME_AI_PROTECTED_TARGETS`"),
+        }).toEqual({
+          source,
+          unconditional: false,
+          ipAddress: true,
+          listIt: true,
+        });
+      }
+
+      // The installer's prompt decides what goes into the list.
+      const install: string = readRepoFile("agents/VMwareAgent/install.sh");
+
+      expect(install).not.toContain("is always protected");
+      // So does the AI agent page's hint for the list.
+      const pageHint: string = readRepoFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall.ts",
+      );
+
+      expect(pageHint).not.toContain("on top of the vCenter appliance itself");
+      expect(pageHint).toContain(
+        "when VCENTER_ENDPOINT is an IP address or the VM is named otherwise",
+      );
+      expect(install).toContain(
+        "An endpoint given as an IP address protects no VM on its own.",
+      );
+
+      // And so does the comment next to the setting.
+      const compose: string =
+        composeServices(COMPOSE_FILES[AiResourceType.VMwareVCenter]).get(
+          getResourceAiAgentServiceName(AiResourceType.VMwareVCenter),
+        ) || "";
+
+      expect(compose.replace(/\s*#\s*/g, " ")).toContain(
+        "With an IP address as the endpoint, or an appliance VM named otherwise, put the appliance's VM name in ONEUPTIME_AI_PROTECTED_TARGETS.",
+      );
+    });
   });
 
   describe("credentials and security", (): void => {
@@ -1846,6 +1985,138 @@ describe("Infrastructure AI Agents docs", (): void => {
           return line.trim().length > 0;
         }),
       ).toHaveLength(1);
+    });
+  });
+
+  describe("the agents' READMEs, against what the agent and OneUptime do", (): void => {
+    const hostReadme: string = readRepoFile("agents/HostAIAgent/README.md");
+    const agentReadme: string = readRepoFile(
+      "agents/ResourceAIAgent/README.md",
+    );
+
+    it("says a Host AI agent with an unknown name gets a new, empty Host, as registration creates one, and promises no refusal", (): void => {
+      // Every type but a database server is found or created by its name.
+      const service: string = readRepoFile(
+        "packages/Common/Server/Services/ResourceAiAgentService.ts",
+      );
+
+      expect(service).toContain("HostService.findOrCreateByHostIdentifier");
+
+      const flat: string = hostReadme.replace(/\s+/g, " ");
+
+      expect(flat).not.toContain("it does not create one");
+      expect(flat).not.toContain("(no such Host)");
+      expect(flat).not.toContain("or the agent is refused");
+      expect(flat).toContain(
+        "A name no Host has is not refused: OneUptime creates a new, empty Host under that name",
+      );
+      // The page and the agent's README say the same.
+      expect(page.replace(/\s+/g, " ")).toContain(
+        "gives you a second, empty resource instead of an error",
+      );
+      expect(agentReadme).toContain(
+        "OneUptime creates the Host when none has that name yet",
+      );
+    });
+
+    it("says how long a replacement waits after an agent that never signed off: the alive window", (): void => {
+      const minutes: string = `${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes`;
+
+      /*
+       * An agent that stopped cleanly signed off; one that crashed or was
+       * killed counts as online until its last heartbeat is this old.
+       */
+      for (const [source, text] of [
+        [PAGE, page],
+        ["agents/HostAIAgent/README.md", hostReadme],
+        ["agents/ResourceAIAgent/README.md", agentReadme],
+      ] as Array<[string, string]>) {
+        const row: string =
+          text.split("\n").find((line: string): boolean => {
+            return line.startsWith("| `Waiting for this");
+          }) || "";
+
+        expect({
+          source,
+          window: row.includes(minutes),
+          aMinute: A_MINUTE.test(row),
+        }).toEqual({ source, window: true, aMinute: false });
+      }
+
+      const flat: string = page.replace(/\s+/g, " ");
+
+      expect(flat).not.toContain("which takes about a minute");
+      expect(flat).toContain(`has been quiet for ${minutes}`);
+    });
+
+    it("sends the Host AI agent's operator to /status for what the AI agent page does not show", (): void => {
+      const dashboardDir: string = path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent",
+      );
+      const dashboard: string = fs
+        .readdirSync(dashboardDir)
+        .filter((name: string): boolean => {
+          return TYPESCRIPT_FILE.test(name);
+        })
+        .map((name: string): string => {
+          return fs.readFileSync(path.join(dashboardDir, name), "utf8");
+        })
+        .join("\n");
+
+      expect(dashboard.length).toBeGreaterThan(0);
+
+      // Claims about the AI agent page only for what the page renders.
+      if (!dashboard.includes("protectedTargets")) {
+        expect(hostReadme).not.toContain("**AI → AI agent** page lists them");
+      }
+
+      if (!dashboard.includes("hostnameMatchesIdentity")) {
+        expect(hostReadme).not.toContain(
+          "page shows the agent's `hostname` and whether it matches",
+        );
+      }
+
+      // What the README reads off /status is what /status reports.
+      const status: string = readRepoFile(
+        "agents/ResourceAIAgent/AgentStatus.ts",
+      );
+
+      for (const field of [
+        "resourceIdentifier",
+        "resourceName",
+        "protectedTargets",
+      ]) {
+        expect({
+          field,
+          named: hostReadme.includes(`(\`${field}\`)`),
+          reported: status.includes(`      ${field}:`),
+        }).toEqual({ field, named: true, reported: true });
+      }
+    });
+
+    it("describes Proxmox TLS verification as the agent decides it: a CA file always verifies", (): void => {
+      expect(
+        readRepoFile(
+          "agents/ResourceAIAgent/Executors/ProxmoxExecutor.ts",
+        ).replace(/\s+/g, " "),
+      ).toContain('caFile !== "" ? true');
+
+      const proxmox: string = section(
+        agentReadme,
+        "### Proxmox cluster",
+      ).replace(/\s+/g, " ");
+
+      expect(proxmox).not.toContain(
+        "`PVE_CA_FILE` alone does not turn verification on",
+      );
+      expect(proxmox).toContain(
+        "`PVE_CA_FILE`, when set, always turns verification on",
+      );
+      // The Proxmox agent's own README agrees.
+      expect(readRepoFile("agents/ProxmoxAgent/README.md")).toContain(
+        "setting it turns verification on",
+      );
     });
   });
 });

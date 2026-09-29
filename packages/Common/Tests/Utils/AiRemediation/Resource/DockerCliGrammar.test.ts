@@ -29,6 +29,7 @@ import {
   mergeDockerCommands,
   parseDockerCount,
   parseDockerFlags,
+  parseDockerRelativeTimeSeconds,
   resolveDockerCommandPath,
   uniqueDockerTargets,
 } from "../../../../Utils/AiRemediation/Resource/DockerCliGrammar";
@@ -114,7 +115,11 @@ describe("parseDockerFlags mirrors pflag", () => {
     [["-a", "--", "--"], { all: ["true"] }, ["--"]],
     [["-"], {}, ["-"]],
     [[""], {}, [""]],
-    [["-f", "a=1", "--filter=b=2", "-fc=3"], { filter: ["a=1", "b=2", "c=3"] }, []],
+    [
+      ["-f", "a=1", "--filter=b=2", "-fc=3"],
+      { filter: ["a=1", "b=2", "c=3"] },
+      [],
+    ],
     [["--time", "5"], { timeout: ["5"] }, []],
     [["-t5"], { timeout: ["5"] }, []],
   ])(
@@ -145,10 +150,13 @@ describe("parseDockerFlags mirrors pflag", () => {
     ["FALSE", "false"],
     ["false", "false"],
     ["False", "false"],
-  ])("a switch reads =%s as %s (Go's ParseBool)", (written: string, value: string) => {
-    expect(dockerFlagValue(parse([`--all=${written}`]), "all")).toBe(value);
-    expect(dockerFlagValue(parse([`-a=${written}`]), "all")).toBe(value);
-  });
+  ])(
+    "a switch reads =%s as %s (Go's ParseBool)",
+    (written: string, value: string) => {
+      expect(dockerFlagValue(parse([`--all=${written}`]), "all")).toBe(value);
+      expect(dockerFlagValue(parse([`-a=${written}`]), "all")).toBe(value);
+    },
+  );
 
   test.each([
     [["--all=yes"], "is a switch"],
@@ -206,7 +214,10 @@ describe("parseDockerFlags mirrors pflag", () => {
   });
 
   test("a non-interspersed command stops reading flags at its first positional", () => {
-    const parsed: DockerParsedArgs = parse(["-a", "web", "-q", "--last=5"], false);
+    const parsed: DockerParsedArgs = parse(
+      ["-a", "web", "-q", "--last=5"],
+      false,
+    );
 
     expect(parsed.problem).toBeUndefined();
     expect(valuesOf(parsed)).toEqual({ all: ["true"] });
@@ -250,14 +261,29 @@ describe("resolveDockerCommandPath", () => {
     [["docker", "container", "ps"], "container ls", "container", []],
     [["docker", "image", "list"], "image ls", "image", []],
     [["docker", "image", "rmi", "x"], "image rm", "image", ["x"]],
-    [["docker", "container", "remove", "x"], "container rm", "container", ["x"]],
+    [
+      ["docker", "container", "remove", "x"],
+      "container rm",
+      "container",
+      ["x"],
+    ],
     [["docker", "stack", "up"], "stack deploy", "stack", []],
     [["docker", "stack", "down", "app"], "stack rm", "stack", ["app"]],
     [["docker", "service", "list"], "service ls", "service", []],
-    [["docker", "container", "frobnicate"], "container frobnicate", "container", []],
+    [
+      ["docker", "container", "frobnicate"],
+      "container frobnicate",
+      "container",
+      [],
+    ],
     [["docker", "secret", "ls"], "secret", undefined, ["ls"]],
     [["docker", "constructor"], "constructor", undefined, []],
-    [["docker", "container", "__proto__"], "container __proto__", "container", []],
+    [
+      ["docker", "container", "__proto__"],
+      "container __proto__",
+      "container",
+      [],
+    ],
   ])(
     "%p resolves to %p",
     (
@@ -280,8 +306,14 @@ describe("resolveDockerCommandPath", () => {
     [["docker", "-H", "x", "ps"], "global flags"],
     [["docker", "--", "ps"], "global flags"],
     [["docker", "container"], "needs a subcommand"],
-    [["docker", "container", "-a", "ls"], "comes before the docker container subcommand"],
-    [["docker", "service", "--help"], "comes before the docker service subcommand"],
+    [
+      ["docker", "container", "-a", "ls"],
+      "comes before the docker container subcommand",
+    ],
+    [
+      ["docker", "service", "--help"],
+      "comes before the docker service subcommand",
+    ],
   ])("%p has a problem (%s)", (words: Array<string>, phrase: string) => {
     expect(resolveDockerCommandPath(words).problem).toContain(phrase);
   });
@@ -348,6 +380,26 @@ describe("values", () => {
     expect(isDockerTimeValue(value)).toBe(expected);
   });
 
+  test.each([
+    ["0s", 0],
+    ["30m", 1800],
+    ["1h30m", 5400],
+    ["1.5h", 5400],
+    ["24h", 86400],
+    ["250ms", 0.25],
+    ["2026-09-29", null],
+    ["2026-09-29T10:00:00Z", null],
+    ["1758000000", null],
+    ["9999999999", null],
+    ["", null],
+    ["-10m", null],
+  ])(
+    "parseDockerRelativeTimeSeconds(%p) is %p",
+    (value: string, expected: number | null) => {
+      expect(parseDockerRelativeTimeSeconds(value)).toBe(expected);
+    },
+  );
+
   test("isGoDuration accepts 0 (update delays) but not garbage", () => {
     expect(isGoDuration("0")).toBe(true);
     expect(isGoDuration("10s")).toBe(true);
@@ -366,9 +418,12 @@ describe("values", () => {
     ["", 10, null],
     ["1e3", 10000, null],
     ["9".repeat(10), 10, null],
-  ])("parseDockerCount(%p, %p) is %p", (value: string, max: number, expected: number | null) => {
-    expect(parseDockerCount(value, max)).toBe(expected);
-  });
+  ])(
+    "parseDockerCount(%p, %p) is %p",
+    (value: string, max: number, expected: number | null) => {
+      expect(parseDockerCount(value, max)).toBe(expected);
+    },
+  );
 
   test.each([
     ["512m", true],
@@ -411,7 +466,9 @@ describe("values", () => {
     };
 
     expect(findBadDockerFilter(withFilters("status=exited"))).toBeNull();
-    expect(findBadDockerFilter(withFilters("label=a=b", "name=^web$"))).toBeNull();
+    expect(
+      findBadDockerFilter(withFilters("label=a=b", "name=^web$")),
+    ).toBeNull();
     expect(findBadDockerFilter(withFilters("status"))).toContain("KEY=VALUE");
     expect(findBadDockerFilter(withFilters("=x"))).toContain("KEY=VALUE");
     expect(findBadDockerFilter(withFilters("-q=x"))).toContain("KEY=VALUE");
@@ -585,13 +642,17 @@ describe("evaluateDockerArgv", () => {
     );
     expect(
       evaluateDockerArgv(refusing, ["docker", "service", "ls"]).reason,
-    ).toContain("docker service ls is never allowed for a test engine: it is refused as a group");
+    ).toContain(
+      "docker service ls is never allowed for a test engine: it is refused as a group",
+    );
     expect(
       evaluateDockerArgv(refusing, ["docker", "service"]).reason,
-    ).toContain("docker service is never allowed for a test engine: it is refused as a group");
-    expect(evaluateDockerArgv(refusing, ["docker", "run", "x"]).reason).toContain(
-      "creates and starts a new container",
+    ).toContain(
+      "docker service is never allowed for a test engine: it is refused as a group",
     );
+    expect(
+      evaluateDockerArgv(refusing, ["docker", "run", "x"]).reason,
+    ).toContain("creates and starts a new container");
     expect(evaluateDockerArgv(refusing, ["docker", "probe"]).reason).toContain(
       "docker probe is not a docker command OneUptime AI may run",
     );
@@ -641,7 +702,10 @@ describe("evaluateDockerArgv", () => {
 
 describe("the two profiles and the shared refusals agree", () => {
   test("no refused path is also an allowed command of either profile", () => {
-    for (const profileUnderTest of [DOCKER_ENGINE_PROFILE, DOCKER_SWARM_PROFILE]) {
+    for (const profileUnderTest of [
+      DOCKER_ENGINE_PROFILE,
+      DOCKER_SWARM_PROFILE,
+    ]) {
       for (const path of DOCKER_COMMAND_REFUSALS.keys()) {
         expect(profileUnderTest.commands.has(path)).toBe(false);
       }
@@ -653,7 +717,10 @@ describe("the two profiles and the shared refusals agree", () => {
   });
 
   test("each profile's commands are keyed by their own verb", () => {
-    for (const profileUnderTest of [DOCKER_ENGINE_PROFILE, DOCKER_SWARM_PROFILE]) {
+    for (const profileUnderTest of [
+      DOCKER_ENGINE_PROFILE,
+      DOCKER_SWARM_PROFILE,
+    ]) {
       profileUnderTest.commands.forEach(
         (commandSpec: DockerCommandSpec, path: string): void => {
           expect(commandSpec.verb).toBe(path);

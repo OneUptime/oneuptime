@@ -652,10 +652,23 @@ function WriteAccessInstructions(props: {
         Give the agent write access
       </p>
       <p className="text-xs leading-5 text-gray-600">
-        The agent is read-only, so fixes cannot run yet.{" "}
-        {commands.scopedEnv
-          ? "Recommended: allow only the targets AI may fix. Set these in the .env next to its docker-compose.yml:"
-          : "Set this in the .env next to its docker-compose.yml:"}
+        The agent is read-only, so fixes cannot run yet.
+      </p>
+      {commands.installerNote ? (
+        <p
+          className="text-xs leading-5 text-gray-600"
+          data-testid="ai-access-write-installer-note"
+        >
+          {commands.installerNote}
+        </p>
+      ) : (
+        <></>
+      )}
+      <p
+        className="text-xs leading-5 text-gray-600"
+        data-testid="ai-access-write-env-intro"
+      >
+        {commands.envIntro}
       </p>
       {commands.scopedEnv ? (
         <>
@@ -686,16 +699,6 @@ function WriteAccessInstructions(props: {
       <div data-testid="ai-access-write-restart-command">
         <CodeBlock language="bash" code={commands.restartCommand} />
       </div>
-      {commands.installerNote ? (
-        <p
-          className="text-xs leading-5 text-gray-500"
-          data-testid="ai-access-write-installer-note"
-        >
-          {commands.installerNote}
-        </p>
-      ) : (
-        <></>
-      )}
       <p
         className="text-xs leading-5 text-gray-700"
         data-testid="ai-access-write-disclosure"

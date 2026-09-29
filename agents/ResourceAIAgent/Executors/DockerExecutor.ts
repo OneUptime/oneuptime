@@ -1,14 +1,17 @@
 import fs from "fs";
 import path from "path";
 import PrepareGuard, {
+  DEFAULT_GUARD_POLICY,
   GuardResult,
   GuardedCommand,
+  getAgentDisplayName,
   mergeTargets,
   refusalPrefix,
 } from "./PrepareGuard";
 import {
   ExecResult,
   ExecutorOptions,
+  GuardPolicy,
   PrepareResult,
   ResourceCommandRequest,
   ResourceExecutor,
@@ -26,7 +29,10 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
 } from "../Common/Types/ResourceAiAgent/AiResourceType";
-import { ResourceCommandTier } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  RESOURCE_AI_WRITE_TARGETS_ENV,
+  ResourceCommandTier,
+} from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 
 /*
  * The executor for Docker hosts, Podman hosts and Docker Swarm clusters:
@@ -42,6 +48,16 @@ import { ResourceCommandTier } from "../Common/Types/ResourceAiAgent/ResourceAiA
  * engine), the collector containers beside it and the other OneUptime
  * docker-family agents — then checks the engine address, and refuses any
  * change while it has not yet been able to look its own container up.
+ *
+ * Right before a change runs, run() asks the engine what each of its
+ * targets really is (`docker container|service|node inspect`): docker takes
+ * a name, an id or any unique id prefix, so a protected container, service
+ * or node named by its id is still refused, by its id and every name it goes
+ * by (see checkResolvedTargets). The same lookup says what the change would
+ * really do, and refuses what its tier does not say: stopping a container
+ * started with --rm (docker deletes it), starting a stopped one-off
+ * container, and any change to a swarm job service (it re-runs the job) —
+ * see describeDockerTargetStateRefusal.
  *
  * The docker CLI then runs through SpawnSandbox:
  *
@@ -92,6 +108,13 @@ export const DOCKER_CONFIG_DIR_NAME: string = "docker-config";
  */
 export const PROBE_TIMEOUT_MS: number = 6_000;
 export const OWN_CONTAINER_PROBE_TIMEOUT_MS: number = 4_000;
+
+/*
+ * The budget for looking a write's targets up on the engine (`docker
+ * container|service|node inspect`) before the write runs; never more than
+ * the command's own budget.
+ */
+export const TARGET_LOOKUP_TIMEOUT_MS: number = 10_000;
 export const DOCKER_VERSION_PROBE_ARGS: ReadonlyArray<string> = [
   "version",
   "--format",
@@ -120,6 +143,32 @@ export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   "oneuptime-docker-swarm-agent",
   "oneuptime-docker-swarm-inventory",
   "oneuptime-docker-swarm-ai-agent",
+];
+
+/*
+ * OneUptime's other agents, which may share this engine: the Host AI agent,
+ * the Ceph, Proxmox and VMware collectors and their AI agents (named by
+ * their docker-compose.yml files), and the database agent's collector and
+ * AI agent, which Compose names after the install directory
+ * (<project>-oneuptime-database-agent-1), hence the globs. OneUptime AI
+ * never changes them either.
+ */
+export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
+  // agents/HostAIAgent
+  "oneuptime-host-ai-agent",
+  // agents/CephAgent
+  "oneuptime-ceph-agent",
+  "oneuptime-ceph-ai-agent",
+  // agents/ProxmoxAgent: the collector, its exporter, the AI agent
+  "oneuptime-proxmox-agent",
+  "oneuptime-pve-exporter",
+  "oneuptime-proxmox-ai-agent",
+  // agents/VMwareAgent
+  "oneuptime-vmware-agent",
+  "oneuptime-vmware-ai-agent",
+  // agents/DatabaseAgent: Compose services, one install per database
+  "*oneuptime-database-agent*",
+  "*oneuptime-database-ai-agent*",
 ];
 
 // Labels on the agent's own container that name what it belongs to.
@@ -188,6 +237,8 @@ export interface DockerExecutorSettings {
   // The budget of each posture probe command.
   probeTimeoutMs?: number | undefined;
   ownContainerProbeTimeoutMs?: number | undefined;
+  // The budget of the lookup of a write's targets.
+  targetLookupTimeoutMs?: number | undefined;
 }
 
 // ---- The engine address -----------------------------------------------------
@@ -448,6 +499,284 @@ export function parseOwnContainerInspect(
       : null,
     stackNamespace: labels ? readString(labels[STACK_NAMESPACE_LABEL]) : null,
   };
+}
+
+// ---- What a change really touches --------------------------------------------------
+
+// The kind of object a write names, as `docker KIND inspect` looks it up.
+export type DockerTargetKind = "container" | "service" | "node";
+
+/*
+ * A write's target as the engine resolves it. docker accepts a name, a full
+ * id or any unique id prefix for a container, a service or a node, so the
+ * word a command wrote ("9f8e7d6c5b4a") says nothing about which object it
+ * changes ("oneuptime-docker-agent") until the engine is asked.
+ */
+export interface DockerTargetIdentity {
+  // The target exactly as the command wrote it.
+  target: string;
+  kind: DockerTargetKind;
+  // The engine's full id for it.
+  id: string;
+  /*
+   * The names the object itself goes by: a container's name (without the
+   * leading "/"), a service's name, a node's name and host name.
+   */
+  names: Array<string>;
+  // The swarm service a container is a task of, when it is one.
+  memberOf: Array<string>;
+  /*
+   * What the object's state says about the change (describeDockerTargetStateRefusal);
+   * undefined when the engine did not say.
+   */
+  // A container: State.Running.
+  running?: boolean | undefined;
+  // A container started with --rm (HostConfig.AutoRemove): docker deletes it when it exits.
+  autoRemove?: boolean | undefined;
+  // A container `docker compose run` made (label com.docker.compose.oneoff=True).
+  oneOff?: boolean | undefined;
+  // A service whose Spec.Mode is a job: "replicated-job" or "global-job".
+  jobMode?: string | undefined;
+}
+
+// The label docker compose puts on the containers `docker compose run` makes.
+const COMPOSE_ONE_OFF_LABEL: string = "com.docker.compose.oneoff";
+
+// The Spec.Mode keys of a swarm job service, as the service's mode reads.
+const SWARM_JOB_MODES: ReadonlyArray<[string, string]> = [
+  ["ReplicatedJob", "replicated-job"],
+  ["GlobalJob", "global-job"],
+];
+
+function readBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+// The swarm writes (service update/rollback/scale, node update) name services and nodes; every engine write names containers.
+export function getDockerTargetKind(args: Array<string>): DockerTargetKind {
+  if (args[0] === "service") {
+    return "service";
+  }
+
+  if (args[0] === "node") {
+    return "node";
+  }
+
+  return "container";
+}
+
+function addName(names: Array<string>, value: unknown): void {
+  const name: string | null = readString(value);
+  const bare: string = name ? name.replace(/^\/+/, "") : "";
+
+  if (bare && !names.includes(bare)) {
+    names.push(bare);
+  }
+}
+
+/*
+ * `docker KIND inspect TARGET...`: a JSON array with one object per target,
+ * in the order they were named. Null unless every target is there with an
+ * id — the caller refuses a change it cannot fully identify.
+ */
+export function parseDockerTargetInspect(data: {
+  kind: DockerTargetKind;
+  text: string;
+  targets: Array<string>;
+}): Array<DockerTargetIdentity> | null {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse((data.text || "").trim());
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed) || parsed.length !== data.targets.length) {
+    return null;
+  }
+
+  const identities: Array<DockerTargetIdentity> = [];
+
+  for (let index: number = 0; index < data.targets.length; index++) {
+    const object: Record<string, unknown> | null = asRecord(parsed[index]);
+    const id: string | null = object
+      ? readString(object["Id"]) || readString(object["ID"])
+      : null;
+
+    if (!object || !id) {
+      return null;
+    }
+
+    const names: Array<string> = [];
+    const memberOf: Array<string> = [];
+    const spec: Record<string, unknown> | null = asRecord(object["Spec"]);
+    const state: Pick<
+      DockerTargetIdentity,
+      "running" | "autoRemove" | "oneOff" | "jobMode"
+    > = {};
+
+    if (data.kind === "container") {
+      addName(names, object["Name"]);
+
+      const config: Record<string, unknown> | null = asRecord(object["Config"]);
+      const labels: Record<string, unknown> | null = config
+        ? asRecord(config["Labels"])
+        : null;
+      const containerState: Record<string, unknown> | null = asRecord(
+        object["State"],
+      );
+      const hostConfig: Record<string, unknown> | null = asRecord(
+        object["HostConfig"],
+      );
+
+      if (labels) {
+        addName(memberOf, labels[SWARM_SERVICE_NAME_LABEL]);
+      }
+
+      // Only what the engine said is recorded.
+      const running: boolean | undefined = containerState
+        ? readBoolean(containerState["Running"])
+        : undefined;
+      const autoRemove: boolean | undefined = hostConfig
+        ? readBoolean(hostConfig["AutoRemove"])
+        : undefined;
+
+      if (running !== undefined) {
+        state.running = running;
+      }
+
+      if (autoRemove !== undefined) {
+        state.autoRemove = autoRemove;
+      }
+
+      if (
+        labels &&
+        (readString(labels[COMPOSE_ONE_OFF_LABEL]) || "").toLowerCase() ===
+          "true"
+      ) {
+        state.oneOff = true;
+      }
+    } else if (data.kind === "service") {
+      addName(names, spec ? spec["Name"] : undefined);
+
+      const mode: Record<string, unknown> | null = spec
+        ? asRecord(spec["Mode"])
+        : null;
+      const job: [string, string] | undefined = mode
+        ? SWARM_JOB_MODES.find(([key]: [string, string]): boolean => {
+            return mode[key] !== undefined && mode[key] !== null;
+          })
+        : undefined;
+
+      if (job) {
+        state.jobMode = job[1];
+      }
+    } else {
+      const description: Record<string, unknown> | null = asRecord(
+        object["Description"],
+      );
+
+      addName(names, spec ? spec["Name"] : undefined);
+      addName(names, description ? description["Hostname"] : undefined);
+    }
+
+    identities.push({
+      target: data.targets[index] || "",
+      kind: data.kind,
+      id,
+      names,
+      memberOf,
+      ...state,
+    });
+  }
+
+  return identities;
+}
+
+// The container verbs a stop, a start, as the policy names them (its result's verb).
+const CONTAINER_STOP_VERBS: ReadonlyArray<string> = [
+  "stop",
+  "container stop",
+  "kill",
+  "container kill",
+];
+const CONTAINER_START_VERBS: ReadonlyArray<string> = [
+  "start",
+  "container start",
+  "restart",
+  "container restart",
+];
+// Every service write: each one starts a job service's tasks over.
+const SERVICE_WRITE_VERBS: ReadonlyArray<string> = [
+  "service update",
+  "service scale",
+  "service rollback",
+];
+
+/*
+ * Why the state of the object a write resolved to makes the write something
+ * other than the policy's tier says, or null. The policy judges the words;
+ * only the engine knows these:
+ *   - stop or kill of a container started with --rm (AutoRemove): docker
+ *     deletes the container, and its anonymous volumes, the moment it
+ *     exits — the deletion OneUptime AI never makes (docker rm is refused),
+ *     and nothing could start it again;
+ *   - start or restart of a one-off container (`docker compose run`) that
+ *     is not running: it runs its command again from the start — a
+ *     migration, a backup, a reset — which, like re-running a Kubernetes
+ *     Job, is left to a human;
+ *   - an update, scale or rollback of a swarm job service (replicated-job,
+ *     global-job): each one runs the job again (`docker service update
+ *     --force JOB` is docker's own way to re-run one).
+ * The agent cannot tell whether a person approved the command, so it
+ * refuses these outright and says what to do by hand.
+ */
+export function describeDockerTargetStateRefusal(data: {
+  verb: string;
+  displayCommand: string;
+  identity: DockerTargetIdentity;
+}): string | null {
+  const identity: DockerTargetIdentity = data.identity;
+  const shown: string = describeDockerTargetIdentity(identity);
+
+  if (identity.kind === "container") {
+    if (
+      CONTAINER_STOP_VERBS.includes(data.verb) &&
+      identity.autoRemove === true
+    ) {
+      return `${shown} was started with --rm (AutoRemove), so "${data.displayCommand}" would not just stop it: docker deletes the container, and its anonymous volumes with it, the moment it exits, and nothing could start it again. OneUptime AI never deletes a container; leave this change to a human.`;
+    }
+
+    if (
+      CONTAINER_START_VERBS.includes(data.verb) &&
+      identity.oneOff === true &&
+      identity.running !== true
+    ) {
+      return `${shown} is a one-off container (docker compose run) that is not running, so "${data.displayCommand}" would run its command again from the start. Re-running a one-off job (a migration, a backup, a reset) is left to a human.`;
+    }
+  }
+
+  if (
+    identity.kind === "service" &&
+    identity.jobMode !== undefined &&
+    SERVICE_WRITE_VERBS.includes(data.verb)
+  ) {
+    return `${shown} is a ${identity.jobMode} service, so "${data.displayCommand}" would run the job again: an update, a scale or a rollback of a job service starts its tasks over. Re-running a job is left to a human.`;
+  }
+
+  return null;
+}
+
+// "the container oneuptime-docker-agent (9f8e7d6c5b4a)", for a refusal.
+export function describeDockerTargetIdentity(
+  identity: DockerTargetIdentity,
+): string {
+  const shortId: string = identity.id.slice(0, 12);
+
+  return identity.names.length > 0
+    ? `the ${identity.kind} ${identity.names.join(" / ")} (${shortId})`
+    : `the ${identity.kind} ${shortId}`;
 }
 
 // ---- What the engine says about itself ------------------------------------------
@@ -721,6 +1050,7 @@ export default class DockerExecutor implements ResourceExecutor {
   private readonly procRoot: string;
   private readonly probeTimeoutMs: number;
   private readonly ownContainerProbeTimeoutMs: number;
+  private readonly targetLookupTimeoutMs: number;
 
   // undefined until /proc has been read; null when no container id was found.
   private ownContainerId: string | null | undefined = undefined;
@@ -746,6 +1076,8 @@ export default class DockerExecutor implements ResourceExecutor {
     this.probeTimeoutMs = settings.probeTimeoutMs ?? PROBE_TIMEOUT_MS;
     this.ownContainerProbeTimeoutMs =
       settings.ownContainerProbeTimeoutMs ?? OWN_CONTAINER_PROBE_TIMEOUT_MS;
+    this.targetLookupTimeoutMs =
+      settings.targetLookupTimeoutMs ?? TARGET_LOOKUP_TIMEOUT_MS;
   }
 
   public getDockerBinary(): string {
@@ -800,7 +1132,8 @@ export default class DockerExecutor implements ResourceExecutor {
   /*
    * What OneUptime AI never changes through this agent: its own container
    * (id, name, swarm service), OneUptime's docker-family agent containers
-   * (and, in a stack, their services), and ONEUPTIME_AI_PROTECTED_TARGETS.
+   * (and, in a stack, their services), OneUptime's other agent containers
+   * on this engine, and ONEUPTIME_AI_PROTECTED_TARGETS.
    * prepare() enforces exactly this list; probePosture() reports it.
    */
   public getProtectedTargets(): Array<string> {
@@ -830,6 +1163,7 @@ export default class DockerExecutor implements ResourceExecutor {
       own,
       [...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES],
       stackNames,
+      [...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES],
       this.options.config.protectedTargets,
     );
   }
@@ -943,7 +1277,10 @@ export default class DockerExecutor implements ResourceExecutor {
     try {
       return this.getProtectedTargets();
     } catch {
-      return mergeTargets([...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES]);
+      return mergeTargets(
+        [...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES],
+        [...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES],
+      );
     }
   }
 
@@ -958,6 +1295,20 @@ export default class DockerExecutor implements ResourceExecutor {
   ): Promise<ExecResult> {
     try {
       const apiVersion: string | null = readDockerApiVersion(this.options.env);
+
+      if (guarded.tier !== ResourceCommandTier.Read) {
+        const refusal: string | null = await this.checkResolvedTargets({
+          guarded,
+          dockerHost,
+          apiVersion,
+        });
+
+        if (refusal !== null) {
+          // No exit code: the server reads it as never ran.
+          return { success: false, output: "", errorMessage: refusal };
+        }
+      }
+
       const captured: SandboxCapture = await this.capture({
         args: guarded.args,
         dockerHost,
@@ -1005,6 +1356,156 @@ export default class DockerExecutor implements ResourceExecutor {
         }`,
       };
     }
+  }
+
+  /*
+   * What a write really changes, checked right before it runs. The policy's
+   * targets are the words as written, and docker also resolves an id or any
+   * unique id prefix ("9f8e7d6c5b4a" restarts the collector as surely as
+   * "oneuptime-docker-agent" does; a swarm service or node goes by its id
+   * too). So each target is looked up on the engine (`docker
+   * container|service|node inspect`) and its id and every name it goes by —
+   * and, for a container, the swarm service it is a task of — are held to
+   * the protected targets; with ONEUPTIME_AI_WRITE_TARGETS set, one of the
+   * object's own names must be inside it too. A target the engine cannot
+   * resolve is refused: the agent never changes what it cannot identify.
+   * The refusal (or null) is returned, never thrown.
+   */
+  private async checkResolvedTargets(data: {
+    guarded: GuardedCommand;
+    dockerHost: string;
+    apiVersion: string | null;
+  }): Promise<string | null> {
+    const guarded: GuardedCommand = data.guarded;
+    const refused: string = refusalPrefix(guarded.resourceType);
+    const targets: Array<string> = [];
+
+    for (const target of Array.isArray(guarded.policy.targets)
+      ? guarded.policy.targets
+      : []) {
+      if (typeof target === "string" && target && !targets.includes(target)) {
+        targets.push(target);
+      }
+    }
+
+    if (targets.length === 0) {
+      return null;
+    }
+
+    const kind: DockerTargetKind = getDockerTargetKind(guarded.args);
+    const captured: SandboxCapture = await this.capture({
+      args: [kind, "inspect", ...targets],
+      dockerHost: data.dockerHost,
+      apiVersion: data.apiVersion,
+      timeoutInMs: Math.max(
+        1,
+        Math.min(this.targetLookupTimeoutMs, guarded.timeoutInMs),
+      ),
+    });
+    const identities: Array<DockerTargetIdentity> | null = isCleanExit(captured)
+      ? parseDockerTargetInspect({ kind, text: captured.stdout, targets })
+      : null;
+
+    if (!identities) {
+      const said: string = lastStderrLine(
+        redactOutput({
+          resourceType: guarded.resourceType,
+          program: DOCKER_PROGRAM,
+          text: captured.stderr,
+        }),
+      );
+
+      return `${refused}: "${guarded.displayCommand}" changes ${targets.join(
+        ", ",
+      )}, and the agent could not look up which ${kind}${
+        targets.length === 1 ? "" : "s"
+      } docker resolves ${targets.length === 1 ? "it" : "them"} to${
+        said ? ` (docker ${kind} inspect: ${said})` : ""
+      }. A name, an id and an id prefix all work in docker, so it checks what a change really touches before running it, and runs no change it cannot check.`;
+    }
+
+    const policy: GuardPolicy =
+      this.options.guardPolicy || DEFAULT_GUARD_POLICY;
+    const protectedTargets: Array<string> = mergeTargets(
+      this.options.config.protectedTargets,
+      this.getProtectedTargets(),
+    );
+    const writeTargets: Array<string> = this.options.config.writeTargets || [];
+
+    // Where the write scope stops a write to this one name, or null.
+    const scopeRefusal: (
+      name: string,
+      scope: { writeTargets: Array<string>; protectedTargets: Array<string> },
+    ) => string | null = (
+      name: string,
+      scope: { writeTargets: Array<string>; protectedTargets: Array<string> },
+    ): string | null => {
+      try {
+        return policy.getWriteScopeRefusal({
+          result: { ...guarded.policy, targets: [name] },
+          allowWrites: true,
+          writeTargets: scope.writeTargets,
+          protectedTargets: scope.protectedTargets,
+          resourceType: guarded.resourceType,
+        });
+      } catch {
+        return `the write scope could not be checked for ${name}, so "${guarded.displayCommand}" does not run.`;
+      }
+    };
+
+    for (const identity of identities) {
+      const shown: string = describeDockerTargetIdentity(identity);
+
+      for (const name of [
+        identity.id,
+        ...identity.names,
+        ...identity.memberOf,
+      ]) {
+        const refusal: string | null = scopeRefusal(name, {
+          writeTargets: [],
+          protectedTargets,
+        });
+
+        if (refusal) {
+          return `${refused}: docker resolves ${identity.target} to ${shown}. ${refusal}`;
+        }
+      }
+
+      if (writeTargets.length === 0) {
+        continue;
+      }
+
+      const ownNames: Array<string> =
+        identity.names.length > 0 ? identity.names : [identity.id];
+      const inScope: boolean = ownNames.some((name: string): boolean => {
+        return (
+          scopeRefusal(name, { writeTargets, protectedTargets: [] }) === null
+        );
+      });
+
+      if (!inScope) {
+        return `${refused}: docker resolves ${identity.target} to ${shown}, which is outside the targets the ${getAgentDisplayName(
+          guarded.resourceType,
+        )} may change (${RESOURCE_AI_WRITE_TARGETS_ENV}=${writeTargets.join(
+          ",",
+        )}). Add it to ${RESOURCE_AI_WRITE_TARGETS_ENV} on the agent and restart it, or leave this change to a human.`;
+      }
+    }
+
+    // What the objects' state makes of the change (--rm containers, one-offs, jobs).
+    for (const identity of identities) {
+      const stateRefusal: string | null = describeDockerTargetStateRefusal({
+        verb: guarded.policy.verb,
+        displayCommand: guarded.displayCommand,
+        identity,
+      });
+
+      if (stateRefusal !== null) {
+        return `${refused}: ${stateRefusal}`;
+      }
+    }
+
+    return null;
   }
 
   // What silence until the kill means (describeKill's hint).

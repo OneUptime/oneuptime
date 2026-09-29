@@ -19,6 +19,7 @@ import ResourceAiAgentService, {
   MAX_NEW_RESOURCE_AI_AGENTS_PER_PROJECT_PER_HOUR,
   MAX_RESOURCE_AI_AGENTS_PER_PROJECT,
   MAX_RESOURCE_AI_AGENT_IDENTIFIER_LENGTH,
+  RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS,
   RESOURCE_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS,
   RESOURCE_AI_AGENT_SELECT_WITHOUT_KEY,
   ResourceAiAgentRegistrationRefusedException,
@@ -238,6 +239,7 @@ interface Harness {
   feed: SpyCalls;
   agentFindOneBy: SpyCalls;
   agentCountBy: SpyCalls;
+  agentDeleteBy: SpyCalls;
   agentCreate: SpyCalls;
   agentUpdateOneById: SpyCalls;
   agentUpdateColumns: SpyCalls;
@@ -248,6 +250,8 @@ interface HarnessOptions {
   resource?: AnyObject | null;
   existing?: ResourceAiAgent | null;
   totalAgents?: number;
+  // How many of totalAgents were not heard from in the reclaim window.
+  longOfflineAgents?: number;
   agentsInLastHour?: number;
   resourceUpdateCount?: number;
 }
@@ -269,6 +273,8 @@ function setUp(options: HarnessOptions = {}): Harness {
 
   const found: AnyObject = { _id: RESOURCE_ID.toString() };
   Object.defineProperty(found, "id", { value: RESOURCE_ID });
+
+  let reclaimed: number = 0;
 
   return {
     findOrCreate: jest
@@ -306,8 +312,14 @@ function setUp(options: HarnessOptions = {}): Harness {
         return new PositiveNumber(
           countBy.query["createdAt"] !== undefined
             ? options.agentsInLastHour || 0
-            : options.totalAgents || 0,
+            : (options.totalAgents || 0) - reclaimed,
         );
+      }) as unknown as SpyCalls,
+    agentDeleteBy: jest
+      .spyOn(ResourceAiAgentService, "deleteBy")
+      .mockImplementation(async () => {
+        reclaimed = options.longOfflineAgents || 0;
+        return reclaimed;
       }) as unknown as SpyCalls,
     agentCreate: jest
       .spyOn(ResourceAiAgentService, "create")
@@ -594,6 +606,67 @@ describe("register: resolving the resource of every named type", () => {
     nothingWrittenToTheAgentTable(harness);
   });
 
+  /*
+   * HostService memoizes a host's id for a minute, and a delete does not
+   * clear the memo: an agent registering again right after its host was
+   * deleted gets the deleted id first. It is resolved once more past the
+   * memo (which creates the host anew), not refused for five minutes.
+   */
+  test("a resource deleted since its id was memoized is resolved once more, past the memo", async () => {
+    const HOST: TypeFixture = NAMED_TYPES.find((fixture: TypeFixture) => {
+      return fixture.resourceType === AiResourceType.Host;
+    })!;
+    const harness: Harness = setUp({ fixture: HOST });
+    const recreatedId: ObjectID = new ObjectID(
+      "66666666-6666-4666-8666-666666666666",
+    );
+    const recreated: AnyObject = { _id: recreatedId.toString() };
+    Object.defineProperty(recreated, "id", { value: recreatedId });
+    const stale: AnyObject = { _id: RESOURCE_ID.toString() };
+    Object.defineProperty(stale, "id", { value: RESOURCE_ID });
+
+    (
+      harness.findOrCreate as unknown as {
+        mockImplementation: (
+          fn: (data: AnyObject) => Promise<AnyObject>,
+        ) => void;
+      }
+    ).mockImplementation(async (data: AnyObject) => {
+      return data["bypassMemo"] ? recreated : stale;
+    });
+    (
+      harness.resourceFindOneBy as unknown as {
+        mockImplementation: (
+          fn: (findBy: AnyObject) => Promise<AnyObject | null>,
+        ) => void;
+      }
+    ).mockImplementation(async (findBy: AnyObject) => {
+      return findBy["query"]["_id"] === recreatedId.toString()
+        ? makeResourceRow({ _id: recreatedId.toString(), name: "node-7" })
+        : null;
+    });
+
+    const result: ResourceAiAgentRegistrationResult = await register({
+      resourceType: AiResourceType.Host,
+      resourceIdentifier: "node-7",
+    });
+
+    expect(harness.findOrCreate.mock.calls).toHaveLength(2);
+    expect(harness.findOrCreate.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      hostIdentifier: "node-7",
+    });
+    expect(harness.findOrCreate.mock.calls[1]![0]).toEqual({
+      projectId: PROJECT_ID,
+      hostIdentifier: "node-7",
+      bypassMemo: true,
+    });
+    expect(result.resourceId.toString()).toBe(recreatedId.toString());
+    expect(createdRow(harness).resourceId!.toString()).toBe(
+      recreatedId.toString(),
+    );
+  });
+
   test("a find-or-create failure is not dressed up as a refusal", async () => {
     const harness: Harness = setUp();
     (
@@ -770,6 +843,9 @@ describe("register: a database server", () => {
       agentCountBy: jest
         .spyOn(ResourceAiAgentService, "countBy")
         .mockResolvedValue(new PositiveNumber(0)) as unknown as SpyCalls,
+      agentDeleteBy: jest
+        .spyOn(ResourceAiAgentService, "deleteBy")
+        .mockResolvedValue(0) as unknown as SpyCalls,
       agentCreate: jest
         .spyOn(ResourceAiAgentService, "create")
         .mockImplementation(async (createBy: { data: ResourceAiAgent }) => {
@@ -894,6 +970,19 @@ describe("register: a database server", () => {
     expect(createdRow(harness).resourceIdentifier).toBe(
       "postgres|db.prod.example.com:5432",
     );
+  });
+
+  /*
+   * A registration (every restart, every refused retry of a duplicate) is
+   * no sign the database is in use: it must not restore a database
+   * discovery archived for going quiet, as a collector's report does.
+   */
+  test("an endpoint lookup is not a sighting of the database", async () => {
+    const harness: DatabaseHarness = setUpDatabase();
+
+    await registerDatabase();
+
+    expect(endpointCall(harness)["isSighting"]).toBe(false);
   });
 
   test("an endpoint without a port takes the engine's default port", async () => {
@@ -1430,6 +1519,97 @@ describe("register: agent_cap_reached", () => {
   test("the caps match the Kubernetes AI agent's", () => {
     expect(MAX_RESOURCE_AI_AGENTS_PER_PROJECT).toBe(250);
     expect(MAX_NEW_RESOURCE_AI_AGENTS_PER_PROJECT_PER_HOUR).toBe(30);
+  });
+
+  /*
+   * Hosts come and go (an autoscaled fleet names every machine anew) while
+   * their resources, and so their agent rows, stay: rows of agents gone
+   * quiet long ago must not lock every later machine out for good.
+   */
+  test(`at the cap, agents not heard from in ${RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS} days make room, and the new agent is admitted`, async () => {
+    const harness: Harness = setUp({
+      totalAgents: MAX_RESOURCE_AI_AGENTS_PER_PROJECT,
+      longOfflineAgents: 3,
+    });
+
+    const result: ResourceAiAgentRegistrationResult = await register();
+
+    expect(result.admission).toBe("created");
+    expect(harness.agentCreate.mock.calls).toHaveLength(1);
+
+    expect(harness.agentDeleteBy.mock.calls).toHaveLength(1);
+    const reclaim: { query: AnyObject; props: AnyObject } = harness
+      .agentDeleteBy.mock.calls[0]![0] as {
+      query: AnyObject;
+      props: AnyObject;
+    };
+    expect(Object.keys(reclaim.query).sort()).toEqual([
+      "lastAliveAt",
+      "projectId",
+    ]);
+    expect(reclaim.query["projectId"]).toBe(PROJECT_ID);
+    expect(reclaim.query["lastAliveAt"]).toBeInstanceOf(FindOperator);
+    const cutoff: Date | undefined = Object.values(
+      (reclaim.query["lastAliveAt"] as AnyObject)["_objectLiteralParameters"] ||
+        {},
+    ).find((value: unknown): boolean => {
+      return value instanceof Date;
+    }) as Date | undefined;
+    expect(cutoff).toBeDefined();
+    expect(
+      Math.abs(
+        Date.now() -
+          RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS * 24 * 60 * 60 * 1000 -
+          cutoff!.getTime(),
+      ),
+    ).toBeLessThan(60 * 1000);
+    expect(reclaim.props["isRoot"]).toBe(true);
+  });
+
+  test("at the cap with no long-offline agent, the refusal stands (and says how room is made)", async () => {
+    const harness: Harness = setUp({
+      totalAgents: MAX_RESOURCE_AI_AGENTS_PER_PROJECT,
+      longOfflineAgents: 0,
+    });
+
+    const refusal: ResourceAiAgentRegistrationRefusedException =
+      await refusalOf(register());
+
+    expect(refusal.reason).toBe("agent_cap_reached");
+    expect(refusal.message).toContain(
+      `not heard from in ${RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS} days`,
+    );
+    expect(harness.agentDeleteBy.mock.calls).toHaveLength(1);
+    nothingWrittenToTheAgentTable(harness);
+  });
+
+  test("a failure to reclaim never turns the refusal into a server error", async () => {
+    const harness: Harness = setUp({
+      totalAgents: MAX_RESOURCE_AI_AGENTS_PER_PROJECT,
+    });
+    (
+      harness.agentDeleteBy as unknown as {
+        mockRejectedValue: (error: Error) => void;
+      }
+    ).mockRejectedValue(new Error("database is down"));
+
+    const refusal: ResourceAiAgentRegistrationRefusedException =
+      await refusalOf(register());
+
+    expect(refusal.reason).toBe("agent_cap_reached");
+    nothingWrittenToTheAgentTable(harness);
+  });
+
+  test("under the cap nothing is reclaimed", async () => {
+    const harness: Harness = setUp({
+      totalAgents: MAX_RESOURCE_AI_AGENTS_PER_PROJECT - 1,
+      longOfflineAgents: 5,
+    });
+
+    await register();
+
+    expect(harness.agentDeleteBy.mock.calls).toHaveLength(0);
+    expect(harness.agentCreate.mock.calls).toHaveLength(1);
   });
 });
 

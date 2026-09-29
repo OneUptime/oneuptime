@@ -28,6 +28,7 @@ import Response from "../../../Server/Utils/Response";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -354,6 +355,7 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
   let runnerFindSpy: jest.SpyInstance;
   let statusSpy: jest.SpyInstance;
   let clusterStatusSpy: jest.SpyInstance;
+  let mayChangeSpy: jest.SpyInstance;
 
   beforeAll(async () => {
     // Routes register at module scope, after the mock router exists.
@@ -408,6 +410,11 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
     statusSpy = jest
       .spyOn(ResourceAiAccessService, "getStatusForResource")
       .mockResolvedValue(resourceStatus());
+
+    // The approver may edit every resource unless a test says otherwise.
+    mayChangeSpy = jest
+      .spyOn(ResourceAiAccessService, "assertCallerMayChangeResource")
+      .mockResolvedValue(undefined);
 
     clusterStatusSpy = jest.spyOn(
       KubernetesClusterAiAccessService,
@@ -744,6 +751,85 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
 
       expectClaimedAndExecuted(await callApprove());
       expect(statusSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * The plan runs on the resource as root, so being allowed to start
+   * runbooks is not enough: the approver must be allowed to EDIT every
+   * resource the plan changes (its update ACL, label-scoped blocks
+   * included — ResourceAiAccessService.assertCallerMayChangeResource).
+   */
+  describe("the approver may change the resource", () => {
+    test("checks the approver's own props against each resource the plan changes, once", async () => {
+      mockRow(
+        resourceRoundRow([
+          resourceCommandJson(),
+          resourceCommandJson({ sequence: 2, command: "docker restart web" }),
+        ]),
+      );
+
+      expectClaimedAndExecuted(await callApprove());
+
+      expect(mayChangeSpy).toHaveBeenCalledTimes(1);
+      const args: {
+        props: DatabaseCommonInteractionProps;
+        projectId: ObjectID;
+        resourceType: AiResourceType;
+        resourceId: ObjectID;
+      } = mayChangeSpy.mock.calls[0]![0];
+      expect(args.props.userId?.toString()).toBe(USER_ID.toString());
+      expect(args.props.isRoot).toBeFalsy();
+      expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(args.resourceType).toBe(AiResourceType.DockerHost);
+      expect(args.resourceId.toString()).toBe(RESOURCE_ID);
+    });
+
+    test("refuses before claiming the plan when the approver may not edit the resource", async () => {
+      mayChangeSpy.mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to edit this database server, so you cannot approve an AI plan that changes it.",
+        ),
+      );
+
+      const result: RouteCallResult = await callApprove();
+
+      expect(result.nextCallCount).toBe(1);
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(casSpy).not.toHaveBeenCalled();
+      expect(executeApprovedPlanMock).not.toHaveBeenCalled();
+      expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+    });
+
+    test("a plan with no resource command checks no resource", async () => {
+      mockRow(
+        resourceRoundRow(
+          [
+            {
+              sequence: 1,
+              stepType: RunbookStepType.Bash,
+              runnerId: RUNNER_ID,
+              runnerNameSnapshot: "web-runner-1",
+              command: "systemctl restart nginx",
+              timeoutInMs: 30000,
+              rationale: "r",
+              expectedEffect: "e",
+              policyVerdict: "RequiresApproval",
+            } as JSONObject,
+          ],
+          {
+            resourceType: undefined,
+            resourceId: undefined,
+            autoRemediationRuleId: RULE_ID,
+          },
+        ),
+      );
+      projectFindSpy.mockResolvedValue(
+        fakeProject({ enableAiCommandExecution: true }),
+      );
+
+      expectClaimedAndExecuted(await callApprove());
+      expect(mayChangeSpy).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import PrepareGuard, {
+  DEFAULT_GUARD_POLICY,
   GuardResult,
   GuardedCommand,
   mergeTargets,
@@ -9,6 +10,7 @@ import PrepareGuard, {
 import {
   ExecResult,
   ExecutorOptions,
+  GuardPolicy,
   PrepareResult,
   ResourceCommandRequest,
   ResourceExecutor,
@@ -53,6 +55,9 @@ import { ResourceCommandTier } from "../Common/Types/ResourceAiAgent/ResourceAiA
  *     own process and its ancestors (pid:N — the pids are the host's, as
  *     the agent shares the host's pid namespace), plus
  *     ONEUPTIME_AI_PROTECTED_TARGETS;
+ *   - a process a write names (kill's pid:N) is refused when a unit it
+ *     runs in (/proc/N/cgroup) is protected: killing dockerd stops
+ *     docker.service as surely as systemctl stop would;
  *   - the program is a bare name (the policy's list, never a path), looked
  *     up on a fixed standard PATH inside the host's mount namespace;
  *   - nothing runs unless pid 1 really is the HOST's init: the agent runs
@@ -448,6 +453,37 @@ export function parseProcStatParentPid(stat: string): number | null {
   const ppid: number = Number(fields[1]);
 
   return Number.isInteger(ppid) && ppid >= 0 ? ppid : null;
+}
+
+// A write's process target, as the policy names it.
+const PID_TARGET_PATTERN: RegExp = /^pid:([0-9]+)$/;
+
+// A systemd unit name in a cgroup path step.
+const CGROUP_UNIT_STEP_PATTERN: RegExp =
+  /^[A-Za-z0-9:_.@\\-]+\.(?:service|scope|socket|slice|mount|swap|target|timer|path|automount)$/;
+
+/*
+ * The systemd units a process lives in, from /proc/<pid>/cgroup: every step
+ * of its cgroup path that names a unit — "0::/system.slice/docker.service"
+ * is docker.service (and system.slice); cgroup v1 lines and the "../.."
+ * steps of a private cgroup namespace read the same way. Empty when the
+ * text names none.
+ */
+export function parseProcCgroupUnits(text: string): Array<string> {
+  const units: Array<string> = [];
+
+  for (const line of (text || "").split("\n")) {
+    // hierarchy-id:controllers:path
+    const cgroupPath: string = line.split(":").slice(2).join(":").trim();
+
+    for (const step of cgroupPath.split("/")) {
+      if (CGROUP_UNIT_STEP_PATTERN.test(step) && !units.includes(step)) {
+        units.push(step);
+      }
+    }
+  }
+
+  return units;
 }
 
 // The systemd version from `systemctl --version`, or null.
@@ -883,6 +919,15 @@ export default class HostExecutor implements ResourceExecutor {
       return { refusal: `${refused}: ${problem}` };
     }
 
+    if (guarded.tier !== ResourceCommandTier.Read) {
+      const processRefusal: string | null =
+        this.getProtectedProcessRefusal(guarded);
+
+      if (processRefusal) {
+        return { refusal: `${refused}: ${processRefusal}` };
+      }
+    }
+
     return {
       refusal: null,
       displayCommand: guarded.displayCommand,
@@ -891,6 +936,68 @@ export default class HostExecutor implements ResourceExecutor {
         return this.run(guarded);
       },
     };
+  }
+
+  /*
+   * A write to a process (kill's pid:N) changes the unit that process runs
+   * in as surely as a systemctl command would: `kill -KILL <dockerd's pid>`
+   * stops docker.service. So each pid a write names is looked up in the
+   * host's /proc (the agent shares the host's pid namespace) and refused
+   * when a unit it lives in is protected — the collector, OneUptime's units,
+   * the engine the agent runs in, ONEUPTIME_AI_PROTECTED_TARGETS. A pid
+   * whose cgroup cannot be read (no such process) is refused too: the agent
+   * does not change what it cannot identify. Null when every pid may be
+   * changed.
+   */
+  private getProtectedProcessRefusal(guarded: GuardedCommand): string | null {
+    const policy: GuardPolicy =
+      this.options.guardPolicy || DEFAULT_GUARD_POLICY;
+    const protectedTargets: Array<string> = mergeTargets(
+      this.options.config.protectedTargets,
+      this.getProtectedTargetsSafely(),
+    );
+    const targets: Array<string> = Array.isArray(guarded.policy.targets)
+      ? guarded.policy.targets
+      : [];
+
+    for (const target of targets) {
+      const match: RegExpExecArray | null = PID_TARGET_PATTERN.exec(
+        typeof target === "string" ? target : "",
+      );
+
+      if (!match) {
+        continue;
+      }
+
+      const pid: string = match[1] || "";
+      const cgroup: string = this.readProcFile(`${pid}/cgroup`);
+
+      if (!cgroup.trim()) {
+        return `"${guarded.displayCommand}" would change process ${pid}, and the agent could not read which unit it runs in (/proc/${pid}/cgroup): there is no such process on the host, or it cannot be seen from here. It never changes a process it cannot identify.`;
+      }
+
+      for (const unit of parseProcCgroupUnits(cgroup)) {
+        let refusal: string | null;
+
+        try {
+          refusal = policy.getWriteScopeRefusal({
+            result: { ...guarded.policy, targets: [unit] },
+            allowWrites: true,
+            writeTargets: [],
+            protectedTargets,
+            resourceType: guarded.resourceType,
+          });
+        } catch {
+          refusal = `the write scope could not be checked for ${unit}, so it does not run.`;
+        }
+
+        if (refusal) {
+          return `process ${pid} runs in ${unit}. ${refusal}`;
+        }
+      }
+    }
+
+    return null;
   }
 
   public async probePosture(): Promise<ResourcePostureProbe> {

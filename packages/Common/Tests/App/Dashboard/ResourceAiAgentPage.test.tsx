@@ -537,8 +537,13 @@ describe("the agent card", () => {
       hostIdentifier: true,
     });
 
+    // No installer creates a Docker agent directory: never `cd` into one.
     expect(codeIn(screen.getByTestId("ai-agent-install-start"))).toBe(
-      "cd /opt/oneuptime-docker-agent\ndocker compose up -d oneuptime-docker-ai-agent",
+      "# In the directory of your docker-compose.yml:\ndocker compose up -d oneuptime-docker-ai-agent",
+    );
+    // install.sh, the usual way, comes first.
+    expect(screen.getByTestId("ai-agent-install-where")).toHaveTextContent(
+      /^Installed the Docker agent with install\.sh\? Run it again/,
     );
     expect(
       screen.getByTestId("ai-agent-install-variable-DOCKER_HOST_NAME"),
@@ -548,7 +553,7 @@ describe("the agent card", () => {
     ).toHaveTextContent("false");
     expect(
       screen.getByTestId("ai-agent-install-prerequisites"),
-    ).toHaveTextContent("install.sh");
+    ).toHaveTextContent("docker run");
     expect(
       screen.queryByTestId("ai-agent-test-button"),
     ).not.toBeInTheDocument();
@@ -1044,8 +1049,26 @@ describe("What AI may do", () => {
       commands.restartCommand,
     );
     expect(
-      screen.getByTestId("ai-access-write-installer-note"),
-    ).toHaveTextContent("install.sh");
+      codeIn(screen.getByTestId("ai-access-write-restart-command")),
+    ).not.toContain("cd /opt/");
+    const installerNote: HTMLElement = screen.getByTestId(
+      "ai-access-write-installer-note",
+    );
+    const envIntro: HTMLElement = screen.getByTestId(
+      "ai-access-write-env-intro",
+    );
+    expect(installerNote).toHaveTextContent(commands.installerNote!);
+    expect(envIntro).toHaveTextContent(commands.envIntro);
+    // install.sh, the usual way, before the Compose way.
+    expect(
+      installerNote.compareDocumentPosition(envIntro) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      installerNote.compareDocumentPosition(
+        screen.getByTestId("ai-access-write-scoped-env"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByTestId("ai-access-write-disclosure")).toHaveTextContent(
       getResourceAiAgentWriteDisclosure(AiResourceType.DockerHost),
     );

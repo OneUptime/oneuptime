@@ -1,3 +1,4 @@
+import net from "net";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -35,6 +36,18 @@ export const ONEUPTIME_URL_ENV: string = "ONEUPTIME_URL";
 export const POLL_INTERVAL_ENV: string = "ONEUPTIME_AI_AGENT_POLL_INTERVAL_MS";
 export const HEARTBEAT_INTERVAL_ENV: string =
   "ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS";
+/*
+ * The address the health server listens on. Loopback by default: every
+ * check (the compose healthcheck, `docker exec ... wget 127.0.0.1`, `curl
+ * 127.0.0.1` on a host-network agent) runs on the agent's own network
+ * namespace, and /status names the agent, its resource and its write
+ * settings — which, for an agent on the host's network (the Host AI agent,
+ * or a collector's with network_mode: host), would otherwise be served on
+ * every interface of the host. 0.0.0.0 (or ::) serves it everywhere, to
+ * publish the port.
+ */
+export const HEALTH_HOST_ENV: string = "ONEUPTIME_AI_AGENT_HEALTH_HOST";
+export const DEFAULT_HEALTH_HOST: string = "127.0.0.1";
 /*
  * Extra targets (comma-separated globs) OneUptime AI must never change, on
  * top of the ones the executor finds itself (the agent's own container, the
@@ -108,6 +121,8 @@ export interface AgentConfig {
   // PROTECTED_TARGETS_ENV, parsed the same way.
   protectedTargets: Array<string>;
   port: number;
+  // HEALTH_HOST_ENV: an IP address (DEFAULT_HEALTH_HOST when unset or not one).
+  healthHost: string;
   pollIntervalMs: number;
   heartbeatIntervalMs: number;
   // This build's version (APP_VERSION, set in the image), or null.
@@ -248,6 +263,35 @@ export function parsePort(value: string | undefined): number {
     : DEFAULT_PORT;
 }
 
+/*
+ * HEALTH_HOST_ENV as the address to listen on, and what is wrong with it: an
+ * IPv4 or IPv6 address (brackets allowed), else DEFAULT_HEALTH_HOST — a
+ * name or a typo must neither stop the health server from starting nor
+ * open it wider than asked.
+ */
+export function parseHealthHost(value: string | undefined): {
+  host: string;
+  problem: string | null;
+} {
+  const raw: string = (value || "").trim();
+
+  if (!raw) {
+    return { host: DEFAULT_HEALTH_HOST, problem: null };
+  }
+
+  const address: string =
+    raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw;
+
+  if (net.isIP(address) !== 0) {
+    return { host: address, problem: null };
+  }
+
+  return {
+    host: DEFAULT_HEALTH_HOST,
+    problem: `${HEALTH_HOST_ENV}="${raw}" is not an IP address, so the health server listens on ${DEFAULT_HEALTH_HOST}. Set it to an address such as 0.0.0.0 to serve it on every interface.`,
+  };
+}
+
 // A TCP port 1-65535 written in digits, or null.
 export function parseTcpPort(value: string | undefined): number | null {
   const raw: string = (value || "").trim();
@@ -318,20 +362,64 @@ export function formatDatabaseHost(host: string): string {
   return value.includes(":") ? `[${value}]` : value;
 }
 
+// "host:port" (a host name, IPv4 or SQL Server "host\instance", no IPv6).
+const DATABASE_HOST_WITH_PORT_PATTERN: RegExp = /^([^:[\],]+):(\d+)$/;
+// "[v6]" or "[v6]:port".
+const DATABASE_BRACKETED_HOST_PATTERN: RegExp = /^\[([^\]]+)\](?::(\d+))?$/;
+// SQL Server's "host,port".
+const DATABASE_HOST_COMMA_PORT_PATTERN: RegExp = /^([^,:[\]]+),\s*(\d+)$/;
+
+/*
+ * DATABASE_SERVER_ADDRESS and DATABASE_SERVER_PORT as the endpoint the
+ * collector's own telemetry names: the collector stamps them as
+ * server.address and server.port, and the server splits a port written in
+ * the address ("db.example.com:5433", "[2001:db8::1]:5433", SQL Server's
+ * "host,1433") off the host, the explicit port winning over it. The host is
+ * then formatted (formatDatabaseHost). A port out of range in the address
+ * is dropped, as the server drops it. Any other form (a URL, a host list)
+ * is left whole, for the server to read.
+ */
+export function resolveDatabaseServerEndpoint(data: {
+  address: string;
+  port: number | null;
+}): { host: string; port: number | null } {
+  const value: string = data.address.trim();
+  const match: RegExpMatchArray | null =
+    value.match(DATABASE_BRACKETED_HOST_PATTERN) ||
+    value.match(DATABASE_HOST_WITH_PORT_PATTERN) ||
+    value.match(DATABASE_HOST_COMMA_PORT_PATTERN);
+
+  if (!match) {
+    return { host: formatDatabaseHost(value), port: data.port };
+  }
+
+  const addressPort: number | null =
+    match[2] === undefined ? null : parseTcpPort(match[2]);
+
+  return {
+    host: formatDatabaseHost(match[1] || ""),
+    port: data.port ?? addressPort,
+  };
+}
+
 /*
  * "<system>|<address>[:<port>]", the form DatabaseServer.databaseIdentifier
  * takes for an endpoint row (buildDatabaseServerIdentifier:
  * `${family}|${formatDatabaseEndpoint(endpoint)}`). The system is sent as
- * configured (lowercased); the server maps it to its engine family.
+ * configured (lowercased); the server maps it to its engine family. The
+ * address may carry its own port (resolveDatabaseServerEndpoint).
  */
 export function buildDatabaseEndpointIdentifier(data: {
   system: string;
   address: string;
   port: number | null;
 }): string {
-  return `${data.system.trim().toLowerCase()}|${formatDatabaseHost(
-    data.address,
-  )}${data.port !== null ? `:${data.port}` : ""}`;
+  const endpoint: { host: string; port: number | null } =
+    resolveDatabaseServerEndpoint({ address: data.address, port: data.port });
+
+  return `${data.system.trim().toLowerCase()}|${endpoint.host}${
+    endpoint.port !== null ? `:${endpoint.port}` : ""
+  }`;
 }
 
 function resolveDatabaseIdentity(
@@ -345,6 +433,10 @@ function resolveDatabaseIdentity(
   const portSetting: string = readTrimmed(env, DATABASE_SERVER_PORT_ENV);
   const port: number | null = parseTcpPort(portSetting);
   const serverId: string = readTrimmed(env, DATABASE_SERVER_ID_ENV);
+  // The port may also be written in the address ("db.example.com:5433").
+  const endpoint: { host: string; port: number | null } | null = address
+    ? resolveDatabaseServerEndpoint({ address, port })
+    : null;
 
   const details: IdentityDetails = {};
 
@@ -352,12 +444,12 @@ function resolveDatabaseIdentity(
     details["databaseSystem"] = system;
   }
 
-  if (address) {
-    details["serverAddress"] = formatDatabaseHost(address);
+  if (endpoint) {
+    details["serverAddress"] = endpoint.host;
   }
 
-  if (port !== null) {
-    details["serverPort"] = port;
+  if (endpoint && endpoint.port !== null) {
+    details["serverPort"] = endpoint.port;
   }
 
   if (portSetting && port === null) {
@@ -633,6 +725,13 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
   }
 
   const agentVersion: string = readTrimmed(env, "APP_VERSION");
+  const health: { host: string; problem: string | null } = parseHealthHost(
+    env[HEALTH_HOST_ENV],
+  );
+
+  if (health.problem) {
+    warnings.push(health.problem);
+  }
 
   return {
     config: {
@@ -650,6 +749,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       writeTargets: writeTargets.targets,
       protectedTargets: protectedTargets.targets,
       port: parsePort(env["PORT"]),
+      healthHost: health.host,
       pollIntervalMs: parseInterval({
         value: env[POLL_INTERVAL_ENV],
         defaultValue: DEFAULT_POLL_INTERVAL_MS,

@@ -250,11 +250,41 @@ const REDIS_DATA_WRITE_COMMANDS: ReadonlySet<string> = new Set<string>([
   "fcall_ro",
   "restore",
   "json.set",
+  // Later commands that carry values (or members) after the key.
+  "hsetex",
+  "smove",
+  "lpos",
+  "zscore",
+  "zmscore",
+  "zrank",
+  "zrevrank",
+  "json.mset",
+  "json.merge",
+  "json.arrappend",
+  "json.arrinsert",
+  "json.arrindex",
+  "json.strappend",
+  "bf.add",
+  "bf.madd",
+  "bf.exists",
+  "bf.mexists",
+  "bf.insert",
+  "cf.add",
+  "cf.addnx",
+  "cf.exists",
+  "cf.insert",
 ]);
 
-// A setting name whose value is a credential.
+// A setting name whose value is a credential (Valkey names masterauth primaryauth).
 const CREDENTIAL_SETTING_NAME_REGEX: RegExp =
-  /pass|pwd|secret|token|credential|masterauth/i;
+  /pass|pwd|secret|token|credential|masterauth|primaryauth|auth$/i;
+
+// The Redis / Valkey settings whose value is a password.
+const REDIS_CREDENTIAL_SETTINGS: ReadonlySet<string> = new Set<string>([
+  "requirepass",
+  "masterauth",
+  "primaryauth",
+]);
 
 // A CONFIG SET parameter whose value is (or may be) a credential; compared lowercase.
 const REDIS_SECRET_PARAMETER_REGEX: RegExp =
@@ -866,13 +896,38 @@ function redisMaskedIndexes(args: Array<string>): Array<number> {
 
   // A credential setting followed by its value, wherever it sits (a CONFIG GET reply).
   for (let index: number = 0; index + 1 < args.length; index++) {
-    if (lower[index] === "requirepass" || lower[index] === "masterauth") {
+    if (REDIS_CREDENTIAL_SETTINGS.has(lower[index] || "")) {
       indexes.push(index + 1);
     }
   }
 
   return indexes.filter((index: number): boolean => {
     return index > 0 && index < args.length;
+  });
+}
+
+/*
+ * A Redis command's arguments (args[0] is the command) with its secret and
+ * data arguments replaced by the redaction marker — the same arguments the
+ * output hook masks in a JSON array. For an executor that prints a command
+ * it read from the server (SLOWLOG GET): masked before anything can cut
+ * the array short (an unclosed element is never masked) or encode it as a
+ * JSON string inside a JSON document (where no array is seen at all).
+ */
+export function redactRedisCommandArguments(
+  args: ReadonlyArray<unknown>,
+): Array<string> {
+  const words: Array<string> = (Array.isArray(args) ? args : []).map(
+    (arg: unknown): string => {
+      return typeof arg === "string" ? arg : String(arg ?? "");
+    },
+  );
+  const masked: Array<number> = redisMaskedIndexes(words);
+
+  return words.map((word: string, index: number): string => {
+    return masked.includes(index) && !isPlaceholder(word)
+      ? DATABASE_REDACTED_MARKER
+      : word;
   });
 }
 
@@ -999,13 +1054,13 @@ const REDIS_MIGRATE_AUTH_REGEX: RegExp = new RegExp(
 );
 
 /*
- * requirepass / masterauth and the value after them, separated by spaces
+ * requirepass / masterauth (primaryauth on Valkey) and the value after them, separated by spaces
  * (CONFIG SET text) or on the next line (a redis-cli CONFIG GET reply:
  * `1) "requirepass"` / `2) "value"`). JSON pairs and key: value lines are
  * the generic rules' and maskJsonCredentialSettings' to mask.
  */
 const REDIS_CREDENTIAL_SETTING_REGEX: RegExp = new RegExp(
-  `\\b(requirepass|masterauth)\\b((?:["']?[ \\t]*\\r?\\n[ \\t]*(?:\\d+\\)[ \\t]*)?|[ \\t]+)["']?)(${TEXT_ARGUMENT})`,
+  `\\b(requirepass|masterauth|primaryauth)\\b((?:["']?[ \\t]*\\r?\\n[ \\t]*(?:\\d+\\)[ \\t]*)?|[ \\t]+)["']?)(${TEXT_ARGUMENT})`,
   "gi",
 );
 
