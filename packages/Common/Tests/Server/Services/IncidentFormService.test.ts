@@ -598,6 +598,9 @@ describe("IncidentFormService: the IP allowlist", () => {
     ["a word", "not-a-network"],
     ["a prefix past 32", "203.0.113.0/99"],
     ["a /0 range", "0.0.0.0/0"],
+    // The routes see this visitor as 203.0.113.7, never in this spelling.
+    ["an IPv4 address written as IPv6", "::ffff:203.0.113.7"],
+    ["an IPv4 address written as IPv6, in hex", "::ffff:cb00:7107"],
   ];
 
   test.each(ACCEPTED)(

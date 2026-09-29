@@ -86,6 +86,10 @@ import IncidentSeverityService from "../../../Server/Services/IncidentSeveritySe
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
+import {
+  ClientIpRequestLike,
+  resolveClientIp,
+} from "../../../Server/Utils/ClientIp";
 import logger from "../../../Server/Utils/Logger";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
@@ -971,6 +975,42 @@ describe("IncidentFormService.isClientIpAllowed", () => {
       true,
     ],
     ["another IPv6 address", "2001:db8::2", "2001:db8::1", false],
+    /*
+     * An IPv4 visitor that reaches the check in an IPv6 spelling - a proxy
+     * that writes the mapped address in hex, say - is the IPv4 address, for
+     * an entry and for a range.
+     */
+    [
+      "a client in the IPv4-mapped spelling",
+      CLIENT_IP,
+      `::ffff:${CLIENT_IP}`,
+      true,
+    ],
+    [
+      "a client in the IPv4-mapped spelling, in hex",
+      CLIENT_IP,
+      "::ffff:cb00:7107",
+      true,
+    ],
+    [
+      "a range holding a client in the IPv4-mapped spelling, in hex",
+      "203.0.113.0/24",
+      "::FFFF:CB00:7107",
+      true,
+    ],
+    [
+      "another address's IPv4-mapped spelling",
+      CLIENT_IP,
+      "::ffff:198.51.100.1",
+      false,
+    ],
+    // Not an IPv4 address in disguise: "::ffff:0:" is another prefix.
+    [
+      "an IPv4-translated address, which is not the IPv4 one",
+      CLIENT_IP,
+      `::ffff:0:${CLIENT_IP}`,
+      false,
+    ],
     ["another address", "198.51.100.1", CLIENT_IP, false],
     ["a range not holding the address", "198.51.100.0/24", CLIENT_IP, false],
     ["no address, with a list", CLIENT_IP, undefined, false],
@@ -1005,6 +1045,51 @@ describe("IncidentFormService.isClientIpAllowed", () => {
       }),
     ).toBe(false);
   });
+
+  /*
+   * An IPv4 visitor of a dual-stack listener, as the routes resolve it:
+   * Node reports the socket's peer as "::ffff:203.0.113.7", and an nginx
+   * listening dual-stack writes it so into X-Forwarded-For. It reaches the
+   * check as the IPv4 address, which the list's IPv4 entry or range lets in
+   * - the list itself refuses that spelling (validateIncidentFormIpAllowlist).
+   */
+  test.each([
+    [
+      "the socket's peer, with no proxy in front",
+      {
+        headers: {},
+        socket: { remoteAddress: `::ffff:${CLIENT_IP}` },
+      },
+      0,
+    ],
+    [
+      "the address the proxy appended",
+      {
+        headers: { "x-forwarded-for": `::ffff:${CLIENT_IP}` },
+        socket: { remoteAddress: "127.0.0.1" },
+      },
+      1,
+    ],
+  ])(
+    "lets in an IPv4 visitor reported in the IPv4-mapped spelling, as %s",
+    (
+      _label: string,
+      request: ClientIpRequestLike,
+      trustedProxyHops: number,
+    ) => {
+      const clientIp: string | undefined = resolveClientIp(request, {
+        trustedProxyHops: trustedProxyHops,
+      });
+
+      expect(clientIp).toBe(CLIENT_IP);
+
+      for (const ipWhitelist of [CLIENT_IP, "203.0.113.0/24"]) {
+        expect(
+          IncidentFormService.isClientIpAllowed({ ipWhitelist, clientIp }),
+        ).toBe(true);
+      }
+    },
+  );
 });
 
 describe("IncidentFormService.isProjectOnPlan", () => {

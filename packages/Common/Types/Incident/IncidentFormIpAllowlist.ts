@@ -1,4 +1,5 @@
 import IP from "../IP/IP";
+import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 
 /*
  * An incident form's IP allowlist: the networks its public page can be
@@ -11,8 +12,11 @@ import IP from "../IP/IP";
  * IPv6 range, a range of /0 (which it matches as the one address, not as
  * every network) or two addresses on one line never match anyone - and the
  * check fails closed, so such an entry would lock every reporter on that
- * network out without a word to the admin who saved it. So a list is
- * refused, naming each line, at the write that would store it: on create
+ * network out without a word to the admin who saved it. Nor does an IPv4
+ * address written as an IPv6 one ("::ffff:203.0.113.7", as a dual-stack
+ * listener logs it): the routes see an IPv4 visitor as the IPv4 address
+ * (resolveClientIp unwraps that spelling), never as the IPv6 one. So a list
+ * is refused, naming each line, at the write that would store it: on create
  * and update, whoever writes it (the dashboard, the API, Terraform, a
  * workflow). The value is never rewritten, only accepted or refused, so a
  * client that compares what it sent with what it reads back sees no drift.
@@ -68,6 +72,44 @@ const isIPv6Address: IsVersionFunction = (value: string): boolean => {
   return IP.isIP(value) && new IP(value).isIPv6();
 };
 
+/*
+ * An IPv4-mapped IPv6 address (RFC 4291 2.5.5.2) as IpCanonicalUtil spells
+ * every one of them - "::ffff:203.0.113.7", "::FFFF:cb00:7107" and
+ * "0:0:0:0:0:ffff:cb00:7107" all come out as "::ffff:cb00:7107" - with its
+ * two groups, the IPv4 address's high and low halves.
+ */
+const IPV4_MAPPED_PATTERN: RegExp = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/;
+
+export type GetIpv4OfMappedAddressFunction = (value: string) => string | null;
+
+/**
+ * The IPv4 address an IPv4-mapped IPv6 address stands for - "203.0.113.7"
+ * for "::ffff:203.0.113.7" or "::ffff:cb00:7107", however it is written -
+ * or null for anything else, an IPv4 address included.
+ */
+export const getIpv4OfMappedAddress: GetIpv4OfMappedAddressFunction = (
+  value: string,
+): string | null => {
+  const address: string = value.trim();
+
+  if (!isIPv6Address(address)) {
+    return null;
+  }
+
+  const mapped: RegExpExecArray | null = IPV4_MAPPED_PATTERN.exec(
+    IpCanonicalUtil.canonicalize(address),
+  );
+
+  if (!mapped) {
+    return null;
+  }
+
+  const high: number = parseInt(mapped[1]!, 16);
+  const low: number = parseInt(mapped[2]!, 16);
+
+  return [high >> 8, high & 255, low >> 8, low & 255].join(".");
+};
+
 type GetEntryProblemFunction = (entry: string) => string | null;
 
 // What is wrong with one entry, or null when the matcher understands it.
@@ -75,6 +117,17 @@ const getEntryProblem: GetEntryProblemFunction = (
   entry: string,
 ): string | null => {
   if (IP.isIP(entry)) {
+    const ipv4: string | null = getIpv4OfMappedAddress(entry);
+
+    /*
+     * The routes see an IPv4 visitor as its IPv4 address, whichever way a
+     * dual-stack listener or a proxy wrote it, so this spelling of it would
+     * never be matched: the admin is told the one that will be.
+     */
+    if (ipv4) {
+      return `is an IPv4 address written as an IPv6 address - write it as ${ipv4}`;
+    }
+
     return null;
   }
 

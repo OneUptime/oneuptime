@@ -55,6 +55,7 @@ import {
 } from "../../Types/Incident/IncidentFormPublic";
 import {
   getIncidentFormIpAllowlistEntries,
+  getIpv4OfMappedAddress,
   validateIncidentFormIpAllowlist,
 } from "../../Types/Incident/IncidentFormIpAllowlist";
 import IP from "../../Types/IP/IP";
@@ -770,6 +771,13 @@ export class Service extends DatabaseService<Model> {
    * letter, and "2001:DB8::1" or "2001:db8:0:0:0:0:0:1" written in the list
    * is the very address the proxy reports as "2001:db8::1". Nothing is
    * rewritten in the stored list, and ranges are left to the matcher.
+   *
+   * An IPv4 visitor is compared as its IPv4 address, whichever way it was
+   * reported, so the list's IPv4 entries and ranges match it:
+   * resolveClientIp unwraps the dotted IPv6 spelling ("::ffff:203.0.113.7")
+   * already, and one a proxy wrote in hex ("::ffff:cb00:7107") is read the
+   * same way here. The list itself cannot hold that spelling: it is refused
+   * when saved (validateIncidentFormIpAllowlist).
    */
   public isClientIpAllowed(data: {
     ipWhitelist: string | null | undefined;
@@ -789,11 +797,14 @@ export class Service extends DatabaseService<Model> {
       return false;
     }
 
+    const clientIp: string = IP.isIP(data.clientIp)
+      ? getIpv4OfMappedAddress(data.clientIp) ||
+        IpCanonicalUtil.canonicalize(data.clientIp)
+      : data.clientIp;
+
     try {
       return IP.isInWhitelist({
-        ip: IP.isIP(data.clientIp)
-          ? IpCanonicalUtil.canonicalize(data.clientIp)
-          : data.clientIp,
+        ip: clientIp,
         whitelist: entries,
       });
     } catch {
