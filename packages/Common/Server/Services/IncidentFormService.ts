@@ -37,6 +37,7 @@ import {
   PublicIncidentFormSubmissionRequest,
   PublicIncidentFormSubmissionResult,
   ValidatedIncidentFormSubmission,
+  WHOLE_EMAIL_ADDRESS,
   formatIncidentFormSubmissionErrors,
   getPublicIncidentForm,
   isIncidentFormFieldSetting,
@@ -145,6 +146,17 @@ export type GetIncidentFormReporterNoteFunction = (data: {
  * reach the responders as those characters, not as a link, and "**bold**"
  * as asterisks rather than as emphasis. The form's name is escaped too: an
  * admin chose it, but it sits inside the note's own bold.
+ *
+ * The address is the exception: it is written as an autolink,
+ * <jane@example.com>, so every renderer links the whole of it. It has
+ * already passed WHOLE_EMAIL_ADDRESS - one dot-atom address, with no space,
+ * bracket, angle bracket or backslash that could end the autolink early.
+ * Backslash-escaping it instead broke the link where it matters: marked,
+ * which renders the owners' "note posted" email, restarts its bare-address
+ * link after every escape, so mary\-jane.watson@corp.example linked
+ * mailto:jane.watson@corp.example - somebody else's mailbox. A value that is
+ * not one whole address (the function is exported, and could be handed
+ * anything) is escaped like the name.
  */
 export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
   (data: {
@@ -158,9 +170,12 @@ export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
       : "an incident form";
 
     const reporterName: string = escapeMarkdownInline(data.reporterName).trim();
-    const reporterEmail: string = escapeMarkdownInline(
-      data.reporterEmail,
-    ).trim();
+
+    const email: string = String(data.reporterEmail ?? "").trim();
+    const reporterEmail: string =
+      email && WHOLE_EMAIL_ADDRESS.test(email)
+        ? `<${email}>`
+        : escapeMarkdownInline(email).trim();
 
     if (reporterName && reporterEmail) {
       return `Reported through ${form} by ${reporterName} (${reporterEmail}).`;

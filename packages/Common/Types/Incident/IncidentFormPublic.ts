@@ -720,7 +720,7 @@ const validateAnswers: ValidateAnswersFunction = (data: {
  * passes it - so the whole answer must also be one ordinary address: the
  * dot-atom half of Email's own pattern, anchored at both ends.
  */
-const WHOLE_EMAIL_ADDRESS: RegExp =
+export const WHOLE_EMAIL_ADDRESS: RegExp =
   /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
 
 type ReadTextAnswerFunction = (data: {

@@ -68,8 +68,10 @@ import IncidentSeverityService from "../../../Server/Services/IncidentSeveritySe
 import IncidentTemplateOwnerTeamService from "../../../Server/Services/IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "../../../Server/Services/IncidentTemplateOwnerUserService";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
+import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
 import logger from "../../../Server/Utils/Logger";
+import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -1073,7 +1075,7 @@ describe("IncidentFormService.submitPublicForm - the private note", () => {
     await submit();
 
     expect(noteCall().data.note).toBe(
-      "Reported through the incident form **Report a Problem** by Jane Doe (jane.doe@example.com).",
+      "Reported through the incident form **Report a Problem** by Jane Doe (<jane.doe@example.com>).",
     );
   });
 
@@ -1110,7 +1112,7 @@ describe("IncidentFormService.submitPublicForm - the private note", () => {
     expect(note).toBe(
       "Reported through the incident form **Report a Problem** by " +
         "\\[x\\]\\(javascript:alert\\(1\\)\\) \\*\\*bold\\*\\* \\!\\[p\\]\\(https://t.example/p\\) \\<img\\> " +
-        "(a\\_b\\+c@example.com).",
+        "(<a_b+c@example.com>).",
     );
     expect(note).not.toContain("[x](");
     expect(note).not.toContain("**bold**");
@@ -1123,7 +1125,7 @@ describe("getIncidentFormReporterNote", () => {
     [
       "a name and an email",
       { reporterName: "Jane", reporterEmail: "jane@example.com" },
-      "Reported through the incident form **Report a Problem** by Jane (jane@example.com).",
+      "Reported through the incident form **Report a Problem** by Jane (<jane@example.com>).",
     ],
     [
       "only a name",
@@ -1133,7 +1135,7 @@ describe("getIncidentFormReporterNote", () => {
     [
       "only an email",
       { reporterEmail: "jane@example.com" },
-      "Reported through the incident form **Report a Problem** by jane@example.com.",
+      "Reported through the incident form **Report a Problem** by <jane@example.com>.",
     ],
     [
       "neither",
@@ -1182,6 +1184,97 @@ describe("getIncidentFormReporterNote", () => {
         reporterName: "Jane\n# Heading",
       }),
     ).toBe("Reported through the incident form **Form** by Jane \\# Heading.");
+  });
+
+  /*
+   * The note reaches the owners by email (SendNotePostedNotification renders
+   * it with marked) and the incident's Slack channels (slackify-markdown).
+   * Written backslash-escaped, the address made marked restart its link
+   * after each escape: mary\-jane.watson@... linked mailto:jane.watson@...,
+   * a colleague's mailbox. Every link must be the whole address the reporter
+   * gave - hyphen, underscore, plus, apostrophe or hyphenated domain.
+   */
+  describe("links the reporter's whole address", () => {
+    const ADDRESSES: Array<string> = [
+      "mary-jane.watson@corp.example",
+      "first_last@company.com",
+      "ops+alerts@company.com",
+      "jane@my-company.com",
+      "o'brien@company.com",
+      "a_b+c@example.com",
+    ];
+
+    const REPORTERS: Array<[string, string | undefined]> = [];
+
+    for (const address of ADDRESSES) {
+      REPORTERS.push([address, "Jane Doe"]);
+      REPORTERS.push([address, undefined]);
+    }
+
+    function hrefs(html: string): Array<string> {
+      return Array.from(html.matchAll(/href="([^"]*)"/g)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      );
+    }
+
+    test.each(REPORTERS)(
+      "in the owners' email: %s (name %s)",
+      async (address: string, reporterName: string | undefined) => {
+        const note: string = getIncidentFormReporterNote({
+          formName: "Report a Problem",
+          reporterName: reporterName,
+          reporterEmail: address,
+        });
+
+        const html: string = await Markdown.convertToHTML(
+          note,
+          MarkdownContentType.Email,
+        );
+
+        expect(hrefs(html)).toEqual([
+          `mailto:${address.replace(/'/g, "&#39;")}`,
+        ]);
+        // The address reads as typed, too.
+        expect(html).toContain(`>${address.replace(/'/g, "&#39;")}</a>`);
+      },
+    );
+
+    test.each(REPORTERS)(
+      "in Slack: %s (name %s)",
+      (address: string, reporterName: string | undefined) => {
+        const note: string = getIncidentFormReporterNote({
+          formName: "Report a Problem",
+          reporterName: reporterName,
+          reporterEmail: address,
+        });
+
+        const sections: string = JSON.stringify(
+          SlackUtil.getMarkdownBlocks({
+            payloadMarkdownBlock: {
+              _type: "WorkspacePayloadMarkdown",
+              text: note,
+            },
+          }),
+        );
+
+        expect(sections).toContain(
+          JSON.stringify(`<mailto:${address}|${address}>`).slice(1, -1),
+        );
+      },
+    );
+
+    test("escapes a value that is not one whole address, rather than linking it", () => {
+      expect(
+        getIncidentFormReporterNote({
+          formName: "Form",
+          reporterEmail: "Jane <jane@example.com>",
+        }),
+      ).toBe(
+        "Reported through the incident form **Form** by Jane \\<jane@example.com\\>.",
+      );
+    });
   });
 });
 
