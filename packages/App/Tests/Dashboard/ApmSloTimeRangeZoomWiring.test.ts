@@ -117,7 +117,14 @@ describe("Service overview (Pages/Service/View/Index.tsx)", () => {
     expect(code).toContain(
       "fetchLogAndExceptionSignals({ primaryEntityId: modelId, start, end })",
     );
-    expect(code).toContain("}, [service, timeRange]);");
+    /*
+     * Keyed on the range, with the scope as a value and a refresh counter
+     * rather than the model object every refresh replaces (see
+     * OverviewAutoRefreshInFlightWiring.test.ts).
+     */
+    expect(code).toContain(
+      "}, [metricsScope, timeRange, metricsRefreshCount]);",
+    );
   });
 
   test("every chart card is drawn over the fetched window and keeps its lines through a refresh", () => {

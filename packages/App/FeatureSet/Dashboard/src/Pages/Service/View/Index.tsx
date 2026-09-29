@@ -29,6 +29,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import TechStackView from "../../../Components/TechStack/TechStackView";
@@ -105,6 +106,11 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   } | null>(null);
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
+  // Bumped by a refresh; the metrics reload when it changes.
+  const [metricsRefreshCount, setMetricsRefreshCount] = useState<number>(0);
+  // Set while the metrics for the current window are still loading.
+  const metricsInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   /*
    * showLoader=false refetches in place (used after an inline edit) so the
@@ -173,6 +179,22 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   }, []);
 
+  /*
+   * The metrics follow what scopes them, not the model object: loadModel
+   * stores a new object on every refresh, and an effect keyed on it re-ran
+   * on every tick, cancelling a load still running for the same window. The
+   * span, log and exception queries are scoped by the page's id alone, the
+   * runtime charts by the language these fields are detected from. A
+   * refresh reloads them through metricsRefreshCount instead.
+   */
+  const metricsScope: string = service
+    ? JSON.stringify({
+        telemetrySdkLanguage: service.telemetrySdkLanguage || "",
+        runtimeName: service.runtimeName || "",
+        techStack: service.techStack || [],
+      })
+    : "";
+
   useEffect(() => {
     if (!service) {
       return;
@@ -193,10 +215,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     /*
      * Staleness guard: a wide-range fetch fans out many aggregate queries
-     * and can resolve after a subsequently selected narrower range —
-     * without the guard the older response would clobber the newer one.
+     * and can resolve after a subsequently selected narrower range (a zoom,
+     * its reset, the picker) or a Refresh — without the guard the older
+     * response would clobber the newer one.
      */
     let ignore: boolean = false;
+    metricsInFlightRef.current = true;
     Promise.all([
       fetchSpanMetrics({ primaryEntityId: modelId, start, end }),
       probeRuntimeCharts({ language, primaryEntityId: modelId, start, end }),
@@ -211,6 +235,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           if (ignore) {
             return;
           }
+          metricsInFlightRef.current = false;
           setSpanMetrics(m);
           setRuntimeCharts(runtime);
           setLogExceptionSignals(signals);
@@ -221,20 +246,41 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         if (ignore) {
           return;
         }
+        metricsInFlightRef.current = false;
         setMetricsLoading(false);
       });
 
     return () => {
       ignore = true;
     };
-  }, [service, timeRange]);
+  }, [metricsScope, timeRange, metricsRefreshCount]);
+
+  /*
+   * A refresh reloads the model and the metrics. The auto-refresh tick lets
+   * a metrics load that is still running land instead of replacing it with
+   * one for the same window: when the span, runtime and log queries outlast
+   * the interval, the tiles and charts would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    loadModel(false).catch(() => {
+      // loadModel surfaces its own errors; a refresh stays silent.
+    });
+
+    if (options.isAutoRefresh && metricsInFlightRef.current) {
+      return;
+    }
+
+    setMetricsRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "service-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      loadModel(false).catch(() => {
-        // loadModel surfaces its own errors; a refresh tick stays silent.
-      });
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -372,9 +418,10 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   /*
    * A chart keeps its last lines on screen while a refresh or a zoom
-   * refetches; only the first load shows the skeleton. Every auto-refresh
-   * tick re-runs the metrics effect, and a chart swapped for its skeleton
-   * would throw away a drag-to-zoom the reader is in the middle of.
+   * refetches; only the first load shows the skeleton. An auto-refresh tick
+   * that finds no load running re-runs the metrics effect, and a chart
+   * swapped for its skeleton would throw away a drag-to-zoom the reader is
+   * in the middle of.
    */
   const spanChartsLoading: boolean = metricsLoading && !m;
   const signalChartsLoading: boolean = metricsLoading && !logExceptionSignals;
@@ -569,7 +616,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              loadModel(false).catch(() => {});
+              refresh({ isAutoRefresh: false });
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}

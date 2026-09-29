@@ -97,7 +97,14 @@ describe("Database Overview: one zoom for the whole page", () => {
     expect(code).toContain(
       "RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);",
     );
-    expect(code).toContain("}, [databaseServer, endpoints, timeRange]);");
+    /*
+     * Keyed on the range, with the scope as a value and a refresh counter
+     * rather than the row and endpoint list every refresh replaces (see
+     * OverviewAutoRefreshInFlightWiring.test.ts).
+     */
+    expect(code).toContain(
+      "}, [telemetryScope, timeRange, telemetryRefreshCount]);",
+    );
     expect(code).toContain(
       "windowStart={chartWindow?.start ?? null} windowEnd={chartWindow?.end ?? null}",
     );
