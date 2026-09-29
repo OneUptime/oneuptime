@@ -246,7 +246,7 @@ describe("the generic rules apply to every program", () => {
 describe("the hook table", () => {
   test("lists the programs whose kits extend it", () => {
     expect(Object.keys(RESOURCE_OUTPUT_REDACTION_HOOKS).sort()).toEqual(
-      ["ceph", "db", "docker", "govc", "pvesh"].sort(),
+      ["ceph", "db", "docker", "govc", "ps", "pvesh", "top"].sort(),
     );
     expect(getResourceOutputRedactionHooks("docker").length).toBeGreaterThan(0);
     expect(getResourceOutputRedactionHooks("ceph").length).toBeGreaterThan(0);

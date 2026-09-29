@@ -246,6 +246,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       "top",
       "uname",
       "hostnamectl",
+      "timedatectl",
       "kill",
     ]);
   });

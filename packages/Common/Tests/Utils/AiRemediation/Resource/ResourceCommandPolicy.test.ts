@@ -1216,3 +1216,90 @@ describe("command guides", () => {
     ).toContain("Unavailable");
   });
 });
+
+/*
+ * The allowlist checks with the real tool policies: a `*` is tried with the
+ * generic stand-ins AND the words the tool's own grammar accepts, and an
+ * entry is broad only when the word in place of a `*` changes what the write
+ * touches — never because a stand-in happens to appear inside a target.
+ */
+describe("allowlist stand-ins with the real tool policies", () => {
+  test.each([
+    [AiResourceType.CephCluster, "ceph orch daemon stop *"],
+    [AiResourceType.CephCluster, "ceph pg repair *"],
+    [AiResourceType.CephCluster, "ceph osd reweight * *"],
+    [AiResourceType.CephCluster, "ceph osd set *"],
+    [AiResourceType.DockerHost, "docker stop *"],
+    [AiResourceType.Host, "systemctl stop *"],
+    [AiResourceType.DatabaseServer, "db terminate-session *"],
+    [AiResourceType.VMwareVCenter, "govc vm.power -off *"],
+  ])("%s: %s is a valid entry", (type: AiResourceType, pattern: string) => {
+    expect(
+      ResourceCommandPolicy.describeAllowlistPatternProblem({
+        resourceType: type,
+        pattern,
+      }),
+    ).toBeNull();
+  });
+
+  test.each([
+    [AiResourceType.CephCluster, "ceph orch daemon stop *"],
+    [AiResourceType.CephCluster, "ceph pg repair *"],
+    [AiResourceType.CephCluster, "ceph osd reweight * *"],
+    [AiResourceType.DockerHost, "docker stop *"],
+    [AiResourceType.Host, "systemctl stop *"],
+    [AiResourceType.DatabaseServer, "db terminate-session *"],
+    [AiResourceType.VMwareVCenter, "govc vm.power -off *"],
+  ])(
+    "%s: %s names any target, so it is broad",
+    (type: AiResourceType, pattern: string) => {
+      expect(
+        ResourceCommandPolicy.isBroadAllowlistPattern({
+          resourceType: type,
+          pattern,
+        }),
+      ).toBe(true);
+    },
+  );
+
+  test.each([
+    // The stand-in "1" appears inside the VMID 101 — that is not a `*` target.
+    [
+      AiResourceType.ProxmoxCluster,
+      "pvesh create /nodes/pve1/qemu/101/status/shutdown --timeout *",
+    ],
+    [AiResourceType.DockerHost, "docker stop -t * web"],
+    // The flag is a value of a cluster-wide change: the target stays "cluster".
+    [AiResourceType.CephCluster, "ceph osd set *"],
+    [AiResourceType.CephCluster, "ceph osd out 3"],
+    [
+      AiResourceType.ProxmoxCluster,
+      "pvesh create /nodes/pve1/qemu/101/status/stop",
+    ],
+  ])(
+    "%s: %s names its target, so it is not broad",
+    (type: AiResourceType, pattern: string) => {
+      expect(
+        ResourceCommandPolicy.isBroadAllowlistPattern({
+          resourceType: type,
+          pattern,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test("checking a whole allowlist of many-`*` entries stays fast", () => {
+    const patterns: Array<string> = Array.from({ length: 50 }, (): string => {
+      return "ceph osd reweight * *";
+    });
+    const started: number = Date.now();
+
+    expect(
+      ResourceCommandPolicy.describeAllowlistProblems({
+        resourceType: AiResourceType.CephCluster,
+        patterns,
+      }),
+    ).toBeNull();
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+});

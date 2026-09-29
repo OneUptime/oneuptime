@@ -131,6 +131,7 @@ describe("which templates build Node images", () => {
       "agents/KubernetesAIAgent/Dockerfile.tpl",
       "agents/KubernetesCostAgent/Dockerfile.tpl",
       "agents/KubernetesLogTailer/Dockerfile.tpl",
+      "agents/ResourceAIAgent/Dockerfile.tpl",
       "packages/App/Dockerfile.tpl",
       "packages/E2E/Dockerfile.tpl",
       "packages/Home/Dockerfile.tpl",
