@@ -52,6 +52,7 @@ import {
   buildCompanionMetricChartPlan,
   buildCompanionMetricNameQuery,
   deriveCompanionSignalQueries,
+  excludeReservedCompanionMetricNames,
   getCompanionMetricScopeServiceNames,
   getTelemetrySnapshotTabOrder,
 } from "../../Utils/TelemetryCompanionSignals";
@@ -375,7 +376,13 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
           }
         }
 
-        setMetricNames(uniqueNames);
+        /*
+         * Without the session replay budget series, which the chart plan
+         * never charts: counted here, a RUM incident whose window held only
+         * those would draw an empty card instead of the empty state, and
+         * "Showing X of Y" would count names that can never be shown.
+         */
+        setMetricNames(excludeReservedCompanionMetricNames(uniqueNames));
       } catch (err) {
         if (!isCancelled) {
           setError(API.getFriendlyMessage(err));
