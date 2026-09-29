@@ -32,6 +32,8 @@ import HTTPMethod from "../../../Types/API/HTTPMethod";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  INCIDENT_FORM_PAGE_HEADER,
+  INCIDENT_FORM_PAGE_HEADER_VALUE,
   IncidentFormFieldSetting,
   PublicIncidentForm,
 } from "../../../Types/Incident/IncidentFormPublic";
@@ -482,6 +484,10 @@ describe("the page reads the form behind its link", () => {
 
     expect(headers["tenantid"]).toBe("");
     expect(Object.keys(headers)).not.toContain("apikey");
+    // The server reads a form only for a request that says it is this page's.
+    expect(headers[INCIDENT_FORM_PAGE_HEADER]).toBe(
+      INCIDENT_FORM_PAGE_HEADER_VALUE,
+    );
   });
 
   test("the form's name is the heading, and its description is shown as Markdown", async () => {

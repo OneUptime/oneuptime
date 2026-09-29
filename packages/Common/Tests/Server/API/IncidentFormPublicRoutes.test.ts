@@ -57,7 +57,11 @@ import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Email from "../../../Types/Email";
-import { IncidentFormFieldSetting } from "../../../Types/Incident/IncidentFormPublic";
+import {
+  INCIDENT_FORM_PAGE_HEADER,
+  INCIDENT_FORM_PAGE_HEADER_VALUE,
+  IncidentFormFieldSetting,
+} from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -314,6 +318,11 @@ function send(data: {
   clientIp?: string;
   cookies?: Dictionary<string> | undefined;
   headers?: http.OutgoingHttpHeaders | undefined;
+  /*
+   * Without the header the form page's API client adds to every request:
+   * what an <img>, a link, a frame or a no-cors fetch sends.
+   */
+  withoutPageHeader?: boolean | undefined;
   body?: unknown;
   // Sent as it is, with the content-type the headers give: not JSON.
   rawBody?: string | undefined;
@@ -328,6 +337,9 @@ function send(data: {
       const headers: http.OutgoingHttpHeaders = {
         // What the public form page's API client sends.
         tenantid: "",
+        ...(data.withoutPageHeader
+          ? {}
+          : { [INCIDENT_FORM_PAGE_HEADER]: INCIDENT_FORM_PAGE_HEADER_VALUE }),
         // What our proxy appends: the client address, the trusted hop.
         "x-forwarded-for": data.clientIp || ALLOWED_IP,
         ...(data.headers || {}),
@@ -756,12 +768,13 @@ describe("the public incident form routes over HTTP", () => {
 
   /*
    * Any website can have a visitor's browser send these requests - the API
-   * answers every origin, and a plain HTML form needs no preflight - from
-   * the visitor's own address: inside the form's IP allowlist, and on the
-   * budget everybody behind that address shares. Such a request is refused
-   * before anything counts it or looks the link up. The form's own page is
-   * served, and so is a caller that is not a browser; a submission's body
-   * must be JSON, whoever sends it.
+   * answers every origin, and a plain HTML form or an <img> needs no
+   * preflight - from the visitor's own address: inside the form's IP
+   * allowlist, and on the budget everybody behind that address shares. Such
+   * a request is refused before anything counts it or looks the link up.
+   * The form's own page is served, and so is a caller that is not a browser
+   * but sends what the page sends; a read must carry the page's header and
+   * a submission's body must be JSON, whoever sends them.
    */
   describe("a request another site's page had a browser send", () => {
     // What a plain HTML form on another site posts.
@@ -913,15 +926,129 @@ describe("the public incident form routes over HTTP", () => {
       expect(incidentCreate).toHaveBeenCalledTimes(1);
     });
 
-    it("serves a visit the visitor made themselves (Sec-Fetch-Site: none)", async () => {
+    /*
+     * Over plain HTTP - the self-hosting default - a browser sends another
+     * site's <img>, link or no-cors fetch with neither Origin nor
+     * Sec-Fetch-Site, so the check above cannot see where it came from. It
+     * cannot add a header, though, and the form's page always does.
+     */
+    it("refuses a read another site's <img> sends over plain HTTP, from inside the allowlist, before anything counts it", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "GET",
+        path: readPath(LOCKED_SHARE_KEY),
+        clientIp: ALLOWED_IP,
+        withoutPageHeader: true,
+      });
+
+      expect(result.status).toBe(403);
+      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(result.headers["cache-control"]).toBe(
+        "no-store, no-cache, must-revalidate",
+      );
+      expect(getPublicForm).not.toHaveBeenCalled();
+      expect(client.counters.size).toBe(0);
+    });
+
+    /*
+     * Six hundred and one images with made-up links, loaded by one
+     * visitor's browser in a loop: counted, they would have used up the 600
+     * reads a minute everybody behind that address shares, and a colleague
+     * opening a real form would be told to wait.
+     */
+    it("cannot use up the read budget of the address it sends from", async () => {
+      for (let attempt: number = 0; attempt < 601; attempt++) {
+        const refused: HttpResult = await send({
+          port,
+          method: "GET",
+          path: readPath(ObjectID.generate().toString()),
+          clientIp: ALLOWED_IP,
+          withoutPageHeader: true,
+        });
+
+        expect(refused.status).toBe(403);
+      }
+
+      // The page's own read, as a browser sends it over plain HTTP.
+      const colleague: HttpResult = await send({
+        port,
+        method: "GET",
+        path: readPath(SHARE_KEY),
+        clientIp: ALLOWED_IP,
+      });
+
+      expect(seen(colleague)).toEqual({ status: 200, body: PUBLIC_FORM });
+
+      // Only the colleague's read was counted: by address, and by form and address.
+      expect(
+        client
+          .keysMatching(`:read:i:${ALLOWED_IP}:`)
+          .map((key: string): number => {
+            return client.counters.get(key)!;
+          }),
+      ).toEqual([1]);
+      expect(Array.from(client.counters.values())).toEqual([1, 1]);
+    }, 60_000);
+
+    /*
+     * What a browser really sends with the page's own read: a GET to its own
+     * origin carries no Origin, and over plain HTTP no Sec-Fetch-Site either
+     * - only the page's header says where it came from. Over HTTPS the
+     * browser adds Sec-Fetch-Site: same-origin.
+     */
+    it.each([
+      ["over plain HTTP: the page's header and nothing else", {}],
+      ["over HTTPS", { "sec-fetch-site": "same-origin" }],
+    ])(
+      "serves the form page's own read %s",
+      async (_label: string, headers: http.OutgoingHttpHeaders) => {
+        const result: HttpResult = await send({
+          port,
+          method: "GET",
+          path: readPath(LOCKED_SHARE_KEY),
+          clientIp: ALLOWED_IP,
+          headers: headers,
+        });
+
+        expect(seen(result)).toEqual({ status: 200, body: PUBLIC_FORM });
+      },
+    );
+
+    /*
+     * Opening the read's own address in the address bar is a navigation:
+     * the browser says the visitor made it (Sec-Fetch-Site: none), but it
+     * carries no header of a page's, so it is not the form's page reading.
+     */
+    it("refuses the read's address opened in the address bar", async () => {
       const result: HttpResult = await send({
         port,
         method: "GET",
         path: readPath(SHARE_KEY),
         headers: { "sec-fetch-site": "none" },
+        withoutPageHeader: true,
       });
 
-      expect(seen(result)).toEqual({ status: 200, body: PUBLIC_FORM });
+      expect(result.status).toBe(403);
+      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(client.counters.size).toBe(0);
+    });
+
+    /*
+     * The page's header is asked of a read only. A submission cannot come
+     * from another site's page unnoticed - every POST carries its Origin,
+     * and a JSON body is preflighted - so a caller that is not a browser
+     * submits without it.
+     */
+    it("takes a submission without the page's header", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: submitPath(SHARE_KEY),
+        withoutPageHeader: true,
+        body: { data: ANSWERS },
+      });
+
+      expect(seen(result)).toEqual({ status: 200, body: SUBMISSION_RESULT });
     });
 
     it("takes the JSON the page's API client sends, charset and all", async () => {

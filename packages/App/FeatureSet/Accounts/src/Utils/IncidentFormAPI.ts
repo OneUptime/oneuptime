@@ -3,6 +3,10 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import APIException from "Common/Types/Exception/ApiException";
+import {
+  INCIDENT_FORM_PAGE_HEADER,
+  INCIDENT_FORM_PAGE_HEADER_VALUE,
+} from "Common/Types/Incident/IncidentFormPublic";
 import BaseAPI from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 
@@ -29,13 +33,18 @@ import Navigation from "Common/UI/Utils/Navigation";
  *    they are already on;
  *  - tenantid is sent empty, as the public dashboard and status page clients
  *    send it: a form belongs to its own project, and naming one is never the
- *    caller's business.
+ *    caller's business;
+ *  - every request carries the form page's own header
+ *    (INCIDENT_FORM_PAGE_HEADER). The server reads a form only for a request
+ *    that has it: another site can have a visitor's browser send that GET -
+ *    an <img> is enough - but cannot add a header to it.
  */
 export default class IncidentFormAPI extends BaseAPI {
   public static override getDefaultHeaders(): Headers {
     return {
       ...super.getDefaultHeaders(),
       tenantid: "",
+      [INCIDENT_FORM_PAGE_HEADER]: INCIDENT_FORM_PAGE_HEADER_VALUE,
     };
   }
 

@@ -35,17 +35,18 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * The per-address counters are middleware, so a flood is refused before it
  * costs a session lookup, a Postgres read or a captcha round trip. Only the
  * routes' own-page checks come before them (IncidentFormAPI): a request
- * another site's page had a browser send, or a submission that is not
- * JSON, is refused without being counted, so such a page cannot use up the
- * budget its visitors' addresses share. The per-form ceiling is not
- * middleware at all: IncidentFormService
- * spends it (reserveFormSubmission) only for a submission that has passed
- * every other check - the form, its plan, its IP allowlist, the captcha,
- * the answers, the severity - right before the incident is declared. It
- * bounds incidents, so only a submission about to become one may count
- * against it; were every attempt to count, anyone holding the link - even
- * from outside the allowlist, or without solving the captcha - could use it
- * up with requests that are refused, and lock the form for everybody.
+ * another site's page had a browser send, a read without the header the
+ * form's page sends, or a submission that is not JSON, is refused without
+ * being counted, so such a page cannot use up the budget its visitors'
+ * addresses share. The per-form ceiling is not middleware at all:
+ * IncidentFormService spends it (reserveFormSubmission) only for a
+ * submission that has passed every other check - the form, its plan, its
+ * IP allowlist, the captcha, the answers, the severity - right before the
+ * incident is declared. It bounds incidents, so only a submission about to
+ * become one may count against it; were every attempt to count, anyone
+ * holding the link - even from outside the allowlist, or without solving
+ * the captcha - could use it up with requests that are refused, and lock the
+ * form for everybody.
  */
 
 /*

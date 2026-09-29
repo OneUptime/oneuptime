@@ -22,9 +22,10 @@ function isForeign(
 describe("SameOriginRequest.isForeignPageRequest", () => {
   describe("a request with neither header", () => {
     /*
-     * Not sent from a browser page at all - curl, a server-side client - so
-     * there is no visitor to protect: it still faces the allowlist, the
-     * limits and the captcha after this.
+     * Curl or a server-side client - but also, over plain HTTP, another
+     * site's <img> or link, which a browser sends with neither header. This
+     * rule cannot tell them apart; a route that must know a GET came from
+     * its own page asks for hasPageScriptHeader too (below).
      */
     it("passes, whether or not the instance has an origin configured", () => {
       expect(isForeign({})).toBe(false);
@@ -190,6 +191,59 @@ describe("SameOriginRequest.isForeignPageRequest", () => {
         }),
       ).toBe(true);
     });
+  });
+});
+
+/*
+ * The header only a page's own script can add to a request. What another
+ * site can have a browser send without a script - an <img>, a link, a
+ * frame, a no-cors fetch - never carries one, and over plain HTTP it carries
+ * neither Origin nor Sec-Fetch-Site either, so isForeignPageRequest lets it
+ * through: this is what tells such a GET from the page's own.
+ */
+describe("SameOriginRequest.hasPageScriptHeader", () => {
+  const NAME: string = "x-oneuptime-incident-form";
+
+  function hasHeader(
+    headers: Record<string, string | Array<string> | undefined>,
+    value: string = "1",
+  ): boolean {
+    return SameOriginRequest.hasPageScriptHeader({
+      headers,
+      name: NAME,
+      value,
+    });
+  }
+
+  it("passes a request carrying the header set to the value", () => {
+    expect(hasHeader({ [NAME]: "1" })).toBe(true);
+  });
+
+  it.each([
+    ["no header at all (an <img>, a link, a frame)", {}],
+    ["the header left empty", { [NAME]: "" }],
+    ["another value", { [NAME]: "0" }],
+    ["the value with more to it", { [NAME]: "1; page" }],
+    ["another header with the value", { "x-oneuptime-incident": "1" }],
+  ])(
+    "refuses %s",
+    (_label: string, headers: Record<string, string | Array<string>>) => {
+      expect(hasHeader(headers)).toBe(false);
+    },
+  );
+
+  it("refuses the header sent twice, even with the value both times", () => {
+    expect(hasHeader({ [NAME]: ["1", "1"] })).toBe(false);
+  });
+
+  it("reads the value as Node hands it over, surrounding spaces aside", () => {
+    expect(hasHeader({ [NAME]: " 1 " })).toBe(true);
+  });
+
+  // A header that was not sent reads as empty: an empty value must not match it.
+  it("matches nothing when the value it is asked for is empty", () => {
+    expect(hasHeader({}, "")).toBe(false);
+    expect(hasHeader({ [NAME]: "" }, "")).toBe(false);
   });
 });
 

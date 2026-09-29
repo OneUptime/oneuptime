@@ -15,8 +15,9 @@ import {
  * their own. What this file protects is the part that silently rots:
  *
  *   - the public surface is exactly two routes, and each first refuses a
- *     request another site's page had a browser send (and submitting, a body
- *     that is not JSON), then runs the limiter, then the ANONYMOUS user
+ *     request another site's page had a browser send (reading, one without
+ *     the form page's own header; submitting, a body that is not JSON), then
+ *     runs the limiter, then the ANONYMOUS user
  *     middleware, then the handler - so such a page spends nothing, a flood
  *     is refused before it costs anything, and a dead session cookie is
  *     ignored rather than answered with a 401;
@@ -109,6 +110,8 @@ import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import {
+  INCIDENT_FORM_PAGE_HEADER,
+  INCIDENT_FORM_PAGE_HEADER_VALUE,
   IncidentFormFieldSetting,
   PublicIncidentForm,
   PublicIncidentFormSubmissionResult,
@@ -336,15 +339,22 @@ describe("IncidentFormAPI", () => {
     /*
      * Order matters. A request another site's page had a browser send is
      * refused first, so it spends none of the per-address budgets the
-     * limiter keeps, and a submission's body must then be JSON - still
-     * before the limiter. In front of UserMiddleware a flood is refused
-     * before it costs a session lookup; the anonymous variant turns a dead
-     * session cookie into an anonymous request instead of a 401 that would
-     * send the visitor to the login page. Nothing else stands between them
-     * and the handler.
+     * limiter keeps; then a read must carry the form page's own header, and
+     * a submission's body must be JSON - still before the limiter. In front
+     * of UserMiddleware a flood is refused before it costs a session lookup;
+     * the anonymous variant turns a dead session cookie into an anonymous
+     * request instead of a 401 that would send the visitor to the login
+     * page. Nothing else stands between them and the handler.
      */
     it.each([
-      ["GET", READ_URI, [IncidentFormAPI.refuseForeignPageRequests]],
+      [
+        "GET",
+        READ_URI,
+        [
+          IncidentFormAPI.refuseForeignPageRequests,
+          IncidentFormAPI.requireFormPageHeader,
+        ],
+      ],
       [
         "POST",
         SUBMIT_URI,
@@ -446,13 +456,51 @@ describe("IncidentFormAPI", () => {
     it.each([
       [{ "sec-fetch-site": "same-origin", origin: INSTANCE_ORIGIN }],
       [{ "sec-fetch-site": "none" }],
-      // Not a browser: neither header.
+      // Curl - or, over plain HTTP, another site's <img>: the next check's.
       [{}],
     ])("passes %j on", async (headers: Record<string, string>) => {
       expect(
         await runCheck(IncidentFormAPI.refuseForeignPageRequests, headers),
       ).toBe(true);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Over plain HTTP a browser sends another site's <img> or link with
+     * neither Origin nor Sec-Fetch-Site, so only the header the form's page
+     * adds tells its reads from theirs.
+     */
+    it.each([
+      ["no header, as an <img> or a link sends", {}],
+      ["an address-bar visit's headers alone", { "sec-fetch-site": "none" }],
+      ["another value", { [INCIDENT_FORM_PAGE_HEADER]: "true" }],
+      ["an empty header", { [INCIDENT_FORM_PAGE_HEADER]: "" }],
+    ])(
+      "refuses a read with %s, with the same 403, before anything is counted",
+      async (_label: string, headers: Record<string, string>) => {
+        expect(
+          await runCheck(IncidentFormAPI.requireFormPageHeader, headers),
+        ).toBe(false);
+
+        const error: Exception = sendErrorResponseMock.mock
+          .calls[0]![2] as Exception;
+
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect(error.message).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+        expect(setNoCacheHeadersMock).toHaveBeenCalled();
+        expect(client.counters.size).toBe(0);
+      },
+    );
+
+    it("passes the read the form's page sends: its header, and nothing else", async () => {
+      expect(
+        await runCheck(IncidentFormAPI.requireFormPageHeader, {
+          [INCIDENT_FORM_PAGE_HEADER]: INCIDENT_FORM_PAGE_HEADER_VALUE,
+        }),
+      ).toBe(true);
+      expect(sendErrorResponseMock).not.toHaveBeenCalled();
+      expect(INCIDENT_FORM_PAGE_HEADER).toBe("x-oneuptime-incident-form");
+      expect(INCIDENT_FORM_PAGE_HEADER_VALUE).toBe("1");
     });
 
     it.each([

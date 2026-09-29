@@ -48,8 +48,8 @@ import {
  *      the browser's own validation, then submits and gets the incident number;
  *   C. what that submission became, read back through the API: the incident
  *      and its answers, the template's label and owners, the private note
- *      naming the reporter, and the submission row - and what the submit
- *      route does with a caller who goes around the page;
+ *      naming the reporter, and the submission row - and what the public
+ *      routes do with a caller who goes around the page;
  *   D. the dashboard side: the Forms page and the form's Submissions, Reset
  *      Link (the old link must die at once), the Enabled switch, the IP
  *      allowlist, the Questions and Form Settings cards, and a form made in
@@ -90,6 +90,16 @@ const NETWORK_NOT_ALLOWED_MESSAGE: string =
   "This form can only be opened from an allowed network.";
 const SUBMIT_RATE_LIMIT_MESSAGE: string =
   "Too many submissions from your network. Please wait a few minutes and try again.";
+const FOREIGN_PAGE_MESSAGE: string =
+  "This form can only be used from its own page.";
+
+/*
+ * The header the public page's client adds to every request it makes
+ * (INCIDENT_FORM_PAGE_HEADER in Common/Types/Incident/IncidentFormPublic):
+ * the read route answers only a request that carries it.
+ */
+const FORM_PAGE_HEADER: string = "x-oneuptime-incident-form";
+const FORM_PAGE_HEADER_VALUE: string = "1";
 
 // Incident forms and incident custom fields are Growth features.
 const PREFERRED_PLAN_NAME: string = "Growth";
@@ -1032,6 +1042,10 @@ test.describe("Incident forms", () => {
     await openReporterPage(shareLinkFor(ctx.shareKey));
     const formResponse: Response = await formResponsePromise;
     expect(formResponse.status(), await formResponse.text()).toBe(200);
+    // The page reads the form with its own header, which the read route requires.
+    expect((await formResponse.request().allHeaders())[FORM_PAGE_HEADER]).toBe(
+      FORM_PAGE_HEADER_VALUE,
+    );
     const publicForm: JSONish = (await formResponse.json()) as JSONish;
 
     expect(
@@ -1417,6 +1431,29 @@ test.describe("Incident forms", () => {
         return toId(row["_id"]);
       }),
     ).toContain(ctx.labelId);
+  });
+
+  test("C3. the read route answers only a request carrying the form page's header", async () => {
+    test.setTimeout(120000);
+
+    /*
+     * What another site's <img> or link makes a browser send over plain
+     * HTTP: a GET with no header of a page's own. Refused before anything
+     * counts it, with the answer every foreign page gets.
+     */
+    const readUrl: string = buildUrl(
+      `/api/incident-form/public/${ctx.shareKey}`,
+    );
+    const refused: APIResponse = await ctx.reporter.request.get(readUrl);
+    expect(refused.status(), await refused.text()).toBe(403);
+    expect(await refused.text()).toContain(FOREIGN_PAGE_MESSAGE);
+
+    // A caller going around the page that sends what the page sends is answered.
+    const answered: APIResponse = await ctx.reporter.request.get(readUrl, {
+      headers: { [FORM_PAGE_HEADER]: FORM_PAGE_HEADER_VALUE },
+    });
+    expect(answered.status(), await answered.text()).toBe(200);
+    expect(((await answered.json()) as JSONish)["name"]).toBe(ctx.formName);
   });
 
   test("D1. the Forms page lists the form, and its Submissions lead to the incident", async () => {

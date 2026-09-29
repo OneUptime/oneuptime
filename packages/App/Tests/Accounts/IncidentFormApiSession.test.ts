@@ -17,6 +17,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Headers from "Common/Types/API/Headers";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import {
+  INCIDENT_FORM_PAGE_HEADER,
+  INCIDENT_FORM_PAGE_HEADER_VALUE,
+} from "Common/Types/Incident/IncidentFormPublic";
 import { JSONObject } from "Common/Types/JSON";
 import BaseAPI from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -229,6 +233,40 @@ describe("what the page's client sends", () => {
     expect(headers["tenantid"]).toBe("");
     expect(Object.keys(headers)).not.toContain("apikey");
     expect(Object.keys(headers)).not.toContain("projectid");
+  });
+
+  /*
+   * The server reads a form only for a request carrying the page's own
+   * header: another site can have a visitor's browser send that GET - an
+   * <img> is enough - but not with a header of its own. Without it, the
+   * page could not load a single form.
+   */
+  test("the form page's own header, reading the form and submitting it", async () => {
+    server.on(HTTPMethod.GET, FORM_URL, [{ status: 200, data: {} }]);
+    server.on(HTTPMethod.POST, SUBMIT_URL, [{ status: 200, data: {} }]);
+
+    await readForm();
+    await submitForm();
+
+    expect(sentRequests()).toEqual([`GET ${FORM_URL}`, `POST ${SUBMIT_URL}`]);
+
+    for (const request of server.sent) {
+      expect(request.headers[INCIDENT_FORM_PAGE_HEADER]).toBe(
+        INCIDENT_FORM_PAGE_HEADER_VALUE,
+      );
+    }
+
+    expect(IncidentFormAPI.getDefaultHeaders()[INCIDENT_FORM_PAGE_HEADER]).toBe(
+      INCIDENT_FORM_PAGE_HEADER_VALUE,
+    );
+    expect(INCIDENT_FORM_PAGE_HEADER).toBe("x-oneuptime-incident-form");
+  });
+
+  // The dashboard's client sends no such header: it is the form page's alone.
+  test("the dashboard's own client does not send it", () => {
+    expect(Object.keys(BaseAPI.getDefaultHeaders())).not.toContain(
+      INCIDENT_FORM_PAGE_HEADER,
+    );
   });
 });
 

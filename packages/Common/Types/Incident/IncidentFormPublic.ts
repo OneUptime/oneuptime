@@ -159,6 +159,20 @@ const fillMessage: FillMessageFunction = (
 };
 
 /*
+ * A header the public page's own script adds to every request it makes, and
+ * the value it gives it. Reading a form needs it: another site's page can
+ * have a visitor's browser send that GET - an <img>, a link, a no-cors
+ * fetch - carrying neither of the headers that say where a request came
+ * from (over plain HTTP a browser sends neither on such a request), but it
+ * cannot add a header of its own to one. A request that adds one is
+ * preflighted first, and then carries the Origin that gives it away
+ * (SameOriginRequest). The name is in lower case, as the server reads
+ * header names.
+ */
+export const INCIDENT_FORM_PAGE_HEADER: string = "x-oneuptime-incident-form";
+export const INCIDENT_FORM_PAGE_HEADER_VALUE: string = "1";
+
+/*
  * One custom field the form asks for, as the public page renders it. Only
  * what the page needs to draw the input: never the field's id, its template
  * variable key, its project-wide switches or its mapping, and a dropdown's

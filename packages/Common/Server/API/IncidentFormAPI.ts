@@ -18,6 +18,8 @@ import IncidentForm from "../../Models/DatabaseModels/IncidentForm";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import {
+  INCIDENT_FORM_PAGE_HEADER,
+  INCIDENT_FORM_PAGE_HEADER_VALUE,
   PublicIncidentForm,
   PublicIncidentFormSubmissionData,
   PublicIncidentFormSubmissionRequest,
@@ -48,10 +50,15 @@ import { JSONObject } from "../../Types/JSON";
  *     from - the form's IP allowlist, the per-address counters - so without
  *     this any website could have its visitors' browsers read a form or
  *     declare incidents from inside an allowed network, or use up those
- *     visitors' shared budgets. The submit route then requires a JSON body
- *     (requireJsonBody, 400): the one kind another site cannot have a
- *     browser send without a preflight, which carries the Origin the first
- *     check reads.
+ *     visitors' shared budgets. It can only go by the two headers in which
+ *     a browser says where a request came from, and a browser does not
+ *     always send them, so each route then asks for something only the
+ *     form's page sends. The read route requires the page's own header
+ *     (requireFormPageHeader, the same 403): over plain HTTP another site's
+ *     <img> or link sends its GET with neither header, and it cannot add
+ *     one. The submit route requires a JSON body (requireJsonBody, 400):
+ *     the one kind another site cannot have a browser send without a
+ *     preflight, which carries the Origin the first check reads.
  *
  *  2. IncidentFormRateLimit's per-address counters, before anything else
  *     costs anything. Reading a form is load control and fails open;
@@ -75,8 +82,14 @@ import { JSONObject } from "../../Types/JSON";
  *
  * What the page must handle: 200, 400 (bad answers or captcha, with a
  * message to show), 403 (network not allowed), 404 (one message for every
- * unavailable form), 429 with Retry-After, 500 and 503. (The first check's
- * 403 never reaches it: the page is served from this instance's own origin.)
+ * unavailable form), 429 with Retry-After, 500 and 503. (The own-page
+ * checks' 403 never reaches it: the page is served from this instance's own
+ * origin, and its client sends the page's header with every request.)
+ *
+ * A page the browser takes for this instance's own - a DNS-rebinding name
+ * pointed at this server, a status page on its owner's domain - passes the
+ * read route's checks, and can read a form's questions through a visitor
+ * inside its IP allowlist. It cannot submit: see SameOriginRequest.
  */
 
 export const INCIDENT_FORM_SUBMISSION_BODY_MESSAGE: string =
@@ -138,6 +151,7 @@ export default class IncidentFormAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/public/:shareKey`,
       IncidentFormAPI.refuseForeignPageRequests,
+      IncidentFormAPI.requireFormPageHeader,
       readRateLimit,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -213,9 +227,10 @@ export default class IncidentFormAPI extends BaseAPI<
    * a browser sent from a page that is not this instance's own is refused
    * before the limiter counts it - so such a page cannot use up its
    * visitors' budgets either - and before the link is looked at. The form's
-   * own page is served from this instance's origin and never meets it; a
-   * caller that is not a browser sends neither header, passes, and still
-   * faces everything after.
+   * own page is served from this instance's origin and never meets it. A
+   * request with neither header passes here - curl, a server-side client,
+   * but also another site's <img> over plain HTTP - and meets the route's
+   * next check.
    */
   public static refuseForeignPageRequests(
     req: ExpressRequest,
@@ -226,6 +241,47 @@ export default class IncidentFormAPI extends BaseAPI<
       SameOriginRequest.isForeignPageRequest({
         headers: req.headers,
         instanceOrigin: SameOriginRequest.getInstanceOrigin(),
+      })
+    ) {
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new ForbiddenException(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE),
+      );
+    }
+
+    return next();
+  }
+
+  /*
+   * Second on the read route, still before the limiter: the request must
+   * carry the header the form's page adds to every request it makes
+   * (INCIDENT_FORM_PAGE_HEADER). Over plain HTTP a browser sends another
+   * site's <img>, link or no-cors fetch with neither header the check above
+   * reads, so without this such a page could have each of its visitors'
+   * browsers send reads by the hundred - answered or not, every one counted
+   * against the budget everybody behind that visitor's address shares, until
+   * their own colleagues are refused the form. None of those can add a
+   * header, and a script on another origin that adds one is preflighted,
+   * then refused above for its Origin. The same 403 as above, for the same
+   * reason; a caller that is not the page - curl, a script - sends the
+   * header itself.
+   *
+   * The submit route needs no such header: every POST carries its Origin,
+   * and requireJsonBody forces the preflight a JSON body needs.
+   */
+  public static requireFormPageHeader(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): void {
+    if (
+      !SameOriginRequest.hasPageScriptHeader({
+        headers: req.headers,
+        name: INCIDENT_FORM_PAGE_HEADER,
+        value: INCIDENT_FORM_PAGE_HEADER_VALUE,
       })
     ) {
       Response.setNoCacheHeaders(res);
