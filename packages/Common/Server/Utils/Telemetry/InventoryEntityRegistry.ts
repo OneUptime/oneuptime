@@ -178,9 +178,10 @@ export function toOtelMacAddress(
  * `/api/inventory-item` had to follow `resourceId` to the Network Device
  * record for every one of them.
  *
- * The keys are the ones a host's card uses for the same facts (see
- * TelemetryEntity's host allowlist), so one CMDB column holds the serial
- * number whether the row is a server or a switch:
+ * The keys are the ones a host's card uses for the same facts (see the
+ * `host` entry of descriptiveAttributeKeysByType in
+ * Common/Server/Utils/Telemetry/TelemetryEntity), so one CMDB column holds
+ * the serial number whether the row is a server or a switch:
  *
  *   make / model   device.manufacturer / device.model.name
  *   serial number  host.serial_number
