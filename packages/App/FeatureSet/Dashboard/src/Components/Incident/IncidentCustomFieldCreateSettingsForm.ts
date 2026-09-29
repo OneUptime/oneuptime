@@ -131,6 +131,30 @@ export const getTemplateDefaultLabel: GetTemplateDefaultLabelFunction = (
   return IncidentCustomFieldCreateSettingsCopy.templateDefaultNotShown;
 };
 
+export type GetTemplateProjectDefaultLabelFunction = (
+  definition: IncidentCustomFieldDefinition,
+) => string;
+
+/**
+ * "Project default: Required", and its two siblings: the behaviour Default
+ * names, said beside a setting of the template's own.
+ */
+export const getTemplateProjectDefaultLabel: GetTemplateProjectDefaultLabelFunction =
+  (definition: IncidentCustomFieldDefinition): string => {
+    const projectDefault: EffectiveCustomFieldCreateSetting =
+      getEffectiveCustomFieldCreateSetting(definition);
+
+    if (projectDefault === CustomFieldCreateSetting.Required) {
+      return IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultRequired;
+    }
+
+    if (projectDefault === CustomFieldCreateSetting.Optional) {
+      return IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultOptional;
+    }
+
+    return IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultNotShown;
+  };
+
 export type GetCustomFieldSettingOptionsFunction = (
   definition: IncidentCustomFieldDefinition,
   mode: IncidentCustomFieldSettingsMode,
@@ -273,6 +297,38 @@ export const isCustomFieldSettingChosen: IsCustomFieldSettingChosenFunction = (
     getUnsetCustomFieldSetting(mode)
   );
 };
+
+export type GetCustomFieldProjectDefaultLabelFunction = (
+  definition: IncidentCustomFieldDefinition,
+  settings: unknown,
+  mode: IncidentCustomFieldSettingsMode,
+) => string | undefined;
+
+/**
+ * What the project does with a field, to show next to its setting: on a
+ * template, for a field the template overrides. A field left on Default
+ * already says it ("Default (Required)"), and a form never follows the
+ * project's switches, so neither gets one.
+ *
+ * Without it, a template that relaxes a field the project requires reads
+ * exactly like one that asks a field the project leaves out - and a viewer,
+ * who cannot open the editor where Default spells it out, cannot tell which.
+ */
+export const getCustomFieldProjectDefaultLabel: GetCustomFieldProjectDefaultLabelFunction =
+  (
+    definition: IncidentCustomFieldDefinition,
+    settings: unknown,
+    mode: IncidentCustomFieldSettingsMode,
+  ): string | undefined => {
+    if (
+      mode !== "template" ||
+      !isCustomFieldSettingChosen(definition, settings, mode)
+    ) {
+      return undefined;
+    }
+
+    return getTemplateProjectDefaultLabel(definition);
+  };
 
 export type GetCustomFieldTypeLabelFunction = (
   definition: IncidentCustomFieldDefinition,

@@ -40,6 +40,13 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   templateDefaultRequired: string;
   templateDefaultOptional: string;
   templateDefaultNotShown: string;
+  /*
+   * The same, beside a setting of the template's own: what the field does
+   * when the template leaves it alone.
+   */
+  templateProjectDefaultRequired: string;
+  templateProjectDefaultOptional: string;
+  templateProjectDefaultNotShown: string;
   templateHidden: string;
   templateNotFound: string;
 
@@ -64,6 +71,9 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   templateDefaultRequired: "Default (Required)",
   templateDefaultOptional: "Default (Optional)",
   templateDefaultNotShown: "Default (Not Shown)",
+  templateProjectDefaultRequired: "Project default: Required",
+  templateProjectDefaultOptional: "Project default: Optional",
+  templateProjectDefaultNotShown: "Project default: Not Shown",
   templateHidden: "Hidden",
   templateNotFound:
     "This template's custom field settings could not be loaded. The template may have been deleted.",

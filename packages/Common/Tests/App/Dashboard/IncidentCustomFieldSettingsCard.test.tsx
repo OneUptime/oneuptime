@@ -254,6 +254,14 @@ function settingShownFor(variableKey: string): string {
   );
 }
 
+function projectDefaultShownFor(variableKey: string): string | null {
+  const element: HTMLElement | null = within(row(variableKey)).queryByTestId(
+    "incident-custom-field-project-default",
+  );
+
+  return element ? element.textContent || "" : null;
+}
+
 function listedKeys(): Array<string> {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
@@ -559,6 +567,8 @@ describe("an incident template's Custom Fields on Create card", () => {
       return `[de] ${value}`;
     };
 
+    storedSettings = { category: "Optional" };
+
     await renderTemplateCard();
 
     expect(
@@ -568,8 +578,86 @@ describe("an incident template's Custom Fields on Create card", () => {
     expect(
       within(row("impact")).getByText("[de] Dropdown (single select)"),
     ).toBeInTheDocument();
+    expect(projectDefaultShownFor("category")).toBe(
+      "[de] Project default: Not Shown",
+    );
     // A field's name is the project's own text.
     expect(within(row("impact")).getByText("Impact")).toBeInTheDocument();
+  });
+
+  /*
+   * A field the template overrides no longer shows the project's behaviour
+   * in its setting, and a viewer cannot open the editor where Default spells
+   * it out: whether the template relaxes a field the project requires, or
+   * asks one the project leaves out, is said on the card.
+   */
+  test("a field the template overrides names the project default beside it, for a viewer too", async () => {
+    storedSettings = {
+      impact: "Optional",
+      estimated_duration: "Hidden",
+      category: "Required",
+    };
+    gate = {
+      isAllowed: false,
+      disabledReason:
+        "You do not have permission to update this Incident Template.",
+    };
+
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    expect(editButton("Edit Custom Fields on Create")).toBeDisabled();
+
+    // Relaxed: the project requires it.
+    expect(settingShownFor("impact")).toBe("Optional");
+    expect(projectDefaultShownFor("impact")).toBe("Project default: Required");
+
+    expect(settingShownFor("estimated_duration")).toBe("Hidden");
+    expect(projectDefaultShownFor("estimated_duration")).toBe(
+      "Project default: Optional",
+    );
+
+    // Asked: the project leaves it out.
+    expect(settingShownFor("category")).toBe("Required");
+    expect(projectDefaultShownFor("category")).toBe(
+      "Project default: Not Shown",
+    );
+
+    // Still one row per field.
+    expect(listedKeys()).toEqual(["impact", "estimated_duration", "category"]);
+  });
+
+  test("a field left on Default says it once, in its setting", async () => {
+    storedSettings = { category: "Required", impact: "Default" };
+
+    await renderTemplateCard();
+
+    await screen.findByText("Custom Fields on Create");
+
+    expect(settingShownFor("impact")).toBe("Default (Required)");
+    expect(projectDefaultShownFor("impact")).toBeNull();
+    expect(projectDefaultShownFor("estimated_duration")).toBeNull();
+    expect(projectDefaultShownFor("category")).toBe(
+      "Project default: Not Shown",
+    );
+  });
+
+  test("a saved override names the project default at once", async () => {
+    await renderTemplateCard();
+
+    await openEditor("Edit Custom Fields on Create");
+
+    choose("Impact", "Optional");
+
+    await save();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    expect(settingShownFor("impact")).toBe("Optional");
+    expect(projectDefaultShownFor("impact")).toBe("Project default: Required");
   });
 });
 
@@ -1134,6 +1222,21 @@ describe("an incident form's Questions card", () => {
     expect(settingShownFor("impact")).toBe("Required");
     expect(settingShownFor("estimated_duration")).toBe("Optional");
     expect(settingShownFor("category")).toBe("Not Asked");
+  });
+
+  test("names no project default: a form does not follow the project's switches", async () => {
+    storedSettings = { impact: "Optional", category: "Required" };
+
+    await renderFormCard();
+
+    await screen.findByText("Questions");
+
+    expect(settingShownFor("impact")).toBe("Optional");
+    expect(
+      document.querySelectorAll(
+        '[data-testid="incident-custom-field-project-default"]',
+      ),
+    ).toHaveLength(0);
   });
 
   test("a new form asks nothing, whatever the fields' own Show on Create says", async () => {

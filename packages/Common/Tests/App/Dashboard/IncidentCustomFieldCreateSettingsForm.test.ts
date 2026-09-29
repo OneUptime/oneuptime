@@ -3,6 +3,7 @@ import {
   buildCustomFieldSettingsFormFields,
   buildCustomFieldSettingsModelFormFields,
   getChangedCustomFieldSettingsFormValues,
+  getCustomFieldProjectDefaultLabel,
   getCustomFieldSettingFormKey,
   getCustomFieldSettingLabel,
   getCustomFieldSettingOptions,
@@ -11,6 +12,7 @@ import {
   getCustomFieldTypeLabel,
   getKeyedCustomFieldDefinitions,
   getTemplateDefaultLabel,
+  getTemplateProjectDefaultLabel,
   getUnsetCustomFieldSetting,
   INCIDENT_CUSTOM_FIELD_SETTING_FORM_KEY_PREFIX,
   isCustomFieldSettingChosen,
@@ -214,6 +216,91 @@ describe("a template's choices", () => {
       IncidentCustomFieldCreateSettingsCopy.required,
       IncidentCustomFieldCreateSettingsCopy.optional,
       IncidentCustomFieldCreateSettingsCopy.templateHidden,
+    ]);
+  });
+});
+
+/*
+ * A field the template overrides no longer says, in its own label, what the
+ * project does with it; "Project default: ..." says it beside the override.
+ */
+describe("the project default beside a template's own setting", () => {
+  test("names what the field does on its own", () => {
+    expect(getTemplateProjectDefaultLabel(IMPACT)).toBe(
+      "Project default: Required",
+    );
+    expect(getTemplateProjectDefaultLabel(DURATION)).toBe(
+      "Project default: Optional",
+    );
+    expect(getTemplateProjectDefaultLabel(CATEGORY)).toBe(
+      "Project default: Not Shown",
+    );
+    // Required on its own asks for nothing.
+    expect(getTemplateProjectDefaultLabel(REQUIRED_NOT_SHOWN)).toBe(
+      "Project default: Not Shown",
+    );
+  });
+
+  test("is shown for every setting a template chooses for itself", () => {
+    expect(
+      getCustomFieldProjectDefaultLabel(
+        IMPACT,
+        { impact: "Optional" },
+        "template",
+      ),
+    ).toBe("Project default: Required");
+    expect(
+      getCustomFieldProjectDefaultLabel(
+        IMPACT,
+        { impact: "Hidden" },
+        "template",
+      ),
+    ).toBe("Project default: Required");
+    expect(
+      getCustomFieldProjectDefaultLabel(
+        CATEGORY,
+        { category: "Required" },
+        "template",
+      ),
+    ).toBe("Project default: Not Shown");
+    // Even one that matches the project's: it is still the template's choice.
+    expect(
+      getCustomFieldProjectDefaultLabel(
+        DURATION,
+        { estimated_duration: "Optional" },
+        "template",
+      ),
+    ).toBe("Project default: Optional");
+  });
+
+  test("not for a field left on Default, whose label already says it", () => {
+    expect(
+      getCustomFieldProjectDefaultLabel(IMPACT, {}, "template"),
+    ).toBeUndefined();
+    expect(
+      getCustomFieldProjectDefaultLabel(
+        IMPACT,
+        { impact: "Default" },
+        "template",
+      ),
+    ).toBeUndefined();
+  });
+
+  test("never on a form, which does not follow the project's switches", () => {
+    expect(
+      getCustomFieldProjectDefaultLabel(IMPACT, { impact: "Optional" }, "form"),
+    ).toBeUndefined();
+  });
+
+  test("the labels are the shared copy", () => {
+    expect([
+      getTemplateProjectDefaultLabel(IMPACT),
+      getTemplateProjectDefaultLabel(DURATION),
+      getTemplateProjectDefaultLabel(CATEGORY),
+    ]).toEqual([
+      IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultRequired,
+      IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultOptional,
+      IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultNotShown,
     ]);
   });
 });

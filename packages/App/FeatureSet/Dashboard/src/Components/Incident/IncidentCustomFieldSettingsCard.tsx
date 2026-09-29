@@ -4,6 +4,7 @@ import IncidentCustomFieldCreateSettingsCopy from "./IncidentCustomFieldCreateSe
 import {
   buildCustomFieldSettingsFormFields,
   getChangedCustomFieldSettingsFormValues,
+  getCustomFieldProjectDefaultLabel,
   getCustomFieldSettingLabel,
   getCustomFieldSettingsFormInitialValues,
   getCustomFieldTypeLabel,
@@ -60,7 +61,11 @@ import useAsyncEffect from "use-async-effect";
  *
  *   - mode "template", on an incident template's page: the Details step of
  *     declaring an incident from the template. A field left on Default
- *     follows its own Show on Create and Required on Create, and says which.
+ *     follows its own Show on Create and Required on Create, and says which;
+ *     a field the template overrides says it too ("Project default:
+ *     Required"), under its type - otherwise only the editor, which a viewer
+ *     cannot open, would tell a template that relaxes a field the project
+ *     requires from one that asks a field the project leaves out.
  *     A project with no custom fields (or none on its plan) has nothing to
  *     set, so the card then shows nothing at all - the page is about the
  *     template, not its custom fields.
@@ -459,6 +464,9 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
               mode,
             );
 
+            const projectDefaultLabel: string | undefined =
+              getCustomFieldProjectDefaultLabel(definition, settings, mode);
+
             return (
               <li
                 key={definition.variableKey}
@@ -472,6 +480,17 @@ const IncidentCustomFieldSettingsCard: FunctionComponent<ComponentProps> = (
                   {typeLabel ? (
                     <p className="mt-0.5 text-xs text-gray-500">
                       {translateString(typeLabel) || typeLabel}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                  {projectDefaultLabel ? (
+                    <p
+                      className="mt-0.5 text-xs text-gray-500"
+                      data-testid="incident-custom-field-project-default"
+                    >
+                      {translateString(projectDefaultLabel) ||
+                        projectDefaultLabel}
                     </p>
                   ) : (
                     <></>

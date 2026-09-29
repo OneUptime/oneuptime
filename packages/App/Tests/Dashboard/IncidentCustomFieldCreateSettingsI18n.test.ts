@@ -129,6 +129,16 @@ describe("the glossary's words", () => {
       "Optional",
       "Hidden",
     ]);
+    // Beside a setting of the template's own.
+    expect([
+      IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultRequired,
+      IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultOptional,
+      IncidentCustomFieldCreateSettingsCopy.templateProjectDefaultNotShown,
+    ]).toEqual([
+      "Project default: Required",
+      "Project default: Optional",
+      "Project default: Not Shown",
+    ]);
   });
 
   test("an incident form's Questions card", () => {
@@ -152,7 +162,7 @@ describe("the glossary's words", () => {
 
 describe("Custom Fields on Create and Questions strings in every Dashboard locale", () => {
   test("there are strings to check", () => {
-    expect(STRINGS.length).toBe(18);
+    expect(STRINGS.length).toBe(21);
   });
 
   test.each(STRINGS)("%j holds no placeholder braces", (text: string) => {
@@ -278,6 +288,9 @@ describe("the card, the wizard and the pages render the shared strings and wirin
       "templateDefaultRequired",
       "templateDefaultOptional",
       "templateDefaultNotShown",
+      "templateProjectDefaultRequired",
+      "templateProjectDefaultOptional",
+      "templateProjectDefaultNotShown",
       "templateHidden",
       "required",
       "optional",
