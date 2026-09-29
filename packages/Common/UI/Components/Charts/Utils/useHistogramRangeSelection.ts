@@ -3,7 +3,12 @@ import {
   HistogramSelectionWindow,
   getHistogramSelectionWindow,
 } from "./HistogramSelection";
-import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "../ChartLibrary/Utils/DoubleClick";
+import {
+  ChartPointerEvent,
+  DOUBLE_CLICK_DISAMBIGUATION_MS,
+  DoubleClickReset,
+  useDoubleClickReset,
+} from "../ChartLibrary/Utils/DoubleClick";
 import { RANGE_SELECTION_THROTTLED_EVENTS } from "../ChartLibrary/Utils/UseChartRangeSelection";
 import OneUptimeDate from "../../../../Types/Date";
 
@@ -14,6 +19,12 @@ import OneUptimeDate from "../../../../Types/Date";
 export interface HistogramPointerState {
   activeLabel?: string | number | undefined;
 }
+
+/*
+ * How far the pointer may wander from where it was pressed and still be a
+ * pointer that has not moved: a hand on a mouse is never quite still.
+ */
+export const HISTOGRAM_PRESS_STILLNESS_PX: number = 3;
 
 export interface HistogramRangeSelectionOptions {
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
@@ -49,9 +60,23 @@ export interface HistogramRangeSelectionState {
    * which leaves recharts' default alone.
    */
   chartRootProps: HistogramChartRootProps;
-  onMouseDown: (state?: HistogramPointerState | null) => void;
-  onMouseMove: (state?: HistogramPointerState | null) => void;
-  onMouseUp: (state?: HistogramPointerState | null) => void;
+  /*
+   * The chart root's mouse handlers. recharts hands them its state and the
+   * React event; the event is optional so a caller without one still gets
+   * the label-only behaviour.
+   */
+  onMouseDown: (
+    state?: HistogramPointerState | null,
+    event?: ChartPointerEvent | null,
+  ) => void;
+  onMouseMove: (
+    state?: HistogramPointerState | null,
+    event?: ChartPointerEvent | null,
+  ) => void;
+  onMouseUp: (
+    state?: HistogramPointerState | null,
+    event?: ChartPointerEvent | null,
+  ) => void;
   onDoubleClick: () => void;
 }
 
@@ -111,6 +136,15 @@ function inTimeOrder(first: string, second: string): [string, string] {
  *   click waits DOUBLE_CLICK_DISAMBIGUATION_MS and a second press or the
  *   double-click cancels it. An unzoomed chart has no double-click gesture
  *   and zooms at once.
+ * - On a zoomed chart the second press of a double-click is the zoom-out
+ *   and nothing else, and it zooms out even when the browser never sends
+ *   the `dblclick` (see useDoubleClickReset). That is what happens when the
+ *   chart's new bars land during the press, which, right after a zoom, is
+ *   when readers double-click.
+ * - A press becomes a drag only once the POINTER leaves its bar. New bars
+ *   landing under a pointer that has not moved are not a drag, and a press
+ *   whose bar is gone from under its still pointer by the release zooms
+ *   nowhere: the reader pressed a bar that is no longer on the chart.
  *
  * The release is resolved against refs rather than render state, from the
  * bar recharts hands the `mouseup` handler, falling back to the last move.
@@ -132,6 +166,10 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   // Whether the pointer has left the pressed bar (a drag, not a click).
   const hasLeftPressedBar: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  // Where the press in progress went down, when recharts said.
+  const pressClientX: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
   // The page-wide mouseup listener of the press in progress, if any.
   const releaseListener: React.MutableRefObject<(() => void) | null> = useRef<
     (() => void) | null
@@ -199,53 +237,118 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   }, [cancelPendingClick, stopListeningForRelease]);
 
   /*
+   * The zoom-out, while the chart offers one: the click waiting to zoom in
+   * goes, and so does its band.
+   */
+  const zoomOut: (() => void) | undefined = onZoomOut
+    ? (): void => {
+        cancelPendingClick();
+        clearSelection();
+        onZoomOut();
+      }
+    : undefined;
+  const doubleClickReset: DoubleClickReset = useDoubleClickReset(zoomOut);
+
+  /*
+   * Whether the pointer has left the spot the press went down on. Without
+   * positions to go by (a caller that hands no event), it has: any change
+   * of bar counts, as it always did.
+   */
+  const hasPointerMoved: (event?: ChartPointerEvent | null) => boolean =
+    useCallback((event?: ChartPointerEvent | null): boolean => {
+      const clientX: number | undefined = event?.clientX;
+
+      if (pressClientX.current === null || typeof clientX !== "number") {
+        return true;
+      }
+
+      return (
+        Math.abs(clientX - pressClientX.current) > HISTOGRAM_PRESS_STILLNESS_PX
+      );
+    }, []);
+
+  /*
    * The page-wide release listener is added by a press and calls the
    * newest onMouseUp, whatever the host re-rendered with meanwhile.
    */
   const onMouseUpRef: React.MutableRefObject<
-    (state?: HistogramPointerState | null) => void
-  > = useRef<(state?: HistogramPointerState | null) => void>(() => {});
+    (
+      state?: HistogramPointerState | null,
+      event?: ChartPointerEvent | null,
+    ) => void
+  > = useRef<
+    (
+      state?: HistogramPointerState | null,
+      event?: ChartPointerEvent | null,
+    ) => void
+  >(() => {});
 
-  const onMouseDown: (state?: HistogramPointerState | null) => void =
-    useCallback(
-      (state?: HistogramPointerState | null): void => {
-        const label: string | null = toLabel(state);
-
-        if (!canSelect || !label) {
-          return;
-        }
-
-        /*
-         * A second press before the first click zoomed replaces it. The
-         * band that click painted stays until this press ends: this may be
-         * the second click of a double-click, landing on that band.
-         */
+  const onMouseDown: (
+    state?: HistogramPointerState | null,
+    event?: ChartPointerEvent | null,
+  ) => void = useCallback(
+    (
+      state?: HistogramPointerState | null,
+      event?: ChartPointerEvent | null,
+    ): void => {
+      /*
+       * The second press of a double-click on a zoomed chart: the zoom-out,
+       * on its release. The first click must not zoom in; its band stays
+       * until the zoom-out clears it, because this press may have landed
+       * on it and a render now would take that node away.
+       */
+      if (doubleClickReset.onPress(event)) {
         cancelPendingClick();
-
-        isSelecting.current = true;
-        hasLeftPressedBar.current = false;
-        startLabel.current = label;
-        endLabel.current = null;
-
-        /*
-         * Readers routinely drag past the edge of a 120px-tall chart and
-         * let go outside it, where the chart's own mouseup never fires.
-         * Listen on the page until the press ends; a release over the chart
-         * reaches the chart's handler first, which removes this listener
-         * before the page hears it.
-         */
+        isSelecting.current = false;
         stopListeningForRelease();
-        const finishPressOutsideChart: () => void = (): void => {
-          onMouseUpRef.current(null);
-        };
-        releaseListener.current = finishPressOutsideChart;
-        window.addEventListener("mouseup", finishPressOutsideChart);
-      },
-      [canSelect, cancelPendingClick, stopListeningForRelease],
-    );
+        return;
+      }
 
-  const onMouseMove: (state?: HistogramPointerState | null) => void =
-    useCallback((state?: HistogramPointerState | null): void => {
+      const label: string | null = toLabel(state);
+
+      if (!canSelect || !label) {
+        return;
+      }
+
+      /*
+       * A second press before the first click zoomed replaces it. The
+       * band that click painted stays until this press ends: this may be
+       * the second click of a double-click, landing on that band.
+       */
+      cancelPendingClick();
+
+      isSelecting.current = true;
+      hasLeftPressedBar.current = false;
+      startLabel.current = label;
+      endLabel.current = null;
+      pressClientX.current =
+        typeof event?.clientX === "number" ? event.clientX : null;
+
+      /*
+       * Readers routinely drag past the edge of a 120px-tall chart and
+       * let go outside it, where the chart's own mouseup never fires.
+       * Listen on the page until the press ends; a release over the chart
+       * reaches the chart's handler first, which removes this listener
+       * before the page hears it.
+       */
+      stopListeningForRelease();
+      const finishPressOutsideChart: () => void = (): void => {
+        onMouseUpRef.current(null);
+      };
+      releaseListener.current = finishPressOutsideChart;
+      window.addEventListener("mouseup", finishPressOutsideChart);
+    },
+    [canSelect, cancelPendingClick, doubleClickReset, stopListeningForRelease],
+  );
+
+  const onMouseMove: (
+    state?: HistogramPointerState | null,
+    event?: ChartPointerEvent | null,
+  ) => void = useCallback(
+    (
+      state?: HistogramPointerState | null,
+      event?: ChartPointerEvent | null,
+    ): void => {
       const label: string | null = toLabel(state);
       const from: string | null = startLabel.current;
 
@@ -253,22 +356,46 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
         return;
       }
 
-      endLabel.current = label;
+      if (!hasLeftPressedBar.current) {
+        // Still on the pressed bar: a click so far, so paint nothing.
+        if (label === from) {
+          endLabel.current = label;
+          return;
+        }
 
-      // Still on the pressed bar: a click so far, so paint nothing.
-      if (!hasLeftPressedBar.current && label === from) {
-        return;
+        /*
+         * Another bar under a pointer that has not moved: the bars changed
+         * under the press (the chart's new data landed), the pointer did
+         * not leave its bar. Not a drag.
+         */
+        if (!hasPointerMoved(event)) {
+          return;
+        }
       }
 
+      endLabel.current = label;
       hasLeftPressedBar.current = true;
       const [first, last]: [string, string] = inTimeOrder(from, label);
       setSelectionStart(first);
       setSelectionEnd(last);
       setIsDragging(true);
-    }, []);
+    },
+    [hasPointerMoved],
+  );
 
-  const onMouseUp: (state?: HistogramPointerState | null) => void = useCallback(
-    (state?: HistogramPointerState | null): void => {
+  const onMouseUp: (
+    state?: HistogramPointerState | null,
+    event?: ChartPointerEvent | null,
+  ) => void = useCallback(
+    (
+      state?: HistogramPointerState | null,
+      event?: ChartPointerEvent | null,
+    ): void => {
+      // The end of a double-click's second press: the zoom-out, nothing else.
+      if (doubleClickReset.onRelease()) {
+        return;
+      }
+
       if (!isSelecting.current) {
         return;
       }
@@ -278,7 +405,22 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       setIsDragging(false);
 
       const from: string | null = startLabel.current;
-      const to: string | null = toLabel(state) || endLabel.current || from;
+      const releaseLabel: string | null = toLabel(state);
+      let to: string | null = from;
+
+      if (hasLeftPressedBar.current || hasPointerMoved(event)) {
+        // A drag, or a flick released before any of its moves came in.
+        to = releaseLabel || endLabel.current || from;
+      } else if (releaseLabel && releaseLabel !== from) {
+        /*
+         * The pointer never left the bar it pressed, yet another bar is
+         * under it now: the chart's data changed during the press, and the
+         * pressed bar is gone. Not a drag the reader never made, nor a
+         * zoom into a bar that is no longer shown.
+         */
+        clearSelection();
+        return;
+      }
 
       if (!from || !to) {
         clearSelection();
@@ -322,17 +464,25 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
         onTimeRangeSelectRef.current?.(selected.startTime, selected.endTime);
       }, DOUBLE_CLICK_DISAMBIGUATION_MS);
     },
-    [bucketIntervalMs, clearSelection, onZoomOut, stopListeningForRelease],
+    [
+      bucketIntervalMs,
+      clearSelection,
+      doubleClickReset,
+      hasPointerMoved,
+      onZoomOut,
+      stopListeningForRelease,
+    ],
   );
   onMouseUpRef.current = onMouseUp;
 
   const onDoubleClick: () => void = useCallback((): void => {
+    // Neither click of a double-click zooms in, whatever else it does.
     if (cancelPendingClick()) {
       clearSelection();
     }
 
-    onZoomOut?.();
-  }, [cancelPendingClick, clearSelection, onZoomOut]);
+    doubleClickReset.onDoubleClick();
+  }, [cancelPendingClick, clearSelection, doubleClickReset]);
 
   return {
     selectionStart: selectionStart,

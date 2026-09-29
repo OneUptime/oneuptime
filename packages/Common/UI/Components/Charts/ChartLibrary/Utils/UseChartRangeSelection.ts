@@ -1,5 +1,6 @@
 import React from "react";
 import { CHART_DATA_POINT_DATE_KEY } from "../Types/ChartDataPoint";
+import { DoubleClickReset, useDoubleClickReset } from "./DoubleClick";
 
 /*
  * Subset of the recharts MouseHandlerDataParam passed to chart-level
@@ -102,6 +103,14 @@ export interface UseChartRangeSelectionOptions {
    * has its categories on the y-axis, so there is no time to drag across.
    */
   enabled?: boolean | undefined;
+  /*
+   * What a double-click on the chart does while it offers one (a zoom to
+   * undo), including dropping any plot click it is holding back. With it,
+   * chartEventProps carries the chart's dblclick handler and the second
+   * press of a double-click is the reset, never a selection (see
+   * useDoubleClickReset).
+   */
+  onTimeRangeReset?: (() => void) | undefined;
 }
 
 /*
@@ -134,7 +143,11 @@ export interface ChartRangeSelectionRootProps {
     chartState: RangeSelectionChartState,
     mouseEvent: React.MouseEvent<SVGGraphicsElement>,
   ) => void;
-  onMouseUp?: (chartState?: RangeSelectionChartState | null) => void;
+  onMouseUp?: (
+    chartState?: RangeSelectionChartState | null,
+    mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
+  ) => void;
+  onDoubleClick?: () => void;
   throttledEvents?: ReadonlyArray<keyof GlobalEventHandlersEventMap>;
   style?: React.CSSProperties;
 }
@@ -153,7 +166,10 @@ export interface ChartRangeSelection {
    * must not also toggle a legend, dot or bar selection.
    */
   isClickSuppressed: () => boolean;
-  /** Spread onto the recharts chart root. Empty when canSelect is false. */
+  /*
+   * Spread onto the recharts chart root. Empty when the chart neither
+   * selects nor resets.
+   */
   chartEventProps: ChartRangeSelectionRootProps;
 }
 
@@ -161,6 +177,7 @@ interface LatestRangeSelectionInputs {
   data: ChartRows;
   index: string;
   onTimeRangeSelect: ((startTime: Date, endTime: Date) => void) | undefined;
+  canSelect: boolean;
 }
 
 /**
@@ -184,6 +201,10 @@ interface LatestRangeSelectionInputs {
  *   there. Before, the drag was abandoned and its band stayed painted until
  *   the pointer came back.
  * - The click the browser fires after a drag is reported as suppressed.
+ * - With onTimeRangeReset, the second press of a double-click is the reset
+ *   and never a selection, and it resets even when the browser drops the
+ *   `dblclick` because the chart's new data re-keyed the node under the
+ *   press (see useDoubleClickReset).
  */
 const useChartRangeSelection: (
   options: UseChartRangeSelectionOptions,
@@ -192,6 +213,10 @@ const useChartRangeSelection: (
 ): ChartRangeSelection => {
   const canSelect: boolean =
     Boolean(options.onTimeRangeSelect) && options.enabled !== false;
+  const canReset: boolean = Boolean(options.onTimeRangeReset);
+  const doubleClickReset: DoubleClickReset = useDoubleClickReset(
+    options.onTimeRangeReset,
+  );
 
   const [selectionStartLabel, setSelectionStartLabel] = React.useState<
     string | null
@@ -231,11 +256,13 @@ const useChartRangeSelection: (
       data: options.data,
       index: options.index,
       onTimeRangeSelect: options.onTimeRangeSelect,
+      canSelect: canSelect,
     });
   latest.current = {
     data: options.data,
     index: options.index,
     onTimeRangeSelect: options.onTimeRangeSelect,
+    canSelect: canSelect,
   };
 
   const stopListeningForRelease: () => void = React.useCallback((): void => {
@@ -328,6 +355,11 @@ const useChartRangeSelection: (
   const onMouseUp: (chartState?: RangeSelectionChartState | null) => void =
     React.useCallback(
       (chartState?: RangeSelectionChartState | null): void => {
+        // The end of a double-click's second press: the reset, nothing else.
+        if (doubleClickReset.onRelease()) {
+          return;
+        }
+
         if (!isSelecting.current) {
           return;
         }
@@ -381,7 +413,7 @@ const useChartRangeSelection: (
           selectedWindow.end,
         );
       },
-      [clearSelection],
+      [clearSelection, doubleClickReset],
     );
 
   const onMouseDown: (
@@ -392,6 +424,18 @@ const useChartRangeSelection: (
       chartState: RangeSelectionChartState,
       mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
     ): void => {
+      // The second press of a double-click is the reset, on its release.
+      if (doubleClickReset.onPress(mouseEvent)) {
+        clearSelection();
+        return;
+      }
+      /*
+       * Also on a chart that only resets: it takes presses to spot that
+       * second one, and selects nothing.
+       */
+      if (!latest.current.canSelect) {
+        return;
+      }
       // Only the main button drags; a right-click opens a context menu.
       if (mouseEvent && mouseEvent.button > 0) {
         return;
@@ -423,7 +467,7 @@ const useChartRangeSelection: (
       releaseListenerRef.current = finishPressOutsideChart;
       window.addEventListener("mouseup", finishPressOutsideChart);
     },
-    [clearSelection, getLabel, onMouseUp],
+    [clearSelection, doubleClickReset, getLabel, onMouseUp],
   );
 
   // A chart unmounted mid-press stops listening for its release.
@@ -437,27 +481,42 @@ const useChartRangeSelection: (
     return suppressNextClickRef.current;
   }, []);
 
+  const resetEventProps: ChartRangeSelectionRootProps = canReset
+    ? { onDoubleClick: doubleClickReset.onDoubleClick }
+    : {};
+
+  let chartEventProps: ChartRangeSelectionRootProps = {};
+
+  if (canSelect) {
+    chartEventProps = {
+      onMouseDown: onMouseDown,
+      onMouseMove: onMouseMove,
+      onMouseUp: onMouseUp,
+      throttledEvents: RANGE_SELECTION_THROTTLED_EVENTS,
+      /*
+       * The crosshair that says the plot can be dragged. It has to be on
+       * the chart root: recharts gives its wrapper, which fills the plot,
+       * an inline cursor: default that a class outside can't beat. Left
+       * off entirely otherwise - an explicit undefined would drop
+       * recharts' default too.
+       */
+      style: RANGE_SELECTION_ROOT_STYLE,
+      ...resetEventProps,
+    };
+  } else if (canReset) {
+    chartEventProps = {
+      onMouseDown: onMouseDown,
+      onMouseUp: onMouseUp,
+      ...resetEventProps,
+    };
+  }
+
   return {
     canSelect: canSelect,
     selectionStartLabel: selectionStartLabel,
     selectionEndLabel: selectionEndLabel,
     isClickSuppressed: isClickSuppressed,
-    chartEventProps: canSelect
-      ? {
-          onMouseDown: onMouseDown,
-          onMouseMove: onMouseMove,
-          onMouseUp: onMouseUp,
-          throttledEvents: RANGE_SELECTION_THROTTLED_EVENTS,
-          /*
-           * The crosshair that says the plot can be dragged. It has to be
-           * on the chart root: recharts gives its wrapper, which fills the
-           * plot, an inline cursor: default that a class outside can't
-           * beat. Left off entirely otherwise - an explicit undefined
-           * would drop recharts' default too.
-           */
-          style: RANGE_SELECTION_ROOT_STYLE,
-        }
-      : {},
+    chartEventProps: chartEventProps,
   };
 };
 
