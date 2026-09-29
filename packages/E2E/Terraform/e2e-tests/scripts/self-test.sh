@@ -23,6 +23,7 @@ RUNNER="$SCRIPT_DIR/run-tests.sh"
 CLEANUP="$SCRIPT_DIR/cleanup.sh"
 INDEX="$SCRIPT_DIR/index.sh"
 WORKFLOW="$REPO_ROOT/.github/workflows/terraform-provider-e2e.yml"
+DEV_COMPOSE="$REPO_ROOT/Scripts/Dev/docker-compose.dev.yml"
 
 PASSED=0
 FAILED=0
@@ -45,8 +46,12 @@ assert_eq() { # expected actual description
     fi
 }
 
+# The haystack goes to grep as a here-string, never through a pipe: grep -q
+# exits at the first match, and a printf still writing into the pipe then dies
+# of SIGPIPE, which pipefail turns into a failed match. On Ubuntu that failed
+# checks against the fetch step (a few KB) about one run in ten.
 assert_contains() { # haystack needle description
-    if printf '%s' "$1" | grep -qF -- "$2"; then
+    if grep -qF -- "$2" <<<"$1"; then
         pass "$3"
     else
         fail "$3" "expected output to contain '$2', got '$1'"
@@ -108,6 +113,112 @@ workflow_steps_with() { # regex
 # The value of a `key: value` line in a step printed by workflow_steps_with.
 step_value() { # step-text key
     printf '%s\n' "$1" | sed -nE "s/^[[:space:]]+$2:[[:space:]]*//p" | head -1
+}
+
+# The script under <key> (`run`, or a retry step's `command`) in a step printed
+# by workflow_steps_with, as the shell receives it: an inline value as it is, a
+# `|` block without its indentation.
+step_script() { # step-text key
+    printf '%s\n' "$1" | KEY="$2" awk '
+        in_block {
+            if ($0 ~ /^[[:space:]]*$/) { print ""; next }
+            match($0, /^ */)
+            if (RLENGTH <= key_indent) exit
+            if (!indent) indent = RLENGTH
+            print substr($0, indent + 1)
+            next
+        }
+        $0 ~ ("^ +(- )?" ENVIRON["KEY"] ":") {
+            match($0, /^ */)
+            key_indent = RLENGTH
+            value = $0
+            sub(/^[^:]*:[[:space:]]*/, "", value)
+            if (value ~ /^\|/) { in_block = 1; next }
+            print value
+            exit
+        }
+    '
+}
+
+# Each line of the workflow as a shell reads it, after the number of the line
+# it starts on: comment lines are skipped, and a line continued with a
+# backslash is joined to the lines that continue it. A position in these,
+# "<line> <column>", orders two commands even when they share a line.
+command_lines() {
+    awk '
+        /^[[:space:]]*#/ && !joined { next }
+        {
+            if (!joined) start = NR
+            line = (joined ? line " " : "") $0
+            joined = sub(/\\[[:space:]]*$/, "", line)
+            if (!joined) print start, line
+        }
+    ' "$WORKFLOW"
+}
+
+# The position of the first <text> in command_lines, or "0 0" when there is
+# none.
+command_at() { # text
+    command_lines | TEXT="$1" awk '
+        !found && (column = index(substr($0, length($1) + 2), ENVIRON["TEXT"])) {
+            print $1, column
+            found = 1
+        }
+        END { if (!found) print 0, 0 }
+    '
+}
+
+# Whether position <a> comes before position <b>.
+precedes() { # a b
+    [ "${1% *}" -lt "${2% *}" ] || { [ "${1% *}" -eq "${2% *}" ] && [ "${1#* }" -lt "${2#* }" ]; }
+}
+
+# One "<line> <column> <dockerfile>" per Dockerfile a warm_base_images.sh call
+# in command_lines names, at the position of the call, so a check can tell
+# which warm-ups run before a command. The arguments end at the first flag
+# (--image) or shell operator, as in Tests/Ops/KubernetesAiAgentRelease.test.js.
+warm_calls() {
+    command_lines | awk '
+        {
+            line = substr($0, length($1) + 2)
+            if (line !~ /warm_base_images\.sh/) next
+            rest = line
+            sub(/.*warm_base_images\.sh/, "", rest)
+            column = length(line) - length(rest) - length("warm_base_images.sh") + 1
+            sub(/[;&|#>)].*/, "", rest)
+            count = split(rest, words, /[[:space:]]+/)
+            for (i = 1; i <= count; i++) {
+                if (words[i] == "") continue
+                if (words[i] ~ /^-/) break
+                gsub(/["\047]/, "", words[i])
+                print $1, column, words[i]
+            }
+        }
+    '
+}
+
+# The Dockerfile Scripts/Dev/docker-compose.dev.yml builds <service> from,
+# relative to the repository root the way a workflow step names it
+# (./packages/App/Dockerfile), or nothing when the service has no build
+# section. Compose reads `dockerfile` relative to the build `context`, so the
+# two are joined. Only keys directly under `services:` count as services: the
+# depends_on anchor, `volumes:` and `networks:` indent names the same way.
+compose_dockerfile() { # service
+    SERVICE="$1" awk '
+        function value(line) {
+            sub(/^[[:space:]]+[a-z]+:[[:space:]]*/, "", line)
+            return line
+        }
+        /^[^[:space:]#]/ { in_services = ($0 ~ /^services:/); in_service = 0; next }
+        in_services && /^  [^[:space:]#]/ { in_service = ($1 == ENVIRON["SERVICE"] ":"); next }
+        in_service && /^[[:space:]]+context:/ { context = value($0) }
+        in_service && /^[[:space:]]+dockerfile:/ { dockerfile = value($0) }
+        END {
+            if (dockerfile == "") exit
+            if (context == "" || context == ".") print dockerfile
+            else { sub(/^\.\//, "", dockerfile); print context "/" dockerfile }
+        }
+    ' "$DEV_COMPOSE"
 }
 
 #######################################
@@ -482,9 +593,9 @@ else
         RANDOM_PROVIDER_TERRAFORM_REGISTRY_SHA256 RANDOM_PROVIDER_OPENTOFU_REGISTRY_SHA256; do
         if ! grep -Eq "^ +${pin}: \"?[0-9a-f]{64}\"?$" "$WORKFLOW"; then
             fail "$pin is pinned and enforced" "no '${pin}: <64 hex chars>' line in the job env"
-        elif ! printf '%s' "$FETCH_STEP" | grep -qF -- "--sha256 \"\$${pin}\""; then
+        elif ! grep -qF -- "--sha256 \"\$${pin}\"" <<<"$FETCH_STEP"; then
             fail "$pin is pinned and enforced" "the fetch_pinned_artifact.sh step never passes --sha256 \"\$${pin}\""
-        elif ! printf '%s' "$CACHE_KEY" | grep -qF -- "env.${pin}"; then
+        elif ! grep -qF -- "env.${pin}" <<<"$CACHE_KEY"; then
             fail "$pin is pinned and enforced" "the cache key '${CACHE_KEY}' does not include env.${pin}, so a new pin would restore the old file"
         else
             pass "$pin is pinned in the job env, keys the cache, and is checked by fetch_pinned_artifact.sh"
@@ -571,6 +682,125 @@ else
         fail "gomplate is set up from the pinned cache after checkout and before npm run dev" \
             "checkout@${CHECKOUT_AT} setup-gomplate@${GOMPLATE_AT} npm-run-dev@${DEV_AT}"
     fi
+
+    # Every image the bring-up builds starts FROM a public.ecr.aws Node image,
+    # and public.ecr.aws serves anonymous pullers from one data quota that a
+    # busy CI window exhausts. When it is gone the compose build dies before
+    # building anything, on every attempt (run 36471665086). What gets past it
+    # is Scripts/GHA/warm_base_images.sh seeding those images into the local
+    # store first, from Docker Hub if need be. It reads the FROM lines of the
+    # rendered Dockerfiles, and a fresh checkout has none until `npm run
+    # prerun` renders them, which takes gomplate. So prerun has to run after
+    # gomplate is set up and before the first warm-up. Both are found as
+    # command_lines positions, so they are ordered even when they share a line.
+    WARM_AT="$(command_at 'warm_base_images.sh')"
+    PRERUN_AT="$(command_at 'npm run prerun')"
+    if [ "${PRERUN_AT% *}" -gt "$GOMPLATE_AT" ] && [ "${WARM_AT% *}" -gt 0 ] && precedes "$PRERUN_AT" "$WARM_AT"; then
+        pass "the Dockerfiles are rendered (npm run prerun) after gomplate is set up and before the base images are warmed"
+    else
+        fail "the Dockerfiles are rendered (npm run prerun) after gomplate is set up and before the base images are warmed" \
+            "setup-gomplate@${GOMPLATE_AT} npm-run-prerun@${PRERUN_AT/ /:} warm_base_images.sh@${WARM_AT/ /:}"
+    fi
+
+    # And it has to warm the right images, before `npm run dev` builds them:
+    # those of each service the bring-up names, read from the compose file that
+    # builds them. A service added to --services without its Dockerfile in a
+    # warm-up would build straight from ECR again, and so would one whose
+    # Dockerfile is warmed only after the bring-up. Which FROM lines count as
+    # ECR is base_images.sh's answer, the same one the warm script acts on. A
+    # service with no build section pulls its image, and one built from no ECR
+    # image has nothing to warm, but at least one service has to be found
+    # building from ECR: nothing found means this read nothing, whether the
+    # compose file, the --services flag or base_images.sh changed shape, and
+    # would pass with nothing warmed at all.
+    #
+    # What the named services depend_on (postgres, valkey, clickhouse) comes up
+    # with them, but pulls its image and builds nothing, so it is not followed
+    # here. Tests/Ops/KubernetesAiAgentRelease.test.js reads the same bring-up
+    # with depends_on followed, and fails too if a dependency ever builds from
+    # a Dockerfile this step does not warm.
+    # shellcheck source=Scripts/GHA/base_images.sh
+    source "$REPO_ROOT/Scripts/GHA/base_images.sh"
+    DEV_SERVICES="$(sed -nE 's/^[^#]*npm run dev --services="([^"]*)".*/\1/p' "$WORKFLOW" | head -1)"
+    DEV_POSITION="$(command_at 'npm run dev')"
+    WARM_CALLS="$(warm_calls)"
+    if ! declare -F collect_ecr_base_images > /dev/null; then
+        fail "Scripts/GHA/base_images.sh defines collect_ecr_base_images, which the warm-up checks read" \
+            "sourcing it left no such function, so no Dockerfile's base images could be read"
+    else
+        BUILT_SERVICES=0
+        ECR_SERVICES=0
+        for service in $DEV_SERVICES; do
+            DOCKERFILE="$(compose_dockerfile "$service")"
+            [ -n "$DOCKERFILE" ] || continue
+            BUILT_SERVICES=$((BUILT_SERVICES + 1))
+            CHECK="the base images of \`${service}\` (${DOCKERFILE}) are warmed before the bring-up builds it"
+            # prerun renders most Dockerfiles from a Dockerfile.tpl beside them,
+            # so a checkout may hold only the template. No template renders the
+            # image a FROM line names (the App's `{{ if }}` blocks only choose
+            # between its stages), so either one names the same base images.
+            SOURCE="$REPO_ROOT/${DOCKERFILE#./}"
+            [ -f "$SOURCE" ] || SOURCE="${SOURCE}.tpl"
+            if [ ! -f "$SOURCE" ]; then
+                fail "$CHECK" "$(basename "$DEV_COMPOSE") builds it from ${DOCKERFILE}, which does not exist, nor does a .tpl for it"
+                continue
+            fi
+            if ! ECR_IMAGES="$(collect_ecr_base_images "$SOURCE")"; then
+                fail "$CHECK" "collect_ecr_base_images failed on ${SOURCE#"$REPO_ROOT"/}"
+                continue
+            fi
+            [ -n "$ECR_IMAGES" ] || continue
+            ECR_SERVICES=$((ECR_SERVICES + 1))
+            WARMED_AT=""
+            WARMED_BEFORE=0
+            while read -r warm_line warm_column warmed; do
+                [ "$warmed" = "$DOCKERFILE" ] || continue
+                WARMED_AT="${WARMED_AT}${WARMED_AT:+,}${warm_line}:${warm_column}"
+                if precedes "$warm_line $warm_column" "$DEV_POSITION"; then
+                    WARMED_BEFORE=1
+                fi
+            done <<<"$WARM_CALLS"
+            if [ -z "$WARMED_AT" ]; then
+                fail "$CHECK" "no warm_base_images.sh call in $(basename "$WORKFLOW") names ${DOCKERFILE}"
+            elif [ "$WARMED_BEFORE" -eq 0 ]; then
+                fail "$CHECK" "it is warmed only after the bring-up builds it: warm_base_images.sh@${WARMED_AT} npm-run-dev@${DEV_POSITION/ /:}"
+            else
+                pass "$CHECK"
+            fi
+        done
+        if [ "$ECR_SERVICES" -eq 0 ]; then
+            fail "the bring-up is found building at least one image FROM public.ecr.aws, which the checks above read" \
+                "of the services '${DEV_SERVICES}' named by npm run dev --services, $(basename "$DEV_COMPOSE") builds ${BUILT_SERVICES}, and base_images.sh finds a public.ecr.aws FROM line in none of them"
+        fi
+    fi
+
+    # nick-fields/retry runs its `command` with `bash -c`, without the -e a
+    # `run:` step gets, so each line of a multi-line command runs whatever the
+    # line before it did. The bring-up used to be `npm run dev` and `npm run
+    # status-check` on two lines, and when the build died on the 429 above,
+    # status-check still spent five minutes on HTTP 000 before the attempt
+    # failed, on all three attempts, with the build's error far up the log. So
+    # run the command the way the action does, with an npm that only logs what
+    # it is asked to run and fails `npm run dev` on request, and nothing else on
+    # PATH so no real tool is reached: a failed build has to end the attempt
+    # there, with its exit code, and a good one has to go on to status-check,
+    # or this proves nothing.
+    BRINGUP_COMMAND="$(step_script "$(workflow_steps_with 'npm run dev --services=')" command)"
+    FAKE_NPM="$(mktemp -d)"
+    trap 'rm -rf "$FAKE_BIN" "$CHILD_DIR" "$HOME_DIR" "$PROVIDER_WORK" "$FAKE_NPM"' EXIT
+    printf '#!/bin/bash\necho "npm $*" >> "$NPM_LOG"\nif [ "$1 $2" = "run dev" ]; then exit "$DEV_EXIT"; fi\n' \
+        > "$FAKE_NPM/npm"
+    chmod +x "$FAKE_NPM/npm"
+    bring_up() { # exit code of `npm run dev`
+        : > "$FAKE_NPM/log"
+        env PATH="$FAKE_NPM" NPM_LOG="$FAKE_NPM/log" DEV_EXIT="$1" \
+            "$BASH" -c "$BRINGUP_COMMAND" > /dev/null 2>&1
+        printf 'exit %s: %s' "$?" "$(paste -sd ';' "$FAKE_NPM/log")"
+    }
+    assert_eq "exit 17: npm run dev --services=${DEV_SERVICES}" "$(bring_up 17)" \
+        "a bring-up attempt whose build fails ends there, with the build's exit code, before status-check"
+    assert_eq "exit 0: npm run dev --services=${DEV_SERVICES};npm run status-check" "$(bring_up 0)" \
+        "a bring-up attempt whose build succeeds goes on to status-check"
 
     assert_file_matches "$WORKFLOW" 'TF_CLI: terraform' \
         "the workflow runs the suite against Terraform"

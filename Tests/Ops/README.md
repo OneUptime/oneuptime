@@ -483,11 +483,21 @@ for the charts.
 The suite pins all of that, that the chart's default image, the server's
 `KUBERNETES_AI_AGENT_IMAGE_REPOSITORY` and the image release.yml builds are
 the same, that build.yml builds the image on every pull request (and that each
-of its image jobs warms the base images of exactly the Dockerfiles it builds),
-and that test-release.yaml builds both architectures on every push to master
-with the `test` tags. It also checks every workflow's `needs` for a job that
-does not exist and for cycles: GitHub refuses to run such a workflow, and
-nothing on a pull request runs release.yml.
+of its image jobs warms the base images of exactly the Dockerfiles it builds,
+after rendering them and before building them), and that test-release.yaml
+builds both architectures on every push to master with the `test` tags. Every
+job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
+held to the same warm-up rule, with the Dockerfiles it builds read from the
+compose file, what its services `depends_on` included. A build is read from a
+`docker compose -f` of that file that can build (`up`, `create`, `build`,
+`run`), which is how test-release.yaml's E2E jobs build their e2e container,
+and from `npm run dev`, read as the root package.json's `dev` script with its
+`--services`, which is how the Terraform Provider E2E bring-up builds `app` and
+`ingress`, both FROM public.ecr.aws images. The other npm scripts that build
+from it (`build`, `force-build`) are not read, and no workflow runs them. It
+also checks every workflow's `needs` for a job that does not exist and for
+cycles: GitHub refuses to run such a workflow, and nothing on a pull request
+runs release.yml.
 
 ### `UpdateNpmCli.test.js`
 

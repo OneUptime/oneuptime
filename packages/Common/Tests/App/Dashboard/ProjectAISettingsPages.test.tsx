@@ -73,6 +73,33 @@ jest.mock("react-i18next", () => {
 });
 
 /*
+ * Whether this install has billing on, pinned by the suite instead of read
+ * from the environment. The settings menu lists AI Credits only when
+ * BILLING_ENABLED is true, and that constant comes from process.env: CI's
+ * test-setup.sh writes BILLING_ENABLED=true into config.env and `npm test`
+ * exports it, while a bare `npx jest` leaves it unset. A menu assertion that
+ * inherited it would describe whichever machine ran it rather than the
+ * install the test names. A getter, so each test can choose.
+ */
+let billingEnabledForTest: boolean = false;
+
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return billingEnabledForTest;
+    },
+  });
+
+  return mocked;
+});
+
+/*
  * The project's AI switches and where they live.
  *
  * Enable AI, Enable auto-remediation and Enable AI command execution used to
@@ -258,6 +285,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  billingEnabledForTest = false;
 });
 
 describe("who may change the AI features", () => {
@@ -626,6 +654,7 @@ describe("AI Credits page", () => {
 
 describe("settings menu, route and breadcrumbs", () => {
   test("AI Features is the first item of the AI section, on an install without billing", async () => {
+    billingEnabledForTest = false;
     goTo(AI_FEATURES_PATH);
     await renderMenu(<SettingsSideMenu />);
 
@@ -634,12 +663,29 @@ describe("settings menu, route and breadcrumbs", () => {
       title: "AI Features",
       href: routeFor(PageMap.SETTINGS_AI_FEATURES),
     });
-    // The test environment has billing off: AI Credits is hidden, AI Features is not.
+    // Billing is off: AI Credits is hidden, AI Features is not.
     expect(
       aiLinks.map((link: MenuLink): string => {
         return link.title;
       }),
     ).not.toContain("AI Credits");
+  });
+
+  test("AI Features stays first on an install with billing, and AI Credits is listed after it", async () => {
+    billingEnabledForTest = true;
+    goTo(AI_FEATURES_PATH);
+    await renderMenu(<SettingsSideMenu />);
+
+    const aiLinks: Array<MenuLink> = linksIn("AI");
+    expect(aiLinks[0]).toEqual({
+      title: "AI Features",
+      href: routeFor(PageMap.SETTINGS_AI_FEATURES),
+    });
+    // Billing is on: the balance and recharge page joins the section.
+    expect(aiLinks.slice(1)).toContainEqual({
+      title: "AI Credits",
+      href: routeFor(PageMap.SETTINGS_AI_CREDITS),
+    });
   });
 
   test("lives at settings/ai-features", () => {

@@ -1,4 +1,8 @@
 import { FilterBuilderConfig } from "./Types";
+import {
+  SpanStatusPresentation,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 function getSpanKindPillClass(value: string): string {
   const v: string = value.toUpperCase();
@@ -20,17 +24,12 @@ function getSpanKindPillClass(value: string): string {
   return "bg-gray-50 text-gray-600 ring-gray-500/10";
 }
 
-function getStatusCodePillClass(value: string): string {
-  if (value === "2") {
-    return "bg-red-50 text-red-700 ring-red-600/10";
-  }
-  if (value === "1") {
-    return "bg-green-50 text-green-700 ring-green-600/10";
-  }
-  if (value === "0") {
+export function getStatusCodePillClass(value: string): string {
+  if (value !== "0" && value !== "1" && value !== "2") {
     return "bg-gray-50 text-gray-600 ring-gray-500/10";
   }
-  return "bg-gray-50 text-gray-600 ring-gray-500/10";
+  const status: SpanStatusPresentation = getSpanStatusPresentation(value);
+  return `${status.pillClassName} ${status.pillRingClassName}`;
 }
 
 const TraceFilterConfig: FilterBuilderConfig = {
@@ -90,8 +89,16 @@ const TraceFilterConfig: FilterBuilderConfig = {
       valueType: "dropdown",
       valuePlaceholder: "Select status...",
       valueOptions: [
-        { value: "0", label: "Unset", description: "No status set" },
-        { value: "1", label: "Ok", description: "Span completed successfully" },
+        {
+          value: "0",
+          label: "Unset",
+          description: "No error status set (OpenTelemetry default)",
+        },
+        {
+          value: "1",
+          label: "Ok",
+          description: "Explicitly marked successful",
+        },
         { value: "2", label: "Error", description: "Span ended in error" },
       ],
       getValuePillClass: getStatusCodePillClass,

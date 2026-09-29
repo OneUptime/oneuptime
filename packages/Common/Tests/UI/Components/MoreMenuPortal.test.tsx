@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import React, { ReactElement } from "react";
 
 /*
@@ -508,7 +509,7 @@ describe("MoreMenu, portalled", () => {
     });
 
     test("selecting an item runs it and closes the menu", () => {
-      const onSelect: jest.Mock<() => void> = jest.fn<() => void>();
+      const onSelect: Mock<() => void> = jest.fn<() => void>();
 
       renderMenu({ onSelect });
 
@@ -528,16 +529,16 @@ describe("MoreMenu, portalled", () => {
    */
   describe("inside a Modal", () => {
     type RenderRowInModalFunction = () => {
-      onClose: jest.Mock<() => void>;
-      onRemove: jest.Mock<() => void>;
+      onClose: Mock<() => void>;
+      onRemove: Mock<() => void>;
     };
 
     const renderRowInModal: RenderRowInModalFunction = (): {
-      onClose: jest.Mock<() => void>;
-      onRemove: jest.Mock<() => void>;
+      onClose: Mock<() => void>;
+      onRemove: Mock<() => void>;
     } => {
-      const onClose: jest.Mock<() => void> = jest.fn<() => void>();
-      const onRemove: jest.Mock<() => void> = jest.fn<() => void>();
+      const onClose: Mock<() => void> = jest.fn<() => void>();
+      const onRemove: Mock<() => void> = jest.fn<() => void>();
 
       const Harness: () => ReactElement = (): ReactElement => {
         return (

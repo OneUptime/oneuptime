@@ -8,6 +8,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -70,6 +71,48 @@ export interface ComponentProps {
   autoComplete?: string | undefined;
 }
 
+type GetDateDisplayValueFunction = (
+  value: string | Date,
+  type: InputType | undefined,
+) => string | undefined;
+
+/*
+ * The text a date or datetime-local input shows for a stored value, in the
+ * form the browser's picker reads. Undefined leaves the display as it is: a
+ * value holding " - " is an InBetween range, which only a range filter shows.
+ * So does anything that is neither a string nor a Date - an untyped caller's
+ * number or JSON object - which the input has never tried to parse, and which
+ * would now be parsed during render, where a throw takes the page down.
+ */
+const getDateDisplayValue: GetDateDisplayValueFunction = (
+  value: string | Date,
+  type: InputType | undefined,
+): string | undefined => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value !== "string" && !(value instanceof Date)) {
+    return undefined;
+  }
+
+  if (typeof value === "string" && value.includes(" - ")) {
+    return undefined;
+  }
+
+  const date: Date =
+    value instanceof Date ? value : OneUptimeDate.fromString(value);
+
+  try {
+    return type === InputType.DATETIME_LOCAL
+      ? OneUptimeDate.toDateTimeLocalString(date)
+      : OneUptimeDate.asDateForDatabaseQuery(date);
+  } catch (err: unknown) {
+    Logger.error(err as Error);
+    return "";
+  }
+};
+
 const Input: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -92,61 +135,54 @@ const Input: FunctionComponent<ComponentProps> = (
     className += " bg-gray-100 text-gray-500 cursor-not-allowed";
   }
 
-  const [value, setValue] = useState<string | Date>("");
+  const isDateInput: boolean =
+    props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
+
+  /*
+   * Seeded from the props on the first render, not by an effect after it.
+   *
+   * Seeding it from an effect meant the <input> was inserted blank and only
+   * filled in a task or more later, and in between it was on screen, focusable
+   * and typeable. Anything that put the caret in it during that window had it
+   * moved to the end when the value landed, so what was typed next went AFTER
+   * the prefilled text: the SLO burn rate form's Incident Title became "SLO
+   * burn rate: {{sloName}} — {{ruleName}}Coordinate response for {{sloName}}"
+   * when a fill selected the blank field just before its default template
+   * arrived. TextArea and MarkdownEditor already start from their props.
+   *
+   * The effects further down still follow a value or initialValue that
+   * changes after mounting.
+   */
+  const [value, setValue] = useState<string | Date>((): string | Date => {
+    return props.value || props.initialValue || "";
+  });
 
   /*
    * Only dates need a display form that differs from the stored value, and
    * working it out means parsing, so it stays in state behind an effect.
-   * Text keeps no second copy - see the comment on displayValue below.
+   * Text keeps no second copy - see the comment on displayValue below. Like
+   * the value, it starts from what the input mounts with.
    */
-  const [dateDisplayValue, setDateDisplayValue] = useState<string>("");
+  const [dateDisplayValue, setDateDisplayValue] = useState<string>(
+    (): string => {
+      return isDateInput ? getDateDisplayValue(value, props.type) ?? "" : "";
+    },
+  );
   const ref: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
 
-  const isDateInput: boolean =
-    props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
-
   useEffect(() => {
-    if (
-      props.type === InputType.DATE ||
-      props.type === InputType.DATETIME_LOCAL
-    ) {
-      if (value && (value as unknown) instanceof Date) {
-        let dateString: string = "";
-        try {
-          if (props.type === InputType.DATETIME_LOCAL) {
-            dateString = OneUptimeDate.toDateTimeLocalString(value as any);
-          } else {
-            dateString = OneUptimeDate.asDateForDatabaseQuery(value);
-          }
-        } catch (e: any) {
-          Logger.error(e);
-        }
-        setDateDisplayValue(dateString);
-      } else if (
-        value &&
-        (value as any).includes &&
-        !(value as any).includes(" - ")
-      ) {
-        // " - " is for InBetween dates.
-        const date: Date = OneUptimeDate.fromString(value);
-        let dateString: string = "";
-        try {
-          if (props.type === InputType.DATETIME_LOCAL) {
-            dateString = OneUptimeDate.toDateTimeLocalString(date);
-          } else {
-            dateString = OneUptimeDate.asDateForDatabaseQuery(date);
-          }
-        } catch (err: any) {
-          Logger.error(err);
-        }
-        setDateDisplayValue(dateString);
-      } else if (
-        !value ||
-        ((value as any).includes && !(value as any).includes(" - "))
-      ) {
-        setDateDisplayValue("");
-      }
+    if (!isDateInput) {
+      return;
+    }
+
+    const nextDateDisplayValue: string | undefined = getDateDisplayValue(
+      value,
+      props.type,
+    );
+
+    if (nextDateDisplayValue !== undefined) {
+      setDateDisplayValue(nextDateDisplayValue);
     }
   }, [value]);
 
@@ -172,7 +208,14 @@ const Input: FunctionComponent<ComponentProps> = (
     ? dateDisplayValue
     : (value as string) || "";
 
-  useEffect(() => {
+  /*
+   * A layout effect, so the write lands in the same commit that rendered the
+   * value. A passive effect runs after that commit, and for one that did not
+   * come from a click or a keystroke - data arriving, a timer - that is a later
+   * task. In between, the field would be on screen blank even though this
+   * component already knows what it holds.
+   */
+  useLayoutEffect(() => {
     const input: HTMLInputElement | null = ref.current;
 
     /*
@@ -184,16 +227,6 @@ const Input: FunctionComponent<ComponentProps> = (
       input.value = displayValue;
     }
   }, [ref, displayValue]);
-
-  useEffect(() => {
-    if (props.initialValue) {
-      setValue(props.initialValue);
-    }
-
-    if (props.value) {
-      setValue(props.value);
-    }
-  }, []);
 
   useEffect(() => {
     if (props.initialValue) {

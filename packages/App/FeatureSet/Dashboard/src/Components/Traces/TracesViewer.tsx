@@ -156,6 +156,13 @@ import {
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
+import {
+  SPAN_STATUS_PRESENTATIONS,
+  SpanStatusPresentation,
+  getSpanStatusColorMap,
+  getSpanStatusDisplayLabelMap,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -204,10 +211,11 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   return Math.max(1, Math.ceil(raw / 60000));
 }
 
-const SPAN_STATUS_COLOR: Record<number, string> = {
-  [SpanStatus.Unset]: "#9ca3af",
-  [SpanStatus.Ok]: "#10b981",
-  [SpanStatus.Error]: "#ef4444",
+// The server's histogram bucket key for each status (TraceAggregationService).
+const HISTOGRAM_SERIES_KEY: Record<SpanStatus, string> = {
+  [SpanStatus.Ok]: "ok",
+  [SpanStatus.Unset]: "unset",
+  [SpanStatus.Error]: "error",
 };
 
 const SPAN_KIND_LABEL: Record<string, string> = {
@@ -243,7 +251,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "status:ok|error|unset",
-    description: "Filter by span status",
+    description: "Filter by span status (unset = no error status set)",
     example: "status:error",
   },
   {
@@ -1280,6 +1288,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       statusCode: true,
       statusMessage: true,
       kind: true,
+      // Lets a row and its panel name an Unset span with exceptions plainly.
+      hasException: true,
     } as Select<Span>;
   }, []);
 
@@ -2144,16 +2154,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    const statusLabelMap: Record<string, string> = {
-      [SpanStatus.Ok]: "Ok",
-      [SpanStatus.Error]: "Error",
-      [SpanStatus.Unset]: "Unset",
-    };
-    const statusColorMap: Record<string, string> = {
-      [SpanStatus.Ok]: SPAN_STATUS_COLOR[SpanStatus.Ok]!,
-      [SpanStatus.Error]: SPAN_STATUS_COLOR[SpanStatus.Error]!,
-      [SpanStatus.Unset]: SPAN_STATUS_COLOR[SpanStatus.Unset]!,
-    };
+    const statusLabelMap: Record<string, string> =
+      getSpanStatusDisplayLabelMap();
+    const statusColorMap: Record<string, string> = getSpanStatusColorMap();
 
     return [
       // Never folded away while empty — only the resource type facets below are.
@@ -2208,7 +2211,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         key: "hasException",
         title: "Has Exception",
         valueDisplayMap: { true: "Has exception" },
-        valueColorMap: { true: SPAN_STATUS_COLOR[SpanStatus.Error]! },
+        valueColorMap: {
+          true: getSpanStatusPresentation(SpanStatus.Error).color,
+        },
         priority: 6.7,
       },
       {
@@ -2255,19 +2260,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         })?.label || chartMetric;
       return [{ key: "latency", label, color: "#6366f1" }];
     }
-    return [
-      { key: "ok", label: "Ok", color: SPAN_STATUS_COLOR[SpanStatus.Ok]! },
-      {
-        key: "unset",
-        label: "Unset",
-        color: SPAN_STATUS_COLOR[SpanStatus.Unset]!,
+    return SPAN_STATUS_PRESENTATIONS.map(
+      (presentation: SpanStatusPresentation): HistogramSeriesOption => {
+        return {
+          key: HISTOGRAM_SERIES_KEY[presentation.status],
+          label: presentation.displayLabel,
+          color: presentation.color,
+          description: presentation.description,
+        };
       },
-      {
-        key: "error",
-        label: "Error",
-        color: SPAN_STATUS_COLOR[SpanStatus.Error]!,
-      },
-    ];
+    );
   }, [chartMetric]);
 
   // Service id → name map for the analytics view's dimension display.

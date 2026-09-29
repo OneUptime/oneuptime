@@ -240,42 +240,248 @@ function matrixPlatforms(job) {
   });
 }
 
+/*
+ * What renders a Dockerfile from the Dockerfile.tpl beside it:
+ * Scripts/Install/configure.sh, which `npm run prerun` ends in. `npm run dev`
+ * runs prerun too, and is read as the script it runs (see expandNpmDev). A
+ * fresh checkout has no rendered Dockerfile, and warm_base_images.sh reads the
+ * FROM lines of one.
+ */
+const RENDERS_DOCKERFILES =
+  /\bnpm run prerun\b|Scripts\/Install\/configure\.sh/;
+
+/*
+ * The dev stack, which the E2E jobs build their e2e container from. It is run
+ * from the repository root with --project-directory . (see its header), so its
+ * build paths are relative to the root.
+ */
+const DEV_COMPOSE = "Scripts/Dev/docker-compose.dev.yml";
+
+/* docker compose's own options that take a value, before its subcommand. */
+const COMPOSE_OPTIONS_WITH_VALUE = new Set([
+  "-f",
+  "--file",
+  "-p",
+  "--project-name",
+  "--project-directory",
+  "--env-file",
+  "--profile",
+  "--ansi",
+  "--progress",
+  "--parallel",
+]);
+
 /**
- * The Dockerfiles a job builds with `docker build -f`, and the ones it warms
- * with warm_base_images.sh, each with the index of the step that does it.
+ * Each service of a compose file: the Dockerfile it builds from, relative to
+ * the repository root the way a workflow step names it (./packages/E2E/Dockerfile),
+ * or undefined when it only pulls an image, and the services it depends on.
+ * @param {Object<string, Object>} services
+ * @returns {Object<string, {dockerfile: (string|undefined), dependsOn: Array<string>}>}
+ */
+function composeServices(services) {
+  return Object.fromEntries(
+    Object.entries(services || {}).map(([name, service]) => {
+      const build =
+        typeof service.build === "string"
+          ? { context: service.build }
+          : service.build;
+      const dependsOn = service.depends_on || [];
+      return [
+        name,
+        {
+          dockerfile: build
+            ? `./${path.posix.join(build.context || ".", build.dockerfile || "Dockerfile")}`
+            : undefined,
+          dependsOn: Array.isArray(dependsOn)
+            ? dependsOn
+            : Object.keys(dependsOn),
+        },
+      ];
+    }),
+  );
+}
+
+/**
+ * The Dockerfiles a command builds through the dev compose file, each with its
+ * offset in the command. An `up`, `create` or `build` of it builds the services
+ * it names, or all of them when it names none, and a `run` the one service it
+ * runs; either also builds what those depend on, unless --no-deps. Compose
+ * builds an image from a service's build section when the image is missing,
+ * and on a fresh runner it always is.
+ * @param {string} command
+ * @param {Object<string, {dockerfile: (string|undefined), dependsOn: Array<string>}>} services
+ * @returns {Array<{dockerfile: string, offset: number}>}
+ */
+function devComposeBuilds(command, services) {
+  const builds = [];
+
+  for (const segment of command.matchAll(/[^;&|()\n]+/g)) {
+    const words = segment[0].trim().split(/\s+/);
+    const at = words.findIndex((word, index) => {
+      return word === "compose" && words[index - 1] === "docker";
+    });
+    if (at === -1) {
+      continue;
+    }
+
+    const files = [];
+    let index = at + 1;
+    while (index < words.length && words[index].startsWith("-")) {
+      const [option, inlineValue] = words[index].split("=");
+      if (option === "-f" || option === "--file") {
+        files.push(inlineValue || words[index + 1]);
+      }
+      index +=
+        inlineValue === undefined && COMPOSE_OPTIONS_WITH_VALUE.has(option)
+          ? 2
+          : 1;
+    }
+    const usesDevCompose = files.some((file) => {
+      return path.posix.normalize(file) === DEV_COMPOSE;
+    });
+    const subcommand = words[index];
+    if (
+      !usesDevCompose ||
+      !["up", "create", "build", "run"].includes(subcommand)
+    ) {
+      continue;
+    }
+
+    const named = words.slice(index + 1).filter((word) => {
+      return Object.prototype.hasOwnProperty.call(services, word);
+    });
+    const pending =
+      subcommand === "run"
+        ? named.slice(0, 1)
+        : named.length > 0
+          ? named
+          : Object.keys(services);
+    const started = new Set();
+    while (pending.length > 0) {
+      const name = pending.pop();
+      if (started.has(name) || !services[name]) {
+        continue;
+      }
+      started.add(name);
+      if (!words.includes("--no-deps")) {
+        pending.push(...services[name].dependsOn);
+      }
+    }
+    for (const name of started) {
+      if (services[name].dockerfile) {
+        builds.push({
+          dockerfile: services[name].dockerfile,
+          offset: segment.index,
+        });
+      }
+    }
+  }
+
+  return builds;
+}
+
+const DEV_COMPOSE_SERVICES = composeServices(readYaml(DEV_COMPOSE).services);
+
+/*
+ * The root package.json's `dev` script, which the Terraform E2E bring-up runs:
+ * it renders the Dockerfiles (prerun) and then builds and starts the dev stack
+ * with a `docker compose ... up` of $npm_config_services, which npm sets from
+ * `npm run dev --services="..."`.
+ */
+const NPM_DEV_SCRIPT = JSON.parse(read("package.json")).scripts.dev;
+
+/**
+ * A command with each `npm run dev` in it replaced by the script it runs, and
+ * $npm_config_services in that by its --services value (none, and compose
+ * starts every service), so what it renders and builds is read like any other
+ * command's. Only a call in command position is expanded, not one an echo
+ * quotes.
+ * @param {string} command
+ * @returns {string}
+ */
+function expandNpmDev(command) {
+  return command.replace(
+    /(^|&&|\|\||[;|(])([ \t]*)npm run dev((?:[ \t]+--[\w-]+(?:=(?:"[^"]*"|'[^']*'|[^\s;&|()]+))?)*)(?=[\s;&|()]|$)/gm,
+    (_call, before, space, flags) => {
+      const services = /--services=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(flags);
+      const value = services
+        ? services.slice(1).find((group) => {
+            return group !== undefined;
+          })
+        : "";
+      return `${before}${space}${NPM_DEV_SCRIPT.replace(
+        /\$\{?npm_config_services\}?/g,
+        () => {
+          return value;
+        },
+      )}`;
+    },
+  );
+}
+
+/**
+ * Where a job does each thing its base-image warm-up depends on, as the index
+ * of the step and the offset in that step's command: the Dockerfiles it builds,
+ * with `docker build -f` or through the dev compose file (directly or by
+ * `npm run dev`), the ones it warms with warm_base_images.sh, and where it
+ * renders the Dockerfiles. Comment lines are no command, and are left out.
  * @param {Object} job
  */
 function dockerfileSteps(job) {
   const built = [];
   const warmed = [];
+  const rendered = [];
 
   (job.steps || []).forEach((step, index) => {
-    const command = stepCommand(step).replace(/\\\n\s*/g, " ");
+    const command = expandNpmDev(
+      stepCommand(step)
+        .replace(/^[ \t]*#.*$/gm, "")
+        .replace(/\\\n\s*/g, " "),
+    );
     for (const match of command.matchAll(
       /\bdocker build\b[^\n]*?\s-f\s+(\S+)/g,
     )) {
-      built.push({ dockerfile: match[1], index });
+      built.push({ dockerfile: match[1], index, offset: match.index });
+    }
+    for (const build of devComposeBuilds(command, DEV_COMPOSE_SERVICES)) {
+      built.push({ ...build, index, compose: true });
     }
     for (const match of command.matchAll(
       /warm_base_images\.sh((?:[ \t]+[^\s-]\S*)+)/g,
     )) {
       for (const dockerfile of match[1].trim().split(/\s+/)) {
-        warmed.push({ dockerfile, index });
+        warmed.push({ dockerfile, index, offset: match.index });
       }
+    }
+    const render = command.search(RENDERS_DOCKERFILES);
+    if (render !== -1) {
+      rendered.push({ index, offset: render });
     }
   });
 
-  return { built, warmed };
+  return { built, warmed, rendered };
+}
+
+/**
+ * Whether `a` happens before `b` in a job: an earlier step, or earlier in the
+ * same step's command.
+ * @param {{index: number, offset: number}} a
+ * @param {{index: number, offset: number}} b
+ * @returns {boolean}
+ */
+function happensBefore(a, b) {
+  return a.index < b.index || (a.index === b.index && a.offset < b.offset);
 }
 
 /**
  * What is wrong with a job's base-image warm-up: a built Dockerfile it does
- * not warm (or warms only after building), or a warmed one it never builds.
+ * not warm (or warms only after building), a warmed one it never builds, or
+ * one rendered from a Dockerfile.tpl that it warms before rendering it.
  * @param {Object} job
  * @returns {Array<string>}
  */
 function warmUpProblems(job) {
-  const { built, warmed } = dockerfileSteps(job);
+  const { built, warmed, rendered } = dockerfileSteps(job);
   const problems = [];
 
   for (const build of built) {
@@ -286,7 +492,7 @@ function warmUpProblems(job) {
       problems.push(
         `builds ${build.dockerfile} without warming its base images`,
       );
-    } else if (warm.index >= build.index) {
+    } else if (!happensBefore(warm, build)) {
       problems.push(`warms ${build.dockerfile} only after building it`);
     }
   }
@@ -297,10 +503,19 @@ function warmUpProblems(job) {
       })
     ) {
       problems.push(`warms ${warm.dockerfile}, which it never builds`);
+    } else if (
+      fs.existsSync(path.join(REPO_ROOT, `${warm.dockerfile}.tpl`)) &&
+      !rendered.some((render) => {
+        return happensBefore(render, warm);
+      })
+    ) {
+      problems.push(`warms ${warm.dockerfile} before rendering it`);
     }
   }
 
-  return problems;
+  // A Dockerfile built twice (the App's two targets, the e2e container's two
+  // phases) is one problem, not two.
+  return [...new Set(problems)];
 }
 
 /**
@@ -473,6 +688,186 @@ describe("the release-order checks' own machinery", () => {
         ],
       }),
     ).toEqual([]);
+  });
+
+  test("reads which Dockerfiles a dev compose command builds, and nothing from other compose files or subcommands", () => {
+    const dev =
+      "docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml";
+    const services = composeServices({
+      db: { image: "postgres:15" },
+      app: {
+        build: { context: ".", dockerfile: "./packages/App/Dockerfile" },
+        depends_on: { db: { condition: "service_healthy" } },
+      },
+      e2e: { build: { context: ".", dockerfile: "./packages/E2E/Dockerfile" } },
+      home: { build: "./packages/Home", depends_on: ["app"] },
+    });
+    const dockerfiles = (command) => {
+      return devComposeBuilds(command, services)
+        .map((build) => {
+          return build.dockerfile;
+        })
+        .sort();
+    };
+
+    expect(services.home.dockerfile).toBe("./packages/Home/Dockerfile");
+    expect(
+      dockerfiles(
+        `${dev} up --exit-code-from e2e --abort-on-container-exit e2e || (${dev} logs e2e; exit 1)`,
+      ),
+    ).toEqual(["./packages/E2E/Dockerfile"]);
+    expect(
+      dockerfiles(`${dev} run --rm e2e npm run test-enterprise-licensed`),
+    ).toEqual(["./packages/E2E/Dockerfile"]);
+    // What a service depends on is started, and built, with it.
+    expect(dockerfiles(`${dev} up -d home`)).toEqual([
+      "./packages/App/Dockerfile",
+      "./packages/Home/Dockerfile",
+    ]);
+    expect(dockerfiles(`${dev} up -d --no-deps home`)).toEqual([
+      "./packages/Home/Dockerfile",
+    ]);
+    // No service named is every service.
+    expect(
+      dockerfiles(
+        "docker compose --file=Scripts/Dev/docker-compose.dev.yml build",
+      ),
+    ).toEqual([
+      "./packages/App/Dockerfile",
+      "./packages/E2E/Dockerfile",
+      "./packages/Home/Dockerfile",
+    ]);
+    expect(dockerfiles(`${dev} logs e2e`)).toEqual([]);
+    expect(
+      dockerfiles(
+        "docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up e2e",
+      ),
+    ).toEqual([]);
+    expect(dockerfiles(`COMPOSE="${dev}"\n$COMPOSE ps -a`)).toEqual([]);
+  });
+
+  test("reads `npm run dev` as the script it runs, building the services its --services names", () => {
+    const services = composeServices({
+      db: { image: "postgres:15" },
+      app: {
+        build: { context: ".", dockerfile: "./packages/App/Dockerfile" },
+        depends_on: ["db"],
+      },
+      e2e: { build: { context: ".", dockerfile: "./packages/E2E/Dockerfile" } },
+      home: { build: "./packages/Home", depends_on: ["app"] },
+    });
+    const dockerfiles = (command) => {
+      return devComposeBuilds(expandNpmDev(command), services)
+        .map((build) => {
+          return build.dockerfile;
+        })
+        .sort();
+    };
+
+    expect(
+      dockerfiles('npm run dev --services="app" && npm run status-check'),
+    ).toEqual(["./packages/App/Dockerfile"]);
+    expect(dockerfiles("npm run dev --services=home")).toEqual([
+      "./packages/App/Dockerfile",
+      "./packages/Home/Dockerfile",
+    ]);
+    // Without --services, compose starts, and builds, every service.
+    expect(dockerfiles("npm run dev")).toEqual([
+      "./packages/App/Dockerfile",
+      "./packages/E2E/Dockerfile",
+      "./packages/Home/Dockerfile",
+    ]);
+    // It renders the Dockerfiles before it builds them, as its script does.
+    const expanded = expandNpmDev('npm run dev --services="app"');
+    expect(expanded.search(RENDERS_DOCKERFILES)).toBeGreaterThan(-1);
+    expect(expanded.search(RENDERS_DOCKERFILES)).toBeLessThan(
+      expanded.indexOf("docker compose"),
+    );
+    // Only a call is read, not a mention or another script.
+    expect(dockerfiles('echo "then npm run dev"')).toEqual([]);
+    expect(dockerfiles("npm run dev-server")).toEqual([]);
+    expect(
+      warmUpProblems({ steps: [{ run: "# how `npm run dev` started it" }] }),
+    ).toEqual([]);
+
+    // Against the real compose file, a warm-up of the App before the
+    // Terraform E2E bring-up's `npm run dev` is held to the same rule.
+    const app = "./packages/App/Dockerfile";
+    const bringUp = {
+      uses: "nick-fields/retry@v3",
+      with: {
+        command: 'npm run dev --services="app" && npm run status-check',
+      },
+    };
+    const warm = { run: `bash ./Scripts/GHA/warm_base_images.sh ${app}` };
+    expect(
+      warmUpProblems({
+        steps: [
+          {
+            run: `npm run prerun\nbash ./Scripts/GHA/warm_base_images.sh ${app}`,
+          },
+          bringUp,
+        ],
+      }),
+    ).toEqual([]);
+    expect(warmUpProblems({ steps: [bringUp] })).toEqual([
+      `builds ${app} without warming its base images`,
+    ]);
+    expect(warmUpProblems({ steps: [warm, bringUp] })).toEqual([
+      `warms ${app} before rendering it`,
+    ]);
+    expect(warmUpProblems({ steps: [bringUp, warm] })).toEqual([
+      `warms ${app} only after building it`,
+    ]);
+  });
+
+  test("names a warm-up that runs before the Dockerfile it reads is rendered (negative control)", () => {
+    // Real paths: whether a Dockerfile is rendered is read from the checkout,
+    // and packages/E2E has a Dockerfile.tpl.
+    const e2e = "./packages/E2E/Dockerfile";
+    const prerun = { run: "npm run prerun" };
+    const warm = {
+      run: `bash ./Scripts/GHA/warm_base_images.sh ${e2e}`,
+    };
+    const build = {
+      run: `docker compose --project-directory . -f ${DEV_COMPOSE} up --exit-code-from e2e e2e`,
+    };
+
+    expect(fs.existsSync(path.join(REPO_ROOT, `${e2e}.tpl`))).toBe(true);
+    expect(warmUpProblems({ steps: [prerun, warm, build] })).toEqual([]);
+    expect(warmUpProblems({ steps: [warm, prerun, build] })).toEqual([
+      `warms ${e2e} before rendering it`,
+    ]);
+    expect(warmUpProblems({ steps: [warm, build] })).toEqual([
+      `warms ${e2e} before rendering it`,
+    ]);
+    expect(warmUpProblems({ steps: [prerun, build, warm] })).toEqual([
+      `warms ${e2e} only after building it`,
+    ]);
+    expect(warmUpProblems({ steps: [prerun, build, build] })).toEqual([
+      `builds ${e2e} without warming its base images`,
+    ]);
+    // Within one step, the order of its commands is what counts.
+    expect(
+      warmUpProblems({
+        steps: [
+          {
+            run: `set -euo pipefail\nnpm run prerun\nbash ./Scripts/GHA/warm_base_images.sh ${e2e}`,
+          },
+          build,
+        ],
+      }),
+    ).toEqual([]);
+    expect(
+      warmUpProblems({
+        steps: [
+          {
+            run: `bash ./Scripts/GHA/warm_base_images.sh ${e2e}\nnpm run prerun`,
+          },
+          build,
+        ],
+      }),
+    ).toEqual([`warms ${e2e} before rendering it`]);
   });
 
   test("compares helm checks without their redirection", () => {
@@ -702,6 +1097,75 @@ describe("build.yml: pull requests build the Kubernetes AI agent image", () => {
   test.each(dockerBuildJobs)(
     "%s warms the base images of exactly the Dockerfiles it builds, before building them",
     (_name, job) => {
+      expect(warmUpProblems(job)).toEqual([]);
+    },
+  );
+});
+
+/*
+ * The images the dev compose file builds start FROM public.ecr.aws Node
+ * images, the log collectors' aside, and ECR serves anonymous pullers from one
+ * data quota that busy CI windows exhaust. So a job that builds from that file
+ * warms those images first, from Docker Hub if need be, and compose's default
+ * builder then finds them locally (see Scripts/GHA/warm_base_images.sh). As in
+ * build.yml, it names every Dockerfile it builds. The warm-up reads the
+ * rendered Dockerfiles, so prerun has to come first. The E2E jobs of
+ * test-release.yaml build their e2e container with a `docker compose -f` of
+ * it, and the Terraform E2E bring-up builds app and ingress with
+ * `npm run dev`; both are read. Other npm scripts that build from it
+ * (`build`, `force-build`) are not, and no workflow runs them.
+ */
+describe("every job that builds from the dev compose file warms the base images first", () => {
+  const composeBuildJobs = workflowFiles.flatMap((file) => {
+    return Object.entries(readYaml(file).jobs || {})
+      .filter(([, job]) => {
+        return dockerfileSteps(job).built.some((build) => {
+          return build.compose;
+        });
+      })
+      .map(([name, job]) => {
+        return [`${file}: ${name}`, job];
+      });
+  });
+  const builtBy = (label) => {
+    const found = composeBuildJobs.find(([name]) => {
+      return name === label;
+    });
+    return found
+      ? dockerfileSteps(found[1]).built.map((build) => {
+          return build.dockerfile;
+        })
+      : [];
+  };
+
+  test("test-release.yaml's E2E jobs are found, building the e2e container", () => {
+    for (const job of [
+      "test-e2e-test-saas",
+      "test-e2e-test-self-hosted",
+      "test-e2e-test-enterprise",
+    ]) {
+      expect(builtBy(`${TEST_RELEASE_WORKFLOW}: ${job}`)).toContain(
+        "./packages/E2E/Dockerfile",
+      );
+    }
+  });
+
+  test("the Terraform E2E bring-up is found, building app and ingress through `npm run dev`", () => {
+    expect(
+      builtBy(
+        `${WORKFLOWS_DIR}/terraform-provider-e2e.yml: terraform-e2e-tests`,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        "./packages/App/Dockerfile",
+        "./packages/Nginx/Dockerfile",
+      ]),
+    );
+  });
+
+  test.each(composeBuildJobs)(
+    "%s renders the Dockerfiles, then warms the base images of exactly the ones it builds, before building them",
+    (_label, job) => {
       expect(warmUpProblems(job)).toEqual([]);
     },
   );

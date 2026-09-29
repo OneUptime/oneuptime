@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -56,10 +57,10 @@ const ROWS: Array<Row> = [
 type OnClick = ActionButtonSchema<Row>["onClick"];
 
 interface RowActionMocks {
-  onShowId: jest.Mock<OnClick>;
-  onVerify: jest.Mock<OnClick>;
-  onView: jest.Mock<OnClick>;
-  onDelete: jest.Mock<OnClick>;
+  onShowId: Mock<OnClick>;
+  onVerify: Mock<OnClick>;
+  onView: Mock<OnClick>;
+  onDelete: Mock<OnClick>;
   actions: Array<ActionButtonSchema<Row>>;
 }
 
@@ -68,10 +69,10 @@ interface RowActionMocks {
  * unverified domains get, View and Delete.
  */
 const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
-  const onShowId: jest.Mock<OnClick> = jest.fn<OnClick>();
-  const onVerify: jest.Mock<OnClick> = jest.fn<OnClick>();
-  const onView: jest.Mock<OnClick> = jest.fn<OnClick>();
-  const onDelete: jest.Mock<OnClick> = jest.fn<OnClick>();
+  const onShowId: Mock<OnClick> = jest.fn<OnClick>();
+  const onVerify: Mock<OnClick> = jest.fn<OnClick>();
+  const onView: Mock<OnClick> = jest.fn<OnClick>();
+  const onDelete: Mock<OnClick> = jest.fn<OnClick>();
 
   return {
     onShowId,

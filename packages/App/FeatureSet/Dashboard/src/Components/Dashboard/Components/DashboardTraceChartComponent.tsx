@@ -49,6 +49,7 @@ import {
   formatCount,
   formatDurationMs,
   formatTickTime,
+  formatTraceSeriesLabel,
   hexToRgba,
   isDurationMetric,
   pivotTimeseries,
@@ -209,6 +210,12 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
     });
   };
 
+  const labelForSeries: (seriesKey: string) => string = (
+    seriesKey: string,
+  ): string => {
+    return formatTraceSeriesLabel(seriesKey, groupByAttribute);
+  };
+
   const valueFormatter: (value: number) => string = isDuration
     ? formatDurationMs
     : formatCount;
@@ -297,6 +304,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             {sharedAxes}
             <Area
               dataKey={seriesKeys[0] || "value"}
+              name={labelForSeries(seriesKeys[0] || "value")}
               stroke={singleSeriesColor}
               strokeWidth={2}
               fill={hexToRgba(singleSeriesColor, 0.08)}
@@ -324,6 +332,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
               <Line
                 key={key}
                 dataKey={key}
+                name={labelForSeries(key)}
                 stroke={colorForSeries(key, index)}
                 strokeWidth={1.75}
                 dot={false}
@@ -355,6 +364,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             <Bar
               key={key}
               dataKey={key}
+              name={labelForSeries(key)}
               stackId="group"
               fill={colorForSeries(key, index)}
               isAnimationActive={false}
@@ -393,7 +403,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
                   }}
                 />
                 <span className="max-w-[180px] truncate text-[10px] text-gray-500">
-                  {key}
+                  {labelForSeries(key)}
                 </span>
               </div>
             );

@@ -15,6 +15,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import React from "react";
 
 /*
@@ -54,17 +55,17 @@ interface Actions {
   view: ActionButtonSchema<Member>;
   edit: ActionButtonSchema<Member>;
   remove: ActionButtonSchema<Member>;
-  onShowId: jest.Mock<OnClick>;
-  onView: jest.Mock<OnClick>;
-  onEdit: jest.Mock<OnClick>;
-  onRemove: jest.Mock<OnClick>;
+  onShowId: Mock<OnClick>;
+  onView: Mock<OnClick>;
+  onEdit: Mock<OnClick>;
+  onRemove: Mock<OnClick>;
 }
 
 const makeActions: () => Actions = (): Actions => {
-  const onShowId: jest.Mock<OnClick> = jest.fn<OnClick>();
-  const onView: jest.Mock<OnClick> = jest.fn<OnClick>();
-  const onEdit: jest.Mock<OnClick> = jest.fn<OnClick>();
-  const onRemove: jest.Mock<OnClick> = jest.fn<OnClick>();
+  const onShowId: Mock<OnClick> = jest.fn<OnClick>();
+  const onView: Mock<OnClick> = jest.fn<OnClick>();
+  const onEdit: Mock<OnClick> = jest.fn<OnClick>();
+  const onRemove: Mock<OnClick> = jest.fn<OnClick>();
 
   return {
     showId: {
@@ -549,7 +550,7 @@ describe("RowActions", () => {
     });
 
     test("passes working completion callbacks to the handler", () => {
-      const onComplete: jest.Mock<() => void> = jest.fn<() => void>();
+      const onComplete: Mock<() => void> = jest.fn<() => void>();
 
       renderRow([
         {

@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 /*
  * The Actions column of every ModelTable in the product.
@@ -382,7 +383,7 @@ describe("BaseModelTable row actions", () => {
   });
 
   test("a table's own actions go in the menu behind View", async () => {
-    const onSendTest: jest.Mock<ActionButtonSchema<Monitor>["onClick"]> =
+    const onSendTest: Mock<ActionButtonSchema<Monitor>["onClick"]> =
       jest.fn<ActionButtonSchema<Monitor>["onClick"]>();
 
     renderTable({

@@ -11,6 +11,7 @@ import {
   dimensionLabel,
   displayGroupValue,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceTableData";
+import { formatTraceSeriesLabel } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 
 /*
  * Validates the data path a trace-table widget walks: stored arguments ->
@@ -242,5 +243,40 @@ describe("TraceTableData.displayGroupValue", () => {
     expect(displayGroupValue("url.host", "api.example.com")).toBe(
       "api.example.com",
     );
+  });
+});
+
+/*
+ * Unset is OpenTelemetry's default for a span that finished without an
+ * error, so a table split by status says so, like the chart widget's legend
+ * and the Traces explorer (#4118).
+ */
+describe("TraceTableData.displayGroupValue for a status split", () => {
+  test("REGRESSION: Unset reads as no error, not a bare Unset (#4118)", () => {
+    expect(displayGroupValue("statusCode", "0")).toBe("Unset (no error)");
+  });
+
+  test("Ok and Error keep their names", () => {
+    expect(displayGroupValue("statusCode", "1")).toBe("Ok");
+    expect(displayGroupValue("statusCode", "2")).toBe("Error");
+  });
+
+  test("an unknown code is shown verbatim and an empty one as (empty)", () => {
+    expect(displayGroupValue("statusCode", "9")).toBe("9");
+    expect(displayGroupValue("statusCode", "")).toBe("(empty)");
+  });
+
+  test("only the statusCode dimension gets status names", () => {
+    expect(displayGroupValue("kind", "0")).toBe("Unspecified");
+    expect(displayGroupValue("kind", "1")).toBe("Internal");
+    expect(displayGroupValue("url.host", "0")).toBe("0");
+  });
+
+  test("the table names each status the way the chart widget's legend does", () => {
+    for (const code of ["0", "1", "2"]) {
+      expect(displayGroupValue("statusCode", code)).toBe(
+        formatTraceSeriesLabel(code, "statusCode"),
+      );
+    }
   });
 });

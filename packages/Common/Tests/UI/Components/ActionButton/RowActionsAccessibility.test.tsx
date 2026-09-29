@@ -16,6 +16,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import React, { ReactElement, useState } from "react";
 
 /*
@@ -158,7 +159,7 @@ describe("a locked action in the ⋯ menu", () => {
   });
 
   test("cannot be activated by click or Enter, and leaves the menu open", () => {
-    const onDelete: jest.Mock<() => void> = jest.fn<() => void>();
+    const onDelete: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <RowActions<Member>

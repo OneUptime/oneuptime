@@ -15,6 +15,13 @@ export interface ComponentProps {
   // Current pins, keyed by the "key=value" segment (see MetricQueryConfigData).
   value: Record<string, string>;
   onChange: (colorsByGroup: Record<string, string>) => void;
+  // Replaces the default help text under "Group colors".
+  description?: string | undefined;
+  /*
+   * Offer the empty-group value as a pin (default true). Off for a split
+   * whose series are never empty, where it would only mislead.
+   */
+  offerEmptyGroupValue?: boolean | undefined;
 }
 
 /*
@@ -95,8 +102,8 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
           Group colors
         </label>
         <p className="text-xs text-gray-400">
-          Pin a color to specific group values. Unpinned groups use the series
-          color or theme palette.
+          {props.description ||
+            "Pin a color to specific group values. Unpinned groups use the series color or theme palette."}
         </p>
         {props.groupByKeys.length > 1 && (
           <p className="text-xs text-gray-400 mt-1">
@@ -116,7 +123,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
         const suggestions: Array<string> = props.valueSuggestions[key] || [];
         const datalistId: string = `${idPrefix}-${key}`;
         const availableSuggestions: Array<string> = [
-          UNSET_VALUE,
+          ...(props.offerEmptyGroupValue === false ? [] : [UNSET_VALUE]),
           ...suggestions,
         ].filter((v: string): boolean => {
           return !pinnedValues.has(v);

@@ -874,6 +874,11 @@ html.dark :is(
   --tw-ring-color: rgb(52 211 153 / 32%);
 }
 
+html.dark :is(.border-cyan-100, .ring-cyan-200) {
+  border-color: rgb(34 211 238 / 42%);
+  --tw-ring-color: rgb(34 211 238 / 32%);
+}
+
 html.dark :is(
     .border-fuchsia-100,
     .border-pink-100,
