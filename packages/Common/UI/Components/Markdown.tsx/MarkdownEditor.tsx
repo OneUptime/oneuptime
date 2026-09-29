@@ -4,6 +4,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentation";
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
+import useTranslateValue from "../../Utils/Translation";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import CommonURL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -234,6 +235,25 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
    * tied to the editor, so to a screen reader the form did nothing.
    */
   const errorId: string = `markdown-editor-error-${useId()}`;
+  /*
+   * The words the editor always shows of its own -- an empty field's
+   * placeholder and the heading of its formatting help -- are looked up in
+   * the page's locale, as FieldLabel's "(Optional)" is: on the public
+   * incident form, translated all round, they were the only English left.
+   * The English text is the key, and an app whose locale has no entry for
+   * it shows the English.
+   */
+  const { translateString } = useTranslateValue();
+  const visualPlaceholder: string =
+    props.placeholder ||
+    (translateString("Type your content here...") ??
+      "Type your content here...");
+  const sourcePlaceholder: string =
+    props.placeholder ||
+    (translateString("Type your markdown here...") ??
+      "Type your markdown here...");
+  const helpTitle: string =
+    translateString("Formatting help") ?? "Formatting help";
   const [text, setText] = useState<string>(props.initialValue || "");
   const [mode, setMode] = useState<EditorMode>("wysiwyg");
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
@@ -1783,9 +1803,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               contentEditable
               suppressContentEditableWarning
               spellCheck={props.disableSpellCheck !== true}
-              data-placeholder={
-                props.placeholder || "Type your content here..."
-              }
+              data-placeholder={visualPlaceholder}
               tabIndex={props.tabIndex}
               className={wysiwygClassName}
               onInput={handleEditableInput}
@@ -1830,7 +1848,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
               aria-describedby={props.error ? errorId : undefined}
-              placeholder={props.placeholder || "Type your markdown here..."}
+              placeholder={sourcePlaceholder}
               className={`${className} rounded-t-none min-h-32 ${
                 isDraggingOver
                   ? "ring-2 ring-indigo-400 ring-offset-1 border-indigo-400"
@@ -1887,7 +1905,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Help Text */}
-      <TinyFormDocumentation title="Formatting help">
+      <TinyFormDocumentation title={helpTitle}>
         <>
           <div>
             Type directly in the visual editor — use the toolbar to format.

@@ -8,7 +8,9 @@ import {
   screen,
   fireEvent,
 } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 import {
   CHROME_VIEWER_COPY_HTML,
   CHROME_VIEWER_COPY_TEXT,
@@ -1968,5 +1970,104 @@ describe("MarkdownEditor help text", () => {
     expect(
       screen.getByText(/Outside a list, Tab moves to the next field/),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * On the public incident form, translated all round, the empty Description
+ * box still said "Type your content here..." and its help "Formatting help".
+ * The editor looks those words up by their English text, as FieldLabel does
+ * "(Optional)"; a locale with no entry for them -- the Dashboard's, today --
+ * keeps the English. The instances reach the editor through I18nextProvider
+ * only: installed with initReactI18next they would leak German into every
+ * other test in this worker.
+ */
+describe("MarkdownEditor in the page's language", () => {
+  const german: i18n = createInstance();
+  const germanWithoutEditorWords: i18n = createInstance();
+
+  beforeAll(async () => {
+    await german.init({
+      lng: "de",
+      resources: {
+        de: {
+          translation: {
+            "Type your content here...": "Geben Sie hier Ihren Text ein...",
+            "Type your markdown here...": "Geben Sie hier Ihr Markdown ein...",
+            "Formatting help": "Hilfe zur Formatierung",
+          },
+        },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+    await germanWithoutEditorWords.init({
+      lng: "de",
+      resources: { de: { translation: { Submit: "Senden" } } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  test("shows its placeholders and its help's heading in the locale's words", () => {
+    render(
+      <I18nextProvider i18n={german}>
+        <MarkdownEditor initialValue="" />
+      </I18nextProvider>,
+    );
+
+    expect(editableOf()).toHaveAttribute(
+      "data-placeholder",
+      "Geben Sie hier Ihren Text ein...",
+    );
+    expect(screen.getByText("Hilfe zur Formatierung")).toBeInTheDocument();
+    expect(screen.queryByText("Formatting help")).toBeNull();
+
+    expect(switchToMarkdown()).toHaveAttribute(
+      "placeholder",
+      "Geben Sie hier Ihr Markdown ein...",
+    );
+  });
+
+  test("falls back to the English when the locale has no entry for them", () => {
+    render(
+      <I18nextProvider i18n={germanWithoutEditorWords}>
+        <MarkdownEditor initialValue="" />
+      </I18nextProvider>,
+    );
+
+    expect(editableOf()).toHaveAttribute(
+      "data-placeholder",
+      "Type your content here...",
+    );
+    expect(screen.getByText("Formatting help")).toBeInTheDocument();
+
+    expect(switchToMarkdown()).toHaveAttribute(
+      "placeholder",
+      "Type your markdown here...",
+    );
+  });
+
+  // A form field hands the editor a placeholder it has already translated.
+  test("shows a placeholder it is given as it is", () => {
+    render(
+      <I18nextProvider i18n={german}>
+        <MarkdownEditor
+          initialValue=""
+          placeholder="Beschreiben Sie, was nicht funktioniert"
+        />
+      </I18nextProvider>,
+    );
+
+    expect(editableOf()).toHaveAttribute(
+      "data-placeholder",
+      "Beschreiben Sie, was nicht funktioniert",
+    );
+    expect(switchToMarkdown()).toHaveAttribute(
+      "placeholder",
+      "Beschreiben Sie, was nicht funktioniert",
+    );
   });
 });
