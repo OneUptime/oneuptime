@@ -53,6 +53,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "../../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentFormService, {
   INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
@@ -74,6 +75,7 @@ import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
 import logger from "../../../Server/Utils/Logger";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
+import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -912,6 +914,74 @@ describe("IncidentFormService.submitPublicForm - custom fields", () => {
     expect(error).toBeInstanceOf(BadDataException);
     expect(error?.message).toBe("Systems cannot have more than 100 choices.");
     expect(incidentCreate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A field mapped from a monitor field takes the monitor's value once the
+   * incident has a monitor - and a form's incident gets its template's
+   * monitors. Such a question is not asked then, so it cannot be required,
+   * and an answer sent anyway is dropped like any the form does not ask.
+   */
+  describe("a field copied from a monitor", () => {
+    const VENDOR: IncidentCustomField = (() => {
+      const field: IncidentCustomField = customField({
+        name: "Vendor",
+        variableKey: "vendor",
+        customFieldType: CustomFieldType.Text,
+        sortOrder: 8,
+      });
+      field.mapFromResourceType = CustomFieldMappingSourceResource.Monitor;
+      field.mapFromCustomFieldName = "Vendor";
+      return field;
+    })();
+
+    function templateWithMonitor(): IncidentTemplate {
+      const template: IncidentTemplate =
+        templateWithSeverity(MINOR_SEVERITY_ID);
+      const monitor: Monitor = new Monitor();
+      monitor._id = "e1000000-0000-4000-8000-0000000000f1";
+      template.monitors = [monitor];
+      return template;
+    }
+
+    beforeEach(() => {
+      customFieldFindBy.mockResolvedValue([...PROJECT_FIELDS, VENDOR] as never);
+      templateFindOneBy.mockResolvedValue(templateWithMonitor() as never);
+    });
+
+    test("is not required when the form's template attaches a monitor, and an answer to it is dropped", async () => {
+      storedForm = withTemplate({
+        customFieldSettings: { vendor: "Required", region: "Optional" },
+      });
+
+      await submit({
+        answers: {
+          ...VALID_ANSWERS,
+          customFields: { Vendor: "Azure", Region: "EU" },
+        },
+      });
+
+      expect(createCall().data.customFields).toEqual({ Region: "EU" });
+    });
+
+    test("is still required, and kept, on a form without a template", async () => {
+      storedForm = buildForm({
+        customFieldSettings: { vendor: "Required" },
+      });
+
+      const error: Exception | undefined = await refusal(
+        submit({ answers: { ...VALID_ANSWERS, customFields: {} } }),
+      );
+
+      expect(error?.message).toBe("Vendor is required.");
+
+      await submit({
+        answers: { ...VALID_ANSWERS, customFields: { Vendor: "Azure" } },
+      });
+
+      expect(createCall().data.customFields).toEqual({ Vendor: "Azure" });
+      expect(templateFindOneBy).not.toHaveBeenCalled();
+    });
   });
 
   test("ignores custom field answers entirely, and reads no fields, when the form asks none", async () => {

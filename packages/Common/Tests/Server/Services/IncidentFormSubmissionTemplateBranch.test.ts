@@ -55,14 +55,18 @@ import IncidentStateService from "../../../Server/Services/IncidentStateService"
 import IncidentTemplateOwnerTeamService from "../../../Server/Services/IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "../../../Server/Services/IncidentTemplateOwnerUserService";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
+import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import {
   IncidentFormFieldSetting,
+  PublicIncidentForm,
+  PublicIncidentFormField,
   PublicIncidentFormSubmissionResult,
 } from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
@@ -354,6 +358,102 @@ describe("a submission through a form with a template, through the real Incident
 
     expect(declared!.createdByUserId).toBeUndefined();
     expect(declared!.rootCause).toBeUndefined();
+  });
+
+  /*
+   * The mapping has the last word on a field copied from a monitor field,
+   * and the form's incident takes its template's monitors. Run with the
+   * real mapping: the page never asks such a field, an answer sent anyway
+   * is dropped, and the incident holds the monitor's value - where before
+   * the reporter was made to answer and the answer was silently replaced.
+   */
+  describe("a field copied from a monitor field", () => {
+    function vendorField(): IncidentCustomField {
+      const field: IncidentCustomField = customField("Vendor", "vendor", 4);
+      field.mapFromResourceType = CustomFieldMappingSourceResource.Monitor;
+      field.mapFromCustomFieldName = "Vendor";
+      return field;
+    }
+
+    beforeEach(() => {
+      jest
+        .spyOn(CustomFieldMappingService, "applyMappingsToCreate")
+        .mockRestore();
+
+      jest
+        .spyOn(IncidentCustomFieldService, "findBy")
+        .mockResolvedValue([
+          customField("Impact", "impact", 1),
+          customField("Region", "region", 2),
+          customField("Runbook", "runbook", 3),
+          vendorField(),
+        ] as never);
+
+      const monitor: Monitor = new Monitor();
+      monitor._id = MONITOR_ID;
+      monitor.customFields = { Vendor: "AWS" };
+
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([monitor] as never);
+
+      storedForm.customFieldSettings = {
+        impact: "Required",
+        vendor: "Required",
+      };
+    });
+
+    test("is not asked, and the incident takes the template monitor's value over an answer sent anyway", async () => {
+      const publicForm: PublicIncidentForm =
+        await IncidentFormService.getPublicForm({
+          shareKey: SHARE_KEY,
+          clientIp: "203.0.113.7",
+        });
+
+      expect(
+        publicForm.customFields.map((field: PublicIncidentFormField) => {
+          return field.name;
+        }),
+      ).toEqual(["Impact"]);
+
+      await submit({
+        title: "Checkout is down",
+        customFields: { Impact: "High", Vendor: "Azure" },
+      });
+
+      expect(declared!.customFields).toEqual({
+        Impact: "High",
+        Runbook: "https://runbooks.example/checkout",
+        Vendor: "AWS",
+      });
+    });
+
+    test("is asked, and the reporter's answer kept, on a form without a template", async () => {
+      (storedForm as unknown as Record<string, unknown>)["incidentTemplateId"] =
+        null;
+
+      const publicForm: PublicIncidentForm =
+        await IncidentFormService.getPublicForm({
+          shareKey: SHARE_KEY,
+          clientIp: "203.0.113.7",
+        });
+
+      expect(
+        publicForm.customFields.map((field: PublicIncidentFormField) => {
+          return field.name;
+        }),
+      ).toEqual(["Impact", "Vendor"]);
+
+      await submit({
+        title: "Checkout is down",
+        customFields: { Impact: "High", Vendor: "Azure" },
+      });
+
+      expect(declared!.customFields).toEqual({
+        Impact: "High",
+        Vendor: "Azure",
+      });
+    });
   });
 
   test("tells the reporter the number the project gave the incident", async () => {

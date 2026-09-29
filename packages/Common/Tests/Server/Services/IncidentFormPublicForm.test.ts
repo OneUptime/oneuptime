@@ -72,6 +72,8 @@ jest.mock("../../../Server/Utils/Logger", () => {
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentFormService, {
   INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
@@ -79,6 +81,7 @@ import IncidentFormService, {
 } from "../../../Server/Services/IncidentFormService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
+import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
 import logger from "../../../Server/Utils/Logger";
@@ -87,6 +90,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import Color from "../../../Types/Color";
+import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
@@ -474,6 +478,8 @@ describe("IncidentFormService.getPublicForm - custom field questions", () => {
       dropdownOptions: true,
       variableKey: true,
       sortOrder: true,
+      mapFromResourceType: true,
+      mapFromCustomFieldName: true,
     });
   });
 
@@ -504,6 +510,132 @@ describe("IncidentFormService.getPublicForm - custom field questions", () => {
     });
 
     expect((await getPublicForm()).customFields).toEqual([]);
+  });
+});
+
+/*
+ * A field mapped from a monitor field takes the monitor's value when the
+ * incident has a monitor - IncidentService applies the mapping last, over
+ * any answer - and a form's incident gets monitors from the form's
+ * template. So such a field is not asked when the template attaches
+ * monitors, as the dashboard's Declare Incident form does not ask it: a
+ * reporter must never be made to answer a question whose answer is thrown
+ * away.
+ */
+describe("IncidentFormService.getPublicForm - fields copied from a monitor", () => {
+  const MONITOR_ID: string = "e1000000-0000-4000-8000-0000000000f1";
+
+  const REGION: IncidentCustomField = (() => {
+    const field: IncidentCustomField = customField({
+      name: "Region",
+      variableKey: "region",
+      customFieldType: CustomFieldType.Text,
+      sortOrder: 6,
+    });
+    field.mapFromResourceType = CustomFieldMappingSourceResource.Monitor;
+    field.mapFromCustomFieldName = "Region";
+    return field;
+  })();
+
+  function templateWithMonitors(count: number): IncidentTemplate {
+    const template: IncidentTemplate = new IncidentTemplate();
+    template._id = TEMPLATE_ID;
+    template.monitors = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const monitor: Monitor = new Monitor();
+      monitor._id = MONITOR_ID;
+      template.monitors.push(monitor);
+    }
+
+    return template;
+  }
+
+  let templateFindOneBy: MockedFn;
+
+  beforeEach(() => {
+    customFieldFindBy.mockResolvedValue([...PROJECT_FIELDS, REGION] as never);
+    templateFindOneBy = jest
+      .spyOn(IncidentTemplateService, "findOneBy")
+      .mockResolvedValue(
+        templateWithMonitors(1) as never,
+      ) as unknown as MockedFn;
+  });
+
+  const ASKS_REGION: Record<string, string> = {
+    region: "Required",
+    impact: "Optional",
+  };
+
+  test("is not asked when the form's template attaches a monitor", async () => {
+    storedForm = buildForm({ customFieldSettings: ASKS_REGION });
+
+    expect(
+      (await getPublicForm()).customFields.map(
+        (field: { name: string }): string => {
+          return field.name;
+        },
+      ),
+    ).toEqual(["Impact"]);
+  });
+
+  test("reads only the template's monitors, from the form's own project, as root", async () => {
+    storedForm = buildForm({ customFieldSettings: ASKS_REGION });
+
+    await getPublicForm();
+
+    expect(templateFindOneBy).toHaveBeenCalledTimes(1);
+    expect(templateFindOneBy.mock.calls[0]![0]).toEqual({
+      query: { _id: TEMPLATE_ID, projectId: PROJECT_ID },
+      select: { monitors: { _id: true } },
+      props: { isRoot: true },
+    });
+  });
+
+  test("is asked, as the form says, when the template attaches no monitor", async () => {
+    storedForm = buildForm({ customFieldSettings: ASKS_REGION });
+    templateFindOneBy.mockResolvedValue(templateWithMonitors(0) as never);
+
+    expect((await getPublicForm()).customFields).toContainEqual({
+      name: "Region",
+      customFieldType: CustomFieldType.Text,
+      isRequired: true,
+    });
+  });
+
+  test("is asked when the form has no template, and no template is read", async () => {
+    storedForm = buildForm({ customFieldSettings: ASKS_REGION });
+    setNull(storedForm, "incidentTemplateId");
+
+    expect(
+      (await getPublicForm()).customFields.map(
+        (field: { name: string }): string => {
+          return field.name;
+        },
+      ),
+    ).toEqual(["Impact", "Region"]);
+    expect(templateFindOneBy).not.toHaveBeenCalled();
+  });
+
+  test("is asked when the template cannot be found in the form's project", async () => {
+    storedForm = buildForm({ customFieldSettings: ASKS_REGION });
+    templateFindOneBy.mockResolvedValue(null as never);
+
+    expect(
+      (await getPublicForm()).customFields.map(
+        (field: { name: string }): string => {
+          return field.name;
+        },
+      ),
+    ).toEqual(["Impact", "Region"]);
+  });
+
+  test("reads no template when the form asks no mapped field", async () => {
+    storedForm = buildForm({ customFieldSettings: FORM_QUESTIONS });
+
+    await getPublicForm();
+
+    expect(templateFindOneBy).not.toHaveBeenCalled();
   });
 });
 

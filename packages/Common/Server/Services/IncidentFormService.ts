@@ -1,5 +1,6 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
@@ -22,6 +23,12 @@ import {
   getIncidentFormAskedDefinitions,
   validateCustomFieldCreateSettings,
 } from "../../Types/CustomField/CustomFieldCreateSettings";
+import {
+  CustomFieldMappingSourceInfo,
+  getCustomFieldInheritanceSource,
+  getCustomFieldMappingRelationSelect,
+  isCustomFieldInheritedByRecord,
+} from "../../Types/CustomField/CustomFieldMappingCatalog";
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
@@ -791,6 +798,9 @@ export class Service extends DatabaseService<Model> {
    * The same list serves the page and checks the answers, so a submission
    * can only answer what the page showed. A form that asks no field does
    * not read the project's fields at all.
+   *
+   * Less the fields the incident will copy from a monitor instead (see
+   * leaveOutInheritedFields).
    */
   private async getAskedCustomFields(
     form: Model,
@@ -816,6 +826,8 @@ export class Service extends DatabaseService<Model> {
           dropdownOptions: true,
           variableKey: true,
           sortOrder: true,
+          mapFromResourceType: true,
+          mapFromCustomFieldName: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -824,9 +836,96 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    return getIncidentFormAskedDefinitions(
-      definitions,
-      form.customFieldSettings,
+    return await this.leaveOutInheritedFields({
+      form: form,
+      askedDefinitions: getIncidentFormAskedDefinitions(
+        definitions,
+        form.customFieldSettings,
+      ),
+    });
+  }
+
+  /*
+   * A field mapped from a monitor field takes the monitor's value when the
+   * incident has a monitor: IncidentService applies the mapping last on
+   * create, over whatever the reporter answered. So such a field is not
+   * asked once the incident will have a monitor - the rule the dashboard's
+   * Declare Incident form follows (isCustomFieldInheritedByRecord) - and an
+   * answer sent anyway is dropped as one to a question the form does not
+   * ask, rather than being required and then silently thrown away.
+   *
+   * A form's incident only gets monitors from the form's template, so the
+   * template is what decides, read per request (its monitors can change
+   * after the form's questions are set), and only when the form has one and
+   * asks a mapped field.
+   */
+  private async leaveOutInheritedFields(data: {
+    form: Model;
+    askedDefinitions: Array<IncidentCustomField>;
+  }): Promise<Array<IncidentCustomField>> {
+    const definitionTableName: string | undefined =
+      new IncidentCustomField().tableName || undefined;
+
+    const sources: Array<CustomFieldMappingSourceInfo> = [];
+
+    for (const definition of data.askedDefinitions) {
+      const source: CustomFieldMappingSourceInfo | undefined =
+        getCustomFieldInheritanceSource({
+          definitionTableName: definitionTableName,
+          definition: definition,
+        });
+
+      if (source && !sources.includes(source)) {
+        sources.push(source);
+      }
+    }
+
+    if (sources.length === 0 || !data.form.incidentTemplateId) {
+      return data.askedDefinitions;
+    }
+
+    /*
+     * The template's own relations stand for the incident's: the template
+     * branch copies them onto it. A relation the template does not have
+     * cannot reach the incident.
+     */
+    const template: IncidentTemplate = new IncidentTemplate();
+    const select: Record<string, unknown> = {};
+
+    for (const source of sources) {
+      if (template.hasColumn(source.targetRelationProperty)) {
+        Object.assign(select, getCustomFieldMappingRelationSelect(source));
+      }
+    }
+
+    if (Object.keys(select).length === 0) {
+      return data.askedDefinitions;
+    }
+
+    const stored: IncidentTemplate | null =
+      await IncidentTemplateService.findOneBy({
+        query: {
+          _id: data.form.incidentTemplateId.toString(),
+          projectId: data.form.projectId!,
+        },
+        select: select as Select<IncidentTemplate>,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!stored) {
+      return data.askedDefinitions;
+    }
+
+    return data.askedDefinitions.filter(
+      (definition: IncidentCustomField): boolean => {
+        return !isCustomFieldInheritedByRecord({
+          definitionTableName: definitionTableName,
+          definition: definition,
+          record: stored as unknown as Record<string, unknown>,
+        });
+      },
     );
   }
 
