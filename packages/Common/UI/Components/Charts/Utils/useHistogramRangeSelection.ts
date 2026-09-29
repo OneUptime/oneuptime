@@ -283,6 +283,22 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     ) => void
   >(() => {});
 
+  /*
+   * Readers routinely drag past the edge of a 120px-tall chart and let go
+   * outside it, where the chart's own mouseup never fires. Listen on the
+   * page until the press ends; a release over the chart reaches the
+   * chart's handler first, which removes this listener before the page
+   * hears it.
+   */
+  const listenForReleaseOffChart: () => void = useCallback((): void => {
+    stopListeningForRelease();
+    const finishPressOutsideChart: () => void = (): void => {
+      onMouseUpRef.current(null);
+    };
+    releaseListener.current = finishPressOutsideChart;
+    window.addEventListener("mouseup", finishPressOutsideChart);
+  }, [stopListeningForRelease]);
+
   const onMouseDown: (
     state?: HistogramPointerState | null,
     event?: ChartPointerEvent | null,
@@ -293,14 +309,15 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     ): void => {
       /*
        * The second press of a double-click on a zoomed chart: the zoom-out,
-       * on its release. The first click must not zoom in; its band stays
-       * until the zoom-out clears it, because this press may have landed
-       * on it and a render now would take that node away.
+       * on its release, wherever that is (the page hears a release off the
+       * chart, as for a drag below). The first click must not zoom in; its
+       * band stays until the zoom-out clears it, because this press may
+       * have landed on it and a render now would take that node away.
        */
       if (doubleClickReset.onPress(event)) {
         cancelPendingClick();
         isSelecting.current = false;
-        stopListeningForRelease();
+        listenForReleaseOffChart();
         return;
       }
 
@@ -324,21 +341,9 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
       pressClientX.current =
         typeof event?.clientX === "number" ? event.clientX : null;
 
-      /*
-       * Readers routinely drag past the edge of a 120px-tall chart and
-       * let go outside it, where the chart's own mouseup never fires.
-       * Listen on the page until the press ends; a release over the chart
-       * reaches the chart's handler first, which removes this listener
-       * before the page hears it.
-       */
-      stopListeningForRelease();
-      const finishPressOutsideChart: () => void = (): void => {
-        onMouseUpRef.current(null);
-      };
-      releaseListener.current = finishPressOutsideChart;
-      window.addEventListener("mouseup", finishPressOutsideChart);
+      listenForReleaseOffChart();
     },
-    [canSelect, cancelPendingClick, doubleClickReset, stopListeningForRelease],
+    [canSelect, cancelPendingClick, doubleClickReset, listenForReleaseOffChart],
   );
 
   const onMouseMove: (
@@ -393,6 +398,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     ): void => {
       // The end of a double-click's second press: the zoom-out, nothing else.
       if (doubleClickReset.onRelease()) {
+        stopListeningForRelease();
         return;
       }
 

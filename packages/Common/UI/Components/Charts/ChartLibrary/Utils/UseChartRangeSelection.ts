@@ -357,6 +357,7 @@ const useChartRangeSelection: (
       (chartState?: RangeSelectionChartState | null): void => {
         // The end of a double-click's second press: the reset, nothing else.
         if (doubleClickReset.onRelease()) {
+          stopListeningForRelease();
           return;
         }
 
@@ -413,8 +414,25 @@ const useChartRangeSelection: (
           selectedWindow.end,
         );
       },
-      [clearSelection, doubleClickReset],
+      [clearSelection, doubleClickReset, stopListeningForRelease],
     );
+
+  /*
+   * A press released outside the chart: the chart's own mouseup never
+   * fires, so listen on the window until the press ends. A release over
+   * the chart reaches the chart's handler first (React listens below the
+   * window), which ends the press and removes this listener before the
+   * window hears it. Added by the press rather than from render state so
+   * the press itself renders nothing (see above).
+   */
+  const listenForReleaseOffChart: () => void = React.useCallback((): void => {
+    stopListeningForRelease();
+    const finishPressOutsideChart: () => void = (): void => {
+      onMouseUp(null);
+    };
+    releaseListenerRef.current = finishPressOutsideChart;
+    window.addEventListener("mouseup", finishPressOutsideChart);
+  }, [onMouseUp, stopListeningForRelease]);
 
   const onMouseDown: (
     chartState: RangeSelectionChartState,
@@ -424,9 +442,14 @@ const useChartRangeSelection: (
       chartState: RangeSelectionChartState,
       mouseEvent?: React.MouseEvent<SVGGraphicsElement>,
     ): void => {
-      // The second press of a double-click is the reset, on its release.
+      /*
+       * The second press of a double-click is the reset, on its release,
+       * wherever that is: the window hears a release off the chart, as for
+       * a drag below.
+       */
       if (doubleClickReset.onPress(mouseEvent)) {
         clearSelection();
+        listenForReleaseOffChart();
         return;
       }
       /*
@@ -452,22 +475,9 @@ const useChartRangeSelection: (
       isSelecting.current = true;
       startIndexRef.current = rowIndex;
       endIndexRef.current = rowIndex;
-
-      /*
-       * A drag released outside the chart: the chart's own mouseup never
-       * fires, so listen on the window until the press ends. A release
-       * over the chart reaches the chart's handler first (React listens
-       * below the window), which ends the press and removes this listener
-       * before the window hears it. Added here rather than from render
-       * state so the press itself renders nothing (see above).
-       */
-      const finishPressOutsideChart: () => void = (): void => {
-        onMouseUp(null);
-      };
-      releaseListenerRef.current = finishPressOutsideChart;
-      window.addEventListener("mouseup", finishPressOutsideChart);
+      listenForReleaseOffChart();
     },
-    [clearSelection, doubleClickReset, getLabel, onMouseUp],
+    [clearSelection, doubleClickReset, getLabel, listenForReleaseOffChart],
   );
 
   // A chart unmounted mid-press stops listening for its release.
