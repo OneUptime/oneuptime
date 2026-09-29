@@ -323,6 +323,8 @@ const IMAGE_SCHEMES: Array<string> = ["http", "https"];
 const RE_URL_SCHEME: RegExp = /^([a-z][a-z0-9+.-]*):/i;
 const RE_WHITESPACE_RUN: RegExp = /[ \t\n\r\f]+/g;
 const RE_NBSP: RegExp = /\u00a0/g;
+// Docusaurus writes a zero-width space as its heading permalink's only text.
+const RE_ZERO_WIDTH: RegExp = /[\u200b-\u200d\u2060\ufeff]/g;
 const RE_NOT_WHITESPACE: RegExp = /\S/;
 const RE_LEADING_SPACE: RegExp = /^\s+/;
 const RE_TRAILING_SPACE: RegExp = /\s+$/;
@@ -873,6 +875,30 @@ const sanitizeLinksAndImages: (body: HTMLElement) => void = (
       (image.getAttribute("alt") || "").replace(/[[\]\s]+/g, " ").trim(),
     );
     image.removeAttribute("title");
+  }
+  /*
+   * A link left with nothing to read -- the permalink icon GitHub puts
+   * beside every heading, a row of social icons, once their <svg>s are gone,
+   * or the empty or zero-width-space anchors of GitLab and Docusaurus --
+   * would be written out with its URL as its text: every heading copied from
+   * a README gained a line of "[https://github.com/...#install](...)". It is
+   * not content, so it is unwrapped. Whatever space it held stays, so the
+   * words either side of it do not run together. The URLs browsers put on
+   * the clipboard are absolute, so the link is known by its emptiness, not
+   * by an href starting with "#". This runs after the images are checked,
+   * so a link whose only image was dropped goes too.
+   */
+  for (const link of elementsOf(body, "a[href]")) {
+    const text: string = (link.textContent || "")
+      .replace(RE_NBSP, "")
+      .replace(RE_ZERO_WIDTH, "");
+    if (RE_NOT_WHITESPACE.test(text) || link.querySelector("img")) {
+      continue;
+    }
+    for (const node of textNodesOf(link)) {
+      node.data = node.data.replace(RE_ZERO_WIDTH, "");
+    }
+    unwrap(link);
   }
 };
 

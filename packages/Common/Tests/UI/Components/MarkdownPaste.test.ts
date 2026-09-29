@@ -623,6 +623,64 @@ describe("pastedHtmlToMarkdown", () => {
       );
     });
 
+    /*
+     * A link with nothing left to read once its icon is dropped came out
+     * with its URL as its text: every heading copied from a GitHub README
+     * gained a line of "[https://github.com/...#install](...)". Browsers
+     * make the href absolute on the clipboard, as here.
+     */
+    it("drops the permalink GitHub puts beside a heading", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<div class="markdown-heading"><h2 class="heading-element">Install</h2><a id="user-content-install" class="anchor" aria-label="Permalink: Install" href="https://github.com/o/r#install"><svg class="octicon octicon-link" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275"></path></svg></a></div><p>Run <code>npm i</code>.</p>',
+        ),
+      ).toBe("## Install\n\nRun `npm i`.");
+      expect(
+        pastedHtmlToMarkdown(
+          '<h2><a class="anchor" href="https://github.com/o/r#install"><svg><path d="m7"></path></svg></a>Install</h2><p>Run <code>npm i</code>.</p>',
+        ),
+      ).toBe("## Install\n\nRun `npm i`.");
+    });
+
+    it("drops the empty and zero-width permalinks of GitLab and Docusaurus", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<h2 id="setup"><a class="anchor" href="https://gitlab.test/g/p#setup" aria-hidden="true"></a>Setup</h2>',
+        ),
+      ).toBe("## Setup");
+      expect(
+        pastedHtmlToMarkdown(
+          '<h2>Install<a href="https://docs.test/intro#install" class="hash-link" aria-label="Direct link to Install">\u200b</a></h2>',
+        ),
+      ).toBe("## Install");
+    });
+
+    it("drops an icon-only link without running the words around it together", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<p>Follow us <a href="https://social.test/oneuptime"><svg><path d="m1"></path></svg></a> and <b>more</b></p>',
+        ),
+      ).toBe("Follow us and **more**");
+    });
+
+    it("keeps a link with text, a linked image, and an icon beside text", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<p><a href="https://a.test">text</a> <a href="https://b.test"><img src="https://i.test/b.png" alt="b"></a> <a href="https://c.test"><svg></svg>GitHub</a> a<a href="https://x.test"> </a>b</p>',
+        ),
+      ).toBe(
+        "[text](https://a.test) [![b](https://i.test/b.png)](https://b.test) [GitHub](https://c.test) a b",
+      );
+    });
+
+    it("drops a link whose only image was dropped", () => {
+      expect(
+        pastedHtmlToMarkdown(
+          '<p>see <a href="https://a.test"><img src="data:image/png;base64,AAAA"></a> here</p>',
+        ),
+      ).toBe("see here");
+    });
+
     it("keeps an image's alt text from breaking the markdown around it", () => {
       expect(
         pastedHtmlToMarkdown(
@@ -754,6 +812,15 @@ describe("isRichClipboardHtml", () => {
       expect(isRichClipboardHtml(html)).toBe(false);
     });
   }
+
+  // An icon-only link is not a link once its icon is gone.
+  it("leaves a paragraph whose only link is an icon to its plain text", () => {
+    expect(
+      isRichClipboardHtml(
+        '<p>see <a href="https://x.test"><svg></svg></a> here</p>',
+      ),
+    ).toBe(false);
+  });
 
   /*
    * VS Code (and other code editors) put coloured spans in a
