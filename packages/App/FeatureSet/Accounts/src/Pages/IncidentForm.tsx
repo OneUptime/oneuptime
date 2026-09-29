@@ -118,6 +118,8 @@ const requireText: RequireTextFunction = (
 interface PageShellProps {
   // The form's name. Left out on a screen that has no form to name.
   heading?: string | undefined;
+  // A card holding one short message rather than a form.
+  isNarrow?: boolean | undefined;
   children: ReactNode;
 }
 
@@ -125,9 +127,11 @@ interface PageShellProps {
 const PageShell: FunctionComponent<PageShellProps> = (
   props: PageShellProps,
 ): ReactElement => {
+  const widthClassName: string = props.isNarrow ? "max-w-md" : "max-w-2xl";
+
   return (
     <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-      <div className="mx-auto w-full max-w-2xl">
+      <div className={`mx-auto w-full ${widthClassName}`}>
         <img
           className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
@@ -142,7 +146,7 @@ const PageShell: FunctionComponent<PageShellProps> = (
         )}
       </div>
 
-      <div className="mx-auto mt-6 w-full max-w-2xl sm:mt-8">
+      <div className={`mx-auto mt-6 w-full sm:mt-8 ${widthClassName}`}>
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 shadow-sm sm:px-8 sm:py-8">
           {props.children}
         </div>
@@ -546,12 +550,12 @@ const IncidentFormPage: () => JSX.Element = () => {
     }
 
     return (
-      <PageShell>
+      <PageShell isNarrow={true}>
         <div className="text-center" data-testid="incident-form-load-failure">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <Icon icon={icon} className="h-6 w-6 text-gray-500" />
           </div>
-          <h1 className="mx-auto mt-4 max-w-md text-base font-semibold leading-7 text-gray-900">
+          <h1 className="mt-4 text-base font-medium leading-7 text-gray-900">
             {failure.message}
           </h1>
           {failure.retryAfter ? (
@@ -565,6 +569,7 @@ const IncidentFormPage: () => JSX.Element = () => {
                 title={t("incidentForm.tryAgain")}
                 buttonStyle={ButtonStyleType.NORMAL}
                 icon={IconProp.Refresh}
+                className="md:!ml-0"
                 dataTestId="incident-form-try-again"
                 onClick={() => {
                   setLoadAttempt((attempt: number): number => {
@@ -625,6 +630,7 @@ const IncidentFormPage: () => JSX.Element = () => {
           <Button
             title={t("incidentForm.submitAnother")}
             buttonStyle={ButtonStyleType.NORMAL}
+            className="md:!ml-0"
             dataTestId="incident-form-submit-another"
             onClick={startAnotherReport}
           />
