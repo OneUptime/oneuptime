@@ -89,6 +89,43 @@ describe("markdownToHtml", () => {
       );
     });
 
+    /*
+     * "***a***" is what the serializer writes for text that is both bold
+     * and italic. The bold pass used to pair its first "**" with the third
+     * star and render "<strong>*a</strong>*", stray asterisks and all.
+     */
+    it("renders three stars on each side as bold italic", () => {
+      expect(markdownToHtml("***a***")).toBe(
+        "<p><em><strong>a</strong></em></p>",
+      );
+      expect(markdownToHtml("x ***a b*** y")).toBe(
+        "<p>x <em><strong>a b</strong></em> y</p>",
+      );
+    });
+
+    it("keeps bold italic text through the editor's save loop", () => {
+      expect(htmlToMarkdown("<p><strong><em>a</em></strong></p>")).toBe(
+        "***a***",
+      );
+      expect(htmlToMarkdown("<p><em><strong>a</strong></em></p>")).toBe(
+        "***a***",
+      );
+      expect(htmlToMarkdown(markdownToHtml("***a*** and ***b***"))).toBe(
+        "***a*** and ***b***",
+      );
+    });
+
+    it("keeps inline code inside bold italic", () => {
+      expect(markdownToHtml("***see `x`***")).toBe(
+        "<p><em><strong>see <code>x</code></strong></em></p>",
+      );
+    });
+
+    it("leaves a run of stars with nothing inside it alone", () => {
+      expect(markdownToHtml("a ****** b")).not.toContain("<em>");
+      expect(markdownToHtml("a *** b *** c")).not.toContain("<em>");
+    });
+
     it("renders strikethrough", () => {
       expect(markdownToHtml("~~gone~~")).toBe("<p><s>gone</s></p>");
     });

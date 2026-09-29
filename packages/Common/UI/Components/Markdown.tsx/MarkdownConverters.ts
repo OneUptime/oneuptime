@@ -153,6 +153,19 @@ const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
     },
   );
 
+  /*
+   * Bold and italic at once. "***a***" is what the serializer writes for
+   * <strong><em>a</em></strong> (text made bold and italic in the editor, or
+   * pasted from Word or Google Docs), and the bold pass below would pair its
+   * first "**" with the third star, rendering "<strong>*a</strong>*".
+   */
+  s = s.replace(
+    /\*\*\*(?=\S)([\s\S]*?\S)\*\*\*/g,
+    (_m: string, inner: string): string => {
+      return stash(`<em><strong>${renderInline(inner, tokens)}</strong></em>`);
+    },
+  );
+
   // Bold (** or __). Run before italic so single-star isn't consumed first.
   s = s.replace(/\*\*([\s\S]+?)\*\*/g, (_m: string, inner: string): string => {
     return stash(`<strong>${renderInline(inner, tokens)}</strong>`);
