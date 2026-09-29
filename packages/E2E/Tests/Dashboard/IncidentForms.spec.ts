@@ -73,7 +73,12 @@ import {
  *   inside the per-network budget (30 per 15 minutes by default) until F,
  *   which only needs some limit to refuse it
  *
- * To run locally against a full stack:
+ * To run locally against a full stack, with HOST and HTTP_PROTOCOL set to
+ * the stack's own (its config.env values), not merely to an address that
+ * reaches it: the public form's routes refuse a browser request sent from
+ * any origin but the stack's configured HTTP_PROTOCOL + HOST, so from any
+ * other the page loads a form and every report is refused. The group's
+ * beforeAll compares the two first and stops, saying so, when they differ.
  *
  *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/IncidentForms.spec.ts --project=chromium
@@ -304,12 +309,21 @@ type PointFrontendAtTestTargetFunction = (
 ) => Promise<void>;
 
 /*
- * The public page builds its API URL from the HOST in /accounts/env.js, so -
- * as registerAndCreateProject does for the signed-in page - point it at the
- * origin this run was asked to test, in case the stack's own HOST differs
- * (a local run against a remapped port, say). Everything else in env.js is
- * left as the server wrote it. A whole context can be pointed too, for the
- * tabs the dashboard opens itself (Open Form).
+ * The public page builds its API URL from the HOST and HTTP_PROTOCOL in
+ * /accounts/env.js. This points them at the origin this run tests, as
+ * registerAndCreateProject does for the signed-in page, so the page's
+ * requests stay on the origin it was loaded from. Everything else in env.js
+ * is left as the server wrote it. A whole context can be pointed too, for
+ * the tabs the dashboard opens itself (Open Form).
+ *
+ * It does not make a stack whose own HOST differs usable. The public form's
+ * routes refuse a browser request whose Origin is not the stack's own
+ * HTTP_PROTOCOL + HOST (SameOriginRequest; forms.md, "Requests from other
+ * websites"), and the page's submit carries its Origin: from any other
+ * origin the form loads, and every report gets 403 "This form can only be
+ * used from its own page.", which the page words as a network that is not
+ * allowed. So the stack must be configured with the origin this run tests;
+ * expectStackToBeConfiguredForThisRun checks that before anything else.
  */
 const pointFrontendAtTestTarget: PointFrontendAtTestTargetFunction = async (
   target: Page | BrowserContext,
@@ -333,6 +347,71 @@ const pointFrontendAtTestTarget: PointFrontendAtTestTargetFunction = async (
     },
   );
 };
+
+type OriginOfFunction = (url: string) => string | null;
+
+// The origin a URL names, as a browser writes it in an Origin header.
+const originOf: OriginOfFunction = (url: string): string | null => {
+  try {
+    return new globalThis.URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
+type ExpectStackToBeConfiguredForThisRunFunction = (
+  page: Page,
+) => Promise<void>;
+
+/*
+ * Stops the run, and says why, when the stack is not configured with the
+ * origin this run tests. The stack's server compares a browser's Origin
+ * with its own HTTP_PROTOCOL + HOST - the values it serves its frontends in
+ * /accounts/env.js - so a stack reached at another address (a remapped
+ * port, another host name) refuses every report the page sends, and B would
+ * fail later with a 403 the page words as "This form can only be opened
+ * from an allowed network.", which says nothing of the cause. Read through
+ * the page's API client, which no route of pointFrontendAtTestTarget
+ * rewrites.
+ */
+const expectStackToBeConfiguredForThisRun: ExpectStackToBeConfiguredForThisRunFunction =
+  async (page: Page): Promise<void> => {
+    const envUrl: string = buildUrl("/accounts/env.js");
+    const testedOrigin: string | null = originOf(BASE_URL.toString());
+    const response: APIResponse = await page.request.get(envUrl);
+    const script: string = response.ok() ? await response.text() : "";
+    const served: RegExpMatchArray | null = script.match(
+      /window\.process\.env = (\{.*\});/,
+    );
+
+    /*
+     * The stack serves its frontends' environment only under its own host
+     * name: it answers any other one as a status page's custom domain, with
+     * that page instead of the script.
+     */
+    if (!served) {
+      throw new Error(
+        `IncidentForms.spec could not read the stack's HOST and HTTP_PROTOCOL from ${envUrl} (HTTP ${response.status()}, not the frontend environment script). A OneUptime stack serves that script only under its own HOST, and answers any other host name as a status page's domain, so ${testedOrigin} is most likely not the stack's own address. Run the spec with the stack's own HOST and HTTP_PROTOCOL (its config.env values): the public form's routes refuse a browser request from any origin but the stack's own.`,
+      );
+    }
+
+    const env: Record<string, unknown> = JSON.parse(served[1]!) as Record<
+      string,
+      unknown
+    >;
+    const host: string = String(env["HOST"] || "");
+    const httpProtocol: string = String(env["HTTP_PROTOCOL"] || "");
+    // The server reads any HTTP_PROTOCOL but "https" as plain HTTP.
+    const stackOrigin: string | null = originOf(
+      `${httpProtocol === "https" ? "https" : "http"}://${host}`,
+    );
+
+    if (!stackOrigin || stackOrigin !== testedOrigin) {
+      throw new Error(
+        `IncidentForms.spec tests ${testedOrigin} (this run's HTTP_PROTOCOL and HOST), but the stack there is configured as ${stackOrigin || "no address"} (HTTP_PROTOCOL=${httpProtocol}, HOST=${host}, as its /accounts/env.js says). The public form's routes refuse a browser request from any origin but the stack's own, so every report would be refused with 403 "${FOREIGN_PAGE_MESSAGE}". Run the spec with the stack's own HOST and HTTP_PROTOCOL, or start the stack with this run's.`,
+      );
+    }
+  };
 
 type ReadShareKeyFunction = (formId: string) => Promise<string>;
 
@@ -736,6 +815,10 @@ test.describe("Incident forms", () => {
     test.setTimeout(360000);
 
     ctx.page = await browser.newPage();
+
+    // First: on a stack configured for another origin every report is refused.
+    await expectStackToBeConfiguredForThisRun(ctx.page);
+
     ctx.projectId = await registerAndCreateProject({
       page: ctx.page,
       projectNamePrefix: "Incident Forms E2E",
