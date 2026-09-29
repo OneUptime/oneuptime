@@ -301,15 +301,22 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
     { modelId: props.modelId },
   );
 
-  if (props.isLoading) {
+  const hasData: boolean = hasEngineMetricData(props.results);
+
+  /*
+   * The loader is for a first load only. Every zoom, reset and auto-refresh
+   * reloads the page's telemetry; swapping charts that are on screen for a
+   * loader card then collapsed the section under the pointer and threw
+   * away a drag in progress on an engine chart. They stay until the new
+   * results land, like the page's query and runtime charts.
+   */
+  if (props.isLoading && !hasData) {
     return (
       <Card title="Engine metrics" description={props.engineLabel}>
         <ComponentLoader />
       </Card>
     );
   }
-
-  const hasData: boolean = hasEngineMetricData(props.results);
 
   if (!hasData && props.status === DatabaseEngineMetricsStatus.Connected) {
     const description: string = props.hasCatalog

@@ -22,6 +22,11 @@ import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
 import useChartRangeSelection, {
   ChartRangeSelection,
 } from "../Utils/UseChartRangeSelection";
+import {
+  DeferredChartClick,
+  useDeferredChartClick,
+} from "../Utils/DoubleClick";
+import useChartBucketsChange from "../Utils/UseChartBucketsChange";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import type { AxisDomain } from "recharts/types/util/types";
@@ -809,6 +814,25 @@ const BarChart: React.ForwardRefExoticComponent<
     const [activeBar, setActiveBar] = React.useState<any | undefined>(
       undefined,
     );
+    /*
+     * A clicked bar is kept as a copy of its row. After a zoom, a reset or
+     * a new range no bar matches it any more, and every bar drew dimmed
+     * until the reader clicked the empty plot.
+     */
+    useChartBucketsChange(categoryLabels, (): void => {
+      if (activeBar) {
+        setActiveBar(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      }
+    });
+    /*
+     * Every click on the plot waits out the double-click window while a
+     * reset is on offer; see useDeferredChartClick.
+     */
+    const deferredClick: DeferredChartClick = useDeferredChartClick(
+      Boolean(onTimeRangeReset),
+    );
     const yAxisDomain: AxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
@@ -837,24 +861,33 @@ const BarChart: React.ForwardRefExoticComponent<
           if (!onValueChange) {
             return;
           }
-          if (deepEqual(activeBar, { ...data.payload, value: data.value })) {
-            setActiveLegend(undefined);
-            setActiveBar(undefined);
-            onValueChange?.(null);
-          } else {
-            setActiveLegend(data.tooltipPayload?.[0]?.dataKey);
-            setActiveBar({
-              ...data.payload,
-              value: data.value,
-            });
-            onValueChange?.({
-              eventType: "bar",
-              categoryClicked: data.tooltipPayload?.[0]?.dataKey,
-              ...data.payload,
-            });
-          }
+          deferredClick.run((): void => {
+            if (deepEqual(activeBar, { ...data.payload, value: data.value })) {
+              setActiveLegend(undefined);
+              setActiveBar(undefined);
+              onValueChange?.(null);
+            } else {
+              setActiveLegend(data.tooltipPayload?.[0]?.dataKey);
+              setActiveBar({
+                ...data.payload,
+                value: data.value,
+              });
+              onValueChange?.({
+                eventType: "bar",
+                categoryClicked: data.tooltipPayload?.[0]?.dataKey,
+                ...data.payload,
+              });
+            }
+          });
         },
-        [activeBar, onValueChange, setActiveLegend, setActiveBar],
+        [
+          activeBar,
+          onValueChange,
+          setActiveLegend,
+          setActiveBar,
+          deferredClick,
+          rangeSelection.isClickSuppressed,
+        ],
       );
 
     function onCategoryClick(dataKey: string): void {
@@ -889,9 +922,11 @@ const BarChart: React.ForwardRefExoticComponent<
       if (rangeSelection.isClickSuppressed()) {
         return;
       }
-      setActiveBar(undefined);
-      setActiveLegend(undefined);
-      onValueChange?.(null);
+      deferredClick.run((): void => {
+        setActiveBar(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+      });
     };
 
     return (
@@ -930,6 +965,7 @@ const BarChart: React.ForwardRefExoticComponent<
               {...(onTimeRangeReset
                 ? {
                     onDoubleClick: () => {
+                      deferredClick.cancel();
                       onTimeRangeReset();
                     },
                   }
