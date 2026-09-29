@@ -1,4 +1,5 @@
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import DOMPurify from "dompurify";
 import fs from "fs";
 import path from "path";
@@ -7,6 +8,7 @@ import AffectedResourceList, {
   AffectedResourceListEntry,
 } from "../../../Server/Utils/Monitor/AffectedResourceList";
 import {
+  domToMarkdown,
   htmlToMarkdown,
   markdownToHtml,
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
@@ -929,6 +931,81 @@ describe("htmlToMarkdown", () => {
     it("drops a comment node", () => {
       expect(htmlToMarkdown("<p>a<!-- note --></p>")).toBe("a");
     });
+  });
+
+  /*
+   * Chromium runs the onerror handler of an <img> parsed through a detached
+   * element's innerHTML. The HTML is parsed into a <template>, whose content
+   * is inert, and never into a <div>.
+   */
+  describe("parsing", () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("parses into an inert template rather than a detached div", () => {
+      const createElement: SpyInstance<typeof document.createElement> =
+        jest.spyOn(document, "createElement");
+
+      expect(
+        htmlToMarkdown('<p>ok</p><img src="x" onerror="window.__ran=1">'),
+      ).toBe("ok\n\n![](x)");
+
+      const tags: Array<string> = createElement.mock.calls.map(
+        (call: Parameters<typeof document.createElement>): string => {
+          return String(call[0]);
+        },
+      );
+      expect(tags).toEqual(["template"]);
+      expect((window as unknown as { __ran?: number }).__ran).toBeUndefined();
+    });
+
+    it("reads a table row outside a table like any other element", () => {
+      expect(htmlToMarkdown("<tr><td>a</td></tr>")).toBe("a");
+    });
+  });
+});
+
+/*
+ * The paste handler cleans clipboard HTML as a DOM tree and serializes the
+ * tree itself, rather than turning it back into a string first.
+ */
+describe("domToMarkdown", () => {
+  const parse: (html: string) => HTMLElement = (html: string): HTMLElement => {
+    return new DOMParser().parseFromString(html, "text/html").body;
+  };
+
+  it("serializes a parsed tree exactly as htmlToMarkdown serializes the markup", () => {
+    const html: string =
+      '<h2>T</h2><p>a <strong>b</strong> <a href="https://x.test">c</a></p><ul><li>d<ul><li>e</li></ul></li></ul><ol start="3"><li>f</li></ol><pre><code class="language-ts">g</code></pre>';
+
+    expect(domToMarkdown(parse(html))).toBe(htmlToMarkdown(html));
+    expect(domToMarkdown(parse(html))).toBe(
+      "## T\n\na **b** [c](https://x.test)\n\n- d\n  - e\n\n3. f\n\n```ts\ng\n```",
+    );
+  });
+
+  it("serializes the children of a fragment", () => {
+    const fragment: DocumentFragment = document.createDocumentFragment();
+    const item: HTMLElement = document.createElement("p");
+    item.textContent = "x";
+    fragment.appendChild(item);
+
+    expect(domToMarkdown(fragment)).toBe("x");
+  });
+
+  it("reads a task box from a document other than the page's", () => {
+    expect(
+      domToMarkdown(
+        parse(
+          '<ul><li><input type="checkbox" checked> a</li><li><input type="checkbox"> b</li></ul>',
+        ),
+      ),
+    ).toBe("- [x] a\n- [ ] b");
+  });
+
+  it("returns an empty string for an empty tree", () => {
+    expect(domToMarkdown(parse(""))).toBe("");
   });
 });
 

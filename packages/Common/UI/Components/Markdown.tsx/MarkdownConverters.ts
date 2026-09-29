@@ -1017,6 +1017,16 @@ const serializeNode: (node: Node) => string = (node: Node): string => {
   }
 };
 
+/*
+ * Markdown for the children of a DOM node that is already parsed. The paste
+ * handler cleans clipboard HTML as a DOM tree and hands the result straight
+ * here, rather than turning it back into a string to be parsed again.
+ */
+export const domToMarkdown: (root: Node) => string = (root: Node): string => {
+  const raw: string = serializeChildren(root);
+  return collapseBlankLines(trimEnd(raw)).replace(/^\n+/, "");
+};
+
 export const htmlToMarkdown: (html: string) => string = (
   html: string,
 ): string => {
@@ -1026,10 +1036,15 @@ export const htmlToMarkdown: (html: string) => string = (
   if (typeof document === "undefined") {
     return html;
   }
-  const container: HTMLDivElement = document.createElement("div");
-  container.innerHTML = html;
-  const raw: string = serializeChildren(container);
-  return collapseBlankLines(trimEnd(raw)).replace(/^\n+/, "");
+  /*
+   * Parsed into a <template>, whose content is inert: nothing in it loads or
+   * runs. A detached <div> is not -- Chromium runs the onerror handler of an
+   * <img> set through a detached element's innerHTML -- and not every caller
+   * hands this function HTML the editor produced itself.
+   */
+  const template: HTMLTemplateElement = document.createElement("template");
+  template.innerHTML = html;
+  return domToMarkdown(template.content);
 };
 
 // Re-export for callers that want to use the inline serializer directly.
