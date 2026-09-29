@@ -389,12 +389,13 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
   /*
-   * Seed from the already-memoized effectiveData (aligned window) so the
-   * first fetch-effect run sees an unchanged snapshot and doesn't duplicate
-   * the mount fetch. effectiveData is in scope above; referencing it here
-   * avoids re-running the alignment math on every render. The host's
-   * refreshNonce is part of the snapshot so bumping it forces a refetch
-   * even when the view state itself is unchanged (pinned-window refresh).
+   * The last fetched snapshot, seeded from the already-memoized
+   * effectiveData (aligned window). The seed carries no compare flag, so
+   * the fetch effect's first run never matches it and fetches at once
+   * whenever the view has a window; the fetch once the catalog is in then
+   * stands aside (see loadMetricTypes). The host's refreshNonce is part of
+   * the snapshot so bumping it forces a refetch even when the view state
+   * itself is unchanged (pinned-window refresh).
    */
   const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
     JSON.stringify({
