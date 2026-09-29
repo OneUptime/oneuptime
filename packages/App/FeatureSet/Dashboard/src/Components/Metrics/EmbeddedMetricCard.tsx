@@ -36,6 +36,7 @@ import useTimeRangeZoom, {
   TimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import { EmbeddedMetricCardRefreshContext } from "./EmbeddedMetricCardRefresh";
 
 /*
  * The one card shell for every embedded (read-only) metric chart in the
@@ -90,6 +91,15 @@ export interface ComponentProps {
     | ((dateRange: InBetween<Date>) => ReactElement)
     | undefined;
   rightElement?: ReactElement | undefined;
+  /*
+   * Called when the reader presses the card's Refresh, after the card has
+   * re-resolved its window. A page that loads data for the card itself
+   * (its children, tiles or tables beside it) reloads here: a Custom
+   * window, and every zoom is one, re-resolves to the same instants, so
+   * nothing keyed on the window changes. Charts the card renders reload
+   * through useEmbeddedMetricCardRefreshNonce instead.
+   */
+  onRefresh?: (() => void) | undefined;
   /*
    * Frameless mode: no Card chrome — just the header controls row above
    * the charts (used inside pages that already provide a card).
@@ -230,12 +240,18 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     });
     if (props.startAndEndDate) {
       props.onTimeRangeChange?.(effectiveTimeRange);
-      return;
+    } else {
+      setInternalDateRange(
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(effectiveTimeRange),
+      );
     }
-    setInternalDateRange(
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(effectiveTimeRange),
-    );
-  }, [props.startAndEndDate, props.onTimeRangeChange, effectiveTimeRange]);
+    props.onRefresh?.();
+  }, [
+    props.startAndEndDate,
+    props.onTimeRangeChange,
+    props.onRefresh,
+    effectiveTimeRange,
+  ]);
 
   /*
    * MetricView writes query-config changes back through onChange — e.g.
@@ -322,25 +338,27 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   );
 
   const body: ReactElement = (
-    <div className="space-y-6">
-      {props.children}
-      {props.queryConfigs ? (
-        <MetricView
-          data={metricViewData}
-          hideQueryElements={true}
-          hideStartAndEndDate={true}
-          hideCardInCharts={true}
-          onChange={handleMetricViewChange}
-          onTimeRangeSelect={onChartTimeRangeSelect}
-          onTimeRangeReset={onChartTimeRangeReset}
-          refreshNonce={refreshNonce}
-          timeReferenceLines={
-            eventReferenceLines.length > 0 ? eventReferenceLines : undefined
-          }
-        />
-      ) : null}
-      {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}
-    </div>
+    <EmbeddedMetricCardRefreshContext.Provider value={refreshNonce}>
+      <div className="space-y-6">
+        {props.children}
+        {props.queryConfigs ? (
+          <MetricView
+            data={metricViewData}
+            hideQueryElements={true}
+            hideStartAndEndDate={true}
+            hideCardInCharts={true}
+            onChange={handleMetricViewChange}
+            onTimeRangeSelect={onChartTimeRangeSelect}
+            onTimeRangeReset={onChartTimeRangeReset}
+            refreshNonce={refreshNonce}
+            timeReferenceLines={
+              eventReferenceLines.length > 0 ? eventReferenceLines : undefined
+            }
+          />
+        ) : null}
+        {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}
+      </div>
+    </EmbeddedMetricCardRefreshContext.Provider>
   );
 
   /*
