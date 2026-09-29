@@ -246,6 +246,75 @@ describe("MarkdownViewer code blocks", () => {
   });
 });
 
+/*
+ * A mermaid diagram fetches the images its nodes name as it is drawn, so
+ * only a fence whose language is exactly "mermaid" is drawn as one. The
+ * language used to be searched for anywhere in the class remark gives a
+ * fence, "language-" followed by the first word of its info string: a fence
+ * opened with "```-language-mermaid" drew a diagram too.
+ */
+describe("MarkdownViewer mermaid fences", () => {
+  const DIAGRAM: string = "flowchart TD\n  A --> B\n";
+
+  // The container MermaidDiagram draws into.
+  const diagramsIn: (container: HTMLElement) => number = (
+    container: HTMLElement,
+  ): number => {
+    return container.querySelectorAll("div.flex.justify-center").length;
+  };
+
+  test("draw a diagram for a fence whose language is mermaid", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "mermaid", DIAGRAM);
+      },
+    );
+
+    expect(diagramsIn(container)).toBe(1);
+    expect(container.querySelector("[data-markdown-code-block]")).toBeNull();
+    expect(container.querySelector("pre")).toBeNull();
+  });
+
+  test.each([
+    ["-language-mermaid"],
+    [".language-mermaid"],
+    ["+language-mermaid"],
+    ["mermaid-x"],
+    ["Mermaid"],
+    ["x-mermaid"],
+  ])(
+    "show a fence whose info string is %s as code, not a diagram",
+    (info: string) => {
+      const container: HTMLElement = renderViewer(
+        (components: MockComponents): React.ReactElement => {
+          return codeFence(components, info, DIAGRAM);
+        },
+      );
+
+      expect(diagramsIn(container)).toBe(0);
+      const block: HTMLElement | null = container.querySelector(
+        "pre[data-markdown-code-block]",
+      );
+      expect(block).not.toBeNull();
+      expect(block?.textContent).toBe(DIAGRAM.replace(/\n$/, ""));
+    },
+  );
+
+  test("still read the language of a fence from the start of its class", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "-language-yaml", "a: 1\nb: 2\n");
+      },
+    );
+
+    expect(
+      container
+        .querySelector("[data-markdown-code-block]")
+        ?.getAttribute("data-language"),
+    ).toBe("text");
+  });
+});
+
 describe("MarkdownViewer nested lists", () => {
   // ul > li > ul > li > ul > li > ul, built from the viewer's own renderers.
   const nestedBullets: TreeBuilder = (

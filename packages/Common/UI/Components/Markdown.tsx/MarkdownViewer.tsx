@@ -482,6 +482,29 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
 };
 
 /*
+ * A fenced block's class is "language-" followed by the first word of its
+ * info string -- the one class remark gives it. Read from the start of the
+ * class, as it is written: searched for anywhere in it, an info string of
+ * "-language-mermaid" (class "language--language-mermaid") gave the language
+ * "mermaid" too.
+ */
+const RE_CODE_LANGUAGE: RegExp = /^language-(\w+)/;
+
+/*
+ * Whether a code element's class makes it a mermaid diagram: only a fence
+ * whose language is exactly "mermaid" is one. The class was searched for
+ * "language-mermaid" anywhere, so "```-language-mermaid" drew a diagram --
+ * and a diagram's image nodes are fetched as it is drawn, which the server
+ * keeps out of a reporter's text by renaming the fences whose language is
+ * mermaid, and only those.
+ */
+const isMermaidCodeClass: (className: unknown) => boolean = (
+  className: unknown,
+): boolean => {
+  return className === "language-mermaid";
+};
+
+/*
  * How many lists deep a list sits. Every level used to draw the same filled
  * disc, so a nested list stood apart from its parent only by its indent. A
  * bulleted list now steps through disc, circle and square -- the browser's
@@ -685,7 +708,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
         const isMermaid: boolean =
           React.isValidElement(children) &&
-          (children as any).props?.className?.includes("language-mermaid");
+          isMermaidCodeClass((children as any).props?.className);
 
         if (isMermaid) {
           // For mermaid, just return the children (MermaidDiagram component)
@@ -828,14 +851,14 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       code: (props: any) => {
         const { children, className, ...rest } = props;
 
-        const match: RegExpExecArray | null = new RegExp(
-          "language-(\\w+)",
-        ).exec(className || "");
+        const match: RegExpExecArray | null = RE_CODE_LANGUAGE.exec(
+          className || "",
+        );
 
         const content: string = String(children as string).replace(/\n$/, "");
 
         // Handle mermaid diagrams
-        if (match && match[1] === "mermaid") {
+        if (isMermaidCodeClass(className)) {
           /*
            * Never render mermaid for untrusted content: a diagram can
            * carry an image node whose src the renderer fetches on paint
