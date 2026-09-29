@@ -431,7 +431,7 @@ describe("the error drawer's timeline zooms the Insights page", () => {
       ).toBeInTheDocument();
     });
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
 
     fireEvent.doubleClick(screen.getByTestId(ERROR_PATTERN_TIMELINE_TEST_ID));

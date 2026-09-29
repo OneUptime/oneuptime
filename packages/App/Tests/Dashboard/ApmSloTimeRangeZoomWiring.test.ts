@@ -394,7 +394,7 @@ describe("the SLO chart cards' hint row (Components/Slo/SloChartZoomHint.tsx)", 
       'export const SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME: string = "mt-4 md:mt-0";',
     );
     expect(code).toContain(
-      '<div className="hidden h-4 items-center justify-end md:flex"> <TimeRangeZoomHint revealOnHover={true} /> </div>',
+      '<div className="max-md:hidden h-4 items-center justify-end md:flex"> <TimeRangeZoomHint revealOnHover={true} /> </div>',
     );
   });
 });

@@ -467,7 +467,7 @@ describe("the hint names the gesture", () => {
     await waitForRequestCount(2);
 
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
   });
 });

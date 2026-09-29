@@ -343,7 +343,7 @@ describe("SloBudgetBurnDownCard: its own zoom", () => {
       ).getByTestId("slo-burn-down-chart"),
     ).toBeInTheDocument();
     // Above the chart, in place of the body's margin; not shown on a phone.
-    expect(hint.parentElement).toHaveClass("hidden", "md:flex", "h-4");
+    expect(hint.parentElement).toHaveClass("max-md:hidden", "md:flex", "h-4");
     expect(hint.parentElement?.parentElement).toHaveClass("mt-4", "md:mt-0");
   });
 

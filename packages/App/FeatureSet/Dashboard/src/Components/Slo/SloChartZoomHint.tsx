@@ -22,7 +22,7 @@ export const SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME: string = "mt-4 md:mt-0";
  */
 const SloChartZoomHint: FunctionComponent = (): ReactElement => {
   return (
-    <div className="hidden h-4 items-center justify-end md:flex">
+    <div className="max-md:hidden h-4 items-center justify-end md:flex">
       <TimeRangeZoomHint revealOnHover={true} />
     </div>
   );

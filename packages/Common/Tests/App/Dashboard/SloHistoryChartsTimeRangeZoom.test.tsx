@@ -421,7 +421,7 @@ describe("SLO history charts: one zoom for the three charts", () => {
        * not shown on a phone - not in the header, where it squeezed the
        * description and left a gap under the title on a phone.
        */
-      expect(hint.parentElement).toHaveClass("hidden", "md:flex", "h-4");
+      expect(hint.parentElement).toHaveClass("max-md:hidden", "md:flex", "h-4");
       expect(hint.parentElement?.parentElement).toHaveClass("mt-4", "md:mt-0");
     }
   });
