@@ -1,5 +1,6 @@
 import IncidentFormCopy from "../../FeatureSet/Dashboard/src/Components/IncidentForm/IncidentFormCopy";
 import IncidentForm from "Common/Models/DatabaseModels/IncidentForm";
+import { validateIncidentFormIpAllowlist } from "Common/Types/Incident/IncidentFormIpAllowlist";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -96,6 +97,20 @@ const COMPOSED_STRINGS: Array<string> = [
 ];
 
 const COPY_STRINGS: Array<string> = Object.values(IncidentFormCopy);
+
+/*
+ * The entries the Access card's help offers as examples - an IPv4 address,
+ * an IPv6 address and an IPv4 range - and a pattern that finds each address
+ * or range written in a sentence.
+ */
+const IP_ALLOWLIST_EXAMPLES: Array<string> = [
+  "203.0.113.7",
+  "2001:db8::1",
+  "10.0.0.0/8",
+];
+
+const IP_ALLOWLIST_EXAMPLE_PATTERN: RegExp =
+  /(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?|[0-9a-f]+(?::[0-9a-f]*)+/gi;
 
 // Every key this feature added to the locale files.
 const NEW_KEYS: Array<string> = [
@@ -267,6 +282,35 @@ describe("the glossary's words", () => {
     }
   });
 
+  /*
+   * The Access card offers only entries the save-time check accepts, and
+   * says IPv6 ranges are refused for as long as that check refuses them
+   * (validateIncidentFormIpAllowlist). The examples alone would not pin it:
+   * the old wording's examples pass the check too.
+   */
+  test("the IP allowlist's help says ranges must be IPv4, as the save-time check does", () => {
+    const text: string = IncidentFormCopy.ipAllowlistDescription;
+
+    expect(text).toBe(
+      "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.",
+    );
+    expect(text).not.toContain("One IP address or CIDR range per line");
+    expect(text.match(IP_ALLOWLIST_EXAMPLE_PATTERN)).toEqual(
+      IP_ALLOWLIST_EXAMPLES,
+    );
+    expect(
+      validateIncidentFormIpAllowlist(IP_ALLOWLIST_EXAMPLES.join("\n")),
+    ).toBeNull();
+    expect(validateIncidentFormIpAllowlist("2001:db8::/32")).toContain(
+      "only IPv4 ranges are supported",
+    );
+
+    // The column's description, which the API reference shows, says it too.
+    expect(
+      new IncidentForm().getTableColumnMetadata("ipWhitelist")?.description,
+    ).toContain("IPv6 ranges are not supported.");
+  });
+
   test("the Submissions table", () => {
     expect([
       IncidentFormCopy.submittedAt,
@@ -404,6 +448,17 @@ describe("incident forms strings in every Dashboard locale", () => {
       }
 
       expect(problems).toEqual([]);
+    });
+
+    // Whatever the words, the Access card's help keeps what it tells an admin.
+    test("says IP allowlist ranges must be IPv4, with the same examples", () => {
+      const value: string = String(
+        translations[IncidentFormCopy.ipAllowlistDescription] || "",
+      );
+
+      for (const kept of ["IPv4", "IPv6", ...IP_ALLOWLIST_EXAMPLES]) {
+        expect([kept, value.includes(kept)]).toEqual([kept, true]);
+      }
     });
 
     test("keeps every reused string", () => {
