@@ -226,20 +226,48 @@ const Timeline: FunctionComponent<TimelineProps> = (
     });
   }, [props.points, props.window, bucketIntervalMs]);
 
+  /*
+   * Only a drag zooms; a plain click on a bar does not. The shared selection
+   * hook zooms into one bar on a click whenever it knows the bucket width -
+   * right for an explorer's volume chart, which exists to narrow the list
+   * beneath it - but this chart sits in a drawer and retimes the whole
+   * Insights page, so a casual click on a bar (to read it) must not. The
+   * width is withheld from the hook, which makes a single bar no window at
+   * all, and added back here for a real drag: the hook hands over the starts
+   * of the first and last bars dragged across, and the zoom runs to the end
+   * of the last one.
+   */
+  const onPageTimeRangeSelect:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined = pageZoom?.onTimeRangeSelect;
+
+  const zoomToDraggedBars: (
+    firstBucketStart: Date,
+    lastBucketStart: Date,
+  ) => void = useCallback(
+    (firstBucketStart: Date, lastBucketStart: Date): void => {
+      onPageTimeRangeSelect?.(
+        firstBucketStart,
+        new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)),
+      );
+    },
+    [onPageTimeRangeSelect, bucketIntervalMs],
+  );
+
   const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
-    onTimeRangeSelect: pageZoom?.onTimeRangeSelect,
+    onTimeRangeSelect: onPageTimeRangeSelect ? zoomToDraggedBars : undefined,
     onZoomOut: pageZoom?.onTimeRangeReset,
-    bucketIntervalMs: bucketIntervalMs,
   });
 
   if (props.points.length === 0) {
     /*
      * A zoom into a stretch where the error did not fire lands here, with
      * no bars to double-click; the message takes the double-click instead.
+     * select-none: that double-click would otherwise also select a word.
      */
     return (
       <p
-        className="text-sm text-gray-500"
+        className="select-none text-sm text-gray-500"
         onDoubleClick={pageZoom?.onTimeRangeReset}
       >
         No bucketed occurrences to chart in this window.
@@ -248,6 +276,16 @@ const Timeline: FunctionComponent<TimelineProps> = (
   }
 
   const isIntraday: boolean = isErrorPatternTimelineIntraday(props.window);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so the
+   * cursor on the box around it never shows over the bars. Left off
+   * entirely outside a page that zooms, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = pageZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
 
   return (
     <div
@@ -265,6 +303,7 @@ const Timeline: FunctionComponent<TimelineProps> = (
           onMouseDown={selection.onMouseDown}
           onMouseMove={selection.onMouseMove}
           onMouseUp={selection.onMouseUp}
+          {...chartRootCursorProps}
         >
           <XAxis
             dataKey="time"

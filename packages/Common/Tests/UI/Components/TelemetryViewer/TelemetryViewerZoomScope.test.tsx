@@ -330,7 +330,7 @@ describe("the picker's Reset zoom follows the viewer's own zoom", () => {
     fireEvent.click(screen.getByText("Restore saved view"));
 
     expect(resetButton()).toBeNull();
-    expect(screen.queryByText("Double-click to zoom out")).toBeNull();
+    expect(screen.queryByText("Double-click to reset")).toBeNull();
   });
 
   test("a range picked from the picker ends the zoom", () => {

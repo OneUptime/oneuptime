@@ -386,9 +386,17 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   /*
    * The in-context investigation panel for the CURRENT window + filters —
    * companion signals and the log summary without leaving the explorer.
+   *
+   * Snapshotted on the Investigate click, window and view data together,
+   * the way every other opener does: auto-refresh re-resolves a rolling
+   * window (and rebuilds metricViewData) on every tick, and a drawer
+   * handed the live values would be re-pinned each time - dropping a zoom
+   * or a range picked inside it, and refetching everything in it.
    */
-  const [isInvestigationOpen, setIsInvestigationOpen] =
-    useState<boolean>(false);
+  const [investigation, setInvestigation] = useState<{
+    window: InBetween<Date>;
+    viewData: MetricViewData;
+  } | null>(null);
 
   // Compare-to-previous-period ghost overlays (persisted per browser).
   const [showCompare, setShowCompare] = useState<boolean>(() => {
@@ -770,7 +778,20 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                     aria-label="Investigate this time window in a side panel"
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
-                      setIsInvestigationOpen(true);
+                      const investigatedWindow: InBetween<Date> | null =
+                        metricViewData.startAndEndDate;
+
+                      if (
+                        !(investigatedWindow?.startValue instanceof Date) ||
+                        !(investigatedWindow?.endValue instanceof Date)
+                      ) {
+                        return;
+                      }
+
+                      setInvestigation({
+                        window: investigatedWindow,
+                        viewData: metricViewData,
+                      });
                     }}
                   >
                     <Icon
@@ -925,9 +946,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
           </div>
         </div>
 
-        {isInvestigationOpen &&
-        metricViewData.startAndEndDate?.startValue instanceof Date &&
-        metricViewData.startAndEndDate?.endValue instanceof Date ? (
+        {investigation ? (
           /*
            * The drawer starts from the explorer's window but keeps its own:
            * its metric card zooms itself, and its traces and exceptions tabs
@@ -938,10 +957,10 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
           <TimeRangeZoomProvider zoom={null}>
             <InvestigationDrawer
               title="Investigate this view"
-              window={metricViewData.startAndEndDate}
-              metricViewData={metricViewData}
+              window={investigation.window}
+              metricViewData={investigation.viewData}
               onClose={() => {
-                setIsInvestigationOpen(false);
+                setInvestigation(null);
               }}
             />
           </TimeRangeZoomProvider>

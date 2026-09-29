@@ -287,10 +287,32 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
       : undefined;
   }, [request]);
 
+  /*
+   * Only a drag zooms; a plain click on a bar does not. The shared selection
+   * hook zooms into one bar on a click whenever it knows the bucket width -
+   * right for an explorer's volume chart, which exists to narrow the list
+   * beneath it - but here a click is how a reader points at a bar to read
+   * its tooltip. So the width is withheld from the hook, which makes a
+   * single bar no window at all, and added back here for a real drag: the
+   * hook hands over the starts of the first and last bars dragged across,
+   * and the zoom runs to the end of the last one.
+   */
+  const zoomToDraggedBars: (
+    firstBucketStart: Date,
+    lastBucketStart: Date,
+  ) => void = useCallback(
+    (firstBucketStart: Date, lastBucketStart: Date): void => {
+      zoom.zoomToTimeRange(
+        firstBucketStart,
+        new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)),
+      );
+    },
+    [zoom.zoomToTimeRange, bucketIntervalMs],
+  );
+
   const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
-    onTimeRangeSelect: zoom.zoomToTimeRange,
+    onTimeRangeSelect: zoomToDraggedBars,
     onZoomOut: zoom.isZoomed ? zoom.resetZoom : undefined,
-    bucketIntervalMs: bucketIntervalMs,
   });
 
   const isIntraday: boolean = zoomWindow
@@ -345,11 +367,12 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
       /*
        * A zoom into a quiet stretch lands here, with no bars left to
        * double-click. The empty area takes the double-click instead, so the
-       * way back is where the reader's pointer already is.
+       * way back is where the reader's pointer already is. select-none: a
+       * double-click on the message would otherwise also select a word.
        */
       return (
         <div
-          className="flex h-44 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 text-center"
+          className="flex h-44 select-none flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 text-center"
           data-testid="exception-trend-empty"
           onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}
         >
@@ -414,6 +437,12 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
           data-testid="exception-trend-plot"
           onDoubleClick={selection.onDoubleClick}
         >
+          {/*
+           * The crosshair goes on the chart root itself: recharts sets an
+           * inline `cursor: default` on the .recharts-wrapper that fills the
+           * plot, so the cursor on the box around it never shows over the
+           * bars. The card always zooms, so it is always there.
+           */}
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={rows}
@@ -422,6 +451,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
               onMouseDown={selection.onMouseDown}
               onMouseMove={selection.onMouseMove}
               onMouseUp={selection.onMouseUp}
+              style={{ cursor: "crosshair" }}
             >
               <CartesianGrid
                 vertical={false}

@@ -371,7 +371,7 @@ describe("the traces explorer's Analytics view zooms the explorer", () => {
 
     expect(
       screen.getByTestId(TRACES_ANALYTICS_ZOOM_HINT_TEST_ID),
-    ).toHaveTextContent("double-click to zoom out");
+    ).toHaveTextContent("double-click to reset");
   });
 
   test("a double-click on the chart puts the window before the zoom back", async () => {
@@ -502,7 +502,7 @@ describe("the analytics chart and the histogram share one zoom", () => {
     await waitFor(() => {
       expect(screen.getByTestId(`bucket-${HIST_A}`)).toBeInTheDocument();
     });
-    expect(screen.getByText("Double-click to zoom out")).toBeInTheDocument();
+    expect(screen.getByText("Double-click to reset")).toBeInTheDocument();
 
     fireEvent.doubleClick(
       screen.getByTestId("bar-chart").parentElement!.parentElement!,

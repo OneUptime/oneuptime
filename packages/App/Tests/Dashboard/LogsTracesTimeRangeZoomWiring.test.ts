@@ -48,11 +48,16 @@ const LOG_TIME_RANGE_PICKER: string =
   "Common/UI/Components/LogsViewer/components/LogTimeRangePicker.tsx";
 const LOGS_ANALYTICS_VIEW: string =
   "Common/UI/Components/LogsViewer/components/LogsAnalyticsView.tsx";
+const LOGS_HISTOGRAM: string =
+  "Common/UI/Components/LogsViewer/components/LogsHistogram.tsx";
+const TELEMETRY_HISTOGRAM: string =
+  "Common/UI/Components/TelemetryViewer/components/TelemetryHistogram.tsx";
 const TRACES_ANALYTICS_VIEW: string = `${DASHBOARD}/Traces/TracesAnalyticsView.tsx`;
 const TRACES_VIEWER: string = `${DASHBOARD}/Traces/TracesViewer.tsx`;
 const LOGS_DASHBOARD: string = `${DASHBOARD}/Logs/LogsDashboard.tsx`;
 const ERROR_PATTERN_DETAIL: string = `${DASHBOARD}/Logs/ErrorPatternDetail.tsx`;
 const EXCEPTION_TREND: string = `${DASHBOARD}/Exceptions/ExceptionOccurrenceTrend.tsx`;
+const EXCEPTION_OCCURRENCES: string = `${DASHBOARD}/Exceptions/ExceptionOccurrences.tsx`;
 const INVESTIGATION_DRAWER: string = `${DASHBOARD}/Telemetry/InvestigationDrawer.tsx`;
 const TRACE_MINIMAP: string = `${DASHBOARD}/Traces/TraceDetail/TraceTimelineMinimap.tsx`;
 
@@ -219,12 +224,133 @@ describe("Logs > Insights zooms as one page", () => {
     const source: string = read(ERROR_PATTERN_DETAIL);
 
     expect(source).toContain(
-      "useHistogramRangeSelection({ onTimeRangeSelect: pageZoom?.onTimeRangeSelect, onZoomOut: pageZoom?.onTimeRangeReset, bucketIntervalMs: bucketIntervalMs, })",
+      "const onPageTimeRangeSelect: | ((startTime: Date, endTime: Date) => void) | undefined = pageZoom?.onTimeRangeSelect;",
+    );
+    expect(source).toContain(
+      "useHistogramRangeSelection({ onTimeRangeSelect: onPageTimeRangeSelect ? zoomToDraggedBars : undefined, onZoomOut: pageZoom?.onTimeRangeReset, })",
     );
     expect(source).toContain(
       "<Timeline points={correlation.timeline} bucketSizeInMinutes={correlation.bucketSizeInMinutes} window={patternWindow} />",
     );
     expect(source).toContain("<TimeRangeZoomHint");
+  });
+
+  test("the drawer's timeline zooms on a drag only: a click on a bar retimes nothing", () => {
+    const source: string = read(ERROR_PATTERN_DETAIL);
+
+    /*
+     * The bucket width is what makes the shared hook zoom on a click, so it
+     * is withheld from the hook - and added back to a real drag's end, or a
+     * drag would drop its last bar.
+     */
+    expect(selectionHookCall(source)).not.toContain("bucketIntervalMs");
+    expect(source).toContain(
+      "onPageTimeRangeSelect?.( firstBucketStart, new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)), );",
+    );
+  });
+});
+
+// The options object of the one useHistogramRangeSelection call in a source.
+function selectionHookCall(source: string): string {
+  const start: number = source.indexOf("useHistogramRangeSelection({");
+  expect(start).toBeGreaterThan(-1);
+  expect(source.indexOf("useHistogramRangeSelection({", start + 1)).toBe(-1);
+  return source.slice(start, source.indexOf("})", start) + 2);
+}
+
+describe("the explorers' charts and the drawer's timeline say the same thing", () => {
+  test.each([
+    ["the logs volume histogram", LOGS_HISTOGRAM],
+    ["the telemetry volume histogram", TELEMETRY_HISTOGRAM],
+  ])(
+    "%s offers the click, and names the way back as a reset",
+    (_name: string, file: string) => {
+      const source: string = read(file);
+
+      expect(source).toContain(
+        'selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"',
+      );
+      expect(source).toContain("Double-click to reset");
+      expect(source.toLowerCase()).not.toContain("zoom out");
+    },
+  );
+
+  test.each([
+    ["logs", LOGS_ANALYTICS_VIEW],
+    ["traces", TRACES_ANALYTICS_VIEW],
+  ])(
+    "the %s Analytics timeseries offers the click, and names the way back as a reset",
+    (_name: string, file: string) => {
+      const source: string = read(file);
+
+      expect(source).toContain(
+        'selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"',
+      );
+      expect(source).toContain(
+        'zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""',
+      );
+      expect(source.toLowerCase()).not.toContain("zoom out");
+    },
+  );
+});
+
+describe("the crosshair is set on the recharts root, only where a drag zooms", () => {
+  test.each([
+    ["the logs volume histogram", LOGS_HISTOGRAM, 1, "props.onTimeRangeSelect"],
+    [
+      "the telemetry volume histogram",
+      TELEMETRY_HISTOGRAM,
+      1,
+      "props.onTimeRangeSelect",
+    ],
+    ["the logs Analytics timeseries", LOGS_ANALYTICS_VIEW, 2, "canZoom"],
+    ["the traces Analytics timeseries", TRACES_ANALYTICS_VIEW, 3, "canZoom"],
+    ["the error drawer's timeline", ERROR_PATTERN_DETAIL, 1, "pageZoom"],
+  ])(
+    "%s spreads it onto all %s of its chart roots",
+    (_name: string, file: string, roots: number, condition: string) => {
+      const source: string = read(file);
+
+      /*
+       * recharts' .recharts-wrapper carries an inline `cursor: default`, so
+       * only a style on the chart root itself shows over the plot. Spread,
+       * so there is no style at all (not `cursor: undefined`) otherwise.
+       */
+      expect(source).toMatch(
+        new RegExp(
+          `const chartRootCursorProps: \\{ style\\?: React\\.CSSProperties \\} = ${condition.replace(
+            /\./g,
+            "\\.",
+          )} \\? \\{ style: \\{ cursor: "crosshair" \\} \\} : \\{\\};`,
+        ),
+      );
+      expect(count(source, "{...chartRootCursorProps}")).toBe(roots);
+      expect(count(source, "onMouseDown={selection.onMouseDown}")).toBe(roots);
+    },
+  );
+
+  test("the exception trend always zooms, so its chart root always has it", () => {
+    expect(read(EXCEPTION_TREND)).toContain(
+      'onMouseUp={selection.onMouseUp} style={{ cursor: "crosshair" }} >',
+    );
+  });
+});
+
+describe("Logs Analytics drops superseded responses", () => {
+  test("a request sequence guards every write, the error path and the loader", () => {
+    const source: string = read(LOGS_ANALYTICS_VIEW);
+
+    expect(source).toContain(
+      "const requestSequence: number = ++requestSequenceRef.current;",
+    );
+    // Before any setter: a stale group-by must not relabel newer rows.
+    expect(source).toContain(
+      "if (isStale()) { return; } const data: unknown = response.data[\"data\"] || []; setResultGroupByFields(requestGroupBy);",
+    );
+    expect(source).toContain("} catch { if (isStale()) { return; }");
+    expect(source).toContain(
+      "} finally { if (!isStale()) { setIsLoading(false); } }",
+    );
   });
 });
 
@@ -244,6 +370,33 @@ describe("charts with a window of their own zoom only themselves", () => {
     expect(source).toContain(
       "onChange={(key: ExceptionTrendWindowKey): void => { setZoomWindow(null); setWindowKey(key); }}",
     );
+  });
+
+  test("the exception Occurrence Trend zooms on a drag only: a click on a bar is not a zoom", () => {
+    const source: string = read(EXCEPTION_TREND);
+
+    // Without the bucket width the shared hook makes a single bar no window.
+    expect(selectionHookCall(source)).toBe(
+      "useHistogramRangeSelection({ onTimeRangeSelect: zoomToDraggedBars, onZoomOut: zoom.isZoomed ? zoom.resetZoom : undefined, })",
+    );
+    // A real drag gets the width back, so it keeps its last bar.
+    expect(source).toContain(
+      "zoom.zoomToTimeRange( firstBucketStart, new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)), );",
+    );
+  });
+
+  test("the exception Occurrences page keeps its span list mounted across a view switch", () => {
+    const source: string = read(EXCEPTION_OCCURRENCES);
+
+    expect(source).toContain(
+      '<div data-testid="exception-occurrences-spans" hidden={view !== ExceptionOccurrencesView.Spans} > <TracesViewer',
+    );
+    expect(count(source, "<TracesViewer")).toBe(1);
+    // Only the details table comes and goes with the view.
+    expect(source).toContain(
+      "{view === ExceptionOccurrencesView.Details ? ( <OccouranceTable",
+    );
+    expect(source).not.toContain("view === ExceptionOccurrencesView.Spans ? (");
   });
 
   test("the investigation drawer offers its own zoom to everything in it", () => {

@@ -104,6 +104,15 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
     bucketIntervalMs: props.bucketIntervalMs,
   });
 
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so the
+   * cursor on the box around it never shows over the bars. Left off
+   * entirely when nothing can be dragged, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } =
+    props.onTimeRangeSelect ? { style: { cursor: "crosshair" } } : {};
+
   const pivotedData: Array<PivotedRow> = useMemo(() => {
     return pivotBuckets(props.buckets);
   }, [props.buckets]);
@@ -174,7 +183,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
           )}
           {props.onZoomOut && (
             <span className="text-[10px] text-gray-300">
-              Double-click to zoom out
+              Double-click to reset
             </span>
           )}
         </div>
@@ -219,6 +228,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
               onMouseUp={selection.onMouseUp}
               barCategoryGap="15%"
               barGap={0}
+              {...chartRootCursorProps}
             >
               <XAxis
                 dataKey="time"

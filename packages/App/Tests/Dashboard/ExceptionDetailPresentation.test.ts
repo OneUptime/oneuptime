@@ -290,6 +290,10 @@ describe("buildExceptionTrendRows", () => {
   test("fills every bucket in the window, aligned to the epoch", () => {
     const rows: Array<ExceptionTrendRow> = buildExceptionTrendRows([], request);
 
+    /*
+     * The window ends at 12:00 exactly: a 12:00 bucket would lie wholly
+     * past it, so the last bucket drawn is the one that ends there.
+     */
     expect(
       rows.map((row: ExceptionTrendRow) => {
         return new Date(row.timeMs).toISOString();
@@ -299,13 +303,51 @@ describe("buildExceptionTrendRows", () => {
       "2026-09-14T10:30:00.000Z",
       "2026-09-14T11:00:00.000Z",
       "2026-09-14T11:30:00.000Z",
-      "2026-09-14T12:00:00.000Z",
     ]);
     expect(
       rows.every((row: ExceptionTrendRow) => {
         return row.handled === 0 && row.unhandled === 0;
       }),
     ).toBe(true);
+  });
+
+  test("keeps the newest bucket of a window that ends partway through it", () => {
+    // A preset ends at "now", ten minutes into the 12:00 bucket.
+    const rows: Array<ExceptionTrendRow> = buildExceptionTrendRows(
+      [{ time: "2026-09-14 12:00:00", series: "unhandled", count: 2 }],
+      { ...request, endTime: "2026-09-14T12:10:00.000Z" },
+    );
+
+    const last: ExceptionTrendRow = rows[rows.length - 1]!;
+    expect(new Date(last.timeMs).toISOString()).toBe(
+      "2026-09-14T12:00:00.000Z",
+    );
+    expect(last.unhandled).toBe(2);
+    expect(rows).toHaveLength(5);
+  });
+
+  test("draws no bucket that starts at or after the window's end", () => {
+    for (const endTime of [
+      "2026-09-14T11:00:00.000Z",
+      "2026-09-14T11:00:00.001Z",
+      "2026-09-14T11:29:59.999Z",
+      "2026-09-14T11:30:00.000Z",
+    ]) {
+      const endMs: number = new Date(endTime).getTime();
+      const rows: Array<ExceptionTrendRow> = buildExceptionTrendRows([], {
+        ...request,
+        endTime,
+      });
+
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.timeMs).toBeLessThan(endMs);
+      }
+      // ...and still the bucket the end falls in, whenever one starts before it.
+      expect(rows[rows.length - 1]!.timeMs + 30 * MINUTE).toBeGreaterThanOrEqual(
+        endMs,
+      );
+    }
   });
 
   test("reads ClickHouse bucket times as UTC and places counts per series", () => {

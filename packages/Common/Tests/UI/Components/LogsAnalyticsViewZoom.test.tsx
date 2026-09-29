@@ -71,6 +71,11 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 
 jest.mock("recharts", () => {
   const react: typeof React = jest.requireActual("react") as typeof React;
+  const actual: Record<string, React.ComponentType<Record<string, unknown>>> =
+    jest.requireActual("recharts") as Record<
+      string,
+      React.ComponentType<Record<string, unknown>>
+    >;
 
   interface StubRow {
     time: string;
@@ -79,6 +84,7 @@ jest.mock("recharts", () => {
   interface StubChartProps {
     data: Array<StubRow>;
     children?: React.ReactNode;
+    style?: React.CSSProperties;
     onMouseDown?: (state: { activeLabel: string }) => void;
     onMouseMove?: (state: { activeLabel: string }) => void;
     onMouseUp?: (state: { activeLabel: string }) => void;
@@ -86,11 +92,27 @@ jest.mock("recharts", () => {
 
   const chart: (
     testId: string,
-  ) => (props: StubChartProps) => React.ReactElement = (testId: string) => {
+    rootName: string,
+  ) => (props: StubChartProps) => React.ReactElement = (
+    testId: string,
+    rootName: string,
+  ) => {
     return (props: StubChartProps): React.ReactElement => {
       return react.createElement(
         "div",
         { "data-testid": testId },
+        /*
+         * The real chart root, sized and handed exactly the style the view
+         * gives its own. Its .recharts-wrapper carries recharts' inline
+         * `cursor: default` over the whole plot, so that element's cursor
+         * is the one the reader sees.
+         */
+        react.createElement(actual[rootName]!, {
+          data: props.data,
+          width: 400,
+          height: 200,
+          ...(props.style ? { style: props.style } : {}),
+        }),
         props.data.map((row: StubRow) => {
           return react.createElement("div", {
             key: row.time,
@@ -120,8 +142,8 @@ jest.mock("recharts", () => {
     ResponsiveContainer: (props: { children: React.ReactNode }) => {
       return react.createElement("div", null, props.children);
     },
-    AreaChart: chart("area-chart"),
-    BarChart: chart("bar-chart"),
+    AreaChart: chart("area-chart", "AreaChart"),
+    BarChart: chart("bar-chart", "BarChart"),
     Area: nothing,
     Bar: nothing,
     XAxis: nothing,
@@ -282,6 +304,19 @@ function click(label: string): void {
   fireEvent.mouseUp(screen.getByTestId(`bucket-${label}`));
 }
 
+/*
+ * The cursor the reader sees over the plot: the one on recharts' own
+ * .recharts-wrapper, which fills the plot and sets `cursor: default` inline
+ * unless the chart root is handed a style of its own.
+ */
+function plotCursor(): string {
+  const wrapper: HTMLElement | null = screen
+    .getByTestId(LOGS_ANALYTICS_TIMESERIES_TEST_ID)
+    .querySelector(".recharts-wrapper");
+  expect(wrapper).not.toBeNull();
+  return wrapper!.style.cursor;
+}
+
 function windows(mock: MockFunction): Array<[string, string]> {
   return mock.mock.calls.map((call: Array<unknown>): [string, string] => {
     return [(call[0] as Date).toISOString(), (call[1] as Date).toISOString()];
@@ -397,9 +432,7 @@ describe("the timeseries zooms the viewer it sits in", () => {
   test("the plot offers the gesture: crosshair, and a hint naming it", async () => {
     await renderInZoom(spyZoom(false).zoom);
 
-    expect(screen.getByTestId(LOGS_ANALYTICS_TIMESERIES_TEST_ID)).toHaveStyle({
-      cursor: "crosshair",
-    });
+    expect(plotCursor()).toBe("crosshair");
     expect(
       screen.getByTestId(LOGS_ANALYTICS_ZOOM_HINT_TEST_ID),
     ).toHaveTextContent("Click or drag to zoom");
@@ -413,7 +446,7 @@ describe("the timeseries zooms the viewer it sits in", () => {
 
     expect(
       screen.getByTestId(LOGS_ANALYTICS_ZOOM_HINT_TEST_ID),
-    ).toHaveTextContent("Click or drag to zoom · double-click to zoom out");
+    ).toHaveTextContent("Click or drag to zoom · double-click to reset");
   });
 
   test("the band follows the drag and goes once it is released", async () => {
@@ -472,6 +505,7 @@ describe("the timeseries zooms the viewer it sits in", () => {
     await renderInZoom(zoom.zoom);
 
     expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+    expect(plotCursor()).toBe("crosshair");
     drag(BUCKET_A, BUCKET_B);
 
     expect(windows(zoom.zoomToTimeRange)).toEqual([
@@ -492,9 +526,8 @@ describe("where the zoom comes from", () => {
     });
 
     expect(screen.queryByTestId(LOGS_ANALYTICS_ZOOM_HINT_TEST_ID)).toBeNull();
-    expect(screen.getByTestId(LOGS_ANALYTICS_TIMESERIES_TEST_ID)).toHaveStyle({
-      cursor: "default",
-    });
+    // Nothing to drag: recharts keeps its own default cursor.
+    expect(plotCursor()).toBe("default");
 
     // Nothing to report to; the drag must simply do nothing.
     drag(BUCKET_A, BUCKET_C);
@@ -607,6 +640,8 @@ describe("a zoom into a quiet stretch", () => {
     const empty: HTMLElement = await screen.findByText(
       "No data available for the selected query",
     );
+    // The double-click must not also select a word of the message.
+    expect(empty.closest(".select-none")).not.toBeNull();
     fireEvent.doubleClick(empty);
 
     expect(zoom.resetZoom).toHaveBeenCalledTimes(1);
@@ -688,5 +723,212 @@ describe("a new window refetches the timeseries", () => {
       await screen.findByText("No data available for the selected query"),
     ).toBeInTheDocument();
     expect(screen.queryByTestId(`bucket-${BUCKET_A}`)).toBeNull();
+  });
+});
+
+describe("a superseded request never paints over the current window", () => {
+  /*
+   * A zoom, its reset and the picker can change the window faster than an
+   * analytics request returns, and a wide window answers slower than a
+   * narrow one. Whatever order the answers land in, the chart shows the
+   * window the viewer is on - never the one the reader just left under a
+   * picker, list and histogram that have moved on.
+   */
+  interface PendingRequest {
+    request: AnalyticsRequest;
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+  }
+
+  const pending: Array<PendingRequest> = [];
+
+  // The wide window's five-minute buckets, which the narrow one never has.
+  const WIDE_A: string = "2026-09-28 06:05:00";
+  const WIDE_B: string = "2026-09-28 06:10:00";
+
+  function wideRows(): Array<Record<string, unknown>> {
+    return [WIDE_A, WIDE_B].map((time: string): Record<string, unknown> => {
+      return { time, count: 50, groupValues: {} };
+    });
+  }
+
+  function answerLater(): void {
+    pending.length = 0;
+    postMock.mockImplementation((request: AnalyticsRequest) => {
+      return new Promise(
+        (resolve: (value: unknown) => void, reject: (error: Error) => void) => {
+          pending.push({ request, resolve, reject });
+        },
+      );
+    });
+  }
+
+  function loader(): HTMLElement | null {
+    return screen.queryByTestId("component-loader");
+  }
+
+  /*
+   * The viewer was on six hours (request A, still out) and the reader
+   * zoomed into one (request B, also out).
+   */
+  async function zoomWhileTheWideRequestIsOut(
+    zoom: TimeRangeZoom,
+  ): Promise<{ wide: PendingRequest; narrow: PendingRequest }> {
+    answerLater();
+    const { rerender } = render(
+      <TimeRangeZoomProvider zoom={zoom}>
+        {view(SIX_HOUR_WINDOW)}
+      </TimeRangeZoomProvider>,
+    );
+    await waitFor(() => {
+      expect(pending).toHaveLength(1);
+    });
+
+    rerender(
+      <TimeRangeZoomProvider zoom={zoom}>
+        {view(HOUR_WINDOW)}
+      </TimeRangeZoomProvider>,
+    );
+    await waitFor(() => {
+      expect(pending).toHaveLength(2);
+    });
+
+    const [wide, narrow] = pending as [PendingRequest, PendingRequest];
+    expect(wide.request.data["bucketSizeInMinutes"]).toBe(5);
+    expect(narrow.request.data["bucketSizeInMinutes"]).toBe(1);
+    return { wide, narrow };
+  }
+
+  test("the wide window answering last does not replace the zoomed chart, nor its bucket width", async () => {
+    const zoom: SpyZoom = spyZoom(false);
+    const { wide, narrow } = await zoomWhileTheWideRequestIsOut(zoom.zoom);
+
+    await act(async () => {
+      narrow.resolve({ data: { data: singleSeriesRows() } });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId(`bucket-${BUCKET_A}`)).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      wide.resolve({ data: { data: wideRows() } });
+    });
+
+    expect(screen.getByTestId(`bucket-${BUCKET_A}`)).toBeInTheDocument();
+    expect(screen.queryByTestId(`bucket-${WIDE_A}`)).toBeNull();
+    // A click reads the zoomed window's one-minute width, not five.
+    click(BUCKET_B);
+    expect(windows(zoom.zoomToTimeRange)).toEqual([
+      ["2026-09-28T11:11:00.000Z", "2026-09-28T11:12:00.000Z"],
+    ]);
+  });
+
+  test("the wide window answering first neither paints nor takes the loader down", async () => {
+    const { wide, narrow } = await zoomWhileTheWideRequestIsOut(
+      spyZoom(false).zoom,
+    );
+
+    await act(async () => {
+      wide.resolve({ data: { data: wideRows() } });
+    });
+
+    expect(loader()).toBeInTheDocument();
+    expect(screen.queryByTestId(`bucket-${WIDE_A}`)).toBeNull();
+    expect(
+      screen.queryByText("No data available for the selected query"),
+    ).toBeNull();
+
+    await act(async () => {
+      narrow.resolve({ data: { data: singleSeriesRows() } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`bucket-${BUCKET_A}`)).toBeInTheDocument();
+    });
+    expect(loader()).toBeNull();
+    expect(screen.queryByTestId(`bucket-${WIDE_B}`)).toBeNull();
+  });
+
+  test("the wide window failing late does not blank the zoomed chart", async () => {
+    const { wide, narrow } = await zoomWhileTheWideRequestIsOut(
+      spyZoom(false).zoom,
+    );
+
+    await act(async () => {
+      narrow.resolve({ data: { data: singleSeriesRows() } });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId(`bucket-${BUCKET_A}`)).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      wide.reject(new Error("timed out"));
+    });
+
+    expect(screen.getByTestId(`bucket-${BUCKET_A}`)).toBeInTheDocument();
+    expect(
+      screen.queryByText("No data available for the selected query"),
+    ).toBeNull();
+  });
+
+  test("the wide window failing first does not end the wait for the zoomed one", async () => {
+    const { wide, narrow } = await zoomWhileTheWideRequestIsOut(
+      spyZoom(false).zoom,
+    );
+
+    await act(async () => {
+      wide.reject(new Error("timed out"));
+    });
+
+    expect(loader()).toBeInTheDocument();
+    expect(
+      screen.queryByText("No data available for the selected query"),
+    ).toBeNull();
+
+    await act(async () => {
+      narrow.resolve({ data: { data: singleSeriesRows() } });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId(`bucket-${BUCKET_A}`)).toBeInTheDocument();
+    });
+  });
+
+  test("a timeseries answer landing after a switch to the top list keeps the loader up until the top list lands", async () => {
+    answerLater();
+    render(
+      <TimeRangeZoomProvider zoom={spyZoom(false).zoom}>
+        {view(HOUR_WINDOW)}
+      </TimeRangeZoomProvider>,
+    );
+    await waitFor(() => {
+      expect(pending).toHaveLength(1);
+    });
+
+    fireEvent.change(screen.getAllByRole("combobox")[0]!, {
+      target: { value: "toplist" },
+    });
+    await waitFor(() => {
+      expect(pending).toHaveLength(2);
+    });
+    const [timeseries, topList] = pending as [PendingRequest, PendingRequest];
+    expect(topList.request.data["chartType"]).toBe("toplist");
+
+    await act(async () => {
+      timeseries.resolve({ data: { data: singleSeriesRows() } });
+    });
+
+    // Not an empty top list: the top list has simply not answered yet.
+    expect(loader()).toBeInTheDocument();
+    expect(
+      screen.queryByText("No data available for the selected query"),
+    ).toBeNull();
+
+    await act(async () => {
+      topList.resolve({ data: { data: [{ value: "Error", count: 4 }] } });
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Error")).toBeInTheDocument();
+    });
+    expect(loader()).toBeNull();
   });
 });

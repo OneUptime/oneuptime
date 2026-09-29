@@ -484,6 +484,120 @@ describe("the error drawer's timeline zooms the Insights page", () => {
     ).toBeNull();
   });
 
+  test("a drag across two bars zooms the page to exactly those two buckets, right to left too", async () => {
+    await renderPage();
+    await openDrawer();
+
+    dragTimeline("2026-09-28T11:11:00.000Z", "2026-09-28T11:10:00.000Z");
+
+    await waitForPageOn(ZOOMED);
+  });
+
+  test("a drag across three bars keeps the last one whole", async () => {
+    await renderPage();
+    await openDrawer();
+
+    dragTimeline("2026-09-28T11:20:00.000Z", "2026-09-28T11:22:00.000Z");
+
+    await waitForPageOn("2026-09-28T11:20:00.000Z..2026-09-28T11:23:00.000Z");
+  });
+});
+
+describe("a plain click on the drawer's timeline is not a zoom", () => {
+  /*
+   * The timeline sits in a drawer and retimes the whole Insights page, so a
+   * click on a bar - to read its tooltip, or on the way to something else -
+   * must not reload every panel on the page for one bucket.
+   */
+  function clickBar(iso: string): void {
+    fireEvent.mouseDown(screen.getByTestId(`bar-${iso}`));
+    fireEvent.mouseUp(screen.getByTestId(`bar-${iso}`));
+  }
+
+  function requestCounts(): Array<number> {
+    return [histogramMock, patternsMock, breakdownMock, facetsMock].map(
+      (mock: MockFunction): number => {
+        return mock.mock.calls.length;
+      },
+    );
+  }
+
+  test("one click on a bar leaves the page, the picker and the drawer as they were", async () => {
+    await renderPage();
+    await openDrawer();
+    const before: Array<number> = requestCounts();
+
+    clickBar("2026-09-28T11:10:00.000Z");
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(requestCounts()).toEqual(before);
+    expect(correlationMock).toHaveBeenCalledTimes(1);
+    expect(pickerLabel()).toBe("Past 1 Hour");
+    expect(
+      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
+      /^Drag to zoom$/,
+    );
+  });
+
+  test("while zoomed, a click on a bar still zooms nothing, even after the double-click wait", async () => {
+    await renderPage();
+    await openDrawer();
+    dragTimeline("2026-09-28T11:10:00.000Z", "2026-09-28T11:11:00.000Z");
+    await waitForPageOn(ZOOMED);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(ERROR_PATTERN_TIMELINE_TEST_ID),
+      ).toBeInTheDocument();
+    });
+    const before: Array<number> = requestCounts();
+
+    clickBar("2026-09-28T11:10:00.000Z");
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(requestCounts()).toEqual(before);
+    expect(lastScope(histogramMock)).toBe(ZOOMED);
+    expect(
+      screen.getByRole("button", { name: "Reset zoom" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a zoom into a stretch the error skipped: the message takes the double-click back, and selects no text", async () => {
+    await renderPage();
+    await openDrawer();
+
+    correlationMock.mockImplementation(async () => {
+      return {
+        pattern: PATTERN_TEXT,
+        bucketSizeInMinutes: 1,
+        timeline: [],
+        coOccurringPatterns: [],
+        attributes: [],
+        resources: [],
+        traces: [],
+        samples: [],
+      };
+    });
+    dragTimeline("2026-09-28T11:10:00.000Z", "2026-09-28T11:11:00.000Z");
+    await waitForPageOn(ZOOMED);
+
+    const message: HTMLElement = await screen.findByText(
+      "No bucketed occurrences to chart in this window.",
+    );
+    expect(message).toHaveClass("select-none");
+
+    fireEvent.doubleClick(message);
+
+    await waitForPageOn(TimeRange.PAST_ONE_HOUR);
+  });
+});
+
+describe("the page without a chart zoom", () => {
   test("with the drawer closed, the page offers no zoom until a chart makes one", async () => {
     await renderPage();
 
