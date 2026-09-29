@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -373,6 +374,15 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     [],
   );
 
+  /*
+   * Staleness guard. A zoom, its reset and the picker can change the window
+   * faster than an analytics request returns, and a wide window answers
+   * slower than a narrow one: without a sequence check the older response
+   * lands last and paints the window the reader just left under the one
+   * the picker, the list and the histogram show.
+   */
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const allDimensionOptions: Array<{ value: string; label: string }> =
     useMemo(() => {
       const attributeOptions: Array<{ value: string; label: string }> =
@@ -391,6 +401,11 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const requestSequence: number = ++requestSequenceRef.current;
+      const isStale: () => boolean = (): boolean => {
+        return requestSequence !== requestSequenceRef.current;
+      };
+
       try {
         setIsLoading(true);
 
@@ -509,6 +524,14 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           throw response;
         }
 
+        /*
+         * Superseded: drop it whole, labels included - a stale group-by
+         * would relabel the newer rows.
+         */
+        if (isStale()) {
+          return;
+        }
+
         const data: unknown = response.data["data"] || [];
 
         setResultGroupByFields(requestGroupBy);
@@ -522,13 +545,21 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           setTableData(data as Array<AnalyticsTableRow>);
         }
       } catch {
+        // A late failure of a superseded request must not blank newer data.
+        if (isStale()) {
+          return;
+        }
+
         // Silently degrade
         setTimeseriesData([]);
         setTimeseriesBucketMs(undefined);
         setTopListData([]);
         setTableData([]);
       } finally {
-        setIsLoading(false);
+        // Only the latest request may take the loader down.
+        if (!isStale()) {
+          setIsLoading(false);
+        }
       }
     }, [
       chartType,
@@ -601,6 +632,16 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   });
 
   const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so a
+   * cursor on any element around it never shows over the chart. Left off
+   * entirely when nothing can be dragged, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = canZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
 
   const renderSelectControl: (
     label: string,
@@ -758,7 +799,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         data-testid={LOGS_ANALYTICS_ZOOM_HINT_TEST_ID}
       >
         {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
-        {zoomHandlers.onTimeRangeReset ? " · double-click to zoom out" : ""}
+        {zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""}
       </span>
     );
   };
@@ -830,10 +871,14 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       /*
        * A zoom into a quiet stretch lands here, with no chart left to
        * double-click; the empty area takes the double-click instead, so the
-       * way back is where the reader's pointer already is.
+       * way back is where the reader's pointer already is. select-none: a
+       * double-click on the message would otherwise also select a word.
        */
       return (
-        <div onDoubleClick={zoomHandlers.onTimeRangeReset}>
+        <div
+          className="select-none"
+          onDoubleClick={zoomHandlers.onTimeRangeReset}
+        >
           {renderEmptyState()}
         </div>
       );
@@ -861,6 +906,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 onMouseDown={selection.onMouseDown}
                 onMouseMove={selection.onMouseMove}
                 onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
               >
                 <defs>
                   <linearGradient
@@ -945,6 +991,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 onMouseDown={selection.onMouseDown}
                 onMouseMove={selection.onMouseMove}
                 onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
               >
                 <CartesianGrid
                   strokeDasharray="none"

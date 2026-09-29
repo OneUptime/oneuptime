@@ -260,13 +260,63 @@ describe("buildExceptionTrendZoomRequest", () => {
     expect(rows[0]!.timeMs).toBe(
       new Date("2026-09-28T10:00:00.000Z").getTime(),
     );
-    // 10:00 to 11:00 in two-minute bars, the end bucket included.
-    expect(rows).toHaveLength(31);
+    /*
+     * 10:00 to 11:00 in two-minute bars: thirty of them, the last starting
+     * at 10:58. The window ends on a bucket boundary, and a bucket starting
+     * at 11:00 would lie wholly past it.
+     */
+    expect(rows).toHaveLength(30);
+    expect(rows[rows.length - 1]!.timeMs).toBe(
+      new Date("2026-09-28T10:58:00.000Z").getTime(),
+    );
     expect(
       rows.find((row: ExceptionTrendRow): boolean => {
         return row.handled > 0;
       })!.timeMs,
     ).toBe(new Date("2026-09-28T10:30:00.000Z").getTime());
+  });
+
+  test("every zoom a drag across preset bars can make draws no bar past its end", () => {
+    /*
+     * A drag zooms to the end of the last bar it covered, so a first zoom
+     * always ends on a preset bucket boundary - and every zoom bucket size
+     * divides every preset bucket size, so that end is on a zoom bucket
+     * boundary too. None of those windows may draw a slot past its end:
+     * a click there would open the stretch after the zoom.
+     */
+    for (const [windowKey, presetBucketMinutes] of [
+      [ExceptionTrendWindowKey.Day, 30],
+      [ExceptionTrendWindowKey.Week, 240],
+      [ExceptionTrendWindowKey.Month, 1440],
+    ] as Array<[ExceptionTrendWindowKey, number]>) {
+      for (const barsDragged of [2, 3, 6]) {
+        const endMs: number =
+          Math.floor(NOW.getTime() / (presetBucketMinutes * MINUTE)) *
+            presetBucketMinutes *
+            MINUTE -
+          presetBucketMinutes * MINUTE;
+        const startMs: number =
+          endMs - barsDragged * presetBucketMinutes * MINUTE;
+
+        const zoomed: JSONObject | null = buildExceptionTrendZoomRequest({
+          windowKey: windowKey,
+          fingerprint: FINGERPRINT,
+          zoomWindow: new InBetween<Date>(new Date(startMs), new Date(endMs)),
+          now: NOW,
+        });
+        const bucketMs: number =
+          Number(zoomed!["bucketSizeInMinutes"]) * MINUTE;
+
+        const rows: Array<ExceptionTrendRow> = buildExceptionTrendRows(
+          [],
+          zoomed,
+        );
+
+        expect(rows[0]!.timeMs).toBe(startMs);
+        expect(rows[rows.length - 1]!.timeMs).toBe(endMs - bucketMs);
+        expect(rows).toHaveLength((endMs - startMs) / bucketMs);
+      }
+    }
   });
 });
 

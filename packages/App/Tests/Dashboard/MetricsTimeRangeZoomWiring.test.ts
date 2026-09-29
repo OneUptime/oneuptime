@@ -138,10 +138,33 @@ describe("the metric explorer zooms as one page", () => {
     expect(EXPLORER.split("<InvestigationDrawer").length - 1).toBe(1);
   });
 
+  test("the investigation drawer gets a snapshot, taken on the Investigate click", () => {
+    /*
+     * Auto-refresh re-resolves a rolling window, and rebuilds
+     * metricViewData, on every tick. A drawer handed the live values was
+     * re-pinned by each tick: its zoom and any range picked on its card
+     * were dropped, and everything in it reloaded.
+     */
+    expect(EXPLORER).toContain(
+      "setInvestigation({ window: investigatedWindow, viewData: metricViewData, });",
+    );
+    expect(EXPLORER).toContain(
+      "const investigatedWindow: InBetween<Date> | null = metricViewData.startAndEndDate;",
+    );
+
+    const drawer: string = elementSource(EXPLORER, "InvestigationDrawer");
+    expect(drawer).toContain("window={investigation.window}");
+    expect(drawer).toContain("metricViewData={investigation.viewData}");
+    expect(drawer).not.toContain("metricViewData.startAndEndDate");
+    expect(drawer).not.toContain("metricViewData={metricViewData}");
+  });
+
   test("the window everything else follows is still metricViewData", () => {
-    // Event markers, the drawer, Copy Link and Add to dashboard.
+    // Event markers, the drawer's snapshot, Copy Link and Add to dashboard.
     expect(EXPLORER).toContain("window: metricViewData.startAndEndDate,");
-    expect(EXPLORER).toContain("window={metricViewData.startAndEndDate}");
+    expect(EXPLORER).toContain(
+      "const investigatedWindow: InBetween<Date> | null = metricViewData.startAndEndDate;",
+    );
     expect(EXPLORER).toContain(
       "textToBeCopied={ExplorerLink.buildExplorerUrl( metricViewData, ).toString()}",
     );

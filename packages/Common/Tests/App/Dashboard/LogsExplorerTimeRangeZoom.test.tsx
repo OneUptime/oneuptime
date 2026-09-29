@@ -429,7 +429,7 @@ describe("the logs explorer zooms as one", () => {
     await waitFor(() => {
       expect(lastWindowPostedTo("/telemetry/logs/analytics")).toBe(zoomed);
     });
-    expect(screen.getByText("Double-click to zoom out")).toBeInTheDocument();
+    expect(screen.getByText("Double-click to reset")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId(`bucket-${HIST_A}`)).toBeInTheDocument();

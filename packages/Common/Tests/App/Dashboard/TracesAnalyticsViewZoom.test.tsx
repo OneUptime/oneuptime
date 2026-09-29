@@ -317,9 +317,12 @@ describe("TracesAnalyticsView's zoom", () => {
       <TimeRangeZoomProvider zoom={zoom.zoom}>{view()}</TimeRangeZoomProvider>,
     );
 
-    fireEvent.doubleClick(
-      await screen.findByText("No data available for the selected query"),
+    const empty: HTMLElement = await screen.findByText(
+      "No data available for the selected query",
     );
+    // The double-click must not also select a word of the message.
+    expect(empty.closest(".select-none")).not.toBeNull();
+    fireEvent.doubleClick(empty);
 
     expect(zoom.reset).toHaveBeenCalledTimes(1);
   });

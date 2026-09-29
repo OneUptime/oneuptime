@@ -170,7 +170,7 @@ const BUCKETS: Array<HistogramBucket> = [HIST_A, HIST_B, HIST_C].map(
   },
 );
 
-const ZOOM_OUT_HINT: string = "Double-click to zoom out";
+const ZOOM_OUT_HINT: string = "Double-click to reset";
 
 const hostSelectSpy: MockFunction = getJestMockFunction();
 const hostChangeSpy: MockFunction = getJestMockFunction();

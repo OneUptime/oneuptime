@@ -101,7 +101,7 @@ const BUCKETS: Array<HistogramBucket> = [
   { time: LAST_BUCKET, severity: LogSeverity.Error, count: 7 },
 ];
 
-const ZOOM_OUT_HINT: string = "Double-click to zoom out";
+const ZOOM_OUT_HINT: string = "Double-click to reset";
 
 function bucketAt(time: string): HTMLElement {
   return screen.getByTestId(`bucket-${time}`);

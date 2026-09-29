@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -87,6 +88,7 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import {
   ErrorPatternTimelineRow,
   buildErrorPatternTimelineRows,
@@ -204,8 +206,8 @@ interface TimelineProps {
  *
  * Drag across it to zoom the whole Insights page into that stretch
  * (issue #4105): the stat cards, the top errors and this panel all follow,
- * and a double-click (or "Reset zoom" beside the page's picker) puts the
- * page back. Outside a page that zooms it is a plain chart.
+ * and a double-click (or "Reset zoom" above this chart or beside the page's
+ * picker) puts the page back. Outside a page that zooms it is a plain chart.
  */
 const Timeline: FunctionComponent<TimelineProps> = (
   props: TimelineProps,
@@ -226,20 +228,48 @@ const Timeline: FunctionComponent<TimelineProps> = (
     });
   }, [props.points, props.window, bucketIntervalMs]);
 
+  /*
+   * Only a drag zooms; a plain click on a bar does not. The shared selection
+   * hook zooms into one bar on a click whenever it knows the bucket width -
+   * right for an explorer's volume chart, which exists to narrow the list
+   * beneath it - but this chart sits in a drawer and retimes the whole
+   * Insights page, so a casual click on a bar (to read it) must not. The
+   * width is withheld from the hook, which makes a single bar no window at
+   * all, and added back here for a real drag: the hook hands over the starts
+   * of the first and last bars dragged across, and the zoom runs to the end
+   * of the last one.
+   */
+  const onPageTimeRangeSelect:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined = pageZoom?.onTimeRangeSelect;
+
+  const zoomToDraggedBars: (
+    firstBucketStart: Date,
+    lastBucketStart: Date,
+  ) => void = useCallback(
+    (firstBucketStart: Date, lastBucketStart: Date): void => {
+      onPageTimeRangeSelect?.(
+        firstBucketStart,
+        new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)),
+      );
+    },
+    [onPageTimeRangeSelect, bucketIntervalMs],
+  );
+
   const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
-    onTimeRangeSelect: pageZoom?.onTimeRangeSelect,
+    onTimeRangeSelect: onPageTimeRangeSelect ? zoomToDraggedBars : undefined,
     onZoomOut: pageZoom?.onTimeRangeReset,
-    bucketIntervalMs: bucketIntervalMs,
   });
 
   if (props.points.length === 0) {
     /*
      * A zoom into a stretch where the error did not fire lands here, with
      * no bars to double-click; the message takes the double-click instead.
+     * select-none: that double-click would otherwise also select a word.
      */
     return (
       <p
-        className="text-sm text-gray-500"
+        className="select-none text-sm text-gray-500"
         onDoubleClick={pageZoom?.onTimeRangeReset}
       >
         No bucketed occurrences to chart in this window.
@@ -248,6 +278,16 @@ const Timeline: FunctionComponent<TimelineProps> = (
   }
 
   const isIntraday: boolean = isErrorPatternTimelineIntraday(props.window);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so the
+   * cursor on the box around it never shows over the bars. Left off
+   * entirely outside a page that zooms, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = pageZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
 
   return (
     <div
@@ -265,6 +305,7 @@ const Timeline: FunctionComponent<TimelineProps> = (
           onMouseDown={selection.onMouseDown}
           onMouseMove={selection.onMouseMove}
           onMouseUp={selection.onMouseUp}
+          {...chartRootCursorProps}
         >
           <XAxis
             dataKey="time"
@@ -329,7 +370,22 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
   const patternText: string = props.pattern.pattern;
 
+  /*
+   * Staleness guard. The panel stays open while a zoom made on its own
+   * timeline, or the reset of one, moves the page's window, and every move
+   * asks for the correlation again. A wide window answers slower than a
+   * narrow one, so answers can land out of order: only the latest request
+   * may show its correlation or its error, or take the loader down.
+   * Otherwise the panel would describe a window the page has left.
+   */
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
+    const requestSequence: number = ++requestSequenceRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return requestSequence !== requestSequenceRef.current;
+    };
+
     try {
       setIsLoading(true);
       setError("");
@@ -341,17 +397,29 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           CORRELATION_LIMIT,
         );
 
+      if (isStale()) {
+        return;
+      }
+
       setCorrelation(result);
     } catch (err) {
+      // A late failure of a superseded request must not replace newer data.
+      if (isStale()) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err as Error));
     } finally {
-      setIsLoading(false);
+      if (!isStale()) {
+        setIsLoading(false);
+      }
     }
     /*
      * Safe to depend on the scope object itself: the host page memoizes it
      * on the time range and the selected resources, so it is referentially
-     * stable between renders — and when it does change the host closes this
-     * panel rather than leaving it describing a window that moved.
+     * stable between renders. It changes under the open panel only through
+     * a zoom made from this panel's timeline or the reset of one; the panel
+     * then asks again for the new window. Any other scope change closes it.
      */
   }, [patternText, props.scope]);
 
@@ -817,7 +885,20 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               title="When it happened"
               subtitle={`Occurrences per ${correlation.bucketSizeInMinutes} min bucket over ${describeTimeRange(props.scope.timeRange)}.`}
             />
-            <TimeRangeZoomHint className="mt-1" />
+            {/*
+             * The way back sits here as well as beside the page's picker. A
+             * zoom made on this timeline keeps the panel open, and the wide
+             * panel covers the picker and its Reset zoom: without this, a
+             * reader who does not know the double-click (and anyone on a
+             * keyboard) would have to close the panel to undo the zoom. It
+             * reads the page's zoom and shows only while there is one. The
+             * row is the title's height, so the hint stays level with the
+             * title whether or not the button is there.
+             */}
+            <div className="flex h-5 shrink-0 items-center gap-2">
+              <TimeRangeZoomHint />
+              <ResetTimeRangeZoomButton />
+            </div>
           </div>
           <Timeline
             points={correlation.timeline}

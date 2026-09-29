@@ -13,6 +13,7 @@ import OneUptimeDate from "Common/Types/Date";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import RangeStartAndEndDateTime, {
@@ -110,6 +111,12 @@ interface LatestDrawerWindow {
   currentRange: RangeStartAndEndDateTime;
 }
 
+// The part of the opener's view data the drawer reads (it pins its own window).
+interface DrawerQueries {
+  queryConfigs: MetricViewData["queryConfigs"];
+  formulaConfigs: MetricViewData["formulaConfigs"];
+}
+
 /**
  * The in-context investigation panel: everything that happened in one
  * window, without leaving the page. A log-signal summary (volume by
@@ -159,17 +166,40 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     return new InBetween<Date>(new Date(windowStartMs), new Date(windowEndMs));
   }, [windowStartMs, windowEndMs]);
 
+  /*
+   * The opener's queries, kept by value. An opener may hand over a new but
+   * equal metricViewData on every render - a dashboard chart widget rebuilds
+   * its view data on every auto-refresh tick - and nothing in the drawer may
+   * refetch, or blank what it shows, for that: the log signal, the metric
+   * card, the companion tabs and the event markers all key on these. Only
+   * the queries are compared (the drawer pins its own window), and functions
+   * compare by identity, so a query that really changed is still new.
+   */
+  const latestQueries: DrawerQueries = {
+    queryConfigs: props.metricViewData.queryConfigs,
+    formulaConfigs: props.metricViewData.formulaConfigs || [],
+  };
+  const stableQueries: React.MutableRefObject<DrawerQueries> =
+    useRef<DrawerQueries>(latestQueries);
+  if (!JSONFunctions.deepEqual(stableQueries.current, latestQueries)) {
+    stableQueries.current = latestQueries;
+  }
+  const queryConfigs: MetricViewData["queryConfigs"] =
+    stableQueries.current.queryConfigs;
+  const formulaConfigs: MetricViewData["formulaConfigs"] =
+    stableQueries.current.formulaConfigs;
+
   const pinnedViewData: MetricViewData = useMemo(() => {
     return {
-      queryConfigs: props.metricViewData.queryConfigs,
-      formulaConfigs: props.metricViewData.formulaConfigs || [],
+      queryConfigs: queryConfigs,
+      formulaConfigs: formulaConfigs,
       /*
        * Pinned on purpose — no rangeToken: an investigation window must
        * not re-anchor to "now" on refresh.
        */
       startAndEndDate: pinnedWindow,
     };
-  }, [props.metricViewData, pinnedWindow]);
+  }, [queryConfigs, formulaConfigs, pinnedWindow]);
 
   const telemetryQuery: TelemetryQuery = useMemo(() => {
     return {
@@ -287,11 +317,13 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     };
   }, [isZoomed, openerTimeRange, zoomToTimeRange, resetZoom]);
 
+  /*
+   * The scope, from the queries alone: a zoom moves the window, never the
+   * scope, so it must not look like a new scope to the log signal below.
+   */
   const extraction: MetricScopeFilterExtraction = useMemo(() => {
-    return extractScopeFiltersFromQueryConfigs(
-      pinnedViewData.queryConfigs || [],
-    );
-  }, [pinnedViewData]);
+    return extractScopeFiltersFromQueryConfigs(queryConfigs || []);
+  }, [queryConfigs]);
 
   // -- Log signal summary (volume + top error patterns) --
 
@@ -309,15 +341,21 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
   const [errorPatterns, setErrorPatterns] =
     useState<Array<TopErrorPatternRow> | null>(null);
 
+  /*
+   * A zoom (or its reset, or a range picked on the card) moves the window:
+   * the previous window's numbers must not sit under the new window's
+   * heading while the new ones load. Only a new window or a new scope
+   * clears them. A re-render over the same ones keeps what is on screen -
+   * the stats, the chart and the findings, which Explain with AI and Save
+   * to incident read.
+   */
   useEffect(() => {
-    let isCancelled: boolean = false;
-
-    /*
-     * A zoom (or its reset) moves the window: the previous window's numbers
-     * must not sit under the new window's heading while the new ones load.
-     */
     setLogBuckets(null);
     setErrorPatterns(null);
+  }, [windowStartMs, windowEndMs, extraction]);
+
+  useEffect(() => {
+    let isCancelled: boolean = false;
 
     const fetchLogSignal: () => Promise<void> = async (): Promise<void> => {
       /*

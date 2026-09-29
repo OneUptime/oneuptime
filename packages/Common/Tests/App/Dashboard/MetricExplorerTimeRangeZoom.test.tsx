@@ -318,6 +318,7 @@ jest.mock(
 
 interface DrawerRender {
   window: InBetween<Date>;
+  metricViewData: MetricViewData;
   pageZoom: ChartTimeRangeZoomContextValue | null;
 }
 
@@ -333,14 +334,30 @@ jest.mock(
 
     return {
       __esModule: true,
-      default: (props: { window: InBetween<Date> }): React.ReactElement => {
+      default: (props: {
+        window: InBetween<Date>;
+        metricViewData: MetricViewData;
+        onClose: () => void;
+      }): React.ReactElement => {
         drawerRenders.push({
           window: props.window,
+          metricViewData: props.metricViewData,
           pageZoom: zoomContext.useChartTimeRangeZoom(),
         });
-        return React.createElement("div", {
-          "data-testid": "investigation-drawer",
-        });
+        return React.createElement(
+          "div",
+          { "data-testid": "investigation-drawer" },
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: (): void => {
+                props.onClose();
+              },
+            },
+            "Close the drawer",
+          ),
+        );
       },
     };
   },
@@ -1010,5 +1027,136 @@ describe("Metric explorer: every chart zooms the explorer", () => {
     expect(drawer!.pageZoom).toBeNull();
     // The explorer's own zoom is untouched by opening it.
     expectZoomedTo(ZOOM_START, ZOOM_END);
+  });
+});
+
+describe("the investigation drawer is a snapshot of the view it was opened on", () => {
+  function investigate(): void {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Investigate this time window in a side panel",
+      }),
+    );
+  }
+
+  function latestDrawer(): DrawerRender {
+    const last: DrawerRender | undefined =
+      drawerRenders[drawerRenders.length - 1];
+    if (!last) {
+      throw new Error("The investigation drawer has not rendered");
+    }
+    return last;
+  }
+
+  test("an auto-refresh tick rolls the explorer on but leaves the drawer's window and view alone", async () => {
+    window.localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, "30s");
+    await renderExplorer(explorerSearch());
+
+    investigate();
+    const opened: DrawerRender = latestDrawer();
+    expect(toWindow(opened.window.startValue, opened.window.endValue)).toEqual(
+      toWindow(HOUR_AGO, NOW),
+    );
+    const rendersBefore: number = drawerRenders.length;
+    fetchResultsMock.mockClear();
+
+    act(() => {
+      jest.advanceTimersByTime(30_000);
+    });
+    await waitFor(() => {
+      expect(fetchResultsMock).toHaveBeenCalled();
+    });
+
+    // The explorer re-resolved its rolling hour against the new "now"...
+    expect(lastFetchedChartWindow()[1]).toBeGreaterThan(NOW.getTime());
+    expect(drawerRenders.length).toBeGreaterThan(rendersBefore);
+
+    /*
+     * ...and the drawer was handed exactly what it was opened with. A new
+     * window would re-pin it (dropping a zoom or a range picked inside it),
+     * and a new view object would reload everything in it.
+     */
+    const afterTick: DrawerRender = latestDrawer();
+    expect(afterTick.window).toBe(opened.window);
+    expect(afterTick.metricViewData).toBe(opened.metricViewData);
+    expect(
+      toWindow(afterTick.window.startValue, afterTick.window.endValue),
+    ).toEqual(toWindow(HOUR_AGO, NOW));
+  });
+
+  test("several ticks later the drawer is still on the moment it was opened", async () => {
+    window.localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, "30s");
+    await renderExplorer(explorerSearch());
+    investigate();
+    const opened: DrawerRender = latestDrawer();
+
+    for (let tick: number = 0; tick < 4; tick++) {
+      fetchResultsMock.mockClear();
+      act(() => {
+        jest.advanceTimersByTime(30_000);
+      });
+      await waitFor(() => {
+        expect(fetchResultsMock).toHaveBeenCalled();
+      });
+    }
+
+    expect(latestDrawer().window).toBe(opened.window);
+    expect(latestDrawer().metricViewData).toBe(opened.metricViewData);
+  });
+
+  test("the snapshot carries the explorer's queries as they were on the click", async () => {
+    await renderExplorer(explorerSearch());
+    investigate();
+
+    const viewData: MetricViewData = latestDrawer().metricViewData;
+    expect(
+      viewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
+        return (
+          queryConfig.metricQueryData.filterData as unknown as {
+            metricName: string;
+          }
+        ).metricName;
+      }),
+    ).toEqual(["cpu.usage", "memory.usage"]);
+  });
+
+  test("closing and investigating again takes a fresh snapshot of the current view", async () => {
+    window.localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, "30s");
+    await renderExplorer(explorerSearch());
+    investigate();
+    const first: DrawerRender = latestDrawer();
+
+    fetchResultsMock.mockClear();
+    act(() => {
+      jest.advanceTimersByTime(30_000);
+    });
+    await waitFor(() => {
+      expect(fetchResultsMock).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByText("Close the drawer"));
+    expect(screen.queryByTestId("investigation-drawer")).toBeNull();
+
+    investigate();
+    const second: DrawerRender = latestDrawer();
+    expect(second.window).not.toBe(first.window);
+    expect(second.window.endValue.getTime()).toBeGreaterThan(NOW.getTime());
+    expect(second.window.endValue.getTime()).toBe(lastFetchedChartWindow()[1]);
+  });
+
+  test("a zoom made on the explorer behind an open drawer does not move the drawer", async () => {
+    await renderExplorer(explorerSearch());
+    investigate();
+    const opened: DrawerRender = latestDrawer();
+
+    dragAcross("a", ZOOM_START, ZOOM_END);
+
+    expectZoomedTo(ZOOM_START, ZOOM_END);
+    expect(latestDrawer().window).toBe(opened.window);
+    expect(
+      drawerRenders.every((render: DrawerRender) => {
+        return render.pageZoom === null;
+      }),
+    ).toBe(true);
   });
 });

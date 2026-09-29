@@ -147,7 +147,7 @@ const BUCKETS: Array<HistogramBucket> = [
 ];
 
 const PAST_DAY: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_DAY };
-const ZOOM_OUT_HINT: string = "Double-click to zoom out";
+const ZOOM_OUT_HINT: string = "Double-click to reset";
 
 interface RenderedViewer {
   onHistogramTimeRangeSelect: MockFunction;

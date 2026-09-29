@@ -521,6 +521,16 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
   const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
 
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so a
+   * cursor on any element around it never shows over the chart. Left off
+   * entirely when nothing can be dragged, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = canZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
+
   const renderSelectControl: (
     label: string,
     value: string | number,
@@ -681,7 +691,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         data-testid={TRACES_ANALYTICS_ZOOM_HINT_TEST_ID}
       >
         {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
-        {zoomHandlers.onTimeRangeReset ? " · double-click to zoom out" : ""}
+        {zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""}
       </span>
     );
   };
@@ -726,10 +736,14 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       /*
        * A zoom into a quiet stretch lands here, with no chart left to
        * double-click; the empty area takes the double-click instead, so the
-       * way back is where the reader's pointer already is.
+       * way back is where the reader's pointer already is. select-none: a
+       * double-click on the message would otherwise also select a word.
        */
       return (
-        <div onDoubleClick={zoomHandlers.onTimeRangeReset}>
+        <div
+          className="select-none"
+          onDoubleClick={zoomHandlers.onTimeRangeReset}
+        >
           {renderEmptyState()}
         </div>
       );
@@ -818,6 +832,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   onMouseDown={selection.onMouseDown}
                   onMouseMove={selection.onMouseMove}
                   onMouseUp={selection.onMouseUp}
+                  {...chartRootCursorProps}
                 >
                   <defs>
                     <linearGradient
@@ -862,6 +877,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   onMouseDown={selection.onMouseDown}
                   onMouseMove={selection.onMouseMove}
                   onMouseUp={selection.onMouseUp}
+                  {...chartRootCursorProps}
                 >
                   {sharedAxes}
                   {seriesKeys.map((key: string, index: number) => {
@@ -889,6 +905,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 onMouseDown={selection.onMouseDown}
                 onMouseMove={selection.onMouseMove}
                 onMouseUp={selection.onMouseUp}
+                {...chartRootCursorProps}
               >
                 {sharedAxes}
                 {seriesKeys.map((key: string, index: number) => {

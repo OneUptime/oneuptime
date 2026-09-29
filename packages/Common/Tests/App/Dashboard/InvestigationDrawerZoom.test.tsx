@@ -441,7 +441,7 @@ describe("the drawer's log volume chart zooms the whole drawer", () => {
     fireEvent.mouseUp(screen.getByTestId(`bar-${BAR_B}`));
     await waitForDrawerOn("2026-08-20T10:03:00.000Z..2026-08-20T10:05:00.000Z");
 
-    expect(screen.getByText("Double-click to zoom out")).toBeInTheDocument();
+    expect(screen.getByText("Double-click to reset")).toBeInTheDocument();
     fireEvent.doubleClick(histogramPlot());
     act(() => {
       jest.advanceTimersByTime(DOUBLE_CLICK_DISAMBIGUATION_MS * 2);
@@ -502,7 +502,7 @@ describe("the metric card shares the drawer's zoom", () => {
 
     await waitForDrawerOn("2026-08-20T10:06:00.000Z..2026-08-20T10:09:00.000Z");
     expect(screen.getByTestId("card-sees-zoomed")).toHaveTextContent("true");
-    expect(screen.getByText("Double-click to zoom out")).toBeInTheDocument();
+    expect(screen.getByText("Double-click to reset")).toBeInTheDocument();
   });
 
   test("a double-click on a metric chart undoes a zoom made on the log chart", async () => {
@@ -608,6 +608,197 @@ describe("the drawer never retimes the page under it", () => {
       );
     });
     expect(resetButton()).toBeNull();
+  });
+});
+
+describe("an opener re-rendering with an equal view keeps the drawer as it is", () => {
+  /*
+   * A dashboard chart widget rebuilds its metricViewData on every
+   * auto-refresh tick, with the same queries and the drawer's window
+   * unchanged. Nothing in the drawer may reload, or blank what it shows,
+   * for that: the stats would flash "…", the chart would turn into a
+   * spinner, Findings would claim nothing stands out, and Explain with AI
+   * or Save to incident clicked in that gap would carry no log evidence.
+   */
+  async function rerenderWithEqualView(
+    rendered: ReturnType<typeof render>,
+    window: InBetween<Date> = new InBetween<Date>(
+      new Date(WINDOW.startValue.getTime()),
+      new Date(WINDOW.endValue.getTime()),
+    ),
+  ): Promise<void> {
+    await act(async () => {
+      rendered.rerender(
+        <InvestigationDrawer
+          title="host.name=web-01"
+          window={window}
+          metricViewData={buildViewData()}
+          onClose={() => {}}
+        />,
+      );
+    });
+  }
+
+  test("the stats, the chart and the patterns stay on screen, and nothing is asked again", async () => {
+    patternsMock.mockImplementation(async () => {
+      return [
+        {
+          pattern: "connection refused to <ip>",
+          sampleBody: "connection refused to 10.0.0.5",
+          count: 10,
+        },
+      ];
+    });
+    const rendered: ReturnType<typeof render> = await renderDrawer();
+    await waitFor(() => {
+      expect(screen.getByText("100")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("connection refused to 10.0.0.5"),
+      ).toBeInTheDocument();
+    });
+    // The finding the evidence supports (all ten errors are this pattern).
+    expect(
+      screen.getByText(/^One error pattern accounts for ~100%/),
+    ).toBeInTheDocument();
+    const histogramCalls: number = histogramMock.mock.calls.length;
+    const patternCalls: number = patternsMock.mock.calls.length;
+
+    // The refetch this would have started never lands, to catch any blanking.
+    histogramMock.mockImplementation(() => {
+      return new Promise(() => {});
+    });
+    patternsMock.mockImplementation(() => {
+      return new Promise(() => {});
+    });
+
+    await rerenderWithEqualView(rendered);
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(histogramMock.mock.calls.length).toBe(histogramCalls);
+    expect(patternsMock.mock.calls.length).toBe(patternCalls);
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.queryAllByText("…")).toHaveLength(0);
+    expect(screen.getByTestId(`bar-${BAR_A}`)).toBeInTheDocument();
+    expect(
+      screen.getByText("connection refused to 10.0.0.5"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Loading…")).toBeNull();
+    // Findings still read the evidence, rather than "nothing stands out".
+    expect(
+      screen.getByText(/^One error pattern accounts for ~100%/),
+    ).toBeInTheDocument();
+  });
+
+  test("the metric card, the companion tabs and the event markers are handed the same queries", async () => {
+    const rendered: ReturnType<typeof render> = await renderDrawer();
+    const cardQueries: unknown = lastProps(embeddedCardMock)["queryConfigs"];
+    const companionQuery: unknown =
+      lastProps(companionTabsMock)["telemetryQuery"];
+    const markerQueries: unknown = (
+      lastProps(eventOverlayMock) as { queryConfigs: unknown }
+    ).queryConfigs;
+
+    await rerenderWithEqualView(rendered);
+
+    /*
+     * Same objects, not equal copies: the card resets its Top-N override on
+     * a new query array, and the companion tabs' discovery effect and the
+     * event markers refetch on a new one.
+     */
+    expect(lastProps(embeddedCardMock)["queryConfigs"]).toBe(cardQueries);
+    expect(lastProps(companionTabsMock)["telemetryQuery"]).toBe(companionQuery);
+    expect(
+      (lastProps(eventOverlayMock) as { queryConfigs: unknown }).queryConfigs,
+    ).toBe(markerQueries);
+  });
+
+  test("a zoom made in the drawer survives the re-render, and is not reloaded", async () => {
+    const rendered: ReturnType<typeof render> = await renderDrawer();
+
+    fireEvent.mouseDown(screen.getByTestId(`bar-${BAR_A}`));
+    fireEvent.mouseUp(screen.getByTestId(`bar-${BAR_B}`));
+    const zoomed: string = "2026-08-20T10:03:00.000Z..2026-08-20T10:05:00.000Z";
+    await waitForDrawerOn(zoomed);
+    await waitFor(() => {
+      expect(screen.getByText("100")).toBeInTheDocument();
+    });
+    const histogramCalls: number = histogramMock.mock.calls.length;
+
+    await rerenderWithEqualView(rendered);
+
+    expect(histogramMock.mock.calls.length).toBe(histogramCalls);
+    expect(lastHistogramWindow()).toBe(zoomed);
+    expect(cardWindow()).toBe(zoomed);
+    expect(companionWindow()).toBe(zoomed);
+    expect(resetButton()).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+  });
+
+  test("a range picked on the card survives the re-render too", async () => {
+    const rendered: ReturnType<typeof render> = await renderDrawer();
+
+    fireEvent.click(screen.getByText("Pick Past 1 Hour on the card"));
+    await waitFor(() => {
+      expect(lastHistogramWindow()).toBe(
+        "2026-08-20T11:00:00.000Z..2026-08-20T12:00:00.000Z",
+      );
+    });
+
+    await rerenderWithEqualView(rendered);
+
+    expect(cardWindow()).toBe(TimeRange.PAST_ONE_HOUR);
+    expect(resetButton()).toBeInTheDocument();
+  });
+
+  test("a genuinely different scope does reload, and clears the old scope's numbers meanwhile", async () => {
+    const rendered: ReturnType<typeof render> = await renderDrawer();
+    await waitFor(() => {
+      expect(screen.getByText("100")).toBeInTheDocument();
+    });
+
+    let resolveNext: ((value: Array<unknown>) => void) | null = null;
+    histogramMock.mockImplementation(() => {
+      return new Promise((resolve: (value: Array<unknown>) => void) => {
+        resolveNext = resolve;
+      });
+    });
+
+    const otherHost: MetricViewData = buildViewData();
+    (
+      otherHost.queryConfigs[0]!.metricQueryData.filterData as unknown as {
+        attributes: Record<string, string>;
+      }
+    ).attributes = { "host.name": "web-02" };
+
+    await act(async () => {
+      rendered.rerender(
+        <InvestigationDrawer
+          title="host.name=web-02"
+          window={WINDOW}
+          metricViewData={otherHost}
+          onClose={() => {}}
+        />,
+      );
+    });
+
+    await waitFor(() => {
+      expect(lastProps(histogramMock)).toMatchObject({
+        attributes: { "host.name": "web-02" },
+      });
+    });
+    expect(screen.queryByText("100")).toBeNull();
+    expect(screen.getAllByText("…").length).toBeGreaterThan(0);
+
+    await act(async () => {
+      resolveNext!([{ time: BAR_A, severity: "Error", count: 7 }]);
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText("7").length).toBeGreaterThan(0);
+    });
   });
 });
 

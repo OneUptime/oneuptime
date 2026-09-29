@@ -278,6 +278,46 @@ describe("a drag zooms the trend into that stretch", () => {
     expect(screen.queryByTestId("bar-2026-09-28T09:30:00.000Z")).toBeNull();
   });
 
+  test("the zoomed chart draws no bar past the zoomed window", async () => {
+    await renderTrend();
+
+    drag("2026-09-28T10:00:00.000Z", "2026-09-28T10:30:00.000Z");
+    await waitForRequestCount(2);
+
+    /*
+     * The zoom ends at 11:00, on a bucket boundary. A bar starting there
+     * lies wholly past the window: an empty slot the reader never zoomed
+     * into, and one a click or a drag could zoom out of the window with.
+     */
+    expect(screen.queryByTestId("bar-2026-09-28T11:00:00.000Z")).toBeNull();
+    const bars: Array<HTMLElement> = screen.getAllByTestId(/^bar-/);
+    expect(bars).toHaveLength(30);
+    expect(bars[bars.length - 1]).toHaveAttribute(
+      "data-testid",
+      "bar-2026-09-28T10:58:00.000Z",
+    );
+  });
+
+  test("a drag that reaches the newest bar of a preset stops at now", async () => {
+    // Now sits partway through the newest half hour.
+    const now: Date = new Date("2026-09-28T12:17:43.000Z");
+    jest.setSystemTime(now);
+    await renderTrend();
+    jest.setSystemTime(now);
+
+    // The newest bar, still filling up, is drawn: it starts before now.
+    expect(bar("2026-09-28T12:00:00.000Z")).toBeInTheDocument();
+    expect(screen.queryByTestId("bar-2026-09-28T12:30:00.000Z")).toBeNull();
+
+    drag("2026-09-28T11:30:00.000Z", "2026-09-28T12:00:00.000Z");
+
+    await waitForRequestCount(2);
+    expect(lastRequest()).toMatchObject({
+      startTime: "2026-09-28T11:30:00.000Z",
+      endTime: now.toISOString(),
+    });
+  });
+
   test("the description names the zoomed window", async () => {
     await renderTrend();
 
@@ -293,16 +333,28 @@ describe("a drag zooms the trend into that stretch", () => {
     ).toBeInTheDocument();
   });
 
-  test("a click on one bar zooms into that bar's half hour", async () => {
+  test("a right-to-left drag zooms the same two bars", async () => {
     await renderTrend();
 
-    click("2026-09-28T10:00:00.000Z");
+    drag("2026-09-28T10:30:00.000Z", "2026-09-28T10:00:00.000Z");
 
     await waitForRequestCount(2);
     expect(lastRequest()).toMatchObject({
       startTime: "2026-09-28T10:00:00.000Z",
-      endTime: "2026-09-28T10:30:00.000Z",
-      bucketSizeInMinutes: 1,
+      endTime: "2026-09-28T11:00:00.000Z",
+      bucketSizeInMinutes: 2,
+    });
+  });
+
+  test("a drag across three bars zooms exactly those three buckets", async () => {
+    await renderTrend();
+
+    drag("2026-09-28T08:00:00.000Z", "2026-09-28T09:00:00.000Z");
+
+    await waitForRequestCount(2);
+    expect(lastRequest()).toMatchObject({
+      startTime: "2026-09-28T08:00:00.000Z",
+      endTime: "2026-09-28T09:30:00.000Z",
     });
   });
 
@@ -341,6 +393,62 @@ describe("a drag zooms the trend into that stretch", () => {
       endTime: "2026-09-27T16:00:00.000Z",
       bucketSizeInMinutes: 10,
     });
+  });
+});
+
+describe("a plain click is not a zoom", () => {
+  test("one click on a bar asks for nothing and leaves the preset on screen", async () => {
+    await renderTrend();
+
+    click("2026-09-28T10:00:00.000Z");
+    act(() => {
+      jest.advanceTimersByTime(DOUBLE_CLICK_DISAMBIGUATION_MS * 4);
+    });
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(resetButton()).toBeNull();
+    // Nothing is left highlighted either.
+    expect(screen.queryByTestId("selection-band")).toBeNull();
+    expect(
+      screen.getByText("96 occurrences in the last 24 hours"),
+    ).toBeInTheDocument();
+  });
+
+  test("a press that never leaves its bar is not a zoom", async () => {
+    await renderTrend();
+
+    fireEvent.mouseDown(bar("2026-09-28T10:00:00.000Z"));
+    fireEvent.mouseMove(bar("2026-09-28T10:00:00.000Z"));
+    fireEvent.mouseUp(bar("2026-09-28T10:00:00.000Z"));
+    act(() => {
+      jest.advanceTimersByTime(DOUBLE_CLICK_DISAMBIGUATION_MS * 4);
+    });
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(resetButton()).toBeNull();
+  });
+
+  test("while zoomed, a click on a bar does not zoom in again, even after the double-click wait", async () => {
+    await renderTrend();
+
+    drag("2026-09-28T10:00:00.000Z", "2026-09-28T10:30:00.000Z");
+    await waitForRequestCount(2);
+
+    click("2026-09-28T10:20:00.000Z");
+    act(() => {
+      jest.advanceTimersByTime(DOUBLE_CLICK_DISAMBIGUATION_MS * 4);
+    });
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(resetButton()).toBeInTheDocument();
+  });
+
+  test("the hint names only the drag", async () => {
+    await renderTrend();
+
+    expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
+      /^Drag to zoom$/,
+    );
   });
 });
 
@@ -484,6 +592,8 @@ describe("a zoom into a stretch with no occurrences", () => {
     );
     expect(empty).toHaveTextContent("No occurrences in the selected window");
     expect(empty).toHaveTextContent("reset the zoom to see the last 24 hours");
+    // The double-click must not also select a word of the message.
+    expect(empty).toHaveClass("select-none");
 
     answerEmpty = false;
     fireEvent.doubleClick(empty);
