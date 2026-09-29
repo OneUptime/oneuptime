@@ -679,6 +679,119 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
     expect(uidsOf(result)).toEqual(["open-alert"]);
   });
 
+  test("an over-counted alerts union splits the window instead of being read as complete", async () => {
+    const burst: Array<JSONObject> = [];
+
+    for (let i: number = 1; i <= 1001; i++) {
+      burst.push({
+        id: `burst-${i}`,
+        type: "RULE_DETECTION",
+        detectionTime: "2026-09-14T11:57:00.000Z",
+        createdTime: "2026-09-14T11:58:00.000Z",
+        detection: [{ ruleName: "Burst rule", severity: "HIGH" }],
+      });
+    }
+
+    /*
+     * Two cumulative chunks: the second restates the first and adds one
+     * alert past the 1000 the connector asks for. The stream's totals
+     * agree with the restated union, so only the ceiling comparison can
+     * flag it — before the fix this window came back complete and
+     * unsplit.
+     */
+    const wideBody: string = JSON.stringify([
+      { alerts: { alerts: burst.slice(0, 500) } },
+      {
+        alerts: { alerts: burst },
+        baselineAlertsCount: 1001,
+        filteredAlertsCount: 1001,
+        complete: true,
+        progress: 1,
+      },
+    ]);
+
+    const wideStart: string = WINDOW.startTime.toISOString();
+    const wideEnd: string = WINDOW.endTime.toISOString();
+    const mid: Date = new Date(
+      Math.floor((WINDOW.startTime.getTime() + WINDOW.endTime.getTime()) / 2),
+    );
+
+    const transport: Transport = makeTransport({
+      alerts: [
+        (request: RecordedRequest): StubbedResponse => {
+          const start: string | null = request.url.searchParams.get(
+            "timeRange.startTime",
+          );
+          const end: string | null =
+            request.url.searchParams.get("timeRange.endTime");
+
+          if (start === wideStart && end === wideEnd) {
+            return { status: 200, body: wideBody };
+          }
+
+          // Both halves and the late-alert sweep read quiet and complete.
+          return stream([{ complete: true, progress: 1 }]);
+        },
+      ],
+    });
+
+    const connector: GoogleSecOpsConnector = new GoogleSecOpsConnector(
+      transport.fetchImplementation,
+    );
+
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      secOpsSettings(),
+      WINDOW,
+      fetchOptions(),
+    );
+
+    const reads: Array<{ start: string | null; end: string | null }> = transport
+      .of("alerts")
+      .map(
+        (
+          request: RecordedRequest,
+        ): { start: string | null; end: string | null } => {
+          return {
+            start: request.url.searchParams.get("timeRange.startTime"),
+            end: request.url.searchParams.get("timeRange.endTime"),
+          };
+        },
+      );
+
+    /*
+     * The full window was read once, then re-read as its two halves —
+     * 11:54–12:00, 11:54–11:57, 11:57–12:00 — plus the late-alert sweep.
+     */
+    expect(
+      reads.filter(
+        (read: { start: string | null; end: string | null }): boolean => {
+          return read.start === wideStart && read.end === wideEnd;
+        },
+      ),
+    ).toHaveLength(1);
+    expect(
+      reads.filter(
+        (read: { start: string | null; end: string | null }): boolean => {
+          return read.start === wideStart && read.end === mid.toISOString();
+        },
+      ),
+    ).toHaveLength(1);
+    expect(
+      reads.filter(
+        (read: { start: string | null; end: string | null }): boolean => {
+          return read.start === mid.toISOString() && read.end === wideEnd;
+        },
+      ),
+    ).toHaveLength(1);
+    expect(transport.of("alerts")).toHaveLength(4);
+
+    expect(result.complete).toBe(true);
+    expect(uidsOf(result)).toHaveLength(1001);
+    expect(result.warnings).toContain(
+      `Google limited the alerts view response for ${wideStart} to ${wideEnd}, so it was split into smaller windows 1 time.`,
+    );
+  });
+
   test("every fetch opens its own session: a connector shares no token across calls", async () => {
     const transport: Transport = makeTransport();
     const connector: GoogleSecOpsConnector = new GoogleSecOpsConnector(

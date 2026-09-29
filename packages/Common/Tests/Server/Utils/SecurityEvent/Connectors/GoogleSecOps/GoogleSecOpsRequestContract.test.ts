@@ -388,6 +388,74 @@ describe("GoogleSecOpsClient alerts request parameters", () => {
     expect(sortedQueryKeysOf(cappedRequest)).toEqual(EXPECTED_QUERY_KEYS);
   });
 
+  test("falls back to the default ceiling when maxAlerts is unusable, so nothing unsendable reaches the wire", async () => {
+    const unusable: Array<number> = [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      -5,
+      0,
+      0.5,
+    ];
+
+    for (const maxAlerts of unusable) {
+      const run: {
+        client: GoogleSecOpsClient;
+        requests: Array<RecordedRequest>;
+      } = makeClient();
+
+      const result: FetchAlertsResult = await run.client.fetchDetectionAlerts({
+        startTime: WINDOW_START,
+        endTime: WINDOW_END,
+        maxAlerts: maxAlerts,
+      });
+
+      expect(result.complete).toBe(true);
+
+      const request: RecordedRequest = alertsRequestIn(run.requests);
+
+      expect(
+        queryParamsOf(request).get("alertListOptions.maxReturnedAlerts"),
+      ).toBe("1000");
+      expect(sortedQueryKeysOf(request)).toEqual(EXPECTED_QUERY_KEYS);
+    }
+  });
+
+  test("caps a caller ceiling above the documented maximum and floors a fractional one", async () => {
+    const overRun: {
+      client: GoogleSecOpsClient;
+      requests: Array<RecordedRequest>;
+    } = makeClient();
+
+    await overRun.client.fetchDetectionAlerts({
+      startTime: WINDOW_START,
+      endTime: WINDOW_END,
+      maxAlerts: 5000,
+    });
+
+    expect(
+      queryParamsOf(alertsRequestIn(overRun.requests)).get(
+        "alertListOptions.maxReturnedAlerts",
+      ),
+    ).toBe("1000");
+
+    const fractionalRun: {
+      client: GoogleSecOpsClient;
+      requests: Array<RecordedRequest>;
+    } = makeClient();
+
+    await fractionalRun.client.fetchDetectionAlerts({
+      startTime: WINDOW_START,
+      endTime: WINDOW_END,
+      maxAlerts: 250.75,
+    });
+
+    expect(
+      queryParamsOf(alertsRequestIn(fractionalRun.requests)).get(
+        "alertListOptions.maxReturnedAlerts",
+      ),
+    ).toBe("250");
+  });
+
   test("explicitly requests all alert statuses without pagination or a baseline filter", async () => {
     const { client, requests } = makeClient();
 

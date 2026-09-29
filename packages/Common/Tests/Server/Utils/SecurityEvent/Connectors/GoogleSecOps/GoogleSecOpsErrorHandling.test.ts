@@ -618,6 +618,67 @@ describe("GoogleSecOpsClient truncation, completeness and the C3 self-check", ()
     expect(overrun.truncatedByCount).toBe(true);
     expect(overCeiling.warnings).toHaveLength(1);
   });
+
+  /*
+   * C3 regression: with the stream's totals present, an over-counted union
+   * is the one case the totals themselves cannot flag, so the ceiling
+   * comparison must carry it — otherwise the window is read as complete
+   * and the over-counted union is imported as if it were the whole answer.
+   */
+  test("an over-counted union is reported truncated even when the stream carried totals", () => {
+    const body: string = JSON.stringify([
+      {
+        alerts: { alerts: [{ id: "a-1" }, { id: "a-2" }, { id: "a-3" }] },
+        baselineAlertsCount: 3,
+        filteredAlertsCount: 3,
+      },
+      {
+        alerts: {
+          alerts: [{ id: "a-1" }, { id: "a-2" }, { id: "a-3" }, { id: "a-4" }],
+        },
+        baselineAlertsCount: 3,
+        filteredAlertsCount: 3,
+        complete: true,
+        progress: 1,
+      },
+    ]);
+
+    const logs: CapturedLogs = captureLogs();
+    const result: FetchAlertsResult = GoogleSecOpsClient.parseAlertsBody(
+      body,
+      3,
+    );
+
+    expect(result.alerts).toHaveLength(4);
+    expect(result.truncatedByCount).toBe(true);
+    expect(result.complete).toBe(true);
+
+    expect(logs.errors).toHaveLength(1);
+    expect(logs.warnings).toHaveLength(1);
+  });
+
+  test("a union that lands exactly at the ceiling with matching totals is not truncated", () => {
+    const body: string = JSON.stringify([
+      {
+        alerts: { alerts: [{ id: "a-1" }, { id: "a-2" }] },
+        baselineAlertsCount: 2,
+        filteredAlertsCount: 2,
+        complete: true,
+        progress: 1,
+      },
+    ]);
+
+    const logs: CapturedLogs = captureLogs();
+    const result: FetchAlertsResult = GoogleSecOpsClient.parseAlertsBody(
+      body,
+      2,
+    );
+
+    expect(result.alerts).toHaveLength(2);
+    expect(result.truncatedByCount).toBe(false);
+    expect(logs.errors).toEqual([]);
+    expect(logs.warnings).toEqual([]);
+  });
 });
 
 describe("GoogleSecOpsClient errors appended to a 200 stream", () => {

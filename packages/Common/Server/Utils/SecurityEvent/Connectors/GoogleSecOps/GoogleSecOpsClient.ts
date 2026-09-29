@@ -114,6 +114,14 @@ const TOKEN_CLOCK_SKEW_IN_SECONDS: number = 60;
 const DEFAULT_MAX_ALERTS: number = 1000;
 
 /*
+ * The alerts view's documented ceiling on maxReturnedAlerts. It equals the
+ * default, so a caller that asks for more than it is handed a request
+ * Google answers, not one its transcoder rejects — the same treatment the
+ * search endpoint already gives its pageSize.
+ */
+const MAX_ALERTS_PER_FETCH: number = 1000;
+
+/*
  * Neither fetch had a deadline before, and Node's global fetch has none of
  * its own. Connections are polled strictly sequentially, so one endpoint
  * that accepts a connection and never answers stalls every other tenant's
@@ -486,7 +494,9 @@ export default class GoogleSecOpsClient {
   }): Promise<FetchAlertsResult> {
     let accessToken: string = await this.getAccessToken();
 
-    const maxReturnedAlerts: number = data.maxAlerts || DEFAULT_MAX_ALERTS;
+    const maxReturnedAlerts: number = GoogleSecOpsClient.clampMaxAlerts(
+      data.maxAlerts,
+    );
 
     /*
      * Google requires snapshotQuery and documents its empty value as
@@ -958,6 +968,24 @@ export default class GoogleSecOpsClient {
   }
 
   /*
+   * The same guarantee for the alerts view: a caller value that cannot be
+   * sent as a positive integer — undefined, NaN, a negative, a fraction —
+   * falls back to the default instead of leaking into the request, and a
+   * value above the documented ceiling is capped at it.
+   */
+  private static clampMaxAlerts(maxAlerts: number | undefined): number {
+    if (
+      typeof maxAlerts !== "number" ||
+      !Number.isFinite(maxAlerts) ||
+      maxAlerts < 1
+    ) {
+      return DEFAULT_MAX_ALERTS;
+    }
+
+    return Math.min(MAX_ALERTS_PER_FETCH, Math.floor(maxAlerts));
+  }
+
+  /*
    * The status the client wrote into its own "(HTTP <status>)" tail, so a
    * caller can tell a 403 on the curated endpoint (a tenant without
    * curated rules) from a 500 without parsing Google's body twice.
@@ -1286,6 +1314,7 @@ export default class GoogleSecOpsClient {
     truncatedByCount =
       truncatedByCount ||
       Math.max(filteredAlertsCount, baselineAlertsCount) > alerts.length ||
+      alerts.length > maxReturnedAlerts ||
       (alerts.length >= maxReturnedAlerts &&
         !chunks.some((chunk: JSONObject): boolean => {
           return (
@@ -1328,10 +1357,12 @@ export default class GoogleSecOpsClient {
       /*
        * Whether chunk.alerts is cumulative or incremental across chunks is
        * the one part of this contract no Google page states. The union
-       * below is correct either way, but more alerts than the ceiling we
-       * asked for can only mean we appended across chunks that were
-       * restating the same top-N — an observable answer to an otherwise
-       * unanswerable doc question.
+       * accumulated above is correct either way, but more alerts than the
+       * ceiling we asked for can only mean we appended across chunks that
+       * were restating the same top-N — an observable answer to an
+       * otherwise unanswerable doc question. The result is flagged
+       * truncatedByCount above, so the connector splits the window instead
+       * of importing the over-counted union as a complete one.
        */
       logger.error(
         `GoogleSecOpsClient: accumulated ${alerts.length} alerts for a ceiling of ${maxReturnedAlerts}. Chunk alerts are cumulative and the union is over-counting; the dedupe key is not identifying them.`,
