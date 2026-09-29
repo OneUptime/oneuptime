@@ -222,6 +222,8 @@ describe("the telemetry snapshot zooms as one, every tab of it", () => {
       const source: string = readSquashed(file);
 
       expect(source).toContain("snapshotWindow={snapshotZoom.window}");
+      // So their copy names the zoomed part of the window, not all of it.
+      expect(source).toContain("isSnapshotZoomed={snapshotZoom.isZoomed}");
     },
   );
 
