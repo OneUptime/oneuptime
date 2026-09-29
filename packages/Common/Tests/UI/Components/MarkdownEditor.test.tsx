@@ -1766,6 +1766,127 @@ describe("MarkdownEditor blocks inserted into a line of text", () => {
   });
 });
 
+/*
+ * A list pasted into a list item, or the Task List button's task, joins the
+ * item's list. Kept inside the item, as a code block pasted there is, it was
+ * a list nested in it: pasted into the empty item Enter leaves, it showed two
+ * bullets -- the double bullets of issue #4114 -- and the next task added at
+ * the end of a task was a sub-task.
+ */
+describe("MarkdownEditor a list inserted into a list item", () => {
+  // The empty item Enter leaves at the end of a list, with the caret in it.
+  const pressEnterAfterLastItem: () => HTMLElement = (): HTMLElement => {
+    const list: Element = editableOf().querySelector("ul, ol") as Element;
+    const empty: HTMLElement = document.createElement("li");
+    empty.appendChild(document.createElement("br"));
+    list.appendChild(empty);
+    act(() => {
+      editableOf().focus();
+    });
+    const range: Range = document.createRange();
+    range.setStart(empty, 0);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    return empty;
+  };
+
+  test("pastes a list into the empty item Enter leaves as items of the list", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="- first" onChange={onChange} />);
+    stubBlinkExecCommand();
+    pressEnterAfterLastItem();
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/plain": "- restart api\n- check logs",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("- first\n- restart api\n- check logs");
+    expect(editableOf().querySelectorAll("li li")).toHaveLength(0);
+  });
+
+  test("pastes bullets copied from Outlook into the empty item as items", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="- item one" onChange={onChange} />);
+    stubBlinkExecCommand();
+    pressEnterAfterLastItem();
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "• a\n• b" }),
+    });
+
+    expect(lastChange(onChange)).toBe("- item one\n- a\n- b");
+  });
+
+  test("pastes a list at the end of an item as the items after it", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- item one\n- item two"}
+        onChange={onChange}
+      />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("item one", 8);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>alpha</li><li>beta</li></ul>",
+        "text/plain": "alpha\nbeta",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- item one\n- alpha\n- beta\n- item two",
+    );
+  });
+
+  test("the Task List button at the end of a task adds the next task, not a sub-task", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue="- [ ] task one" onChange={onChange} />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("task one", 8);
+
+    fireEvent.click(screen.getByTitle("Task List"));
+
+    expect(lastChange(onChange)).toBe("- [ ] task one\n- [ ] Task");
+  });
+
+  test("the Task List button in the empty item Enter leaves makes it a task", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="- item one" onChange={onChange} />);
+    stubBlinkExecCommand();
+    pressEnterAfterLastItem();
+
+    fireEvent.click(screen.getByTitle("Task List"));
+
+    expect(lastChange(onChange)).toBe("- item one\n- [ ] Task");
+  });
+
+  test("leaves the caret after the last item pasted, and Ctrl+Z takes the paste back", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="- first" onChange={onChange} />);
+    stubBlinkExecCommand();
+    const empty: HTMLElement = pressEnterAfterLastItem();
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "- a\n- b" }),
+    });
+    const selection: Selection = window.getSelection() as Selection;
+    expect(selection.anchorNode?.textContent).toBe("b");
+    expect(selection.anchorOffset).toBe(1);
+
+    fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+
+    expect(editableOf().innerHTML).toBe("<ul><li>first</li><li><br></li></ul>");
+    expect(editableOf().querySelectorAll("li")[1]).toBe(empty);
+  });
+});
+
 describe("MarkdownEditor paste in the markdown source", () => {
   test("writes pasted rich text as markdown source", () => {
     const onChange: jest.Mock = jest.fn();
@@ -1987,6 +2108,52 @@ describe("MarkdownEditor paste in the markdown source", () => {
     });
 
     expect(lastChange(onChange)).toBe("Steps:\n- restart api\nlater");
+  });
+
+  /*
+   * As in the visual editor, a list pasted on a list item's line joins its
+   * list. After the bare marker of an item just started, the marker stayed
+   * in front of the first pasted item: "- - restart api", two bullets.
+   */
+  test("pastes a list after a list's bare marker in place of that empty item", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"Steps:\n\n- "} onChange={onChange} />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>restart api</li><li>check logs</li></ul>",
+        "text/plain": "restart api\ncheck logs",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("Steps:\n\n- restart api\n- check logs");
+  });
+
+  test("pastes a list at the end of a list item as the items after it", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- parent\n  - child\n- next"}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(18, 18);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>a<ul><li>a1</li></ul></li><li>b</li></ul>",
+        "text/plain": "a\na1\nb",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- parent\n  - child\n  - a\n    - a1\n  - b\n- next",
+    );
   });
 
   test("still pastes formatted words into the middle of a line", () => {

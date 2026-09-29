@@ -31,7 +31,8 @@ const SPLITTABLE_LINE_TAGS: Set<string> = new Set<string>([
 /*
  * Elements that hold blocks as well as text of their own: a block inserted
  * into one stays inside it, as a code block pasted into a list item belongs
- * to that item.
+ * to that item. A list inserted into a list item is the exception: its items
+ * join the item's list (insertListItemsAtCaret).
  */
 const BLOCK_HOLDER_TAGS: Set<string> = new Set<string>([
   "li",
@@ -368,29 +369,6 @@ const blockInsertionPoint: (
 };
 
 /*
- * Inserts `fragment` -- one or more blocks -- at the caret, splitting the
- * line the caret is in rather than putting blocks inside it. Returns the
- * last node inserted, or null when there was nothing to insert.
- */
-export const insertBlocksAtCaret: (
-  editable: HTMLElement,
-  range: Range,
-  fragment: DocumentFragment,
-) => Node | null = (
-  editable: HTMLElement,
-  range: Range,
-  fragment: DocumentFragment,
-): Node | null => {
-  const last: Node | null = fragment.lastChild;
-  if (!last) {
-    return null;
-  }
-  const point: InsertionPoint = blockInsertionPoint(editable, range);
-  point.parent.insertBefore(fragment, point.before);
-  return last;
-};
-
-/*
  * A caret at the end of what `node` holds -- after its last character, and
  * before the <br> a browser keeps in an empty line -- so that typing carries
  * on from what was inserted, as it does after a paste the browser makes.
@@ -419,6 +397,173 @@ export const caretAtEndOf: (node: Node) => Range = (node: Node): Range => {
   caret.setStart(target, target.childNodes.length);
   caret.collapse(true);
   return caret;
+};
+
+/*
+ * The items of `fragment` when it is lists and nothing else that shows --
+ * a pasted list, bullets pasted as text, the Task List button's task --
+ * and null for anything else.
+ */
+const listItemsOf: (fragment: DocumentFragment) => Array<Element> | null = (
+  fragment: DocumentFragment,
+): Array<Element> | null => {
+  const items: Array<Element> = [];
+  for (const child of Array.from(fragment.childNodes)) {
+    const tag: string = tagOf(child);
+    if (tag === "ul" || tag === "ol") {
+      for (const item of Array.from((child as Element).children)) {
+        if (tagOf(item) !== "li") {
+          return null;
+        }
+        items.push(item);
+      }
+    } else if (!holdsNothing(child)) {
+      return null;
+    }
+  }
+  return items.length > 0 ? items : null;
+};
+
+/*
+ * The list item whose list the items of a list inserted at the caret join:
+ * the item the caret is in -- unless it is in a code block, a quote or a
+ * table cell inside that item, which a list inserted there stays in.
+ */
+const listItemAtCaret: (
+  editable: HTMLElement,
+  range: Range,
+) => HTMLElement | null = (
+  editable: HTMLElement,
+  range: Range,
+): HTMLElement | null => {
+  /*
+   * Once the Bullet or Numbered List button has made a list in the empty
+   * editor, Chromium leaves the selection on the editor itself, just before
+   * the list -- though it shows the caret in the list's empty first item,
+   * and types into it.
+   */
+  if (range.startContainer === editable) {
+    const next: ChildNode | undefined = editable.childNodes[range.startOffset];
+    const tag: string = tagOf(next);
+    const first: Element | null =
+      tag === "ul" || tag === "ol" ? (next as Element).firstElementChild : null;
+    return first && tagOf(first) === "li" && holdsNothing(first)
+      ? (first as HTMLElement)
+      : null;
+  }
+  let current: Node | null = range.startContainer;
+  while (current && current !== editable) {
+    const tag: string = tagOf(current);
+    if (tag === "li") {
+      return current as HTMLElement;
+    }
+    if (tag === "pre" || tag === "blockquote" || tag === "td" || tag === "th") {
+      return null;
+    }
+    current = current.parentNode;
+  }
+  return null;
+};
+
+/*
+ * Puts `items`, the items of a list inserted at the caret, into the list of
+ * `item`, the list item the caret is in: after what `item` holds before the
+ * caret, and before a new item holding what came after it. Kept in the item
+ * instead -- as a code block inserted into one is -- they were a list nested
+ * in it: a list pasted into the empty item Enter leaves showed two bullets,
+ * "- - a", which is the double bullet of issue #4114, and a task added with
+ * the Task List button at the end of a task was a sub-task.
+ *
+ * A part left with nothing in it goes, so the empty item Enter or a list
+ * button makes is replaced by the items. When what followed the caret is
+ * the item's nested list, or another block of its own, that goes under the
+ * last of the items, so the text keeps its order. Returns the caret: at the
+ * end of what the last item holds.
+ */
+const insertListItemsAtCaret: (
+  item: HTMLElement,
+  range: Range,
+  items: Array<Element>,
+) => Range = (
+  item: HTMLElement,
+  range: Range,
+  items: Array<Element>,
+): Range => {
+  const list: Node = item.parentNode as Node;
+  const tail: Range = item.ownerDocument.createRange();
+  if (item.contains(range.startContainer)) {
+    tail.setStart(range.startContainer, range.startOffset);
+  } else {
+    tail.setStart(item, 0);
+  }
+  tail.setEnd(item, item.childNodes.length);
+  const rest: DocumentFragment = tail.extractContents();
+  const before: Node | null = item.nextSibling;
+  for (const pasted of items) {
+    list.insertBefore(pasted, before);
+  }
+  const last: Element = items[items.length - 1] as Element;
+  const caret: Range = caretAtEndOf(last);
+  if (!holdsNothing(rest)) {
+    const lead: ChildNode | undefined = Array.from(rest.childNodes).find(
+      (node: ChildNode): boolean => {
+        return !holdsNothing(node);
+      },
+    );
+    /*
+     * As when a line is split, into the editor first and then filled and
+     * tidied (MarkdownEditorHistory): the empty copies of formatting the
+     * caret was at the edge of go.
+     */
+    if (lead && isBlock(lead)) {
+      const first: ChildNode | null = rest.firstChild;
+      last.appendChild(rest);
+      tidySplitEdge(first, last, true);
+    } else {
+      const half: Node = item.cloneNode(false);
+      list.insertBefore(half, before);
+      half.appendChild(rest);
+      tidySplitEdge(half.firstChild, half, true);
+    }
+  }
+  tidySplitEdge(item.lastChild, item, false);
+  if (holdsNothing(item)) {
+    item.remove();
+  }
+  return caret;
+};
+
+/*
+ * Inserts `fragment` -- one or more blocks -- at the caret, splitting the
+ * line the caret is in rather than putting blocks inside it; the items of a
+ * list inserted in a list item join that item's list. Returns where the
+ * caret goes then -- at the end of what was inserted, so typing carries on
+ * from it, as it does after a paste the browser makes -- or null when there
+ * was nothing to insert.
+ */
+export const insertBlocksAtCaret: (
+  editable: HTMLElement,
+  range: Range,
+  fragment: DocumentFragment,
+) => Range | null = (
+  editable: HTMLElement,
+  range: Range,
+  fragment: DocumentFragment,
+): Range | null => {
+  const last: Node | null = fragment.lastChild;
+  if (!last) {
+    return null;
+  }
+  const items: Array<Element> | null = listItemsOf(fragment);
+  const item: HTMLElement | null = items
+    ? listItemAtCaret(editable, range)
+    : null;
+  if (items && item) {
+    return insertListItemsAtCaret(item, range, items);
+  }
+  const point: InsertionPoint = blockInsertionPoint(editable, range);
+  point.parent.insertBefore(fragment, point.before);
+  return caretAtEndOf(last);
 };
 
 /*

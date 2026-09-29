@@ -413,15 +413,18 @@ describe("insertBlocksAtCaret", () => {
     expect(root.innerHTML).toBe("<p>a</p><hr><p>b</p>");
   });
 
-  it("returns the last node inserted, or null for nothing", () => {
+  it("returns a caret at the end of what it inserted, or null for nothing", () => {
     const root: HTMLDivElement = mountMarkdown("hello");
-    const inserted: Node | null = insertBlocksAtCaret(
+    const caret: Range | null = insertBlocksAtCaret(
       root,
       caretAt(root, "hello", 5),
       fragmentOf("<hr><p>last</p>"),
     );
 
-    expect((inserted as Element).outerHTML).toBe("<p>last</p>");
+    expect(root.innerHTML).toBe("<p>hello</p><hr><p>last</p>");
+    expect(caret?.collapsed).toBe(true);
+    expect(caret?.startContainer).toBe(root.lastElementChild?.firstChild);
+    expect(caret?.startOffset).toBe("last".length);
     expect(
       insertBlocksAtCaret(
         root,
@@ -429,6 +432,199 @@ describe("insertBlocksAtCaret", () => {
         document.createDocumentFragment(),
       ),
     ).toBeNull();
+  });
+});
+
+/*
+ * A list inserted in a list item -- pasted, or the Task List button's task
+ * -- joins that item's list. Kept inside the item, as a code block inserted
+ * there is, it was a list nested in it: pasted into the empty item Enter
+ * leaves, it showed two bullets ("- - a"), the double bullet of issue #4114.
+ */
+describe("insertBlocksAtCaret, a list in a list item", () => {
+  const LIST: string = "<ul><li>a</li><li>b</li></ul>";
+
+  it("puts a list inserted into an empty item in that item's place", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li>first</li><li><br></li></ul>",
+    );
+    const empty: Element = root.querySelectorAll("li")[1] as Element;
+
+    const caret: Range | null = insertBlocksAtCaret(
+      root,
+      caretOn(empty, 0),
+      fragmentOf(LIST),
+    );
+
+    expect(root.innerHTML).toBe("<ul><li>first</li><li>a</li><li>b</li></ul>");
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- first\n- a\n- b");
+    expect(caretText(caret as Range)).toBe("b");
+    expect(caret?.startContainer.parentElement).toBe(
+      root.querySelector("li:last-child"),
+    );
+  });
+
+  it("puts a list inserted at the end of an item after it", () => {
+    const root: HTMLDivElement = mountMarkdown("- item one\n- item two");
+
+    insertBlocksAtCaret(root, caretAt(root, "item one", 8), fragmentOf(LIST));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- item one\n- a\n- b\n- item two",
+    );
+  });
+
+  it("splits the item a list is inserted into the middle of", () => {
+    const root: HTMLDivElement = mountMarkdown("- item one\n- item two");
+
+    insertBlocksAtCaret(root, caretAt(root, "one", 0), fragmentOf(LIST));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- item\n- a\n- b\n- one\n- item two",
+    );
+  });
+
+  it("puts a list inserted at the start of an item before it", () => {
+    const root: HTMLDivElement = mountMarkdown("- item one\n- item two");
+
+    insertBlocksAtCaret(root, caretAt(root, "item one", 0), fragmentOf(LIST));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- a\n- b\n- item one\n- item two",
+    );
+  });
+
+  /*
+   * What the item held after the caret -- its own nested list -- goes under
+   * the last item inserted, so the text keeps its order. Left where it was,
+   * the item it stayed in held nothing else: "- - child".
+   */
+  it("keeps the nested list of the item after the items inserted at its end", () => {
+    const root: HTMLDivElement = mountMarkdown("- parent\n  - child\n- next");
+
+    const caret: Range | null = insertBlocksAtCaret(
+      root,
+      caretAt(root, "parent", 6),
+      fragmentOf(LIST),
+    );
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- parent\n- a\n- b\n  - child\n- next",
+    );
+    expect(caretText(caret as Range)).toBe("b");
+  });
+
+  it("puts a list inserted at the end of a nested item beside that item", () => {
+    const root: HTMLDivElement = mountMarkdown("- parent\n  - child\n- next");
+
+    insertBlocksAtCaret(root, caretAt(root, "child", 5), fragmentOf(LIST));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- parent\n  - child\n  - a\n  - b\n- next",
+    );
+  });
+
+  it("keeps a nested list inserted nested under its own item", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li>item one</li><li><br></li></ul>",
+    );
+    const empty: Element = root.querySelectorAll("li")[1] as Element;
+
+    const caret: Range | null = insertBlocksAtCaret(
+      root,
+      caretOn(empty, 0),
+      fragmentOf(markdownToHtml("- a\n  - a1\n- b")),
+    );
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- item one\n- a\n  - a1\n- b");
+    expect(caretText(caret as Range)).toBe("b");
+  });
+
+  it("numbers the items of a list inserted into a numbered one", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ol><li>first</li><li><br></li></ol>",
+    );
+    const empty: Element = root.querySelectorAll("li")[1] as Element;
+
+    insertBlocksAtCaret(root, caretOn(empty, 0), fragmentOf(LIST));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("1. first\n2. a\n3. b");
+  });
+
+  // The Task List button, at the end of a task: the next task, not a sub-task.
+  it("puts the Task List button's task beside the task the caret ends", () => {
+    const root: HTMLDivElement = mountMarkdown("- [ ] task one");
+
+    const caret: Range | null = insertBlocksAtCaret(
+      root,
+      caretAt(root, "task one", 8),
+      fragmentOf(
+        '<ul class="task-list"><li class="task-list-item"><input type="checkbox" disabled> Task</li></ul>',
+      ),
+    );
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe("- [ ] task one\n- [ ] Task");
+    expect(caretText(caret as Range)).toBe(" Task");
+  });
+
+  /*
+   * Chromium leaves the selection on the editor, just before the list, once
+   * the Bullet List button has made one in the empty editor.
+   */
+  it("puts a list inserted just before an empty list in its first item's place", () => {
+    const root: HTMLDivElement = mountHtml("<ul><li><br></li></ul>");
+
+    insertBlocksAtCaret(root, caretOn(root, 0), fragmentOf(LIST));
+
+    expect(root.innerHTML).toBe("<ul><li>a</li><li>b</li></ul>");
+  });
+
+  it("leaves no empty copy of a bold word at the end of the item", () => {
+    const root: HTMLDivElement = mountMarkdown("- run **this** now");
+
+    insertBlocksAtCaret(root, caretAt(root, "this", 4), fragmentOf(LIST));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- run **this**\n- a\n- b\n- now",
+    );
+  });
+
+  it("still keeps a code block inserted in an item inside that item", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li>item one</li><li><br></li></ul>",
+    );
+    const empty: Element = root.querySelectorAll("li")[1] as Element;
+
+    insertBlocksAtCaret(root, caretOn(empty, 0), fragmentOf(CODE_BLOCK));
+
+    expect(root.querySelector("li:last-child pre")).not.toBeNull();
+  });
+
+  it("still keeps a list inserted in a quote in an item inside that quote", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li>item<blockquote><p>quoted</p></blockquote></li></ul>",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "quoted", 6), fragmentOf(LIST));
+
+    expect(root.querySelector("blockquote ul")).not.toBeNull();
+    expect(root.querySelectorAll("ul > li")).toHaveLength(3);
+  });
+
+  // A list with other blocks is not only list items: it goes in as before.
+  it("inserts a list followed by a paragraph as it did", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li>item one</li><li><br></li></ul>",
+    );
+    const empty: Element = root.querySelectorAll("li")[1] as Element;
+
+    insertBlocksAtCaret(
+      root,
+      caretOn(empty, 0),
+      fragmentOf(`${LIST}<p>after</p>`),
+    );
+
+    expect(root.querySelector("li:last-child > p")?.textContent).toBe("after");
   });
 });
 

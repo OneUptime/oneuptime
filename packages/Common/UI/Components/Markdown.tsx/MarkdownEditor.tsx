@@ -26,7 +26,6 @@ import {
 import MarkdownEditorHistory from "./MarkdownEditorHistory";
 import { clipboardToMarkdown } from "./MarkdownPaste";
 import {
-  caretAtEndOf,
   deleteSelectionForInsert,
   insertBlocksAtCaret,
   isCaretOnEmptyLine,
@@ -110,6 +109,12 @@ const RE_LINE_BREAKS: RegExp = /\r\n?/g;
 const RE_SHOWN_CHARACTER: RegExp = /\S/;
 const RE_BLANKS_AT_END: RegExp = /[ \t]*$/;
 const RE_BLANKS_AT_START: RegExp = /^[ \t]*/;
+// A list item's line, up to its marker: its indentation is group 1.
+const RE_LIST_ITEM_LINE: RegExp = /^([ \t]*)(?:[-*+]|\d{1,9}[.)])(?=[ \t]|$)/;
+// A list item's line holding nothing but its marker (and a task's box).
+const RE_BARE_LIST_MARKER_LINE: RegExp =
+  /^[ \t]*(?:[-*+]|\d{1,9}[.)])(?:[ \t]+\[[ xX]\])?[ \t]*$/;
+const RE_STARTS_WITH_LIST_ITEM: RegExp = /^(?:[-*+]|\d{1,9}[.)])[ \t]/;
 
 /*
  * The inside of `html` when it is exactly one paragraph -- which is what
@@ -167,6 +172,30 @@ const onLinesOfItsOwn: (
   const spacesAfter: number = textAfter
     ? (after.match(RE_BLANKS_AT_START)?.[0] || "").length
     : 0;
+  const itemLine: RegExpMatchArray | null = before.match(RE_LIST_ITEM_LINE);
+  if (itemLine && RE_STARTS_WITH_LIST_ITEM.test(markdown)) {
+    /*
+     * A list pasted on the line of a list item joins that item's list, as
+     * in the visual editor: its items go on the lines after the item, at
+     * its indentation -- or in its place when the caret sits after nothing
+     * but its marker, a "- " typed to start the list. After a blank line
+     * they were a list of their own; after the bare marker, a list nested
+     * in an empty item: "- - a", two bullets.
+     */
+    const indent: string = itemLine[1] || "";
+    const items: string = markdown
+      .split("\n")
+      .map((line: string): string => {
+        return line ? `${indent}${line}` : line;
+      })
+      .join("\n");
+    const bare: boolean = RE_BARE_LIST_MARKER_LINE.test(before);
+    textarea.setSelectionRange(
+      bare ? lineStart : start - spacesBefore,
+      end + spacesAfter,
+    );
+    return `${bare ? "" : "\n"}${items}${textAfter ? "\n\n" : ""}`;
+  }
   textarea.setSelectionRange(start - spacesBefore, end + spacesAfter);
   return `${textBefore ? "\n\n" : ""}${markdown}${textAfter ? "\n\n" : ""}`;
 };
@@ -574,14 +603,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           caret.collapse(true);
         }
       } else {
-        const lastNode: Node | null = insertBlocksAtCaret(
-          editable,
-          range,
-          fragment,
-        );
-        if (lastNode) {
-          caret = caretAtEndOf(lastNode);
-        }
+        caret = insertBlocksAtCaret(editable, range, fragment);
       }
       if (caret) {
         selection.removeAllRanges();
