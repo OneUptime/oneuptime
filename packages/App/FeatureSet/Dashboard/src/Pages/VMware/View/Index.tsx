@@ -567,12 +567,21 @@ const VMwareVCenterOverview: FunctionComponent<
    * / datastore / VM identity rides the `resource.vcenter.*` attributes
    * the vcenter receiver stamps on each resource.
    *
-   * A chart zoom, its reset, the picker and the auto-refresh timer can each
-   * start a load while another is in flight; only the most recently started
-   * one may commit, or a slow response for the window the reader just left
-   * would repaint the charts and tiles with it.
+   * A chart zoom, its reset, the picker and Refresh can each start a load
+   * while another is in flight; only the most recently started one may
+   * commit, or a slow response for the window the reader just left would
+   * repaint the charts and tiles with it.
    */
   const goldenLoadSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest golden load is still running. The auto-refresh
+   * timer skips the golden load then (the inventory and details still
+   * refresh) instead of superseding it with one for the same window: were
+   * every load to outlast the interval, none would ever land, and the tiles
+   * and charts would sit on skeletons with Refresh spinning.
+   */
+  const goldenLoadInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const loadGoldenMetrics: (vcenterName: string) => Promise<void> = async (
     vcenterName: string,
@@ -582,6 +591,7 @@ const VMwareVCenterOverview: FunctionComponent<
       return seq !== goldenLoadSeqRef.current;
     };
 
+    goldenLoadInFlightRef.current = true;
     setIsRefreshing(true);
     setGoldenError("");
     try {
@@ -1037,10 +1047,14 @@ const VMwareVCenterOverview: FunctionComponent<
         setGoldenError(API.getFriendlyMessage(err));
       }
     } finally {
-      // A superseded load leaves the spinner to the load that replaced it.
+      /*
+       * A superseded load leaves the spinner, and the timer, to the load
+       * that replaced it.
+       */
       if (!isStale()) {
         setIsRefreshing(false);
         setIsGoldenLoading(false);
+        goldenLoadInFlightRef.current = false;
       }
     }
   };
@@ -1120,7 +1134,10 @@ const VMwareVCenterOverview: FunctionComponent<
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
       if (vcenter?.name) {
-        void loadGoldenMetricsRef.current(vcenter.name);
+        // Let a golden load that is still running land.
+        if (!goldenLoadInFlightRef.current) {
+          void loadGoldenMetricsRef.current(vcenter.name);
+        }
         void loadInventory();
         setDetailsRefresher((prev: boolean) => {
           return !prev;

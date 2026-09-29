@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -68,6 +69,11 @@ const ServerlessFunctionOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
+  // Bumped by a refresh; the span metrics reload when it changes.
+  const [metricsRefreshCount, setMetricsRefreshCount] = useState<number>(0);
+  // Set while the span metrics for the current window are still loading.
+  const metricsInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -142,9 +148,17 @@ const ServerlessFunctionOverview: FunctionComponent<
     });
   }, []);
 
+  /*
+   * The metrics follow the function's identity, not the model object:
+   * fetchModel stores a new object on every refresh, and an effect keyed on
+   * it re-ran on every tick, cancelling a load still running for the same
+   * window. A refresh reloads them through metricsRefreshCount instead.
+   */
+  const functionIdentifier: string =
+    (serverlessFunction?.functionIdentifier as string | undefined) || "";
+
   useEffect(() => {
-    const fn: ServerlessFunction | null = serverlessFunction;
-    if (!fn?.functionIdentifier) {
+    if (!functionIdentifier) {
       return;
     }
     setMetricsLoading(true);
@@ -155,15 +169,15 @@ const ServerlessFunctionOverview: FunctionComponent<
     setChartWindow({ start, end });
 
     /*
-     * Staleness guard: a chart zoom, its reset, the picker and the
-     * auto-refresh can each start a fetch while another is in flight. A
-     * slow response for the window the reader just left must not land on
-     * the charts after the newer one (a double-click right after a drag is
-     * exactly that race).
+     * Staleness guard: a chart zoom, its reset, the picker and Refresh can
+     * each start a fetch while another is in flight. A slow response for
+     * the window the reader just left must not land on the charts after the
+     * newer one (a double-click right after a drag is exactly that race).
      */
     let ignore: boolean = false;
+    metricsInFlightRef.current = true;
     fetchSpanMetrics({
-      attributes: { "resource.faas.name": fn.functionIdentifier as string },
+      attributes: { "resource.faas.name": functionIdentifier },
       start,
       end,
     })
@@ -171,6 +185,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         if (ignore) {
           return;
         }
+        metricsInFlightRef.current = false;
         setMetrics(m);
         setMetricsLoading(false);
       })
@@ -178,18 +193,39 @@ const ServerlessFunctionOverview: FunctionComponent<
         if (ignore) {
           return;
         }
+        metricsInFlightRef.current = false;
         setMetricsLoading(false);
       });
 
     return () => {
       ignore = true;
     };
-  }, [serverlessFunction, timeRange]);
+  }, [functionIdentifier, timeRange, metricsRefreshCount]);
+
+  /*
+   * A refresh reloads the model and the span metrics. The auto-refresh tick
+   * lets a metrics load that is still running land instead of replacing it
+   * with one for the same window: when the span aggregates outlast the
+   * interval, the tiles and charts would otherwise never load.
+   */
+  const refresh: (options: { isAutoRefresh: boolean }) => void = (options: {
+    isAutoRefresh: boolean;
+  }): void => {
+    fetchModel(false).catch(() => {});
+
+    if (options.isAutoRefresh && metricsInFlightRef.current) {
+      return;
+    }
+
+    setMetricsRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "serverless-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh({ isAutoRefresh: true });
     },
   });
 
@@ -367,7 +403,7 @@ const ServerlessFunctionOverview: FunctionComponent<
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              fetchModel(false).catch(() => {});
+              refresh({ isAutoRefresh: false });
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}

@@ -253,11 +253,19 @@ const HostSystemdUnitView: FunctionComponent<
     });
 
   /*
-   * Manual refresh, the auto-refresh timer, and time-range changes can
-   * overlap in flight; only the most recently started fetch may commit
+   * Manual refresh and time-range changes (a zoom, its reset, the picker)
+   * can overlap in flight; only the most recently started fetch may commit
    * state, or a slow stale response would overwrite newer data.
    */
   const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its tick then instead of superseding that fetch with one for the
+   * same window: were every fetch to outlast the interval, none would ever
+   * land, and the page would sit on its loader with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     const seq: number = ++fetchSeqRef.current;
@@ -265,6 +273,7 @@ const HostSystemdUnitView: FunctionComponent<
       return seq !== fetchSeqRef.current;
     };
 
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setError("");
     try {
@@ -374,6 +383,11 @@ const HostSystemdUnitView: FunctionComponent<
         return;
       }
       setError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
     }
     if (isStale()) {
       return;
@@ -402,6 +416,10 @@ const HostSystemdUnitView: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (fetchInFlightRef.current) {
+        return;
+      }
       fetchDataRef.current().catch((err: Error) => {
         setError(API.getFriendlyMessage(err));
       });

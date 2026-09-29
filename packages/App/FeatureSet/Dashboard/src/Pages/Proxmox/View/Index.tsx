@@ -669,12 +669,21 @@ const ProxmoxClusterOverview: FunctionComponent<
    * the `id` label prefix client-side (works with or without the
    * agent's pve.scope transform).
    *
-   * A chart zoom, its reset, the picker and the auto-refresh timer can each
-   * start a load while another is in flight; only the most recently started
-   * one may commit, or a slow response for the window the reader just left
-   * would repaint the charts and tiles with it.
+   * A chart zoom, its reset, the picker and Refresh can each start a load
+   * while another is in flight; only the most recently started one may
+   * commit, or a slow response for the window the reader just left would
+   * repaint the charts and tiles with it.
    */
   const goldenLoadSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest golden load is still running. The auto-refresh
+   * timer skips the golden load then (the inventory, replication and
+   * details still refresh) instead of superseding it with one for the same
+   * window: were every load to outlast the interval, none would ever land,
+   * and the tiles and charts would sit on skeletons with Refresh spinning.
+   */
+  const goldenLoadInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const loadGoldenMetrics: (clusterName: string) => Promise<void> = async (
     clusterName: string,
@@ -684,6 +693,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       return seq !== goldenLoadSeqRef.current;
     };
 
+    goldenLoadInFlightRef.current = true;
     setIsRefreshing(true);
     setGoldenError("");
     try {
@@ -1061,10 +1071,14 @@ const ProxmoxClusterOverview: FunctionComponent<
         setGoldenError(API.getFriendlyMessage(err));
       }
     } finally {
-      // A superseded load leaves the spinner to the load that replaced it.
+      /*
+       * A superseded load leaves the spinner, and the timer, to the load
+       * that replaced it.
+       */
       if (!isStale()) {
         setIsRefreshing(false);
         setIsGoldenLoading(false);
+        goldenLoadInFlightRef.current = false;
       }
     }
   };
@@ -1171,7 +1185,10 @@ const ProxmoxClusterOverview: FunctionComponent<
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
       if (cluster?.name) {
-        void loadGoldenMetricsRef.current(cluster.name);
+        // Let a golden load that is still running land.
+        if (!goldenLoadInFlightRef.current) {
+          void loadGoldenMetricsRef.current(cluster.name);
+        }
         void loadInventory();
         void loadReplication(cluster.name);
         setDetailsRefresher((prev: boolean) => {
