@@ -466,10 +466,14 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
   /*
    * Recording an exception does not change a span's status, so an Unset span
    * can carry exceptions. Name the status plainly then: "no error" would
-   * contradict the exceptions listed under it.
+   * contradict the exceptions listed under it. The list row's hasException
+   * answers before the full span loads (and if that fetch fails).
    */
-  const statusLabel: string =
-    exceptionMessages.length > 0 ? status.label : status.displayLabel;
+  const hasExceptions: boolean =
+    span.hasException === true || exceptionMessages.length > 0;
+  const statusLabel: string = hasExceptions
+    ? status.label
+    : status.displayLabel;
 
   // Route to the full trace, highlighting this span via `?spanId=`.
   const fullTraceRoute: Route | undefined = useMemo(() => {

@@ -637,8 +637,8 @@ const TRACE_ANALYTICS_STATUS_KEY: string = "statusCode";
 
 /*
  * The color for one analytics series or top-list row when the split is by
- * span status alone: each status keeps its own color (Error red, Ok and Unset
- * green) instead of the palette color its position hands it, which could
+ * span status alone: each status keeps its own color (Error red, Unset green,
+ * Ok cyan) instead of the palette color its position hands it, which could
  * paint Error green. Undefined for anything else — another dimension, no
  * split, or status crossed with a second dimension (several series would
  * share one color) — and the caller colors by position as before.

@@ -1261,6 +1261,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       statusCode: true,
       statusMessage: true,
       kind: true,
+      // Lets a row and its panel name an Unset span with exceptions plainly.
+      hasException: true,
     } as Select<Span>;
   }, []);
 

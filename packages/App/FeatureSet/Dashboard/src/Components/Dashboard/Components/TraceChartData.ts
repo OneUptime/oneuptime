@@ -83,8 +83,8 @@ function isStatusSeries(
  * per-series pin wins first, then the effective palette by series position —
  * the lead `color` heads the palette, so a single-series chart with only a
  * lead color renders exactly that color. A status split is the exception to
- * the palette: each status keeps its own color (Error red, Ok and Unset
- * green), where going by position could paint Error green.
+ * the palette: each status keeps its own color (Error red, Unset green, Ok
+ * cyan), where going by position could paint Error green.
  */
 export function resolveTraceSeriesColor(
   seriesKey: string,

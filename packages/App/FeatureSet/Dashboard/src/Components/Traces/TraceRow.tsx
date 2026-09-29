@@ -105,6 +105,13 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
 
   const isError: boolean = status.status === SpanStatus.Error;
 
+  /*
+   * An exception does not change a span's status: an Unset span with one is
+   * named plainly, since "no error" would contradict it.
+   */
+  const statusName: string =
+    span.hasException === true ? status.label : status.displayLabel;
+
   const isExpanded: boolean = props.isExpanded === true;
 
   /*
@@ -130,7 +137,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
          */}
         <span
           role="img"
-          aria-label={`Status: ${status.displayLabel}`}
+          aria-label={`Status: ${statusName}`}
           title={`${status.label}: ${status.description}`}
           className={`relative flex h-2 w-2 flex-shrink-0 items-center justify-center`}
         >

@@ -486,6 +486,12 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
                   groupByKeys={[currentGroupBy]}
                   valueSuggestions={pinValueSuggestions}
                   loadingKeys={loadingValueKeys}
+                  description={
+                    isStatusSplit
+                      ? "Pin a color to a status value. Unpinned statuses keep their own color."
+                      : undefined
+                  }
+                  offerEmptyGroupValue={!isStatusSplit}
                   value={args.colorsByGroup || {}}
                   onChange={(colorsByGroup: Record<string, string>): void => {
                     writeArgs({
