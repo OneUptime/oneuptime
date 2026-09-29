@@ -383,6 +383,7 @@ describe("the public incident form routes over HTTP", () => {
   let incidentCreate: MockedFn;
   let getPublicForm: MockedFn;
   let submitPublicForm: MockedFn;
+  let onPlan: MockedFn;
 
   const readPath: (shareKey: string) => string = (shareKey: string) => {
     return `/api/incident-form/public/${shareKey}`;
@@ -437,6 +438,18 @@ describe("the public incident form routes over HTTP", () => {
 
     jest.spyOn(IncidentCustomFieldService, "findBy").mockResolvedValue([]);
     jest.spyOn(IncidentSeverityService, "findBy").mockResolvedValue([]);
+
+    /*
+     * The plan check reads the project's subscription, which this suite has
+     * no database for. Left real, it would pass only where billing is off:
+     * CI's Common job runs with BILLING_ENABLED=true, the read fails, the
+     * check fails closed, and every form here would answer "not available".
+     * The check itself is pinned in IncidentFormPublicForm.test.ts; the
+     * off-plan test below turns it the other way.
+     */
+    onPlan = jest
+      .spyOn(IncidentFormService, "isProjectOnPlan")
+      .mockResolvedValue(true as never) as unknown as MockedFn;
 
     incidentCreate = jest
       .spyOn(IncidentService, "create")
@@ -500,6 +513,10 @@ describe("the public incident form routes over HTTP", () => {
         "no-store, no-cache, must-revalidate",
       );
       expect(result.headers["pragma"]).toBe("no-cache");
+
+      // The plan gate stays on the path; only its database read is stubbed.
+      expect(onPlan).toHaveBeenCalledTimes(1);
+      expect(String(onPlan.mock.calls[0]![0])).toBe(PROJECT_ID.toString());
     });
 
     it("declares the incident and answers with its number and the success message", async () => {
