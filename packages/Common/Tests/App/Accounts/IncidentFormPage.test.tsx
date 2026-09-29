@@ -25,6 +25,7 @@ import {
   within,
 } from "@testing-library/react";
 import axios from "axios";
+import { SpyInstance } from "jest-mock";
 import React from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -291,9 +292,9 @@ const MINIMAL_FORM: PublicIncidentForm = {
 
 let server: FakeAxiosServer;
 
-let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
+let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
-let logoutSpy: jest.SpiedFunction<typeof User.logout>;
+let logoutSpy: SpyInstance<typeof User.logout>;
 
 type SentRequestsFunction = () => Array<string>;
 
