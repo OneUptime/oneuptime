@@ -18,6 +18,7 @@ import {
 } from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Navigation from "../../../UI/Utils/Navigation";
 import { JSONObject } from "../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
@@ -840,6 +841,35 @@ describe("RecordingHealthDashboardView storage panel: Set up alerts", () => {
       changeBudget.compareDocumentPosition(setUpAlerts) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  /*
+   * The Recommendations page is tall; opened at the Health page's scroll
+   * position it lands past its search box and status tiles, which are what
+   * the link sets up. The side menu starts every page at the top the same way.
+   */
+  it("opens its page at the top, like a side menu link, not at the panel's scroll position", () => {
+    renderView(makeSnapshot(makeStatus()));
+
+    const scrollTo: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(window, "scrollTo")
+      .mockImplementation((): void => {});
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    try {
+      fireEvent.click(budgetAlertsAnchor());
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(String(navigate.mock.calls[0]![0])).toContain(
+        `/rum/${APP_ID}/recommendations?search=budget&status=All`,
+      );
+    } finally {
+      scrollTo.mockRestore();
+      navigate.mockRestore();
+    }
   });
 
   it("an application that has never recorded gets no link, and keeps Change budget", () => {

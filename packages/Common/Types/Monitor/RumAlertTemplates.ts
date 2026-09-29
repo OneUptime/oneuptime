@@ -494,9 +494,10 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
  *     wait for every point to cross. Recovery reduces the same way, so it
  *     holds until the last point at or over the threshold has left the
  *     window, 10-15 minutes after the value falls. Max at the query is the
- *     aggregation the metric catalog registers for these series: the one that
- *     stays right wherever the project's value appears once per application,
- *     which Sum would multiply.
+ *     aggregation SessionReplayBudgetMetricTypeUtil.getAggregationType names
+ *     for these series (and the docs and the catalog descriptions tell anyone
+ *     charting them to use): the one that stays right wherever the project's
+ *     value appears once per application, which Sum would multiply.
  *
  *   - The daily limit belongs to the PROJECT. The sweep posts the project's
  *     value under every application that records, identical on each, so the

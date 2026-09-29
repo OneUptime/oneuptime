@@ -171,6 +171,15 @@ function PanelLink(props: {
   return (
     <Link
       to={props.to}
+      /*
+       * Every panel link opens another page of the product in place, like a
+       * side menu link, so it starts that page at the top the way the side
+       * menu does - not at this panel's scroll position, which lands a tall
+       * page (Recommendations) scrolled past its search box and filters.
+       */
+      onClick={() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }}
       className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800"
     >
       <span data-testid={props.dataTestId}>{props.label}</span>

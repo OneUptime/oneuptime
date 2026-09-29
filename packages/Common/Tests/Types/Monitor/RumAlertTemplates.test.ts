@@ -732,7 +732,7 @@ describe("RumAlertTemplates - session replay storage budget", () => {
    * charts it reads a different number from the one on screen.
    */
   test.each(BUDGET_CASES)(
-    "$id reads the series in the unit and aggregation the metric catalog registers",
+    "$id reads the series in the unit the metric catalog registers and the aggregation it names",
     (item: BudgetCase) => {
       const step: MonitorStep = getTemplate(item.id).getMonitorStep(
         buildArgs(),

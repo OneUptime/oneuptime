@@ -1094,7 +1094,7 @@ describe("Session replay storage budget alerts docs", (): void => {
         }
       }
 
-      // Max is also what the catalog registers for every series.
+      // Max is also the aggregation the catalog util names for every series.
       for (const metricType of ALL_METRICS) {
         expect(
           SessionReplayBudgetMetricTypeUtil.getAggregationType(metricType),
