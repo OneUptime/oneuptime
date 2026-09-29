@@ -98,8 +98,19 @@ interface InlineToken {
   html: string;
 }
 
-const renderInline: (raw: string) => string = (raw: string): string => {
-  const tokens: Array<InlineToken> = [];
+/*
+ * `tokens` is shared with the calls this one makes for a link label or the
+ * inside of an emphasis: that text can already hold placeholders stashed by
+ * the outer call -- the inline code in "[**a** `b`](url)", the italic in
+ * "~~*c*~~" -- and they are numbered in the outer call's list. A fresh list
+ * per call resolved them against the wrong entries, so the label repeated
+ * "a" instead of showing `b` and the strikethrough came back empty; and the
+ * next save wrote that loss into the document.
+ */
+const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
+  raw: string,
+  tokens: Array<InlineToken> = [],
+): string => {
   const stash: (html: string) => string = (html: string): string => {
     tokens.push({ html });
     return `${PLACEHOLDER_OPEN}${tokens.length - 1}${PLACEHOLDER_CLOSE}`;
@@ -137,36 +148,36 @@ const renderInline: (raw: string) => string = (raw: string): string => {
     (_m: string, label: string, url: string, title?: string): string => {
       const titleAttr: string = title ? ` title="${escapeAttr(title)}"` : "";
       return stash(
-        `<a href="${escapeAttr(url)}"${titleAttr}>${renderInline(label)}</a>`,
+        `<a href="${escapeAttr(url)}"${titleAttr}>${renderInline(label, tokens)}</a>`,
       );
     },
   );
 
   // Bold (** or __). Run before italic so single-star isn't consumed first.
   s = s.replace(/\*\*([\s\S]+?)\*\*/g, (_m: string, inner: string): string => {
-    return stash(`<strong>${renderInline(inner)}</strong>`);
+    return stash(`<strong>${renderInline(inner, tokens)}</strong>`);
   });
   s = s.replace(/__([\s\S]+?)__/g, (_m: string, inner: string): string => {
-    return stash(`<strong>${renderInline(inner)}</strong>`);
+    return stash(`<strong>${renderInline(inner, tokens)}</strong>`);
   });
 
   // Italic (* or _).
   s = s.replace(
     /(^|[^*])\*([^*\n][^*\n]*?)\*(?!\*)/g,
     (_m: string, prefix: string, inner: string): string => {
-      return `${prefix}${stash(`<em>${renderInline(inner)}</em>`)}`;
+      return `${prefix}${stash(`<em>${renderInline(inner, tokens)}</em>`)}`;
     },
   );
   s = s.replace(
     /(^|[^_])_([^_\n][^_\n]*?)_(?!_)/g,
     (_m: string, prefix: string, inner: string): string => {
-      return `${prefix}${stash(`<em>${renderInline(inner)}</em>`)}`;
+      return `${prefix}${stash(`<em>${renderInline(inner, tokens)}</em>`)}`;
     },
   );
 
   // Strikethrough.
   s = s.replace(/~~([\s\S]+?)~~/g, (_m: string, inner: string): string => {
-    return stash(`<s>${renderInline(inner)}</s>`);
+    return stash(`<s>${renderInline(inner, tokens)}</s>`);
   });
 
   // Final pass: escape remaining literal text, restore stashed HTML.

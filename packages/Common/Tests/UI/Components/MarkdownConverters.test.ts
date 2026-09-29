@@ -149,6 +149,47 @@ describe("markdownToHtml", () => {
       );
     });
 
+    /*
+     * A link label or an emphasis is rendered by a nested call, and its text
+     * can already hold tokens the outer call stashed (inline code, a link,
+     * an image, an inner emphasis). Each call used to number tokens in a
+     * list of its own, so the nested call read those tokens from the wrong
+     * list: the label repeated "a" in place of `b`, and a struck-through
+     * italic came back empty -- which the next save wrote into the document.
+     */
+    it("keeps inline code inside a link label", () => {
+      expect(markdownToHtml("[**a** `b`](https://x.test)")).toBe(
+        '<p><a href="https://x.test"><strong>a</strong> <code>b</code></a></p>',
+      );
+    });
+
+    it("keeps an italic inside a strikethrough", () => {
+      expect(markdownToHtml("~~*c*~~")).toBe("<p><s><em>c</em></s></p>");
+    });
+
+    it("keeps inline code, a link and an image inside bold", () => {
+      expect(markdownToHtml("**see `x`**")).toBe(
+        "<p><strong>see <code>x</code></strong></p>",
+      );
+      expect(markdownToHtml("**[a](https://x.test)**")).toBe(
+        '<p><strong><a href="https://x.test">a</a></strong></p>',
+      );
+      expect(markdownToHtml("*![g](https://x.test/g.png)*")).toBe(
+        '<p><em><img alt="g" src="https://x.test/g.png"></em></p>',
+      );
+    });
+
+    it("keeps every nested span through the editor's save loop", () => {
+      const markdown: string =
+        "**see `x`** and ~~*c*~~ and [**a** `b`](https://x.test)";
+
+      const once: string = htmlToMarkdown(markdownToHtml(markdown));
+      const twice: string = htmlToMarkdown(markdownToHtml(once));
+
+      expect(once).toBe(markdown);
+      expect(twice).toBe(markdown);
+    });
+
     it("round trips a line that mixes every stashed kind", () => {
       const markdown: string =
         "a **b** *c* ~~d~~ `e` [f](https://x.test) ![g](https://x.test/g.png) <u>h</u>";
