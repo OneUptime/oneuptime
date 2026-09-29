@@ -8,7 +8,10 @@ import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecisi
  * the step its time floors to. A page whose points are server-side buckets
  * has to put them on a step that matches the bucket size, or several buckets
  * share a slot (and get averaged) while others land on no slot at all (and
- * get dropped). These are the widths such a page picks from.
+ * get dropped). These are the widths such a page picks from: the Traffic
+ * page's bandwidth chart fits its step to the buckets the flow API chose,
+ * and the Topology service-call drawer asks the API for buckets one step of
+ * its chart wide.
  *
  * A day and coarser are left out on purpose: those steps follow the calendar
  * in the viewer's timezone (a month is 28 to 31 days), so no bucket size
@@ -56,7 +59,7 @@ export const getChartGridStepSeconds: (
 
 /**
  * The coarsest step no wider than `seconds`, or undefined when even one
- * second is too wide.
+ * second is too wide (or `seconds` is not a number).
  *
  * On that step, points `seconds` apart always floor to different slots, so
  * no two buckets are averaged into one; any finer step would only add empty
@@ -70,7 +73,8 @@ export const getCoarsestChartGridStepWithin: (
 ): XAxisPrecision | undefined => {
   let coarsest: XAxisPrecision | undefined = undefined;
   for (const step of FIXED_WIDTH_CHART_GRID_STEPS) {
-    if (step.seconds > seconds) {
+    // Asked this way round so a width that is not a number fits no step.
+    if (!(step.seconds <= seconds)) {
       break;
     }
     coarsest = step.precision;

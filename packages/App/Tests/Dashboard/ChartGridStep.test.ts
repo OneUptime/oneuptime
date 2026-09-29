@@ -10,26 +10,42 @@ import {
 
 /*
  * The chart library's fixed-width time-axis steps, which the network Traffic
- * chart (issue #4105 review, sdn-1) and the Topology service-call drawer
- * (sdn-3) match their server-side buckets to. The widths are measured on
- * the library's own walker, so a change to either side fails here rather
- * than as averaged or dropped points on a chart.
+ * chart (issue #4105 review, sdn-1) fits to its server-side buckets and the
+ * Topology service-call drawer (sdn-3) asks its server-side buckets to match.
+ * The widths are measured on the library's own walker, so a change on either
+ * side fails here rather than as averaged or dropped points on a chart.
  */
 
+const MINUTE_MS: number = 60 * 1000;
 const DAY_SECONDS: number = 24 * 60 * 60;
+const DAY_MS: number = DAY_SECONDS * 1000;
 
-// A UTC Sunday far from any clock change.
-const WALK_FROM: Date = new Date("2026-09-27T00:00:00.000Z");
+/*
+ * Mid-July: weeks from a daylight-saving change in every zone that has one,
+ * so the first steps of every walk are their plain width.
+ */
+const WALK_FROM: Date = new Date("2026-07-15T00:00:00.000Z");
 
-// How far apart XAxisUtil puts two consecutive slots of a precision.
+/*
+ * How far apart XAxisUtil puts the first two slots of a precision. Walked no
+ * further than it takes to reach a second slot: a day of one-second steps is
+ * 86,400 slots.
+ */
 function walkedStepSeconds(precision: XAxisPrecision): number {
-  const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
-    xAxisMin: WALK_FROM,
-    xAxisMax: new Date(WALK_FROM.getTime() + 70 * DAY_SECONDS * 1000),
-    precision: precision,
-  });
-  return (intervals[1]!.getTime() - intervals[0]!.getTime()) / 1000;
+  for (const spanMs of [MINUTE_MS, DAY_MS, 800 * DAY_MS]) {
+    const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
+      xAxisMin: WALK_FROM,
+      xAxisMax: new Date(WALK_FROM.getTime() + spanMs),
+      precision: precision,
+    });
+    if (intervals.length >= 2) {
+      return (intervals[1]!.getTime() - intervals[0]!.getTime()) / 1000;
+    }
+  }
+  throw new Error(`The walker never took a second ${precision} step`);
 }
+
+const ALL_PRECISIONS: Array<XAxisPrecision> = Object.values(XAxisPrecision);
 
 describe("FIXED_WIDTH_CHART_GRID_STEPS", () => {
   test("each step is exactly as wide as the chart walks it", () => {
@@ -47,15 +63,12 @@ describe("FIXED_WIDTH_CHART_GRID_STEPS", () => {
         return step.seconds;
       },
     );
-    expect(widths).toEqual(
-      [...widths].sort((first: number, second: number): number => {
-        return first - second;
-      }),
-    );
-    expect(new Set(widths).size).toBe(widths.length);
+    for (let index: number = 1; index < widths.length; index++) {
+      expect(widths[index]!).toBeGreaterThan(widths[index - 1]!);
+    }
   });
 
-  test("every step the chart has that is shorter than a day is listed; the rest follow the calendar", () => {
+  test("every step the chart walks in less than a day is listed, and no step of a day or more", () => {
     const listed: Set<XAxisPrecision> = new Set<XAxisPrecision>(
       FIXED_WIDTH_CHART_GRID_STEPS.map(
         (step: ChartGridStep): XAxisPrecision => {
@@ -63,22 +76,12 @@ describe("FIXED_WIDTH_CHART_GRID_STEPS", () => {
         },
       ),
     );
-    for (const precision of Object.values(XAxisPrecision)) {
-      if (listed.has(precision)) {
-        expect([precision, walkedStepSeconds(precision)]).not.toEqual([
-          precision,
-          expect.any(Number) as unknown as number,
-        ].map((value: unknown, index: number): unknown => {
-          return index === 1 && (value as number) >= DAY_SECONDS
-            ? value
-            : value;
-        }));
-        expect(walkedStepSeconds(precision)).toBeLessThan(DAY_SECONDS);
-      } else {
-        expect([precision, walkedStepSeconds(precision) >= DAY_SECONDS]).toEqual(
-          [precision, true],
-        );
-      }
+    expect(listed.size).toBe(FIXED_WIDTH_CHART_GRID_STEPS.length);
+    for (const precision of ALL_PRECISIONS) {
+      expect([precision, walkedStepSeconds(precision) < DAY_SECONDS]).toEqual([
+        precision,
+        listed.has(precision),
+      ]);
     }
   });
 });
@@ -116,6 +119,18 @@ describe("getChartGridStepSeconds", () => {
   ])("%s follows the calendar: no fixed width", (precision: XAxisPrecision) => {
     expect(getChartGridStepSeconds(precision)).toBeUndefined();
   });
+
+  test("agrees with the walker on every precision it gives a width for", () => {
+    for (const precision of ALL_PRECISIONS) {
+      const seconds: number | undefined = getChartGridStepSeconds(precision);
+      if (seconds !== undefined) {
+        expect([precision, seconds]).toEqual([
+          precision,
+          walkedStepSeconds(precision),
+        ]);
+      }
+    }
+  });
 });
 
 describe("getCoarsestChartGridStepWithin", () => {
@@ -147,12 +162,9 @@ describe("getCoarsestChartGridStepWithin", () => {
     // Wider than every fixed step: the widest of them.
     [DAY_SECONDS, XAxisPrecision.EVERY_TWELVE_HOURS],
     [31 * DAY_SECONDS, XAxisPrecision.EVERY_TWELVE_HOURS],
-  ])(
-    "%i seconds: %s",
-    (seconds: number, precision: XAxisPrecision) => {
-      expect(getCoarsestChartGridStepWithin(seconds)).toBe(precision);
-    },
-  );
+  ])("%i seconds: %s", (seconds: number, precision: XAxisPrecision) => {
+    expect(getCoarsestChartGridStepWithin(seconds)).toBe(precision);
+  });
 
   test.each([0, 0.5, -60, Number.NaN])(
     "%p seconds fits no step",
@@ -166,10 +178,11 @@ describe("getCoarsestChartGridStepWithin", () => {
       const precision: XAxisPrecision | undefined =
         getCoarsestChartGridStepWithin(seconds);
       const stepSeconds: number = getChartGridStepSeconds(precision!)!;
-      const next: ChartGridStep | undefined =
-        FIXED_WIDTH_CHART_GRID_STEPS.find((step: ChartGridStep): boolean => {
+      const next: ChartGridStep | undefined = FIXED_WIDTH_CHART_GRID_STEPS.find(
+        (step: ChartGridStep): boolean => {
           return step.seconds > stepSeconds;
-        });
+        },
+      );
       expect([seconds, stepSeconds <= seconds]).toEqual([seconds, true]);
       if (next) {
         expect([seconds, next.seconds > seconds]).toEqual([seconds, true]);
