@@ -52,6 +52,7 @@ import React, {
   ReactElement,
   ReactNode,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -118,6 +119,8 @@ const requireText: RequireTextFunction = (
 interface PageShellProps {
   // The form's name. Left out on a screen that has no form to name.
   heading?: string | undefined;
+  // For the page to move focus to the heading; see IncidentFormPage.
+  headingRef?: React.RefObject<HTMLHeadingElement> | undefined;
   // A card holding one short message rather than a form.
   isNarrow?: boolean | undefined;
   children: ReactNode;
@@ -138,7 +141,11 @@ const PageShell: FunctionComponent<PageShellProps> = (
           alt="OneUptime"
         />
         {props.heading ? (
-          <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 [overflow-wrap:anywhere] sm:mt-6 sm:text-3xl">
+          <h1
+            ref={props.headingRef}
+            tabIndex={props.headingRef ? -1 : undefined}
+            className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 [overflow-wrap:anywhere] focus:outline-none sm:mt-6 sm:text-3xl"
+          >
             {props.heading}
           </h1>
         ) : (
@@ -185,6 +192,37 @@ const IncidentFormPage: () => JSX.Element = () => {
   const [formInstance, setFormInstance] = useState<number>(0);
 
   const [captchaResetSignal, setCaptchaResetSignal] = useState<number>(0);
+
+  /*
+   * Where focus goes when the page swaps one view for another. The button
+   * that had it - Submit, "Submit another report", "Try again" - leaves with
+   * the view it was in, and focus would fall to <body>: a screen reader user
+   * would hear nothing of what replaced it - not even that the report went
+   * through, or its incident number.
+   */
+  const successHeadingRef: React.RefObject<HTMLHeadingElement> =
+    useRef<HTMLHeadingElement>(null);
+  const pageHeadingRef: React.RefObject<HTMLHeadingElement> =
+    useRef<HTMLHeadingElement>(null);
+  // Set by "Try again": the view that loads next takes focus on its heading.
+  const focusHeadingOnLoadRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const incidentNumberId: string = useId();
+
+  useEffect(() => {
+    if (result) {
+      successHeadingRef.current?.focus();
+    }
+  }, [result]);
+
+  useEffect(() => {
+    if (!focusHeadingOnLoadRef.current || (!form && !loadFailure)) {
+      return;
+    }
+
+    focusHeadingOnLoadRef.current = false;
+    pageHeadingRef.current?.focus();
+  }, [form, loadFailure]);
 
   /*
    * hCaptcha only where the server asks for it AND this install has a site
@@ -555,7 +593,11 @@ const IncidentFormPage: () => JSX.Element = () => {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <Icon icon={icon} className="h-6 w-6 text-gray-500" />
           </div>
-          <h1 className="mt-4 text-base font-medium leading-7 text-gray-900">
+          <h1
+            ref={pageHeadingRef}
+            tabIndex={-1}
+            className="mt-4 text-base font-medium leading-7 text-gray-900 focus:outline-none"
+          >
             {failure.message}
           </h1>
           {failure.retryAfter ? (
@@ -572,6 +614,7 @@ const IncidentFormPage: () => JSX.Element = () => {
                 className="md:!ml-0"
                 dataTestId="incident-form-try-again"
                 onClick={() => {
+                  focusHeadingOnLoadRef.current = true;
                   setLoadAttempt((attempt: number): number => {
                     return attempt + 1;
                   });
@@ -600,11 +643,20 @@ const IncidentFormPage: () => JSX.Element = () => {
               className="h-7 w-7 text-emerald-600"
             />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-gray-900">
+          {/* Read out with the incident number, when there is one. */}
+          <h2
+            ref={successHeadingRef}
+            tabIndex={-1}
+            aria-describedby={
+              result.incidentNumber ? incidentNumberId : undefined
+            }
+            className="mt-4 text-lg font-semibold text-gray-900 focus:outline-none"
+          >
             {t("incidentForm.successTitle")}
           </h2>
           {result.incidentNumber ? (
             <p
+              id={incidentNumberId}
               className="mt-2 text-sm text-gray-600"
               data-testid="incident-form-incident-number"
             >
@@ -648,7 +700,7 @@ const IncidentFormPage: () => JSX.Element = () => {
       : null;
 
   return (
-    <PageShell heading={form.name}>
+    <PageShell heading={form.name} headingRef={pageHeadingRef}>
       {form.description ? (
         <div
           className="mb-6 border-b border-gray-100 pb-6 text-sm text-gray-700"
@@ -666,7 +718,12 @@ const IncidentFormPage: () => JSX.Element = () => {
         initialValues={initialValues}
         showAsColumns={2}
         maxPrimaryButtonWidth={true}
-        disableAutofocus={true}
+        /*
+         * Not on arrival - the reporter reads what the form is for first -
+         * but the fresh form "Submit another report" opens starts at its
+         * first question.
+         */
+        disableAutofocus={formInstance === 0}
         isLoading={isSubmitting}
         submitButtonText={t("common.submit")}
         onSubmit={(values: FormValues<JSONObject>) => {

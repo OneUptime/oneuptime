@@ -1104,6 +1104,72 @@ describe("after the report is sent", () => {
     expect(screen.queryByTestId("incident-form-success-message")).toBeNull();
   });
 
+  /*
+   * The form, and the Submit button that had focus, are gone. Unless focus
+   * moves to what replaced them, it falls to <body> and a screen reader user
+   * hears nothing - not that the report went through, not its number.
+   */
+  test("focus moves to the thank-you heading, which is read out with the incident number", async () => {
+    serveSubmit({ status: 200, data: { incidentNumber: "INC-42" } });
+
+    await renderForm(MINIMAL_FORM);
+
+    // Nothing takes focus on arrival: the reporter reads the form first.
+    expect(document.body).toHaveFocus();
+
+    fillMinimalForm();
+    screen.getByRole("button", { name: "Submit" }).focus();
+    await submit();
+
+    const heading: HTMLElement = within(
+      screen.getByTestId("incident-form-success"),
+    ).getByRole("heading", { name: "Thank you — your report was submitted." });
+
+    expect(heading).toHaveFocus();
+    expect(heading).toHaveAccessibleDescription(
+      "Your report is incident INC-42.",
+    );
+  });
+
+  test("with no incident number, the heading still takes focus, with nothing read out after it", async () => {
+    serveSubmit({ status: 200, data: {} });
+
+    await renderForm(MINIMAL_FORM);
+
+    fillMinimalForm();
+    screen.getByRole("button", { name: "Submit" }).focus();
+    await submit();
+
+    const heading: HTMLElement = within(
+      screen.getByTestId("incident-form-success"),
+    ).getByRole("heading", { name: "Thank you — your report was submitted." });
+
+    expect(heading).toHaveFocus();
+    expect(heading).not.toHaveAttribute("aria-describedby");
+  });
+
+  test("another report starts with focus on its first question", async () => {
+    serveSubmit({ status: 200, data: { incidentNumber: "INC-42" } });
+
+    await renderForm(MINIMAL_FORM);
+
+    fillMinimalForm();
+    await submit();
+
+    const another: HTMLElement = screen.getByTestId(
+      "incident-form-submit-another",
+    );
+
+    another.focus();
+
+    await act(async () => {
+      fireEvent.click(another);
+    });
+    await flush();
+
+    expect(screen.getByTestId("incident-form-title")).toHaveFocus();
+  });
+
   test("another report starts from an empty form, without reading it again", async () => {
     serveSubmit({ status: 200, data: { incidentNumber: "INC-42" } });
 
@@ -1276,6 +1342,59 @@ describe("a form that cannot be opened says why, on the page", () => {
 
     expect(screen.getByTestId("incident-form-title")).toBeInTheDocument();
     expect(sentRequests()).toEqual([`GET ${FORM_URL}`, `GET ${FORM_URL}`]);
+  });
+
+  /*
+   * "Try again" leaves with the failure it was on, and whatever loads next
+   * starts at its heading - the form's name, or what went wrong this time -
+   * rather than leaving focus on <body>.
+   */
+  test("after Try again, focus is on the heading of the form that loaded", async () => {
+    serveForm({ status: 503, data: { message: "Unavailable" } });
+
+    await renderPage();
+
+    // A form that fails on arrival takes no focus: nothing had it.
+    expect(document.body).toHaveFocus();
+
+    serveForm({ status: 200, data: MINIMAL_FORM as unknown as JSONObject });
+
+    const tryAgain: HTMLElement = screen.getByTestId("incident-form-try-again");
+
+    tryAgain.focus();
+
+    await act(async () => {
+      fireEvent.click(tryAgain);
+    });
+    await flush();
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Minimal" }),
+    ).toHaveFocus();
+  });
+
+  test("after a Try again that fails again, focus is on the new failure", async () => {
+    serveForm({ status: 503, data: { message: "Unavailable" } });
+
+    await renderPage();
+
+    serveForm({ status: 429, data: { message: TOO_MANY_REQUESTS } });
+
+    const tryAgain: HTMLElement = screen.getByTestId("incident-form-try-again");
+
+    tryAgain.focus();
+
+    await act(async () => {
+      fireEvent.click(tryAgain);
+    });
+    await flush();
+
+    const heading: HTMLElement = within(
+      screen.getByTestId("incident-form-load-failure"),
+    ).getByRole("heading", { level: 1 });
+
+    expect(heading).toHaveTextContent(TOO_MANY_REQUESTS);
+    expect(heading).toHaveFocus();
   });
 
   test.each([
