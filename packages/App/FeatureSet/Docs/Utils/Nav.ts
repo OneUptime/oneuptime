@@ -450,6 +450,10 @@ const DocsNav: NavGroup[] = [
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },
+      {
+        title: "Incident Forms",
+        url: "/docs/incidents/forms",
+      },
     ],
   },
   {

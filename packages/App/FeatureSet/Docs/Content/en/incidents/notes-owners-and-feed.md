@@ -54,6 +54,8 @@ Each note shows who wrote it, its **Posted At**, the rendered Markdown with its 
 
 No **Posted At**, no subscriber checkbox — the note is stamped when it is created.
 
+Both kinds of note are written in the Markdown editor, which nests list items with **Indent** and **Outdent** — or Tab and Shift+Tab — and keeps the lists, links and formatting of what you paste from Word, Google Docs or another OneUptime page. See [Declaring an Incident](/docs/incidents/declaring-incidents#step-1-incident-details).
+
 ## Attachments on notes
 
 Both note types accept file attachments through an **Attachments** field, and both render an attachment list under the note body with a per-file **Download attachment** link.
