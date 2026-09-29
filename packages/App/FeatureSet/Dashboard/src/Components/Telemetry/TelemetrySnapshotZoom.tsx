@@ -8,7 +8,10 @@ import React, {
   useState,
 } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { JSONObject } from "Common/Types/JSON";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
@@ -23,11 +26,12 @@ import TelemetrySnapshotWindowAlert from "./TelemetrySnapshotWindowAlert";
  * Drag-to-zoom for the telemetry snapshot of an incident, an alert or an
  * episode (issue #4105). Everything in the snapshot card shows one window,
  * the one the monitor evaluated over: the primary signal and the companion
- * Logs, Traces, Metrics and Exceptions tabs. A drag on the primary metric
- * chart zooms the whole snapshot to the slice dragged out, so every tab
- * shows that slice, the ones opened afterwards included. A double-click on
- * the chart, or "Reset zoom" beside the snapshot badge on any tab, puts the
- * whole card back on the snapshot window.
+ * Logs, Traces, Metrics and Exceptions tabs. A drag on the primary signal's
+ * chart (the metric chart, or the volume histogram of a Logs, Traces or
+ * Exceptions explorer) zooms the whole snapshot to the slice dragged out,
+ * so every tab shows that slice, the ones opened afterwards included. A
+ * double-click on that chart, or "Reset zoom" beside the snapshot badge on
+ * any tab, puts the whole card back on the snapshot window.
  *
  * The host holds the zoom, not the chart. The card's tabs mount only the
  * one that is open, so a zoom kept inside the chart was gone the moment
@@ -46,7 +50,10 @@ export interface TelemetrySnapshotZoom {
   isZoomed: boolean;
   /*
    * The zoom itself, for the snapshot badge's "Reset zoom" (see
-   * TelemetrySnapshotBadge). Null when the snapshot stored no window.
+   * TelemetrySnapshotBadge), and to offer a Logs, Traces or Exceptions
+   * primary explorer through a TimeRangeZoomProvider: pinned to the window
+   * this zoom is over, the explorer follows it. Null when the snapshot
+   * stored no window.
    */
   zoom: TimeRangeZoom | null;
   /*
@@ -64,12 +71,28 @@ export interface TelemetrySnapshotZoom {
    * object whenever the snapshot is not zoomed.
    */
   metricViewData: MetricViewData | null;
+  /*
+   * A Logs, Traces or Exceptions snapshot's stored query, for the primary
+   * explorer, on the window shown: the window it carries (`time`, or a
+   * span's `startTime`) is the slice while the snapshot is zoomed. The
+   * explorer follows a new window by value, and follows the snapshot's
+   * zoom while on its window, so a drag on its histogram zooms the whole
+   * snapshot. The host's own object whenever the snapshot is not zoomed.
+   */
+  explorerQuery: TelemetryQuery["telemetryQuery"];
 }
 
 export interface UseTelemetrySnapshotZoomOptions {
   // The window the monitor evaluated over, as the host resolved it.
   snapshotWindow: InBetween<Date> | null | undefined;
   metricViewData?: MetricViewData | null | undefined;
+  /*
+   * What the monitor evaluated, and for a Logs, Traces or Exceptions
+   * snapshot its stored query: the explorer that shows it is pinned to the
+   * window shown through that query's own window field.
+   */
+  telemetryType?: TelemetryType | null | undefined;
+  explorerQuery?: TelemetryQuery["telemetryQuery"] | undefined;
   /*
    * The event the snapshot belongs to. The incident and alert pages stay
    * mounted while the reader moves to another event, and one evaluation of
@@ -204,6 +227,24 @@ const useTelemetrySnapshotZoom: UseTelemetrySnapshotZoomFunction = (
       };
     }, [hostMetricViewData, isZoomed, window]);
 
+  const hostExplorerQuery: TelemetryQuery["telemetryQuery"] =
+    options.explorerQuery || null;
+  // Where the query keeps its window: `time`, or a span's `startTime`.
+  const explorerWindowField: string | null =
+    TelemetryQueryTimeRange.getWindowFieldName(options.telemetryType);
+
+  const explorerQuery: TelemetryQuery["telemetryQuery"] =
+    useMemo((): TelemetryQuery["telemetryQuery"] => {
+      if (!hostExplorerQuery || !explorerWindowField || !isZoomed || !window) {
+        return hostExplorerQuery;
+      }
+
+      return {
+        ...(hostExplorerQuery as JSONObject),
+        [explorerWindowField]: window,
+      } as TelemetryQuery["telemetryQuery"];
+    }, [hostExplorerQuery, explorerWindowField, isZoomed, window]);
+
   return {
     window: window,
     isZoomed: isZoomed,
@@ -211,6 +252,7 @@ const useTelemetrySnapshotZoom: UseTelemetrySnapshotZoomFunction = (
     onTimeRangeSelect: hasWindow ? zoom.zoomToTimeRange : undefined,
     onTimeRangeReset: isZoomed ? zoom.resetZoom : undefined,
     metricViewData: metricViewData,
+    explorerQuery: explorerQuery,
   };
 };
 

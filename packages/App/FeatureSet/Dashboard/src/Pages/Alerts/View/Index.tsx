@@ -37,6 +37,7 @@ import React, {
 } from "react";
 import UserElement from "../../../Components/User/User";
 import Card from "Common/UI/Components/Card/Card";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -193,14 +194,17 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
   /*
-   * A drag on the snapshot's metric chart zooms the whole snapshot, every
-   * tab of it; see TelemetrySnapshotZoom. Held by the page, above the tabs,
-   * so it outlives a switch to another tab and back, and the background
-   * refresh (which re-reads an equal window) keeps it.
+   * A drag on the snapshot's primary chart (the metric chart, or a logs,
+   * traces or exceptions explorer's histogram) zooms the whole snapshot,
+   * every tab of it; see TelemetrySnapshotZoom. Held by the page, above the
+   * tabs, so it outlives a switch to another tab and back, and the
+   * background refresh (which re-reads an equal window) keeps it.
    */
   const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
     snapshotWindow: telemetrySnapshotWindow,
     metricViewData: telemetryQuery?.metricViewData,
+    telemetryType: telemetryQuery?.telemetryType,
+    explorerQuery: telemetryQuery?.telemetryQuery,
     subjectKey: modelIdString,
   });
 
@@ -833,14 +837,23 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           description={"Logs for this alert."}
                           rightElement={snapshotWindowAlert}
                         >
-                          <DashboardLogsViewer
-                            id="logs-preview"
-                            logQuery={
-                              telemetryQuery.telemetryQuery as Query<Log>
-                            }
-                            limit={10}
-                            noLogsMessage="No logs found"
-                          />
+                          {/*
+                           * On the window the snapshot shows and inside
+                           * its zoom, which the explorer follows: a drag
+                           * on the log volume chart zooms every tab, and a
+                           * double-click or the badge's Reset zoom
+                           * returns them all. See TelemetrySnapshotZoom.
+                           */}
+                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                            <DashboardLogsViewer
+                              id="logs-preview"
+                              logQuery={
+                                snapshotZoom.explorerQuery as Query<Log>
+                              }
+                              limit={10}
+                              noLogsMessage="No logs found"
+                            />
+                          </TimeRangeZoomProvider>
                         </Card>
                       </div>
                     )}
@@ -853,19 +866,26 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           description={"Spans for this alert."}
                           rightElement={snapshotWindowAlert}
                         >
-                          <TracesViewer
-                            spanQuery={
-                              telemetryQuery.telemetryQuery as Query<Span>
-                            }
-                            limit={10}
-                            /*
-                             * Pinned to the snapshot: this page owns the URL,
-                             * so the viewer neither reads a filter out of it
-                             * nor writes its own state back into it.
-                             */
-                            disableUrlSync={true}
-                            emptyMessage="No spans found"
-                          />
+                          {/*
+                           * On the window the snapshot shows and inside
+                           * its zoom, which the explorer follows; see the
+                           * logs above.
+                           */}
+                          <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                            <TracesViewer
+                              spanQuery={
+                                snapshotZoom.explorerQuery as Query<Span>
+                              }
+                              limit={10}
+                              /*
+                               * Pinned to the snapshot: this page owns the URL,
+                               * so the viewer neither reads a filter out of it
+                               * nor writes its own state back into it.
+                               */
+                              disableUrlSync={true}
+                              emptyMessage="No spans found"
+                            />
+                          </TimeRangeZoomProvider>
                         </Card>
                       </div>
                     )}
@@ -912,24 +932,31 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         description={"Exceptions for this alert."}
                         rightElement={snapshotWindowAlert}
                       >
-                        <ExceptionsViewer
-                          exceptionInstanceQuery={
-                            telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                          }
-                          /*
-                           * An event shows the exceptions it fired on,
-                           * whoever has since resolved them and whatever the
-                           * classifier made of them — the explorer's
-                           * "unresolved issues" defaults would hide exactly
-                           * those.
-                           */
-                          defaultStatus="all"
-                          defaultClassScope="all"
-                          limit={10}
-                          // Pinned to the snapshot; this page owns the URL.
-                          disableUrlSync={true}
-                          emptyMessage="No exceptions found"
-                        />
+                        {/*
+                         * On the window the snapshot shows and inside its
+                         * zoom, which the explorer follows; see the logs
+                         * above.
+                         */}
+                        <TimeRangeZoomProvider zoom={snapshotZoom.zoom}>
+                          <ExceptionsViewer
+                            exceptionInstanceQuery={
+                              snapshotZoom.explorerQuery as Query<ExceptionInstance>
+                            }
+                            /*
+                             * An event shows the exceptions it fired on,
+                             * whoever has since resolved them and whatever the
+                             * classifier made of them — the explorer's
+                             * "unresolved issues" defaults would hide exactly
+                             * those.
+                             */
+                            defaultStatus="all"
+                            defaultClassScope="all"
+                            limit={10}
+                            // Pinned to the snapshot; this page owns the URL.
+                            disableUrlSync={true}
+                            emptyMessage="No exceptions found"
+                          />
+                        </TimeRangeZoomProvider>
                       </Card>
                     )}
                 </Fragment>

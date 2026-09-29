@@ -346,7 +346,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
    * looking at. This keeps that window so a double-click on a chart, or
    * "Reset zoom" beside the picker, can hand it back. The analytics chart
    * shares the same zoom (see the provider below), so dragging across
-   * either one retimes the whole viewer, and either one zooms back out.
+   * either one retimes the whole viewer, and either one zooms back out. A
+   * viewer pinned to the window of a zoom offered around it (a telemetry
+   * snapshot's primary explorer) follows that zoom instead, so a drag here
+   * retimes everything that zoom does.
    */
   const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
@@ -1199,6 +1202,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       ? {
           timeRange: props.timeRange,
           onTimeRangeChange: viewerZoom.onTimeRangeChange,
+          /*
+           * A followed zoom's way back is shown by whoever offers it (the
+           * snapshot's, beside its badge): one Reset zoom per zoom.
+           */
+          showResetZoom: !viewerZoom.followsEnclosingZoom,
         }
       : {}),
     showKeyboardShortcuts,
@@ -1388,8 +1396,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   /*
    * The histogram, the analytics chart and the toolbar's "Reset zoom" all
    * work on this viewer's window, whatever page it sits in, so the viewer's
-   * zoom shadows any zoom offered around it. A host that cannot zoom (no
-   * select handler) leaves whatever surrounds the viewer in place.
+   * zoom shadows any zoom offered around it, unless that zoom is over this
+   * very window: the viewer then hands that zoom on (see
+   * useViewerTimeRangeZoom). A host that cannot zoom (no select handler)
+   * leaves whatever surrounds the viewer in place.
    */
   if (!viewerZoom.zoom) {
     return viewer;
