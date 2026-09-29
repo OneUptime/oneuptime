@@ -1440,6 +1440,11 @@ describe("readProxmoxNativeNodeStatus", () => {
   });
 });
 
+/*
+ * D is the silent nodes, L the reporterCount — the live nodes, every one
+ * of which reports (ProxmoxNativeNodeLiveness), so "reporters" below are
+ * simply the live nodes.
+ */
 describe("splitProxmoxSiblingInfoWeights", () => {
   const UNITS_PER_NODE: number = 65536; // 2^16
 
@@ -1570,11 +1575,12 @@ describe("splitProxmoxSiblingInfoWeights", () => {
 /*
  * Cluster Quorum at Risk is Σ pve_up ÷ Σ pve_node_info over every
  * pve.scope=node row of a minute, compared with <= 50 %. On a native push
- * each live node adds pve_up 1 and pve_node_info 1 per push, and each
- * eligible reporter's push adds the report: pve_up 0 and a weight per
- * silent node. The weights must keep L live nodes over D silent ones at
- * L ÷ (L + D), and L = D at exactly 50 % — whatever order ClickHouse adds
- * the rows in.
+ * each live node adds pve_up 1 and pve_node_info 1 per push, and — every
+ * live node being a reporter (ProxmoxNativeNodeLiveness: reporterCount is
+ * the live count L) — each of those pushes also adds the report: pve_up 0
+ * and a weight per silent node, D ÷ L in all. The weights must keep L live
+ * nodes over D silent ones at L ÷ (L + D), and L = D at exactly 50 % —
+ * whatever order ClickHouse adds the rows in.
  */
 describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
   type Random = () => number;
@@ -1632,11 +1638,11 @@ describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
   }
 
   /*
-   * `liveNodes` nodes, all of them eligible reporters, push every ~10 s
-   * (pvestatd sleeps 10 s after a pass that itself takes a moment) from
-   * a random phase, with jitter. A push is the node's own pve_up = 1 and
-   * pve_node_info = 1, plus its report: pve_up = 0 and the report's
-   * weight for every silent node.
+   * `liveNodes` nodes — every one of them reporting, as every live node
+   * does — push every ~10 s (pvestatd sleeps 10 s after a pass that
+   * itself takes a moment) from a random phase, with jitter. A push is
+   * the node's own pve_up = 1 and pve_node_info = 1, plus its report:
+   * pve_up = 0 and the report's weight for every silent node.
    */
   function simulateMinuteBuckets(data: {
     liveNodes: number;
@@ -1691,7 +1697,28 @@ describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
         return `${label}: a node pushed ${pushes} times in the minute`;
       }
     }
-    const percent: number = quorumPercent(data.bucket, data.random);
+    return ratioFailure({
+      label,
+      percent: quorumPercent(data.bucket, data.random),
+      live: data.live,
+      silent: data.silent,
+    });
+  }
+
+  /*
+   * A minute's Quorum at Risk percentage against the truth for L live
+   * nodes over D silent ones: at or below 50 % when L <= D (exactly 50
+   * when L = D, below when L < D), above when L > D, and L ÷ (L + D)
+   * within the 2^-16 rounding of the weights.
+   */
+  function ratioFailure(data: {
+    label: string;
+    percent: number;
+    live: number;
+    silent: number;
+  }): string | null {
+    const label: string = data.label;
+    const percent: number = data.percent;
     if (data.live <= data.silent && !(percent <= 50)) {
       return `${label}: ${percent} % does not fire (<= 50 %)`;
     }
@@ -1734,11 +1761,10 @@ describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
             random,
           })) {
             /*
-             * The claim is for a minute in which every live node pushed
-             * the same number of times. Every live node here is a
-             * reporter, so the other minutes hold too — each push adds
-             * its own 1 and its report's D ÷ L alike — and are checked
-             * as well.
+             * Every live node reports, so the claim is not limited to a
+             * minute in which every live node pushed the same number of
+             * times: each push adds its own 1 and its report's D ÷ L
+             * alike. Both kinds of minute are checked.
              */
             if (new Set(bucket.pushesPerNode).size === 1) {
               evenBuckets++;
@@ -1817,84 +1843,235 @@ describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
   });
 
   /*
-   * A minute in which every live node pushed `pushes` times: the first
-   * `reporters` of them carry the report, the others do not — nodes that
-   * are alive but not eligible reporters (yet): in their first two
-   * minutes of pushing, or pushing more than a minute apart.
+   * A minute of node-status pushes: live node i pushed pushesPerNode[i]
+   * times, each push its own pve_up = 1 and pve_node_info = 1 plus its
+   * report — pve_up = 0 and the report's weight for every silent node —
+   * except the first unreportedPerNode[i] of node i's pushes, which went
+   * through without a report.
    */
-  function evenMinute(data: {
-    reporters: number;
-    nonReporters: number;
+  function minuteOf(data: {
+    pushesPerNode: Array<number>;
+    unreportedPerNode: Array<number>;
     reportWeights: Array<number>;
-    pushes: number;
   }): MinuteBucket {
     const bucket: MinuteBucket = {
-      pushesPerNode: [],
+      pushesPerNode: [...data.pushesPerNode],
       upValues: [],
       infoValues: [],
     };
-    for (
-      let node: number = 0;
-      node < data.reporters + data.nonReporters;
-      node++
-    ) {
-      bucket.pushesPerNode.push(data.pushes);
-      for (let push: number = 0; push < data.pushes; push++) {
+    data.pushesPerNode.forEach((pushes: number, node: number) => {
+      const unreported: number = data.unreportedPerNode[node] ?? 0;
+      for (let push: number = 0; push < pushes; push++) {
         bucket.upValues.push(1);
         bucket.infoValues.push(1);
-        if (node < data.reporters) {
-          for (const weight of data.reportWeights) {
-            bucket.upValues.push(0);
-            bucket.infoValues.push(weight);
-          }
+        if (push < unreported) {
+          continue;
+        }
+        for (const weight of data.reportWeights) {
+          bucket.upValues.push(0);
+          bucket.infoValues.push(weight);
         }
       }
-    }
+    });
     return bucket;
   }
 
+  // Each live node's report weights: D ÷ L in all, L the live nodes.
+  function reportWeightsOf(silent: number, live: number): Array<number> {
+    return weightsOf(silent, live).map((w: SiblingWeight) => {
+      return w.weight;
+    });
+  }
+
   /*
-   * A round of pushes must add D to the denominator even when some live
-   * nodes do not report: the L reporters add L × W, so W must not fall
-   * short of D ÷ L. Rounding the split to the nearest 2^-16 unit does
-   * fall short when L does not divide D × 2^16 — 3 reporters and a
-   * fourth live node over 4 dead add 3.99998 a round, and half the
-   * cluster down reads 50.0001 %. Rounding up keeps the boundary.
+   * Every live node reports, and every report splits D ÷ L — L being all
+   * the live nodes (reporterCount is the live count), not only the
+   * established ones: the established gate is the cluster's, not the
+   * reporter's, so whenever the cluster reports a silent node, a node in
+   * its first two minutes of pushing reports it too, from its first push.
+   * Each push of a minute therefore adds 1 to Σ pve_up and 1 + W to
+   * Σ pve_node_info, W being one report's total, and the minute reads
+   * 1 ÷ (1 + W) — L ÷ (L + D) — whichever node pushed how often.
+   * pvestatd's passes are not evenly spaced: a slow pass, a push held up
+   * in transit and processed late, a node that lands one push in a
+   * minute and a dozen in the next.
+   *
+   * Every value is a whole number of 2^-16 units and the sums stay far
+   * below 2^37, so ClickHouse's sums are exact in any order, and
+   * P ÷ (P × (1 + W)) rounds to the very same double as 1 ÷ (1 + W): an
+   * uneven minute reads bit for bit what one push from each node reads.
    */
-  test("a live node that does not report yet still counts: half the cluster down reads <= 50 %, whatever L", () => {
+  test("every live node reports D ÷ L: the ratio is L ÷ (L + D) however unevenly the pushes fall — exactly 50 % at L = D", () => {
     const random: Random = seededRandom(0x5eed);
     const failures: Array<string> = [];
 
     for (let nodes: number = 2; nodes <= 32; nodes++) {
       for (let silent: number = 1; silent < nodes; silent++) {
         const live: number = nodes - silent;
-        for (
-          let nonReporters: number = 1;
-          nonReporters < live;
-          nonReporters++
-        ) {
-          const reporters: number = live - nonReporters;
-          const reportWeights: Array<number> = weightsOf(silent, reporters).map(
-            (w: SiblingWeight) => {
-              return w.weight;
-            },
+        const reportWeights: Array<number> = reportWeightsOf(silent, live);
+        const noneUnreported: Array<number> = new Array<number>(live).fill(0);
+        const onePushEach: number = quorumPercent(
+          minuteOf({
+            pushesPerNode: new Array<number>(live).fill(1),
+            unreportedPerNode: noneUnreported,
+            reportWeights,
+          }),
+          random,
+        );
+
+        const pushCounts: Array<Array<number>> = [
+          // One node barely pushed and the rest a dozen times, and back.
+          [1, ...new Array<number>(live - 1).fill(12)],
+          [12, ...new Array<number>(live - 1).fill(1)],
+        ];
+        for (let trial: number = 0; trial < 3; trial++) {
+          pushCounts.push(
+            Array.from({ length: live }, (): number => {
+              return 1 + Math.floor(random() * 12);
+            }),
           );
-          // In an even minute the ratio does not depend on the push count.
+        }
+
+        for (const pushesPerNode of pushCounts) {
+          const label: string = `L=${live} D=${silent} pushes=${pushesPerNode.join(",")}`;
           const percent: number = quorumPercent(
-            evenMinute({ reporters, nonReporters, reportWeights, pushes: 6 }),
+            minuteOf({
+              pushesPerNode,
+              unreportedPerNode: noneUnreported,
+              reportWeights,
+            }),
             random,
           );
-          const holds: boolean =
-            live === silent
-              ? percent <= 50
-              : live < silent
-                ? percent < 50
-                : percent > 50;
-          if (!holds) {
+          if (percent !== onePushEach) {
             failures.push(
-              `${live} live (${reporters} reporting) over ${silent} dead: ${percent} %`,
+              `${label}: ${percent} % is not what one push each reads, ${onePushEach} %`,
             );
           }
+          const failure: string | null = ratioFailure({
+            label,
+            percent,
+            live,
+            silent,
+          });
+          if (failure) {
+            failures.push(failure);
+          }
+        }
+      }
+    }
+
+    expect(failures).toEqual([]);
+  });
+
+  /*
+   * Rounding. A report's weights add up to D ÷ L rounded UP to whole
+   * 2^-16 units — W — so one round of the L live nodes' reports weighs at
+   * least the D silent nodes: L × W ≥ D. That is the direction that keeps
+   * the ratio at or below the truth — 1 ÷ (1 + W) ≤ L ÷ (L + D) exactly
+   * when L × W ≥ D — so rounding can never lift a minute above
+   * L ÷ (L + D), however slightly; and W is the smallest such weight, so
+   * it overshoots by less than one unit a report. At the 50 % boundary,
+   * L = D, L × W must reach D exactly, and does: W is 1, with nothing to
+   * round. (That a majority up still reads above 50 % — W < 1 when
+   * L > D — is pinned under splitProxmoxSiblingInfoWeights.) Rounding to
+   * the nearest unit instead falls short whenever the fraction is under
+   * half a unit: 3 live nodes over 4 silent would add 3.99998 a round
+   * and read above 3 ÷ 7.
+   */
+  test("rounding D ÷ L up: L × W reaches D for every L and D — exactly D at L = D, the 50 % boundary — so rounding never lifts the ratio above L ÷ (L + D)", () => {
+    const UNITS_PER_NODE: number = 65536; // 2^16
+    const failures: Array<string> = [];
+
+    for (let silent: number = 1; silent <= 64; silent++) {
+      for (let live: number = 1; live <= 64; live++) {
+        const units: number = sumOf(
+          reportWeightsOf(silent, live).map((weight: number) => {
+            return weight * UNITS_PER_NODE;
+          }),
+        );
+        const label: string = `L=${live} D=${silent}: W = ${units} units`;
+        if (live * units < silent * UNITS_PER_NODE) {
+          failures.push(`${label}: L × W falls short of D`);
+        }
+        if (live * (units - 1) >= silent * UNITS_PER_NODE) {
+          failures.push(`${label}: not the smallest W with L × W ≥ D`);
+        }
+        if (live === silent && units !== UNITS_PER_NODE) {
+          failures.push(`${label}: L = D does not weigh exactly one node`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+
+    // 3 live over 4 silent: 4 × 65536 ÷ 3 = 87381.33… units.
+    const roundedUp: Array<number> = reportWeightsOf(4, 3);
+    expect(sumOf(roundedUp) * UNITS_PER_NODE).toBe(87382);
+    const nearestUnits: number = Math.round((4 * UNITS_PER_NODE) / 3);
+    expect(nearestUnits).toBe(87381);
+    expect(3 * nearestUnits).toBe(4 * UNITS_PER_NODE - 1); // 3.99998 a round
+    // The same even split, of 87381 units instead of 87382.
+    const nearest: Array<number> = [21846, 21845, 21845, 21845].map(
+      (units: number) => {
+        return units / UNITS_PER_NODE;
+      },
+    );
+    expect(sumOf(nearest) * UNITS_PER_NODE).toBe(nearestUnits);
+
+    const random: Random = seededRandom(0x5eed);
+    function percentWith(reportWeights: Array<number>): number {
+      return quorumPercent(
+        minuteOf({
+          pushesPerNode: [6, 6, 6],
+          unreportedPerNode: [0, 0, 0],
+          reportWeights,
+        }),
+        random,
+      );
+    }
+    const truth: number = (100 * 3) / 7;
+    expect(percentWith(roundedUp)).toBeLessThan(truth);
+    expect(percentWith(nearest)).toBeGreaterThan(truth);
+  });
+
+  /*
+   * The known limit. The ratio is L ÷ (L + D) only while EVERY push of
+   * every live node carries its report. A live node whose push goes
+   * through without one — its liveness check failed closed on a Redis
+   * error, say — still adds its own 1 to both sums but not the silent
+   * nodes' D ÷ L, so the minute holding that push reads above
+   * L ÷ (L + D): at L = D above 50 %, and Quorum at Risk does not fire on
+   * it. (Node Offline is not affected as long as another push of the
+   * minute still says pve_up = 0 for the silent node.) Nothing here
+   * corrects for it; this pins the limit so that a change to it is
+   * deliberate.
+   */
+  test("known limit: a live node that pushes without reporting (a fail-closed Redis error) lifts the minute above L ÷ (L + D) — at L = D, above 50 %", () => {
+    const random: Random = seededRandom(0x5eed);
+    const failures: Array<string> = [];
+
+    for (let nodes: number = 2; nodes <= 32; nodes++) {
+      for (let silent: number = 1; silent < nodes; silent++) {
+        const live: number = nodes - silent;
+        // Six pushes each; one push of one node carries no report.
+        const unreportedPerNode: Array<number> = new Array<number>(live).fill(
+          0,
+        );
+        unreportedPerNode[0] = 1;
+        const percent: number = quorumPercent(
+          minuteOf({
+            pushesPerNode: new Array<number>(live).fill(6),
+            unreportedPerNode,
+            reportWeights: reportWeightsOf(silent, live),
+          }),
+          random,
+        );
+        const truth: number = (100 * live) / (live + silent);
+        const label: string = `L=${live} D=${silent}: ${percent} %`;
+        if (!(percent > truth)) {
+          failures.push(`${label} is not above L ÷ (L + D) = ${truth} %`);
+        }
+        if (live === silent && !(percent > 50)) {
+          failures.push(`${label} is not above 50 %`);
         }
       }
     }
@@ -1992,7 +2169,7 @@ describe("appendProxmoxSiblingReportsInPlace", () => {
   });
 
   test("pve_node_info carries each silent node's weight as a double — D ÷ L in all", () => {
-    // Two silent, three reporters: 2 × 65536 ÷ 3 → 21846 + 21845 units.
+    // Two silent, three live (each reports): 2 × 65536 ÷ 3 → 21846 + 21845.
     const info: Array<JSONObject> = reportPointsOf(
       reportingPush({ silentNodes: ["pve4", "pve5"], reporterCount: 3 }),
       "pve_node_info",
@@ -2307,8 +2484,8 @@ describe("appendProxmoxSiblingReportsInPlace", () => {
  * The payload is a three-node cluster whose third node, pve3, has died:
  * pve1 and pve2 still push their own status (pve1 its guests and storage
  * too), and each live node's status push carries the report the ingest
- * appends for the silent sibling — both live nodes being eligible
- * reporters.
+ * appends for the silent sibling — every live node reports, with
+ * reporterCount the number of live nodes.
  */
 describe("built-in alert templates on a native push", () => {
   const SERVED: Array<string> = [

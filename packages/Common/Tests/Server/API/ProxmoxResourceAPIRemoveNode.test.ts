@@ -4,6 +4,7 @@ import ProxmoxResourceAPI from "../../../Server/API/ProxmoxResourceAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import ProxmoxResourceService, {
   ProxmoxInventorySummary,
+  ProxmoxRemoveNodeResult,
 } from "../../../Server/Services/ProxmoxResourceService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
@@ -19,6 +20,7 @@ import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
@@ -57,12 +59,28 @@ import { FindOperator } from "typeorm";
  * another project and one the caller may not edit all come back as the
  * same NotFound, so the route cannot be used to probe for ids.
  *
+ * The per-row check (the team block list) needs every label on the
+ * cluster. The scoped lookup is narrowed to the caller's permitted labels
+ * when the grant is label-scoped, so labels loaded through it would hide a
+ * label the caller's team is blocked on. The row check therefore loads the
+ * cluster again as root, labels unfiltered (ProxmoxClusterService
+ * .findOneById), the way updateOneById does. It loads it once per request,
+ * though under a labelled grant and a labelled block the block check and
+ * the allow check both ask for it, and never reuses one request's load in
+ * the next. A cluster deleted between the scoped lookup and that load
+ * answers the same NotFound as a missing one.
+ *
  * The removal itself is ProxmoxResourceService.removeOfflineNode, which
- * only ever deletes a Node row that is not up. When it deletes nothing the
- * route answers 400 with an explanation instead of pretending it worked.
+ * only ever deletes a native-push Node row that is not up, and says why
+ * when it deletes nothing: "not-found" answers 404, "not-native" (an agent
+ * node) and "still-reporting" answer 400 with an explanation, "removed"
+ * answers 200. Anything else — an unknown string, or a boolean from a
+ * stale mock of the old boolean contract — answers 400, never 200.
  *
  * The services are stubbed at their public seams; the permission check is
- * stubbed in most tests and run for real in "real update permission check".
+ * stubbed in most tests and run for real in "real update permission check",
+ * where the scoped lookup is stubbed to serve the row the way the database
+ * would serve it through the label predicate the real check adds.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -101,6 +119,24 @@ const NOT_FOUND_MESSAGE: string =
 const STILL_REPORTING_MESSAGE: string =
   "Only a node that has stopped reporting can be removed. A node that is still reporting would come back on its next report.";
 
+const NODE_NOT_FOUND_MESSAGE: string =
+  "This node is not in the cluster's inventory. It may already have been removed.";
+
+const NOT_NATIVE_MESSAGE: string =
+  "Only a node that reports over Proxmox VE's built-in metric push can be removed here. With the Proxmox Agent, a node leaves OneUptime on its own once the cluster no longer lists it.";
+
+const CONTROL_CHARACTER_MESSAGE: string =
+  "Node name must not contain control characters";
+
+const REMOVED: ProxmoxRemoveNodeResult = "removed";
+
+// How the per-row check must load the cluster: every label, as root.
+const UNFILTERED_LOAD_SELECT: JSONObject = {
+  _id: true,
+  projectId: true,
+  labels: { _id: true },
+};
+
 interface RouteCall {
   thrown: unknown;
   nextCallCount: number;
@@ -111,6 +147,20 @@ type PermissionGrant = {
   isBlockPermission?: boolean | undefined;
   labelIds?: Array<ObjectID> | undefined;
 };
+
+// What the route hands the per-row update check.
+type ByModelCheckInput = Parameters<
+  typeof ModelPermission.checkUpdatePermissionByModel
+>[0];
+
+type FetchedForCheck = ReturnType<
+  ByModelCheckInput["fetchModelWithAccessControlIds"]
+>;
+
+// How often the per-row check asked for the cluster with its labels.
+interface LabelAsks {
+  count: number;
+}
 
 describe("ProxmoxResourceAPI remove-node", () => {
   let clusterId: ObjectID;
@@ -170,7 +220,7 @@ describe("ProxmoxResourceAPI remove-node", () => {
       .mockResolvedValue(null);
     removeOfflineNode = jest
       .spyOn(ProxmoxResourceService, "removeOfflineNode")
-      .mockResolvedValue(true);
+      .mockResolvedValue(REMOVED);
     getInventorySummary = jest
       .spyOn(ProxmoxResourceService, "getInventorySummary")
       .mockRejectedValue(new Error("the summary is not part of remove-node"));
@@ -198,6 +248,14 @@ describe("ProxmoxResourceAPI remove-node", () => {
       return label;
     });
     return cluster;
+  }
+
+  function labelIdsOf(cluster: unknown): Array<string> {
+    return ((cluster as ProxmoxCluster).labels || []).map(
+      (label: Label): string => {
+        return String(label.id);
+      },
+    );
   }
 
   function buildRequest(
@@ -421,6 +479,67 @@ describe("ProxmoxResourceAPI remove-node", () => {
       },
     );
 
+    test.each([
+      ["a NUL", "pve\u00001"],
+      ["a leading NUL, which trim() keeps", "\u0000pve1"],
+      ["a tab inside the name", "pve\t1"],
+      ["a newline inside the name", "pve\n1"],
+      ["a carriage return inside the name", "pve\r1"],
+      ["an ANSI escape", "pve1\u001b[31m"],
+      ["U+001F, the last C0 control", "pve\u001f1"],
+      ["DEL (U+007F)", "pve\u007f1"],
+    ] as Array<[string, string]>)(
+      "answers 400 for a name with %s, before any lookup",
+      async (_label: string, nodeName: string) => {
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName,
+        });
+
+        expect(call.nextCallCount).toBe(1);
+        expect(call.thrown).toBeInstanceOf(BadDataException);
+        expect((call.thrown as Exception).code).toBe(400);
+        expect((call.thrown as BadDataException).message).toBe(
+          CONTROL_CHARACTER_MESSAGE,
+        );
+        expect(
+          CommonAPI.getDatabaseCommonInteractionProps,
+        ).not.toHaveBeenCalled();
+        expect(findOneBy).not.toHaveBeenCalled();
+        expectNothingDone();
+      },
+    );
+
+    test("a name with both a slash and a control character is refused for the slash", async () => {
+      const call: RouteCall = await callRoute(clusterId.toString(), {
+        nodeName: "pve/\u00001",
+      });
+
+      expect((call.thrown as BadDataException).message).toBe(
+        "Node name must not contain a slash",
+      );
+      expectNothingDone();
+    });
+
+    test.each([
+      ["a space (U+0020, the first printable)", "pve 1", "node/pve 1"],
+      [
+        "a tilde (U+007E, the last printable before DEL)",
+        "pve~1",
+        "node/pve~1",
+      ],
+      ["surrounding whitespace, which is trimmed", "\t pve1 \r\n", "node/pve1"],
+    ] as Array<[string, string, string]>)(
+      "accepts a name with %s",
+      async (_label: string, nodeName: string, externalId: string) => {
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName,
+        });
+
+        expect(call.nextCallCount).toBe(0);
+        expect(removeArgs()["externalId"]).toBe(externalId);
+      },
+    );
+
     test("trims the name before building the externalId", async () => {
       const call: RouteCall = await callRoute(clusterId.toString(), {
         nodeName: "  pve1 \n",
@@ -513,20 +632,30 @@ describe("ProxmoxResourceAPI remove-node", () => {
         projectId.toString(),
       );
       expect(findArgs["props"]).toEqual({ isRoot: true });
-      // The labels ride along for the block-list check below.
+      /*
+       * No labels through this lookup: under a label-scoped grant they
+       * would come back narrowed to the permitted ones and hide a blocked
+       * label from the per-row check below.
+       */
       expect(findArgs["select"]).toEqual({
         _id: true,
         projectId: true,
-        labels: { _id: true },
       });
 
-      // Never the read-access lookup the inventory-summary route uses.
+      /*
+       * Never the read-access lookup the inventory-summary route uses;
+       * with the per-row check stubbed, nothing asks for the root load.
+       */
       expect(findOneById).not.toHaveBeenCalled();
     });
 
-    test("then runs the per-row update check on the row it found, with the caller's props", async () => {
-      const cluster: ProxmoxCluster = clusterRow();
-      findOneBy.mockResolvedValue(cluster);
+    test("then runs the per-row update check on the cluster loaded as root with every label, with the caller's props", async () => {
+      findOneBy.mockResolvedValue(clusterRow());
+      const withEveryLabel: ProxmoxCluster = clusterRow([
+        ObjectID.generate(),
+        ObjectID.generate(),
+      ]);
+      findOneById.mockResolvedValue(withEveryLabel);
 
       await callRoute(clusterId.toString(), { nodeName: "pve1" });
 
@@ -539,8 +668,21 @@ describe("ProxmoxResourceAPI remove-node", () => {
 
       expect(byModelArgs.modelType).toBe(ProxmoxCluster);
       expect(byModelArgs.props).toBe(props);
-      // The row already read (with its labels): no second lookup.
-      expect(await byModelArgs.fetchModelWithAccessControlIds()).toBe(cluster);
+
+      expect(await byModelArgs.fetchModelWithAccessControlIds()).toBe(
+        withEveryLabel,
+      );
+      expect(findOneById).toHaveBeenCalledTimes(1);
+      const loadArgs: JSONObject = findOneById.mock.calls[0]![0] as JSONObject;
+      expect(Object.keys(loadArgs).sort()).toEqual(["id", "props", "select"]);
+      expect((loadArgs["id"] as ObjectID).toString()).toBe(
+        clusterId.toString(),
+      );
+      expect(loadArgs["select"]).toEqual(UNFILTERED_LOAD_SELECT);
+      // Unfiltered: root, never the caller's (label-scoped) props.
+      expect(loadArgs["props"]).toEqual({ isRoot: true });
+      expect(loadArgs["props"]).not.toBe(props);
+      // Not through the scoped query, which still ran exactly once.
       expect(findOneBy).toHaveBeenCalledTimes(1);
 
       // Both checks pass before anything is removed.
@@ -552,6 +694,126 @@ describe("ProxmoxResourceAPI remove-node", () => {
         removeOfflineNode.mock.invocationCallOrder[0]!;
       expect(queryCheckOrder).toBeLessThan(byModelOrder);
       expect(byModelOrder).toBeLessThan(removeOrder);
+    });
+
+    test("the per-row check sees the labels the scoped lookup would have hidden", async () => {
+      const permittedLabel: ObjectID = ObjectID.generate();
+      const blockedLabel: ObjectID = ObjectID.generate();
+      /*
+       * What a label-scoped lookup that also selected labels returns: only
+       * the permitted one. The root load has both.
+       */
+      findOneBy.mockResolvedValue(clusterRow([permittedLabel]));
+      findOneById.mockResolvedValue(clusterRow([permittedLabel, blockedLabel]));
+
+      await callRoute(clusterId.toString(), { nodeName: "pve1" });
+
+      const fetchModel: () => Promise<unknown> = (
+        checkUpdatePermissionByModel.mock.calls[0]![0] as {
+          fetchModelWithAccessControlIds: () => Promise<unknown>;
+        }
+      ).fetchModelWithAccessControlIds;
+
+      expect(labelIdsOf(await fetchModel())).toEqual([
+        permittedLabel.toString(),
+        blockedLabel.toString(),
+      ]);
+    });
+
+    test("loads the cluster with every label once per request, however often the per-row check asks", async () => {
+      findOneBy.mockResolvedValue(clusterRow());
+      const loaded: ProxmoxCluster = clusterRow([ObjectID.generate()]);
+      findOneById.mockResolvedValue(loaded);
+
+      // The block check and the allow check both ask; ask a third time too.
+      const answers: Array<unknown> = [];
+      checkUpdatePermissionByModel.mockImplementation(
+        async (data: ByModelCheckInput): Promise<void> => {
+          answers.push(await data.fetchModelWithAccessControlIds());
+          answers.push(await data.fetchModelWithAccessControlIds());
+          answers.push(await data.fetchModelWithAccessControlIds());
+        },
+      );
+
+      const call: RouteCall = await callRoute(clusterId.toString(), {
+        nodeName: "pve1",
+      });
+
+      expect(call.nextCallCount).toBe(0);
+      expect(findOneById).toHaveBeenCalledTimes(1);
+      expect(answers).toEqual([loaded, loaded, loaded]);
+      for (const answer of answers) {
+        expect(answer).toBe(loaded);
+      }
+      expect(sentBody()).toEqual({ removed: true });
+    });
+
+    test("never reuses one request's labels load in the next request", async () => {
+      findOneBy.mockResolvedValue(clusterRow());
+      const first: ProxmoxCluster = clusterRow([ObjectID.generate()]);
+      const second: ProxmoxCluster = clusterRow([
+        ObjectID.generate(),
+        ObjectID.generate(),
+      ]);
+      findOneById.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+
+      const answers: Array<unknown> = [];
+      checkUpdatePermissionByModel.mockImplementation(
+        async (data: ByModelCheckInput): Promise<void> => {
+          answers.push(await data.fetchModelWithAccessControlIds());
+          answers.push(await data.fetchModelWithAccessControlIds());
+        },
+      );
+
+      await callRoute(clusterId.toString(), { nodeName: "pve1" });
+      await callRoute(clusterId.toString(), { nodeName: "pve1" });
+
+      // One load per request: labels changed in between are seen.
+      expect(findOneById).toHaveBeenCalledTimes(2);
+      expect(answers).toHaveLength(4);
+      expect(answers[0]).toBe(first);
+      expect(answers[1]).toBe(first);
+      expect(answers[2]).toBe(second);
+      expect(answers[3]).toBe(second);
+    });
+
+    test("answers the same NotFound for a cluster deleted between the scoped lookup and the labels load", async () => {
+      // Found by the scoped lookup, gone by the time its labels are loaded.
+      findOneBy.mockResolvedValue(clusterRow());
+      findOneById.mockResolvedValue(null);
+      // Like the real check: it asks for the row before deciding.
+      checkUpdatePermissionByModel.mockImplementation(
+        async (data: ByModelCheckInput): Promise<void> => {
+          await data.fetchModelWithAccessControlIds();
+        },
+      );
+
+      const call: RouteCall = await callRoute(clusterId.toString(), {
+        nodeName: "pve1",
+      });
+
+      expectRefusedAsNotFound(call);
+      expect((call.thrown as Exception).code).toBe(404);
+      expect(findOneById).toHaveBeenCalledTimes(1);
+    });
+
+    test("hands a failure of the labels load to next() unchanged", async () => {
+      findOneBy.mockResolvedValue(clusterRow());
+      const failure: Error = new Error("postgres is away");
+      findOneById.mockRejectedValue(failure);
+      checkUpdatePermissionByModel.mockImplementation(
+        async (data: ByModelCheckInput): Promise<void> => {
+          await data.fetchModelWithAccessControlIds();
+        },
+      );
+
+      const call: RouteCall = await callRoute(clusterId.toString(), {
+        nodeName: "pve1",
+      });
+
+      expect(call.nextCallCount).toBe(1);
+      expect(call.thrown).toBe(failure);
+      expectNothingDone();
     });
 
     test("answers the same NotFound when the per-row check refuses (a team block list)", async () => {
@@ -750,6 +1012,143 @@ describe("ProxmoxResourceAPI remove-node", () => {
       )["_id"];
     }
 
+    /*
+     * The labels a lookup query is narrowed to, or null when it is not.
+     * The real check adds { labels: { _id: <operator over the permitted
+     * ids> } } for a label-scoped grant.
+     */
+    function permittedLabelIds(query: JSONObject): Array<string> | null {
+      const predicate: unknown = query["labels"];
+      if (predicate === undefined || predicate === null) {
+        return null;
+      }
+
+      const idFilter: unknown = (predicate as JSONObject)["_id"];
+      if (!(idFilter instanceof FindOperator)) {
+        throw new Error(
+          `Unexpected label predicate: ${JSON.stringify(predicate)}`,
+        );
+      }
+
+      let ids: Array<string> = [];
+      for (const value of Object.values(
+        idFilter.objectLiteralParameters || {},
+      )) {
+        const values: Array<unknown> = Array.isArray(value) ? value : [value];
+        ids = ids.concat(
+          values.map((id: unknown): string => {
+            return String(id);
+          }),
+        );
+      }
+      return ids;
+    }
+
+    function scopedLabelIds(): Array<string> | null {
+      expect(findOneBy).toHaveBeenCalledTimes(1);
+      return permittedLabelIds(
+        (findOneBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject,
+      );
+    }
+
+    /*
+     * The cluster as the database holds it, served the way each lookup
+     * would serve it. The scoped lookup (findOneBy) applies the label
+     * predicate the real check adds: it finds the row only when one of
+     * its labels is permitted, and labels selected through it come back
+     * narrowed to the permitted ones, as with a filtered join. That
+     * narrowing is what once hid a blocked label from the per-row check,
+     * so it is kept here. The root load (findOneById) has every label.
+     */
+    function storeCluster(labelIds: Array<ObjectID>): void {
+      findOneBy.mockImplementation(
+        async (args: unknown): Promise<ProxmoxCluster | null> => {
+          const findArgs: JSONObject = args as JSONObject;
+          const query: JSONObject = findArgs["query"] as JSONObject;
+          if (query["_id"] !== clusterId.toString()) {
+            return null;
+          }
+
+          const permitted: Array<string> | null = permittedLabelIds(query);
+          const visible: Array<ObjectID> =
+            permitted === null
+              ? labelIds
+              : labelIds.filter((labelId: ObjectID): boolean => {
+                  return permitted.includes(labelId.toString());
+                });
+          if (permitted !== null && visible.length === 0) {
+            return null;
+          }
+
+          const select: JSONObject =
+            (findArgs["select"] as JSONObject | undefined) || {};
+          if (select["labels"]) {
+            return clusterRow(visible);
+          }
+          const row: ProxmoxCluster = new ProxmoxCluster();
+          row.id = clusterId;
+          row.projectId = projectId;
+          return row;
+        },
+      );
+
+      findOneById.mockImplementation(
+        async (args: unknown): Promise<ProxmoxCluster | null> => {
+          const loadArgs: JSONObject = args as JSONObject;
+          if (String(loadArgs["id"]) !== clusterId.toString()) {
+            return null;
+          }
+          return clusterRow(labelIds);
+        },
+      );
+    }
+
+    function expectLabelsLoadedUnfiltered(): void {
+      // Once per request, however many of the checks asked.
+      expect(findOneById).toHaveBeenCalledTimes(1);
+      for (const loadCall of findOneById.mock.calls) {
+        const loadArgs: JSONObject = loadCall[0] as JSONObject;
+        expect((loadArgs["id"] as ObjectID).toString()).toBe(
+          clusterId.toString(),
+        );
+        expect(loadArgs["select"]).toEqual(UNFILTERED_LOAD_SELECT);
+        expect(loadArgs["props"]).toEqual({ isRoot: true });
+      }
+      // After the scoped lookup found the row, never instead of it.
+      expect(findOneBy.mock.invocationCallOrder[0]!).toBeLessThan(
+        findOneById.mock.invocationCallOrder[0]!,
+      );
+    }
+
+    /*
+     * Runs the real per-row check, counting how often it asks for the
+     * cluster with its labels: the block check asks under a labelled block
+     * on the edit permission, the allow check under a label-scoped grant.
+     */
+    function countLabelAsks(): LabelAsks {
+      const asks: LabelAsks = { count: 0 };
+      const realCheck: (data: ByModelCheckInput) => Promise<void> =
+        ModelPermission.checkUpdatePermissionByModel.bind(ModelPermission);
+
+      checkUpdatePermissionByModel = jest.spyOn(
+        ModelPermission,
+        "checkUpdatePermissionByModel",
+      );
+      checkUpdatePermissionByModel.mockImplementation(
+        async (data: ByModelCheckInput): Promise<void> => {
+          return realCheck({
+            ...data,
+            fetchModelWithAccessControlIds: (): FetchedForCheck => {
+              asks.count++;
+              return data.fetchModelWithAccessControlIds();
+            },
+          });
+        },
+      );
+
+      return asks;
+    }
+
     function propsWith(
       grants: Array<PermissionGrant>,
       grantedInProject: ObjectID = projectId,
@@ -889,15 +1288,16 @@ describe("ProxmoxResourceAPI remove-node", () => {
           labelIds: [blockedLabel],
         },
       ]);
-      findOneBy.mockResolvedValue(
-        clusterRow([ObjectID.generate(), blockedLabel]),
-      );
+      storeCluster([ObjectID.generate(), blockedLabel]);
 
       const call: RouteCall = await callRoute(clusterId.toString(), {
         nodeName: "pve1",
       });
 
       expectRefusedAsNotFound(call);
+      // A project-wide grant: the lookup is not label-scoped.
+      expect(scopedLabelIds()).toBeNull();
+      expectLabelsLoadedUnfiltered();
     });
 
     test("a block for a label the cluster does not carry leaves it editable", async () => {
@@ -909,7 +1309,7 @@ describe("ProxmoxResourceAPI remove-node", () => {
           labelIds: [ObjectID.generate()],
         },
       ]);
-      findOneBy.mockResolvedValue(clusterRow([ObjectID.generate()]));
+      storeCluster([ObjectID.generate()]);
 
       const call: RouteCall = await callRoute(clusterId.toString(), {
         nodeName: "pve1",
@@ -917,7 +1317,254 @@ describe("ProxmoxResourceAPI remove-node", () => {
 
       expect(call.nextCallCount).toBe(0);
       expect(sentBody()).toEqual({ removed: true });
+      expectLabelsLoadedUnfiltered();
     });
+
+    describe("a label-scoped edit grant and a team block on another label of the same cluster", () => {
+      /*
+       * The caller may edit (and read) clusters labelled A; the caller's
+       * team blocks editing clusters labelled B. A cluster carrying both
+       * is found by the label-A-scoped lookup, so only the per-row block
+       * check can refuse it, and only if it sees label B. Labels loaded
+       * through the scoped lookup would carry A alone.
+       */
+      let labelA: ObjectID;
+      let labelB: ObjectID;
+
+      beforeEach(() => {
+        labelA = ObjectID.generate();
+        labelB = ObjectID.generate();
+        props = propsWith([
+          { permission: Permission.EditProxmoxCluster, labelIds: [labelA] },
+          { permission: Permission.ReadProxmoxCluster, labelIds: [labelA] },
+          {
+            permission: Permission.EditProxmoxCluster,
+            isBlockPermission: true,
+            labelIds: [labelB],
+          },
+        ]);
+      });
+
+      test("a cluster carrying A and B is refused with the same NotFound, and nothing is removed", async () => {
+        storeCluster([labelA, labelB]);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expectRefusedAsNotFound(call);
+        expect((call.thrown as Exception).code).toBe(404);
+        expect(removeOfflineNode).not.toHaveBeenCalled();
+
+        // The lookup really was narrowed to label A...
+        expect(scopedLabelIds()).toEqual([labelA.toString()]);
+        expect(scopedClusterId()).toBe(clusterId.toString());
+        expect(scopedProjectIds()).toEqual([projectId.toString()]);
+        // ...so it carries no labels for the block check to trust...
+        expect((findOneBy.mock.calls[0]![0] as JSONObject)["select"]).toEqual({
+          _id: true,
+          projectId: true,
+        });
+        // ...which loads the cluster again, as root, with every label.
+        expectLabelsLoadedUnfiltered();
+      });
+
+      test("the order of the labels on the cluster does not matter", async () => {
+        storeCluster([labelB, labelA]);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expectRefusedAsNotFound(call);
+      });
+
+      test("a cluster carrying only A may have a node removed", async () => {
+        storeCluster([labelA]);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expect(call.nextCallCount).toBe(0);
+        expect(scopedLabelIds()).toEqual([labelA.toString()]);
+        expectLabelsLoadedUnfiltered();
+        expect(removeArgs()["externalId"]).toBe("node/pve1");
+        expect(sentBody()).toEqual({ removed: true });
+      });
+
+      test("a cluster carrying A and an unblocked label C may have a node removed", async () => {
+        storeCluster([labelA, ObjectID.generate()]);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expect(call.nextCallCount).toBe(0);
+        expect(sentBody()).toEqual({ removed: true });
+      });
+
+      test("a cluster carrying only B is never found, so nothing is loaded or removed", async () => {
+        storeCluster([labelB]);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expectRefusedAsNotFound(call);
+        expect(findOneById).not.toHaveBeenCalled();
+      });
+
+      test("without the block the same caller may remove a node on a cluster carrying A and B", async () => {
+        props = propsWith([
+          { permission: Permission.EditProxmoxCluster, labelIds: [labelA] },
+          { permission: Permission.ReadProxmoxCluster, labelIds: [labelA] },
+        ]);
+        storeCluster([labelA, labelB]);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expect(call.nextCallCount).toBe(0);
+        expectLabelsLoadedUnfiltered();
+        expect(sentBody()).toEqual({ removed: true });
+      });
+
+      test.each([
+        ["only A", false],
+        ["A and an unblocked label C", true],
+      ] as Array<[string, boolean]>)(
+        "on a cluster carrying %s both checks ask for its labels, and it is loaded once",
+        async (_label: string, withUnblockedLabel: boolean) => {
+          storeCluster(
+            withUnblockedLabel ? [labelA, ObjectID.generate()] : [labelA],
+          );
+          const asks: LabelAsks = countLabelAsks();
+
+          const call: RouteCall = await callRoute(clusterId.toString(), {
+            nodeName: "pve1",
+          });
+
+          expect(call.nextCallCount).toBe(0);
+          // The block check (B is not on it) and then the allow check (A is).
+          expect(asks.count).toBe(2);
+          expect(findOneById).toHaveBeenCalledTimes(1);
+          expectLabelsLoadedUnfiltered();
+          expect(sentBody()).toEqual({ removed: true });
+        },
+      );
+
+      test("on a cluster carrying A and B the block check refuses on its first ask, from the one load", async () => {
+        storeCluster([labelA, labelB]);
+        const asks: LabelAsks = countLabelAsks();
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expectRefusedAsNotFound(call);
+        expect(asks.count).toBe(1);
+        expect(findOneById).toHaveBeenCalledTimes(1);
+        expectLabelsLoadedUnfiltered();
+      });
+
+      test("a cluster deleted between the scoped lookup and the labels load answers 404 with the editable-cluster message", async () => {
+        storeCluster([labelA]);
+        // Found through the label-A-scoped lookup; gone when loaded as root.
+        findOneById.mockResolvedValue(null);
+        const asks: LabelAsks = countLabelAsks();
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        /*
+         * Not the real check's own "ProxmoxCluster not found." (a 400),
+         * which would tell a missing cluster apart from a forbidden one.
+         */
+        expectRefusedAsNotFound(call);
+        expect((call.thrown as Exception).code).toBe(404);
+        expect(call.thrown).not.toBeInstanceOf(BadDataException);
+        expect(scopedLabelIds()).toEqual([labelA.toString()]);
+        // The block check asked first and got the refusal; nothing asked again.
+        expect(asks.count).toBe(1);
+        expectLabelsLoadedUnfiltered();
+      });
+
+      test("the labels are loaded afresh for every request: a block label added after one removal refuses the next", async () => {
+        storeCluster([labelA]);
+        const asks: LabelAsks = countLabelAsks();
+
+        const first: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+        expect(first.nextCallCount).toBe(0);
+        expect(sentBody()).toEqual({ removed: true });
+
+        // Label B is put on the cluster before the next request.
+        storeCluster([labelA, labelB]);
+
+        const second: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve2",
+        });
+
+        expect(second.nextCallCount).toBe(1);
+        expect(second.thrown).toBeInstanceOf(NotFoundException);
+        expect((second.thrown as NotFoundException).message).toBe(
+          NOT_FOUND_MESSAGE,
+        );
+        // One load per request; the first request's load is not reused.
+        expect(findOneById).toHaveBeenCalledTimes(2);
+        expect(asks.count).toBe(3);
+        // Only the first request removed anything.
+        expect(removeOfflineNode).toHaveBeenCalledTimes(1);
+        expect(
+          (removeOfflineNode.mock.calls[0]![0] as JSONObject)["externalId"],
+        ).toBe("node/pve1");
+        expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test.each([
+      ["a label-scoped grant alone (only the allow check asks)", false, true],
+      [
+        "a project-wide grant and a labelled block (only the block check asks)",
+        true,
+        false,
+      ],
+    ] as Array<[string, boolean, boolean]>)(
+      "a cluster deleted before the labels load answers the same 404 under %s",
+      async (_label: string, withBlock: boolean, labelScoped: boolean) => {
+        const labelA: ObjectID = ObjectID.generate();
+        const grants: Array<PermissionGrant> = labelScoped
+          ? [
+              { permission: Permission.EditProxmoxCluster, labelIds: [labelA] },
+              { permission: Permission.ReadProxmoxCluster, labelIds: [labelA] },
+            ]
+          : [{ permission: Permission.ProjectMember }];
+        if (withBlock) {
+          grants.push({
+            permission: Permission.EditProxmoxCluster,
+            isBlockPermission: true,
+            labelIds: [ObjectID.generate()],
+          });
+        }
+        props = propsWith(grants);
+        storeCluster([labelA]);
+        findOneById.mockResolvedValue(null);
+        const asks: LabelAsks = countLabelAsks();
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expectRefusedAsNotFound(call);
+        expect((call.thrown as Exception).code).toBe(404);
+        expect(asks.count).toBe(1);
+        expectLabelsLoadedUnfiltered();
+      },
+    );
 
     test("an edit grant in another project does not count in this one", async () => {
       props = propsWith(
@@ -1004,7 +1651,9 @@ describe("ProxmoxResourceAPI remove-node", () => {
       );
     });
 
-    test("answers 200 with removed: true", async () => {
+    test("answers 200 with removed: true when the service removed the node", async () => {
+      removeOfflineNode.mockResolvedValue(REMOVED);
+
       const call: RouteCall = await callRoute(clusterId.toString(), {
         nodeName: "pve1",
       });
@@ -1017,20 +1666,122 @@ describe("ProxmoxResourceAPI remove-node", () => {
       expect(responseCall[1]).toBe(mockResponse);
     });
 
-    test("answers 400 with an explanation when the node is still up (or not there)", async () => {
-      removeOfflineNode.mockResolvedValue(false);
-
-      const call: RouteCall = await callRoute(clusterId.toString(), {
-        nodeName: "pve1",
-      });
-
-      expect(call.nextCallCount).toBe(1);
-      expect(call.thrown).toBeInstanceOf(BadDataException);
-      expect((call.thrown as BadDataException).message).toBe(
+    test.each([
+      [
+        "not-found",
+        "404: the node is not in the inventory (it may already be gone)",
+        NotFoundException,
+        404,
+        NODE_NOT_FOUND_MESSAGE,
+      ],
+      [
+        "not-native",
+        "400: an agent node, which leaves on its own",
+        BadDataException,
+        400,
+        NOT_NATIVE_MESSAGE,
+      ],
+      [
+        "still-reporting",
+        "400: the node is still up and would come back",
+        BadDataException,
+        400,
         STILL_REPORTING_MESSAGE,
-      );
-      expect(removeOfflineNode).toHaveBeenCalledTimes(1);
-      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      ],
+    ] as Array<
+      [
+        ProxmoxRemoveNodeResult,
+        string,
+        new (message: string) => Exception,
+        number,
+        string,
+      ]
+    >)(
+      "answers %s as %s",
+      async (
+        result: ProxmoxRemoveNodeResult,
+        _meaning: string,
+        exceptionType: new (message: string) => Exception,
+        status: number,
+        message: string,
+      ) => {
+        removeOfflineNode.mockResolvedValue(result);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expect(call.nextCallCount).toBe(1);
+        expect(call.thrown).toBeInstanceOf(exceptionType);
+        expect((call.thrown as Exception).code).toBe(status);
+        expect((call.thrown as Exception).message).toBe(message);
+        expect(removeOfflineNode).toHaveBeenCalledTimes(1);
+        expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([
+      ["a boolean true from a stale mock of the old boolean contract", true],
+      ["a boolean false", false],
+      ["an unknown string", "deleted"],
+      ["an empty string", ""],
+      ["the right word in the wrong case", "Removed"],
+      ["the right word padded", " removed "],
+      ["a known reason in the wrong case", "Not-Found"],
+      ["a number", 1],
+      ["null", null],
+      ["undefined", undefined],
+      ["an object claiming success", { removed: true }],
+      ["an array holding the right word", ["removed"]],
+    ] as Array<[string, unknown]>)(
+      "answers 400, never 200, when the service returns %s",
+      async (_label: string, unexpected: unknown) => {
+        removeOfflineNode.mockResolvedValue(unexpected);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        expect(removeOfflineNode).toHaveBeenCalledTimes(1);
+        expect(call.nextCallCount).toBe(1);
+        expect(call.thrown).toBeInstanceOf(BadDataException);
+        expect((call.thrown as Exception).code).toBe(400);
+        // The conservative explanation: not claimed removed, not claimed missing.
+        expect((call.thrown as Exception).message).toBe(
+          STILL_REPORTING_MESSAGE,
+        );
+        expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+        expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+        expect(Response.sendEntityResponse).not.toHaveBeenCalled();
+      },
+    );
+
+    test('only the exact result "removed" answers 200', async () => {
+      const results: Array<unknown> = [
+        true,
+        "Removed",
+        "removed",
+        "not-found",
+        "not-native",
+        "still-reporting",
+        "unknown",
+      ];
+      const answeredOk: Array<unknown> = [];
+
+      for (const result of results) {
+        jest.clearAllMocks();
+        removeOfflineNode.mockResolvedValue(result);
+
+        const call: RouteCall = await callRoute(clusterId.toString(), {
+          nodeName: "pve1",
+        });
+
+        if (call.nextCallCount === 0) {
+          answeredOk.push(result);
+        }
+      }
+
+      expect(answeredOk).toEqual(["removed"]);
     });
 
     test("never touches the inventory summary", async () => {

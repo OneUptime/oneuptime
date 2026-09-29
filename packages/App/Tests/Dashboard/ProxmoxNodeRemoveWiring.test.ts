@@ -3,23 +3,29 @@ import fs from "fs";
 import path from "path";
 
 /*
- * "Remove node" on the Proxmox node detail page.
+ * "Remove Node" on the Proxmox node detail page.
  *
  * On the Proxmox VE native push every node reports only itself, and its
  * live siblings report a node that went quiet as down. A node taken out of
  * the Proxmox cluster for good looks exactly the same, so the page lets a
- * user remove a node that has stopped reporting. The server route is
+ * user remove a native-push node that has stopped reporting. An agent node
+ * has no button: the Proxmox Agent lets a node go on its own once the
+ * cluster no longer lists it. The server route is
  * POST /proxmox-resource/remove-node/:clusterId { nodeName } in
  * Common/Server/API/ProxmoxResourceAPI.ts.
  *
  * The App suite runs in plain Node with no renderer, so this pins the
  * wiring by reading the sources, like ProxmoxMetricTooltipsWiring.test.ts:
- * the button exists only for a node whose isUp is exactly false, the page
- * posts the node's Proxmox name to the route the server mounts, a
- * refusal stays in the dialog, and success goes back to the node list.
- * Comments are stripped and whitespace squashed so Prettier reflows and
- * rationale comments cannot make a test pass or fail. The Common suite
- * renders the page for real (Tests/App/Dashboard/ProxmoxNodeRemove).
+ * the button exists only for a node whose isUp is exactly false and whose
+ * isNativePush is exactly true (and the inventory read selects that
+ * column, which users may read), the page posts the node's Proxmox name
+ * to the route the server mounts, a refusal stays in the dialog, and
+ * success reloads the node list with a forced navigation. The overview
+ * shows the last CPU / memory reading only while it is within
+ * METRIC_STALE_MS, the node list's own cutoff. Comments are stripped and
+ * whitespace squashed so Prettier reflows and rationale comments cannot
+ * make a test pass or fail. The Common suite renders the page for real
+ * (Tests/App/Dashboard/ProxmoxNodeRemove).
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -85,6 +91,16 @@ const ROUTE_MAP: string = readCode(
   path.join(DASHBOARD_SRC, "Utils", "RouteMap.ts"),
 );
 
+const RESOURCE_UTILS: string = readCode(
+  path.join(
+    DASHBOARD_SRC,
+    "Pages",
+    "Proxmox",
+    "Utils",
+    "ProxmoxResourceUtils.ts",
+  ),
+);
+
 describe("the page and the server agree on the route", () => {
   test("the server mounts POST <crud path>/remove-node/:clusterId behind the user middleware", () => {
     expect(SERVER_API).toContain(
@@ -143,14 +159,58 @@ describe("the page and the server agree on the route", () => {
   });
 });
 
-describe("only a node that has stopped reporting offers the button", () => {
-  test("the condition is isUp === false exactly, on a loaded row naming a node", () => {
+describe("only a native-push node that has stopped reporting offers the button", () => {
+  test("the condition is isUp === false and isNativePush === true exactly, on a loaded row naming a node", () => {
     expect(NODE_DETAIL).toContain(
-      "const canRemoveNode: boolean = Boolean( row && row.isUp === false && pveNodeName, );",
+      "const canRemoveNode: boolean = Boolean( row && row.isUp === false && row.isNativePush === true && pveNodeName, );",
     );
+    expect(count(NODE_DETAIL, "const canRemoveNode")).toBe(1);
     // A missing or unknown status (null / undefined) must not count as down.
     expect(NODE_DETAIL).not.toMatch(/!\s*row\??\.isUp\s*&&/);
     expect(NODE_DETAIL).not.toMatch(/row\??\.isUp\s*!==\s*true/);
+    /*
+     * An agent node (false) and a row from before the column existed
+     * (null) must not count as native push.
+     */
+    expect(NODE_DETAIL).not.toMatch(/row\??\.isNativePush\s*!==\s*false/);
+    expect(NODE_DETAIL).not.toMatch(/row\??\.isNativePush\s*!=\s*false/);
+    expect(NODE_DETAIL).not.toMatch(/row\??\.isNativePush\s*\?\?\s*true/);
+  });
+
+  test("the inventory read selects isNativePush, so the condition can ever hold", () => {
+    const select: string = between(
+      RESOURCE_UTILS,
+      "const INVENTORY_SELECT: Record<string, boolean> = {",
+      "};",
+    );
+
+    expect(select).toContain(" isUp: true,");
+    expect(select).toContain(" isNativePush: true,");
+    // The detail page reads its row through that select.
+    expect(RESOURCE_UTILS).toContain(
+      "export async function fetchProxmoxInventoryRow(",
+    );
+    expect(
+      between(
+        RESOURCE_UTILS,
+        "export async function fetchProxmoxInventoryRow(",
+        "return result.data[0] || null;",
+      ),
+    ).toContain("select: INVENTORY_SELECT,");
+    expect(NODE_DETAIL).toContain("await fetchProxmoxInventoryRow({");
+  });
+
+  test("the model lets the users who read the inventory read isNativePush", () => {
+    expect(RESOURCE_MODEL).toContain(
+      '@ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [], }) @TableColumn({ required: false, type: TableColumnType.Boolean, canReadOnRelationQuery: true, title: "Is Native Push",',
+    );
+    expect(RESOURCE_MODEL).toContain(
+      "public isNativePush?: boolean = undefined;",
+    );
+    // The same permissions as the table itself.
+    expect(RESOURCE_MODEL).toMatch(
+      /@TableAccessControl\(\{ create: \[\], read: READ_PERMISSIONS,/,
+    );
   });
 
   test("the card with the button is rendered only under that condition, on the Overview tab", () => {
@@ -162,14 +222,20 @@ describe("only a node that has stopped reporting offers the button", () => {
 
     const guarded: string = between(overview, "{canRemoveNode && (", ")}");
     expect(guarded).toContain('<Card title="Remove Node"');
-    expect(guarded).toContain('title: "Remove node",');
+    expect(guarded).toContain('title: "Remove Node",');
     expect(guarded).toContain("buttonStyle: ButtonStyleType.DANGER_OUTLINE,");
     expect(guarded).toContain("icon: IconProp.Trash,");
     expect(guarded).toContain("setShowRemoveModal(true);");
 
     // The only button that opens the dialog is the guarded one.
     expect(count(NODE_DETAIL, "setShowRemoveModal(true)")).toBe(1);
-    expect(count(NODE_DETAIL, 'title: "Remove node"')).toBe(1);
+    expect(count(NODE_DETAIL, 'title: "Remove Node"')).toBe(1);
+  });
+
+  test("every label reads Remove Node, never Remove node", () => {
+    expect(NODE_DETAIL).not.toContain("Remove node");
+    // Card title, button, dialog title and dialog submit.
+    expect(count(NODE_DETAIL, "Remove Node")).toBe(4);
   });
 
   test("the dialog itself is also guarded by the condition", () => {
@@ -179,7 +245,7 @@ describe("only a node that has stopped reporting offers the button", () => {
     expect(count(NODE_DETAIL, "<ConfirmModal")).toBe(1);
   });
 
-  test("guests and storage have no Remove node", () => {
+  test("guests and storage have no Remove Node", () => {
     expect(GUEST_DETAIL).not.toContain("remove-node");
     expect(STORAGE_DETAIL).not.toContain("remove-node");
   });
@@ -193,7 +259,7 @@ describe("the confirm dialog", () => {
       'import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";',
     );
     expect(dialog).toContain('title="Remove Node"');
-    expect(dialog).toContain('submitButtonText="Remove node"');
+    expect(dialog).toContain('submitButtonText="Remove Node"');
     expect(dialog).toContain("submitButtonType={ButtonStyleType.DANGER}");
   });
 
@@ -247,13 +313,19 @@ describe("removing", () => {
     expect(thrown).toContain("return;");
   });
 
-  test("success goes back to this cluster's node list", () => {
+  test("success reloads this cluster's node list with a forced navigation", () => {
     const success: string = remove.slice(remove.lastIndexOf("} catch (err) {"));
 
+    /*
+     * forceNavigate: the cluster layout (and its sidebar node count)
+     * stays mounted across in-app navigations and would keep counting
+     * the removed node.
+     */
     expect(success).toContain(
-      "Navigation.navigate( RouteUtil.populateRouteParams( RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route, { modelId: modelId }, ), );",
+      "Navigation.navigate( RouteUtil.populateRouteParams( RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route, { modelId: modelId }, ), { forceNavigate: true }, );",
     );
     expect(count(NODE_DETAIL, "Navigation.navigate(")).toBe(1);
+    expect(count(NODE_DETAIL, "forceNavigate: true")).toBe(1);
   });
 
   test("the node list route is the cluster's Nodes page", () => {
@@ -278,5 +350,38 @@ describe("removing", () => {
         imported: true,
       });
     }
+  });
+});
+
+/*
+ * A detail page keeps the last CPU and memory reading however old — the
+ * node list shows N/A past METRIC_STALE_MS, the detail page does not, and
+ * its tooltips say "the last value the agent sent" (pinned by
+ * ProxmoxResourcePageTooltips). The Offline badge and Last Seen beside
+ * them say how old that is. The remove flow must not change that.
+ */
+describe("the last CPU and memory reading stays on the page", () => {
+  test("the page does not gate the reading on its age", () => {
+    expect(NODE_DETAIL).not.toContain("METRIC_STALE_MS");
+    expect(NODE_DETAIL).not.toContain("metricsAreFresh");
+  });
+
+  test("CPU and memory are each shown whenever the inventory has them", () => {
+    const cpu: string = between(
+      NODE_DETAIL,
+      "if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {",
+      "}",
+    );
+    expect(cpu).toContain('title: "CPU",');
+
+    const memory: string = between(
+      NODE_DETAIL,
+      "if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {",
+      "description:",
+    );
+    expect(memory).toContain('title: "Memory (Used / Total)",');
+
+    expect(count(NODE_DETAIL, 'title: "CPU",')).toBe(1);
+    expect(count(NODE_DETAIL, 'title: "Memory (Used / Total)",')).toBe(1);
   });
 });

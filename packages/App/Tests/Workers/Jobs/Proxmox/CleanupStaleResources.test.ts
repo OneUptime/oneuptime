@@ -49,24 +49,49 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  * The last blocks ("timeline") replay days of a native-push cluster
  * through the REAL handler against a small in-memory model of the
  * inventory — the service's delete predicate (with its retention cutoff),
- * bulkUpsert, getNodeRoster, markNodesNotReporting's UPDATE, the cluster
- * heartbeat fence and markDisconnectedClusters, each mirrored from the
- * service — driven by the REAL node-liveness rules
+ * bulkUpsert (with its lastSeenAt guard, its updatedAt on the database's
+ * own clock, and the not-reporting mark it clears), getNodeRoster (with
+ * each row's isUp and notReportingMarkedAt, and — where a test turns it
+ * on — the ingest's 30-second roster cache, which keeps the moment it
+ * read the roster), the ingest's 30-second mark fence and
+ * markNodesNotReporting's UPDATE (its mark, notReportingMarkedAt, written
+ * on the ingest worker's clock, with its once-a-minute refresh of an
+ * Offline row's mark, and its updatedAt on the database's), the
+ * native-push adoption (its 10-minute fence and adoptNodesAsNativePush's
+ * UPDATE, which sets isNativePush alone, seenUpTo guard included), the
+ * cluster heartbeat fence and markDisconnectedClusters, each mirrored from
+ * the ingest or the service — driven by the REAL node-liveness rules
  * (nextProxmoxNodeLiveness, decideProxmoxSilentNodes,
  * isProxmoxSilentNodeDetectionEnabled). They show that the cutoff this
  * cron chooses keeps a native-push node for the whole retention window —
  * through a OneUptime ingest outage or a whole-cluster power cut and the
  * warm-up after it, when nobody reports and the node may not even be
- * marked Offline yet — lets it go on the first tick past that window,
- * leaves the agent's rows on the 15-minute prune, keeps a node that was
+ * marked Offline yet — lets it go on the first tick past that window
+ * (counted from its own last push, however fresh its mark), leaves the
+ * agent's rows on the 15-minute prune, keeps a node that was
  * already Offline when its cluster moved from the agent to the native
- * push (or since before isNativePush existed) once its first report marks
- * it native, never prunes a cluster that went dark as a whole, and — with
- * silent-node detection switched off — prunes a dead native node at the
- * stale cutoff like any other row. PVE_NATIVE_NODE_SILENCE_DETECTION is
- * the one env switch the timeline sets for real (saved and restored
- * around each test that does), since both the ingest and the delete
- * mirrors read it through the real isProxmoxSilentNodeDetectionEnabled.
+ * push (or since before isNativePush existed) once the first native flush
+ * adopts it, never lets a native batch processed late — after the cluster
+ * moved back to the agent — adopt the agent's newer rows, never prunes a
+ * cluster that went dark as a whole, and — with silent-node detection
+ * switched off — prunes a dead native node at the stale cutoff like any
+ * other row. Along the way they pin who reports across a gap: with no
+ * node established, an Offline node keeps being reported only while its
+ * own row carries a mark (notReportingMarkedAt) made within the monitors'
+ * 5 minutes of the moment the roster was read — so every push served by
+ * one cached roster decides alike, and a report that re-marked the row is
+ * never followed by one that drops it — a mark in Postgres that those
+ * reports keep fresh, so it outlives a Redis failover and a lone
+ * survivor's gaps, and ages out over a longer outage; written on the
+ * ingest worker's clock, the one it is judged against, whatever the
+ * database's clock says (updatedAt, which bulkUpsert writes on the
+ * database's clock too, never stands in for it); never taken from an
+ * adoption or an agent scrape, which mark nothing — with every node not
+ * reported counted as live.
+ * PVE_NATIVE_NODE_SILENCE_DETECTION is the one env switch the timeline
+ * sets for real (saved and restored around each test that does), since
+ * both the ingest and the delete mirrors read it through the real
+ * isProxmoxSilentNodeDetectionEnabled.
  */
 
 type CronHandler = () => Promise<void>;
@@ -133,8 +158,9 @@ jest.mock("Common/Server/Services/ProxmoxResourceService", () => {
 
 /*
  * The node-liveness module imports GlobalCache for its Redis-backed entry
- * point, which the timeline never calls: an empty stand-in keeps Redis
- * unloaded.
+ * point, which the timeline never calls — it mirrors that entry point, and
+ * the ingest's Redis fences, on the model's own key store: an empty
+ * stand-in keeps Redis unloaded.
  */
 jest.mock("Common/Server/Infrastructure/GlobalCache", () => {
   return {
@@ -147,8 +173,10 @@ import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService"
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import logger from "Common/Server/Utils/Logger";
 import {
+  PROXMOX_MONITOR_WINDOW_MS,
   PROXMOX_NODE_SILENCE_MS,
   PROXMOX_NODE_STREAK_GAP_MS,
+  PROXMOX_ROSTER_CACHE_TTL_MS,
   ProxmoxNodeLiveness,
   ProxmoxRosterNode,
   ProxmoxSilentNodeDecision,
@@ -962,7 +990,7 @@ describe("the job source", () => {
       /markNodesNotReporting|removeOfflineNode|getSilentNodeRetentionHours|getSilentNodeRetentionCutoff|getNodeRoster/,
     );
     expect(code).not.toMatch(
-      /isUp|updatedAt|isNativePush|isProxmoxSilentNodeDetectionEnabled|"Node"|'Node'|PVE_/,
+      /isUp|updatedAt|notReportingMarkedAt|isNativePush|isProxmoxSilentNodeDetectionEnabled|"Node"|'Node'|PVE_/,
     );
   });
 
@@ -983,36 +1011,75 @@ describe("the job source", () => {
  *     it returns before recording anything): the node's
  *     liveness key is advanced with the REAL nextProxmoxNodeLiveness and
  *     stored as GlobalCache.setString would store it (serialized,
- *     expiring PROXMOX_NODE_SILENCE_MS after the write), then the REAL
- *     decideProxmoxSilentNodes picks the siblings to report, from the
- *     roster (getNodeRoster: the Node rows seen within the retention
- *     window) and the keys that have not expired. So who reports is the
- *     module's own rule: every live node, once some node is established
- *     — pushing for two minutes with its streak unbroken now, its last
- *     push at most PROXMOX_NODE_STREAK_GAP_MS old;
- *   - the flush: bulkUpsert refreshes the node's own rows (lastSeenAt,
- *     updatedAt, isUp = true, isNativePush = whether the batch came from
- *     the native push) and re-creates any that were pruned; the cluster
- *     heartbeat is refreshed at most once per 5-minute maintenance fence
- *     while anything pushes, and a push reconnects a disconnected
- *     cluster; then the reported nodes turn Offline —
- *     markNodesNotReporting's UPDATE: isUp = false, isNativePush = true
- *     (a node the native pushes report belongs to a native-push cluster,
- *     whoever wrote its row last) and updatedAt, never lastSeenAt, only on
- *     a row last seen before the report's own time minus the silence
- *     window and not already both Offline and native — isUp IS DISTINCT
- *     FROM false OR isNativePush IS DISTINCT FROM true (so the ingest's
- *     30-second mark fence changes nothing here);
+ *     expiring PROXMOX_NODE_SILENCE_MS after the write); a roster
+ *     (getNodeRoster: the Node rows seen within the retention window,
+ *     with their isUp and notReportingMarkedAt — read afresh for every
+ *     push, unless the test turns on the ingest's roster cache: one ingest
+ *     worker's in-process cache, a roster read on a miss reused, together
+ *     with the moment it was read, for PROXMOX_ROSTER_CACHE_TTL_MS) with
+ *     no sibling on it reports nothing; otherwise the REAL
+ *     decideProxmoxSilentNodes picks the siblings to report from the
+ *     roster, the moment it was read (rosterReadAtMs) and the keys that
+ *     have not expired — nothing else: no Redis key but the liveness keys
+ *     takes part. So who reports is the module's own rule: every live
+ *     node, once some node is established — pushing for two minutes with
+ *     its streak unbroken now, its last push at most
+ *     PROXMOX_NODE_STREAK_GAP_MS old; before that, only the nodes already
+ *     Offline whose row carries a mark (notReportingMarkedAt) at most
+ *     PROXMOX_MONITOR_WINDOW_MS (the monitors' 5 minutes) older than the
+ *     moment the roster was read — the push's own on a fresh read, the
+ *     earlier push's that read it on a cached one. Each report counts
+ *     every node not reported as live (reporterCount);
+ *   - the flush: bulkUpsert refreshes the node's own rows (lastSeenAt =
+ *     the batch's own observation, updatedAt = the database's now(),
+ *     notReportingMarkedAt = NULL — the node's own observation clears the
+ *     mark — isUp = true, isNativePush = whether the batch came from the
+ *     native push) where that observation is no older than the row's
+ *     lastSeenAt — a batch processed late never rolls a row back — and
+ *     re-creates any that were pruned; a native batch then adopts the
+ *     cluster's Node rows (adoptProxmoxNodesAsNativePush): fenced to once
+ *     per 10 minutes per cluster (no fence is held when a timeline
+ *     starts), then adoptNodesAsNativePush's UPDATE — isNativePush = true,
+ *     and nothing else (an adoption is not a mark: the row's
+ *     notReportingMarkedAt, and its updatedAt, are left as they were), on
+ *     every Node row not yet native and last seen no later than the
+ *     batch's newest observation (seenUpTo); the cluster heartbeat is
+ *     refreshed at most once per 5-minute maintenance fence while
+ *     anything pushes, and a push reconnects a disconnected cluster; then
+ *     the reported nodes turn Offline — the ingest's mark fence
+ *     (markProxmoxSilentNodesOffline: setStringIfNotExists, 30 s per
+ *     cluster and set of nodes, no fence held when a timeline starts),
+ *     then markNodesNotReporting's UPDATE with markedAt = the ingest
+ *     worker's now: isUp = false, isNativePush = true (a node the native
+ *     pushes report belongs to a native-push cluster, whoever wrote its
+ *     row last), notReportingMarkedAt = markedAt and updatedAt = the
+ *     database's now(), never lastSeenAt, only on a row last seen before
+ *     the report's own time minus the silence window and not already
+ *     Offline, native and marked within the last minute — isUp IS
+ *     DISTINCT FROM false OR isNativePush IS DISTINCT FROM true OR
+ *     notReportingMarkedAt IS NULL OR notReportingMarkedAt < markedAt -
+ *     60 s. So a node reported on every 30-second step is re-marked every
+ *     two minutes (MARK_CADENCE_MS): the fence lets one UPDATE through a
+ *     minute, and the guard writes every other one;
  *   - markDisconnectedClusters: connected and not seen for 15 minutes;
  *   - deleteStaleForCluster: lastSeenAt < cutoff, except — while
  *     silent-node detection is on — a Node with isNativePush IS TRUE and
  *     lastSeenAt within the retention window
  *     (getSilentNodeRetentionCutoff, on the service's clock — the cron
  *     passes no `now`); switched off, the plain lastSeenAt < cutoff.
- * One clock (the PVE clocks and OneUptime's agree here), 30-second steps
- * unless a test asks for finer ones, the cron on every 5-minute boundary.
- * A OneUptime ingest outage is a stretch in which nothing is processed:
- * pushing [], exactly as for a cluster gone dark. On the agent
+ * One clock (the PVE clocks and OneUptime's agree here) — but for the
+ * database's now(), which a test may set apart (dbClockAheadMs); it
+ * reaches nothing but the updatedAt that bulkUpsert and
+ * markNodesNotReporting write, which nothing reads back as a mark —
+ * 30-second steps unless a test asks for finer ones, the cron on every
+ * 5-minute boundary.
+ * Every push is its own batch, observed when it is processed — except a
+ * late native batch (ingestLateNativePush), processed now but observed
+ * earlier. A OneUptime ingest outage is a stretch in which nothing is
+ * processed: pushing [], exactly as for a cluster gone dark. A Redis
+ * failover (loseRedisKeys) empties the model's key store — every liveness
+ * key and both fences — and leaves the inventory (and the worker's
+ * in-process roster cache) as it is. On the agent
  * (nativePush false) "pushing" is the nodes pve-exporter still lists as
  * up and "listedDown" the ones it still lists as down, and nobody
  * reports anybody: pve-exporter already speaks for every node.
@@ -1028,6 +1095,25 @@ const SILENCE_MS: number = PROXMOX_NODE_SILENCE_MS;
 const RETENTION_MS: number = 7 * 24 * 60 * MINUTE_MS;
 // GlobalCache.setString's expiry for a liveness key.
 const LIVENESS_KEY_TTL_MS: number = Math.ceil(SILENCE_MS / 1000) * 1000;
+// The ingest's adoption fence (setStringIfNotExists, 600 s).
+const ADOPT_FENCE_TTL_MS: number = 10 * MINUTE_MS;
+// The ingest's mark fence (setStringIfNotExists, 30 s).
+const MARK_FENCE_TTL_MS: number = 30 * SECOND_MS;
+/*
+ * markNodesNotReporting rewrites a row already Offline and native only
+ * once its mark is older than this, on the worker's clock
+ * ("notReportingMarkedAt" < $6, markedAt minus 60 s) — or when it carries
+ * none ("notReportingMarkedAt" IS NULL).
+ */
+const MARK_REFRESH_AFTER_MS: number = MINUTE_MS;
+/*
+ * What those two make of a node reported on every 30-second step: the
+ * fence, taken at t, is still there at t + 30 s, so an UPDATE runs at t,
+ * t + 1 min, t + 2 min...; the one at t + 1 min finds a mark exactly a
+ * minute old — not older — and writes nothing, the one at t + 2 min
+ * re-marks the row. Well inside PROXMOX_MONITOR_WINDOW_MS.
+ */
+const MARK_CADENCE_MS: number = 2 * MINUTE_MS;
 
 /*
  * A node that dies at NOW is still alive for SILENCE_MS; the first step
@@ -1044,7 +1130,14 @@ interface WorldRowTemplate {
 interface WorldRow extends WorldRowTemplate {
   isUp: boolean | null;
   lastSeenAt: Date;
+  // Written by bulkUpsert and markNodesNotReporting, on the database's clock.
   updatedAt: Date;
+  /*
+   * When the live nodes last reported this node as not reporting, on the
+   * ingest worker's clock (markNodesNotReporting); cleared by the node's
+   * own next observation (bulkUpsert). Null: never reported down since.
+   */
+  notReportingMarkedAt: Date | null;
   /*
    * Where the batch that wrote the row last came from: the native push
    * (true) or the agent (false); NULL from before the column existed.
@@ -1058,20 +1151,89 @@ interface WorldLivenessKey {
   expiresAtMs: number;
 }
 
+// One push's report: what decideProxmoxSilentNodes returned for it.
+interface WorldReport {
+  atMs: number;
+  reporter: string;
+  silentNodes: Array<string>;
+  // L: the nodes not reported, each counted as live.
+  reporterCount: number;
+}
+
+// One adoptNodesAsNativePush UPDATE — one the fence let through.
+interface WorldAdoption {
+  atMs: number;
+  seenUpToMs: number;
+  // The Node rows it flagged, in row order.
+  adopted: Array<string>;
+}
+
+// One markNodesNotReporting UPDATE — one the mark fence let through.
+interface WorldMark {
+  atMs: number;
+  nodeNames: Array<string>;
+  /*
+   * The Node rows it wrote, in row order: none when each was already
+   * Offline, native and marked within the last minute.
+   */
+  written: Array<string>;
+}
+
+/*
+ * The roster a push decides on, and when it was read — what the marks'
+ * age is taken against (decideProxmoxSilentNodes' rosterReadAtMs).
+ */
+interface WorldRosterRead {
+  roster: Array<ProxmoxRosterNode>;
+  readAtMs: number;
+}
+
+// One ingest worker's in-process roster cache entry: {roster, readAtMs}.
+interface WorldCachedRoster extends WorldRosterRead {
+  // Reused while the clock is at or before this (InMemoryTTLCache.get).
+  expiresAtMs: number;
+}
+
 interface World {
+  // The ingest workers' clock (and the cron's, and the PVE nodes').
   clockMs: number;
+  /*
+   * How far the database's now() runs ahead of the workers' clock
+   * (negative: behind). Only the updatedAt that bulkUpsert and
+   * markNodesNotReporting write reads it.
+   */
+  dbClockAheadMs: number;
   clusterId: ObjectID;
   clusterStatus: string;
   clusterLastSeenAt: Date;
   // What getStaleThresholdDate subtracts (PVE_INVENTORY_STALE_MINUTES).
   staleThresholdMs: number;
+  /*
+   * The ingest's roster cache lifetime; 0 leaves it out, and every push
+   * reads the roster afresh.
+   */
+  rosterCacheTtlMs: number;
+  rosterCache: WorldCachedRoster | null;
+  // The clock of every getNodeRoster read (a cache miss).
+  rosterReadsAtMs: Array<number>;
   // Where the batches come from: the Proxmox VE native push, or the agent.
   nativePush: boolean;
   catalog: Array<WorldRowTemplate>;
   rows: Array<WorldRow>;
   livenessKeys: Map<string, WorldLivenessKey>;
+  // When the "proxmox-native-adopt" fence expires; null: never taken.
+  adoptFenceExpiresAtMs: number | null;
+  /*
+   * When each "proxmox-silent-node-mark" fence expires, by cluster and
+   * set of nodes.
+   */
+  markFenceExpiresAtMs: Map<string, number>;
   // The clock of every moment at which a live node reported a silent one.
   reportedAtMs: Array<number>;
+  // Every report, push by push.
+  reports: Array<WorldReport>;
+  adoptions: Array<WorldAdoption>;
+  marks: Array<WorldMark>;
   // externalId -> clock of every tick that deleted it
   prunedAtMs: Map<string, Array<number>>;
 }
@@ -1136,7 +1298,12 @@ function readLiveness(
   return parseProxmoxNodeLiveness(key.value);
 }
 
-function createWorld(options?: {
+// A key of the model's store is there until its expiry has passed.
+function isKeyPresent(expiresAtMs: number | null, atMs: number): boolean {
+  return expiresAtMs !== null && atMs <= expiresAtMs;
+}
+
+interface WorldOptions {
   staleThresholdMs?: number | undefined;
   // How long before NOW the cluster heartbeat was last written.
   heartbeatAgeMs?: number | undefined;
@@ -1144,16 +1311,27 @@ function createWorld(options?: {
   nativePush?: boolean | undefined;
   // The rows' isNativePush when the timeline starts; the source's by default.
   rowsNativePush?: boolean | null | undefined;
-}): World {
+  // The database's clock against the workers'; in step by default.
+  dbClockAheadMs?: number | undefined;
+  // The ingest's roster cache lifetime; left out (0) by default.
+  rosterCacheTtlMs?: number | undefined;
+}
+
+function createWorld(options?: WorldOptions): World {
   const nativePush: boolean = options?.nativePush !== false;
   const rowsNativePush: boolean | null =
     options?.rowsNativePush !== undefined ? options.rowsNativePush : nativePush;
+  const dbClockAheadMs: number = options?.dbClockAheadMs || 0;
   const world: World = {
     clockMs: NOW.getTime(),
+    dbClockAheadMs,
     clusterId: CLUSTER_A_ID,
     clusterStatus: "connected",
     clusterLastSeenAt: new Date(NOW.getTime() - (options?.heartbeatAgeMs || 0)),
     staleThresholdMs: options?.staleThresholdMs || THRESHOLD_MS,
+    rosterCacheTtlMs: options?.rosterCacheTtlMs || 0,
+    rosterCache: null,
+    rosterReadsAtMs: [],
     nativePush,
     catalog: CATALOG,
     rows: CATALOG.map((template: WorldRowTemplate): WorldRow => {
@@ -1161,12 +1339,20 @@ function createWorld(options?: {
         ...template,
         isUp: true,
         lastSeenAt: new Date(NOW),
-        updatedAt: new Date(NOW),
+        // Written by bulkUpsert, on the database's clock.
+        updatedAt: new Date(NOW.getTime() + dbClockAheadMs),
+        // Every node pushed itself at NOW, which clears the mark.
+        notReportingMarkedAt: null,
         isNativePush: rowsNativePush,
       };
     }),
     livenessKeys: new Map<string, WorldLivenessKey>(),
+    adoptFenceExpiresAtMs: null,
+    markFenceExpiresAtMs: new Map<string, number>(),
     reportedAtMs: [],
+    reports: [],
+    adoptions: [],
+    marks: [],
     prunedAtMs: new Map<string, Array<number>>(),
   };
   if (nativePush) {
@@ -1179,6 +1365,18 @@ function createWorld(options?: {
     }
   }
   return world;
+}
+
+/*
+ * A Redis failover that lost every key: the liveness keys and the
+ * ingest's fences. The inventory — every row's isUp and
+ * notReportingMarkedAt — is in Postgres and stays, and so does the
+ * worker's in-process roster cache.
+ */
+function loseRedisKeys(world: World): void {
+  world.livenessKeys.clear();
+  world.adoptFenceExpiresAtMs = null;
+  world.markFenceExpiresAtMs.clear();
 }
 
 function rowOf(world: World, externalId: string): WorldRow | undefined {
@@ -1270,41 +1468,90 @@ function nodeRoster(world: World): Array<ProxmoxRosterNode> {
       return row.kind === "Node" && row.lastSeenAt.getTime() >= seenSinceMs;
     })
     .map((row: WorldRow): ProxmoxRosterNode => {
-      return { nodeName: row.nodeName, lastSeenAt: new Date(row.lastSeenAt) };
+      return {
+        nodeName: row.nodeName,
+        lastSeenAt: new Date(row.lastSeenAt),
+        isUp: row.isUp,
+        notReportingMarkedAt: row.notReportingMarkedAt
+          ? new Date(row.notReportingMarkedAt)
+          : null,
+      };
     });
 }
 
 /*
+ * The roster a push decides on, with the moment it was read: from the
+ * worker's roster cache while its entry lasts (InMemoryTTLCache: until the
+ * clock passes its expiry) — the read time the entry was cached with —
+ * else read afresh, now, and cached for rosterCacheTtlMs when the cache is
+ * on.
+ */
+function rosterFor(world: World): WorldRosterRead {
+  if (world.rosterCache && world.clockMs <= world.rosterCache.expiresAtMs) {
+    return {
+      roster: world.rosterCache.roster,
+      readAtMs: world.rosterCache.readAtMs,
+    };
+  }
+  const read: WorldRosterRead = {
+    roster: nodeRoster(world),
+    readAtMs: world.clockMs,
+  };
+  world.rosterReadsAtMs.push(world.clockMs);
+  world.rosterCache =
+    world.rosterCacheTtlMs > 0
+      ? { ...read, expiresAtMs: world.clockMs + world.rosterCacheTtlMs }
+      : null;
+  return read;
+}
+
+/*
  * recordProxmoxNodePushAndFindSilentNodes, on the model's key store:
- * advance this node's key, then decide with the real rule.
+ * advance this node's key; with no sibling on the roster report nothing;
+ * otherwise decide with the real rule, from the roster, the moment it was
+ * read and the keys alone.
  */
 function recordPushAndFindSilentNodes(
   world: World,
   selfNode: string,
+  reporterTimeMs: number,
 ): ProxmoxSilentNodeDecision | null {
+  const nowMs: number = world.clockMs;
   const current: ProxmoxNodeLiveness = nextProxmoxNodeLiveness(
     readLiveness(world, selfNode),
-    world.clockMs,
+    nowMs,
   );
   writeLiveness(world, selfNode, current);
 
-  const roster: Array<ProxmoxRosterNode> = nodeRoster(world);
+  const read: WorldRosterRead = rosterFor(world);
+  const roster: Array<ProxmoxRosterNode> = read.roster;
+  const siblings: Array<string> = roster
+    .map((node: ProxmoxRosterNode): string => {
+      return node.nodeName;
+    })
+    .filter((nodeName: string): boolean => {
+      return nodeName !== selfNode;
+    });
+  if (siblings.length === 0) {
+    return null;
+  }
+
   const liveness: Map<string, ProxmoxNodeLiveness | null> = new Map<
     string,
     ProxmoxNodeLiveness | null
   >();
   liveness.set(selfNode, current);
-  for (const node of roster) {
-    if (node.nodeName !== selfNode) {
-      liveness.set(node.nodeName, readLiveness(world, node.nodeName));
-    }
+  for (const nodeName of siblings) {
+    liveness.set(nodeName, readLiveness(world, nodeName));
   }
+
   return decideProxmoxSilentNodes({
     selfNode,
-    reporterTimeMs: world.clockMs,
-    nowMs: world.clockMs,
+    reporterTimeMs,
+    nowMs,
     roster,
     liveness,
+    rosterReadAtMs: read.readAtMs,
   });
 }
 
@@ -1312,28 +1559,44 @@ function recordPushAndFindSilentNodes(
  * bulkUpsert of the node's own rows, plus the cluster heartbeat. isUp is
  * what the batch says: always up for a native push (a node that is down
  * pushes nothing), down for a node pve-exporter still lists as down.
+ * ON CONFLICT ... WHERE EXCLUDED."lastSeenAt" >= "lastSeenAt": a row seen
+ * after the batch's own observation is left as it is. A newer observation
+ * clears the not-reporting mark (notReportingMarkedAt = NULL), whatever
+ * the batch's source — an agent scrape never marks. updatedAt is the
+ * database's now(); the heartbeat is written on the worker's clock.
  */
-function upsertOwnRows(world: World, nodeName: string, isUp: boolean): void {
+function upsertOwnRows(
+  world: World,
+  nodeName: string,
+  batch: { isUp: boolean; isNativePush: boolean; observedAtMs: number },
+): void {
   const now: Date = new Date(world.clockMs);
+  const dbNow: Date = new Date(world.clockMs + world.dbClockAheadMs);
+  const seenAt: Date = new Date(batch.observedAtMs);
   for (const template of world.catalog) {
     if (template.nodeName !== nodeName) {
       continue;
     }
-    let row: WorldRow | undefined = rowOf(world, template.externalId);
+    const row: WorldRow | undefined = rowOf(world, template.externalId);
     if (!row) {
-      row = {
+      world.rows.push({
         ...template,
-        isUp: null,
-        lastSeenAt: now,
-        updatedAt: now,
-        isNativePush: null,
-      };
-      world.rows.push(row);
+        isUp: batch.isUp,
+        lastSeenAt: seenAt,
+        updatedAt: dbNow,
+        notReportingMarkedAt: null,
+        isNativePush: batch.isNativePush,
+      });
+      continue;
     }
-    row.isUp = isUp;
-    row.lastSeenAt = now;
-    row.updatedAt = now;
-    row.isNativePush = world.nativePush;
+    if (seenAt.getTime() < row.lastSeenAt.getTime()) {
+      continue;
+    }
+    row.isUp = batch.isUp;
+    row.lastSeenAt = seenAt;
+    row.updatedAt = dbNow;
+    row.notReportingMarkedAt = null;
+    row.isNativePush = batch.isNativePush;
   }
 
   if (world.clusterStatus !== "connected") {
@@ -1348,50 +1611,188 @@ function upsertOwnRows(world: World, nodeName: string, isUp: boolean): void {
 }
 
 /*
- * markNodesNotReporting's UPDATE: SET isUp = false, isNativePush = true,
- * updatedAt — never lastSeenAt — WHERE "lastSeenAt" < $4 AND ("isUp" IS
- * DISTINCT FROM false OR "isNativePush" IS DISTINCT FROM true).
+ * markNodesNotReporting's UPDATE, with markedAt the ingest worker's now:
+ * SET isUp = false, isNativePush = true, notReportingMarkedAt = markedAt
+ * ($5) — never lastSeenAt, never the database's now() — and updatedAt =
+ * the database's now() WHERE "lastSeenAt" < $4 AND ("isUp" IS DISTINCT
+ * FROM false OR "isNativePush" IS DISTINCT FROM true OR
+ * "notReportingMarkedAt" IS NULL OR "notReportingMarkedAt" < markedAt -
+ * 60 s ($6)).
  */
 function markNodesNotReporting(
   world: World,
   nodeNames: Array<string>,
   silentBeforeMs: number,
+  markedAtMs: number,
 ): void {
+  const refreshBeforeMs: number = markedAtMs - MARK_REFRESH_AFTER_MS;
+  const dbNow: Date = new Date(world.clockMs + world.dbClockAheadMs);
+  const written: Array<string> = [];
   for (const row of world.rows) {
     if (
       row.kind === "Node" &&
       nodeNames.includes(row.nodeName) &&
       row.lastSeenAt.getTime() < silentBeforeMs &&
-      (row.isUp !== false || row.isNativePush !== true)
+      (row.isUp !== false ||
+        row.isNativePush !== true ||
+        row.notReportingMarkedAt === null ||
+        row.notReportingMarkedAt.getTime() < refreshBeforeMs)
     ) {
       row.isUp = false;
       row.isNativePush = true;
-      row.updatedAt = new Date(world.clockMs);
+      row.notReportingMarkedAt = new Date(markedAtMs);
+      row.updatedAt = dbNow;
+      written.push(row.externalId);
     }
   }
+  world.marks.push({
+    atMs: markedAtMs,
+    nodeNames: [...nodeNames],
+    written,
+  });
 }
 
 /*
- * One node's push, from the scan to the flush. Only a native push with
- * silent-node detection on records liveness and may report siblings.
+ * markProxmoxSilentNodesOffline: the fence (setStringIfNotExists, 30 s
+ * per cluster and sorted set of nodes — the ingest keys it by a hash of
+ * that set), then markNodesNotReporting with markedAt = the worker's now
+ * (OneUptimeDate.getCurrentDate()).
  */
-function ingestPush(world: World, nodeName: string): void {
+function markSilentNodesOffline(
+  world: World,
+  nodeNames: Array<string>,
+  silentBeforeMs: number,
+): void {
+  const sorted: Array<string> = [...nodeNames].sort();
+  const fenceKey: string = `${world.clusterId.toString()}:${sorted.join("\n")}`;
+  const fenceExpiresAtMs: number | undefined =
+    world.markFenceExpiresAtMs.get(fenceKey);
+  if (isKeyPresent(fenceExpiresAtMs ?? null, world.clockMs)) {
+    return;
+  }
+  world.markFenceExpiresAtMs.set(fenceKey, world.clockMs + MARK_FENCE_TTL_MS);
+  markNodesNotReporting(world, sorted, silentBeforeMs, world.clockMs);
+}
+
+// The clock of every mark UPDATE that wrote this Node row.
+function markWritesOf(world: World, externalId: string): Array<number> {
+  return world.marks
+    .filter((mark: WorldMark): boolean => {
+      return mark.written.includes(externalId);
+    })
+    .map((mark: WorldMark): number => {
+      return mark.atMs;
+    });
+}
+
+// fromMs, then every periodMs after it, up to toMs.
+function timesEvery(
+  periodMs: number,
+  fromMs: number,
+  toMs: number,
+): Array<number> {
+  const times: Array<number> = [];
+  for (let atMs: number = fromMs; atMs <= toMs; atMs += periodMs) {
+    times.push(atMs);
+  }
+  return times;
+}
+
+/*
+ * The re-marks of a node reported on every 30-second step from its first
+ * mark at fromMs up to toMs.
+ */
+function markCadence(fromMs: number, toMs: number): Array<number> {
+  return timesEvery(MARK_CADENCE_MS, fromMs, toMs);
+}
+
+/*
+ * adoptProxmoxNodesAsNativePush: the fence (setStringIfNotExists, 10
+ * minutes per cluster), then adoptNodesAsNativePush's UPDATE — SET
+ * isNativePush = true (only: notReportingMarkedAt, and updatedAt, are left
+ * alone — an adoption marks nothing) WHERE kind = 'Node' AND isNativePush
+ * IS DISTINCT FROM true AND lastSeenAt <= seenUpTo.
+ */
+function adoptNodesAsNativePush(world: World, seenUpToMs: number): void {
+  if (isKeyPresent(world.adoptFenceExpiresAtMs, world.clockMs)) {
+    return;
+  }
+  world.adoptFenceExpiresAtMs = world.clockMs + ADOPT_FENCE_TTL_MS;
+  const adopted: Array<string> = [];
+  for (const row of world.rows) {
+    if (
+      row.kind === "Node" &&
+      row.isNativePush !== true &&
+      row.lastSeenAt.getTime() <= seenUpToMs
+    ) {
+      row.isNativePush = true;
+      adopted.push(row.externalId);
+    }
+  }
+  world.adoptions.push({ atMs: world.clockMs, seenUpToMs, adopted });
+}
+
+/*
+ * One node's batch, from the scan to the flush, processed now and
+ * observed at observedAtMs. Only a native push with silent-node detection
+ * on records liveness and may report siblings; every native batch adopts
+ * (the adoption does not depend on the switch).
+ */
+function ingestBatch(
+  world: World,
+  nodeName: string,
+  batch: { nativePush: boolean; observedAtMs: number },
+): void {
   const decision: ProxmoxSilentNodeDecision | null =
-    world.nativePush && isProxmoxSilentNodeDetectionEnabled()
-      ? recordPushAndFindSilentNodes(world, nodeName)
+    batch.nativePush && isProxmoxSilentNodeDetectionEnabled()
+      ? recordPushAndFindSilentNodes(world, nodeName, batch.observedAtMs)
       : null;
-  upsertOwnRows(world, nodeName, true);
+  upsertOwnRows(world, nodeName, {
+    isUp: true,
+    isNativePush: batch.nativePush,
+    observedAtMs: batch.observedAtMs,
+  });
+  if (batch.nativePush) {
+    // A node-status batch always carries the node's own row.
+    adoptNodesAsNativePush(world, batch.observedAtMs);
+  }
   if (!decision) {
     return;
   }
+  world.reports.push({
+    atMs: world.clockMs,
+    reporter: nodeName,
+    silentNodes: [...decision.silentNodes],
+    reporterCount: decision.reporterCount,
+  });
   if (world.reportedAtMs[world.reportedAtMs.length - 1] !== world.clockMs) {
     world.reportedAtMs.push(world.clockMs);
   }
-  markNodesNotReporting(
+  markSilentNodesOffline(
     world,
     decision.silentNodes,
-    world.clockMs - SILENCE_MS,
+    batch.observedAtMs - SILENCE_MS,
   );
+}
+
+// A push processed as it arrives, from wherever the batches come from now.
+function ingestPush(world: World, nodeName: string): void {
+  ingestBatch(world, nodeName, {
+    nativePush: world.nativePush,
+    observedAtMs: world.clockMs,
+  });
+}
+
+/*
+ * A native push observed at observedAtMs but processed only now — held up
+ * in the ingest backlog — whatever the batches come from by then.
+ */
+function ingestLateNativePush(
+  world: World,
+  nodeName: string,
+  observedAtMs: number,
+): void {
+  ingestBatch(world, nodeName, { nativePush: true, observedAtMs });
 }
 
 async function runModelTick(world: World): Promise<TickRecord> {
@@ -1459,7 +1860,11 @@ async function advance(
       ingestPush(world, nodeName);
     }
     for (const nodeName of listedDown) {
-      upsertOwnRows(world, nodeName, false);
+      upsertOwnRows(world, nodeName, {
+        isUp: false,
+        isNativePush: false,
+        observedAtMs: world.clockMs,
+      });
     }
     if (world.clockMs % TICK_MS === 0) {
       ticks.push(await runModelTick(world));
@@ -1500,7 +1905,30 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     expect(SILENCE_MS % STEP_MS).toBe(0);
   });
 
-  test("its Node row survives every tick as Offline, marked once, while its lastSeenAt never moves", async () => {
+  test("the model's continuation window is the liveness module's own: the monitors' 5 minutes, a whole number of steps, counted from the moment the roster was read — one 30-second roster cache lifetime, one step — and well past the re-mark cadence", () => {
+    // The short-outage arithmetic below rests on this.
+    expect(PROXMOX_MONITOR_WINDOW_MS).toBe(5 * MINUTE_MS);
+    expect(PROXMOX_MONITOR_WINDOW_MS % STEP_MS).toBe(0);
+    /*
+     * The window carries no slack of its own: a mark's age is taken when
+     * the roster was read, and a roster cached at a step is reused, at
+     * most, by the pushes of the next — which decide as the push that read
+     * it did.
+     */
+    expect(PROXMOX_ROSTER_CACHE_TTL_MS).toBe(30 * SECOND_MS);
+    expect(PROXMOX_ROSTER_CACHE_TTL_MS).toBe(STEP_MS);
+    /*
+     * The mark fence is one step long and the re-mark cadence (pinned by
+     * the next test) a whole number of steps, which leaves three minutes
+     * of the window after a node's last re-mark.
+     */
+    expect(MARK_FENCE_TTL_MS).toBe(STEP_MS);
+    expect(MARK_CADENCE_MS % STEP_MS).toBe(0);
+    expect(MARK_CADENCE_MS).toBeGreaterThan(MARK_REFRESH_AFTER_MS);
+    expect(PROXMOX_MONITOR_WINDOW_MS - MARK_CADENCE_MS).toBe(3 * MINUTE_MS);
+  });
+
+  test("its Node row survives every tick as Offline, re-marked every two minutes while reported, while its lastSeenAt never moves", async () => {
     const world: World = createWorld();
     installWorld(world);
 
@@ -1525,10 +1953,35 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     expect(pve3!.isNativePush).toBe(true);
     expect(pve3!.lastSeenAt.getTime()).toBe(NOW.getTime());
     /*
-     * Written once, by the first report: the UPDATE skips a row already
-     * Offline and native, and the keep never needed the row rewritten.
+     * Marked by the first report, then re-marked every two minutes: the
+     * mark fence lets one UPDATE through a minute — the first push of
+     * that step takes it, its sibling's is fenced — and the UPDATE writes
+     * a row already Offline and native only once its mark is more than a
+     * minute old. So every other UPDATE writes nothing, and the mark is
+     * never older than the cadence when a report reads it.
      */
-    expect(pve3!.updatedAt.getTime()).toBe(FIRST_REPORT_MS);
+    expect(
+      world.marks.map((mark: WorldMark): number => {
+        return mark.atMs;
+      }),
+    ).toEqual(timesEvery(MINUTE_MS, FIRST_REPORT_MS, world.clockMs));
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(FIRST_REPORT_MS, world.clockMs),
+    );
+    for (const mark of world.marks) {
+      expect(mark.nodeNames).toEqual(["pve3"]);
+      expect(mark.written).toEqual(
+        (mark.atMs - FIRST_REPORT_MS) % MARK_CADENCE_MS === 0
+          ? ["node/pve3"]
+          : [],
+      );
+    }
+    expect(pve3!.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
+    expect(world.clockMs - pve3!.notReportingMarkedAt!.getTime()).toBeLessThan(
+      MARK_CADENCE_MS,
+    );
     expect(world.reportedAtMs[0]).toBe(FIRST_REPORT_MS);
     expect(world.reportedAtMs[world.reportedAtMs.length - 1]).toBe(
       world.clockMs,
@@ -1536,6 +1989,12 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     // Offline on every tick from the first report on.
     for (const tick of ticks) {
       expect(tick.offline.has("node/pve3")).toBe(tick.atMs >= FIRST_REPORT_MS);
+    }
+    // Both survivors report it on every push, each counting L = 2 live nodes.
+    expect(world.reports).toHaveLength(2 * world.reportedAtMs.length);
+    for (const report of world.reports) {
+      expect(report.silentNodes).toEqual(["pve3"]);
+      expect(report.reporterCount).toBe(2);
     }
 
     // The live nodes and their guests are untouched.
@@ -1648,9 +2107,10 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
      * The tightest cutoff the service allows, and a cluster heartbeat
      * written 30 s after each tick, so every tick anchors on a lastSeenAt
      * that is 4.5 minutes old: the cutoff sits 9.5 minutes back, past
-     * the node's own last push and its one mark within the first
-     * quarter hour — the keep rests on isNativePush and the retention
-     * window alone.
+     * the node's own last push within the first quarter hour — the keep
+     * rests on isNativePush and the retention window alone. (The reports
+     * re-mark the row, but the mark is notReportingMarkedAt, which the
+     * delete never reads.)
      */
     const minimumThresholdMs: number = 5 * MINUTE_MS;
     const world: World = createWorld({
@@ -1677,10 +2137,10 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     expect(ticksWhere(ticks, "node/pve3", false)).toEqual([]);
     const pve3: WorldRow = rowOf(world, "node/pve3")!;
     expect(pve3.isUp).toBe(false);
-    // The last cutoff lies an hour and more past that one mark.
-    expect(pve3.updatedAt.getTime()).toBe(FIRST_REPORT_MS);
+    // The last cutoff lies an hour and more past that last push.
+    expect(pve3.lastSeenAt.getTime()).toBe(NOW.getTime());
     expect(calls[calls.length - 1]!.olderThan.getTime()).toBeGreaterThan(
-      FIRST_REPORT_MS + 60 * MINUTE_MS,
+      NOW.getTime() + 60 * MINUTE_MS,
     );
     // The live nodes' rows ride the push, far inside any cutoff.
     for (const externalId of SURVIVOR_ROWS) {
@@ -1690,10 +2150,11 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     expect(world.prunedAtMs.get("qemu/103")).toHaveLength(1);
   });
 
-  test("a Node row already Offline and native is left alone by the reports and kept all the same", async () => {
+  test("a Node row already Offline and native is only re-marked by the reports — notReportingMarkedAt, never lastSeenAt — and kept all the same", async () => {
     /*
      * pve3 died ten minutes before NOW and was marked then (say, before
-     * a worker restart): its key is gone and its row Offline and native.
+     * a worker restart): its key is gone and its row Offline, native and
+     * marked.
      */
     const world: World = createWorld();
     const diedAtMs: number = NOW.getTime() - 10 * MINUTE_MS;
@@ -1703,6 +2164,7 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     pve3.isUp = false;
     pve3.lastSeenAt = new Date(diedAtMs);
     pve3.updatedAt = new Date(markedAtMs);
+    pve3.notReportingMarkedAt = new Date(markedAtMs);
     expect(pve3.isNativePush).toBe(true);
     installWorld(world);
 
@@ -1711,22 +2173,36 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
       pushing: SURVIVORS,
     });
 
-    // Reported on every step, yet the UPDATE never writes the row again.
-    expect(world.reportedAtMs[0]).toBe(NOW.getTime() + STEP_MS);
+    /*
+     * Reported on every step. The first report finds a mark more than a
+     * minute old and re-marks the row; from then on the UPDATE writes it
+     * every two minutes — its notReportingMarkedAt alone: it stays
+     * Offline and native, and its lastSeenAt never moves.
+     */
+    const firstReportMs: number = NOW.getTime() + STEP_MS;
+    expect(world.reportedAtMs[0]).toBe(firstReportMs);
     expect(world.reportedAtMs).toHaveLength((2 * 60 * MINUTE_MS) / STEP_MS);
+    expect(firstReportMs - markedAtMs).toBeGreaterThan(MARK_REFRESH_AFTER_MS);
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(firstReportMs, world.clockMs),
+    );
     expect(pve3.isUp).toBe(false);
     expect(pve3.isNativePush).toBe(true);
-    expect(pve3.updatedAt.getTime()).toBe(markedAtMs);
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
     expect(pve3.lastSeenAt.getTime()).toBe(diedAtMs);
     expect(ticksWhere(ticks, "node/pve3", false)).toEqual([]);
     expect(world.prunedAtMs.has("node/pve3")).toBe(false);
   });
 
-  test("a Node row marked Offline before isNativePush existed (NULL) is written once more by its first report — made native — and kept, while its guests seen at the same moment go on the normal cutoff", async () => {
+  test("a Node row marked Offline before isNativePush and notReportingMarkedAt existed (both NULL) is adopted — made native, left unmarked — by the flush that first reports it, marked by that report, and kept, while its guests seen at the same moment go on the normal cutoff", async () => {
     /*
-     * As above, but pve3 was marked before the column existed: every row
-     * reads NULL. pve1's and pve2's own pushes make theirs native; nothing
-     * but a report can make pve3's, and it is already Offline.
+     * As above, but pve3 was marked Offline before the columns existed —
+     * one migration adds both: every row reads NULL for isNativePush, and
+     * for the mark too (its updatedAt still shows when it was marked).
+     * pve1's and pve2's own pushes make theirs native; only the adoption
+     * (or a report) can make pve3's, and it is already Offline.
      */
     const world: World = createWorld({ rowsNativePush: null });
     const diedAtMs: number = NOW.getTime() - 10 * MINUTE_MS;
@@ -1736,6 +2212,7 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     pve3.isUp = false;
     pve3.lastSeenAt = new Date(diedAtMs);
     pve3.updatedAt = new Date(markedAtMs);
+    expect(pve3.notReportingMarkedAt).toBeNull();
     for (const externalId of PVE3_GUEST_AND_STORAGE) {
       rowOf(world, externalId)!.lastSeenAt = new Date(diedAtMs);
     }
@@ -1747,18 +2224,41 @@ describe("timeline: a native-push node that dies while its siblings keep pushing
     });
     const firstReportMs: number = NOW.getTime() + STEP_MS;
 
-    // The first report writes it — isNativePush was not true — and no later one does.
+    /*
+     * The first native flush — pve1's, the one that first reports pve3 —
+     * adopts the NULL Node rows: isNativePush was not true. The adoption
+     * sets that flag alone and leaves pve3 unmarked — so the report in
+     * the same flush, finding the row Offline and native but with no
+     * mark, marks it. The later reports re-mark it every two minutes from
+     * then on — its notReportingMarkedAt alone.
+     */
+    expect(world.adoptions[0]).toEqual({
+      atMs: firstReportMs,
+      seenUpToMs: firstReportMs,
+      adopted: ["node/pve2", "node/pve3"],
+    });
     expect(world.reportedAtMs[0]).toBe(firstReportMs);
     expect(world.reportedAtMs).toHaveLength((2 * 60 * MINUTE_MS) / STEP_MS);
+    expect(world.marks[0]).toEqual({
+      atMs: firstReportMs,
+      nodeNames: ["pve3"],
+      written: ["node/pve3"],
+    });
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(firstReportMs, world.clockMs),
+    );
     expect(pve3.isUp).toBe(false);
     expect(pve3.isNativePush).toBe(true);
-    expect(pve3.updatedAt.getTime()).toBe(firstReportMs);
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
     expect(pve3.lastSeenAt.getTime()).toBe(diedAtMs);
 
     /*
      * Its guest and storage, NULL and last seen at the same moment, go on
      * the first tick whose cutoff passes that moment — where the Node row
-     * would have gone too, had the report left it NULL.
+     * would have gone too, had nothing made it native. (The adoption takes
+     * Node rows only.)
      */
     const firstPastCutoff: TickRecord | undefined = ticks.find(
       (tick: TickRecord): boolean => {
@@ -1894,7 +2394,7 @@ describe("timeline: the Proxmox Agent keeps the 15-minute prune", () => {
     expect(world.prunedAtMs.get("qemu/103")).toHaveLength(1);
   });
 
-  test("a node already Offline under the agent when the cluster moves to the native push is reported, marked native, kept, and pruned only after the retention window", async () => {
+  test("a node already Offline under the agent when the cluster moves to the native push is adopted by the first native flush, reported, kept, and pruned only after the retention window", async () => {
     /*
      * pve3 is down but still a member: pve-exporter, which asks the
      * cluster about every node, keeps listing it — as down.
@@ -1924,6 +2424,9 @@ describe("timeline: the Proxmox Agent keeps the 15-minute prune", () => {
     expect(pve3.isUp).toBe(false);
     expect(pve3.isNativePush).toBe(false);
     expect(pve3.lastSeenAt.getTime()).toBe(lastScrapeMs);
+    expect(pve3.updatedAt.getTime()).toBe(lastScrapeMs);
+    // Down by the agent's own word, and never marked: a scrape is not a mark.
+    expect(pve3.notReportingMarkedAt).toBeNull();
 
     /*
      * The metric server replaces the agent: pve1 and pve2 push natively
@@ -1931,26 +2434,85 @@ describe("timeline: the Proxmox Agent keeps the 15-minute prune", () => {
      * lists it any more.
      */
     world.nativePush = true;
-    const ticks: Array<TickRecord> = await advance(world, {
-      durationMs: RETENTION_MS + 60 * MINUTE_MS,
+    const firstStepTicks: Array<TickRecord> = await advance(world, {
+      durationMs: STEP_MS,
       pushing: SURVIVORS,
     });
+    const adoptedAtMs: number = lastScrapeMs + STEP_MS;
+    /*
+     * The first native step adopts pve3's row: native now, still Offline,
+     * still unmarked, and its updatedAt still the agent's last scrape — an
+     * adoption is not a mark.
+     */
+    expect(
+      world.adoptions.map((adoption: WorldAdoption): number => {
+        return adoption.atMs;
+      }),
+    ).toEqual([adoptedAtMs]);
+    expect(pve3.isNativePush).toBe(true);
+    expect(pve3.isUp).toBe(false);
+    expect(pve3.notReportingMarkedAt).toBeNull();
+    expect(pve3.updatedAt.getTime()).toBe(lastScrapeMs);
+    expect(world.marks).toEqual([]);
+    const ticks: Array<TickRecord> = [
+      ...firstStepTicks,
+      ...(await advance(world, {
+        durationMs: RETENTION_MS + 60 * MINUTE_MS - STEP_MS,
+        pushing: SURVIVORS,
+      })),
+    ];
     const firstReportMs: number = lastScrapeMs + STEP_MS + SILENCE_MS;
     const retentionEndMs: number = lastScrapeMs + RETENTION_MS;
 
-    // Reported once pve1 is established; that first report marks it native.
+    /*
+     * The first native flush — pve1's, two minutes before anyone is
+     * established — adopts the agent's Node rows it has seen past: pve3's,
+     * and pve2's, which pve2's own push in the same step makes native
+     * anyway. The fence holds off every later flush for ten minutes, and
+     * no later adoption finds anything left to take.
+     */
+    expect(world.adoptions[0]).toEqual({
+      atMs: adoptedAtMs,
+      seenUpToMs: adoptedAtMs,
+      adopted: ["node/pve2", "node/pve3"],
+    });
+    expect(world.adoptions[1]!.atMs).toBe(
+      adoptedAtMs + ADOPT_FENCE_TTL_MS + STEP_MS,
+    );
+    for (const adoption of world.adoptions.slice(1)) {
+      expect(adoption.adopted).toEqual([]);
+    }
+
+    // Reported once pve1 is established, already Offline and native.
     expect(world.reportedAtMs[0]).toBe(firstReportMs);
     expect(pve3.isUp).toBe(false);
     expect(pve3.isNativePush).toBe(true);
-    // Written by that report alone; its lastSeenAt is still the agent's last scrape.
-    expect(pve3.updatedAt.getTime()).toBe(firstReportMs);
+    /*
+     * Adopted first; the first report, two minutes on, finds the row
+     * unmarked — the agent never marks, and the adoption left it so — and
+     * marks it, and the reports go on re-marking it every two minutes —
+     * its notReportingMarkedAt alone: its lastSeenAt is still the agent's
+     * last scrape.
+     */
+    expect(world.marks[0]).toEqual({
+      atMs: firstReportMs,
+      nodeNames: ["pve3"],
+      written: ["node/pve3"],
+    });
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(firstReportMs, retentionEndMs),
+    );
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
     expect(pve3.lastSeenAt.getTime()).toBe(lastScrapeMs);
 
     /*
-     * The mark lands before the first tick whose cutoff passes that last
-     * scrape. That tick takes pve3's guest and storage — agent rows
-     * scraped at the same moment — and would have taken its Node row too,
-     * left isNativePush false, dropping it off the roster while down.
+     * The adoption — and the first report too — land before the first
+     * tick whose cutoff passes that last scrape. That tick takes pve3's
+     * guest and storage — agent rows scraped at the same moment — and
+     * would have taken its Node row too, left isNativePush false, dropping
+     * it off the roster while down.
      */
     const firstPastCutoff: TickRecord | undefined = ticks.find(
       (tick: TickRecord): boolean => {
@@ -1999,6 +2561,115 @@ describe("timeline: the Proxmox Agent keeps the 15-minute prune", () => {
     }
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
+
+  test("a late native batch after the cluster moved back to the agent does not re-adopt the agent rows, so a node the agent stopped listing is pruned at the normal cutoff", async () => {
+    const world: World = createWorld();
+    installWorld(world);
+
+    // Twenty minutes on the native push, every node pushing.
+    await advance(world, { durationMs: 20 * MINUTE_MS, pushing: ALL_NODES });
+    const lastNativeMs: number = world.clockMs;
+    /*
+     * pve1's next native push, observed ten seconds later, as the metric
+     * server is being removed, is held up in the ingest backlog.
+     */
+    const lateObservedAtMs: number = lastNativeMs + 10 * SECOND_MS;
+
+    // The agent takes over and lists every node for ten minutes...
+    world.nativePush = false;
+    await advance(world, { durationMs: 10 * MINUTE_MS, pushing: ALL_NODES });
+    const lastListedMs: number = world.clockMs;
+    for (const template of CATALOG) {
+      expect(rowOf(world, template.externalId)!.isNativePush).toBe(false);
+    }
+
+    // ...then pve3 leaves the cluster: pve-exporter lists pve1 and pve2 only.
+    await advance(world, { durationMs: 3 * MINUTE_MS, pushing: SURVIVORS });
+    const lateAtMs: number = world.clockMs;
+
+    /*
+     * The rows an adoption without its seenUpTo guard would take now:
+     * every agent Node row, pve3's among them — kept for a week, with
+     * nothing left to report it.
+     */
+    expect(
+      world.rows
+        .filter((row: WorldRow): boolean => {
+          return row.kind === "Node" && row.isNativePush !== true;
+        })
+        .map((row: WorldRow): string => {
+          return row.externalId;
+        })
+        .sort(),
+    ).toEqual(["node/pve1", "node/pve2", "node/pve3"]);
+
+    // The late batch is processed at last.
+    ingestLateNativePush(world, "pve1", lateObservedAtMs);
+
+    /*
+     * Its adoption runs — the fence, last taken eleven minutes into the
+     * native push, has long expired — and takes nothing: every Node row
+     * was last seen after the batch's own observation.
+     */
+    expect(
+      world.adoptions.map((adoption: WorldAdoption): number => {
+        return adoption.atMs;
+      }),
+    ).toEqual([
+      NOW.getTime() + STEP_MS,
+      NOW.getTime() + 11 * MINUTE_MS,
+      lateAtMs,
+    ]);
+    expect(world.adoptions[2]).toEqual({
+      atMs: lateAtMs,
+      seenUpToMs: lateObservedAtMs,
+      adopted: [],
+    });
+    expect(rowOf(world, "node/pve3")!.isNativePush).toBe(false);
+    expect(rowOf(world, "node/pve3")!.lastSeenAt.getTime()).toBe(lastListedMs);
+    // Nor does its bulkUpsert roll pve1's newer agent rows back.
+    for (const externalId of ["node/pve1", "qemu/101"]) {
+      expect(rowOf(world, externalId)!.isNativePush).toBe(false);
+      expect(rowOf(world, externalId)!.lastSeenAt.getTime()).toBe(lateAtMs);
+    }
+    // And it reports nobody.
+    expect(world.reportedAtMs).toEqual([]);
+
+    const ticks: Array<TickRecord> = await advance(world, {
+      durationMs: 60 * MINUTE_MS,
+      pushing: SURVIVORS,
+    });
+
+    /*
+     * pve3's Node row goes on the first tick whose cutoff passes its last
+     * listing, together with its guest and storage listed at the same
+     * moment — the agent's 15-minute prune.
+     */
+    const firstPastCutoff: TickRecord | undefined = ticks.find(
+      (tick: TickRecord): boolean => {
+        return tick.cutoffMs !== null && tick.cutoffMs > lastListedMs;
+      },
+    );
+    expect(firstPastCutoff).toBeDefined();
+    const prunedAt: Array<number> | undefined =
+      world.prunedAtMs.get("node/pve3");
+    expect(prunedAt).toEqual([firstPastCutoff!.atMs]);
+    expect(prunedAt![0]!).toBeGreaterThan(lastListedMs + THRESHOLD_MS);
+    expect(prunedAt![0]!).toBeLessThanOrEqual(
+      lastListedMs + THRESHOLD_MS + HEARTBEAT_FENCE_MS + TICK_MS,
+    );
+    for (const externalId of PVE3_GUEST_AND_STORAGE) {
+      expect(world.prunedAtMs.get(externalId)).toEqual(prunedAt);
+    }
+
+    // The agent's live rows ride its scrapes, untouched and still its own.
+    for (const externalId of SURVIVOR_ROWS) {
+      expect(world.prunedAtMs.has(externalId)).toBe(false);
+      expect(rowOf(world, externalId)!.isNativePush).toBe(false);
+    }
+    expect(world.reportedAtMs).toEqual([]);
+    expect(mockedLogger.error).not.toHaveBeenCalled();
+  });
 });
 
 describe("timeline: a OneUptime ingest outage around a native-push node's death", () => {
@@ -2008,13 +2679,21 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
 
     // pve3 dies at NOW and is reported from FIRST_REPORT_MS on.
     await advance(world, { durationMs: 29 * MINUTE_MS, pushing: SURVIVORS });
-    expect(rowOf(world, "node/pve3")!.updatedAt.getTime()).toBe(
-      FIRST_REPORT_MS,
-    );
     const lastReportBeforeMs: number = world.clockMs;
     expect(world.reportedAtMs[world.reportedAtMs.length - 1]).toBe(
       lastReportBeforeMs,
     );
+    // Re-marked every two minutes since the first report, the last time within the cadence.
+    const marksBefore: Array<number> = markCadence(
+      FIRST_REPORT_MS,
+      lastReportBeforeMs,
+    );
+    expect(markWritesOf(world, "node/pve3")).toEqual(marksBefore);
+    const lastMarkBeforeMs: number = marksBefore[marksBefore.length - 1]!;
+    expect(rowOf(world, "node/pve3")!.notReportingMarkedAt!.getTime()).toBe(
+      lastMarkBeforeMs,
+    );
+    expect(lastReportBeforeMs - lastMarkBeforeMs).toBeLessThan(MARK_CADENCE_MS);
 
     // OneUptime processes nothing for 20 minutes: no push, no heartbeat, no report.
     const outageTicks: Array<TickRecord> = await advance(world, {
@@ -2022,6 +2701,10 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
       pushing: [],
     });
     const outageEndMs: number = world.clockMs;
+    // ...and no mark: the row still carries the last one from before.
+    expect(rowOf(world, "node/pve3")!.notReportingMarkedAt!.getTime()).toBe(
+      lastMarkBeforeMs,
+    );
 
     // Step 1 turns the cluster Disconnected 15-20 minutes into the outage.
     const disconnectedAtMs: Array<number> = outageTicks
@@ -2065,9 +2748,15 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
 
     /*
      * That tick fell in the warm-up: nobody is established for two
-     * minutes after the resume, so nobody had reported the node since
-     * before the outage.
+     * minutes after the resume, and the outage outlasted the monitors'
+     * 5-minute window — the row's last mark was older than that when the
+     * roster was read — so no report of the Offline node continued
+     * through it either: nobody had reported the node since before the
+     * outage.
      */
+    expect(resumedAtMs - lastMarkBeforeMs).toBeGreaterThan(
+      PROXMOX_MONITOR_WINDOW_MS,
+    );
     const reportsSince: Array<number> = reportsAfter(world, lastReportBeforeMs);
     expect(reportsSince[0]).toBe(resumedAtMs + SILENCE_MS);
     expect(warmUpTick.atMs).toBeLessThan(reportsSince[0]!);
@@ -2081,11 +2770,20 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
     const pve3: WorldRow = rowOf(world, "node/pve3")!;
     expect(pve3.isUp).toBe(false);
     expect(pve3.lastSeenAt.getTime()).toBe(NOW.getTime());
-    expect(pve3.updatedAt.getTime()).toBe(FIRST_REPORT_MS);
 
-    // Reported again, to the end, once its siblings are re-established.
+    /*
+     * Reported again, to the end, once its siblings are re-established —
+     * and re-marked from that first report back on.
+     */
     expect(world.reportedAtMs[world.reportedAtMs.length - 1]).toBe(
       world.clockMs,
+    );
+    expect(markWritesOf(world, "node/pve3")).toEqual([
+      ...marksBefore,
+      ...markCadence(reportsSince[0]!, world.clockMs),
+    ]);
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
     );
 
     // The live nodes and their guests were never touched.
@@ -2140,16 +2838,28 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
      */
     expect(warmUpTick.present.has("node/pve3")).toBe(true);
     expect(warmUpTick.offline.has("node/pve3")).toBe(false);
+    expect(markWritesOf(world, "node/pve3")[0]!).toBeGreaterThan(
+      warmUpTick.atMs,
+    );
     // Its guest and storage are not kept: they go on this very tick.
     for (const externalId of PVE3_GUEST_AND_STORAGE) {
       expect(world.prunedAtMs.get(externalId)).toEqual([warmUpTick.atMs]);
     }
 
-    // Once pve1 has pushed for two minutes it reports pve3, which turns Offline.
+    /*
+     * Once pve1 has pushed for two minutes it reports pve3, which turns
+     * Offline — marked by that first report, re-marked every two minutes
+     * after it.
+     */
     expect(world.reportedAtMs[0]).toBe(establishedAtMs);
     const pve3: WorldRow = rowOf(world, "node/pve3")!;
     expect(pve3.isUp).toBe(false);
-    expect(pve3.updatedAt.getTime()).toBe(establishedAtMs);
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(establishedAtMs, world.clockMs),
+    );
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
     expect(pve3.lastSeenAt.getTime()).toBe(diedAtMs);
     expect(world.reportedAtMs[world.reportedAtMs.length - 1]).toBe(
       world.clockMs,
@@ -2173,14 +2883,19 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
     installWorld(world);
     const retentionEndMs: number = NOW.getTime() + RETENTION_MS;
 
-    // pve3 is reported for all but the last 16 minutes of its window...
+    /*
+     * pve3 is reported — and re-marked every two minutes — for all but the
+     * last 16 minutes of its window...
+     */
     await advance(world, {
       durationMs: RETENTION_MS - 16 * MINUTE_MS,
       pushing: SURVIVORS,
     });
-    expect(rowOf(world, "node/pve3")!.updatedAt.getTime()).toBe(
-      FIRST_REPORT_MS,
+    const pve3: WorldRow = rowOf(world, "node/pve3")!;
+    expect(world.clockMs - pve3.notReportingMarkedAt!.getTime()).toBeLessThan(
+      MARK_CADENCE_MS,
     );
+    expect(pve3.lastSeenAt.getTime()).toBe(NOW.getTime());
 
     // ...when OneUptime stops processing for 20 minutes, across its end.
     const outageTicks: Array<TickRecord> = await advance(world, {
@@ -2289,6 +3004,961 @@ describe("timeline: a OneUptime ingest outage around a native-push node's death"
     }
     expect(world.prunedAtMs.size).toBe(0);
   });
+
+  /*
+   * pve3 dies at NOW and is reported, and marked, from FIRST_REPORT_MS on;
+   * 29 minutes in, OneUptime stops processing for `outageMs`. The marks
+   * are checked on the workers' clock, whatever the database's.
+   */
+  interface OutageSetup {
+    world: World;
+    lastReportBeforeMs: number;
+    // The row's last mark before the outage: what a report reads after it.
+    lastMarkBeforeMs: number;
+    outageTicks: Array<TickRecord>;
+    // The first step after the outage.
+    resumedAtMs: number;
+  }
+
+  async function offlineNodeThroughOutage(
+    outageMs: number,
+    options?: WorldOptions,
+  ): Promise<OutageSetup> {
+    const world: World = createWorld(options);
+    installWorld(world);
+    await advance(world, { durationMs: 29 * MINUTE_MS, pushing: SURVIVORS });
+    const lastReportBeforeMs: number = world.clockMs;
+    expect(world.reportedAtMs[world.reportedAtMs.length - 1]).toBe(
+      lastReportBeforeMs,
+    );
+    expect(rowOf(world, "node/pve3")!.isUp).toBe(false);
+    // Re-marked every two minutes: the last time half a minute before the outage.
+    const marksBefore: Array<number> = markCadence(
+      FIRST_REPORT_MS,
+      lastReportBeforeMs,
+    );
+    expect(markWritesOf(world, "node/pve3")).toEqual(marksBefore);
+    const lastMarkBeforeMs: number = marksBefore[marksBefore.length - 1]!;
+    expect(lastMarkBeforeMs).toBe(lastReportBeforeMs - STEP_MS);
+
+    const outageTicks: Array<TickRecord> = await advance(world, {
+      durationMs: outageMs,
+      pushing: [],
+    });
+    const resumedAtMs: number = world.clockMs + STEP_MS;
+    // Longer than the silence window: every liveness key has expired.
+    for (const nodeName of ALL_NODES) {
+      expect(readLiveness(world, nodeName, resumedAtMs)).toBeNull();
+    }
+    // Nothing re-marked the row during the outage.
+    expect(rowOf(world, "node/pve3")!.notReportingMarkedAt!.getTime()).toBe(
+      lastMarkBeforeMs,
+    );
+    return {
+      world,
+      lastReportBeforeMs,
+      lastMarkBeforeMs,
+      outageTicks,
+      resumedAtMs,
+    };
+  }
+
+  test("an Offline row through a 3-minute outage — its last mark still inside the monitors' 5-minute window — is reported again by the very first push after it, before anyone is established, each report counting the sibling not yet back as live", async () => {
+    const {
+      world,
+      lastReportBeforeMs,
+      lastMarkBeforeMs,
+      outageTicks,
+      resumedAtMs,
+    }: OutageSetup = await offlineNodeThroughOutage(3 * MINUTE_MS);
+    // The row's last mark, from before the outage, is still within the window.
+    expect(resumedAtMs - lastMarkBeforeMs).toBeLessThanOrEqual(
+      PROXMOX_MONITOR_WINDOW_MS,
+    );
+
+    const resumeTicks: Array<TickRecord> = await advance(world, {
+      durationMs: 30 * MINUTE_MS,
+      pushing: SURVIVORS,
+    });
+    const establishedAtMs: number = resumedAtMs + SILENCE_MS;
+
+    /*
+     * The first push processed afterwards — pve1's, with pve2's own still
+     * to come and its key gone — already reports pve3, which was Offline
+     * before the gap, two minutes before anyone is established. pve2,
+     * silent by its row too but never reported Offline, is held back and
+     * counted with pve1 as live: L = 2, not 1, so Quorum at Risk reads
+     * 2 of 3 up, as before the gap.
+     */
+    const reportsSince: Array<number> = reportsAfter(world, lastReportBeforeMs);
+    expect(reportsSince[0]).toBe(resumedAtMs);
+    expect(reportsSince[0]!).toBeLessThan(establishedAtMs);
+    const firstReportBack: WorldReport | undefined = world.reports.find(
+      (report: WorldReport): boolean => {
+        return report.atMs > lastReportBeforeMs;
+      },
+    );
+    expect(firstReportBack).toEqual({
+      atMs: resumedAtMs,
+      reporter: "pve1",
+      silentNodes: ["pve3"],
+      reporterCount: 2,
+    });
+
+    // Every step from then on reports it — no gap in the reports...
+    expect(reportsSince).toHaveLength((30 * MINUTE_MS) / STEP_MS);
+    for (const report of world.reports) {
+      expect(report.silentNodes).toEqual(["pve3"]);
+      expect(report.reporterCount).toBe(2);
+    }
+
+    /*
+     * ...and the row is kept, Offline, on every tick. The first report
+     * back re-marks it at once — its mark was more than a minute old, and
+     * the fence had long expired — and the reports keep re-marking it
+     * every two minutes, through the warm-up too: the continuation keeps
+     * its own mark fresh.
+     */
+    for (const tick of [...outageTicks, ...resumeTicks]) {
+      expect(tick.clusterStatus).toBe("connected");
+      expect(tick.present.has("node/pve3")).toBe(true);
+      expect(tick.offline.has("node/pve3")).toBe(true);
+    }
+    const pve3: WorldRow = rowOf(world, "node/pve3")!;
+    expect(markWritesOf(world, "node/pve3")).toEqual([
+      ...markCadence(FIRST_REPORT_MS, lastMarkBeforeMs),
+      ...markCadence(resumedAtMs, world.clockMs),
+    ]);
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
+    expect(pve3.lastSeenAt.getTime()).toBe(NOW.getTime());
+    for (const externalId of SURVIVOR_ROWS) {
+      expect(world.prunedAtMs.has(externalId)).toBe(false);
+      expect(rowOf(world, externalId)!.isUp).toBe(true);
+    }
+    expect(mockedLogger.error).not.toHaveBeenCalled();
+  });
+
+  test("a node that came back during a 6-minute outage — its last mark past the monitors' window — is not reported by the siblings processed just ahead of its own first push", async () => {
+    const {
+      world,
+      lastReportBeforeMs,
+      lastMarkBeforeMs,
+      outageTicks,
+      resumedAtMs,
+    }: OutageSetup = await offlineNodeThroughOutage(6 * MINUTE_MS);
+    // The row's last mark aged out of the window during the outage.
+    expect(resumedAtMs - lastMarkBeforeMs).toBeGreaterThan(
+      PROXMOX_MONITOR_WINDOW_MS,
+    );
+
+    /*
+     * pve3 is back: all three push again, pve1's and pve2's processed ahead
+     * of pve3's in every step. Its row still reads Offline, and it is
+     * silent by that row, when pve1's first push is processed.
+     */
+    const resumeTicks: Array<TickRecord> = await advance(world, {
+      durationMs: 30 * MINUTE_MS,
+      pushing: ALL_NODES,
+    });
+
+    // Nobody reports it: no continuation after the window, and it is back.
+    expect(reportsAfter(world, lastReportBeforeMs)).toEqual([]);
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(FIRST_REPORT_MS, lastMarkBeforeMs),
+    );
+    const pve3: WorldRow = rowOf(world, "node/pve3")!;
+    expect(pve3.isUp).toBe(true);
+    expect(pve3.isNativePush).toBe(true);
+    expect(pve3.lastSeenAt.getTime()).toBe(world.clockMs);
+    // Its own first push cleared the mark.
+    expect(pve3.notReportingMarkedAt).toBeNull();
+
+    // Kept throughout: Offline until its own first push, Online after.
+    for (const tick of outageTicks) {
+      expect(tick.clusterStatus).toBe("connected");
+      expect(tick.present.has("node/pve3")).toBe(true);
+      expect(tick.offline.has("node/pve3")).toBe(true);
+    }
+    for (const tick of resumeTicks) {
+      expect(tick.clusterStatus).toBe("connected");
+      expect(tick.present.size).toBe(CATALOG.length);
+      expect(tick.offline.size).toBe(0);
+    }
+    expect(world.prunedAtMs.has("node/pve3")).toBe(false);
+  });
+
+  test("the window counts from the row's last mark, not from the last report: after a 4-minute outage the first push reports the Offline node, after 4.5 minutes — the last report exactly 5 minutes old, the mark half a minute more — it waits for an established node", async () => {
+    /*
+     * The last report before the outage is half a minute after the last
+     * mark. A 4-minute outage resumes exactly one monitors' window after
+     * that mark — still inside it; a 4.5-minute one exactly one monitors'
+     * window after that last report, but half a minute past the window of
+     * the mark; a 5-minute one past both.
+     */
+    interface OutageCase {
+      outageMs: number;
+      // How old the row's last mark is when the pushes resume.
+      markAgeAtResumeMs: number;
+      // How old the last report before the outage is then.
+      lastReportAgeAtResumeMs: number;
+      // When the first report back lands, after the resume.
+      firstReportBackAfterMs: number;
+    }
+    const cases: Array<OutageCase> = [
+      {
+        outageMs: 4 * MINUTE_MS,
+        markAgeAtResumeMs: PROXMOX_MONITOR_WINDOW_MS,
+        lastReportAgeAtResumeMs: PROXMOX_MONITOR_WINDOW_MS - STEP_MS,
+        firstReportBackAfterMs: 0,
+      },
+      {
+        outageMs: 4 * MINUTE_MS + STEP_MS,
+        markAgeAtResumeMs: PROXMOX_MONITOR_WINDOW_MS + STEP_MS,
+        lastReportAgeAtResumeMs: PROXMOX_MONITOR_WINDOW_MS,
+        firstReportBackAfterMs: SILENCE_MS,
+      },
+      {
+        outageMs: 5 * MINUTE_MS,
+        markAgeAtResumeMs: PROXMOX_MONITOR_WINDOW_MS + 2 * STEP_MS,
+        lastReportAgeAtResumeMs: PROXMOX_MONITOR_WINDOW_MS + STEP_MS,
+        firstReportBackAfterMs: SILENCE_MS,
+      },
+    ];
+    for (const outageCase of cases) {
+      const {
+        world,
+        lastReportBeforeMs,
+        lastMarkBeforeMs,
+        outageTicks,
+        resumedAtMs,
+      }: OutageSetup = await offlineNodeThroughOutage(outageCase.outageMs);
+      expect(resumedAtMs - lastReportBeforeMs).toBe(
+        outageCase.lastReportAgeAtResumeMs,
+      );
+      expect(resumedAtMs - lastMarkBeforeMs).toBe(outageCase.markAgeAtResumeMs);
+      // No roster cache here: each push reads the roster, at its own time.
+      expect(world.rosterCacheTtlMs).toBe(0);
+
+      const resumeTicks: Array<TickRecord> = await advance(world, {
+        durationMs: 10 * MINUTE_MS,
+        pushing: SURVIVORS,
+      });
+
+      /*
+       * Reported from the first push back (a continuation), or only once
+       * pve1 has pushed for two minutes; then on every step to the end,
+       * and re-marked from that first report back on.
+       */
+      const firstReportBackMs: number =
+        resumedAtMs + outageCase.firstReportBackAfterMs;
+      expect(reportsAfter(world, lastReportBeforeMs)).toEqual(
+        timesEvery(STEP_MS, firstReportBackMs, world.clockMs),
+      );
+      expect(markWritesOf(world, "node/pve3")).toEqual([
+        ...markCadence(FIRST_REPORT_MS, lastMarkBeforeMs),
+        ...markCadence(firstReportBackMs, world.clockMs),
+      ]);
+      for (const report of world.reports) {
+        expect(report.silentNodes).toEqual(["pve3"]);
+        expect(report.reporterCount).toBe(2);
+      }
+
+      // Kept, and Offline, on every tick either way.
+      for (const tick of [...outageTicks, ...resumeTicks]) {
+        expect(tick.present.has("node/pve3")).toBe(true);
+        expect(tick.offline.has("node/pve3")).toBe(true);
+      }
+      expect(world.prunedAtMs.has("node/pve3")).toBe(false);
+    }
+  });
+
+  test("through the ingest's 30-second roster cache: after a 4-minute outage the pushes of the step after the first report back decide on the roster it read, judged at the moment it was read — so they still report the Offline node, though their own clock is by then half a minute past the mark's window", async () => {
+    const {
+      world,
+      lastReportBeforeMs,
+      lastMarkBeforeMs,
+      outageTicks,
+      resumedAtMs,
+    }: OutageSetup = await offlineNodeThroughOutage(4 * MINUTE_MS, {
+      rosterCacheTtlMs: PROXMOX_ROSTER_CACHE_TTL_MS,
+    });
+    // The first push back finds the mark exactly one monitors' window old...
+    expect(resumedAtMs - lastMarkBeforeMs).toBe(PROXMOX_MONITOR_WINDOW_MS);
+    // ...on a roster read afresh: the cache entry expired in the outage.
+    expect(world.rosterCache).not.toBeNull();
+    expect(world.rosterCache!.expiresAtMs).toBeLessThan(resumedAtMs);
+    const readsBefore: number = world.rosterReadsAtMs.length;
+
+    // The first two steps back: pve1's and pve2's pushes in each.
+    const firstTicks: Array<TickRecord> = await advance(world, {
+      durationMs: 2 * STEP_MS,
+      pushing: SURVIVORS,
+    });
+    const nextStepMs: number = resumedAtMs + STEP_MS;
+    expect(world.clockMs).toBe(nextStepMs);
+
+    /*
+     * pve1's first push back reads the roster, reports pve3 as a
+     * continuation and re-marks its row. Every push up to the cache
+     * entry's expiry — pve2's in that step, both of the next — decides on
+     * that same roster, which still shows the mark from before the outage,
+     * and on the moment it was read: the mark's age is one monitors'
+     * window for each of them, though the next step's clock is half a
+     * minute past it. Nobody is established yet.
+     */
+    expect(world.rosterReadsAtMs.slice(readsBefore)).toEqual([resumedAtMs]);
+    const cached: WorldCachedRoster = world.rosterCache!;
+    expect(cached.readAtMs).toBe(resumedAtMs);
+    expect(cached.expiresAtMs).toBe(nextStepMs);
+    expect(
+      cached.roster
+        .find((node: ProxmoxRosterNode): boolean => {
+          return node.nodeName === "pve3";
+        })!
+        .notReportingMarkedAt!.getTime(),
+    ).toBe(lastMarkBeforeMs);
+    expect(nextStepMs - lastMarkBeforeMs).toBe(
+      PROXMOX_MONITOR_WINDOW_MS + STEP_MS,
+    );
+    const liveness: Map<string, ProxmoxNodeLiveness | null> = new Map<
+      string,
+      ProxmoxNodeLiveness | null
+    >();
+    for (const nodeName of ALL_NODES) {
+      liveness.set(nodeName, readLiveness(world, nodeName));
+    }
+    for (const nodeName of SURVIVORS) {
+      expect(
+        isEligibleProxmoxReporter(liveness.get(nodeName) || null, nextStepMs),
+      ).toBe(false);
+    }
+    expect(
+      world.reports.filter((report: WorldReport): boolean => {
+        return report.atMs === nextStepMs;
+      }),
+    ).toEqual([
+      {
+        atMs: nextStepMs,
+        reporter: "pve1",
+        silentNodes: ["pve3"],
+        reporterCount: 2,
+      },
+      {
+        atMs: nextStepMs,
+        reporter: "pve2",
+        silentNodes: ["pve3"],
+        reporterCount: 2,
+      },
+    ]);
+    /*
+     * Judged at their own time instead, those pushes would have dropped
+     * the report — a step after one that re-marked the row — until the
+     * next fresh read brought it back: the hole the read time closes.
+     */
+    expect(
+      decideProxmoxSilentNodes({
+        selfNode: "pve1",
+        reporterTimeMs: nextStepMs,
+        nowMs: nextStepMs,
+        roster: cached.roster,
+        liveness,
+      }),
+    ).toBeNull();
+    expect(
+      decideProxmoxSilentNodes({
+        selfNode: "pve1",
+        reporterTimeMs: nextStepMs,
+        nowMs: nextStepMs,
+        roster: cached.roster,
+        liveness,
+        rosterReadAtMs: cached.readAtMs,
+      }),
+    ).toEqual({ silentNodes: ["pve3"], reporterCount: 2 });
+
+    const resumeTicks: Array<TickRecord> = [
+      ...firstTicks,
+      ...(await advance(world, {
+        durationMs: 10 * MINUTE_MS - 2 * STEP_MS,
+        pushing: SURVIVORS,
+      })),
+    ];
+
+    /*
+     * The roster is read afresh every other step from then on, and shows
+     * the reports' own fresh marks.
+     */
+    expect(world.rosterReadsAtMs.slice(readsBefore)).toEqual(
+      timesEvery(MINUTE_MS, resumedAtMs, world.clockMs),
+    );
+
+    // So no step after the outage goes without a report...
+    expect(reportsAfter(world, lastReportBeforeMs)).toEqual(
+      timesEvery(STEP_MS, resumedAtMs, world.clockMs),
+    );
+    for (const report of world.reports) {
+      expect(report.silentNodes).toEqual(["pve3"]);
+      expect(report.reporterCount).toBe(2);
+    }
+    // ...the marks run on from the first report back...
+    expect(markWritesOf(world, "node/pve3")).toEqual([
+      ...markCadence(FIRST_REPORT_MS, lastMarkBeforeMs),
+      ...markCadence(resumedAtMs, world.clockMs),
+    ]);
+    // ...and the row is kept, Offline, on every tick.
+    for (const tick of [...outageTicks, ...resumeTicks]) {
+      expect(tick.present.has("node/pve3")).toBe(true);
+      expect(tick.offline.has("node/pve3")).toBe(true);
+    }
+    expect(world.prunedAtMs.has("node/pve3")).toBe(false);
+  });
+
+  test("the marks are written and judged on the ingest workers' clock, whatever the database's: 10 minutes ahead, a node back after a 6-minute outage is not reported; 10 minutes behind, an Offline row through a 3-minute outage is, from the first push back", async () => {
+    interface SkewCase {
+      // The database's now() against the workers' clock.
+      dbClockAheadMs: number;
+      outageMs: number;
+      // Who pushes after the outage (pve3 too: it came back).
+      pushing: Array<string>;
+      // When the first report back lands, after the resume; null: never.
+      firstReportBackAfterMs: number | null;
+    }
+    const cases: Array<SkewCase> = [
+      {
+        dbClockAheadMs: 10 * MINUTE_MS,
+        outageMs: 6 * MINUTE_MS,
+        pushing: ALL_NODES,
+        firstReportBackAfterMs: null,
+      },
+      {
+        dbClockAheadMs: -10 * MINUTE_MS,
+        outageMs: 3 * MINUTE_MS,
+        pushing: SURVIVORS,
+        firstReportBackAfterMs: 0,
+      },
+    ];
+    for (const skewCase of cases) {
+      /*
+       * The helper already found pve3 marked every two minutes on the
+       * workers' clock, its row's notReportingMarkedAt the last of those
+       * marks.
+       */
+      const {
+        world,
+        lastReportBeforeMs,
+        lastMarkBeforeMs,
+        resumedAtMs,
+      }: OutageSetup = await offlineNodeThroughOutage(skewCase.outageMs, {
+        dbClockAheadMs: skewCase.dbClockAheadMs,
+      });
+      /*
+       * Every updatedAt carries the database's clock — the one bulkUpsert
+       * writes on pve1's row, and the one the mark's own UPDATE writes on
+       * pve3's, beside the mark...
+       */
+      expect(rowOf(world, "node/pve1")!.updatedAt.getTime()).toBe(
+        lastReportBeforeMs + skewCase.dbClockAheadMs,
+      );
+      const pve3Before: WorldRow = rowOf(world, "node/pve3")!;
+      expect(pve3Before.updatedAt.getTime()).toBe(
+        lastMarkBeforeMs + skewCase.dbClockAheadMs,
+      );
+      /*
+       * ...which would put the mark on the other side of the monitors'
+       * window, had it been taken from updatedAt.
+       */
+      const markAgeAtResumeMs: number =
+        resumedAtMs - pve3Before.notReportingMarkedAt!.getTime();
+      expect(markAgeAtResumeMs).toBe(resumedAtMs - lastMarkBeforeMs);
+      const dbMarkAgeAtResumeMs: number =
+        resumedAtMs - pve3Before.updatedAt.getTime();
+      if (skewCase.firstReportBackAfterMs === null) {
+        expect(markAgeAtResumeMs).toBeGreaterThan(PROXMOX_MONITOR_WINDOW_MS);
+        expect(dbMarkAgeAtResumeMs).toBeLessThanOrEqual(
+          PROXMOX_MONITOR_WINDOW_MS,
+        );
+      } else {
+        expect(markAgeAtResumeMs).toBeLessThanOrEqual(
+          PROXMOX_MONITOR_WINDOW_MS,
+        );
+        expect(dbMarkAgeAtResumeMs).toBeGreaterThan(PROXMOX_MONITOR_WINDOW_MS);
+      }
+
+      await advance(world, {
+        durationMs: 10 * MINUTE_MS,
+        pushing: skewCase.pushing,
+      });
+
+      const pve3: WorldRow = rowOf(world, "node/pve3")!;
+      if (skewCase.firstReportBackAfterMs === null) {
+        /*
+         * The mark aged out on the workers' clock: pve1's and pve2's first
+         * pushes back, processed ahead of pve3's, do not report it.
+         */
+        expect(reportsAfter(world, lastReportBeforeMs)).toEqual([]);
+        expect(markWritesOf(world, "node/pve3")).toEqual(
+          markCadence(FIRST_REPORT_MS, lastMarkBeforeMs),
+        );
+        expect(pve3.isUp).toBe(true);
+        expect(pve3.notReportingMarkedAt).toBeNull();
+      } else {
+        /*
+         * The mark is fresh on the workers' clock: the first push back
+         * reports pve3, and the reports re-mark it on that clock.
+         */
+        const firstReportBackMs: number =
+          resumedAtMs + skewCase.firstReportBackAfterMs;
+        expect(reportsAfter(world, lastReportBeforeMs)).toEqual(
+          timesEvery(STEP_MS, firstReportBackMs, world.clockMs),
+        );
+        expect(markWritesOf(world, "node/pve3")).toEqual([
+          ...markCadence(FIRST_REPORT_MS, lastMarkBeforeMs),
+          ...markCadence(firstReportBackMs, world.clockMs),
+        ]);
+        expect(pve3.isUp).toBe(false);
+        const lastMarkMs: number = markWritesOf(world, "node/pve3").pop()!;
+        expect(pve3.notReportingMarkedAt!.getTime()).toBe(lastMarkMs);
+        expect(pve3.updatedAt.getTime()).toBe(
+          lastMarkMs + skewCase.dbClockAheadMs,
+        );
+      }
+      expect(world.prunedAtMs.has("node/pve3")).toBe(false);
+    }
+  });
+});
+
+describe("timeline: an Offline node's reports carry on through a gap on its row's own mark", () => {
+  test("a Redis failover that loses every key does not interrupt them: the first push after it still reports the Offline node, the mark being in Postgres", async () => {
+    const world: World = createWorld();
+    installWorld(world);
+
+    // pve3 dies at NOW and is reported, and re-marked, for ten minutes.
+    await advance(world, { durationMs: 10 * MINUTE_MS, pushing: SURVIVORS });
+    const lostAtMs: number = world.clockMs;
+    const marksBefore: Array<number> = markCadence(FIRST_REPORT_MS, lostAtMs);
+    expect(markWritesOf(world, "node/pve3")).toEqual(marksBefore);
+
+    // Redis fails over and comes back empty; the inventory is untouched.
+    loseRedisKeys(world);
+    for (const nodeName of ALL_NODES) {
+      expect(readLiveness(world, nodeName)).toBeNull();
+    }
+    expect(rowOf(world, "node/pve3")!.notReportingMarkedAt!.getTime()).toBe(
+      marksBefore[marksBefore.length - 1],
+    );
+
+    const ticks: Array<TickRecord> = await advance(world, {
+      durationMs: 20 * MINUTE_MS,
+      pushing: SURVIVORS,
+    });
+    const nextStepMs: number = lostAtMs + STEP_MS;
+
+    /*
+     * The first push after the failover — pve1's, a new streak, with
+     * pve2's key gone too — is two minutes from being established, and
+     * still reports pve3: Offline, marked two minutes before. It counts
+     * pve2 as live (L = 2), so Quorum at Risk holds too. No step of the
+     * whole timeline goes without a report.
+     */
+    const firstReportAfter: WorldReport | undefined = world.reports.find(
+      (report: WorldReport): boolean => {
+        return report.atMs > lostAtMs;
+      },
+    );
+    expect(firstReportAfter).toEqual({
+      atMs: nextStepMs,
+      reporter: "pve1",
+      silentNodes: ["pve3"],
+      reporterCount: 2,
+    });
+    expect(world.reportedAtMs).toEqual(
+      timesEvery(STEP_MS, FIRST_REPORT_MS, world.clockMs),
+    );
+    for (const report of world.reports) {
+      expect(report.silentNodes).toEqual(["pve3"]);
+      expect(report.reporterCount).toBe(2);
+    }
+
+    /*
+     * The mark fence went with Redis: that first report re-marks the row
+     * at once (its mark was more than a minute old), and the cadence
+     * resumes from there.
+     */
+    expect(markWritesOf(world, "node/pve3")).toEqual([
+      ...marksBefore,
+      ...markCadence(nextStepMs, world.clockMs),
+    ]);
+
+    // Kept, and Offline, on every tick; the live nodes untouched.
+    for (const tick of ticks) {
+      expect(tick.present.has("node/pve3")).toBe(true);
+      expect(tick.offline.has("node/pve3")).toBe(true);
+    }
+    for (const externalId of SURVIVOR_ROWS) {
+      expect(world.prunedAtMs.has(externalId)).toBe(false);
+      expect(rowOf(world, externalId)!.isUp).toBe(true);
+    }
+    expect(mockedLogger.error).not.toHaveBeenCalled();
+  });
+
+  test("a lone survivor whose pushes are processed only every 3 minutes — never established again — keeps reporting both dead siblings: each report re-marks them", async () => {
+    const world: World = createWorld();
+    installWorld(world);
+
+    // pve2 and pve3 die at NOW; pve1 pushes on alone, every step, for ten minutes.
+    await advance(world, { durationMs: 10 * MINUTE_MS, pushing: ["pve1"] });
+    const burstsFromMs: number = world.clockMs;
+    expect(world.reportedAtMs).toEqual(
+      timesEvery(STEP_MS, FIRST_REPORT_MS, burstsFromMs),
+    );
+    for (const externalId of ["node/pve2", "node/pve3"]) {
+      expect(markWritesOf(world, externalId)).toEqual(
+        markCadence(FIRST_REPORT_MS, burstsFromMs),
+      );
+    }
+
+    /*
+     * From then on its pushes are processed only every three minutes: its
+     * key has expired by each one, so each starts a new streak and pve1
+     * is never established again.
+     */
+    const burstMs: number = 3 * MINUTE_MS;
+    const ticks: Array<TickRecord> = await advance(world, {
+      durationMs: 60 * MINUTE_MS,
+      stepMs: burstMs,
+      pushing: ["pve1"],
+    });
+    expect(burstMs).toBeGreaterThan(LIVENESS_KEY_TTL_MS);
+
+    /*
+     * Every one of those pushes still reports both: each finds their rows
+     * Offline and marked at most three minutes before — by the report
+     * before it, which re-marked them (a mark more than a minute old,
+     * behind an expired fence). L = 1: pve1 alone speaks for the cluster.
+     */
+    const pushesMs: Array<number> = timesEvery(
+      burstMs,
+      burstsFromMs + burstMs,
+      world.clockMs,
+    );
+    expect(reportsAfter(world, burstsFromMs)).toEqual(pushesMs);
+    for (const report of world.reports) {
+      expect(report.reporter).toBe("pve1");
+      expect(report.silentNodes).toEqual(["pve2", "pve3"]);
+      expect(report.reporterCount).toBe(1);
+    }
+    for (const externalId of ["node/pve2", "node/pve3"]) {
+      expect(markWritesOf(world, externalId)).toEqual([
+        ...markCadence(FIRST_REPORT_MS, burstsFromMs),
+        ...pushesMs,
+      ]);
+      expect(rowOf(world, externalId)!.lastSeenAt.getTime()).toBe(
+        NOW.getTime(),
+      );
+    }
+
+    // Both kept, and Offline, on every tick; the survivor untouched.
+    for (const tick of ticks) {
+      expect(tick.clusterStatus).toBe("connected");
+      expect(tick.present.has("node/pve2")).toBe(true);
+      expect(tick.present.has("node/pve3")).toBe(true);
+      expect(tick.offline.has("node/pve2")).toBe(true);
+      expect(tick.offline.has("node/pve3")).toBe(true);
+    }
+    expect(world.prunedAtMs.has("node/pve1")).toBe(false);
+    expect(rowOf(world, "node/pve1")!.isUp).toBe(true);
+  });
+
+  test("an adoption is not a mark: a row Offline for half an hour, and never marked, when the first native flush adopts it is not reported by the siblings processed ahead of its own first push — pve3 came back during the switch", async () => {
+    interface AdoptionCase {
+      name: string;
+      // The world just before the first native step, pve3's row Offline.
+      setUp: () => Promise<World>;
+    }
+    const cases: Array<AdoptionCase> = [
+      {
+        /*
+         * Every row from before isNativePush and notReportingMarkedAt
+         * existed (both NULL), pve3's turned Offline 30 minutes ago;
+         * nobody has a liveness key yet.
+         */
+        name: "rows from before the columns",
+        setUp: (): Promise<World> => {
+          const world: World = createWorld({ rowsNativePush: null });
+          world.livenessKeys.clear();
+          const pve3: WorldRow = rowOf(world, "node/pve3")!;
+          pve3.isUp = false;
+          pve3.lastSeenAt = new Date(
+            NOW.getTime() - 30 * MINUTE_MS - SILENCE_MS - STEP_MS,
+          );
+          pve3.updatedAt = new Date(NOW.getTime() - 30 * MINUTE_MS);
+          installWorld(world);
+          return Promise.resolve(world);
+        },
+      },
+      {
+        /*
+         * The agent listed pve3 as down for ten minutes, then was removed;
+         * the metric server's pushes start 30 minutes later.
+         */
+        name: "the agent's rows, after a 30-minute gap in the switch",
+        setUp: async (): Promise<World> => {
+          const world: World = createWorld({ nativePush: false });
+          for (const row of world.rows) {
+            if (row.nodeName === "pve3") {
+              row.isUp = false;
+            }
+          }
+          installWorld(world);
+          await advance(world, {
+            durationMs: 10 * MINUTE_MS,
+            pushing: SURVIVORS,
+            listedDown: ["pve3"],
+          });
+          await advance(world, { durationMs: 30 * MINUTE_MS, pushing: [] });
+          world.nativePush = true;
+          return world;
+        },
+      },
+    ];
+
+    for (const adoptionCase of cases) {
+      const world: World = await adoptionCase.setUp();
+      const pve3: WorldRow = rowOf(world, "node/pve3")!;
+      expect(pve3.isUp).toBe(false);
+      expect(pve3.isNativePush).not.toBe(true);
+      // Offline, but never marked: nothing reported it as not reporting.
+      expect(pve3.notReportingMarkedAt).toBeNull();
+      const updatedAtBeforeMs: number = pve3.updatedAt.getTime();
+      expect(world.adoptions).toEqual([]);
+      for (const nodeName of ALL_NODES) {
+        expect(readLiveness(world, nodeName)).toBeNull();
+      }
+
+      /*
+       * The first native step, driven push by push (off the cron's
+       * boundaries): all three push, pve3's processed last.
+       */
+      world.clockMs += STEP_MS;
+      const firstStepMs: number = world.clockMs;
+      expect(firstStepMs % TICK_MS).not.toBe(0);
+      expect(firstStepMs - updatedAtBeforeMs).toBeGreaterThan(
+        PROXMOX_MONITOR_WINDOW_MS,
+      );
+
+      /*
+       * pve1's flush adopts the Node rows not yet native — pve3's
+       * included — and leaves pve3 unmarked, its updatedAt as it was.
+       */
+      ingestPush(world, "pve1");
+      expect(world.adoptions).toEqual([
+        {
+          atMs: firstStepMs,
+          seenUpToMs: firstStepMs,
+          adopted: ["node/pve2", "node/pve3"],
+        },
+      ]);
+      expect(pve3.isNativePush).toBe(true);
+      expect(pve3.isUp).toBe(false);
+      expect(pve3.notReportingMarkedAt).toBeNull();
+      expect(pve3.updatedAt.getTime()).toBe(updatedAtBeforeMs);
+
+      /*
+       * pve2's push finds pve3 silent by its row, Offline and native, and
+       * nobody established: only a mark within the monitors' window would
+       * carry a report, and the row carries none.
+       */
+      ingestPush(world, "pve2");
+      expect(world.reports).toEqual([]);
+      /*
+       * The very same decision, on a roster whose pve3 mark read the
+       * adoption's time, would have reported it.
+       */
+      const stampedRoster: Array<ProxmoxRosterNode> = nodeRoster(world).map(
+        (node: ProxmoxRosterNode): ProxmoxRosterNode => {
+          return node.nodeName === "pve3"
+            ? { ...node, notReportingMarkedAt: new Date(firstStepMs) }
+            : node;
+        },
+      );
+      const liveness: Map<string, ProxmoxNodeLiveness | null> = new Map<
+        string,
+        ProxmoxNodeLiveness | null
+      >();
+      for (const nodeName of ALL_NODES) {
+        liveness.set(nodeName, readLiveness(world, nodeName));
+      }
+      expect(
+        decideProxmoxSilentNodes({
+          selfNode: "pve2",
+          reporterTimeMs: firstStepMs,
+          nowMs: firstStepMs,
+          roster: stampedRoster,
+          liveness,
+        }),
+      ).toEqual({ silentNodes: ["pve3"], reporterCount: 2 });
+
+      // pve3's own push brings its row back.
+      ingestPush(world, "pve3");
+      expect(pve3.isUp).toBe(true);
+      expect(pve3.lastSeenAt.getTime()).toBe(firstStepMs);
+
+      // Nor is it reported later: the half hour on, pve3 always last.
+      const ticks: Array<TickRecord> = await advance(world, {
+        durationMs: 30 * MINUTE_MS,
+        pushing: ALL_NODES,
+      });
+      expect(world.reports).toEqual([]);
+      expect(world.marks).toEqual([]);
+      expect(ticks.length).toBeGreaterThan(0);
+      for (const tick of ticks) {
+        expect(tick.clusterStatus).toBe("connected");
+        expect(tick.present.size).toBe(CATALOG.length);
+        expect(tick.offline.size).toBe(0);
+      }
+      for (const nodeName of ALL_NODES) {
+        expect(rowOf(world, `node/${nodeName}`)!.isNativePush).toBe(true);
+      }
+      expect(world.prunedAtMs.has("node/pve3")).toBe(false);
+    }
+  });
+
+  test("nor is an agent scrape on a database clock that runs ahead: 10 minutes ahead, the Offline row pve-exporter wrote 6 minutes before the switch reads as written in the future, yet the siblings processed ahead of pve3's own first push do not report it — no continuation without a mark", async () => {
+    const dbClockAheadMs: number = 10 * MINUTE_MS;
+    const world: World = createWorld({ nativePush: false, dbClockAheadMs });
+    for (const row of world.rows) {
+      if (row.nodeName === "pve3") {
+        row.isUp = false;
+      }
+    }
+    installWorld(world);
+
+    // pve-exporter lists pve3 as down for ten minutes...
+    await advance(world, {
+      durationMs: 10 * MINUTE_MS,
+      pushing: SURVIVORS,
+      listedDown: ["pve3"],
+    });
+    const lastScrapeMs: number = world.clockMs;
+    const pve3: WorldRow = rowOf(world, "node/pve3")!;
+    expect(pve3.isUp).toBe(false);
+    expect(pve3.isNativePush).toBe(false);
+    expect(pve3.lastSeenAt.getTime()).toBe(lastScrapeMs);
+    // ...its row written on the database's clock, and never marked.
+    expect(pve3.updatedAt.getTime()).toBe(lastScrapeMs + dbClockAheadMs);
+    expect(pve3.notReportingMarkedAt).toBeNull();
+
+    /*
+     * ...then the agent is removed, and the metric server's pushes start
+     * six minutes later. Nobody has a liveness key: the agent records
+     * none.
+     */
+    await advance(world, { durationMs: 6 * MINUTE_MS, pushing: [] });
+    world.nativePush = true;
+    for (const nodeName of ALL_NODES) {
+      expect(readLiveness(world, nodeName)).toBeNull();
+    }
+
+    /*
+     * The first native step, driven push by push (off the cron's
+     * boundaries): all three push — pve3 came back during the switch —
+     * pve3's processed last.
+     */
+    world.clockMs += STEP_MS;
+    const firstStepMs: number = world.clockMs;
+    expect(firstStepMs % TICK_MS).not.toBe(0);
+    // pve3 is silent by its row...
+    expect(firstStepMs - pve3.lastSeenAt.getTime()).toBeGreaterThan(SILENCE_MS);
+    /*
+     * ...and its updatedAt, read on the workers' clock, lies 3.5 minutes
+     * in the future: taken for a mark, it would sit inside the monitors'
+     * window — which, with the database's clock in step, it would not.
+     */
+    expect(pve3.updatedAt.getTime() - firstStepMs).toBe(
+      dbClockAheadMs - 6 * MINUTE_MS - STEP_MS,
+    );
+    expect(firstStepMs - pve3.updatedAt.getTime()).toBeLessThanOrEqual(
+      PROXMOX_MONITOR_WINDOW_MS,
+    );
+    expect(
+      firstStepMs - (pve3.updatedAt.getTime() - dbClockAheadMs),
+    ).toBeGreaterThan(PROXMOX_MONITOR_WINDOW_MS);
+
+    // pve1's flush adopts the Node rows not yet native, pve3's unmarked...
+    ingestPush(world, "pve1");
+    expect(world.adoptions).toEqual([
+      {
+        atMs: firstStepMs,
+        seenUpToMs: firstStepMs,
+        adopted: ["node/pve2", "node/pve3"],
+      },
+    ]);
+    expect(pve3.isNativePush).toBe(true);
+    expect(pve3.isUp).toBe(false);
+    expect(pve3.notReportingMarkedAt).toBeNull();
+
+    /*
+     * ...and neither pve1's push nor pve2's reports pve3: nobody is
+     * established, and the row carries no mark.
+     */
+    ingestPush(world, "pve2");
+    expect(world.reports).toEqual([]);
+    expect(world.marks).toEqual([]);
+
+    /*
+     * The very same decision, on a roster whose pve3 mark read the row's
+     * updatedAt, would have reported it: a false Node Offline for a node
+     * that is back.
+     */
+    const updatedAtAsMark: Array<ProxmoxRosterNode> = nodeRoster(world).map(
+      (node: ProxmoxRosterNode): ProxmoxRosterNode => {
+        return node.nodeName === "pve3"
+          ? { ...node, notReportingMarkedAt: new Date(pve3.updatedAt) }
+          : node;
+      },
+    );
+    const liveness: Map<string, ProxmoxNodeLiveness | null> = new Map<
+      string,
+      ProxmoxNodeLiveness | null
+    >();
+    for (const nodeName of ALL_NODES) {
+      liveness.set(nodeName, readLiveness(world, nodeName));
+    }
+    expect(
+      decideProxmoxSilentNodes({
+        selfNode: "pve2",
+        reporterTimeMs: firstStepMs,
+        nowMs: firstStepMs,
+        roster: updatedAtAsMark,
+        liveness,
+      }),
+    ).toEqual({ silentNodes: ["pve3"], reporterCount: 2 });
+
+    // pve3's own push brings its row back.
+    ingestPush(world, "pve3");
+    expect(pve3.isUp).toBe(true);
+    expect(pve3.lastSeenAt.getTime()).toBe(firstStepMs);
+    expect(pve3.notReportingMarkedAt).toBeNull();
+
+    // Nor is it reported later: the half hour on, pve3 always last.
+    const ticks: Array<TickRecord> = await advance(world, {
+      durationMs: 30 * MINUTE_MS,
+      pushing: ALL_NODES,
+    });
+    expect(world.reports).toEqual([]);
+    expect(world.marks).toEqual([]);
+    expect(ticks.length).toBeGreaterThan(0);
+    for (const tick of ticks) {
+      expect(tick.clusterStatus).toBe("connected");
+      expect(tick.present.size).toBe(CATALOG.length);
+      expect(tick.offline.size).toBe(0);
+    }
+    for (const nodeName of ALL_NODES) {
+      expect(rowOf(world, `node/${nodeName}`)!.isNativePush).toBe(true);
+    }
+    expect(world.prunedAtMs.size).toBe(0);
+  });
 });
 
 describe("timeline: a whole native-push cluster that goes dark", () => {
@@ -2394,11 +4064,19 @@ describe("timeline: a whole native-push cluster that goes dark", () => {
       expect(world.prunedAtMs.get(externalId)).toEqual([resumedAtMs]);
     }
 
-    // Two minutes on, the nodes that are back report it.
+    /*
+     * Two minutes on, the nodes that are back report it — and mark it,
+     * then re-mark it every two minutes.
+     */
     expect(world.reportedAtMs[0]).toBe(establishedAtMs);
     const pve3: WorldRow = rowOf(world, "node/pve3")!;
     expect(pve3.isUp).toBe(false);
-    expect(pve3.updatedAt.getTime()).toBe(establishedAtMs);
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(establishedAtMs, world.clockMs),
+    );
+    expect(pve3.notReportingMarkedAt!.getTime()).toBe(
+      markWritesOf(world, "node/pve3").pop(),
+    );
     expect(pve3.lastSeenAt.getTime()).toBe(NOW.getTime());
     for (const tick of resumeTicks) {
       expect(tick.present.has("node/pve3")).toBe(true);
@@ -2427,9 +4105,7 @@ describe("timeline: a whole native-push cluster that goes dark", () => {
     });
 
     // Marked two hours and two minutes after its last push...
-    expect(rowOf(world, "node/pve3")!.updatedAt.getTime()).toBe(
-      resumedAtMs + SILENCE_MS,
-    );
+    expect(markWritesOf(world, "node/pve3")[0]).toBe(resumedAtMs + SILENCE_MS);
 
     const ticks: Array<TickRecord> = [
       ...firstTicks,
@@ -2443,12 +4119,24 @@ describe("timeline: a whole native-push cluster that goes dark", () => {
       })),
     ];
 
-    // ...kept and reported to the end of the window counted from that push...
+    /*
+     * ...kept and reported to the end of the window counted from that
+     * push — re-marked every two minutes all week, the last time within
+     * two minutes of that end: however fresh, the mark keeps nothing...
+     */
     const present: Array<number> = ticksWhere(ticks, "node/pve3", true);
     expect(present[present.length - 1]).toBe(retentionEndMs);
     expect(world.reportedAtMs[world.reportedAtMs.length - 1]).toBe(
       retentionEndMs,
     );
+    expect(markWritesOf(world, "node/pve3")).toEqual(
+      markCadence(resumedAtMs + SILENCE_MS, retentionEndMs),
+    );
+    const lastMarkMs: number | undefined = markWritesOf(
+      world,
+      "node/pve3",
+    ).pop();
+    expect(retentionEndMs - lastMarkMs!).toBeLessThan(MARK_CADENCE_MS);
     // ...and gone on the first tick past it, for good.
     expect(world.prunedAtMs.get("node/pve3")).toEqual([
       retentionEndMs + TICK_MS,

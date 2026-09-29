@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
@@ -22,8 +23,10 @@ import {
   readProxmoxNativeNodeStatus,
 } from "Common/Server/Utils/Telemetry/ProxmoxNativePush";
 import {
+  PROXMOX_NODE_SILENCE_MS,
   ProxmoxRosterNode,
   ProxmoxSilentNodeDecision,
+  ProxmoxSilentNodeReport,
   isProxmoxSilentNodeDetectionEnabled,
   recordProxmoxNodePushAndFindSilentNodes,
 } from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
@@ -53,12 +56,30 @@ import {
  *     (hence the real nextProxmoxNodeLiveness / isAliveProxmoxNode /
  *     isEligibleProxmoxReporter / decideProxmoxSilentNodes and its 30 s
  *     roster cache) → appendProxmoxSiblingReportsInPlace → Metric rows →
- *     the inventory fold (sibling-report scope skipped) → the cluster
- *     heartbeat.
+ *     the flush, in flushProxmoxSnapshotBuffers' order: the inventory fold
+ *     (bulkUpsert; sibling-report scope skipped; a newer own point clears
+ *     the row's notReportingMarkedAt), the native-push adoption
+ *     (adoptNodesAsNativePush, fenced to once per 10 minutes per cluster,
+ *     up to the batch's newest point; isNativePush only — never the mark,
+ *     never updatedAt), the Offline mark of the nodes the push reported
+ *     (markNodesNotReporting, fenced to once per 30 s per cluster and set
+ *     of nodes; notReportingMarkedAt written as markedAt — the ingest
+ *     worker's clock — and an Offline row's refreshed once over a minute
+ *     old on that clock) → the cluster heartbeat.
  *
  *   The inventory  the cluster's Node rows (lastSeenAt on the node's own
- *     clock, isNativePush) — the roster ProxmoxResourceService.getNodeRoster
- *     reads, with the real getSilentNodeRetentionCutoff — and the
+ *     clock; isUp — Online from the node's own pve_up = 1, Offline once
+ *     marked; isNativePush; notReportingMarkedAt — the mark: written only
+ *     by markNodesNotReporting, on the WORKER's clock, refreshed at most
+ *     once a minute while the node stays reported, cleared by the node's
+ *     own fold, null for a row never reported; updatedAt — every write of
+ *     the row, on the DATABASE's clock (its now()): the fold, the mark;
+ *     the database's clock runs `databaseClockOffsetMs` ahead of the
+ *     workers', 0 unless a scenario skews it) — the roster
+ *     ProxmoxResourceService.getNodeRoster reads, isUp and the mark
+ *     included (never updatedAt), with the real
+ *     getSilentNodeRetentionCutoff; it may start with the rows an earlier
+ *     collector left (`initialNodeRows`) — and the
  *     Proxmox:CleanupStaleResources cron every 5 minutes on the wall clock:
  *     markDisconnectedClusters (the cluster's lastSeenAt older than 15
  *     minutes), then, for a connected cluster, deleteStaleForCluster's
@@ -73,7 +94,15 @@ import {
  *     them.
  *
  *   SimulatedRedis  what GlobalCache.getString / getStrings / setString
- *     reach: an in-memory key store with Redis EX expiry.
+ *     reach: an in-memory key store with Redis EX expiry — each node's
+ *     liveness key (SILENCE_MS), lost when Redis is — and SET NX EX
+ *     (setStringIfNotExists) for the flush's fences, which the simulator
+ *     mirrors as it mirrors the flush. Nothing of the continuation's gate
+ *     lives in Redis: it reads the inventory's notReportingMarkedAt. Each
+ *     push records the Offline rows of the roster its decision read, with
+ *     their mark, and when that roster was read — the core caches it for
+ *     30 s and takes the marks' age then — so the suite can check its own
+ *     model of the mark and of the cache.
  *
  *   SimulatedMetricTable  the ClickHouse Metric table as MetricService
  *     findBy / aggregateBy answer the Proxmox monitor: rows flattened
@@ -105,6 +134,26 @@ const DISCONNECTED_AFTER_MS: number = 15 * MINUTE_MS;
 
 // GlobalCache.setString's expiry when none is given (30 days).
 const DEFAULT_CACHE_EXPIRY_SECONDS: number = 30 * 24 * 60 * 60;
+
+/*
+ * OtelMetricsIngestService's flush fences (module-private there): the
+ * Offline mark once per 30 s per cluster and set of nodes, the native-push
+ * adoption once per 10 minutes per cluster.
+ */
+export const SILENT_NODE_MARK_FENCE_NAMESPACE: string =
+  "proxmox-silent-node-mark";
+export const SILENT_NODE_MARK_FENCE_SECONDS: number = 30;
+export const NATIVE_ADOPTION_FENCE_NAMESPACE: string = "proxmox-native-adopt";
+export const NATIVE_ADOPTION_FENCE_SECONDS: number = 600;
+
+/*
+ * markNodesNotReporting's refresh guard (in its SQL:
+ * "notReportingMarkedAt" IS NULL OR "notReportingMarkedAt" < $6, $6 =
+ * markedAt - 60 s, on the worker's clock): a row already Offline and
+ * native is written again — its mark refreshed — only once its mark is
+ * missing or over a minute older than the worker's now.
+ */
+export const SILENT_NODE_MARK_REFRESH_MS: number = 60_000;
 
 // mulberry32 — small, fast and fully deterministic for a given seed.
 export function createSeededRandom(seed: number): () => number {
@@ -314,6 +363,23 @@ export class SimulatedRedis {
       value: value,
       expiresAtMs: this.now() + expiresInSeconds * 1000,
     });
+  }
+
+  // SET NX EX: true when the key was free (and is now set).
+  public setStringIfNotExists(
+    namespace: string,
+    key: string,
+    value: string,
+    options?: { expiresInSeconds?: number | undefined } | undefined,
+  ): boolean {
+    const entry: RedisEntry | undefined = this.entries.get(
+      `${namespace}-${key}`,
+    );
+    if (entry && this.now() < entry.expiresAtMs) {
+      return false;
+    }
+    this.setString(namespace, key, value, options);
+    return true;
   }
 
   // Everything gone at once (a Redis restart during the outage).
@@ -748,14 +814,133 @@ export interface SimulatedClusterPlan {
    * Offline got before the keep covered it.
    */
   withoutNativeNodeKeep?: boolean | undefined;
+  /*
+   * The inventory's Node rows before the first push, by node name — rows
+   * the Proxmox Agent left (isNativePush false), or a native push from
+   * before the column existed (null).
+   */
+  initialNodeRows?: Dictionary<SimulatedNodeRow> | undefined;
+  /*
+   * A counterfactual, never production: the flush WITHOUT
+   * adoptNodesAsNativePush, so a Node row an earlier collector left keeps
+   * its isNativePush until a report marks it.
+   */
+  withoutNativeAdoption?: boolean | undefined;
+  /*
+   * How far the database's clock (its now(), which every updatedAt write
+   * takes) runs ahead of the ingest workers' — the clock the marks are
+   * written and judged on. 0 when not given.
+   */
+  databaseClockOffsetMs?: number | undefined;
+  /*
+   * A counterfactual, never production: adoptNodesAsNativePush as it first
+   * shipped, also stamping "updatedAt" = now(). Harmless on its own — the
+   * roster never reads updatedAt — unless combined with markInUpdatedAt,
+   * as it first shipped: an Offline row an earlier collector left then
+   * reads as just marked.
+   */
+  adoptionStampsUpdatedAt?: boolean | undefined;
+  /*
+   * A counterfactual, never production: markNodesNotReporting before it
+   * took markedAt — the mark written as the database's now() and its
+   * refresh guard on now() - 60 s, the DATABASE's clock, while the
+   * continuation judges the mark on the worker's.
+   */
+  markOnDatabaseClock?: boolean | undefined;
+  /*
+   * A counterfactual, never production: the design before
+   * notReportingMarkedAt, the mark kept in updatedAt — markNodesNotReporting
+   * writing "updatedAt" = markedAt and refreshing on it, getNodeRoster
+   * returning the row's updatedAt as its mark. Every other write of
+   * updatedAt then passes for a mark: the fold's (bulkUpsert and
+   * bulkUpdateLatestMetrics, of an earlier collector's rows too), on the
+   * database's clock, and the adoption's under adoptionStampsUpdatedAt.
+   */
+  markInUpdatedAt?: boolean | undefined;
 }
 
 // One Node row of the inventory, as the roster and the prune read it.
 export interface SimulatedNodeRow {
-  // The node's own newest pve_node_info point, on its clock.
+  // The node's own newest point, on its clock.
   lastSeenAt: Date;
-  // Written by a Proxmox VE native-push batch (bulkUpsert's isNativePush).
-  isNativePush: boolean;
+  /*
+   * Online / Offline: true from the node's own pve_up = 1, false once
+   * markNodesNotReporting has marked it (until its next own push); null
+   * when never known. The roster carries it.
+   */
+  isUp: boolean | null;
+  /*
+   * Written by a Proxmox VE native-push batch (bulkUpsert's isNativePush),
+   * or taken into the native keep by adoptNodesAsNativePush /
+   * markNodesNotReporting; false for an agent's row, null for a row from
+   * before the column existed.
+   */
+  isNativePush: boolean | null;
+  /*
+   * The mark: when the live nodes last reported this node as not
+   * reporting. Written only by markNodesNotReporting, as markedAt — the
+   * ingest worker's clock — at most once a minute while the node stays
+   * reported; cleared by the node's own fold; never touched by the
+   * adoption. Null for a row never reported (an earlier collector's
+   * included). The roster carries it: the continuation's gate.
+   */
+  notReportingMarkedAt: Date | null;
+  /*
+   * When the inventory last wrote the row (NOT NULL DEFAULT now()), on the
+   * database's clock: the node's own fold, the Offline mark. The adoption
+   * leaves it alone. The roster never reads it (but see markInUpdatedAt).
+   */
+  updatedAt: Date;
+}
+
+function copyNodeRow(row: SimulatedNodeRow): SimulatedNodeRow {
+  return {
+    lastSeenAt: new Date(row.lastSeenAt.getTime()),
+    isUp: row.isUp,
+    isNativePush: row.isNativePush,
+    notReportingMarkedAt: row.notReportingMarkedAt
+      ? new Date(row.notReportingMarkedAt.getTime())
+      : null,
+    updatedAt: new Date(row.updatedAt.getTime()),
+  };
+}
+
+/*
+ * One Offline mark the flush attempted for the nodes a push reported
+ * (markProxmoxSilentNodesOffline → markNodesNotReporting).
+ */
+export interface SimulatedOfflineMark {
+  atMs: number;
+  // The report's nodes, sorted.
+  nodeNames: Array<string>;
+  // The report's own time minus the silence window, on the PVE clock.
+  silentBeforeMs: number;
+  // Held off by the 30 s fence: the same set was written moments ago.
+  fenced: boolean;
+  // The rows the UPDATE changed.
+  markedNodes: Array<string>;
+  /*
+   * The mark the UPDATE writes: markedAt, the worker's now (the database's
+   * now() under the markOnDatabaseClock counterfactual).
+   */
+  markedAtMs: number;
+}
+
+// One adoptNodesAsNativePush the flush ran (the fence let it through).
+export interface SimulatedAdoption {
+  atMs: number;
+  // The batch's newest point (its seenUpTo), on the node's clock.
+  seenUpToMs: number;
+  // The rows the UPDATE changed.
+  adoptedNodes: Array<string>;
+  /*
+   * Where it fell among the node-status pushes: after the first
+   * `nodeStatusPushCount` of them — inside the flush of the last one
+   * (after its fold, before its mark) when `withinNodeStatusPush`, else
+   * in a later request's flush, before the next one.
+   */
+  nodeStatusPushCount: number;
+  withinNodeStatusPush: boolean;
 }
 
 // One Proxmox:CleanupStaleResources tick, as it went for this cluster.
@@ -770,6 +955,13 @@ export interface SimulatedCleanupRun {
   prunedNodes: Array<string>;
 }
 
+// An Offline row of the roster a push's decision read, with its mark.
+export interface RosterOfflineRow {
+  nodeName: string;
+  // The mark (notReportingMarkedAt) as the roster carried it; null if none.
+  markedAtMs: number | null;
+}
+
 // One ingested node-status push and what it reported.
 export interface NodeStatusPushRecord {
   nodeName: string;
@@ -780,6 +972,18 @@ export interface NodeStatusPushRecord {
   // Siblings reported as not reporting; empty when it reported nothing.
   silentNodes: Array<string>;
   reporterCount: number;
+  /*
+   * The Offline rows (isUp false) of the roster the push's decision read —
+   * the one the core last loaded, which it caches for 30 s — sorted by
+   * name, each with the mark the continuation's gate reads; empty when
+   * detection is off.
+   */
+  offlineRosterRows: Array<RosterOfflineRow>;
+  /*
+   * When the core loaded that roster (the receive clock) — the moment the
+   * gate takes the marks' age at; null when detection is off.
+   */
+  rosterReadAtMs: number | null;
 }
 
 interface PushEvent {
@@ -859,6 +1063,10 @@ export class ProxmoxNativeClusterSimulator {
   public readonly livenessLostAtMs: Array<number> = [];
   // Every Proxmox:CleanupStaleResources tick, oldest first.
   public readonly cleanupRuns: Array<SimulatedCleanupRun> = [];
+  // Every Offline mark the flush attempted, oldest first.
+  public readonly offlineMarks: Array<SimulatedOfflineMark> = [];
+  // Every native-push adoption the flush ran, oldest first.
+  public readonly adoptions: Array<SimulatedAdoption> = [];
 
   private readonly events: Array<SimulationEvent>;
   private nextEventIndex: number = 0;
@@ -877,6 +1085,20 @@ export class ProxmoxNativeClusterSimulator {
   private readonly redis: SimulatedRedis;
   private readonly setClock: (ms: number) => void;
   private readonly withoutNativeNodeKeep: boolean;
+  private readonly withoutNativeAdoption: boolean;
+  private readonly adoptionStampsUpdatedAt: boolean;
+  private readonly markOnDatabaseClock: boolean;
+  private readonly markInUpdatedAt: boolean;
+  // The database's clock minus the workers'.
+  private readonly databaseClockOffsetMs: number;
+  // The rows the inventory started with, by node name.
+  private readonly startingRows: Map<string, SimulatedNodeRow> = new Map();
+  /*
+   * The roster the core last loaded for this cluster — what its 30 s cache
+   * hands every decision until the next load — and when it loaded it.
+   */
+  private lastLoadedRoster: Array<ProxmoxRosterNode> = [];
+  private lastLoadedRosterAtMs: number | null = null;
 
   public constructor(data: {
     plan: SimulatedClusterPlan;
@@ -893,6 +1115,17 @@ export class ProxmoxNativeClusterSimulator {
     this.redis = data.redis;
     this.setClock = data.setClock;
     this.withoutNativeNodeKeep = Boolean(data.plan.withoutNativeNodeKeep);
+    this.withoutNativeAdoption = Boolean(data.plan.withoutNativeAdoption);
+    this.adoptionStampsUpdatedAt = Boolean(data.plan.adoptionStampsUpdatedAt);
+    this.markOnDatabaseClock = Boolean(data.plan.markOnDatabaseClock);
+    this.markInUpdatedAt = Boolean(data.plan.markInUpdatedAt);
+    this.databaseClockOffsetMs = data.plan.databaseClockOffsetMs || 0;
+    for (const [nodeName, row] of Object.entries(
+      data.plan.initialNodeRows || {},
+    )) {
+      this.startingRows.set(nodeName, copyNodeRow(row));
+      this.nodeRows.set(nodeName, copyNodeRow(row));
+    }
     this.events = ProxmoxNativeClusterSimulator.scheduleEvents(data.plan);
   }
 
@@ -1032,31 +1265,55 @@ export class ProxmoxNativeClusterSimulator {
     });
   }
 
-  // ProxmoxResourceService.getNodeRoster over the simulated inventory.
+  /*
+   * ProxmoxResourceService.getNodeRoster over the simulated inventory:
+   * every Node row seen within the retention window, with its isUp and
+   * its mark (notReportingMarkedAt; the row's updatedAt under the
+   * markInUpdatedAt counterfactual).
+   */
   public loadRoster(): Array<ProxmoxRosterNode> {
     const seenSince: Date =
       ProxmoxResourceService.getSilentNodeRetentionCutoff();
     const roster: Array<ProxmoxRosterNode> = [];
     for (const [nodeName, row] of this.nodeRows) {
       if (row.lastSeenAt >= seenSince) {
+        const markedAtMs: number | null = this.markOf(row);
         roster.push({
           nodeName,
           lastSeenAt: new Date(row.lastSeenAt.getTime()),
+          isUp: row.isUp,
+          notReportingMarkedAt:
+            markedAtMs === null ? null : new Date(markedAtMs),
         });
       }
     }
     return roster;
   }
 
+  /*
+   * The row's mark, where the design keeps it: notReportingMarkedAt — or
+   * updatedAt under the markInUpdatedAt counterfactual.
+   */
+  private markOf(row: SimulatedNodeRow): number | null {
+    if (this.markInUpdatedAt) {
+      return row.updatedAt.getTime();
+    }
+    return row.notReportingMarkedAt ? row.notReportingMarkedAt.getTime() : null;
+  }
+
   // The node's inventory row as it stands now; null once pruned.
   public nodeRow(nodeName: string): SimulatedNodeRow | null {
     const row: SimulatedNodeRow | undefined = this.nodeRows.get(nodeName);
-    return row
-      ? {
-          lastSeenAt: new Date(row.lastSeenAt.getTime()),
-          isNativePush: row.isNativePush,
-        }
-      : null;
+    return row ? copyNodeRow(row) : null;
+  }
+
+  // The rows the inventory started with (`initialNodeRows`), by node name.
+  public initialNodeRows(): Map<string, SimulatedNodeRow> {
+    const rows: Map<string, SimulatedNodeRow> = new Map();
+    for (const [nodeName, row] of this.startingRows) {
+      rows.set(nodeName, copyNodeRow(row));
+    }
+    return rows;
   }
 
   /*
@@ -1104,7 +1361,7 @@ export class ProxmoxNativeClusterSimulator {
       }
       const kept: boolean =
         !this.withoutNativeNodeKeep &&
-        row.isNativePush &&
+        row.isNativePush === true &&
         row.lastSeenAt >= retentionCutoff;
       if (kept) {
         run.keptNodes.push(nodeName);
@@ -1118,9 +1375,10 @@ export class ProxmoxNativeClusterSimulator {
   /*
    * One OTLP request through the ingest steps that matter here, in
    * OtelMetricsIngestService's order: normalize the batch, report silent
-   * siblings on a node's own status push, build the rows, then fold the
-   * inventory and refresh the cluster's heartbeat (the flush runs after
-   * the rows are built; ProxmoxClusterService.updateLastSeen stamps
+   * siblings on a node's own status push, build the rows, then the flush
+   * — fold the inventory (bulkUpsert), adopt the cluster's Node rows into
+   * the native keep, mark the reported nodes Offline — and refresh the
+   * cluster's heartbeat (ProxmoxClusterService.updateLastSeen stamps
    * lastSeenAt = now and "connected").
    */
   private async ingest(event: PushEvent): Promise<void> {
@@ -1140,34 +1398,179 @@ export class ProxmoxNativeClusterSimulator {
     const resourceAttributes: JSONArray = (envelope["resource"] as JSONObject)[
       "attributes"
     ] as JSONArray;
+    const pushesBefore: number = this.nodeStatusPushes.length;
+    let report: ProxmoxSilentNodeReport | null = null;
     if (isProxmoxNativePushResource(resourceAttributes)) {
-      await this.appendSilentNodeReports(envelope, event.receiveMs);
+      report = await this.appendSilentNodeReports(envelope, event.receiveMs);
     }
 
     this.metricTable.insertEnvelope({
       projectId: this.projectId,
       envelope: envelope,
     });
-    this.foldInventory(envelope);
+
+    /*
+     * flushProxmoxSnapshotBuffers. Every request here is a native-push
+     * batch with inventory entries (node, guest or storage rows), so the
+     * adoption follows every upsert; the mark follows when it reported.
+     */
+    this.foldInventory(envelope, event.receiveMs);
+    if (!this.withoutNativeAdoption) {
+      /*
+       * seenUpTo: the batch's newest entry — every point of one pvestatd
+       * request carries the pass's ctime.
+       */
+      this.adoptNodesAsNativePush({
+        atMs: event.receiveMs,
+        seenUpToMs: event.ctimeSeconds * 1000,
+        withinNodeStatusPush: this.nodeStatusPushes.length > pushesBefore,
+      });
+    }
+    if (report) {
+      this.markNodesNotReporting(report, event.receiveMs);
+    }
     this.clusterLastSeenAtMs = event.receiveMs;
     this.clusterConnected = true;
   }
 
   /*
+   * OtelMetricsIngestService.adoptProxmoxNodesAsNativePush (fenced to once
+   * per 10 minutes per cluster) → ProxmoxResourceService
+   * .adoptNodesAsNativePush:
+   *   UPDATE … SET "isNativePush" = true
+   *   WHERE "kind" = 'Node' AND "isNativePush" IS DISTINCT FROM true
+   *     AND "lastSeenAt" <= seenUpTo
+   * Adopting a row is not a report: its mark (notReportingMarkedAt) and
+   * updatedAt are left alone. (The adoptionStampsUpdatedAt counterfactual
+   * also sets "updatedAt" = now(), as it first shipped.) The UPDATE never
+   * fails here, so the fence is never released early.
+   */
+  private adoptNodesAsNativePush(data: {
+    atMs: number;
+    seenUpToMs: number;
+    // The request running it is a node-status push (already recorded).
+    withinNodeStatusPush: boolean;
+  }): void {
+    const acquired: boolean = this.redis.setStringIfNotExists(
+      NATIVE_ADOPTION_FENCE_NAMESPACE,
+      this.proxmoxClusterId.toString(),
+      "1",
+      { expiresInSeconds: NATIVE_ADOPTION_FENCE_SECONDS },
+    );
+    if (!acquired) {
+      return;
+    }
+    const adoption: SimulatedAdoption = {
+      atMs: data.atMs,
+      seenUpToMs: data.seenUpToMs,
+      adoptedNodes: [],
+      nodeStatusPushCount: this.nodeStatusPushes.length,
+      withinNodeStatusPush: data.withinNodeStatusPush,
+    };
+    for (const [nodeName, row] of this.nodeRows) {
+      if (
+        row.isNativePush !== true &&
+        row.lastSeenAt.getTime() <= data.seenUpToMs
+      ) {
+        row.isNativePush = true;
+        if (this.adoptionStampsUpdatedAt) {
+          row.updatedAt = new Date(data.atMs + this.databaseClockOffsetMs);
+        }
+        adoption.adoptedNodes.push(nodeName);
+      }
+    }
+    adoption.adoptedNodes.sort();
+    this.adoptions.push(adoption);
+  }
+
+  /*
+   * OtelMetricsIngestService.markProxmoxSilentNodesOffline (fenced to once
+   * per 30 s per cluster and set of nodes) → ProxmoxResourceService
+   * .markNodesNotReporting, with markedAt = the worker's now
+   * (OneUptimeDate.getCurrentDate() — here the one simulated clock):
+   *   UPDATE … SET "isUp" = false, "isNativePush" = true,
+   *                "notReportingMarkedAt" = markedAt, "updatedAt" = now()
+   *   WHERE "externalId" = ANY(the nodes) AND "lastSeenAt" < silentBefore
+   *     AND ("isUp" IS DISTINCT FROM false
+   *          OR "isNativePush" IS DISTINCT FROM true
+   *          OR "notReportingMarkedAt" IS NULL
+   *          OR "notReportingMarkedAt" < markedAt - 60 s)
+   * — a node that stays reported has its mark refreshed at most once a
+   * minute, and a row the node itself refreshed after silentBefore is
+   * never touched. The markOnDatabaseClock counterfactual writes and
+   * guards the mark on the database's now() instead; markInUpdatedAt keeps
+   * it in updatedAt ("updatedAt" = markedAt, guarded alike).
+   */
+  private markNodesNotReporting(
+    report: ProxmoxSilentNodeReport,
+    atMs: number,
+  ): void {
+    const databaseNowMs: number = atMs + this.databaseClockOffsetMs;
+    const markedAtMs: number = this.markOnDatabaseClock ? databaseNowMs : atMs;
+    const nodeNames: Array<string> = Array.from(report.nodeNames).sort();
+    const fingerprint: string = crypto
+      .createHash("sha1")
+      .update(nodeNames.join("\n"))
+      .digest("hex");
+    const acquired: boolean = this.redis.setStringIfNotExists(
+      SILENT_NODE_MARK_FENCE_NAMESPACE,
+      `${this.proxmoxClusterId.toString()}:${fingerprint}`,
+      "1",
+      { expiresInSeconds: SILENT_NODE_MARK_FENCE_SECONDS },
+    );
+    const mark: SimulatedOfflineMark = {
+      atMs: atMs,
+      nodeNames: nodeNames,
+      silentBeforeMs: report.silentBefore.getTime(),
+      fenced: !acquired,
+      markedNodes: [],
+      markedAtMs: markedAtMs,
+    };
+    this.offlineMarks.push(mark);
+    if (!acquired) {
+      return;
+    }
+    for (const nodeName of nodeNames) {
+      const row: SimulatedNodeRow | undefined = this.nodeRows.get(nodeName);
+      if (!row || row.lastSeenAt >= report.silentBefore) {
+        continue;
+      }
+      const lastMarkMs: number | null = this.markOf(row);
+      if (
+        row.isUp !== false ||
+        row.isNativePush !== true ||
+        lastMarkMs === null ||
+        lastMarkMs < markedAtMs - SILENT_NODE_MARK_REFRESH_MS
+      ) {
+        row.isUp = false;
+        row.isNativePush = true;
+        if (this.markInUpdatedAt) {
+          row.updatedAt = new Date(markedAtMs);
+        } else {
+          row.notReportingMarkedAt = new Date(markedAtMs);
+          row.updatedAt = new Date(databaseNowMs);
+        }
+        mark.markedNodes.push(nodeName);
+      }
+    }
+  }
+
+  /*
    * OtelMetricsIngestService.appendProxmoxSilentNodeReports, line for
    * line (it is private). The push record is kept even when detection
-   * is off, so the suite's oracles see every own point.
+   * is off, so the suite's oracles see every own point. Returns what the
+   * push reported, for the flush's Offline mark; null when nothing.
    */
   private async appendSilentNodeReports(
     envelope: JSONObject,
     receiveMs: number,
-  ): Promise<void> {
+  ): Promise<ProxmoxSilentNodeReport | null> {
     const status: {
       nodeName: string;
       timeUnixNanos: Array<JSONValue>;
     } | null = readProxmoxNativeNodeStatus(envelope);
     if (!status) {
-      return;
+      return null;
     }
 
     let reporterTimeMs: number | null = null;
@@ -1196,11 +1599,13 @@ export class ProxmoxNativeClusterSimulator {
       receiveMs: receiveMs,
       silentNodes: [],
       reporterCount: 0,
+      offlineRosterRows: [],
+      rosterReadAtMs: null,
     };
     this.nodeStatusPushes.push(record);
 
     if (!isProxmoxSilentNodeDetectionEnabled()) {
-      return;
+      return null;
     }
 
     const decision: ProxmoxSilentNodeDecision | null =
@@ -1210,11 +1615,32 @@ export class ProxmoxNativeClusterSimulator {
         selfNode: status.nodeName,
         reporterTimeMs: reporterTimeMs,
         loadRoster: (): Promise<Array<ProxmoxRosterNode>> => {
-          return Promise.resolve(this.loadRoster());
+          this.lastLoadedRoster = this.loadRoster();
+          this.lastLoadedRosterAtMs = receiveMs;
+          return Promise.resolve(this.lastLoadedRoster);
         },
       });
+
+    // The roster the decision read: the one loaded now, or the cached one.
+    record.rosterReadAtMs = this.lastLoadedRosterAtMs;
+    record.offlineRosterRows = this.lastLoadedRoster
+      .filter((node: ProxmoxRosterNode) => {
+        return node.isUp === false;
+      })
+      .map((node: ProxmoxRosterNode) => {
+        return {
+          nodeName: node.nodeName,
+          markedAtMs: node.notReportingMarkedAt
+            ? node.notReportingMarkedAt.getTime()
+            : null,
+        };
+      })
+      .sort((a: RosterOfflineRow, b: RosterOfflineRow) => {
+        return a.nodeName.localeCompare(b.nodeName);
+      });
+
     if (!decision) {
-      return;
+      return null;
     }
 
     record.silentNodes = [...decision.silentNodes];
@@ -1224,15 +1650,30 @@ export class ProxmoxNativeClusterSimulator {
       reporterCount: decision.reporterCount,
       timeUnixNanos: status.timeUnixNanos,
     });
+    return {
+      nodeNames: new Set<string>(decision.silentNodes),
+      silentBefore: new Date(reporterTimeMs - PROXMOX_NODE_SILENCE_MS),
+    };
   }
 
   /*
-   * The inventory fold (bulkUpsert): a Node row's lastSeenAt is the
-   * newest own pve_node_info point (newest-observedAt-wins), and a
-   * native-push batch stamps isNativePush — every batch here is one.
-   * Sibling reports never reach it.
+   * The inventory fold (bulkUpsert): per Node row of the batch, the newest
+   * own point is lastSeenAt and the newest own pve_up gives isUp (a node
+   * that pushes says pve_up = 1); a native-push batch stamps isNativePush
+   * — every batch here is one. The row is written only when that point is
+   * at least as new as the row's (DO UPDATE … WHERE EXCLUDED."lastSeenAt"
+   * >= the row's), isUp COALESCEd against the row's, the mark cleared
+   * ("notReportingMarkedAt" = NULL: the node's own newer point outranks
+   * any report of it), updatedAt = now() on the database's clock (a new
+   * row takes the column's DEFAULT now() and no mark;
+   * bulkUpdateLatestMetrics' write of the same row, guarded by the same
+   * observations, stamps updatedAt alike and never the mark). Sibling
+   * reports never reach it.
    */
-  private foldInventory(envelope: JSONObject): void {
+  private foldInventory(envelope: JSONObject, atMs: number): void {
+    const batch: Map<string, { observedAt: Date; isUp: boolean | null }> =
+      new Map();
+
     for (const scopeMetricValue of (envelope["scopeMetrics"] as JSONArray) ||
       []) {
       if (isProxmoxSiblingReportScope(scopeMetricValue)) {
@@ -1241,7 +1682,8 @@ export class ProxmoxNativeClusterSimulator {
       const scopeMetric: JSONObject = scopeMetricValue as JSONObject;
       for (const metricValue of (scopeMetric["metrics"] as JSONArray) || []) {
         const metric: JSONObject = metricValue as JSONObject;
-        if (metric["name"] !== "pve_node_info") {
+        const name: unknown = metric["name"];
+        if (name !== "pve_node_info" && name !== "pve_up") {
           continue;
         }
         const gaugeData: JSONObject =
@@ -1261,16 +1703,49 @@ export class ProxmoxNativeClusterSimulator {
           const observedAt: Date = OneUptimeDate.fromUnixNano(
             point["timeUnixNano"] as string | number,
           );
-          const existing: SimulatedNodeRow | undefined =
-            this.nodeRows.get(nodeName);
-          // DO UPDATE only WHERE EXCLUDED."lastSeenAt" >= the row's.
-          if (!existing || observedAt >= existing.lastSeenAt) {
-            this.nodeRows.set(nodeName, {
-              lastSeenAt: observedAt,
-              isNativePush: true,
-            });
+          const value: number | null =
+            toNumberOrNull(point["asInt"]) ?? toNumberOrNull(point["asDouble"]);
+          const isUp: boolean | null =
+            name === "pve_up" && value !== null ? value >= 1 : null;
+
+          const entry: { observedAt: Date; isUp: boolean | null } | undefined =
+            batch.get(nodeName);
+          if (!entry) {
+            batch.set(nodeName, { observedAt, isUp });
+            continue;
+          }
+          // Newest observation wins (foldProxmoxResourceSnapshot).
+          if (isUp !== null && observedAt >= entry.observedAt) {
+            entry.isUp = isUp;
+          }
+          if (observedAt > entry.observedAt) {
+            entry.observedAt = observedAt;
           }
         }
+      }
+    }
+
+    const databaseNow: number = atMs + this.databaseClockOffsetMs;
+    for (const [nodeName, entry] of batch) {
+      const existing: SimulatedNodeRow | undefined =
+        this.nodeRows.get(nodeName);
+      if (!existing) {
+        this.nodeRows.set(nodeName, {
+          lastSeenAt: entry.observedAt,
+          isUp: entry.isUp,
+          isNativePush: true,
+          notReportingMarkedAt: null,
+          updatedAt: new Date(databaseNow),
+        });
+        continue;
+      }
+      // DO UPDATE only WHERE EXCLUDED."lastSeenAt" >= the row's.
+      if (entry.observedAt >= existing.lastSeenAt) {
+        existing.lastSeenAt = entry.observedAt;
+        existing.isUp = entry.isUp ?? existing.isUp;
+        existing.isNativePush = true;
+        existing.notReportingMarkedAt = null;
+        existing.updatedAt = new Date(databaseNow);
       }
     }
   }

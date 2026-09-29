@@ -30,8 +30,10 @@ import {
   PROXMOX_SIBLING_REPORT_SCOPE_NAME,
 } from "Common/Server/Utils/Telemetry/ProxmoxNativePush";
 import {
+  PROXMOX_MONITOR_WINDOW_MS,
   PROXMOX_NODE_SILENCE_MS,
   PROXMOX_NODE_STREAK_GAP_MS,
+  PROXMOX_ROSTER_CACHE_TTL_MS,
   ProxmoxNodeLiveness,
   clearProxmoxNodeRosterCache,
   isAliveProxmoxNode,
@@ -47,6 +49,10 @@ import {
   NativePushKind,
   NodeStatusPushRecord,
   ProxmoxNativeClusterSimulator,
+  RosterOfflineRow,
+  SILENT_NODE_MARK_FENCE_SECONDS,
+  SILENT_NODE_MARK_REFRESH_MS,
+  SimulatedAdoption,
   SimulatedAggregateByArgs,
   SimulatedCleanupRun,
   SimulatedFindByArgs,
@@ -54,6 +60,7 @@ import {
   SimulatedMetricRow,
   SimulatedMetricTable,
   SimulatedNodeRow,
+  SimulatedOfflineMark,
   SimulatedProcessingBursts,
   SimulatedRedis,
   TimeRange,
@@ -106,20 +113,30 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
  *   - MetricTypeService.findBy: no declared units (the derived pve_*
  *     series carry none);
  *   - GlobalCache.getString / getStrings / setString: an in-memory Redis
- *     with EX expiry;
- *   - the inventory's Node rows (lastSeenAt, isNativePush — the roster
- *     source), the cluster's heartbeat, and the Proxmox:CleanupStaleResources
- *     cron every 5 minutes: markDisconnectedClusters, then
+ *     with EX expiry — the nodes' liveness keys — and SET NX EX for the
+ *     flush's fences;
+ *   - the inventory's Node rows (lastSeenAt, isUp — Online from the
+ *     node's own push, Offline once the flush's markNodesNotReporting has
+ *     marked it — isNativePush, notReportingMarkedAt — the mark: written
+ *     only by markNodesNotReporting, on the ingest worker's clock
+ *     (markedAt), refreshed at most once a minute while the node stays
+ *     reported, cleared by the node's own fold, never written by the
+ *     adoption — and updatedAt, every write of the row on the database's
+ *     clock, which may be skewed from the workers': the roster source,
+ *     isUp and the mark included, never updatedAt), the flush's fenced
+ *     Offline mark and native-push adoption,
+ *     the cluster's heartbeat, and the Proxmox:CleanupStaleResources cron
+ *     every 5 minutes: markDisconnectedClusters, then
  *     deleteStaleForCluster's predicate — native Node rows kept for the
  *     retention window — with the service's real cutoff helpers;
  *   - the clock: Date is faked and moved to each request's receive time,
  *     then to each evaluation time.
  *
- * NOT covered here: the inventory Offline flip (markNodesNotReporting),
- * the SQL of the prune itself (ProxmoxResourceService.test.ts), the
- * pages, what MonitorResource does with a verdict (incidents, alerts,
- * auto-resolve), and the ingest service's own batching / routing
- * (OtelMetricsIngestProxmoxNativePush.test.ts covers the service).
+ * NOT covered here: the SQL of the mark, the adoption and the prune
+ * (ProxmoxResourceService.test.ts), the pages, what MonitorResource does
+ * with a verdict (incidents, alerts, auto-resolve), and the ingest
+ * service's own batching / routing (OtelMetricsIngestProxmoxNativePush
+ * .test.ts covers the service).
  *
  * Every evaluation is also checked against an ORACLE computed from the
  * push log alone — which node pushed when (its own point time, and when
@@ -127,8 +144,17 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
  * the design's rules are replayed over the log (replayReports): which
  * pushes report which siblings, and with what L — every LIVE node
  * reports, once the cluster has an ESTABLISHED node (a streak of 2
- * minutes, still unbroken now), with L = the live nodes — and every
- * push's actual report must equal the replay's. Then the closed form: each
+ * minutes, still unbroken now); while none is established, every live
+ * node still reports the silent siblings already OFFLINE in the inventory
+ * and MARKED within the monitor window of the moment the roster was read
+ * (the row's notReportingMarkedAt, which the reports' own marks refresh
+ * at most once a minute, on the worker's clock; the roster is cached for
+ * 30 s, and every push it serves takes the marks' age at its read); L =
+ * every node of the roster and the reporter that the report does not name
+ * (presumed live until reported) — and every push's actual report, the
+ * Offline rows of the roster it read with their marks, and when that
+ * roster was read, must equal the replay's.
+ * Then the closed form: each
  * push adds 1 to Σpve_up and 1 + ceil(D·65536/L)/65536 to
  * Σpve_node_info; a node's minute is down when its lowest pve_up in
  * that minute is 0. The oracle applies the templates' own thresholds,
@@ -181,6 +207,12 @@ const SIM_START_MS: number = Date.UTC(2026, 8, 28, 12, 0, 0);
 const FIRST_EVALUATION_MS: number = SIM_START_MS + WINDOW_MS + 7_000;
 // When a node "dies" (true time); its last push is the one before.
 const DEATH_MS: number = SIM_START_MS + 20 * MINUTE_MS;
+/*
+ * A node down "from the start": a status pass may land up to 300 ms before
+ * its 10 s slot (jitter), so the first one can fall just before
+ * SIM_START_MS — down from a minute earlier covers it.
+ */
+const BEFORE_START_MS: number = SIM_START_MS - MINUTE_MS;
 const NEVER_MS: number = Number.MAX_SAFE_INTEGER;
 
 const NODE_OFFLINE: string = "pve-node-offline";
@@ -429,6 +461,18 @@ interface ScenarioInput {
   evaluateFromMs?: number | undefined;
   // A counterfactual: the cron prunes without the native-Node keep.
   withoutNativeNodeKeep?: boolean | undefined;
+  // The Node rows an earlier collector left, before the first push.
+  initialNodeRows?: Dictionary<SimulatedNodeRow> | undefined;
+  // A counterfactual: the flush does not adopt Node rows as native.
+  withoutNativeAdoption?: boolean | undefined;
+  // The database's clock minus the ingest workers'; 0 when not given.
+  databaseClockOffsetMs?: number | undefined;
+  // A counterfactual: the adoption also stamps updatedAt (as it first shipped).
+  adoptionStampsUpdatedAt?: boolean | undefined;
+  // A counterfactual: the mark writes and guards on the database's now().
+  markOnDatabaseClock?: boolean | undefined;
+  // A counterfactual: the mark kept in updatedAt (before notReportingMarkedAt).
+  markInUpdatedAt?: boolean | undefined;
 }
 
 interface ScenarioRun {
@@ -437,6 +481,11 @@ interface ScenarioRun {
   nodeNames: Array<string>;
   // PVE_NATIVE_NODE_SILENCE_DETECTION as the run saw it.
   silenceDetection: boolean;
+  // How the run's inventory writes the mark — the replay writes it alike.
+  databaseClockOffsetMs: number;
+  adoptionStampsUpdatedAt: boolean;
+  markOnDatabaseClock: boolean;
+  markInUpdatedAt: boolean;
   simulator: ProxmoxNativeClusterSimulator;
   table: SimulatedMetricTable;
   ticks: Array<Tick>;
@@ -485,6 +534,12 @@ async function runScenario(input: ScenarioInput): Promise<ScenarioRun> {
         outage: input.outage,
         pushKinds: input.pushKinds,
         withoutNativeNodeKeep: input.withoutNativeNodeKeep,
+        initialNodeRows: input.initialNodeRows,
+        withoutNativeAdoption: input.withoutNativeAdoption,
+        databaseClockOffsetMs: input.databaseClockOffsetMs,
+        adoptionStampsUpdatedAt: input.adoptionStampsUpdatedAt,
+        markOnDatabaseClock: input.markOnDatabaseClock,
+        markInUpdatedAt: input.markInUpdatedAt,
       },
       projectId: projectId,
       proxmoxClusterId: proxmoxClusterId,
@@ -522,6 +577,10 @@ async function runScenario(input: ScenarioInput): Promise<ScenarioRun> {
     proxmoxClusterId: proxmoxClusterId,
     nodeNames: nodeNames,
     silenceDetection: isProxmoxSilentNodeDetectionEnabled(),
+    databaseClockOffsetMs: input.databaseClockOffsetMs || 0,
+    adoptionStampsUpdatedAt: Boolean(input.adoptionStampsUpdatedAt),
+    markOnDatabaseClock: Boolean(input.markOnDatabaseClock),
+    markInUpdatedAt: Boolean(input.markInUpdatedAt),
     simulator: simulator,
     table: table,
     ticks: ticks,
@@ -538,17 +597,26 @@ async function runScenario(input: ScenarioInput): Promise<ScenarioRun> {
 
 // ---- the oracle, step 1: who reports what, replayed from the push log
 
-// ProxmoxNativeNodeLiveness's roster cache lifetime (module-private there).
-const ROSTER_CACHE_TTL_MS: number = 30_000;
+// ProxmoxResourceService.markNodesNotReporting's fence (see the simulator).
+const MARK_FENCE_MS: number = SILENT_NODE_MARK_FENCE_SECONDS * 1000;
 
 // What one node-status push reports under the design's rules.
 interface ExpectedReport {
   // Sorted; empty when the push reports nothing.
   silentNodes: Array<string>;
-  // L, the live nodes; 0 when the push reports nothing.
+  // L, the nodes presumed live; 0 when the push reports nothing.
   reporterCount: number;
   // How long the reporter had been pushing without a gap (receive clock).
   reporterStreakMs: number;
+  // Whether the cluster had an established node when the push was made.
+  established: boolean;
+  /*
+   * The Offline rows of the roster the push read, with their marks — the
+   * continuation's gate (as NodeStatusPushRecord.offlineRosterRows) — and
+   * when that roster was read; null when detection is off.
+   */
+  offlineRosterRows: Array<RosterOfflineRow>;
+  rosterReadAtMs: number | null;
 }
 
 // Whether one node's liveness makes the cluster ESTABLISHED at nowMs.
@@ -556,6 +624,119 @@ type EstablishedRule = (
   liveness: ProxmoxNodeLiveness | null,
   nowMs: number,
 ) => boolean;
+
+/*
+ * How a report counts L:
+ *   - "presumed-live": every node of the roster and the reporter that it
+ *     does not report — a node is presumed live until it is reported;
+ *   - "live-keys": only the nodes with a live Redis key (never the design
+ *     now — the rule before, which undercounted a live sibling whose first
+ *     push after a gap was not processed yet).
+ */
+type ReporterCountRule = "presumed-live" | "live-keys";
+
+// The rules replayReports applies.
+interface ReplayRules {
+  established: EstablishedRule;
+  /*
+   * While no node is established, the silent siblings already Offline in
+   * the inventory are still reported. Off only for showing what a
+   * scenario would do without it: the rule before, when the established
+   * gate held back every report.
+   */
+  continuesOffline: boolean;
+  /*
+   * The continuation reports only the Offline nodes marked within this
+   * long — the row's mark, as the roster carried it. The design: the
+   * monitor window. null for no such gate (any Offline row continues,
+   * marked or not) — never the design, only for showing what a scenario
+   * would do without it.
+   */
+  continuationWindowMs: number | null;
+  /*
+   * When the mark's age is taken:
+   *   - "roster-read": when the roster was read — every push one cached
+   *     roster serves decides alike (the design);
+   *   - "push": at each push's own processing — never the design: a push
+   *     served a roster cached before the mark was rewritten judges the
+   *     older mark later than the push that loaded it.
+   */
+  markAgeAt: "roster-read" | "push";
+  reporterCount: ReporterCountRule;
+}
+
+const DESIGN_RULES: ReplayRules = {
+  established: isEligibleProxmoxReporter,
+  continuesOffline: true,
+  continuationWindowMs: PROXMOX_MONITOR_WINDOW_MS,
+  markAgeAt: "roster-read",
+  reporterCount: "presumed-live",
+};
+
+/*
+ * Never the design: the mark's age taken at each push, against the bare
+ * monitor window — a push reading a roster cached from before the mark was
+ * rewritten judged the older mark past the window, while the push that
+ * loaded it had judged it within.
+ */
+const MARK_AGE_AT_PUSH: ReplayRules = {
+  ...DESIGN_RULES,
+  markAgeAt: "push",
+};
+
+/*
+ * Never the design: the mark's age taken at each push, against the monitor
+ * window plus the roster cache's 30 s — the slack only moves the edge: a
+ * first push back reading a mark 300 to 330 s old continues (a node back
+ * in the meantime included), and the pushes its cached roster serves drop
+ * the report once the same mark passes 330 s at their own time.
+ */
+const MARK_AGE_AT_PUSH_WITH_CACHE_SLACK: ReplayRules = {
+  ...DESIGN_RULES,
+  continuationWindowMs: PROXMOX_MONITOR_WINDOW_MS + PROXMOX_ROSTER_CACHE_TTL_MS,
+  markAgeAt: "push",
+};
+
+// Never the design: every report waits for an established node.
+const EVERY_REPORT_WAITS_FOR_ESTABLISHED: ReplayRules = {
+  ...DESIGN_RULES,
+  continuesOffline: false,
+};
+
+/*
+ * Never the design: the continuation as it first shipped — ungated, with
+ * L = the nodes with a live key.
+ */
+const CONTINUATION_AS_FIRST_SHIPPED: ReplayRules = {
+  ...DESIGN_RULES,
+  continuationWindowMs: null,
+  reporterCount: "live-keys",
+};
+
+// Never the design: one of the two fixes to it without the other.
+const WITHOUT_WINDOW_GATE: ReplayRules = {
+  ...DESIGN_RULES,
+  continuationWindowMs: null,
+};
+const L_FROM_LIVE_KEYS: ReplayRules = {
+  ...DESIGN_RULES,
+  reporterCount: "live-keys",
+};
+
+// One Node row of the replay's inventory.
+interface ReplayedNodeRow {
+  // On the node's own clock.
+  lastSeenAtMs: number;
+  isUp: boolean | null;
+  isNativePush: boolean | null;
+  /*
+   * The mark: written by the mark on the receive (worker) clock, cleared
+   * by the fold, null when never reported.
+   */
+  notReportingMarkedAtMs: number | null;
+  // Every write of the row, on the database's clock.
+  updatedAtMs: number;
+}
 
 /*
  * The ESTABLISHED rule before the streak also had to be unbroken NOW:
@@ -585,32 +766,112 @@ interface NodePrune {
  * Each node's own state goes through the REAL per-node functions
  * (nextProxmoxNodeLiveness, isAliveProxmoxNode, and for ESTABLISHED
  * isEligibleProxmoxReporter — a streak of at least SILENCE_MS whose last
- * push is at most STREAK_GAP_MS old — unless `established` swaps in
- * another rule); the replay supplies what they are applied to and how
- * the cluster combines them:
+ * push is at most STREAK_GAP_MS old — unless `rules` swaps in another
+ * rule); the replay supplies what they are applied to and how the
+ * cluster combines them:
  *   - a node's key lives SILENCE_MS after its last write, and is gone
  *     when Redis loses every key in an outage — a push with no key
  *     starts a new streak;
- *   - the roster: the inventory's Node rows as they stood when it was
- *     last loaded — every push loads it once the 30 s cache has run
- *     out, warming up or not — less the rows the cleanup cron pruned;
+ *   - the inventory: the rows it started with, then each push's own
+ *     fold (newest point time wins; the node is Online and native, its
+ *     mark cleared, the row written now on the database's clock), the
+ *     native-push adoption wherever the flush ran it (the rows not yet
+ *     native and last seen by the batch's newest point turn native, their
+ *     mark and updatedAt untouched), then — when the push reported — the
+ *     Offline mark of the reported nodes last seen before its own time
+ *     minus SILENCE_MS, at most once per 30 s for the same set of nodes
+ *     (the fence lives in Redis: an outage that loses the keys loses it
+ *     too), which writes a row (Offline, native, marked at the worker's
+ *     now) only when it is not both Offline and native yet, or its mark is
+ *     missing or over a minute older than the worker's now; less the rows
+ *     the cleanup cron pruned (the adoptionStampsUpdatedAt,
+ *     markOnDatabaseClock and markInUpdatedAt counterfactuals write those
+ *     as they first shipped);
+ *   - the roster: the inventory's Node rows, Online / Offline and their
+ *     marks included, as they stood when it was last loaded — every push
+ *     loads it once the 30 s cache has run out, warming up or not;
  *   - SILENT: a sibling in the roster, not alive, last seen before the
  *     reporter's own push time minus SILENCE_MS;
  *   - a push reports its silent siblings when it has any and the cluster
  *     has an established node — itself or any other; a live node still
- *     warming up reports too — with L = the live nodes among the roster
- *     and itself.
+ *     warming up reports too; while none is established, it reports those
+ *     already Offline in the roster and marked within the monitor window
+ *     of the moment that roster was read — with L = the nodes of the
+ *     roster and itself that it does not report.
  */
 function replayReports(
   run: ScenarioRun,
-  established: EstablishedRule = isEligibleProxmoxReporter,
+  rules: ReplayRules = DESIGN_RULES,
 ): Map<NodeStatusPushRecord, ExpectedReport> {
   const expected: Map<NodeStatusPushRecord, ExpectedReport> = new Map();
   const liveness: Map<string, ProxmoxNodeLiveness> = new Map();
-  // The inventory's lastSeenAt per node, on the node's own clock.
-  const lastSeenAt: Map<string, number> = new Map();
-  let roster: Map<string, number> | null = null;
+  // Mark fences: the set of nodes (sorted, joined) → when it expires.
+  const markFences: Map<string, number> = new Map();
+
+  const inventory: Map<string, ReplayedNodeRow> = new Map();
+  for (const [nodeName, row] of run.simulator.initialNodeRows()) {
+    inventory.set(nodeName, {
+      lastSeenAtMs: row.lastSeenAt.getTime(),
+      isUp: row.isUp,
+      isNativePush: row.isNativePush,
+      notReportingMarkedAtMs: row.notReportingMarkedAt
+        ? row.notReportingMarkedAt.getTime()
+        : null,
+      updatedAtMs: row.updatedAt.getTime(),
+    });
+  }
+  // A row's mark, where the run keeps it (updatedAt under markInUpdatedAt).
+  const markOf: (row: ReplayedNodeRow) => number | null = (
+    row: ReplayedNodeRow,
+  ): number | null => {
+    return run.markInUpdatedAt ? row.updatedAtMs : row.notReportingMarkedAtMs;
+  };
+  const snapshot: () => Map<string, ReplayedNodeRow> = (): Map<
+    string,
+    ReplayedNodeRow
+  > => {
+    const copy: Map<string, ReplayedNodeRow> = new Map();
+    for (const [nodeName, row] of inventory) {
+      copy.set(nodeName, { ...row });
+    }
+    return copy;
+  };
+
+  /*
+   * The adoptions, where the flush ran them — after the first `count`
+   * node-status pushes, inside the last one's flush or after it. When is
+   * the simulator's record (the fence, and requests that are not node
+   * status); which rows it takes is the replay's own.
+   */
+  const adoptions: Array<SimulatedAdoption> = [...run.simulator.adoptions];
+  const adoptAt: (count: number, withinNodeStatusPush: boolean) => void = (
+    count: number,
+    withinNodeStatusPush: boolean,
+  ): void => {
+    while (
+      adoptions.length > 0 &&
+      adoptions[0]!.nodeStatusPushCount === count &&
+      adoptions[0]!.withinNodeStatusPush === withinNodeStatusPush
+    ) {
+      const adoption: SimulatedAdoption = adoptions.shift()!;
+      for (const row of inventory.values()) {
+        if (
+          row.isNativePush !== true &&
+          row.lastSeenAtMs <= adoption.seenUpToMs
+        ) {
+          row.isNativePush = true;
+          if (run.adoptionStampsUpdatedAt) {
+            row.updatedAtMs = adoption.atMs + run.databaseClockOffsetMs;
+          }
+        }
+      }
+    }
+  };
+  adoptAt(0, false);
+
+  let roster: Map<string, ReplayedNodeRow> | null = null;
   let rosterLoadedAtMs: number = 0;
+  let processed: number = 0;
   const lostAtMs: Array<number> = [...run.simulator.livenessLostAtMs];
   const prunes: Array<NodePrune> = [];
   for (const cleanupRun of run.simulator.cleanupRuns) {
@@ -624,10 +885,11 @@ function replayReports(
     // Keys lost and rows pruned at an instant go after the pushes at it.
     while (lostAtMs.length > 0 && lostAtMs[0]! < nowMs) {
       liveness.clear();
+      markFences.clear();
       lostAtMs.shift();
     }
     while (prunes.length > 0 && prunes[0]!.atMs < nowMs) {
-      lastSeenAt.delete(prunes[0]!.nodeName);
+      inventory.delete(prunes[0]!.nodeName);
       prunes.shift();
     }
 
@@ -645,6 +907,9 @@ function replayReports(
       silentNodes: [],
       reporterCount: 0,
       reporterStreakMs: 0,
+      established: false,
+      offlineRosterRows: [],
+      rosterReadAtMs: null,
     };
 
     if (run.silenceDetection) {
@@ -655,24 +920,35 @@ function replayReports(
       liveness.set(push.nodeName, current);
       report.reporterStreakMs = nowMs - current.streakStartMs;
 
-      if (!roster || nowMs > rosterLoadedAtMs + ROSTER_CACHE_TTL_MS) {
-        roster = new Map(lastSeenAt);
+      if (!roster || nowMs > rosterLoadedAtMs + PROXMOX_ROSTER_CACHE_TTL_MS) {
+        roster = snapshot();
         rosterLoadedAtMs = nowMs;
       }
-      const rosterNow: Map<string, number> = roster;
-
-      let liveCount: number = 0;
-      let isEstablished: boolean = false;
-      for (const nodeName of new Set<string>([
+      const rosterNow: Map<string, ReplayedNodeRow> = roster;
+      report.rosterReadAtMs = rosterLoadedAtMs;
+      report.offlineRosterRows = Array.from(rosterNow.entries())
+        .filter(([, row]: [string, ReplayedNodeRow]) => {
+          return row.isUp === false;
+        })
+        .map(([nodeName, row]: [string, ReplayedNodeRow]) => {
+          return { nodeName: nodeName, markedAtMs: markOf(row) };
+        })
+        .sort((a: RosterOfflineRow, b: RosterOfflineRow) => {
+          return a.nodeName.localeCompare(b.nodeName);
+        });
+      const nodes: Set<string> = new Set<string>([
         ...rosterNow.keys(),
         push.nodeName,
-      ])) {
+      ]);
+
+      let liveCount: number = 0;
+      for (const nodeName of nodes) {
         const entry: ProxmoxNodeLiveness | null = keyOf(nodeName);
         if (isAliveProxmoxNode(entry, nowMs)) {
           liveCount++;
         }
-        if (established(entry, nowMs)) {
-          isEstablished = true;
+        if (rules.established(entry, nowMs)) {
+          report.established = true;
         }
       }
 
@@ -682,26 +958,114 @@ function replayReports(
           return (
             nodeName !== push.nodeName &&
             !isAliveProxmoxNode(keyOf(nodeName), nowMs) &&
-            rosterNow.get(nodeName)! < silentBeforeMs
+            rosterNow.get(nodeName)!.lastSeenAtMs < silentBeforeMs
           );
         })
         .sort();
 
-      if (isEstablished && silentNodes.length > 0) {
-        report.silentNodes = silentNodes;
-        report.reporterCount = liveCount;
+      /*
+       * Without an established node: Offline, and marked within the window
+       * of the roster's read (or, never the design, of the push).
+       */
+      const ageAtMs: number =
+        rules.markAgeAt === "roster-read" ? rosterLoadedAtMs : nowMs;
+      const continues: (nodeName: string) => boolean = (
+        nodeName: string,
+      ): boolean => {
+        const row: ReplayedNodeRow = rosterNow.get(nodeName)!;
+        if (row.isUp !== false) {
+          return false;
+        }
+        if (rules.continuationWindowMs === null) {
+          return true;
+        }
+        const markedAtMs: number | null = markOf(row);
+        return (
+          markedAtMs !== null &&
+          ageAtMs - markedAtMs <= rules.continuationWindowMs
+        );
+      };
+      const reported: Array<string> = report.established
+        ? silentNodes
+        : rules.continuesOffline
+          ? silentNodes.filter(continues)
+          : [];
+      if (reported.length > 0) {
+        report.silentNodes = reported;
+        report.reporterCount =
+          rules.reporterCount === "presumed-live"
+            ? nodes.size - reported.length
+            : liveCount;
       }
     }
 
     expected.set(push, report);
-    // The inventory fold runs after the report: newest point time wins.
-    lastSeenAt.set(
-      push.nodeName,
-      Math.max(
-        lastSeenAt.get(push.nodeName) ?? push.pushTimeMs,
-        push.pushTimeMs,
-      ),
-    );
+    processed++;
+
+    // The flush, after the report. The fold: newest point time wins.
+    const databaseNowMs: number = nowMs + run.databaseClockOffsetMs;
+    const own: ReplayedNodeRow | undefined = inventory.get(push.nodeName);
+    if (!own) {
+      inventory.set(push.nodeName, {
+        lastSeenAtMs: push.pushTimeMs,
+        isUp: true,
+        isNativePush: true,
+        notReportingMarkedAtMs: null,
+        updatedAtMs: databaseNowMs,
+      });
+    } else if (push.pushTimeMs >= own.lastSeenAtMs) {
+      own.lastSeenAtMs = push.pushTimeMs;
+      own.isUp = true;
+      own.isNativePush = true;
+      own.notReportingMarkedAtMs = null;
+      own.updatedAtMs = databaseNowMs;
+    }
+
+    adoptAt(processed, true);
+
+    /*
+     * The Offline mark of what it reported, fenced per set of nodes, at
+     * markedAt — the worker's now; a row already Offline and native is
+     * marked again once its mark is missing or over a minute older than
+     * that.
+     */
+    if (report.silentNodes.length > 0) {
+      const markedAtMs: number = run.markOnDatabaseClock
+        ? databaseNowMs
+        : nowMs;
+      const fence: string = report.silentNodes.join("\n");
+      const heldUntilMs: number | undefined = markFences.get(fence);
+      if (heldUntilMs === undefined || nowMs >= heldUntilMs) {
+        markFences.set(fence, nowMs + MARK_FENCE_MS);
+        for (const nodeName of report.silentNodes) {
+          const row: ReplayedNodeRow | undefined = inventory.get(nodeName);
+          if (
+            !row ||
+            row.lastSeenAtMs >= push.pushTimeMs - PROXMOX_NODE_SILENCE_MS
+          ) {
+            continue;
+          }
+          const lastMarkMs: number | null = markOf(row);
+          if (
+            row.isUp !== false ||
+            row.isNativePush !== true ||
+            lastMarkMs === null ||
+            lastMarkMs < markedAtMs - SILENT_NODE_MARK_REFRESH_MS
+          ) {
+            row.isUp = false;
+            row.isNativePush = true;
+            if (run.markInUpdatedAt) {
+              row.updatedAtMs = markedAtMs;
+            } else {
+              row.notReportingMarkedAtMs = markedAtMs;
+              row.updatedAtMs = databaseNowMs;
+            }
+          }
+        }
+      }
+    }
+
+    adoptAt(processed, false);
   }
 
   return expected;
@@ -718,17 +1082,43 @@ function replayedReportOf(
   return report;
 }
 
-// Every push reported exactly what the replayed rules say it should.
+/*
+ * Every push reported exactly what the replayed rules say it should, and
+ * read the Offline rows exactly as the replay has them — each one's last
+ * mark included — from a roster read exactly when the replay's was.
+ */
 function expectReportsMatchReplay(
   run: ScenarioRun,
   replay: Map<NodeStatusPushRecord, ExpectedReport>,
 ): void {
+  const rosterState: (
+    rows: Array<RosterOfflineRow>,
+    readAtMs: number | null,
+  ) => string = (
+    rows: Array<RosterOfflineRow>,
+    readAtMs: number | null,
+  ): string => {
+    const readAt: string =
+      readAtMs === null ? "no roster" : new Date(readAtMs).toISOString();
+    if (rows.length === 0) {
+      return `roster read ${readAt}: no Offline row`;
+    }
+    return `roster read ${readAt}: ${rows
+      .map((row: RosterOfflineRow) => {
+        const markedAt: string =
+          row.markedAtMs === null
+            ? "never"
+            : new Date(row.markedAtMs).toISOString();
+        return `${row.nodeName} Offline, marked ${markedAt}`;
+      })
+      .join(", ")}`;
+  };
   // Collected, then asserted once: thousands of pushes on a big cluster.
   const problems: Array<string> = [];
   for (const push of run.simulator.nodeStatusPushes) {
     const expected: ExpectedReport = replayedReportOf(replay, push);
-    const actual: string = `${push.silentNodes.join(",")} / L=${push.reporterCount}`;
-    const wanted: string = `${expected.silentNodes.join(",")} / L=${expected.reporterCount}`;
+    const actual: string = `${push.silentNodes.join(",")} / L=${push.reporterCount} / ${rosterState(push.offlineRosterRows, push.rosterReadAtMs)}`;
+    const wanted: string = `${expected.silentNodes.join(",")} / L=${expected.reporterCount} / ${rosterState(expected.offlineRosterRows, expected.rosterReadAtMs)}`;
     if (actual !== wanted) {
       problems.push(
         `${push.nodeName} at ${new Date(push.receiveMs).toISOString()}: reported ${actual}, expected ${wanted}`,
@@ -1090,6 +1480,102 @@ function expectQuorumFiresThroughout(data: {
   }
 }
 
+// One evaluation's verdicts — the monitor's, or the oracle's under some rules.
+interface Verdict {
+  atMs: number;
+  quorumFires: boolean;
+  quorumHealthy: boolean;
+  quorumPoints: Array<FormulaPoint>;
+  // Node Offline: the node ids its offline criteria matched.
+  offlineIds: Array<string>;
+}
+
+function verdictsOf(ticks: Array<Tick>): Array<Verdict> {
+  return ticks.map((tick: Tick) => {
+    return {
+      atMs: tick.atMs,
+      quorumFires: tick.quorum.fires,
+      quorumHealthy: tick.quorum.healthy,
+      quorumPoints: tick.quorum.formulaPoints,
+      offlineIds: tick.nodeOffline.offlineIds,
+    };
+  });
+}
+
+/*
+ * The verdicts the closed form gives over the same push log when the
+ * reports follow `rules` — what the monitor WOULD have said.
+ */
+function oracleVerdicts(
+  run: ScenarioRun,
+  ticks: Array<Tick>,
+  rules: ReplayRules,
+): Array<Verdict> {
+  const replay: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(
+    run,
+    rules,
+  );
+  return ticks.map((tick: Tick) => {
+    const quorum: ExpectedQuorum = expectedQuorum({
+      run,
+      replay,
+      atMs: tick.atMs,
+    });
+    return {
+      atMs: tick.atMs,
+      quorumFires: quorum.fires,
+      quorumHealthy: quorum.healthy,
+      quorumPoints: quorum.points,
+      offlineIds: expectedNodeOffline({ run, replay, atMs: tick.atMs })
+        .offlineIds,
+    };
+  });
+}
+
+function describeQuorum(verdict: Verdict): string {
+  const state: string = verdict.quorumFires
+    ? "fires"
+    : verdict.quorumHealthy
+      ? "HEALTHY"
+      : "NO CRITERIA MET";
+  const points: string = verdict.quorumPoints
+    .map((point: FormulaPoint) => {
+      return `${new Date(point.timestampMs).toISOString().substring(11, 16)}=${point.value.toFixed(2)}%`;
+    })
+    .join(" ");
+  return `Quorum ${state} [${points}]`;
+}
+
+/*
+ * VERDICT CONTINUITY through an ongoing failure: on every evaluation
+ * Quorum at Risk matches its offline criteria — never "no criteria met"
+ * (MonitorResource then auto-resolves its alert and incident, to page
+ * again minutes later) and never healthy — and Node Offline keeps every
+ * dead node's series firing. Returns the evaluations that break it, each
+ * with its minutes' availability; empty when it holds.
+ */
+function continuityBreaks(data: {
+  verdicts: Array<Verdict>;
+  deadIds: Array<string>;
+}): Array<string> {
+  const breaks: Array<string> = [];
+  for (const verdict of data.verdicts) {
+    const notFiring: Array<string> = data.deadIds.filter((id: string) => {
+      return !verdict.offlineIds.includes(id);
+    });
+    if (verdict.quorumFires && notFiring.length === 0) {
+      continue;
+    }
+    breaks.push(
+      `${new Date(verdict.atMs).toISOString()}: ${describeQuorum(verdict)}` +
+        (notFiring.length > 0
+          ? `; Node Offline NOT firing for ${notFiring.join(", ")}`
+          : ""),
+    );
+  }
+  return breaks;
+}
+
 function lastOwnPushBefore(
   run: ScenarioRun,
   nodeName: string,
@@ -1357,6 +1843,78 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
           call.endTimestamp.getTime() - call.startTimestamp.getTime(),
         ).toBe(WINDOW_MS);
       }
+      /*
+       * The continuation's gate is this same window, the mark's age taken
+       * when the roster was read — which a worker reuses for 30 s.
+       */
+      expect(PROXMOX_MONITOR_WINDOW_MS).toBe(WINDOW_MS);
+      expect(PROXMOX_ROSTER_CACHE_TTL_MS).toBe(30_000);
+    });
+
+    /*
+     * The continuation's gate, spelled out on the simplest run (the oracle
+     * checks the rows every push read): the first report's flush marks
+     * pve3 Offline — its notReportingMarkedAt written then. While the
+     * survivors keep reporting it, the mark is fenced to once per 30 s for
+     * the set, and the UPDATE writes the mark again only once it is over a
+     * minute old: a refresh every 60 to 90 s, never more often. So every
+     * roster read from then on has pve3 Offline and marked less than
+     * 2 minutes before — refresh plus the roster cache's 30 s — well
+     * within the monitor window.
+     */
+    test("the first report marks pve3 Offline, and while it is reported its mark is refreshed every 60 to 90 s — every roster after reads it marked within 2 minutes", () => {
+      const reports: Array<NodeStatusPushRecord> = reportingPushes(run);
+      const writes: Array<SimulatedOfflineMark> =
+        run.simulator.offlineMarks.filter((mark: SimulatedOfflineMark) => {
+          return mark.markedNodes.includes("pve3");
+        });
+      expect(writes.length).toBeGreaterThan(15);
+      expect(writes[0]!.atMs).toBe(reports[0]!.receiveMs);
+
+      for (let index: number = 1; index < writes.length; index++) {
+        const intervalMs: number =
+          writes[index]!.atMs - writes[index - 1]!.atMs;
+        expect(intervalMs).toBeGreaterThan(SILENT_NODE_MARK_REFRESH_MS);
+        expect(intervalMs).toBeLessThan(
+          SILENT_NODE_MARK_REFRESH_MS + MARK_FENCE_MS,
+        );
+      }
+      // The fence let marks through in between: the refresh guard held them.
+      expect(
+        run.simulator.offlineMarks.filter((mark: SimulatedOfflineMark) => {
+          return !mark.fenced && mark.markedNodes.length === 0;
+        }).length,
+      ).toBeGreaterThan(10);
+
+      for (const push of run.simulator.nodeStatusPushes) {
+        if (push.receiveMs <= writes[0]!.atMs) {
+          expect(push.offlineRosterRows).toEqual([]);
+        }
+      }
+      const reloaded: Array<NodeStatusPushRecord> =
+        run.simulator.nodeStatusPushes.filter((push: NodeStatusPushRecord) => {
+          return push.receiveMs > writes[0]!.atMs + PROXMOX_ROSTER_CACHE_TTL_MS;
+        });
+      expect(reloaded.length).toBeGreaterThan(100);
+      const freshWithinMs: number =
+        SILENT_NODE_MARK_REFRESH_MS +
+        MARK_FENCE_MS +
+        PROXMOX_ROSTER_CACHE_TTL_MS;
+      expect(freshWithinMs).toBeLessThan(PROXMOX_MONITOR_WINDOW_MS);
+      for (const push of reloaded) {
+        expect(push.offlineRosterRows.length).toBe(1);
+        expect(push.offlineRosterRows[0]!.nodeName).toBe("pve3");
+        const markedAtMs: number | null = push.offlineRosterRows[0]!.markedAtMs;
+        expect(markedAtMs).not.toBeNull();
+        expect(push.receiveMs - markedAtMs!).toBeLessThan(freshWithinMs);
+      }
+      // Each write of the mark is the worker's now; pve3's row holds the last.
+      for (const write of writes) {
+        expect(write.markedAtMs).toBe(write.atMs);
+      }
+      expect(run.simulator.nodeRow("pve3")?.notReportingMarkedAt).toEqual(
+        new Date(writes[writes.length - 1]!.atMs),
+      );
     });
 
     test("pve3 is reported about 2 minutes after its last push, by both survivors, and nothing else is", () => {
@@ -1522,8 +2080,8 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
 
       /*
        * Before that, pve2 alone: pve3 died 25 s later, so for a while it
-       * is not yet silent — still counted live (L = 2) until its own
-       * 2 minutes run out.
+       * is not yet silent — presumed live until it is reported, so L = 2
+       * throughout, its key gone or not.
        */
       const firstFullMs: number = full[0]!.receiveMs;
       const partial: Array<NodeStatusPushRecord> = reports.filter(
@@ -1531,14 +2089,10 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
           return !full.includes(report);
         },
       );
-      expect(
-        partial.some((report: NodeStatusPushRecord) => {
-          return report.reporterCount === 2;
-        }),
-      ).toBe(true);
+      expect(partial.length).toBeGreaterThan(0);
       for (const report of partial) {
         expect(report.silentNodes).toEqual(["pve2"]);
-        expect([1, 2]).toContain(report.reporterCount);
+        expect(report.reporterCount).toBe(2);
         expect(report.receiveMs).toBeLessThan(firstFullMs);
       }
     });
@@ -1617,14 +2171,14 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
 
       /*
        * The two died in the same second, but their last pushes were up
-       * to 10 s apart: for those seconds the later one is still counted
-       * live (L = 3, or 2 once its key is gone but its last push is not
-       * yet 2 minutes old) while the earlier one is reported alone.
+       * to 10 s apart: for those seconds the later one is not yet silent
+       * — presumed live until it is reported, its key gone or not, so
+       * L = 3 — while the earlier one is reported alone.
        */
       const firstFullMs: number = fullReports[0]!.receiveMs;
       for (const report of reportingPushes(run)) {
         if (report.silentNodes.length === 1) {
-          expect([2, 3]).toContain(report.reporterCount);
+          expect(report.reporterCount).toBe(3);
           expect(report.receiveMs).toBeLessThan(firstFullMs);
         }
       }
@@ -2023,8 +2577,16 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
    * all, as not reporting. But a node is established only while its
    * streak is unbroken NOW — its last push at most STREAK_GAP_MS old —
    * and every push from before the outage is at least 100 s old: nobody
-   * reports anything until a node has pushed for 2 minutes after the
-   * outage, by when every live node has a key again.
+   * reports a sibling that is not yet Offline until a node has pushed for
+   * 2 minutes after the outage, by when every live node has a key again.
+   * pve5 IS Offline (reported and marked long before), so every live node
+   * keeps reporting it from its first push back — the established gate
+   * guards a node's first report only, and pve5's row was last marked
+   * less than a monitor window before (at most 90 s before the outage),
+   * the reports back then marking it again themselves. Each
+   * report counts L = 4: every node it does not name is presumed live,
+   * a live sibling whose first push back is not processed yet included,
+   * so every push weighs pve5 at exactly a quarter of a node.
    */
   describe("5 nodes, pve5 dead, a 100–119 s OneUptime outage that Redis rides out", () => {
     const OUTAGE_FROM_MS: number = SIM_START_MS + 30 * MINUTE_MS;
@@ -2072,7 +2634,7 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
     ): Array<NodeStatusPushRecord> {
       const replay: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(
         run,
-        established,
+        { ...DESIGN_RULES, established: established },
       );
       return run.simulator.nodeStatusPushes.filter(
         (push: NodeStatusPushRecord) => {
@@ -2133,15 +2695,17 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
       }
     });
 
-    test("no live node is ever reported; pve5's reports pause and resume only once a node has pushed unbroken for 2 minutes after the outage", () => {
+    test("no live node is ever reported; pve5, already Offline, is reported by every push back from the outage — none established for 2 minutes", () => {
+      const replay: Map<NodeStatusPushRecord, ExpectedReport> =
+        replayReports(run);
       const reports: Array<NodeStatusPushRecord> = reportingPushes(run);
       for (const report of reports) {
         expect(report.silentNodes).toEqual(["pve5"]);
-        expect(report.reporterCount).toBe(4);
       }
       for (const name of LIVE_NODES) {
         expect(run.simulator.reportsOf(name)).toEqual([]);
       }
+      expect(run.simulator.nodeRow("pve5")?.isUp).toBe(false);
 
       // Reported up to the outage…
       expect(
@@ -2153,19 +2717,100 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         }),
       ).toBe(true);
 
-      // …then not until a node back from it is established.
-      const after: Array<NodeStatusPushRecord> = reports.filter(
-        (report: NodeStatusPushRecord) => {
-          return report.receiveMs >= OUTAGE_FROM_MS;
+      // …and by every push after it, from the very first one back…
+      const after: Array<NodeStatusPushRecord> =
+        run.simulator.nodeStatusPushes.filter((push: NodeStatusPushRecord) => {
+          return push.receiveMs >= OUTAGE_FROM_MS;
+        });
+      expect(after.length).toBeGreaterThan(50);
+      expect(after[0]).toBe(firstBack);
+      for (const push of after) {
+        expect(push.silentNodes).toEqual(["pve5"]);
+      }
+
+      // …though no node was established for the first 2 minutes back…
+      const warmUp: Array<NodeStatusPushRecord> = after.filter(
+        (push: NodeStatusPushRecord) => {
+          return !replayedReportOf(replay, push).established;
         },
       );
-      expect(after.length).toBeGreaterThan(50);
-      expect(after[0]!.receiveMs).toBeGreaterThanOrEqual(
-        firstBack.receiveMs + PROXMOX_NODE_SILENCE_MS,
+      expect(warmUp.length).toBeGreaterThan(20);
+      expect(warmUp[0]).toBe(firstBack);
+      for (const push of warmUp) {
+        expect(push.receiveMs).toBeLessThan(
+          firstBack.receiveMs + PROXMOX_NODE_SILENCE_MS + 15_000,
+        );
+        /*
+         * …while the roster had pve5 Offline, marked within the window of
+         * its read (at most the cache's 30 s before the push).
+         */
+        expect(push.offlineRosterRows.length).toBe(1);
+        expect(push.offlineRosterRows[0]!.nodeName).toBe("pve5");
+        const markedAtMs: number = push.offlineRosterRows[0]!.markedAtMs!;
+        const readAtMs: number = push.rosterReadAtMs!;
+        expect(push.receiveMs - readAtMs).toBeLessThanOrEqual(
+          PROXMOX_ROSTER_CACHE_TTL_MS,
+        );
+        expect(readAtMs - markedAtMs).toBeLessThanOrEqual(
+          PROXMOX_MONITOR_WINDOW_MS,
+        );
+      }
+      // The first read after the outage: the last mark before it.
+      expect(firstBack.rosterReadAtMs).toBe(firstBack.receiveMs);
+      expect(firstBack.offlineRosterRows[0]!.markedAtMs!).toBeLessThan(
+        OUTAGE_FROM_MS,
       );
-      expect(after[0]!.receiveMs).toBeLessThan(
-        firstBack.receiveMs + PROXMOX_NODE_SILENCE_MS + 15_000,
-      );
+      /*
+       * The warm-up's own reports mark pve5 again — over a minute old by
+       * then — so the mark the continuation reads stays fresh.
+       */
+      expect(
+        run.simulator.offlineMarks.some((mark: SimulatedOfflineMark) => {
+          return (
+            mark.markedNodes.includes("pve5") &&
+            mark.atMs >= firstBack.receiveMs &&
+            mark.atMs <= warmUp[warmUp.length - 1]!.receiveMs
+          );
+        }),
+      ).toBe(true);
+
+      // L = 4 on every report, the warm-up included.
+      for (const push of reports) {
+        expect(push.reporterCount).toBe(4);
+      }
+    });
+
+    /*
+     * L counted from the nodes with a live key — the rule before — came up
+     * short by one or two in the warm-up, while a live sibling's key had
+     * run out before its first push back was processed: those pushes
+     * weighed pve5 at a third or a half of a node, and their minutes read
+     * below 4 ÷ 5. Whether a push lands in those seconds is the draw's
+     * (this one does, as did 23 of 24 other draws); 4 ÷ 5 held in all.
+     */
+    test("availability reads exactly 4 ÷ 5 in every minute once pve5 is reported, the warm-up after the outage included — with L from live keys it would not", () => {
+      const firstFull: Tick | undefined = steadyTicks(run, ["pve5"])[0];
+      expect(firstFull).toBeDefined();
+      const through: Array<Tick> = ticksFrom(run, firstFull!.atMs);
+      expect(through.length).toBeGreaterThan(30);
+      for (const tick of through) {
+        expect(tick.quorum.formulaPoints.length).toBeGreaterThanOrEqual(3);
+        for (const point of tick.quorum.formulaPoints) {
+          expect(point.value).toBeCloseTo(80, 10);
+        }
+      }
+
+      const undercounted: Array<string> = [];
+      for (const verdict of oracleVerdicts(run, through, L_FROM_LIVE_KEYS)) {
+        for (const point of verdict.quorumPoints) {
+          if (point.value < 80 - 1e-9) {
+            undercounted.push(
+              `${new Date(point.timestampMs).toISOString()}=${point.value}`,
+            );
+          }
+        }
+      }
+      expect(undercounted.length).toBeGreaterThan(0);
     });
 
     /*
@@ -2174,7 +2819,7 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
      * outage report live nodes — the ones whose keys had just expired.
      * Whether a push lands in those few seconds is the draw's (this one
      * does; the sweep below counts how many do). The real pushes there
-     * reported nothing.
+     * reported only pve5, already Offline — never a live node.
      */
     test("an alive key from before the outage would have vouched for reports of live nodes; established now means an unbroken streak", () => {
       expect(pushesReportingLiveNodes(run, isEligibleProxmoxReporter)).toEqual(
@@ -2190,8 +2835,8 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         expect(push.receiveMs).toBeLessThan(
           OUTAGE_FROM_MS + PROXMOX_NODE_SILENCE_MS,
         );
-        expect(push.silentNodes).toEqual([]);
-        expect(push.reporterCount).toBe(0);
+        expect(push.silentNodes).toEqual(["pve5"]);
+        expect(push.reporterCount).toBe(4);
       }
     });
 
@@ -2246,8 +2891,16 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
             reports: [],
           });
         }
-        // pve5 is reported again once a node is established.
+        // pve5, already Offline, is reported on every push back.
         expect(sweep.simulator.reportsOf("pve5").length).toBeGreaterThan(100);
+        for (const push of sweep.simulator.nodeStatusPushes) {
+          if (push.receiveMs >= OUTAGE_FROM_MS) {
+            expect({ seed, silentNodes: push.silentNodes }).toEqual({
+              seed,
+              silentNodes: ["pve5"],
+            });
+          }
+        }
 
         if (
           pushesReportingLiveNodes(sweep, isEstablishedByAnyLiveStreak).length >
@@ -2396,10 +3049,35 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         for (const entry of run.simulator.cleanupRuns) {
           expect(entry.prunedNodes).toEqual([]);
         }
+        /*
+         * Never marked before the outage (nobody had reported it), so it
+         * was still Online at the tick — only the first report after the
+         * outage marks it Offline.
+         */
+        const firstMark: SimulatedOfflineMark | undefined =
+          run.simulator.offlineMarks.find((mark: SimulatedOfflineMark) => {
+            return mark.markedNodes.includes("pve3");
+          });
+        expect(firstMark).toBeDefined();
+        expect(firstMark!.atMs).toBeGreaterThan(cleanup.atMs);
+        expect(firstMark!.atMs).toBe(reportingPushes(run)[0]!.receiveMs);
+
+        /*
+         * Marked last by the latest mark (a refresh, while reported), which
+         * also wrote the row last (the database's clock is the workers').
+         */
+        const marks: Array<SimulatedOfflineMark> =
+          run.simulator.offlineMarks.filter((mark: SimulatedOfflineMark) => {
+            return mark.markedNodes.includes("pve3");
+          });
+        expect(marks.length).toBeGreaterThan(1);
         const row: SimulatedNodeRow | null = run.simulator.nodeRow("pve3");
         expect(row).toEqual({
           lastSeenAt: new Date(lastOwnPush.pushTimeMs),
+          isUp: false,
           isNativePush: true,
+          notReportingMarkedAt: new Date(marks[marks.length - 1]!.atMs),
+          updatedAt: new Date(marks[marks.length - 1]!.atMs),
         });
       });
 
@@ -2861,6 +3539,2138 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
 
     test("the verdicts equal the oracle on every evaluation", () => {
       expectMatchesOracle(run);
+    });
+  });
+
+  /*
+   * ------------------------------------------------------------------
+   * Report continuation: a node already Offline keeps being reported
+   * while no node is established.
+   * ------------------------------------------------------------------
+   *
+   * The established gate holds back a node's FIRST report until some
+   * node has pushed unbroken for 2 minutes. It used to hold back every
+   * report: after anything that restarts every live node's streak at
+   * once — the lone survivor's own gap, a OneUptime outage (Redis keeping
+   * its keys or not), OneUptime processing the survivor in bursts — the
+   * live nodes' pushes of those 2 minutes were stored with no report,
+   * their minutes read 100 %, and Quorum at Risk fell to "no criteria
+   * met" with the cluster half down all along: MonitorResource
+   * auto-resolved its alert and incident, to page again minutes later.
+   *
+   * Each scenario asserts VERDICT CONTINUITY from the first firing to the
+   * end — on every evaluation Quorum at Risk matches its offline criteria
+   * and Node Offline keeps the dead nodes' series firing — and, replayed
+   * without the continuation, shows the break it closes.
+   *
+   * The continuation reports only nodes MARKED within the monitor window
+   * of the moment the roster was read (see "the mark near the window's
+   * edge" below): the row's notReportingMarkedAt, which the mark writes at
+   * most once a minute while the node stays reported, on the worker's
+   * clock. The continuing reports mark it themselves, so it stays fresh
+   * however long no node is established — a lone survivor processed in
+   * bursts for 10 minutes included — and it lives in Postgres, so an
+   * outage that loses Redis loses none of it. A gap only has to be short
+   * enough that the last mark before it is still within the window when
+   * the first push after it reads the roster.
+   */
+  describe("2 nodes, pve2 dead, then the lone survivor pve1 is gone for 90 s", () => {
+    const GONE_FROM_MS: number = DEATH_MS + 12 * MINUTE_MS;
+    const GONE_TO_MS: number = GONE_FROM_MS + 90_000;
+    const DEAD_IDS: Array<string> = ["node/pve2"];
+    let run: ScenarioRun;
+    let replay: Map<NodeStatusPushRecord, ExpectedReport>;
+    // pve1's first push after its gap.
+    let back: NodeStatusPushRecord;
+    // From the first evaluation Quorum at Risk fired on, to the end.
+    let through: Array<Tick>;
+
+    beforeAll(async () => {
+      run = await runScenario({
+        seed: 211,
+        nodeCount: 2,
+        durationMinutes: 45,
+        downRanges: {
+          pve1: [{ fromMs: GONE_FROM_MS, toMs: GONE_TO_MS }],
+          pve2: [{ fromMs: DEATH_MS, toMs: NEVER_MS }],
+        },
+      });
+      replay = replayReports(run);
+      const firstBack: NodeStatusPushRecord | undefined = run.simulator
+        .ownPushes("pve1")
+        .find((push: NodeStatusPushRecord) => {
+          return push.pushTimeMs > GONE_FROM_MS;
+        });
+      if (!firstBack) {
+        throw new Error("pve1 never came back");
+      }
+      back = firstBack;
+      const first: Tick | undefined = firstTick(run, (tick: Tick) => {
+        return tick.quorum.fires;
+      });
+      if (!first) {
+        throw new Error("Quorum at Risk never fired");
+      }
+      through = ticksFrom(run, first.atMs);
+    });
+
+    test("pve1 was gone 90 s: its streak restarted, and no node was established for the 2 minutes after", () => {
+      const before: NodeStatusPushRecord = lastOwnPushBefore(
+        run,
+        "pve1",
+        GONE_FROM_MS,
+      );
+      expect(back.receiveMs - before.receiveMs).toBeGreaterThan(
+        PROXMOX_NODE_STREAK_GAP_MS,
+      );
+      expect(back.receiveMs - before.receiveMs).toBeLessThan(
+        PROXMOX_NODE_SILENCE_MS,
+      );
+      expect(replayedReportOf(replay, back).reporterStreakMs).toBe(0);
+
+      const warmUp: Array<NodeStatusPushRecord> = run.simulator
+        .ownPushes("pve1")
+        .filter((push: NodeStatusPushRecord) => {
+          return (
+            push.receiveMs >= back.receiveMs &&
+            !replayedReportOf(replay, push).established
+          );
+        });
+      expect(warmUp.length).toBeGreaterThan(8);
+      for (const push of warmUp) {
+        expect(push.receiveMs).toBeLessThan(
+          back.receiveMs + PROXMOX_NODE_SILENCE_MS + 1,
+        );
+      }
+    });
+
+    test("pve1 reports pve2 — Offline since its first report — on every push back, warming up or not, with L = 1", () => {
+      const firstMark: SimulatedOfflineMark | undefined =
+        run.simulator.offlineMarks.find((mark: SimulatedOfflineMark) => {
+          return mark.markedNodes.includes("pve2");
+        });
+      expect(firstMark).toBeDefined();
+      expect(firstMark!.atMs).toBeLessThan(GONE_FROM_MS);
+      expect(run.simulator.nodeRow("pve2")?.isUp).toBe(false);
+
+      const afterGap: Array<NodeStatusPushRecord> = run.simulator
+        .ownPushes("pve1")
+        .filter((push: NodeStatusPushRecord) => {
+          return push.receiveMs >= back.receiveMs;
+        });
+      expect(afterGap.length).toBeGreaterThan(50);
+      for (const push of afterGap) {
+        expect(push.silentNodes).toEqual(["pve2"]);
+        expect(push.reporterCount).toBe(1);
+      }
+    });
+
+    test("VERDICT CONTINUITY: Quorum at Risk matches and Node Offline fires for node/pve2 on every evaluation from the first firing to the end, the gap included", () => {
+      expect(through[0]!.atMs).toBeLessThanOrEqual(DEATH_MS + 9 * MINUTE_MS);
+      expect(through[0]!.atMs).toBeLessThan(GONE_FROM_MS);
+      expect(through[through.length - 1]!.atMs).toBeGreaterThan(
+        GONE_TO_MS + PROXMOX_NODE_SILENCE_MS + WINDOW_MS,
+      );
+
+      expect(
+        continuityBreaks({ verdicts: verdictsOf(through), deadIds: DEAD_IDS }),
+      ).toEqual([]);
+      for (const tick of through) {
+        expect(tick.nodeOffline.offlineIds).toEqual(DEAD_IDS);
+        for (const point of tick.quorum.formulaPoints) {
+          expect(point.value).toBe(50);
+        }
+      }
+    });
+
+    test("without the continuation, pve1's first 2 minutes back would read 100 % and Quorum at Risk would stop matching", () => {
+      const wouldBreak: Array<Verdict> = oracleVerdicts(
+        run,
+        through,
+        EVERY_REPORT_WAITS_FOR_ESTABLISHED,
+      ).filter((verdict: Verdict) => {
+        return !verdict.quorumFires;
+      });
+      expect(wouldBreak.length).toBeGreaterThan(3);
+      for (const verdict of wouldBreak) {
+        expect(verdict.atMs).toBeGreaterThan(back.receiveMs);
+        expect(verdict.atMs).toBeLessThan(
+          back.receiveMs + PROXMOX_NODE_SILENCE_MS + WINDOW_MS + MINUTE_MS,
+        );
+      }
+      expect(
+        wouldBreak.some((verdict: Verdict) => {
+          return verdict.quorumPoints.some((point: FormulaPoint) => {
+            return point.value === 100;
+          });
+        }),
+      ).toBe(true);
+    });
+
+    test("the verdicts equal the oracle on every evaluation", () => {
+      expectMatchesOracle(run);
+    });
+  });
+
+  /*
+   * The same through a short OneUptime outage. Every survivor's streak
+   * restarts — its key outlives a 90 s gap but its streak does not, or
+   * Redis loses every key with the outage (a failover, a restart), however
+   * short — so no node is established for the 2 minutes after. pve3's and
+   * pve4's marks are in Postgres: they outlive both.
+   */
+  const SHORT_OUTAGE_CASES: Array<{
+    seed: number;
+    outageMs: number;
+    keepsLiveness: boolean;
+  }> = [
+    { seed: 223, outageMs: 90_000, keepsLiveness: true },
+    { seed: 251, outageMs: 30_000, keepsLiveness: false },
+    { seed: 257, outageMs: 90_000, keepsLiveness: false },
+  ];
+
+  for (const outageCase of SHORT_OUTAGE_CASES) {
+    const redisFate: string = outageCase.keepsLiveness
+      ? "Redis rides out"
+      : "loses Redis";
+    const outageSeconds: number = outageCase.outageMs / 1000;
+
+    describe(`4 nodes, pve3 and pve4 dead (L = D = 2), then a ${outageSeconds} s OneUptime outage that ${redisFate}`, () => {
+      const OUTAGE: SimulatedIngestOutage = {
+        fromMs: DEATH_MS + 12 * MINUTE_MS,
+        toMs: DEATH_MS + 12 * MINUTE_MS + outageCase.outageMs,
+        keepsLiveness: outageCase.keepsLiveness,
+      };
+      const SURVIVORS: Array<string> = ["pve1", "pve2"];
+      const DEAD_IDS: Array<string> = ["node/pve3", "node/pve4"];
+      let run: ScenarioRun;
+      let replay: Map<NodeStatusPushRecord, ExpectedReport>;
+      // The first node-status push OneUptime processed after the outage.
+      let firstBack: NodeStatusPushRecord;
+      let through: Array<Tick>;
+
+      beforeAll(async () => {
+        run = await runScenario({
+          seed: outageCase.seed,
+          nodeCount: 4,
+          durationMinutes: 45,
+          downRanges: {
+            pve3: [{ fromMs: DEATH_MS, toMs: NEVER_MS }],
+            pve4: [{ fromMs: DEATH_MS, toMs: NEVER_MS }],
+          },
+          outage: OUTAGE,
+        });
+        replay = replayReports(run);
+        const back: NodeStatusPushRecord | undefined =
+          run.simulator.nodeStatusPushes.find((push: NodeStatusPushRecord) => {
+            return push.receiveMs >= OUTAGE.toMs;
+          });
+        if (!back) {
+          throw new Error("nothing was processed after the outage");
+        }
+        firstBack = back;
+        const first: Tick | undefined = firstTick(run, (tick: Tick) => {
+          return tick.quorum.fires;
+        });
+        if (!first) {
+          throw new Error("Quorum at Risk never fired");
+        }
+        through = ticksFrom(run, first.atMs);
+      });
+
+      test(`nothing was processed for ${outageSeconds} s, ${outageCase.keepsLiveness ? "Redis kept its keys" : "Redis lost every key"}, and each survivor's streak restarted — no node established for 2 minutes after`, () => {
+        expect(run.simulator.livenessLostAtMs).toEqual(
+          outageCase.keepsLiveness ? [] : [OUTAGE.fromMs],
+        );
+        expect(
+          run.simulator.nodeStatusPushes.filter(
+            (push: NodeStatusPushRecord) => {
+              return (
+                push.receiveMs >= OUTAGE.fromMs && push.receiveMs < OUTAGE.toMs
+              );
+            },
+          ),
+        ).toEqual([]);
+
+        for (const name of SURVIVORS) {
+          const before: NodeStatusPushRecord = lastOwnPushBefore(
+            run,
+            name,
+            OUTAGE.fromMs,
+          );
+          const resumed: NodeStatusPushRecord = run.simulator
+            .ownPushes(name)
+            .find((push: NodeStatusPushRecord) => {
+              return push.receiveMs >= OUTAGE.toMs;
+            })!;
+          // Never silent to each other: back within the silence window.
+          expect(resumed.receiveMs - before.receiveMs).toBeLessThan(
+            PROXMOX_NODE_SILENCE_MS,
+          );
+          if (outageCase.keepsLiveness) {
+            // Its key outlived the gap; its streak did not.
+            expect(resumed.receiveMs - before.receiveMs).toBeGreaterThan(
+              PROXMOX_NODE_STREAK_GAP_MS,
+            );
+          }
+          expect(replayedReportOf(replay, resumed).reporterStreakMs).toBe(0);
+        }
+
+        const warmUp: Array<NodeStatusPushRecord> =
+          run.simulator.nodeStatusPushes.filter(
+            (push: NodeStatusPushRecord) => {
+              return (
+                push.receiveMs >= OUTAGE.toMs &&
+                !replayedReportOf(replay, push).established
+              );
+            },
+          );
+        expect(warmUp.length).toBeGreaterThan(15);
+        expect(warmUp[0]).toBe(firstBack);
+      });
+
+      /*
+       * The continuation's gate through the warm-up: the roster has pve3
+       * and pve4 Offline, marked in Postgres before the outage — Redis
+       * kept or lost — and then again by the warm-up's own reports.
+       */
+      test("the warm-up reads pve3 and pve4 Offline and marked within the window: first the marks from before the outage, then its own", () => {
+        const warmUp: Array<NodeStatusPushRecord> =
+          run.simulator.nodeStatusPushes.filter(
+            (push: NodeStatusPushRecord) => {
+              return (
+                push.receiveMs >= OUTAGE.toMs &&
+                !replayedReportOf(replay, push).established
+              );
+            },
+          );
+        for (const push of warmUp) {
+          expect(
+            push.offlineRosterRows.map((row: RosterOfflineRow) => {
+              return row.nodeName;
+            }),
+          ).toEqual(["pve3", "pve4"]);
+          expect(push.receiveMs - push.rosterReadAtMs!).toBeLessThanOrEqual(
+            PROXMOX_ROSTER_CACHE_TTL_MS,
+          );
+          for (const row of push.offlineRosterRows) {
+            expect(push.rosterReadAtMs! - row.markedAtMs!).toBeLessThanOrEqual(
+              PROXMOX_MONITOR_WINDOW_MS,
+            );
+          }
+        }
+        expect(firstBack.rosterReadAtMs).toBe(firstBack.receiveMs);
+        for (const row of firstBack.offlineRosterRows) {
+          expect(row.markedAtMs!).toBeLessThan(OUTAGE.fromMs);
+        }
+        expect(
+          run.simulator.offlineMarks.some((mark: SimulatedOfflineMark) => {
+            return (
+              mark.markedNodes.length === 2 &&
+              mark.atMs >= firstBack.receiveMs &&
+              mark.atMs <= warmUp[warmUp.length - 1]!.receiveMs
+            );
+          }),
+        ).toBe(true);
+      });
+
+      test("every survivor push back reports pve3 and pve4 with L = 2 — D ÷ L = 1 — through the 2 minutes without an established node", () => {
+        const afterOutage: Array<NodeStatusPushRecord> =
+          run.simulator.nodeStatusPushes.filter(
+            (push: NodeStatusPushRecord) => {
+              return push.receiveMs >= OUTAGE.toMs;
+            },
+          );
+        expect(afterOutage.length).toBeGreaterThan(100);
+        for (const push of afterOutage) {
+          expect(SURVIVORS).toContain(push.nodeName);
+          expect(push.silentNodes).toEqual(["pve3", "pve4"]);
+          expect(push.reporterCount).toBe(2);
+          expect(reportInfoWeight(push)).toBe(1);
+        }
+      });
+
+      test("VERDICT CONTINUITY: Quorum at Risk matches and Node Offline fires for node/pve3 and node/pve4 on every evaluation from the first firing to the end, the outage included", () => {
+        expect(through[0]!.atMs).toBeLessThanOrEqual(DEATH_MS + 9 * MINUTE_MS);
+        expect(through[0]!.atMs).toBeLessThan(OUTAGE.fromMs);
+        expect(through[through.length - 1]!.atMs).toBeGreaterThan(
+          OUTAGE.toMs + PROXMOX_NODE_SILENCE_MS + WINDOW_MS,
+        );
+
+        expect(
+          continuityBreaks({
+            verdicts: verdictsOf(through),
+            deadIds: DEAD_IDS,
+          }),
+        ).toEqual([]);
+        for (const tick of through) {
+          expect(tick.nodeOffline.offlineIds).toEqual(DEAD_IDS);
+          expect(tick.nodeOffline.healthyIds).toEqual([
+            "node/pve1",
+            "node/pve2",
+          ]);
+          for (const point of tick.quorum.formulaPoints) {
+            expect(point.value).toBe(50);
+          }
+        }
+      });
+
+      test("without the continuation, the survivors' first 2 minutes back would read 100 % and Quorum at Risk would stop matching", () => {
+        const wouldBreak: Array<Verdict> = oracleVerdicts(
+          run,
+          through,
+          EVERY_REPORT_WAITS_FOR_ESTABLISHED,
+        ).filter((verdict: Verdict) => {
+          return !verdict.quorumFires;
+        });
+        expect(wouldBreak.length).toBeGreaterThan(3);
+        for (const verdict of wouldBreak) {
+          expect(verdict.atMs).toBeGreaterThan(firstBack.receiveMs);
+          expect(verdict.atMs).toBeLessThan(
+            firstBack.receiveMs +
+              PROXMOX_NODE_SILENCE_MS +
+              WINDOW_MS +
+              MINUTE_MS,
+          );
+        }
+        expect(
+          wouldBreak.some((verdict: Verdict) => {
+            return verdict.quorumPoints.some((point: FormulaPoint) => {
+              return point.value === 100;
+            });
+          }),
+        ).toBe(true);
+      });
+
+      test("the verdicts equal the oracle on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
+    });
+  }
+
+  /*
+   * OneUptime falls behind on the lone survivor: for 10 minutes pve1's
+   * pushes are processed in bursts 50–70 s apart. A gap over a minute
+   * restarts its streak, so it is seldom established — for minutes on end
+   * no node is. Its reports carry on all the same: pve2 is Offline, and
+   * the first report of a burst marks it again whenever the last mark is
+   * over a minute old, so the mark the continuation reads is never more
+   * than two bursts old. (Gated instead on whether the cluster had been
+   * established within the window, the reports stopped mid-stall and
+   * again after it — Quorum at Risk fell to "no criteria met" on 21
+   * evaluations of this draw, with half the cluster down all along.)
+   */
+  describe("2 nodes, pve2 dead, the lone survivor pve1's pushes processed every 50–70 s for 10 minutes", () => {
+    const STALL_FROM_MS: number = DEATH_MS + 10 * MINUTE_MS;
+    const STALL_TO_MS: number = STALL_FROM_MS + 10 * MINUTE_MS;
+    const MAX_BURST_INTERVAL_MS: number = 70_000;
+    const DEAD_IDS: Array<string> = ["node/pve2"];
+    let run: ScenarioRun;
+    let replay: Map<NodeStatusPushRecord, ExpectedReport>;
+    // pve1's burst times, oldest first.
+    let bursts: Array<number>;
+    let through: Array<Tick>;
+
+    beforeAll(async () => {
+      run = await runScenario({
+        seed: 227,
+        nodeCount: 2,
+        durationMinutes: 50,
+        downRanges: { pve2: [{ fromMs: DEATH_MS, toMs: NEVER_MS }] },
+        processingBursts: {
+          pve1: {
+            fromMs: STALL_FROM_MS,
+            toMs: STALL_TO_MS,
+            minIntervalMs: 50_000,
+            maxIntervalMs: MAX_BURST_INTERVAL_MS,
+          },
+        },
+      });
+      replay = replayReports(run);
+
+      // A burst processes several of pve1's pushes at one instant.
+      const pushesAt: Map<number, number> = new Map();
+      for (const push of run.simulator.ownPushes("pve1")) {
+        pushesAt.set(push.receiveMs, (pushesAt.get(push.receiveMs) || 0) + 1);
+      }
+      bursts = Array.from(pushesAt.entries())
+        .filter(([, count]: [number, number]) => {
+          return count > 1;
+        })
+        .map(([receiveMs]: [number, number]) => {
+          return receiveMs;
+        })
+        .sort((a: number, b: number) => {
+          return a - b;
+        });
+
+      const first: Tick | undefined = firstTick(run, (tick: Tick) => {
+        return tick.quorum.fires;
+      });
+      if (!first) {
+        throw new Error("Quorum at Risk never fired");
+      }
+      through = ticksFrom(run, first.atMs);
+    });
+
+    test("pve1's pushes really were processed in bursts 50–70 s apart, some too far apart to keep its streak", () => {
+      expect(bursts.length).toBeGreaterThanOrEqual(9);
+      expect(bursts[0]!).toBeGreaterThanOrEqual(STALL_FROM_MS + 50_000);
+      expect(bursts[bursts.length - 1]!).toBeGreaterThanOrEqual(STALL_TO_MS);
+
+      const gaps: Array<number> = bursts
+        .slice(1)
+        .map((atMs: number, index: number) => {
+          return atMs - bursts[index]!;
+        });
+      for (const gapMs of gaps) {
+        expect(gapMs).toBeGreaterThanOrEqual(50_000);
+        expect(gapMs).toBeLessThanOrEqual(70_000);
+      }
+      expect(
+        gaps.filter((gapMs: number) => {
+          return gapMs > PROXMOX_NODE_STREAK_GAP_MS;
+        }).length,
+      ).toBeGreaterThanOrEqual(2);
+
+      for (const push of run.simulator.ownPushes("pve1")) {
+        if (
+          push.receiveMs >= STALL_FROM_MS &&
+          push.receiveMs <= bursts[bursts.length - 1]!
+        ) {
+          expect(bursts).toContain(push.receiveMs);
+        }
+      }
+    });
+
+    test("every pve1 push in the bursts reports pve2 with L = 1 — the many made while no node was established included", () => {
+      const stalled: Array<NodeStatusPushRecord> = run.simulator
+        .ownPushes("pve1")
+        .filter((push: NodeStatusPushRecord) => {
+          return bursts.includes(push.receiveMs);
+        });
+      expect(stalled.length).toBeGreaterThan(50);
+
+      const unestablished: Array<NodeStatusPushRecord> = stalled.filter(
+        (push: NodeStatusPushRecord) => {
+          return !replayedReportOf(replay, push).established;
+        },
+      );
+      expect(unestablished.length).toBeGreaterThan(20);
+
+      for (const push of stalled) {
+        expect(push.silentNodes).toEqual(["pve2"]);
+        expect(push.reporterCount).toBe(1);
+      }
+    });
+
+    /*
+     * What keeps them going: a burst's first report marks pve2 again once
+     * the last mark is over a minute old — every burst or every other one
+     * — and each burst reloads the roster (the last load is 50 s or more
+     * old), so every push in the bursts reads pve2 marked at most two
+     * bursts before, well within the monitor window.
+     */
+    test("through the bursts pve2's mark is written by a burst's own report whenever it is over a minute old, and every push reads it at most two bursts old", () => {
+      const stalled: Array<NodeStatusPushRecord> = run.simulator
+        .ownPushes("pve1")
+        .filter((push: NodeStatusPushRecord) => {
+          return bursts.includes(push.receiveMs);
+        });
+      for (const push of stalled) {
+        expect(push.offlineRosterRows.length).toBe(1);
+        expect(push.offlineRosterRows[0]!.nodeName).toBe("pve2");
+        const markedAtMs: number = push.offlineRosterRows[0]!.markedAtMs!;
+        expect(push.receiveMs - markedAtMs).toBeLessThanOrEqual(
+          2 * MAX_BURST_INTERVAL_MS,
+        );
+      }
+      expect(2 * MAX_BURST_INTERVAL_MS).toBeLessThan(PROXMOX_MONITOR_WINDOW_MS);
+
+      const writes: Array<SimulatedOfflineMark> =
+        run.simulator.offlineMarks.filter((mark: SimulatedOfflineMark) => {
+          return (
+            mark.markedNodes.includes("pve2") &&
+            mark.atMs >= bursts[0]! &&
+            mark.atMs <= bursts[bursts.length - 1]!
+          );
+        });
+      expect(writes.length).toBeGreaterThanOrEqual(4);
+      for (const write of writes) {
+        expect(bursts).toContain(write.atMs);
+      }
+    });
+
+    test("VERDICT CONTINUITY: Quorum at Risk matches and Node Offline fires for node/pve2 on every evaluation from the first firing to the end, the bursts included", () => {
+      expect(through[0]!.atMs).toBeLessThanOrEqual(DEATH_MS + 9 * MINUTE_MS);
+      expect(through[0]!.atMs).toBeLessThan(STALL_FROM_MS);
+      expect(through[through.length - 1]!.atMs).toBeGreaterThan(
+        bursts[bursts.length - 1]! + WINDOW_MS,
+      );
+
+      expect(
+        continuityBreaks({ verdicts: verdictsOf(through), deadIds: DEAD_IDS }),
+      ).toEqual([]);
+      for (const tick of through) {
+        expect(tick.nodeOffline.offlineIds).toEqual(DEAD_IDS);
+        for (const point of tick.quorum.formulaPoints) {
+          expect(point.value).toBe(50);
+        }
+      }
+    });
+
+    test("without the continuation, the pushes of every burst after a streak break would read 100 % and Quorum at Risk would stop matching", () => {
+      const wouldBreak: Array<Verdict> = oracleVerdicts(
+        run,
+        through,
+        EVERY_REPORT_WAITS_FOR_ESTABLISHED,
+      ).filter((verdict: Verdict) => {
+        return !verdict.quorumFires;
+      });
+      expect(wouldBreak.length).toBeGreaterThan(3);
+      // Up to a window after the streak that follows the last burst.
+      for (const verdict of wouldBreak) {
+        expect(verdict.atMs).toBeGreaterThan(STALL_FROM_MS);
+        expect(verdict.atMs).toBeLessThan(
+          bursts[bursts.length - 1]! +
+            PROXMOX_NODE_SILENCE_MS +
+            WINDOW_MS +
+            MINUTE_MS,
+        );
+      }
+      expect(
+        wouldBreak.some((verdict: Verdict) => {
+          return verdict.quorumPoints.some((point: FormulaPoint) => {
+            return point.value === 100;
+          });
+        }),
+      ).toBe(true);
+    });
+
+    test("the verdicts equal the oracle on every evaluation", () => {
+      expectMatchesOracle(run);
+    });
+  });
+
+  /*
+   * The mark near the window's edge. A worker decides on a roster it may
+   * have read up to 30 s before (the roster cache). After a gap in which
+   * nobody reported, the first push back reads the Offline node's mark a
+   * little under 5 minutes old — within the window — so it continues the
+   * report, and its flush rewrites the mark. The pushes of the next 30 s
+   * still read the roster from before that rewrite: the old mark, by their
+   * own time a little OVER 5 minutes old. Were its age taken at each push,
+   * they would drop the report — minutes of Quorum at Risk "no criteria
+   * met" with half the cluster down all along. It is taken when the roster
+   * was read, so every push one cached roster serves decides as the push
+   * that read it did: all of them continue.
+   *
+   * The lone survivor pve1 goes away 35 s after a mark (reporting, but not
+   * marking, until then) and is back when that mark is 285 s old or a
+   * little more — timed from a run of the same draw without the gap, whose
+   * pushes and marks up to the gap are the same. Every assertion held on
+   * 24 other draws.
+   */
+  describe("2 nodes, pve2 dead, then the lone survivor pve1 is gone until pve2's mark is almost 5 minutes old", () => {
+    const AFTER_MS: number = DEATH_MS + 12 * MINUTE_MS;
+    const DEAD_IDS: Array<string> = ["node/pve2"];
+    const BASE: ScenarioInput = {
+      seed: 269,
+      nodeCount: 2,
+      durationMinutes: 50,
+      downRanges: { pve2: [{ fromMs: DEATH_MS, toMs: NEVER_MS }] },
+    };
+    let run: ScenarioRun;
+    let replay: Map<NodeStatusPushRecord, ExpectedReport>;
+    // The last mark of pve2 before the gap.
+    let lastMark: SimulatedOfflineMark;
+    // pve1's first push back, and those that read the roster it loaded.
+    let back: NodeStatusPushRecord;
+    let cached: Array<NodeStatusPushRecord>;
+    let through: Array<Tick>;
+
+    beforeAll(async () => {
+      const probe: ScenarioRun = await runScenario({
+        ...BASE,
+        evaluateFromMs: SIM_START_MS + BASE.durationMinutes * MINUTE_MS,
+      });
+      const mark: SimulatedOfflineMark | undefined =
+        probe.simulator.offlineMarks.find((entry: SimulatedOfflineMark) => {
+          return entry.atMs >= AFTER_MS && entry.markedNodes.includes("pve2");
+        });
+      const firstBack: NodeStatusPushRecord | undefined = mark
+        ? probe.simulator
+            .ownPushes("pve1")
+            .find((push: NodeStatusPushRecord) => {
+              return push.receiveMs - mark.atMs >= 285_000;
+            })
+        : undefined;
+      if (!mark || !firstBack) {
+        throw new Error("the probe run never marked pve2 after 12:32");
+      }
+
+      /*
+       * Gone from 35 s after the mark (its pass received within 1.5 s, so
+       * before the next refresh) until just before the pass that is
+       * received 285 s or more after it.
+       */
+      run = await runScenario({
+        ...BASE,
+        downRanges: {
+          ...BASE.downRanges,
+          pve1: [
+            { fromMs: mark.atMs + 35_000, toMs: firstBack.receiveMs - 1_500 },
+          ],
+        },
+      });
+      replay = replayReports(run);
+
+      const marks: Array<SimulatedOfflineMark> =
+        run.simulator.offlineMarks.filter((entry: SimulatedOfflineMark) => {
+          return (
+            entry.markedNodes.includes("pve2") &&
+            entry.atMs < mark.atMs + 35_000
+          );
+        });
+      lastMark = marks[marks.length - 1]!;
+      const pushedBack: NodeStatusPushRecord | undefined = run.simulator
+        .ownPushes("pve1")
+        .find((push: NodeStatusPushRecord) => {
+          return push.receiveMs > mark.atMs + 60_000;
+        });
+      if (!pushedBack) {
+        throw new Error("pve1 never came back");
+      }
+      back = pushedBack;
+      cached = run.simulator
+        .ownPushes("pve1")
+        .filter((push: NodeStatusPushRecord) => {
+          return (
+            push.receiveMs > back.receiveMs &&
+            push.receiveMs <= back.receiveMs + PROXMOX_ROSTER_CACHE_TTL_MS
+          );
+        });
+      const first: Tick | undefined = firstTick(run, (tick: Tick) => {
+        return tick.quorum.fires;
+      });
+      if (!first) {
+        throw new Error("Quorum at Risk never fired");
+      }
+      through = ticksFrom(run, first.atMs);
+    });
+
+    test("the setup: pve1 left 35 s after a mark of pve2, and its first push back — its streak restarted — read that mark 270 to 300 s old", () => {
+      expect(lastMark.atMs).toBeGreaterThanOrEqual(AFTER_MS);
+      const before: NodeStatusPushRecord = lastOwnPushBefore(
+        run,
+        "pve1",
+        back.pushTimeMs,
+      );
+      expect(before.receiveMs - lastMark.atMs).toBeLessThan(
+        SILENT_NODE_MARK_REFRESH_MS,
+      );
+      expect(back.receiveMs - before.receiveMs).toBeGreaterThan(
+        PROXMOX_NODE_SILENCE_MS,
+      );
+      expect(replayedReportOf(replay, back).reporterStreakMs).toBe(0);
+      expect(replayedReportOf(replay, back).established).toBe(false);
+
+      // Its own read: the cache had run out in the gap.
+      expect(back.rosterReadAtMs).toBe(back.receiveMs);
+      expect(back.offlineRosterRows).toEqual([
+        { nodeName: "pve2", markedAtMs: lastMark.atMs },
+      ]);
+      const ageMs: number = back.rosterReadAtMs! - lastMark.atMs;
+      expect(ageMs).toBeGreaterThan(
+        PROXMOX_MONITOR_WINDOW_MS - PROXMOX_ROSTER_CACHE_TTL_MS,
+      );
+      expect(ageMs).toBeLessThanOrEqual(PROXMOX_MONITOR_WINDOW_MS);
+    });
+
+    test("the first push back continues the report and its flush rewrites the mark; the pushes of the next 30 s read the roster it read — the old mark, over 5 minutes old by their own time — and continue too", () => {
+      expect(back.silentNodes).toEqual(["pve2"]);
+      expect(back.reporterCount).toBe(1);
+      expect(
+        run.simulator.offlineMarks.find((entry: SimulatedOfflineMark) => {
+          return entry.atMs === back.receiveMs;
+        })?.markedNodes,
+      ).toEqual(["pve2"]);
+
+      expect(cached.length).toBeGreaterThanOrEqual(2);
+      const overTheWindow: Array<NodeStatusPushRecord> = cached.filter(
+        (push: NodeStatusPushRecord) => {
+          return push.receiveMs - lastMark.atMs > PROXMOX_MONITOR_WINDOW_MS;
+        },
+      );
+      expect(overTheWindow.length).toBeGreaterThan(0);
+      for (const push of cached) {
+        expect(replayedReportOf(replay, push).established).toBe(false);
+        // The roster `back` read, the mark's age taken then.
+        expect(push.rosterReadAtMs).toBe(back.receiveMs);
+        expect(push.offlineRosterRows).toEqual([
+          { nodeName: "pve2", markedAtMs: lastMark.atMs },
+        ]);
+        expect(push.rosterReadAtMs! - lastMark.atMs).toBeLessThanOrEqual(
+          PROXMOX_MONITOR_WINDOW_MS,
+        );
+        expect(push.silentNodes).toEqual(["pve2"]);
+        expect(push.reporterCount).toBe(1);
+      }
+
+      // Every push back reports pve2, from the first one on.
+      const afterGap: Array<NodeStatusPushRecord> = run.simulator
+        .ownPushes("pve1")
+        .filter((push: NodeStatusPushRecord) => {
+          return push.receiveMs >= back.receiveMs;
+        });
+      expect(afterGap.length).toBeGreaterThan(50);
+      for (const push of afterGap) {
+        expect(push.silentNodes).toEqual(["pve2"]);
+        expect(push.reporterCount).toBe(1);
+      }
+    });
+
+    test("VERDICT CONTINUITY: Quorum at Risk matches and Node Offline fires for node/pve2 on every evaluation from the first firing to the end, the gap included", () => {
+      expect(through[0]!.atMs).toBeLessThan(lastMark.atMs);
+      expect(through[through.length - 1]!.atMs).toBeGreaterThan(
+        back.receiveMs + PROXMOX_NODE_SILENCE_MS + WINDOW_MS,
+      );
+      expect(
+        continuityBreaks({ verdicts: verdictsOf(through), deadIds: DEAD_IDS }),
+      ).toEqual([]);
+      for (const tick of through) {
+        expect(tick.nodeOffline.offlineIds).toEqual(DEAD_IDS);
+        for (const point of tick.quorum.formulaPoints) {
+          expect(point.value).toBe(50);
+        }
+      }
+    });
+
+    test("with the mark's age taken at each push, the pushes reading the cached roster would have dropped the report and Quorum at Risk would have stopped matching", () => {
+      const bare: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(
+        run,
+        MARK_AGE_AT_PUSH,
+      );
+      expect(replayedReportOf(bare, back).silentNodes).toEqual(["pve2"]);
+      const dropped: Array<NodeStatusPushRecord> = cached.filter(
+        (push: NodeStatusPushRecord) => {
+          return replayedReportOf(bare, push).silentNodes.length === 0;
+        },
+      );
+      expect(dropped.length).toBeGreaterThan(0);
+      for (const push of dropped) {
+        expect(push.receiveMs - lastMark.atMs).toBeGreaterThan(
+          PROXMOX_MONITOR_WINDOW_MS,
+        );
+      }
+
+      const wouldBreak: Array<Verdict> = oracleVerdicts(
+        run,
+        through,
+        MARK_AGE_AT_PUSH,
+      ).filter((verdict: Verdict) => {
+        return !verdict.quorumFires;
+      });
+      expect(wouldBreak.length).toBeGreaterThan(3);
+      for (const verdict of wouldBreak) {
+        expect(verdict.atMs).toBeGreaterThan(back.receiveMs);
+        expect(verdict.atMs).toBeLessThan(
+          back.receiveMs + WINDOW_MS + 2 * MINUTE_MS,
+        );
+        expect(
+          verdict.quorumPoints.some((point: FormulaPoint) => {
+            return point.value > 50;
+          }),
+        ).toBe(true);
+      }
+    });
+
+    test("the verdicts equal the oracle on every evaluation", () => {
+      expectMatchesOracle(run);
+    });
+  });
+
+  /*
+   * The other side of the edge, after a gap of the whole cluster: a
+   * OneUptime outage that begins 5 s after pve3's last mark and lasts
+   * 310 s, so the first push back reads that mark 300 to 330 s old — past
+   * the window by less than the roster cache's 30 s. pve3 came back in the
+   * outage's middle; its first push back is processed a minute after its
+   * siblings'.
+   *
+   * The first push back reads the roster with the mark past the window,
+   * so nothing continues, and every push that cached roster serves decides
+   * the same: the mark's age is the read's. Nobody reports pve3 — up since
+   * the outage's middle — and Node Offline never names it after the outage.
+   *
+   * Taking the age at each push instead, against the window plus the
+   * cache's 30 s (tried before the age was the read's), only moves the
+   * edge: the first push back reads the mark within 330 s and continues —
+   * reporting pve3, a node that is up — and its flush marks pve3 afresh;
+   * the pushes its cached roster serves drop the report once the old mark
+   * passes 330 s at their own time; the next roster read has the fresh
+   * mark, and the report carries on until pve3's own push is in —
+   * reported, unreported, reported again — and Node Offline fires for
+   * node/pve3.
+   *
+   * The outage is timed from a run of the same draw without it, whose
+   * pushes and marks up to the outage are the same. Every assertion held on
+   * 24 other draws.
+   */
+  describe("3 nodes, pve3 Offline comes back during a 310 s OneUptime outage that begins 5 s after its last mark: the first push back reads the mark 300 to 330 s old", () => {
+    const AFTER_MS: number = DEATH_MS + 10 * MINUTE_MS;
+    const OUTAGE_MS: number = 310_000;
+    const BASE: ScenarioInput = {
+      seed: 277,
+      nodeCount: 3,
+      durationMinutes: 45,
+      downRanges: { pve3: [{ fromMs: DEATH_MS, toMs: NEVER_MS }] },
+    };
+    let run: ScenarioRun;
+    let replay: Map<NodeStatusPushRecord, ExpectedReport>;
+    let outage: SimulatedIngestOutage;
+    // pve3's last mark before the outage.
+    let lastMark: SimulatedOfflineMark;
+    /*
+     * The first node-status push processed after the outage, the pushes
+     * that read the roster it loaded, and pve3's own first push back.
+     */
+    let firstBack: NodeStatusPushRecord;
+    let cached: Array<NodeStatusPushRecord>;
+    let pve3Back: NodeStatusPushRecord;
+
+    beforeAll(async () => {
+      const probe: ScenarioRun = await runScenario({
+        ...BASE,
+        evaluateFromMs: SIM_START_MS + BASE.durationMinutes * MINUTE_MS,
+      });
+      const mark: SimulatedOfflineMark | undefined =
+        probe.simulator.offlineMarks.find((entry: SimulatedOfflineMark) => {
+          return entry.atMs >= AFTER_MS && entry.markedNodes.includes("pve3");
+        });
+      if (!mark) {
+        throw new Error("the probe run never marked pve3 after 12:30");
+      }
+
+      const fromMs: number = mark.atMs + 5_000;
+      outage = {
+        fromMs: fromMs,
+        toMs: fromMs + OUTAGE_MS,
+        resumeDelayMsByNode: { pve3: MINUTE_MS },
+      };
+      run = await runScenario({
+        ...BASE,
+        // Up again (true time) from the outage's middle.
+        downRanges: {
+          pve3: [{ fromMs: DEATH_MS, toMs: fromMs + OUTAGE_MS / 2 }],
+        },
+        outage: outage,
+      });
+      replay = replayReports(run);
+
+      const marks: Array<SimulatedOfflineMark> =
+        run.simulator.offlineMarks.filter((entry: SimulatedOfflineMark) => {
+          return (
+            entry.markedNodes.includes("pve3") && entry.atMs < outage.fromMs
+          );
+        });
+      lastMark = marks[marks.length - 1]!;
+      const back: NodeStatusPushRecord | undefined =
+        run.simulator.nodeStatusPushes.find((push: NodeStatusPushRecord) => {
+          return push.receiveMs >= outage.toMs;
+        });
+      const ownBack: NodeStatusPushRecord | undefined = run.simulator
+        .ownPushes("pve3")
+        .find((push: NodeStatusPushRecord) => {
+          return push.receiveMs >= outage.toMs;
+        });
+      if (!back || !ownBack) {
+        throw new Error("nothing was processed after the outage");
+      }
+      firstBack = back;
+      pve3Back = ownBack;
+      cached = run.simulator.nodeStatusPushes.filter(
+        (push: NodeStatusPushRecord) => {
+          return (
+            push.receiveMs > firstBack.receiveMs &&
+            push.receiveMs <= firstBack.receiveMs + PROXMOX_ROSTER_CACHE_TTL_MS
+          );
+        },
+      );
+    });
+
+    test("the setup: the outage began 5 s after pve3's last mark and nothing was processed in it; pve3, up from its middle, is back a minute after its siblings; the first push back — no node established — read pve3's mark 300 to 330 s old", () => {
+      expect(run.simulator.livenessLostAtMs).toEqual([outage.fromMs]);
+      expect(lastMark.atMs).toBe(outage.fromMs - 5_000);
+      expect(
+        run.simulator.nodeStatusPushes.filter((push: NodeStatusPushRecord) => {
+          return (
+            push.receiveMs >= outage.fromMs && push.receiveMs < outage.toMs
+          );
+        }),
+      ).toEqual([]);
+      // Up (true time) from the outage's middle; nothing of it received.
+      expect(
+        run.simulator.ownPushes("pve3").filter((push: NodeStatusPushRecord) => {
+          return (
+            push.pushTimeMs > DEATH_MS + 1_000 && push.receiveMs < outage.toMs
+          );
+        }),
+      ).toEqual([]);
+      expect(["pve1", "pve2"]).toContain(firstBack.nodeName);
+      expect(pve3Back.receiveMs - firstBack.receiveMs).toBeGreaterThan(
+        PROXMOX_ROSTER_CACHE_TTL_MS + 10_000,
+      );
+      expect(run.simulator.nodeRow("pve3")?.isUp).toBe(true);
+
+      expect(replayedReportOf(replay, firstBack).established).toBe(false);
+      // Its own read: the cache had run out in the outage.
+      expect(firstBack.rosterReadAtMs).toBe(firstBack.receiveMs);
+      expect(firstBack.offlineRosterRows).toEqual([
+        { nodeName: "pve3", markedAtMs: lastMark.atMs },
+      ]);
+      const ageMs: number = firstBack.rosterReadAtMs! - lastMark.atMs;
+      expect(ageMs).toBeGreaterThan(PROXMOX_MONITOR_WINDOW_MS);
+      expect(ageMs).toBeLessThanOrEqual(
+        PROXMOX_MONITOR_WINDOW_MS + PROXMOX_ROSTER_CACHE_TTL_MS,
+      );
+    });
+
+    test("nothing continues: the first push back and every push its cached roster serves report nothing, and nobody reports pve3 after the outage — its own push clears its row", () => {
+      expect(firstBack.silentNodes).toEqual([]);
+      expect(cached.length).toBeGreaterThanOrEqual(2);
+      for (const push of cached) {
+        expect(replayedReportOf(replay, push).established).toBe(false);
+        // The roster firstBack read, the mark's age taken then.
+        expect(push.rosterReadAtMs).toBe(firstBack.receiveMs);
+        expect(push.offlineRosterRows).toEqual([
+          { nodeName: "pve3", markedAtMs: lastMark.atMs },
+        ]);
+        expect(push.silentNodes).toEqual([]);
+      }
+
+      for (const report of run.simulator.reportsOf("pve3")) {
+        expect(report.receiveMs).toBeLessThan(outage.fromMs);
+      }
+      expect(
+        run.simulator.nodeStatusPushes.filter((push: NodeStatusPushRecord) => {
+          return push.receiveMs >= outage.toMs && push.silentNodes.length > 0;
+        }),
+      ).toEqual([]);
+      // Nothing marked pve3 again: the row's mark is gone with its own push.
+      for (const entry of run.simulator.offlineMarks) {
+        expect(entry.atMs).toBeLessThan(outage.fromMs);
+      }
+      expect(run.simulator.nodeRow("pve3")?.notReportingMarkedAt).toBeNull();
+    });
+
+    test("after the outage Node Offline never names node/pve3, and Quorum at Risk never fires", () => {
+      expect(
+        ticksFrom(run, outage.toMs)
+          .filter((tick: Tick) => {
+            return tick.nodeOffline.offlineIds.length > 0;
+          })
+          .map((tick: Tick) => {
+            return `${new Date(tick.atMs).toISOString()}: ${tick.nodeOffline.offlineIds.join(",")}`;
+          }),
+      ).toEqual([]);
+      for (const tick of run.ticks) {
+        expect(tick.quorum.fires).toBe(false);
+      }
+    });
+
+    test("with the mark's age taken at each push against the window plus the cache's 30 s, the first push back would have reported pve3 — up — the pushes its cached roster served dropped it, the next roster read carried it on until pve3's own push, and Node Offline would have fired for node/pve3", () => {
+      const slack: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(
+        run,
+        MARK_AGE_AT_PUSH_WITH_CACHE_SLACK,
+      );
+      // Reported…
+      expect(replayedReportOf(slack, firstBack).silentNodes).toEqual(["pve3"]);
+
+      // …unreported, by pushes reading the same cached roster…
+      const dropped: Array<NodeStatusPushRecord> = cached.filter(
+        (push: NodeStatusPushRecord) => {
+          return replayedReportOf(slack, push).silentNodes.length === 0;
+        },
+      );
+      expect(dropped.length).toBeGreaterThan(0);
+      for (const push of dropped) {
+        expect(push.receiveMs - lastMark.atMs).toBeGreaterThan(
+          PROXMOX_MONITOR_WINDOW_MS + PROXMOX_ROSTER_CACHE_TTL_MS,
+        );
+      }
+
+      // …and reported again from the next read on, until pve3's own push.
+      const reportedAgain: Array<NodeStatusPushRecord> =
+        run.simulator.nodeStatusPushes.filter((push: NodeStatusPushRecord) => {
+          return (
+            push.receiveMs > dropped[dropped.length - 1]!.receiveMs &&
+            push.receiveMs < pve3Back.receiveMs
+          );
+        });
+      expect(reportedAgain.length).toBeGreaterThan(0);
+      for (const push of reportedAgain) {
+        expect(replayedReportOf(slack, push).silentNodes).toEqual(["pve3"]);
+      }
+      expect(replayedReportOf(slack, pve3Back).silentNodes).toEqual([]);
+
+      const falseOffline: Array<Verdict> = oracleVerdicts(
+        run,
+        ticksFrom(run, outage.toMs),
+        MARK_AGE_AT_PUSH_WITH_CACHE_SLACK,
+      ).filter((verdict: Verdict) => {
+        return verdict.offlineIds.includes("node/pve3");
+      });
+      expect(falseOffline.length).toBeGreaterThan(0);
+      for (const verdict of falseOffline) {
+        expect(verdict.atMs).toBeGreaterThan(firstBack.receiveMs);
+        expect(verdict.atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
+      }
+    });
+
+    test("the verdicts equal the oracle on every evaluation", () => {
+      expectMatchesOracle(run);
+    });
+  });
+
+  /*
+   * A cluster moved to the native push. The inventory still holds the
+   * rows an earlier collector left: the Proxmox Agent's (isNativePush
+   * false) and one from before the column existed (null), all last seen
+   * Online 30 minutes ago. pve3 and pve4 died in the meantime; the native
+   * push starts at 12:03:30 with pve1 and pve2.
+   *
+   * Nobody may report pve3 or pve4 for 2 minutes — never marked Offline,
+   * they wait for an established node — and the 12:05 cleanup tick falls
+   * in those 2 minutes, its cutoff anchored 15 minutes back, well past
+   * their last sighting. Only a native Node row is kept there: the first
+   * native flush adopts every Node row of the cluster
+   * (adoptNodesAsNativePush), so both survive the tick and are reported
+   * once a node is established. The counterfactual prunes them instead,
+   * and they are never reported at all.
+   */
+  describe("4 nodes moved from an earlier collector; pve3 (agent row) and pve4 (row from before isNativePush) died before the native push began", () => {
+    const NATIVE_FROM_MS: number = SIM_START_MS + 3 * MINUTE_MS + 30_000;
+    // The first cleanup tick with the cluster connected.
+    const WARM_UP_CLEANUP_MS: number = SIM_START_MS + 5 * MINUTE_MS;
+    const EARLIER_SEEN_AT: Date = new Date(SIM_START_MS - 30 * MINUTE_MS);
+
+    function scenario(withoutNativeAdoption: boolean): ScenarioInput {
+      return {
+        seed: 241,
+        nodeCount: 4,
+        durationMinutes: 25,
+        downRanges: {
+          pve1: [{ fromMs: BEFORE_START_MS, toMs: NATIVE_FROM_MS }],
+          pve2: [{ fromMs: BEFORE_START_MS, toMs: NATIVE_FROM_MS }],
+          pve3: [{ fromMs: BEFORE_START_MS, toMs: NEVER_MS }],
+          pve4: [{ fromMs: BEFORE_START_MS, toMs: NEVER_MS }],
+        },
+        /*
+         * Last written by the collector's own last sighting; never reported
+         * as not reporting, so never marked.
+         */
+        initialNodeRows: {
+          pve1: {
+            lastSeenAt: EARLIER_SEEN_AT,
+            isUp: true,
+            isNativePush: false,
+            notReportingMarkedAt: null,
+            updatedAt: EARLIER_SEEN_AT,
+          },
+          pve2: {
+            lastSeenAt: EARLIER_SEEN_AT,
+            isUp: true,
+            isNativePush: false,
+            notReportingMarkedAt: null,
+            updatedAt: EARLIER_SEEN_AT,
+          },
+          pve3: {
+            lastSeenAt: EARLIER_SEEN_AT,
+            isUp: true,
+            isNativePush: false,
+            notReportingMarkedAt: null,
+            updatedAt: EARLIER_SEEN_AT,
+          },
+          pve4: {
+            lastSeenAt: EARLIER_SEEN_AT,
+            isUp: true,
+            isNativePush: null,
+            notReportingMarkedAt: null,
+            updatedAt: EARLIER_SEEN_AT,
+          },
+        },
+        withoutNativeAdoption: withoutNativeAdoption,
+      };
+    }
+
+    function warmUpCleanup(run: ScenarioRun): SimulatedCleanupRun {
+      const cleanup: SimulatedCleanupRun | undefined =
+        run.simulator.cleanupRuns.find((entry: SimulatedCleanupRun) => {
+          return entry.atMs === WARM_UP_CLEANUP_MS;
+        });
+      if (!cleanup) {
+        throw new Error("the cleanup cron never ran at 12:05");
+      }
+      return cleanup;
+    }
+
+    describe("the first native flush adopts every Node row", () => {
+      let run: ScenarioRun;
+
+      beforeAll(async () => {
+        run = await runScenario(scenario(false));
+      });
+
+      test("the first request processed adopts the rows no native push wrote — once, the fence holding the rest off", () => {
+        const firstMs: number = run.simulator.nodeStatusPushes[0]!.receiveMs;
+        expect(firstMs).toBeGreaterThanOrEqual(NATIVE_FROM_MS);
+
+        expect(run.simulator.adoptions.length).toBeGreaterThan(0);
+        const first: SimulatedAdoption = run.simulator.adoptions[0]!;
+        expect(first.atMs).toBeLessThanOrEqual(firstMs);
+        expect(first.atMs).toBeGreaterThanOrEqual(NATIVE_FROM_MS);
+        expect(first.adoptedNodes).toEqual(
+          expect.arrayContaining(["pve3", "pve4"]),
+        );
+        // Once per 10 minutes, and nothing left to adopt after.
+        for (const later of run.simulator.adoptions.slice(1)) {
+          expect(later.atMs - first.atMs).toBeGreaterThanOrEqual(
+            10 * MINUTE_MS,
+          );
+          expect(later.adoptedNodes).toEqual([]);
+        }
+      });
+
+      test("the 12:05 tick, in the warm-up, finds pve3's and pve4's rows stale and keeps them", () => {
+        const cleanup: SimulatedCleanupRun = warmUpCleanup(run);
+        expect(cleanup.connected).toBe(true);
+        expect(cleanup.cutoffMs!).toBeGreaterThan(EARLIER_SEEN_AT.getTime());
+        expect(cleanup.keptNodes).toEqual(["pve3", "pve4"]);
+        expect(cleanup.prunedNodes).toEqual([]);
+        // Nobody could report them yet: never Offline, nobody established.
+        expect(
+          reportingPushes(run).filter((push: NodeStatusPushRecord) => {
+            return push.receiveMs <= cleanup.atMs;
+          }),
+        ).toEqual([]);
+        for (const entry of run.simulator.cleanupRuns) {
+          expect(entry.prunedNodes).toEqual([]);
+        }
+      });
+
+      test("once a node is established, both survivors report pve3 and pve4 (L = D = 2); pve1 and pve2 — silent in the inventory until their first push, but never Offline — are never reported", () => {
+        const reports: Array<NodeStatusPushRecord> = reportingPushes(run);
+        expect(reports.length).toBeGreaterThan(100);
+        expect(reports[0]!.receiveMs).toBeGreaterThanOrEqual(
+          run.simulator.nodeStatusPushes[0]!.receiveMs +
+            PROXMOX_NODE_SILENCE_MS,
+        );
+        for (const report of reports) {
+          expect(report.silentNodes).toEqual(["pve3", "pve4"]);
+          expect(report.reporterCount).toBe(2);
+        }
+        expect(run.simulator.reportsOf("pve1")).toEqual([]);
+        expect(run.simulator.reportsOf("pve2")).toEqual([]);
+
+        // Both reported together: every mark writes both rows at once.
+        const marks: Array<SimulatedOfflineMark> =
+          run.simulator.offlineMarks.filter((mark: SimulatedOfflineMark) => {
+            return mark.markedNodes.length > 0;
+          });
+        expect(marks.length).toBeGreaterThan(1);
+        for (const mark of marks) {
+          expect(mark.markedNodes).toEqual(["pve3", "pve4"]);
+        }
+        /*
+         * Marked last by the latest mark, on the worker's clock; that write
+         * is also the row's last (the database's clock is the workers').
+         */
+        for (const name of ["pve3", "pve4"]) {
+          expect(run.simulator.nodeRow(name)).toEqual({
+            lastSeenAt: EARLIER_SEEN_AT,
+            isUp: false,
+            isNativePush: true,
+            notReportingMarkedAt: new Date(marks[marks.length - 1]!.atMs),
+            updatedAt: new Date(marks[marks.length - 1]!.atMs),
+          });
+        }
+      });
+
+      test("Node Offline fires for node/pve3 and node/pve4 from a window after the first report on", () => {
+        const firstReport: NodeStatusPushRecord = reportingPushes(run)[0]!;
+        const last: Tick = run.ticks[run.ticks.length - 1]!;
+        expect(last.atMs).toBeGreaterThan(firstReport.receiveMs + WINDOW_MS);
+        for (const tick of ticksFrom(
+          run,
+          firstReport.receiveMs + WINDOW_MS + MINUTE_MS,
+        )) {
+          expect(tick.nodeOffline.offlineIds).toEqual([
+            "node/pve3",
+            "node/pve4",
+          ]);
+        }
+      });
+
+      test("the verdicts equal the oracle on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
+    });
+
+    describe("counterfactual: without the adoption", () => {
+      let run: ScenarioRun;
+
+      beforeAll(async () => {
+        run = await runScenario(scenario(true));
+      });
+
+      test("the 12:05 tick prunes pve3's and pve4's rows before anyone could report them", () => {
+        expect(run.simulator.adoptions).toEqual([]);
+        const cleanup: SimulatedCleanupRun = warmUpCleanup(run);
+        expect(cleanup.prunedNodes).toEqual(["pve3", "pve4"]);
+        expect(run.simulator.nodeRow("pve3")).toBeNull();
+        expect(run.simulator.nodeRow("pve4")).toBeNull();
+      });
+
+      test("pve3 and pve4 are never reported and Node Offline never fires", () => {
+        expect(reportingPushes(run)).toEqual([]);
+        for (const tick of run.ticks) {
+          expect(tick.nodeOffline.fires).toBe(false);
+        }
+      });
+
+      test("the verdicts equal the oracle (which replays the prune) on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
+    });
+  });
+
+  /*
+   * Nothing but a report is a mark. A cluster moved from the Proxmox Agent
+   * to the native push; the agent's last scrape, 10 minutes before the
+   * native push began, saw pve3 offline, so its row is Offline, written
+   * then — its updatedAt that write's, on the database's clock — and never
+   * marked: only markNodesNotReporting writes notReportingMarkedAt. pve3 is
+   * back by the time the native push begins, but its first native push is
+   * processed a minute after its siblings'.
+   *
+   * The first native flush adopts all three rows into the native keep —
+   * isNativePush only. Until pve3's own push is in, every push reads pve3
+   * Offline and never marked, so nothing continues; no node is established
+   * yet, so nobody reports pve3; and its own first push turns it Online.
+   * The row's updatedAt passes for nothing, however it reads:
+   *   - with the database's clock 10 minutes ahead of the workers', the
+   *     agent's write of pve3's row reads as made just as the native push
+   *     begins — and still nobody reports pve3;
+   *   - with the mark kept in updatedAt instead (the design before
+   *     notReportingMarkedAt), that same skewed write reads as a mark made
+   *     just now: pve1 and pve2 report pve3 until its own push is in, and
+   *     Node Offline fires for a node that is up;
+   *   - as it did, with no skew at all, with the mark in updatedAt and the
+   *     adoption stamping updatedAt, as they first shipped.
+   * All of it held on 24 other draws.
+   */
+  describe("3 nodes moved from the Proxmox Agent, whose last scrape 10 minutes before saw pve3 offline; pve3 is back, its first native push a minute behind its siblings'", () => {
+    const NATIVE_FROM_MS: number = SIM_START_MS + 3 * MINUTE_MS + 30_000;
+    const PVE3_FROM_MS: number = NATIVE_FROM_MS + MINUTE_MS;
+    const AGENT_LAST_AT: Date = new Date(NATIVE_FROM_MS - 10 * MINUTE_MS);
+    const CLOCK_AHEAD_MS: number = 10 * MINUTE_MS;
+
+    interface AgentMoveVariant {
+      // The database's clock minus the workers'.
+      databaseClockOffsetMs: number;
+      // Counterfactuals, never production (see the simulator).
+      markInUpdatedAt: boolean;
+      adoptionStampsUpdatedAt: boolean;
+    }
+
+    /*
+     * The agent's row, as its last scrape's bulkUpsert wrote it: updatedAt
+     * the database's now(), notReportingMarkedAt never written.
+     */
+    function agentRow(
+      isUp: boolean,
+      databaseClockOffsetMs: number,
+    ): SimulatedNodeRow {
+      return {
+        lastSeenAt: AGENT_LAST_AT,
+        isUp: isUp,
+        isNativePush: false,
+        notReportingMarkedAt: null,
+        updatedAt: new Date(AGENT_LAST_AT.getTime() + databaseClockOffsetMs),
+      };
+    }
+
+    function scenario(variant: AgentMoveVariant): ScenarioInput {
+      return {
+        seed: 263,
+        nodeCount: 3,
+        durationMinutes: 20,
+        downRanges: {
+          pve1: [{ fromMs: BEFORE_START_MS, toMs: NATIVE_FROM_MS }],
+          pve2: [{ fromMs: BEFORE_START_MS, toMs: NATIVE_FROM_MS }],
+          pve3: [{ fromMs: BEFORE_START_MS, toMs: PVE3_FROM_MS }],
+        },
+        initialNodeRows: {
+          pve1: agentRow(true, variant.databaseClockOffsetMs),
+          pve2: agentRow(true, variant.databaseClockOffsetMs),
+          pve3: agentRow(false, variant.databaseClockOffsetMs),
+        },
+        databaseClockOffsetMs: variant.databaseClockOffsetMs,
+        markInUpdatedAt: variant.markInUpdatedAt,
+        adoptionStampsUpdatedAt: variant.adoptionStampsUpdatedAt,
+        // From the first native push on (7 s past the half minute).
+        evaluateFromMs: NATIVE_FROM_MS + 7_000,
+      };
+    }
+
+    function firstOwnPush(
+      run: ScenarioRun,
+      name: string,
+    ): NodeStatusPushRecord {
+      const first: NodeStatusPushRecord | undefined =
+        run.simulator.ownPushes(name)[0];
+      if (!first) {
+        throw new Error(`${name} never pushed`);
+      }
+      return first;
+    }
+
+    // Node-status pushes processed before pve3's first own push.
+    function beforePve3(run: ScenarioRun): Array<NodeStatusPushRecord> {
+      const pve3Back: NodeStatusPushRecord = firstOwnPush(run, "pve3");
+      return run.simulator.nodeStatusPushes.filter(
+        (push: NodeStatusPushRecord) => {
+          return push.receiveMs < pve3Back.receiveMs;
+        },
+      );
+    }
+
+    const DESIGN_VARIANTS: Array<{ name: string; variant: AgentMoveVariant }> =
+      [
+        {
+          name: "the database's clock the workers'",
+          variant: {
+            databaseClockOffsetMs: 0,
+            markInUpdatedAt: false,
+            adoptionStampsUpdatedAt: false,
+          },
+        },
+        {
+          name: "the database's clock 10 minutes ahead of the workers'",
+          variant: {
+            databaseClockOffsetMs: CLOCK_AHEAD_MS,
+            markInUpdatedAt: false,
+            adoptionStampsUpdatedAt: false,
+          },
+        },
+      ];
+
+    for (const design of DESIGN_VARIANTS) {
+      describe(`the mark is notReportingMarkedAt, which the agent never wrote — ${design.name}`, () => {
+        const offsetMs: number = design.variant.databaseClockOffsetMs;
+        // The agent's write of pve3's row, as the database's clock stamped it.
+        const agentWriteMs: number = AGENT_LAST_AT.getTime() + offsetMs;
+        let run: ScenarioRun;
+
+        beforeAll(async () => {
+          run = await runScenario(scenario(design.variant));
+        });
+
+        test("the setup: the agent's rows, pve3's Offline, written 10 minutes before on the database's clock and never marked; pve3's first native push processed about a minute after its siblings', and Online from then on", () => {
+          expect(run.simulator.initialNodeRows().get("pve3")).toEqual({
+            lastSeenAt: AGENT_LAST_AT,
+            isUp: false,
+            isNativePush: false,
+            notReportingMarkedAt: null,
+            updatedAt: new Date(agentWriteMs),
+          });
+          const siblingsFirstMs: number = Math.max(
+            firstOwnPush(run, "pve1").receiveMs,
+            firstOwnPush(run, "pve2").receiveMs,
+          );
+          expect(siblingsFirstMs).toBeGreaterThanOrEqual(NATIVE_FROM_MS);
+          const behindMs: number =
+            firstOwnPush(run, "pve3").receiveMs - siblingsFirstMs;
+          expect(behindMs).toBeGreaterThan(EVALUATION_STEP_MS);
+          expect(behindMs).toBeLessThan(MINUTE_MS + 15_000);
+
+          // Its own push cleared the (absent) mark and wrote the row now.
+          const pve3Last: NodeStatusPushRecord =
+            run.simulator.ownPushes("pve3")[
+              run.simulator.ownPushes("pve3").length - 1
+            ]!;
+          const row: SimulatedNodeRow | null = run.simulator.nodeRow("pve3");
+          expect(row?.isUp).toBe(true);
+          expect(row?.notReportingMarkedAt).toBeNull();
+          expect(row!.updatedAt.getTime() - pve3Last.receiveMs).toBe(offsetMs);
+        });
+
+        test("the first native flush adopts pve3's row before its first push, and every push before it reads pve3 Offline and never marked — the agent's write passing for no mark, however recent it reads", () => {
+          const adoption: SimulatedAdoption | undefined =
+            run.simulator.adoptions[0];
+          expect(adoption).toBeDefined();
+          expect(adoption!.atMs).toBeLessThanOrEqual(
+            run.simulator.nodeStatusPushes[0]!.receiveMs,
+          );
+          expect(adoption!.adoptedNodes).toContain("pve3");
+
+          const pushes: Array<NodeStatusPushRecord> = beforePve3(run);
+          expect(pushes.length).toBeGreaterThan(8);
+          for (const push of pushes) {
+            expect(push.offlineRosterRows).toEqual([
+              { nodeName: "pve3", markedAtMs: null },
+            ]);
+            /*
+             * The agent's write, by the workers' clock: 10 minutes old — or,
+             * the database's clock 10 minutes ahead, within the window.
+             */
+            const writeAgeMs: number = push.rosterReadAtMs! - agentWriteMs;
+            if (offsetMs === 0) {
+              expect(writeAgeMs).toBeGreaterThan(PROXMOX_MONITOR_WINDOW_MS);
+            } else {
+              expect(writeAgeMs).toBeLessThanOrEqual(PROXMOX_MONITOR_WINDOW_MS);
+            }
+          }
+        });
+
+        test("nobody reports pve3 — no node is established before its own push is in — and Node Offline never fires for node/pve3", () => {
+          const replay: Map<NodeStatusPushRecord, ExpectedReport> =
+            replayReports(run);
+          for (const push of beforePve3(run)) {
+            expect(replayedReportOf(replay, push).established).toBe(false);
+          }
+          expect(reportingPushes(run)).toEqual([]);
+          expect(run.simulator.offlineMarks).toEqual([]);
+          for (const tick of run.ticks) {
+            expect(tick.nodeOffline.offlineIds).toEqual([]);
+            expect(tick.quorum.fires).toBe(false);
+          }
+        });
+
+        test("the verdicts equal the oracle on every evaluation", () => {
+          expectMatchesOracle(run);
+        });
+      });
+    }
+
+    /*
+     * Not the design — the gap it closes. The roster's mark as the row's
+     * updatedAt: every write of the row passes for one.
+     */
+    const COUNTERFACTUALS: Array<{
+      name: string;
+      variant: AgentMoveVariant;
+      // What pve3's row reads as marked at, before any report marks it.
+      readsAsMarkedAt: (run: ScenarioRun) => number;
+    }> = [
+      {
+        name: "the mark kept in updatedAt, the database's clock 10 minutes ahead of the workers'",
+        variant: {
+          databaseClockOffsetMs: CLOCK_AHEAD_MS,
+          markInUpdatedAt: true,
+          adoptionStampsUpdatedAt: false,
+        },
+        // The agent's own write, on the skewed clock.
+        readsAsMarkedAt: (): number => {
+          return AGENT_LAST_AT.getTime() + CLOCK_AHEAD_MS;
+        },
+      },
+      {
+        name: "the mark kept in updatedAt and the adoption stamping it, as they first shipped",
+        variant: {
+          databaseClockOffsetMs: 0,
+          markInUpdatedAt: true,
+          adoptionStampsUpdatedAt: true,
+        },
+        // The adoption's stamp.
+        readsAsMarkedAt: (run: ScenarioRun): number => {
+          return run.simulator.adoptions[0]!.atMs;
+        },
+      },
+    ];
+
+    for (const counterfactual of COUNTERFACTUALS) {
+      describe(`counterfactual: ${counterfactual.name}`, () => {
+        let run: ScenarioRun;
+
+        beforeAll(async () => {
+          run = await runScenario(scenario(counterfactual.variant));
+        });
+
+        test("pve3's Offline row reads as marked just now: pve1 and pve2 report it, no node established, until its own push is in", () => {
+          const replay: Map<NodeStatusPushRecord, ExpectedReport> =
+            replayReports(run);
+          const pve3Back: NodeStatusPushRecord = firstOwnPush(run, "pve3");
+          const reports: Array<NodeStatusPushRecord> = reportingPushes(run);
+          expect(reports.length).toBeGreaterThan(2);
+          expect(reports[0]!.offlineRosterRows).toEqual([
+            {
+              nodeName: "pve3",
+              markedAtMs: counterfactual.readsAsMarkedAt(run),
+            },
+          ]);
+          for (const report of reports) {
+            expect(["pve1", "pve2"]).toContain(report.nodeName);
+            expect(report.silentNodes).toEqual(["pve3"]);
+            expect(report.reporterCount).toBe(2);
+            expect(report.receiveMs).toBeLessThan(pve3Back.receiveMs);
+            expect(replayedReportOf(replay, report).established).toBe(false);
+            expect(report.offlineRosterRows.length).toBe(1);
+            expect(
+              report.rosterReadAtMs! - report.offlineRosterRows[0]!.markedAtMs!,
+            ).toBeLessThanOrEqual(PROXMOX_MONITOR_WINDOW_MS);
+          }
+        });
+
+        test("Node Offline fires for node/pve3 — a node that is up", () => {
+          const pve3Back: NodeStatusPushRecord = firstOwnPush(run, "pve3");
+          const firing: Array<Tick> = run.ticks.filter((tick: Tick) => {
+            return tick.nodeOffline.offlineIds.includes("node/pve3");
+          });
+          expect(firing.length).toBeGreaterThan(0);
+          for (const tick of firing) {
+            expect(tick.atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
+          }
+        });
+
+        test("the verdicts equal the oracle (which replays the mark in updatedAt) on every evaluation", () => {
+          expectMatchesOracle(run);
+        });
+      });
+    }
+  });
+
+  /*
+   * ------------------------------------------------------------------
+   * After an outage longer than the monitor window, nothing continues.
+   * ------------------------------------------------------------------
+   *
+   * The continuation keeps reporting a node already Offline through a gap
+   * only while it was marked within the monitor window of the roster's
+   * read — its row's notReportingMarkedAt, which the reports refresh while
+   * they go on. Through a longer OneUptime outage nothing reports, so
+   * every mark ages past the window (Redis lost or not: the mark is in
+   * Postgres); the window holds
+   * nothing from before and the incidents have resolved, and every report
+   * waits for an established node again, by when every live node has
+   * pushed.
+   *
+   * Two things went wrong here while the continuation ran through such an
+   * outage, with L = the nodes with a live key:
+   *   - the first node back reported the Offline node with L = 1 — a whole
+   *     node's weight — before its siblings' first pushes were processed,
+   *     and with one Offline node of four the window read 50 %: Quorum at
+   *     Risk fired with 3 of 4 nodes up. L now counts every node a report
+   *     does not name (presumed live until reported), and the gate holds
+   *     the report back — either fix alone prevents it;
+   *   - a node Offline before the outage that came back during it was
+   *     reported by the first nodes back until its own first push was
+   *     processed, and the window held nothing but those reports: Node
+   *     Offline fired for a node that had been up for minutes. Only the
+   *     gate prevents it.
+   * Each scenario runs with Redis lost in the outage and with Redis riding
+   * it out. Their verdicts held on 24 other draws; what the draw decides
+   * is pinned in the setup tests (pve1 back alone for over 30 s: 20 of
+   * those 24) and whether the rule as first shipped would have fired
+   * (an evaluation landing while pve1's pushes are all the window holds:
+   * 22 of 24).
+   */
+  for (const keepsLiveness of [false, true]) {
+    const redisFate: string = keepsLiveness ? "Redis rides out" : "loses Redis";
+
+    describe(`4 nodes, pve4 Offline, then a 10-minute OneUptime outage that ${redisFate}; the survivors back 0, 33 and 66 s apart`, () => {
+      const OUTAGE: SimulatedIngestOutage = {
+        fromMs: DEATH_MS + 10 * MINUTE_MS,
+        toMs: DEATH_MS + 20 * MINUTE_MS,
+        resumeDelayMsByNode: { pve1: 0, pve2: 33_000, pve3: 66_000 },
+        keepsLiveness: keepsLiveness,
+      };
+      let run: ScenarioRun;
+      let replay: Map<NodeStatusPushRecord, ExpectedReport>;
+      let firstBack: NodeStatusPushRecord;
+
+      beforeAll(async () => {
+        run = await runScenario({
+          seed: 233,
+          nodeCount: 4,
+          durationMinutes: 50,
+          downRanges: { pve4: [{ fromMs: DEATH_MS, toMs: NEVER_MS }] },
+          outage: OUTAGE,
+        });
+        replay = replayReports(run);
+        const back: NodeStatusPushRecord | undefined =
+          run.simulator.nodeStatusPushes.find((push: NodeStatusPushRecord) => {
+            return push.receiveMs >= OUTAGE.toMs;
+          });
+        if (!back) {
+          throw new Error("nothing was processed after the outage");
+        }
+        firstBack = back;
+      });
+
+      function firstPushBackOf(name: string): NodeStatusPushRecord {
+        const back: NodeStatusPushRecord | undefined = run.simulator
+          .ownPushes(name)
+          .find((push: NodeStatusPushRecord) => {
+            return push.receiveMs >= OUTAGE.toMs;
+          });
+        if (!back) {
+          throw new Error(`${name} never came back after the outage`);
+        }
+        return back;
+      }
+
+      test("the setup: pve4 Offline before the outage, pve1 back alone for over 30 s", () => {
+        expect(run.simulator.livenessLostAtMs).toEqual(
+          keepsLiveness ? [] : [OUTAGE.fromMs],
+        );
+        const mark: SimulatedOfflineMark | undefined =
+          run.simulator.offlineMarks.find((entry: SimulatedOfflineMark) => {
+            return entry.markedNodes.includes("pve4");
+          });
+        expect(mark).toBeDefined();
+        expect(mark!.atMs).toBeLessThan(OUTAGE.fromMs);
+
+        expect(firstBack.nodeName).toBe("pve1");
+        for (const name of ["pve2", "pve3"]) {
+          expect(
+            firstPushBackOf(name).receiveMs - firstBack.receiveMs,
+          ).toBeGreaterThan(EVALUATION_STEP_MS);
+        }
+        // No live node is ever reported.
+        for (const name of ["pve1", "pve2", "pve3"]) {
+          expect(run.simulator.reportsOf(name)).toEqual([]);
+        }
+      });
+
+      test("pve4's mark had aged past the window when the outage ended: nobody reports pve4 until a node is established after it, and then every report counts L = 3", () => {
+        const after: Array<NodeStatusPushRecord> =
+          run.simulator.nodeStatusPushes.filter(
+            (push: NodeStatusPushRecord) => {
+              return push.receiveMs >= OUTAGE.toMs;
+            },
+          );
+        const firstReport: NodeStatusPushRecord | undefined = after.find(
+          (push: NodeStatusPushRecord) => {
+            return push.silentNodes.length > 0;
+          },
+        );
+        expect(firstReport).toBeDefined();
+        expect(replayedReportOf(replay, firstReport!).established).toBe(true);
+        expect(firstReport!.receiveMs).toBeGreaterThanOrEqual(
+          firstBack.receiveMs + PROXMOX_NODE_SILENCE_MS,
+        );
+
+        const warmUp: Array<NodeStatusPushRecord> = after.filter(
+          (push: NodeStatusPushRecord) => {
+            return !replayedReportOf(replay, push).established;
+          },
+        );
+        expect(warmUp.length).toBeGreaterThan(20);
+        for (const push of warmUp) {
+          /*
+           * Offline all along, last marked before the outage — too long
+           * before the roster's read.
+           */
+          expect(push.offlineRosterRows.length).toBe(1);
+          expect(push.offlineRosterRows[0]!.nodeName).toBe("pve4");
+          const markedAtMs: number = push.offlineRosterRows[0]!.markedAtMs!;
+          expect(markedAtMs).toBeLessThan(OUTAGE.fromMs);
+          expect(push.rosterReadAtMs! - markedAtMs).toBeGreaterThan(
+            PROXMOX_MONITOR_WINDOW_MS,
+          );
+          expect(push.silentNodes).toEqual([]);
+        }
+
+        // By the first report, every survivor had pushed.
+        for (const name of ["pve2", "pve3"]) {
+          expect(firstPushBackOf(name).receiveMs).toBeLessThan(
+            firstReport!.receiveMs,
+          );
+        }
+        for (const push of after) {
+          if (push.silentNodes.length > 0) {
+            expect(push.silentNodes).toEqual(["pve4"]);
+            expect(push.reporterCount).toBe(3);
+          }
+        }
+      });
+
+      test("Node Offline fires for node/pve4 only", () => {
+        for (const tick of run.ticks) {
+          for (const id of tick.nodeOffline.offlineIds) {
+            expect(id).toBe("node/pve4");
+          }
+        }
+      });
+
+      test("the verdicts equal the oracle on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
+
+      test("Quorum at Risk never fires — 3 of 4 nodes are up all along", () => {
+        expect(
+          verdictsOf(run.ticks)
+            .filter((verdict: Verdict) => {
+              return verdict.quorumFires;
+            })
+            .map((verdict: Verdict) => {
+              return `${new Date(verdict.atMs).toISOString()}: ${describeQuorum(verdict)}`;
+            }),
+        ).toEqual([]);
+      });
+
+      test("as the continuation first shipped — ungated, L from live keys — pve1 back alone would have weighed pve4 as a whole node and Quorum at Risk would have fired; either fix alone prevents it", () => {
+        const firedAt: (rules: ReplayRules) => Array<number> = (
+          rules: ReplayRules,
+        ): Array<number> => {
+          return oracleVerdicts(run, run.ticks, rules)
+            .filter((verdict: Verdict) => {
+              return verdict.quorumFires;
+            })
+            .map((verdict: Verdict) => {
+              return verdict.atMs;
+            });
+        };
+
+        const asShipped: Array<number> = firedAt(CONTINUATION_AS_FIRST_SHIPPED);
+        expect(asShipped.length).toBeGreaterThan(0);
+        for (const atMs of asShipped) {
+          // Only while pve1's L = 1 pushes are all the window holds.
+          expect(atMs).toBeGreaterThan(firstBack.receiveMs);
+          expect(atMs).toBeLessThan(
+            firstBack.receiveMs + PROXMOX_NODE_SILENCE_MS,
+          );
+        }
+        const asShippedReplay: Map<NodeStatusPushRecord, ExpectedReport> =
+          replayReports(run, CONTINUATION_AS_FIRST_SHIPPED);
+        expect(replayedReportOf(asShippedReplay, firstBack)).toMatchObject({
+          silentNodes: ["pve4"],
+          reporterCount: 1,
+        });
+
+        expect(firedAt(WITHOUT_WINDOW_GATE)).toEqual([]);
+        expect(firedAt(L_FROM_LIVE_KEYS)).toEqual([]);
+      });
+    });
+
+    describe(`3 nodes, pve3 Offline comes back during a 10-minute OneUptime outage that ${redisFate}; pve3 back 40 s after the others`, () => {
+      const OUTAGE: SimulatedIngestOutage = {
+        fromMs: DEATH_MS + 10 * MINUTE_MS,
+        toMs: DEATH_MS + 20 * MINUTE_MS,
+        resumeDelayMsByNode: { pve1: 0, pve2: 0, pve3: 40_000 },
+        keepsLiveness: keepsLiveness,
+      };
+      let run: ScenarioRun;
+      // The first node-status push processed after the outage, and pve3's.
+      let firstBack: NodeStatusPushRecord;
+      let pve3Back: NodeStatusPushRecord;
+
+      beforeAll(async () => {
+        run = await runScenario({
+          seed: 239,
+          nodeCount: 3,
+          durationMinutes: 50,
+          downRanges: {
+            pve3: [{ fromMs: DEATH_MS, toMs: OUTAGE.fromMs + 3 * MINUTE_MS }],
+          },
+          outage: OUTAGE,
+        });
+        const back: NodeStatusPushRecord | undefined =
+          run.simulator.nodeStatusPushes.find((push: NodeStatusPushRecord) => {
+            return push.receiveMs >= OUTAGE.toMs;
+          });
+        const ownBack: NodeStatusPushRecord | undefined = run.simulator
+          .ownPushes("pve3")
+          .find((push: NodeStatusPushRecord) => {
+            return push.receiveMs >= OUTAGE.toMs;
+          });
+        if (!back || !ownBack) {
+          throw new Error("nothing was processed after the outage");
+        }
+        firstBack = back;
+        pve3Back = ownBack;
+      });
+
+      test("the setup: pve3 Offline before the outage, up from its middle, its first push back processed 40 s after the others'", () => {
+        expect(run.simulator.livenessLostAtMs).toEqual(
+          keepsLiveness ? [] : [OUTAGE.fromMs],
+        );
+        const mark: SimulatedOfflineMark | undefined =
+          run.simulator.offlineMarks.find((entry: SimulatedOfflineMark) => {
+            return entry.markedNodes.includes("pve3");
+          });
+        expect(mark).toBeDefined();
+        expect(mark!.atMs).toBeLessThan(OUTAGE.fromMs);
+
+        // Up (true time) from 3 minutes into the outage; nothing received.
+        expect(
+          run.simulator
+            .ownPushes("pve3")
+            .filter((push: NodeStatusPushRecord) => {
+              return (
+                push.pushTimeMs > DEATH_MS + 1_000 &&
+                push.receiveMs < OUTAGE.toMs
+              );
+            }),
+        ).toEqual([]);
+        expect(pve3Back.receiveMs - firstBack.receiveMs).toBeGreaterThan(
+          EVALUATION_STEP_MS,
+        );
+        // Back for good: Online again at the end.
+        expect(run.simulator.nodeRow("pve3")?.isUp).toBe(true);
+      });
+
+      test("nobody reports pve3 after the outage: its mark had aged past the window, and pve3's own push is in before any node is established", () => {
+        for (const report of run.simulator.reportsOf("pve3")) {
+          expect(report.receiveMs).toBeLessThan(OUTAGE.fromMs);
+        }
+        expect(pve3Back.receiveMs).toBeLessThan(
+          firstBack.receiveMs + PROXMOX_NODE_SILENCE_MS,
+        );
+
+        /*
+         * The first nodes back, before pve3's push: its row still Offline,
+         * last marked before the outage — too long ago — so no report.
+         */
+        const beforePve3: Array<NodeStatusPushRecord> =
+          run.simulator.nodeStatusPushes.filter(
+            (push: NodeStatusPushRecord) => {
+              return (
+                push.receiveMs >= OUTAGE.toMs &&
+                push.receiveMs < pve3Back.receiveMs
+              );
+            },
+          );
+        expect(beforePve3.length).toBeGreaterThan(4);
+        for (const push of beforePve3) {
+          expect(push.offlineRosterRows.length).toBe(1);
+          expect(push.offlineRosterRows[0]!.nodeName).toBe("pve3");
+          const markedAtMs: number = push.offlineRosterRows[0]!.markedAtMs!;
+          expect(markedAtMs).toBeLessThan(OUTAGE.fromMs);
+          expect(push.rosterReadAtMs! - markedAtMs).toBeGreaterThan(
+            PROXMOX_MONITOR_WINDOW_MS,
+          );
+          expect(push.silentNodes).toEqual([]);
+        }
+      });
+
+      test("the verdicts equal the oracle on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
+
+      test("after the outage, Node Offline never fires for node/pve3 — it has been up since the outage's middle", () => {
+        expect(
+          ticksFrom(run, OUTAGE.toMs)
+            .filter((tick: Tick) => {
+              return tick.nodeOffline.offlineIds.includes("node/pve3");
+            })
+            .map((tick: Tick) => {
+              return new Date(tick.atMs).toISOString();
+            }),
+        ).toEqual([]);
+      });
+
+      test("without the window gate, the first nodes back would have reported pve3 until its own push was in, and Node Offline would have fired for it", () => {
+        const after: Array<Tick> = ticksFrom(run, OUTAGE.toMs);
+        const firingFor: (rules: ReplayRules) => Array<number> = (
+          rules: ReplayRules,
+        ): Array<number> => {
+          return oracleVerdicts(run, after, rules)
+            .filter((verdict: Verdict) => {
+              return verdict.offlineIds.includes("node/pve3");
+            })
+            .map((verdict: Verdict) => {
+              return verdict.atMs;
+            });
+        };
+
+        const ungated: Array<number> = firingFor(WITHOUT_WINDOW_GATE);
+        expect(ungated.length).toBeGreaterThan(0);
+        for (const atMs of ungated) {
+          expect(atMs).toBeGreaterThan(firstBack.receiveMs);
+          expect(atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
+        }
+        expect(firingFor(CONTINUATION_AS_FIRST_SHIPPED)).toEqual(ungated);
+        // L plays no part here: the gate alone prevents it.
+        expect(firingFor(L_FROM_LIVE_KEYS)).toEqual([]);
+      });
+    });
+  }
+
+  /*
+   * The mark is judged on the ingest worker's clock, so it is written on
+   * it too (markNodesNotReporting's markedAt, into notReportingMarkedAt).
+   * The database's clock here runs 10 minutes ahead of the workers'.
+   * Written with the database's now(), as it first was, a mark would read
+   * 10 minutes younger than it is: pve3's last mark before a 10-minute
+   * outage would still be within the monitor window after it, and — as in
+   * the scenario above without the gate — the first nodes back would
+   * report pve3, up since the outage's middle, until its own push was in,
+   * and Node Offline would fire for it. Both held on 24 other draws.
+   */
+  describe("3 nodes, pve3 Offline comes back during a 10-minute OneUptime outage, the database's clock 10 minutes ahead of the workers'", () => {
+    const CLOCK_AHEAD_MS: number = 10 * MINUTE_MS;
+    const OUTAGE: SimulatedIngestOutage = {
+      fromMs: DEATH_MS + 10 * MINUTE_MS,
+      toMs: DEATH_MS + 20 * MINUTE_MS,
+      resumeDelayMsByNode: { pve1: 0, pve2: 0, pve3: 40_000 },
+    };
+
+    function scenario(markOnDatabaseClock: boolean): ScenarioInput {
+      return {
+        seed: 271,
+        nodeCount: 3,
+        durationMinutes: 50,
+        downRanges: {
+          pve3: [{ fromMs: DEATH_MS, toMs: OUTAGE.fromMs + 3 * MINUTE_MS }],
+        },
+        outage: OUTAGE,
+        databaseClockOffsetMs: CLOCK_AHEAD_MS,
+        markOnDatabaseClock: markOnDatabaseClock,
+      };
+    }
+
+    function firstPushBack(
+      run: ScenarioRun,
+      name: string | null,
+    ): NodeStatusPushRecord {
+      const back: NodeStatusPushRecord | undefined = (
+        name ? run.simulator.ownPushes(name) : run.simulator.nodeStatusPushes
+      ).find((push: NodeStatusPushRecord) => {
+        return push.receiveMs >= OUTAGE.toMs;
+      });
+      if (!back) {
+        throw new Error("nothing was processed after the outage");
+      }
+      return back;
+    }
+
+    // The node-status pushes after the outage, before pve3's own.
+    function beforePve3(run: ScenarioRun): Array<NodeStatusPushRecord> {
+      const pve3Back: NodeStatusPushRecord = firstPushBack(run, "pve3");
+      return run.simulator.nodeStatusPushes.filter(
+        (push: NodeStatusPushRecord) => {
+          return (
+            push.receiveMs >= OUTAGE.toMs && push.receiveMs < pve3Back.receiveMs
+          );
+        },
+      );
+    }
+
+    function nodeOfflineForPve3After(run: ScenarioRun): Array<number> {
+      return ticksFrom(run, OUTAGE.toMs)
+        .filter((tick: Tick) => {
+          return tick.nodeOffline.offlineIds.includes("node/pve3");
+        })
+        .map((tick: Tick) => {
+          return tick.atMs;
+        });
+    }
+
+    describe("the mark written on the worker's clock (markedAt)", () => {
+      let run: ScenarioRun;
+
+      beforeAll(async () => {
+        run = await runScenario(scenario(false));
+      });
+
+      test("the setup: the database's own writes run 10 minutes ahead; every mark is written at the worker's now", () => {
+        // The fold's own write of a live node's row: the database's now().
+        const pve1Last: NodeStatusPushRecord =
+          run.simulator.ownPushes("pve1")[
+            run.simulator.ownPushes("pve1").length - 1
+          ]!;
+        expect(
+          run.simulator.nodeRow("pve1")!.updatedAt.getTime() -
+            pve1Last.receiveMs,
+        ).toBeGreaterThanOrEqual(CLOCK_AHEAD_MS);
+
+        const writes: Array<SimulatedOfflineMark> =
+          run.simulator.offlineMarks.filter((mark: SimulatedOfflineMark) => {
+            return mark.markedNodes.includes("pve3");
+          });
+        expect(writes.length).toBeGreaterThan(3);
+        for (const mark of run.simulator.offlineMarks) {
+          expect(mark.markedAtMs).toBe(mark.atMs);
+        }
+        // Refreshed every 60 to 90 s on the worker's clock, as without skew.
+        for (let index: number = 1; index < writes.length; index++) {
+          const intervalMs: number =
+            writes[index]!.atMs - writes[index - 1]!.atMs;
+          expect(intervalMs).toBeGreaterThan(SILENT_NODE_MARK_REFRESH_MS);
+          expect(intervalMs).toBeLessThan(
+            SILENT_NODE_MARK_REFRESH_MS + MARK_FENCE_MS,
+          );
+        }
+        expect(writes[writes.length - 1]!.atMs).toBeLessThan(OUTAGE.fromMs);
+        expect(run.simulator.nodeRow("pve3")?.isUp).toBe(true);
+      });
+
+      test("after the outage the first nodes back read pve3's mark past the monitor window, and nobody reports pve3", () => {
+        const pushes: Array<NodeStatusPushRecord> = beforePve3(run);
+        expect(pushes.length).toBeGreaterThan(4);
+        for (const push of pushes) {
+          expect(push.offlineRosterRows.length).toBe(1);
+          expect(push.offlineRosterRows[0]!.nodeName).toBe("pve3");
+          expect(
+            push.rosterReadAtMs! - push.offlineRosterRows[0]!.markedAtMs!,
+          ).toBeGreaterThan(PROXMOX_MONITOR_WINDOW_MS);
+          expect(push.silentNodes).toEqual([]);
+        }
+        for (const report of run.simulator.reportsOf("pve3")) {
+          expect(report.receiveMs).toBeLessThan(OUTAGE.fromMs);
+        }
+      });
+
+      test("after the outage, Node Offline never fires for node/pve3", () => {
+        expect(
+          nodeOfflineForPve3After(run).map((atMs: number) => {
+            return new Date(atMs).toISOString();
+          }),
+        ).toEqual([]);
+      });
+
+      test("the verdicts equal the oracle on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
+    });
+
+    describe("counterfactual: the mark written with the database's now(), as it first was", () => {
+      let run: ScenarioRun;
+
+      beforeAll(async () => {
+        run = await runScenario(scenario(true));
+      });
+
+      test("every mark reads 10 minutes younger than it is: after the outage the first nodes back read pve3 as marked within the window and report it until its own push is in", () => {
+        for (const mark of run.simulator.offlineMarks) {
+          expect(mark.markedAtMs).toBe(mark.atMs + CLOCK_AHEAD_MS);
+        }
+        const pushes: Array<NodeStatusPushRecord> = beforePve3(run);
+        expect(pushes.length).toBeGreaterThan(4);
+        for (const push of pushes) {
+          expect(
+            push.rosterReadAtMs! - push.offlineRosterRows[0]!.markedAtMs!,
+          ).toBeLessThanOrEqual(PROXMOX_MONITOR_WINDOW_MS);
+          expect(push.silentNodes).toEqual(["pve3"]);
+        }
+      });
+
+      test("Node Offline fires for node/pve3 after the outage — up since its middle", () => {
+        const firing: Array<number> = nodeOfflineForPve3After(run);
+        expect(firing.length).toBeGreaterThan(0);
+        const pve3Back: NodeStatusPushRecord = firstPushBack(run, "pve3");
+        for (const atMs of firing) {
+          expect(atMs).toBeGreaterThan(firstPushBack(run, null).receiveMs);
+          expect(atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
+        }
+      });
+
+      test("the verdicts equal the oracle (which replays the database's clock) on every evaluation", () => {
+        expectMatchesOracle(run);
+      });
     });
   });
 
