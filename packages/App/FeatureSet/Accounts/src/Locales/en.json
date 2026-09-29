@@ -178,6 +178,19 @@
     "alreadyVerified": "Your email address is already verified. You can sign in now.",
     "failed": "We couldn't send a new verification email. Please try again in a moment."
   },
+  "incidentForm": {
+    "title": "Title",
+    "titleDescription": "A short summary of what is wrong.",
+    "description": "Description",
+    "severity": "Severity",
+    "reporterName": "Your Name",
+    "reporterEmail": "Your Email",
+    "successTitle": "Thank you — your report was submitted.",
+    "incidentNumber": "Your report is incident {{incidentNumber}}.",
+    "submitAnother": "Submit another report",
+    "retryAfter": "You can try again {{when}}.",
+    "tryAgain": "Try again"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbidden",
@@ -222,5 +235,22 @@
   "Complete:": "Complete:",
   "Incomplete:": "Incomplete:",
   "Special character included (optional)": "Special character included (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $."
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $.",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "This form is not available. It may have been turned off, or the link may be out of date.",
+  "This form can only be opened from an allowed network.": "This form can only be opened from an allowed network.",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "Too many submissions from your network. Please wait a few minutes and try again.",
+  "This form is receiving too many reports right now. Please try again later.": "This form is receiving too many reports right now. Please try again later.",
+  "Too many requests. Please try again later.": "Too many requests. Please try again later.",
+  "Captcha token is missing. Please complete the verification challenge.": "Captcha token is missing. Please complete the verification challenge.",
+  "Captcha verification failed. Please try again.": "Captcha verification failed. Please try again.",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "This form cannot declare an incident because it has no severity. Please let the team that shared it know.",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "Reports cannot be accepted right now. Please try again in a few minutes.",
+  "Your report could not be submitted. Please try again in a few minutes.": "Your report could not be submitted. Please try again in a few minutes.",
+  "This form could not be loaded. Please try again in a few minutes.": "This form could not be loaded. Please try again in a few minutes.",
+  "(Optional)": "(Optional)",
+  "{{field}} is required.": "{{field}} is required.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} cannot be more than {{maxLength}} characters.",
+  "Email is not valid.": "Email is not valid.",
+  "{{field}} must be checked.": "{{field}} must be checked.",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "This is in your timezone - {{abbreviation}} ({{timezone}})."
 }

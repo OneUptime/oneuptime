@@ -178,6 +178,19 @@
     "alreadyVerified": "Ваш адрес электронной почты уже подтверждён. Теперь вы можете войти.",
     "failed": "Не удалось отправить новое письмо для подтверждения. Пожалуйста, попробуйте ещё раз чуть позже."
   },
+  "incidentForm": {
+    "title": "Заголовок",
+    "titleDescription": "Краткое описание проблемы.",
+    "description": "Описание",
+    "severity": "Серьёзность",
+    "reporterName": "Ваше имя",
+    "reporterEmail": "Ваш адрес электронной почты",
+    "successTitle": "Спасибо — ваше сообщение отправлено.",
+    "incidentNumber": "Ваше сообщение зарегистрировано как инцидент {{incidentNumber}}.",
+    "submitAnother": "Отправить ещё одно сообщение",
+    "retryAfter": "Повторить попытку можно {{when}}.",
+    "tryAgain": "Повторить попытку"
+  },
   "errors": {
     "forbidden": {
       "title": "Запрещено",
@@ -222,5 +235,22 @@
   "Complete:": "Выполнено:",
   "Incomplete:": "Не выполнено:",
   "Special character included (optional)": "Специальный символ добавлен (необязательно)",
-  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $.",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "Эта форма недоступна. Возможно, она отключена или ссылка устарела.",
+  "This form can only be opened from an allowed network.": "Эту форму можно открыть только из разрешённой сети.",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "Слишком много отправок из вашей сети. Подождите несколько минут и повторите попытку.",
+  "This form is receiving too many reports right now. Please try again later.": "Сейчас эта форма получает слишком много сообщений. Повторите попытку позже.",
+  "Too many requests. Please try again later.": "Слишком много запросов. Повторите попытку позже.",
+  "Captcha token is missing. Please complete the verification challenge.": "Отсутствует токен captcha. Пройдите проверку.",
+  "Captcha verification failed. Please try again.": "Проверка captcha не пройдена. Повторите попытку.",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "Эта форма не может создать инцидент, потому что у неё не задана серьёзность. Сообщите об этом команде, которая поделилась формой.",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "Сейчас сообщения не принимаются. Повторите попытку через несколько минут.",
+  "Your report could not be submitted. Please try again in a few minutes.": "Не удалось отправить ваше сообщение. Повторите попытку через несколько минут.",
+  "This form could not be loaded. Please try again in a few minutes.": "Не удалось загрузить эту форму. Повторите попытку через несколько минут.",
+  "(Optional)": "(Необязательно)",
+  "{{field}} is required.": "{{field}} обязательно для заполнения.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} не может содержать более {{maxLength}} символов.",
+  "Email is not valid.": "Электронная почта недействительна.",
+  "{{field}} must be checked.": "Поле «{{field}}» должно быть отмечено.",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Время указано в вашем часовом поясе — {{abbreviation}} ({{timezone}})."
 }

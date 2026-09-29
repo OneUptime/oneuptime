@@ -178,6 +178,19 @@
     "alreadyVerified": "E-postadressen din er allerede bekreftet. Du kan logge inn nå.",
     "failed": "Vi kunne ikke sende en ny bekreftelses-e-post. Prøv igjen om litt."
   },
+  "incidentForm": {
+    "title": "Tittel",
+    "titleDescription": "En kort oppsummering av hva som er galt.",
+    "description": "Beskrivelse",
+    "severity": "Alvorlighetsgrad",
+    "reporterName": "Navnet ditt",
+    "reporterEmail": "E-postadressen din",
+    "successTitle": "Takk — rapporten din er sendt.",
+    "incidentNumber": "Rapporten din er hendelse {{incidentNumber}}.",
+    "submitAnother": "Send en ny rapport",
+    "retryAfter": "Du kan prøve igjen {{when}}.",
+    "tryAgain": "Prøv igjen"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbudt",
@@ -222,5 +235,22 @@
   "Complete:": "Oppfylt:",
   "Incomplete:": "Ikke oppfylt:",
   "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
-  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $.",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "Dette skjemaet er ikke tilgjengelig. Det kan være slått av, eller lenken kan være utdatert.",
+  "This form can only be opened from an allowed network.": "Dette skjemaet kan bare åpnes fra et tillatt nettverk.",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "For mange innsendinger fra nettverket ditt. Vent noen minutter, og prøv igjen.",
+  "This form is receiving too many reports right now. Please try again later.": "Dette skjemaet mottar for mange rapporter akkurat nå. Prøv igjen senere.",
+  "Too many requests. Please try again later.": "For mange forespørsler. Prøv igjen senere.",
+  "Captcha token is missing. Please complete the verification challenge.": "Captcha-tokenet mangler. Fullfør verifiseringen.",
+  "Captcha verification failed. Please try again.": "Captcha-verifiseringen mislyktes. Prøv igjen.",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "Dette skjemaet kan ikke opprette en hendelse fordi det ikke har noen alvorlighetsgrad. Gi beskjed til teamet som delte det.",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "Rapporter kan ikke tas imot akkurat nå. Prøv igjen om noen minutter.",
+  "Your report could not be submitted. Please try again in a few minutes.": "Rapporten din kunne ikke sendes. Prøv igjen om noen minutter.",
+  "This form could not be loaded. Please try again in a few minutes.": "Dette skjemaet kunne ikke lastes inn. Prøv igjen om noen minutter.",
+  "(Optional)": "(Valgfritt)",
+  "{{field}} is required.": "{{field}} er påkrevd.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} kan ikke være mer enn {{maxLength}} tegn.",
+  "Email is not valid.": "E-posten er ugyldig.",
+  "{{field}} must be checked.": "{{field}} må være krysset av.",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunktet er i din tidssone - {{abbreviation}} ({{timezone}})."
 }

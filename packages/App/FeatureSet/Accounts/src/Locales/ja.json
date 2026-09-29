@@ -178,6 +178,19 @@
     "alreadyVerified": "メールアドレスは確認済みです。今すぐサインインできます。",
     "failed": "新しい確認メールを送信できませんでした。しばらくしてからもう一度お試しください。"
   },
+  "incidentForm": {
+    "title": "タイトル",
+    "titleDescription": "問題の概要を簡潔に入力してください。",
+    "description": "説明",
+    "severity": "重大度",
+    "reporterName": "お名前",
+    "reporterEmail": "メールアドレス",
+    "successTitle": "ありがとうございます。報告を送信しました。",
+    "incidentNumber": "この報告はインシデント {{incidentNumber}} として登録されました。",
+    "submitAnother": "別の報告を送信",
+    "retryAfter": "{{when}}に再試行できます。",
+    "tryAgain": "再試行"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止されています",
@@ -222,5 +235,22 @@
   "Complete:": "達成済み：",
   "Incomplete:": "未達成：",
   "Special character included (optional)": "記号が含まれています（任意）",
-  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。"
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "このフォームは利用できません。無効になっているか、リンクが古くなっている可能性があります。",
+  "This form can only be opened from an allowed network.": "このフォームは許可されたネットワークからのみ開くことができます。",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "お使いのネットワークからの送信が多すぎます。数分待ってから再度お試しください。",
+  "This form is receiving too many reports right now. Please try again later.": "現在、このフォームには報告が集中しています。しばらくしてから再度お試しください。",
+  "Too many requests. Please try again later.": "リクエストが多すぎます。しばらくしてから再度お試しください。",
+  "Captcha token is missing. Please complete the verification challenge.": "キャプチャトークンがありません。認証を完了してください。",
+  "Captcha verification failed. Please try again.": "キャプチャの認証に失敗しました。もう一度お試しください。",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "このフォームには重大度が設定されていないため、インシデントを宣言できません。フォームを共有したチームにお知らせください。",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "現在、報告を受け付けることができません。数分後に再度お試しください。",
+  "Your report could not be submitted. Please try again in a few minutes.": "報告を送信できませんでした。数分後に再度お試しください。",
+  "This form could not be loaded. Please try again in a few minutes.": "このフォームを読み込めませんでした。数分後に再度お試しください。",
+  "(Optional)": "(任意)",
+  "{{field}} is required.": "{{field}}は必須です。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}は{{maxLength}}文字以下で入力してください。",
+  "Email is not valid.": "メールアドレスが無効です。",
+  "{{field}} must be checked.": "{{field}} をオンにする必要があります。",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "この時刻はお使いのタイムゾーンで表示されています - {{abbreviation}} ({{timezone}})。"
 }

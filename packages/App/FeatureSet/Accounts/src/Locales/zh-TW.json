@@ -178,6 +178,19 @@
     "alreadyVerified": "您的電子郵件地址已驗證。您現在可以登入。",
     "failed": "無法寄送新的驗證郵件。請稍後再試。"
   },
+  "incidentForm": {
+    "title": "標題",
+    "titleDescription": "簡要說明發生了什麼問題。",
+    "description": "描述",
+    "severity": "嚴重程度",
+    "reporterName": "您的姓名",
+    "reporterEmail": "您的電子郵件",
+    "successTitle": "謝謝——您的報告已提交。",
+    "incidentNumber": "您的報告已記錄為事件 {{incidentNumber}}。",
+    "submitAnother": "提交另一份報告",
+    "retryAfter": "您可以在{{when}}重試。",
+    "tryAgain": "再試一次"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止存取",
@@ -222,5 +235,22 @@
   "Complete:": "已符合：",
   "Incomplete:": "未符合：",
   "Special character included (optional)": "已包含特殊字元（選填）",
-  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。"
+  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "此表單無法使用。它可能已被關閉，或連結已過期。",
+  "This form can only be opened from an allowed network.": "此表單只能從允許的網路開啟。",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "來自您網路的提交次數過多。請稍候幾分鐘再試一次。",
+  "This form is receiving too many reports right now. Please try again later.": "此表單目前收到的報告過多。請稍後再試。",
+  "Too many requests. Please try again later.": "請求過多。請稍後再試。",
+  "Captcha token is missing. Please complete the verification challenge.": "缺少驗證碼權杖。請完成驗證。",
+  "Captcha verification failed. Please try again.": "驗證碼驗證失敗。請再試一次。",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "此表單未設定嚴重程度，因此無法宣告事件。請通知分享此表單的團隊。",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "目前無法接受報告。請幾分鐘後再試。",
+  "Your report could not be submitted. Please try again in a few minutes.": "無法提交您的報告。請幾分鐘後再試。",
+  "This form could not be loaded. Please try again in a few minutes.": "無法載入此表單。請幾分鐘後再試。",
+  "(Optional)": "（選填）",
+  "{{field}} is required.": "{{field}}為必填項。",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}不能超過 {{maxLength}} 個字元。",
+  "Email is not valid.": "電子郵件無效。",
+  "{{field}} must be checked.": "必須勾選 {{field}}。",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "此時間以您的時區為準 - {{abbreviation}} ({{timezone}})。"
 }
