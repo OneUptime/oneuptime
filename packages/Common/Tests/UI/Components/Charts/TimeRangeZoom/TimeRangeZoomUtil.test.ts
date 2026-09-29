@@ -294,3 +294,140 @@ describe("TimeRangeZoomUtil.isSameRange", () => {
     ).toBe(false);
   });
 });
+
+/*
+ * The zoom ends once the page's range moves, and "moves" is judged by this
+ * key: an effect keyed on it runs when the range's VALUE changes, never
+ * because a page re-stated the same range in a new object.
+ */
+describe("TimeRangeZoomUtil.getRangeKey", () => {
+  function restoredWithStrings(
+    startIso: string,
+    endIso: string,
+  ): RangeStartAndEndDateTime {
+    return {
+      range: TimeRange.CUSTOM,
+      startAndEndDate: {
+        startValue: startIso,
+        endValue: endIso,
+      } as unknown as InBetween<Date>,
+    };
+  }
+
+  test("a relative range is keyed by its preset alone, whatever it last resolved to", () => {
+    expect(
+      TimeRangeZoomUtil.getRangeKey({ range: TimeRange.PAST_ONE_HOUR }),
+    ).toBe(
+      TimeRangeZoomUtil.getRangeKey({
+        range: TimeRange.PAST_ONE_HOUR,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2020-01-01T00:00:00.000Z"),
+          new Date("2020-01-01T01:00:00.000Z"),
+        ),
+      }),
+    );
+    expect(
+      TimeRangeZoomUtil.getRangeKey({ range: TimeRange.PAST_ONE_HOUR }),
+    ).not.toBe(
+      TimeRangeZoomUtil.getRangeKey({ range: TimeRange.PAST_ONE_DAY }),
+    );
+  });
+
+  test("a custom range is keyed by the instants of its edges, however they are held", () => {
+    const key: string = TimeRangeZoomUtil.getRangeKey(
+      custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:25:00.000Z"),
+    );
+
+    expect(
+      TimeRangeZoomUtil.getRangeKey(
+        custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:25:00.000Z"),
+      ),
+    ).toBe(key);
+    expect(
+      TimeRangeZoomUtil.getRangeKey(
+        restoredWithStrings(
+          "2026-09-28T11:10:00.000Z",
+          "2026-09-28T11:25:00.000Z",
+        ),
+      ),
+    ).toBe(key);
+    // The same instants written in another offset are the same window.
+    expect(
+      TimeRangeZoomUtil.getRangeKey(
+        restoredWithStrings(
+          "2026-09-28T13:10:00.000+02:00",
+          "2026-09-28T13:25:00.000+02:00",
+        ),
+      ),
+    ).toBe(key);
+  });
+
+  test("custom ranges one millisecond apart get different keys", () => {
+    expect(
+      TimeRangeZoomUtil.getRangeKey(
+        custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:25:00.000Z"),
+      ),
+    ).not.toBe(
+      TimeRangeZoomUtil.getRangeKey(
+        custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:25:00.001Z"),
+      ),
+    );
+    expect(
+      TimeRangeZoomUtil.getRangeKey(
+        custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:25:00.000Z"),
+      ),
+    ).not.toBe(
+      TimeRangeZoomUtil.getRangeKey(
+        custom("2026-09-28T11:09:59.999Z", "2026-09-28T11:25:00.000Z"),
+      ),
+    );
+  });
+
+  test("a custom range never shares a key with a relative one", () => {
+    expect(
+      TimeRangeZoomUtil.getRangeKey(
+        custom("2026-09-28T11:00:00.000Z", "2026-09-28T12:00:00.000Z"),
+      ),
+    ).not.toBe(
+      TimeRangeZoomUtil.getRangeKey({ range: TimeRange.PAST_ONE_HOUR }),
+    );
+  });
+
+  test("no range has the empty key", () => {
+    expect(TimeRangeZoomUtil.getRangeKey(null)).toBe("");
+    expect(TimeRangeZoomUtil.getRangeKey(undefined)).toBe("");
+    expect(
+      TimeRangeZoomUtil.getRangeKey({ range: TimeRange.PAST_ONE_HOUR }),
+    ).not.toBe("");
+  });
+
+  test("two windows share a key exactly when isSameRange calls them the same", () => {
+    const ranges: Array<RangeStartAndEndDateTime> = [
+      { range: TimeRange.PAST_ONE_HOUR },
+      {
+        range: TimeRange.PAST_ONE_HOUR,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2026-09-28T11:00:00.000Z"),
+          new Date("2026-09-28T12:00:00.000Z"),
+        ),
+      },
+      { range: TimeRange.PAST_ONE_DAY },
+      custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:25:00.000Z"),
+      restoredWithStrings(
+        "2026-09-28T11:10:00.000Z",
+        "2026-09-28T11:25:00.000Z",
+      ),
+      custom("2026-09-28T11:10:00.000Z", "2026-09-28T11:26:00.000Z"),
+      custom("2026-09-20T00:00:00.000Z", "2026-09-21T00:00:00.000Z"),
+    ];
+
+    for (const first of ranges) {
+      for (const second of ranges) {
+        expect(
+          TimeRangeZoomUtil.getRangeKey(first) ===
+            TimeRangeZoomUtil.getRangeKey(second),
+        ).toBe(TimeRangeZoomUtil.isSameRange(first, second));
+      }
+    }
+  });
+});

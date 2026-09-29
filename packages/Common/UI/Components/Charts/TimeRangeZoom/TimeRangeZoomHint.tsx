@@ -18,11 +18,22 @@ export const TIME_RANGE_ZOOM_HINT_GROUP_CLASS: string = "group/zoomhint";
 export const TIME_RANGE_ZOOM_HINT_TEXT: string = "Drag to zoom";
 export const TIME_RANGE_ZOOM_HINT_RESET_TEXT: string = "Double-click to reset";
 
+/*
+ * How a revealOnHover hint shows itself: while the pointer is over the card,
+ * and while something in the card has KEYBOARD focus. Not on any focus
+ * (focus-within): a press on a chart focuses recharts' own layers, which
+ * keep that focus after the drag, so the hint stayed up over a card the
+ * pointer had long left. :focus-visible is the focus a keyboard gives.
+ */
+export const TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES: string =
+  "opacity-0 transition-opacity group-hover/zoomhint:opacity-100 group-has-[:focus-visible]/zoomhint:opacity-100";
+
 export interface ComponentProps {
   /*
    * Show the hint only while the pointer is over the card (an ancestor
-   * with TIME_RANGE_ZOOM_HINT_GROUP_CLASS). Keeps a row of small chart
-   * cards uncluttered; the hint appears exactly when the reader could drag.
+   * with TIME_RANGE_ZOOM_HINT_GROUP_CLASS), or while the reader tabs
+   * through it. Keeps a row of small chart cards uncluttered; the hint
+   * appears exactly when the reader could drag.
    */
   revealOnHover?: boolean | undefined;
   className?: string | undefined;
@@ -44,7 +55,7 @@ const TimeRangeZoomHint: FunctionComponent<ComponentProps> = (
   }
 
   const revealClassName: string = props.revealOnHover
-    ? "opacity-0 transition-opacity group-hover/zoomhint:opacity-100 group-focus-within/zoomhint:opacity-100"
+    ? TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES
     : "";
 
   return (

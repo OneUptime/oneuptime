@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
@@ -245,15 +251,69 @@ describe("BarChart drag-to-select", () => {
     expect(onTimeRangeSelect).not.toHaveBeenCalled();
   });
 
-  test("letting go outside the chart abandons the selection", () => {
+  test("a release the page never hears (a later move with no button held) abandons the selection", () => {
     const onTimeRangeSelect: MockFunction = getJestMockFunction();
     renderBar({ onTimeRangeSelect: asSelectHandler(onTimeRangeSelect) });
 
     press(1);
     move(3);
-    // The button came up outside: the next move reports no buttons held.
+    /*
+     * The button came up where no mouseup reaches the page (outside the
+     * browser window, say): the next move reports no buttons held.
+     */
     move(4, 0);
     release(4);
+    fireEvent.mouseUp(window);
+
+    expect(onTimeRangeSelect).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("selection-band")).toBeNull();
+  });
+
+  test("a drag released outside the chart, but on the page, still selects up to the last bar reached", () => {
+    const onTimeRangeSelect: MockFunction = getJestMockFunction();
+    renderBar({ onTimeRangeSelect: asSelectHandler(onTimeRangeSelect) });
+
+    press(1);
+    move(3);
+    expect(screen.getByTestId("selection-band")).toHaveAttribute(
+      "data-x2",
+      "10:15",
+    );
+    // The button comes up somewhere else on the page: the chart never hears it.
+    fireEvent.mouseUp(window);
+
+    expect(onTimeRangeSelect).toHaveBeenCalledTimes(1);
+    expect(selectedWindow(onTimeRangeSelect)).toEqual([
+      "2026-09-28T10:05:00.000Z",
+      "2026-09-28T10:20:00.000Z",
+    ]);
+    expect(screen.queryByTestId("selection-band")).toBeNull();
+
+    // The release was the page's; a later one there selects nothing more.
+    fireEvent.mouseUp(window);
+    expect(onTimeRangeSelect).toHaveBeenCalledTimes(1);
+  });
+
+  test("a right-to-left drag released outside the chart selects the same bars", () => {
+    const onTimeRangeSelect: MockFunction = getJestMockFunction();
+    renderBar({ onTimeRangeSelect: asSelectHandler(onTimeRangeSelect) });
+
+    press(3);
+    move(1);
+    fireEvent.mouseUp(window);
+
+    expect(selectedWindow(onTimeRangeSelect)).toEqual([
+      "2026-09-28T10:05:00.000Z",
+      "2026-09-28T10:20:00.000Z",
+    ]);
+  });
+
+  test("a press on one bar released outside the chart is not a selection", () => {
+    const onTimeRangeSelect: MockFunction = getJestMockFunction();
+    renderBar({ onTimeRangeSelect: asSelectHandler(onTimeRangeSelect) });
+
+    press(3);
+    fireEvent.mouseUp(window);
 
     expect(onTimeRangeSelect).not.toHaveBeenCalled();
     expect(screen.queryByTestId("selection-band")).toBeNull();
