@@ -6649,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "다시 시도는 이미 도달한 상태 페이지 다음부터 이어서 보냅니다. 이 인시던트의 현재 범위에 있는 페이지 중 알림을 완전히 받지 못한 페이지(이후 추가된 페이지 포함)에만 지금 전송됩니다. 모든 페이지에 다시 전송되는 노트와 상태 변경과 달리, 이미 도달한 페이지에는 두 번 전송되지 않습니다.",
   "Send it to every status page again, including the pages already reached": "이미 도달한 페이지를 포함해 모든 상태 페이지에 다시 보내기",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "이 인시던트가 생성되었다는 알림이 이 인시던트가 현재 도달하는 모든 상태 페이지의 구독자에게, 실패한 전송이 이미 도달한 페이지를 포함해 다시 전송됩니다.",
-  "Could not queue the notification again.": "알림을 다시 대기열에 넣을 수 없습니다."
+  "Could not queue the notification again.": "알림을 다시 대기열에 넣을 수 없습니다.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + 스크롤 또는 핀치로 확대/축소",
+  "The map is out of view.": "맵이 화면 밖에 있습니다."
 }

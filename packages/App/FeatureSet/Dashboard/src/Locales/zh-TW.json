@@ -6649,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "重試會在已送達的狀態頁面之後繼續：只有此事件目前範圍內未完整收到通知的頁面（包括之後加入的頁面）現在會收到它。與會再次傳送到每個頁面的備註和狀態變更不同，已送達的頁面不會收到兩次。",
   "Send it to every status page again, including the pages already reached": "再次傳送到每個狀態頁面，包括已送達的頁面",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "此事件已建立的通知將再次傳送給此事件目前涵蓋的每個狀態頁面的訂閱者，包括失敗的傳送已送達的頁面。",
-  "Could not queue the notification again.": "無法將通知重新加入佇列。"
+  "Could not queue the notification again.": "無法將通知重新加入佇列。",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + 捲動或雙指捏合以縮放",
+  "The map is out of view.": "地圖不在檢視範圍內。"
 }

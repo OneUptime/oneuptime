@@ -6649,5 +6649,7 @@
   "Retry resumes after the status pages that were already reached: only the pages of this incident's current scope that were not sent the notification in full are sent it now, including pages added since. Unlike notes and state changes, which are sent to every page again, the pages already reached are not sent it twice.": "Prøv på nytt fortsetter etter statussidene som allerede er nådd: bare sidene i hendelsens nåværende omfang som ikke fikk hele varselet, får det nå, også sider lagt til siden. I motsetning til notater og statusendringer, som sendes på nytt til alle sider, får sidene som allerede er nådd, det ikke to ganger.",
   "Send it to every status page again, including the pages already reached": "Send det på nytt til alle statussider, også sidene som allerede er nådd",
   "The notification that this incident was created is sent again to the subscribers of every status page this incident reaches now, including the pages the failed send already reached.": "Varselet om at denne hendelsen er opprettet, sendes på nytt til abonnentene på alle statussider denne hendelsen når nå, også sidene som den mislykkede sendingen allerede nådde.",
-  "Could not queue the notification again.": "Kunne ikke sette varselet i kø på nytt."
+  "Could not queue the notification again.": "Kunne ikke sette varselet i kø på nytt.",
+  "Ctrl + scroll or pinch to zoom": "Ctrl + rull eller knip for å zoome",
+  "The map is out of view.": "Kartet er utenfor visningen."
 }
