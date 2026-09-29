@@ -308,6 +308,15 @@ const getIncidentReference: GetIncidentReferenceFunction = (
   return "Incident";
 };
 
+/*
+ * The owners of the template an incident is declared from, as the ids the
+ * server takes them by (see onBeforeCreate).
+ */
+interface TemplateOwners {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -347,6 +356,16 @@ const IncidentCreate: FunctionComponent<
   const [templateCustomFields, setTemplateCustomFields] = useState<JSONObject>(
     {},
   );
+
+  /*
+   * The template's owner users and teams. The form has no input for owners -
+   * an incident's owners are added on its own page - so they travel beside
+   * it, and onBeforeCreate hands them to the server.
+   */
+  const [templateOwners, setTemplateOwners] = useState<TemplateOwners>({
+    userIds: [],
+    teamIds: [],
+  });
 
   /*
    * The alerts this incident is being declared from (`?alertIds=`), in the
@@ -843,6 +862,31 @@ const IncidentCreate: FunctionComponent<
       });
 
     if (incidentTemplate) {
+      /*
+       * The template's owners become the incident's owners. They used to be
+       * put into the form's initial values, but the form only sends the
+       * columns and the misc data of its own inputs, and it has had no owner
+       * inputs since the Owners step was removed - so they were read here
+       * and then silently dropped. They are kept beside the form instead,
+       * and onBeforeCreate sends them.
+       */
+      setTemplateOwners({
+        userIds: usersListResult.data
+          .map((user: IncidentTemplateOwnerUser): string => {
+            return user.userId?.toString() || "";
+          })
+          .filter((userId: string): boolean => {
+            return Boolean(userId);
+          }),
+        teamIds: teamsListResult.data
+          .map((team: IncidentTemplateOwnerTeam): string => {
+            return team.teamId?.toString() || "";
+          })
+          .filter((teamId: string): boolean => {
+            return Boolean(teamId);
+          }),
+      });
+
       const initialValue: JSONObject = {
         ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
         incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
@@ -908,16 +952,6 @@ const IncidentCreate: FunctionComponent<
         onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
           (onCallPolicy: OnCallDutyPolicy) => {
             return onCallPolicy.id!.toString();
-          },
-        ),
-        ownerUsers: usersListResult.data.map(
-          (user: IncidentTemplateOwnerUser): string => {
-            return user.userId!.toString() || "";
-          },
-        ),
-        ownerTeams: teamsListResult.data.map(
-          (team: IncidentTemplateOwnerTeam): string => {
-            return team.teamId!.toString() || "";
           },
         ),
       };
@@ -1231,6 +1265,21 @@ const IncidentCreate: FunctionComponent<
 
                 if (customFields) {
                   item.customFields = customFields;
+                }
+
+                /*
+                 * The template's owners, as misc data the server reads once
+                 * the incident exists (IncidentService.onCreateSuccess adds
+                 * them as owners, marked as already notified). Only when
+                 * there are any: an incident declared without a template
+                 * sends exactly what it always did.
+                 */
+                if (templateOwners.userIds.length > 0) {
+                  miscDataProps["ownerUsers"] = templateOwners.userIds;
+                }
+
+                if (templateOwners.teamIds.length > 0) {
+                  miscDataProps["ownerTeams"] = templateOwners.teamIds;
                 }
 
                 /*
