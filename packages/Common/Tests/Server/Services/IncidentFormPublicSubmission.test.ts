@@ -20,12 +20,12 @@ import {
  *     reporter's title and description, the severity (the reporter's choice
  *     when allowed, else the form's, else the template's, else a 400), the
  *     template id so IncidentService applies the template, the answers to
- *     the fields the form asks and to nothing else, and never on a status
- *     page or to its subscribers;
- *   - afterwards: the template's owners added and notified, the submission
- *     recorded, the reporter named in a private note with every value
- *     Markdown-escaped - and a failure in any of those logged, never thrown,
- *     because the incident already stands;
+ *     the fields the form asks and to nothing else, never on a status page
+ *     or to its subscribers - and the template's owners, for IncidentService
+ *     to add once the incident's channels exist, and to notify;
+ *   - afterwards: the submission recorded, the reporter named in a private
+ *     note with every value Markdown-escaped - and a failure in either
+ *     logged, never thrown, because the incident already stands;
  *   - the answer: the incident's number and the form's success message.
  *
  * Only the database and the captcha provider are stubbed.
@@ -413,12 +413,17 @@ async function refusal(
 }
 
 // The call IncidentService.create received.
-function createCall(): { data: Incident; props: Record<string, unknown> } {
+function createCall(): {
+  data: Incident;
+  props: Record<string, unknown>;
+  miscDataProps?: JSONObject | undefined;
+} {
   expect(incidentCreate).toHaveBeenCalledTimes(1);
 
   return incidentCreate.mock.calls[0]![0] as {
     data: Incident;
     props: Record<string, unknown>;
+    miscDataProps?: JSONObject | undefined;
   };
 }
 
@@ -1399,38 +1404,42 @@ describe("IncidentFormService.submitPublicForm - the reporter", () => {
   });
 });
 
+/*
+ * The template's owners go with the create, for IncidentService to add once
+ * the incident's Slack and Teams channels exist - so their own hooks invite
+ * them to those channels - and to notify. Added by the form after the
+ * create returned, they raced the channel's creation and were never
+ * invited (IncidentTemplateOwnersOnDeclare.test.ts pins the other half).
+ */
 describe("IncidentFormService.submitPublicForm - the template's owners", () => {
-  test("are added to the incident and notified", async () => {
+  function ids(value: unknown): Array<string> {
+    return (value as Array<ObjectID>).map((id: ObjectID): string => {
+      return id.toString();
+    });
+  }
+
+  test("are handed to the create, to be added once the incident's channels exist, and notified", async () => {
     storedForm = withTemplate();
 
     await submit();
 
-    expect(addOwners).toHaveBeenCalledTimes(1);
+    const miscDataProps: JSONObject = createCall().miscDataProps!;
 
-    const [projectId, incidentId, userIds, teamIds, notify, props] = addOwners
-      .mock.calls[0] as [
-      ObjectID,
-      ObjectID,
-      Array<ObjectID>,
-      Array<ObjectID>,
-      boolean,
-      Record<string, unknown>,
-    ];
+    expect(Object.keys(miscDataProps).sort()).toEqual(
+      ["notifyOwners", "ownerTeams", "ownerUsers"].sort(),
+    );
+    expect(ids(miscDataProps["ownerUsers"])).toEqual(OWNER_USER_IDS);
+    expect(ids(miscDataProps["ownerTeams"])).toEqual([OWNER_TEAM_ID]);
+    expect(miscDataProps["notifyOwners"]).toBe(true);
+    expect(createCall().props).toEqual({ isRoot: true });
+  });
 
-    expect(projectId.toString()).toBe(PROJECT_ID.toString());
-    expect(incidentId.toString()).toBe(INCIDENT_ID);
-    expect(
-      userIds.map((id: ObjectID) => {
-        return id.toString();
-      }),
-    ).toEqual(OWNER_USER_IDS);
-    expect(
-      teamIds.map((id: ObjectID) => {
-        return id.toString();
-      }),
-    ).toEqual([OWNER_TEAM_ID]);
-    expect(notify).toBe(true);
-    expect(props).toEqual({ isRoot: true });
+  test("are never added by the form itself, after the create returned", async () => {
+    storedForm = withTemplate();
+
+    await submit();
+
+    expect(addOwners).not.toHaveBeenCalled();
   });
 
   test("are read for the form's template in the form's project, as root", async () => {
@@ -1451,32 +1460,55 @@ describe("IncidentFormService.submitPublicForm - the template's owners", () => {
     }
   });
 
-  test("with only owner users, adds them and no teams", async () => {
+  test("with only owner users, hands them and no teams", async () => {
     storedForm = withTemplate();
     ownerTeamFindBy.mockResolvedValue([] as never);
 
     await submit();
 
-    expect((addOwners.mock.calls[0]![3] as Array<ObjectID>).length).toBe(0);
-    expect((addOwners.mock.calls[0]![2] as Array<ObjectID>).length).toBe(2);
+    expect(createCall().miscDataProps).toEqual({
+      ownerUsers: expect.any(Array),
+      notifyOwners: true,
+    });
+    expect(ids(createCall().miscDataProps!["ownerUsers"])).toEqual(
+      OWNER_USER_IDS,
+    );
   });
 
-  test("adds nothing when the template has no owners", async () => {
+  test("hands nothing when the template has no owners", async () => {
     storedForm = withTemplate();
     ownerUserFindBy.mockResolvedValue([] as never);
     ownerTeamFindBy.mockResolvedValue([] as never);
 
     await submit();
 
-    expect(addOwners).not.toHaveBeenCalled();
+    expect(createCall()).not.toHaveProperty("miscDataProps");
   });
 
-  test("reads no owners, and adds none, for a form without a template", async () => {
+  test("reads no owners, and hands none, for a form without a template", async () => {
     await submit();
 
     expect(ownerUserFindBy).not.toHaveBeenCalled();
     expect(ownerTeamFindBy).not.toHaveBeenCalled();
-    expect(addOwners).not.toHaveBeenCalled();
+    expect(createCall()).not.toHaveProperty("miscDataProps");
+  });
+
+  test("a failure reading them is logged, and the incident is declared without them", async () => {
+    storedForm = withTemplate();
+    ownerTeamFindBy.mockRejectedValue(new Error("read failed"));
+
+    await expect(submit()).resolves.toEqual({
+      incidentNumber: "INC-42",
+      successMessage: "Thanks - **we are on it**.",
+    });
+    expect(createCall()).not.toHaveProperty("miscDataProps");
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "could not read the owners of the template of incident form",
+      ),
+      expect.objectContaining({ incidentFormId: FORM_ID }),
+    );
+    expect(noteCreate).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1812,35 +1844,6 @@ describe("getIncidentFormReporterNote", () => {
 });
 
 describe("IncidentFormService.submitPublicForm - after the incident exists", () => {
-  test("a failure adding owners is logged, and the submission and note still happen", async () => {
-    storedForm = withTemplate();
-    addOwners.mockRejectedValue(new Error("owners down"));
-
-    const result: PublicIncidentFormSubmissionResult = await submit();
-
-    expect(result.incidentNumber).toBe("INC-42");
-    expect(submissionCreate).toHaveBeenCalledTimes(1);
-    expect(noteCreate).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "could not add the template's owners to incident",
-      ),
-      expect.objectContaining({ incidentId: INCIDENT_ID }),
-    );
-  });
-
-  test("a failure reading the owners is logged, not thrown", async () => {
-    storedForm = withTemplate();
-    ownerTeamFindBy.mockRejectedValue(new Error("read failed"));
-
-    await expect(submit()).resolves.toEqual({
-      incidentNumber: "INC-42",
-      successMessage: "Thanks - **we are on it**.",
-    });
-    expect(addOwners).not.toHaveBeenCalled();
-    expect(noteCreate).toHaveBeenCalledTimes(1);
-  });
-
   test("a failure recording the submission is logged, and the note still happens", async () => {
     submissionCreate.mockRejectedValue(new Error("insert failed"));
 
@@ -1864,7 +1867,6 @@ describe("IncidentFormService.submitPublicForm - after the incident exists", () 
 
   test("everything after the incident failing still answers with its number", async () => {
     storedForm = withTemplate();
-    addOwners.mockRejectedValue(new Error("a"));
     submissionCreate.mockRejectedValue(new Error("b"));
     noteCreate.mockRejectedValue(new Error("c"));
 

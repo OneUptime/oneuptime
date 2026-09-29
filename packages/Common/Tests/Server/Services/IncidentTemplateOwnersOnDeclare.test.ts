@@ -117,6 +117,7 @@ function createdIncident(): Incident {
 
 async function onCreateSuccess(
   miscDataInRequest: JSONObject | undefined,
+  props: DatabaseCommonInteractionProps = USER_PROPS,
 ): Promise<void> {
   const incident: Incident = createdIncident();
 
@@ -130,7 +131,7 @@ async function onCreateSuccess(
         miscDataProps: miscDataInRequest
           ? JSONFunctions.deserialize(miscDataInRequest)
           : undefined,
-        props: USER_PROPS,
+        props: props,
       },
       carryForward: null,
     },
@@ -303,5 +304,96 @@ describe("the template's owners a dashboard declare sends", () => {
 
     expect(createdOwnerUsers).toEqual([]);
     expect(createdOwnerTeams).toEqual([]);
+  });
+
+  /*
+   * Misc data is whatever the request body says, so a user's declare
+   * cannot ask for owners to be notified: this path adds them quietly, as
+   * it always has.
+   */
+  test("a user's request asking for its owners to be notified still adds them quietly", async () => {
+    await onCreateSuccess({
+      ownerUsers: [USER_A],
+      ownerTeams: [TEAM_A],
+      notifyOwners: true,
+    });
+
+    expect(createdOwnerUsers[0]!.row.isOwnerNotified).toBe(true);
+    expect(createdOwnerTeams[0]!.row.isOwnerNotified).toBe(true);
+  });
+});
+
+/*
+ * An incident form hands its template's owners over with the create, as
+ * root, and asks for them to be notified: they are the people a report
+ * through the form is meant to reach. They are added in the create's own
+ * chain - after the incident's Slack / Microsoft Teams channels exist, so
+ * the owners' hooks invite them to those channels, and after "Incident
+ * Created" - rather than by the form once the create returned, when the
+ * channel usually did not exist yet and nothing invited them later.
+ */
+describe("the template's owners an incident form hands over", () => {
+  const FORM_PROPS: DatabaseCommonInteractionProps = { isRoot: true };
+
+  test("are added and notified", async () => {
+    await onCreateSuccess(
+      {
+        ownerUsers: [USER_A, USER_B],
+        ownerTeams: [TEAM_A],
+        notifyOwners: true,
+      },
+      FORM_PROPS,
+    );
+
+    expect(
+      createdOwnerUsers.map(
+        (created: { row: IncidentOwnerUser }): string | undefined => {
+          return created.row.userId?.toString();
+        },
+      ),
+    ).toEqual([USER_A, USER_B]);
+    expect(createdOwnerTeams).toHaveLength(1);
+
+    for (const created of [...createdOwnerUsers, ...createdOwnerTeams]) {
+      expect(created.row.isOwnerNotified).toBe(false);
+      expect(created.props).toBe(FORM_PROPS);
+    }
+  });
+
+  test("without the flag, even a root declare adds them quietly", async () => {
+    await onCreateSuccess(
+      { ownerUsers: [USER_A], ownerTeams: [TEAM_A] },
+      FORM_PROPS,
+    );
+
+    expect(createdOwnerUsers[0]!.row.isOwnerNotified).toBe(true);
+    expect(createdOwnerTeams[0]!.row.isOwnerNotified).toBe(true);
+  });
+
+  test("are added only once the incident's channels exist, and after Incident Created", async () => {
+    await onCreateSuccess(
+      { ownerUsers: [USER_A], ownerTeams: [TEAM_A], notifyOwners: true },
+      FORM_PROPS,
+    );
+
+    const service: Record<string, unknown> =
+      IncidentService as unknown as Record<string, unknown>;
+
+    const orderOf: (method: unknown) => number = (method: unknown): number => {
+      return (method as { mock: { invocationCallOrder: Array<number> } }).mock
+        .invocationCallOrder[0]!;
+    };
+
+    const firstOwnerAdded: number = Math.min(
+      orderOf(IncidentOwnerUserService.create),
+      orderOf(IncidentOwnerTeamService.create),
+    );
+
+    expect(
+      orderOf(service["handleIncidentWorkspaceOperationsAsync"]),
+    ).toBeLessThan(firstOwnerAdded);
+    expect(orderOf(service["createIncidentFeedAsync"])).toBeLessThan(
+      firstOwnerAdded,
+    );
   });
 });

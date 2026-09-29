@@ -150,6 +150,12 @@ export const INCIDENT_FORM_NO_SEVERITY_MESSAGE: string =
 export const INCIDENT_FORM_SUBMIT_FAILED_MESSAGE: string =
   "Your report could not be submitted. Please try again in a few minutes.";
 
+// A template's owners, as the create hands them to the incident.
+interface TemplateOwners {
+  userIds: Array<ObjectID>;
+  teamIds: Array<ObjectID>;
+}
+
 /*
  * An address an autolink would not carry whole: one that starts with "!"
  * (or "#"), whose autolink would open like a Slack control sequence ("<!",
@@ -530,10 +536,11 @@ export class Service extends DatabaseService<Model> {
    * goes to the form's project.
    *
    * Once the incident exists the reporter is told it was declared whatever
-   * happens next. The template's owners, the submission record and the
-   * private note are each attempted, and a failure is logged rather than
-   * turned into an error that would invite the reporter to send - and page
-   * on-call with - the same report again.
+   * happens next. The submission record and the private note are each
+   * attempted, and a failure is logged rather than turned into an error
+   * that would invite the reporter to send - and page on-call with - the
+   * same report again. (The template's owners go with the create itself:
+   * see declareIncident.)
    */
   @CaptureSpan()
   public async submitPublicForm(data: {
@@ -599,12 +606,11 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (incident.id) {
-      await this.addTemplateOwners({ form, incidentId: incident.id });
       await this.recordSubmission({ form, incidentId: incident.id, answers });
       await this.addReporterNote({ form, incidentId: incident.id, answers });
     } else {
       logger.error(
-        `IncidentFormService: incident form ${form.id?.toString()} declared an incident that came back without an id; its owners, submission and note were not added.`,
+        `IncidentFormService: incident form ${form.id?.toString()} declared an incident that came back without an id; its submission and note were not added.`,
         this.getLogAttributes(form),
       );
     }
@@ -1112,12 +1118,36 @@ export class Service extends DatabaseService<Model> {
    * subscribers, whatever the template says: a stranger's report is for the
    * responders to triage before anything about it is published. It is not
    * private, and has no creating user - nobody signed in to send it.
+   *
+   * The template's owners are handed over with the create, not added once
+   * it returns: IncidentService adds them after the incident's Slack and
+   * Microsoft Teams channels exist, so their own hooks invite them to those
+   * channels (added any earlier, they would find no channel to join, and
+   * nothing invites an existing owner later). notifyOwners asks for them to
+   * be notified - they are the people a report through this form is meant
+   * to reach.
    */
   private async declareIncident(data: {
     form: Model;
     answers: ValidatedIncidentFormSubmission;
     incidentSeverityId: ObjectID | undefined;
   }): Promise<Incident> {
+    const owners: TemplateOwners = await this.getTemplateOwners(data.form);
+
+    const miscDataProps: JSONObject = {};
+
+    if (owners.userIds.length > 0) {
+      miscDataProps["ownerUsers"] = owners.userIds;
+    }
+
+    if (owners.teamIds.length > 0) {
+      miscDataProps["ownerTeams"] = owners.teamIds;
+    }
+
+    if (Object.keys(miscDataProps).length > 0) {
+      miscDataProps["notifyOwners"] = true;
+    }
+
     const incident: Incident = new Incident();
     incident.projectId = data.form.projectId!;
     incident.title = data.answers.title;
@@ -1139,13 +1169,19 @@ export class Service extends DatabaseService<Model> {
     incident.isVisibleOnStatusPage = false;
     incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated = false;
 
+    const createBy: CreateBy<Incident> = {
+      data: incident,
+      props: {
+        isRoot: true,
+      },
+    };
+
+    if (Object.keys(miscDataProps).length > 0) {
+      createBy.miscDataProps = miscDataProps;
+    }
+
     try {
-      return await IncidentService.create({
-        data: incident,
-        props: {
-          isRoot: true,
-        },
-      });
+      return await IncidentService.create(createBy);
     } catch (err) {
       logger.error(
         `IncidentFormService: incident form ${data.form.id?.toString()} could not declare an incident.`,
@@ -1158,16 +1194,17 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The template's owners become the incident's, and are notified - they
-   * are the people a report through this form is meant to reach. Nothing is
-   * added when the form has no template, or its template no owners.
+   * The owners of the form's template, which become the incident's: none
+   * when the form has no template, or its template no owners. A failure to
+   * read them is logged, and the incident is declared without them - the
+   * report still reaches on-call through the template's policies and the
+   * project's rules.
    */
-  private async addTemplateOwners(data: {
-    form: Model;
-    incidentId: ObjectID;
-  }): Promise<void> {
-    if (!data.form.incidentTemplateId) {
-      return;
+  private async getTemplateOwners(form: Model): Promise<TemplateOwners> {
+    const owners: TemplateOwners = { userIds: [], teamIds: [] };
+
+    if (!form.incidentTemplateId) {
+      return owners;
     }
 
     try {
@@ -1175,8 +1212,8 @@ export class Service extends DatabaseService<Model> {
         incidentTemplateId: ObjectID;
         projectId: ObjectID;
       } = {
-        incidentTemplateId: data.form.incidentTemplateId,
-        projectId: data.form.projectId!,
+        incidentTemplateId: form.incidentTemplateId,
+        projectId: form.projectId!,
       };
 
       const [ownerUsers, ownerTeams]: [
@@ -1207,44 +1244,28 @@ export class Service extends DatabaseService<Model> {
         }),
       ]);
 
-      const userIds: Array<ObjectID> = [];
-
       for (const owner of ownerUsers) {
         if (owner.userId) {
-          userIds.push(owner.userId);
+          owners.userIds.push(owner.userId);
         }
       }
-
-      const teamIds: Array<ObjectID> = [];
 
       for (const owner of ownerTeams) {
         if (owner.teamId) {
-          teamIds.push(owner.teamId);
+          owners.teamIds.push(owner.teamId);
         }
       }
-
-      if (userIds.length === 0 && teamIds.length === 0) {
-        return;
-      }
-
-      await IncidentService.addOwners(
-        data.form.projectId!,
-        data.incidentId,
-        userIds,
-        teamIds,
-        true, // notify the owners
-        {
-          isRoot: true,
-        },
-      );
     } catch (err) {
-      this.logFailureAfterIncident({
-        form: data.form,
-        incidentId: data.incidentId,
-        step: "add the template's owners to",
-        error: err,
-      });
+      logger.error(
+        `IncidentFormService: could not read the owners of the template of incident form ${form.id?.toString()}; the incident is declared without them.`,
+        this.getLogAttributes(form),
+      );
+      logger.error(err, this.getLogAttributes(form));
+
+      return { userIds: [], teamIds: [] };
     }
+
+    return owners;
   }
 
   // The record the dashboard lists under the form's Submissions.

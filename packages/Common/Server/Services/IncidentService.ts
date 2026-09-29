@@ -2850,12 +2850,32 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Owners handed over with the create: a template's owners, from the
+         * dashboard's Declare Incident page or from an incident form. Added
+         * here - after the incident's Slack / Microsoft Teams channels
+         * exist, which is when the owners' own hooks can invite them to
+         * those channels, and after "Incident Created" - rather than by the
+         * caller once the create returns, while this chain may still be
+         * creating the channels.
+         *
+         * Whether they are notified is the caller's to say, but only an
+         * internal (root) caller's: an incident form asks for its
+         * template's owners to be notified - they are the people a report
+         * through it is meant to reach. A user's request cannot: the
+         * dashboard's declare has always added them quietly, and misc data
+         * is whatever the request body says.
+         */
         try {
           if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps["ownerTeams"] ||
               onCreate.createBy.miscDataProps["ownerUsers"])
           ) {
+            const notifyOwners: boolean =
+              onCreate.createBy.props.isRoot === true &&
+              onCreate.createBy.miscDataProps["notifyOwners"] === true;
+
             return await this.addOwners(
               createdItem.projectId!,
               createdItem.id!,
@@ -2865,7 +2885,7 @@ export class Service extends DatabaseService<Model> {
               (onCreate.createBy.miscDataProps[
                 "ownerTeams"
               ] as Array<ObjectID>) || [],
-              false,
+              notifyOwners,
               onCreate.createBy.props,
             );
           }
