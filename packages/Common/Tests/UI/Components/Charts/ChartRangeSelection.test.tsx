@@ -391,6 +391,37 @@ for (const chartUnderTest of CHARTS) {
       );
     });
 
+    test("a right-to-left drag's band runs between its buckets in row order", () => {
+      const onTimeRangeSelect: MockFunction = getJestMockFunction();
+      render(
+        chartUnderTest.render(onTimeRangeSelect as unknown as SelectHandler),
+      );
+
+      press(6);
+      move(5);
+      // Two neighbours: the band covers both (a bar chart drew none).
+      let band: HTMLElement = screen.getByTestId("selection-band");
+      expect(band).toHaveAttribute("data-x1", "10:05");
+      expect(band).toHaveAttribute("data-x2", "10:06");
+
+      move(2);
+      band = screen.getByTestId("selection-band");
+      expect(band).toHaveAttribute("data-x1", "10:02");
+      expect(band).toHaveAttribute("data-x2", "10:06");
+
+      // Crossing back over the pressed bucket flips the band's far edge.
+      move(8);
+      band = screen.getByTestId("selection-band");
+      expect(band).toHaveAttribute("data-x1", "10:06");
+      expect(band).toHaveAttribute("data-x2", "10:08");
+
+      move(2);
+      release({ activeTooltipIndex: 2 });
+      expect(selection(onTimeRangeSelect)).toEqual([
+        ["2026-09-28T10:02:00.000Z", "2026-09-28T10:07:00.000Z"],
+      ]);
+    });
+
     test("a drag that comes back to its first bucket is released as a click", () => {
       const onTimeRangeSelect: MockFunction = getJestMockFunction();
       render(
