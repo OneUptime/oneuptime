@@ -52,7 +52,7 @@ A few quick rules:
 
 There are two paths, and they merge the same way.
 
-- **In the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users. Its **Details** step follows the template's [custom fields on create](#custom-fields-on-create).
+- **In the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users. Its **Details** step follows the template's [custom fields on create](#custom-fields-on-create). The owners become the incident's owners without being notified, once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too.
 - **On the server** — an incident created with `createdIncidentTemplateId` set to a template's id is filled from the template. Only OneUptime itself sets that column: a workflow's **Create One Incident** step, and an [incident form](/docs/incidents/forms) that has an **Incident Template**. An API key or a signed-in user cannot — a request that sends `createdIncidentTemplateId` is refused — so to declare from a template over the API, read it from `/api/incident-templates` and send its values in the request. The server applies the template only when the incident names no state: a workflow that declares from a template must leave `currentIncidentStateId` out.
 
 The important part is the merge rule: **a template only fills a field you left undefined**. Title, description, incident severity, initial incident state, the monitor status behind **Change Monitor Status to**, monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services, on-call policies, labels and status pages are copied from the template only when the caller or the form supplied nothing. Anything you set explicitly always wins. Custom field values merge one field at a time: the template fills in the fields the incident was declared without, and a value you set — `0`, `false` and `null` included — wins over the template's.
@@ -70,9 +70,12 @@ The project's settings decide what the **Details** step asks when an incident is
 | **Optional** | The step asks for the field, and it can be left empty — even when the project requires it.                                        |
 | **Hidden**   | The step does not ask for the field, even when the project shows or requires it. The template's own value for it is still applied. |
 
+On the card, a field the template sets to **Required**, **Optional** or **Hidden** also shows, under its type, what the project does with it: **Project default: Required**, **Project default: Optional** or **Project default: Not Shown**. Everybody who can see the template sees it.
+
 Use it when the incidents of one template need an answer others do not — a customer tier on a `Customer data exposure` template, say — or to keep a question the project asks everywhere out of a template where it does not fit.
 
-- **Keyed by the Template Variable.** Each setting is stored under the field's **Template Variable**, which never changes, so renaming a field keeps its setting. A field that is deleted and created again with the same name gets its setting back.
+- **Keyed by the Template Variable.** Each setting is stored under the field's **Template Variable**, which never changes, so renaming a field keeps its setting. A field that is deleted and created again with the same name gets its setting back — unlike an incident form's questions, which forget a deleted field.
+- **Edit reads them afresh.** **Edit** on the card reads the fields and the template's settings again, with a loader in the dialog meanwhile, and **Save** writes only the fields you changed in it, so a change another admin made to other fields in the meantime is kept. If they cannot be read, the dialog says why and offers **Try again** instead of **Save**.
 - **Only the dashboard applies them.** Like **Required on Create**, the settings shape the **Declare Incident** form and nothing else. Incidents declared through the API, by a workflow, a monitor, Slack, Microsoft Teams or AI are not held to them, and [incident forms](/docs/incidents/forms) ask questions of their own. See [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
 - **A field copied from a monitor custom field** is still not asked once the incident has a monitor, whatever the template says.
 - **Anyone who can edit incident templates can change them** — Project Members and Incident Members included — even for a field a Project Admin made **Required on Create** for the whole project. The project-wide settings themselves need a Project Owner, a Project Admin or the **Edit Incident Custom Field** permission.
@@ -201,6 +204,8 @@ When a user or an API key creates or updates an incident, each value the request
 | **Dropdown (single select)**                         | One of its options.                                           |
 | **Dropdown (multi-select)**                          | A list of its options, or a single option on its own.         |
 
+For a **Dropdown (multi-select)**, the refusal names the first 10 entries that are not among its options, and then how many more there are.
+
 What is not checked, so that existing integrations keep working:
 
 - **Values the request leaves as they are.** The **Custom Fields** card sends every value back when you save one of them, so a value stored before these checks existed, or a dropdown option removed since, never stops you saving the others. A multi-select keeps the entries it already had.
@@ -218,6 +223,8 @@ Values are stored under the field's name, so renaming a field has to move them. 
 Two renames are refused: one onto a name another incident custom field already has (compared without regard to case), and an API request that would rename several fields at once. Workflows and API clients that read or write a value by the field's old name need to be changed to the new one.
 
 After a rename the field holds only its own values. Deleting a field leaves its values on the incidents that had them, so incidents can still hold values under the new name from a field that was deleted; the rename clears those, rather than show them as this field's answers or send them to subscribers. Every incident and template moves together: if the move fails, none of them changes, the field keeps its old name and the save reports an error, so you can simply try again. A field **created** with a deleted field's name is different: it shows the values that field left behind, and sends them to subscribers once **Include in Subscriber Notifications** is on.
+
+Deleting a field also takes it off the questions of every [incident form](/docs/incidents/forms) in the project, without starting an **On Update Incident Form** workflow or changing when the forms were last updated. A field created again with the same name is not asked on a form until someone adds it on that form's **Questions** card. Incident templates keep their **Custom Fields on Create** setting for it.
 
 ### Terraform
 
