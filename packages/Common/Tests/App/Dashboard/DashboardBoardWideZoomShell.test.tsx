@@ -1007,23 +1007,39 @@ describe("a dashboard where every time-series widget zooms the whole board", () 
     sparkline.getBoundingClientRect = (): DOMRect => {
       return { left: 0, width: width, top: 0, height: 20 } as DOMRect;
     };
+    const beforeDragMs: number = Date.now();
     fireEvent.mouseDown(sparkline, { clientX: 4, button: 0 });
     fireEvent.mouseMove(sparkline, { clientX: width - 4, buttons: 1 });
     fireEvent.mouseUp(sparkline, { clientX: width - 4 });
+    const afterDragMs: number = Date.now();
 
     /*
      * Its points run every five minutes from a minute into the hour, so
      * the drag covers the first of them through the end of the last one's
-     * bucket.
+     * bucket - except that a zoom never runs past now. The last bucket of a
+     * rolling hour is still filling, so when its end lies in the future the
+     * board stops at the moment of the zoom instead.
      */
     const points: Array<{ timestamp: Date }> = pointsAcross(
       new Date(hour[0]),
       new Date(hour[1]),
     );
-    const firstZoom: Window = [
-      points[0]!.timestamp.getTime(),
-      points[points.length - 1]!.timestamp.getTime() + 5 * MINUTE_MS,
-    ];
+    const lastBucketEndMs: number =
+      points[points.length - 1]!.timestamp.getTime() + 5 * MINUTE_MS;
+    let zoomedEndMs: number = lastBucketEndMs;
+    await waitFor(() => {
+      const zoomed: Window | undefined = lastWindowOf(EVERY_WIDGET[5]!);
+      expect(zoomed).toBeDefined();
+      expect(zoomed![0]).toBe(points[0]!.timestamp.getTime());
+      zoomedEndMs = zoomed![1];
+    });
+    if (lastBucketEndMs > afterDragMs) {
+      expect(zoomedEndMs).toBeGreaterThanOrEqual(beforeDragMs);
+      expect(zoomedEndMs).toBeLessThanOrEqual(afterDragMs);
+    } else {
+      expect(zoomedEndMs).toBe(lastBucketEndMs);
+    }
+    const firstZoom: Window = [points[0]!.timestamp.getTime(), zoomedEndMs];
     await expectEveryWidgetOn(firstZoom);
     expect(
       screen.getByRole("button", { name: "Reset zoom" }),

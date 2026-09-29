@@ -277,7 +277,7 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
 
   return (
     <TimeRangeZoomProvider zoom={ownZoom}>
-      <div className="group w-full">
+      <div className="group/zoomhint w-full">
         {isTimeAxis ? (
           <div className="flex h-6 items-center justify-end gap-2">
             <TimeRangeZoomHint revealOnHover={true} />

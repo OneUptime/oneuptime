@@ -394,7 +394,7 @@ describe("AI chat time-series chart: its own zoom", () => {
       screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeInTheDocument();
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
-      "Drag to zoom · double-click to reset",
+      "Double-click to reset",
     );
   });
 

@@ -640,8 +640,8 @@ describe("Log Chart widget: where the gesture is offered", () => {
       DASHBOARD_WIDGET_ZOOM_HINT_TEST_ID,
     );
     expect(hint).toHaveTextContent(/^Drag to zoom$/);
-    expect(hint).toHaveClass("group-hover:opacity-100");
-    expect(hint.closest(".group")).not.toBeNull();
+    expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
+    expect(hint.closest('[class~="group/zoomhint"]')).not.toBeNull();
 
     rendered.rerender(
       <DashboardLogChartComponentElement

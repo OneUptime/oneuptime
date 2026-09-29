@@ -336,7 +336,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="group flex h-full w-full flex-col">
+    <div className="group/zoomhint flex h-full w-full flex-col">
       {props.component.arguments.title && (
         <div className="mb-1 flex items-baseline gap-2 px-1">
           <div className="min-w-0 text-sm font-medium text-gray-700">
