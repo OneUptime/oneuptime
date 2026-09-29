@@ -800,11 +800,13 @@ describe("MarkdownEditor paste in the visual editor", () => {
   });
 
   /*
-   * insertText for plain words (as if typed -- Firefox's insertHTML turns
-   * the space before them into a non-breaking one), insertHTML for markup.
-   * Both go on the browser's undo stack.
+   * insertText for plain words, as if typed (Firefox's insertHTML turns the
+   * space before them into a non-breaking one), so they go on the browser's
+   * undo stack. Blocks in the middle of a line are never handed to
+   * insertHTML -- Chromium and Safari fold them into the line -- the editor
+   * splits the line and puts them in itself.
    */
-  test("asks the browser to insert words as text and blocks as HTML", () => {
+  test("asks the browser to insert words as text, and keeps blocks in a line to itself", () => {
     const onChange: jest.Mock = jest.fn();
     render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
     const stub: ExecCommandStub = stubExecCommand((): boolean => {
@@ -819,14 +821,9 @@ describe("MarkdownEditor paste in the visual editor", () => {
       clipboardData: clipboardWith({ "text/plain": "- a\n- b" }),
     });
 
-    expect(stub.mock.calls[0]).toEqual(["insertText", false, "big "]);
-    expect(stub.mock.calls[1]).toEqual([
-      "insertHTML",
-      false,
-      "<ul><li>a</li><li>b</li></ul>",
-    ]);
-    // The browser refused both here, so the editor inserted them itself.
-    expect(lastChange(onChange)).toContain("hello big");
+    expect(stub.mock.calls).toEqual([["insertText", false, "big "]]);
+    // The browser refused the words here, so the editor inserted them itself.
+    expect(lastChange(onChange)).toBe("hello big\n\n- a\n- b\n\nworld");
   });
 
   /*
@@ -915,6 +912,229 @@ describe("MarkdownEditor paste in the visual editor", () => {
     render(<MarkdownEditor initialValue="" />);
 
     expect(fireEvent.paste(editableOf(), {})).toBe(true);
+  });
+});
+
+/*
+ * document.execCommand as Chromium and Safari answer the editor's inserts.
+ * insertText types the text at the caret. insertHTML puts blocks where they
+ * belong on an empty line (or into the empty editor); anywhere else in a
+ * line it folds a leading code block or quote into that line as a <span> of
+ * its text, which the serializer reads as plain text -- the Code Block
+ * button saved "hellocode block" and a pasted fenced block
+ * "Run:npm install". (Lists, headings and tables it does split the line
+ * for; the stub refuses those, and the editor inserts them itself.)
+ */
+const stubBlinkExecCommand: () => ExecCommandStub = (): ExecCommandStub => {
+  return stubExecCommand((command: string, value?: string): boolean => {
+    const selection: Selection | null = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || value === undefined) {
+      return false;
+    }
+    const range: Range = selection.getRangeAt(0);
+    if (command === "insertText") {
+      range.deleteContents();
+      const text: Text = document.createTextNode(value);
+      range.insertNode(text);
+      range.setStartAfter(text);
+      range.collapse(true);
+      return true;
+    }
+    if (command !== "insertHTML") {
+      return false;
+    }
+    const template: HTMLTemplateElement = document.createElement("template");
+    template.innerHTML = value;
+    const editable: HTMLElement = editableOf();
+    if (range.startContainer === editable) {
+      range.insertNode(template.content);
+      return true;
+    }
+    let line: Node = range.startContainer;
+    while (line.parentNode && line.parentNode !== editable) {
+      line = line.parentNode;
+    }
+    if ((line.textContent || "") === "") {
+      editable.replaceChild(template.content, line);
+      return true;
+    }
+    const first: Element | null = template.content.firstElementChild;
+    if (!first || !["PRE", "BLOCKQUOTE"].includes(first.tagName)) {
+      return false;
+    }
+    const folded: HTMLSpanElement = document.createElement("span");
+    folded.setAttribute("style", "font-family: ui-monospace, monospace");
+    folded.textContent = first.textContent || "";
+    range.deleteContents();
+    range.insertNode(folded);
+    return true;
+  });
+};
+
+describe("MarkdownEditor blocks inserted into a line of text", () => {
+  test("the Code Block button puts its block after the line the caret ends", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello" onChange={onChange} />);
+    const stub: ExecCommandStub = stubBlinkExecCommand();
+    placeCaret("hello", 5);
+
+    fireEvent.click(screen.getByTitle("Code Block"));
+
+    expect(stub).not.toHaveBeenCalledWith(
+      "insertHTML",
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(lastChange(onChange)).toBe("hello\n\n```\ncode block\n```");
+  });
+
+  test("the Code Block button splits the line the caret is in the middle of", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("world", 0);
+
+    fireEvent.click(screen.getByTitle("Code Block"));
+
+    expect(lastChange(onChange)).toBe("hello\n\n```\ncode block\n```\n\nworld");
+  });
+
+  /*
+   * As in the markdown source, the placeholder is selected, so the code
+   * typed next replaces it inside the block -- rather than landing after the
+   * placeholder in one browser and below the block in another.
+   */
+  test("the Code Block button selects its placeholder", () => {
+    render(<MarkdownEditor initialValue="hello" />);
+    stubBlinkExecCommand();
+    placeCaret("hello", 5);
+
+    fireEvent.click(screen.getByTitle("Code Block"));
+
+    const selection: Selection = window.getSelection() as Selection;
+    expect(selection.toString()).toBe("code block");
+    expect(selection.anchorNode?.parentElement?.closest("pre")).not.toBeNull();
+  });
+
+  test("a fenced block pasted after a line stays a code block", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="Run:" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("Run:", 4);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "```\nnpm install\n```" }),
+    });
+
+    expect(lastChange(onChange)).toBe("Run:\n\n```\nnpm install\n```");
+  });
+
+  test("code copied from a web page, pasted mid-line, splits the line", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue="Run this then check" onChange={onChange} />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("then", 0);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<pre><code>npm install oneuptime</code></pre>",
+        "text/plain": "npm install oneuptime",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "Run this\n\n```\nnpm install oneuptime\n```\n\nthen check",
+    );
+  });
+
+  test("a quote pasted after a line keeps its first line in the quote", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue="Customer said:" onChange={onChange} />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("said:", 5);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "> it is down\n> again" }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "Customer said:\n\n> it is down\n> again",
+    );
+  });
+
+  // Every block goes in the same way, splitting the line at the caret.
+  test("the Table button splits the line too", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="hello world" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("world", 0);
+
+    fireEvent.click(screen.getByTitle("Table"));
+
+    expect(lastChange(onChange)).toMatch(
+      /^hello\n\n\| Header 1 \| Header 2 \| Header 3 \|\n[\s\S]*\| Cell 6 {3}\|\n\nworld$/,
+    );
+  });
+
+  /*
+   * On an empty line insertHTML puts the blocks where they belong in every
+   * browser, and there it is still used: it puts the insert on the
+   * browser's own undo stack.
+   */
+  test("hands a block on an empty line to the browser", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const stub: ExecCommandStub = stubBlinkExecCommand();
+    act(() => {
+      editableOf().focus();
+    });
+    const range: Range = document.createRange();
+    range.setStart(editableOf(), 0);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "```\nnpm install\n```" }),
+    });
+
+    expect(stub).toHaveBeenCalledWith(
+      "insertHTML",
+      false,
+      "<pre><code>npm install</code></pre>",
+    );
+    expect(lastChange(onChange)).toBe("```\nnpm install\n```");
+  });
+
+  test("the Code Block button on an empty line still selects its placeholder", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue={"Steps:\n\n"} onChange={onChange} />);
+    const stub: ExecCommandStub = stubBlinkExecCommand();
+    const blank: HTMLElement = document.createElement("p");
+    blank.appendChild(document.createElement("br"));
+    editableOf().appendChild(blank);
+    act(() => {
+      editableOf().focus();
+    });
+    const range: Range = document.createRange();
+    range.setStart(blank, 0);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    fireEvent.click(screen.getByTitle("Code Block"));
+
+    expect(stub).toHaveBeenCalledWith(
+      "insertHTML",
+      false,
+      "<pre><code>code block</code></pre><p><br></p>",
+    );
+    expect(lastChange(onChange)).toBe("Steps:\n\n```\ncode block\n```");
+    expect(window.getSelection()?.toString()).toBe("code block");
   });
 });
 

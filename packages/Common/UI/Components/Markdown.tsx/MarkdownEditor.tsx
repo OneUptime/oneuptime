@@ -22,6 +22,11 @@ import {
   toggleMarkdownList,
 } from "./MarkdownListEditing";
 import { clipboardToMarkdown } from "./MarkdownPaste";
+import {
+  caretAtEndOf,
+  insertBlocksAtCaret,
+  isCaretOnEmptyLine,
+} from "./MarkdownVisualEditing";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -323,46 +328,62 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         ? html
         : singleParagraphContents(html) ?? html;
     /*
-     * execCommand puts the insert on the browser's undo stack, and for
-     * blocks splits the paragraph the way the browser's own paste would.
-     * Plain words go in with insertText, as if typed. Words with formatting
-     * go in through the Range insert below instead: Chromium's and Firefox's
-     * insertHTML turn the spaces around an inline insert into non-breaking
-     * ones, which then ended up in the saved markdown. jsdom has no
-     * execCommand and a browser may refuse the command, so the Range insert
-     * is the fallback too.
+     * execCommand puts the insert on the browser's undo stack. Plain words
+     * go in with insertText, as if typed. Blocks go in with insertHTML only
+     * onto an empty line: anywhere else in a line, Chromium and Safari fold
+     * the first block into that line -- a <pre> became a monospace <span> of
+     * the paragraph, and a code block pasted after "Run:" saved as
+     * "Run:npm install" -- so there the line is split at the caret by hand
+     * and the blocks go in between its halves. Words with formatting go in
+     * by hand too: Chromium's and Firefox's insertHTML turn the spaces around
+     * an inline insert into non-breaking ones, which then ended up in the
+     * saved markdown. jsdom has no execCommand and a browser may refuse the
+     * command, so the insert by hand is the fallback as well.
      */
     const inline: boolean = contents !== html;
     const plainText: string | null = inline
       ? textOfMarkupFreeHtml(contents)
       : null;
-    if (
-      typeof document.execCommand === "function" &&
-      (!inline || plainText !== null)
-    ) {
+    let command: string | null = null;
+    if (plainText !== null) {
+      command = "insertText";
+    } else if (!inline && isCaretOnEmptyLine(editable, range)) {
+      command = "insertHTML";
+    }
+    if (command && typeof document.execCommand === "function") {
       try {
-        const inserted: boolean =
-          plainText === null
-            ? document.execCommand("insertHTML", false, contents)
-            : document.execCommand("insertText", false, plainText);
-        if (inserted) {
+        if (document.execCommand(command, false, plainText ?? contents)) {
           syncFromEditable();
           return;
         }
       } catch {
-        // Fall through to the Range insert.
+        // Fall through to the insert by hand.
       }
     }
     range.deleteContents();
     const fragment: DocumentFragment = range.createContextualFragment(contents);
-    const lastNode: ChildNode | null = fragment.lastChild;
-    range.insertNode(fragment);
-    if (lastNode) {
-      const newRange: Range = document.createRange();
-      newRange.setStartAfter(lastNode);
-      newRange.collapse(true);
+    let caret: Range | null = null;
+    if (inline) {
+      const lastNode: ChildNode | null = fragment.lastChild;
+      range.insertNode(fragment);
+      if (lastNode) {
+        caret = document.createRange();
+        caret.setStartAfter(lastNode);
+        caret.collapse(true);
+      }
+    } else {
+      const lastNode: Node | null = insertBlocksAtCaret(
+        editable,
+        range,
+        fragment,
+      );
+      if (lastNode) {
+        caret = caretAtEndOf(lastNode);
+      }
+    }
+    if (caret) {
       selection.removeAllRanges();
-      selection.addRange(newRange);
+      selection.addRange(caret);
     }
     syncFromEditable();
   };
@@ -1072,8 +1093,39 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The Code Block button. As in the markdown source, the new block's
+   * placeholder is selected, so what is typed next replaces it inside the
+   * block. Left to themselves, browsers put the caret at the end of the
+   * placeholder (Chromium, Safari) or on the line below the block (Firefox).
+   * The empty line after the block (a <br> keeps it a line a caret can sit
+   * on) is where writing carries on below it.
+   */
   const insertWysiwygCodeBlock: () => void = (): void => {
-    insertHtmlAtCursorInEditable("<pre><code>code block</code></pre><p></p>");
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return;
+    }
+    const existing: Set<Element> = new Set<Element>(
+      Array.from(editable.querySelectorAll("pre")),
+    );
+    insertHtmlAtCursorInEditable(
+      "<pre><code>code block</code></pre><p><br></p>",
+    );
+    const added: Array<Element> = Array.from(
+      editable.querySelectorAll("pre"),
+    ).filter((pre: Element): boolean => {
+      return !existing.has(pre);
+    });
+    const block: Element | undefined = added[added.length - 1];
+    const selection: Selection | null = window.getSelection();
+    if (!block || !selection) {
+      return;
+    }
+    const placeholder: Range = document.createRange();
+    placeholder.selectNodeContents(block.querySelector("code") || block);
+    selection.removeAllRanges();
+    selection.addRange(placeholder);
   };
 
   const insertWysiwygTable: () => void = (): void => {
@@ -1082,7 +1134,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       "<tbody>" +
       "<tr><td>Cell 1</td><td>Cell 2</td><td>Cell 3</td></tr>" +
       "<tr><td>Cell 4</td><td>Cell 5</td><td>Cell 6</td></tr>" +
-      "</tbody></table><p></p>";
+      "</tbody></table><p><br></p>";
     insertHtmlAtCursorInEditable(html);
   };
 
