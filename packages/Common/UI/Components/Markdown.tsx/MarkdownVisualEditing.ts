@@ -171,35 +171,35 @@ interface InsertionPoint {
 const RE_LEADING_SPACES: RegExp = /^[ \t\n\r\f]+/;
 const RE_TRAILING_SPACES: RegExp = /[ \t\n\r\f]+$/;
 
-// The first (or last) text node at or inside `root`, in document order.
-const edgeTextNode: (root: Node, last: boolean) => Text | null = (
-  root: Node,
-  last: boolean,
-): Text | null => {
-  if (root.nodeType === Node.TEXT_NODE) {
-    return root as Text;
-  }
-  const walker: TreeWalker = (
-    root.ownerDocument || (root as Document)
-  ).createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let found: Text | null = null;
-  let node: Node | null = walker.nextNode();
-  while (node) {
-    found = node as Text;
-    if (!last) {
-      break;
-    }
-    node = walker.nextNode();
-  }
-  return found;
-};
+// Elements that show something with nothing inside them.
+const SHOWN_EMPTY_TAGS: Set<string> = new Set<string>([
+  "br",
+  "img",
+  "input",
+  "hr",
+  "video",
+  "audio",
+  "iframe",
+]);
 
 /*
+ * Tidies one edge of a split: from `edge`, the node next to the split,
+ * forward into what follows it or back into what precedes it, up to the
+ * first text a browser shows -- within `container`, the line or item that
+ * was split.
+ *
  * The space the caret sat next to ends up at the edge of a line once the
  * line is split there. A browser does not show a space at a line's edge,
  * but the serializer would still write it -- "Run this \n\n```" -- so it
- * goes. A non-breaking space is shown, and stays. `tail` is the nodes the
- * second part starts with, in order.
+ * goes. A non-breaking space is shown, and stays.
+ *
+ * And text nodes and inline elements left with nothing in them go. With the
+ * caret at the very end of a bold word, a link or inline code, the split
+ * copies that element into the part after the caret with nothing in it; at
+ * the very start of one, it leaves the element where it was, emptied; and a
+ * selection pasted over can leave one emptied too. None of them shows, but
+ * the serializer wrote them: "**** then check", "`` now", and an empty link
+ * as its address, a second link the note never had.
  *
  * This runs once both parts are back in the editor. The part after the
  * caret can hold nodes the split moved out whole, and a change made to them
@@ -207,20 +207,56 @@ const edgeTextNode: (root: Node, last: boolean) => Text | null = (
  * against (MarkdownEditorHistory): with the caret between a bold word and
  * the space after it, Ctrl+Z refused to take the insert back.
  */
-const trimSpacesAtSplit: (head: Node | null, tail: Array<Node>) => void = (
-  head: Node | null,
-  tail: Array<Node>,
-): void => {
-  const headText: Text | null = head ? edgeTextNode(head, true) : null;
-  if (headText) {
-    headText.data = headText.data.replace(RE_TRAILING_SPACES, "");
-  }
-  for (const node of tail) {
-    const tailText: Text | null = edgeTextNode(node, false);
-    if (tailText) {
-      tailText.data = tailText.data.replace(RE_LEADING_SPACES, "");
+const tidySplitEdge: (
+  edge: Node | null,
+  container: Node,
+  forward: boolean,
+) => void = (edge: Node | null, container: Node, forward: boolean): void => {
+  const spaces: RegExp = forward ? RE_LEADING_SPACES : RE_TRAILING_SPACES;
+  let node: Node | null = edge;
+  while (node && node !== container && container.contains(node)) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text: Text = node as Text;
+      const trimmed: string = text.data.replace(spaces, "");
+      if (trimmed !== text.data) {
+        text.data = trimmed;
+      }
+      if (trimmed !== "") {
+        return;
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (isBlock(node) || SHOWN_EMPTY_TAGS.has(tagOf(node))) {
+        return;
+      }
+      const inner: ChildNode | null = forward
+        ? node.firstChild
+        : node.lastChild;
+      if (inner) {
+        node = inner;
+        continue;
+      }
+    } else if (node.nodeType !== Node.COMMENT_NODE) {
       return;
     }
+    /*
+     * `node` shows nothing. It goes -- a comment is only stepped over -- and
+     * so does each inline element that leaves with nothing in it, on the
+     * way back out to the next node along.
+     */
+    let next: Node | null = forward ? node.nextSibling : node.previousSibling;
+    let parent: Node | null = node.parentNode;
+    if (node.nodeType !== Node.COMMENT_NODE) {
+      parent?.removeChild(node);
+    }
+    while (!next && parent && parent !== container) {
+      next = forward ? parent.nextSibling : parent.previousSibling;
+      const grandparent: Node | null = parent.parentNode;
+      if (parent.childNodes.length === 0) {
+        grandparent?.removeChild(parent);
+      }
+      parent = grandparent;
+    }
+    node = next;
   }
 };
 
@@ -241,7 +277,6 @@ const splitLineAtCaret: (line: HTMLElement, range: Range) => InsertionPoint = (
   tail.setEnd(line, line.childNodes.length);
   const rest: DocumentFragment = tail.extractContents();
   let before: Node | null = line.nextSibling;
-  const secondHalf: Array<Node> = [];
   if (!holdsNothing(rest)) {
     /*
      * Into the editor first, then filled: filled while still out of it, the
@@ -251,10 +286,10 @@ const splitLineAtCaret: (line: HTMLElement, range: Range) => InsertionPoint = (
     const half: Node = line.cloneNode(false);
     parent.insertBefore(half, before);
     half.appendChild(rest);
+    tidySplitEdge(half.firstChild, half, true);
     before = half;
-    secondHalf.push(half);
   }
-  trimSpacesAtSplit(line, secondHalf);
+  tidySplitEdge(line.lastChild, line, false);
   if (holdsNothing(line)) {
     line.remove();
   }
@@ -290,15 +325,18 @@ const splitInlineRunAtCaret: (holder: Node, range: Range) => InsertionPoint = (
   tail.setEndAfter(runEnd);
   const rest: DocumentFragment = tail.extractContents();
   let before: Node | null = top.nextSibling;
-  const secondPart: Array<Node> = [];
   if (!holdsNothing(rest)) {
-    secondPart.push(...Array.from(rest.childNodes));
+    const secondPart: Array<Node> = Array.from(rest.childNodes);
     holder.insertBefore(rest, before);
-    before = secondPart[0] || before;
+    tidySplitEdge(secondPart[0] || null, holder, true);
+    before =
+      secondPart.find((node: Node): boolean => {
+        return node.parentNode === holder;
+      }) || before;
   }
-  trimSpacesAtSplit(top, secondPart);
-  if (holdsNothing(top) && !isBlock(top)) {
-    top.parentNode?.removeChild(top);
+  tidySplitEdge(top, holder, false);
+  if (top.parentNode === holder && holdsNothing(top) && !isBlock(top)) {
+    holder.removeChild(top);
   }
   return { parent: holder, before };
 };

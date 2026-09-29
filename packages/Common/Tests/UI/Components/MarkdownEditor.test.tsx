@@ -1612,6 +1612,88 @@ describe("MarkdownEditor blocks inserted into a line of text", () => {
     expect(lastChange(onChange)).toBe("**bold** *it*");
   });
 
+  /*
+   * A click on the last letter of a bold word, or the arrow keys, leave the
+   * caret inside the <strong> at its very end. The split copied the
+   * <strong> into the second half with nothing in it, which nothing showed
+   * and the note saved as "**** then check".
+   */
+  test("the Code Block button at the end of a bold word leaves no empty bold behind", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue="Run **this** then check"
+        onChange={onChange}
+      />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("this", 4);
+
+    fireEvent.click(screen.getByTitle("Code Block"));
+    expect(lastChange(onChange)).toBe(
+      "Run **this**\n\n```\ncode block\n```\n\nthen check",
+    );
+
+    fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+    expect(lastChange(onChange)).toBe("Run **this** then check");
+    fireEvent.keyDown(editableOf(), {
+      key: "z",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    expect(lastChange(onChange)).toBe(
+      "Run **this**\n\n```\ncode block\n```\n\nthen check",
+    );
+    fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+    expect(lastChange(onChange)).toBe("Run **this** then check");
+  });
+
+  // An empty link was saved as its address: a second link, visible nowhere.
+  test("paragraphs pasted after the last letter of a link leave no empty link behind", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue="See [docs](https://x.test/) now"
+        onChange={onChange}
+      />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("docs", 4);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<p>First.</p><p>Second.</p>",
+        "text/plain": "First.\n\nSecond.",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "See [docs](https://x.test/)\n\nFirst.\n\nSecond.\n\nnow",
+    );
+  });
+
+  // Pasted over, the bold word is emptied, and was saved as "****".
+  test("paragraphs pasted over a bold word leave no emptied bold behind", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue="Run **this** then check"
+        onChange={onChange}
+      />,
+    );
+    stubBlinkExecCommand();
+    selectText("this", 0, "this", 4);
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({
+        "text/html": "<p>First.</p><p>Second.</p>",
+        "text/plain": "First.\n\nSecond.",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("Run\n\nFirst.\n\nSecond.\n\nthen check");
+  });
+
   // Every block goes in the same way, splitting the line at the caret.
   test("the Table button splits the line too", () => {
     const onChange: jest.Mock = jest.fn();

@@ -225,6 +225,135 @@ describe("insertBlocksAtCaret", () => {
     );
   });
 
+  /*
+   * With the caret at the very end of a bold word -- where a click on its
+   * last letter, or the arrow keys, leave it -- the split copied the <strong>
+   * into the second half with nothing in it, which was saved as
+   * "**** then check".
+   */
+  it("leaves no empty copy of the bold word the caret is at the end of", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<p>Run <strong>this</strong> then check</p>",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "this", 4), fragmentOf(CODE_BLOCK));
+
+    expect(root.innerHTML).toBe(
+      `<p>Run <strong>this</strong></p>${CODE_BLOCK}<p>then check</p>`,
+    );
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "Run **this**\n\n```\ncode block\n```\n\nthen check",
+    );
+  });
+
+  // At the very start of one, the emptied <strong> stayed behind: "Run ****".
+  it("leaves no emptied bold word behind when the caret is at its start", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<p>Run <strong>this</strong> then check</p>",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "this", 0), fragmentOf(CODE_BLOCK));
+
+    expect(root.innerHTML).toBe(
+      `<p>Run</p>${CODE_BLOCK}<p><strong>this</strong> then check</p>`,
+    );
+  });
+
+  /*
+   * An empty link was saved as its address -- a second link, the note never
+   * had one -- and an empty strikethrough as "~~~~", which opens a code
+   * fence that runs to the end of the note.
+   */
+  it.each([
+    [
+      "link",
+      "See [docs](https://x.test/) now",
+      "docs",
+      "See [docs](https://x.test/)\n\n```\ncode block\n```\n\nnow",
+    ],
+    ["italic text", "a *b* c", "b", "a *b*\n\n```\ncode block\n```\n\nc"],
+    [
+      "inline code",
+      "Run `npm i` now",
+      "npm i",
+      "Run `npm i`\n\n```\ncode block\n```\n\nnow",
+    ],
+    [
+      "struck-through text",
+      "old ~~gone~~ new",
+      "gone",
+      "old ~~gone~~\n\n```\ncode block\n```\n\nnew",
+    ],
+  ])(
+    "leaves no empty copy of the %s the caret is at the end of",
+    (_what: string, markdown: string, word: string, expected: string) => {
+      const root: HTMLDivElement = mountMarkdown(markdown);
+
+      insertBlocksAtCaret(
+        root,
+        caretAt(root, word, word.length),
+        fragmentOf(CODE_BLOCK),
+      );
+
+      expect(htmlToMarkdown(root.innerHTML)).toBe(expected);
+    },
+  );
+
+  it("leaves no empty copy of a link the caret is at the start of", () => {
+    const root: HTMLDivElement = mountMarkdown(
+      "See [docs](https://x.test/) now",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "docs", 0), fragmentOf(CODE_BLOCK));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "See\n\n```\ncode block\n```\n\n[docs](https://x.test/) now",
+    );
+  });
+
+  it("leaves no empty copy of formatting nested in formatting", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<p>a <strong><em>b</em></strong> c</p>",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "b", 1), fragmentOf("<hr>"));
+
+    expect(root.innerHTML).toBe(
+      "<p>a <strong><em>b</em></strong></p><hr><p>c</p>",
+    );
+  });
+
+  it("leaves no empty copy of the bold word in a list item either", () => {
+    const root: HTMLDivElement = mountMarkdown("- run **this** now");
+
+    insertBlocksAtCaret(root, caretAt(root, "this", 4), fragmentOf(CODE_BLOCK));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- run **this**\n\n  ```\n  code block\n  ```\n\n  now",
+    );
+    expect(root.querySelectorAll("strong")).toHaveLength(1);
+  });
+
+  it("leaves no emptied bold word behind in a list item either", () => {
+    const root: HTMLDivElement = mountMarkdown("- run **this** now");
+
+    insertBlocksAtCaret(root, caretAt(root, "this", 0), fragmentOf(CODE_BLOCK));
+
+    expect(htmlToMarkdown(root.innerHTML)).toBe(
+      "- run\n\n  ```\n  code block\n  ```\n\n  **this** now",
+    );
+  });
+
+  // What a selection taking a whole bold word leaves at the caret.
+  it("drops formatting emptied before the split", () => {
+    const root: HTMLDivElement = mountHtml("<p>Run <strong></strong> then</p>");
+    const line: Element = root.firstElementChild as Element;
+
+    insertBlocksAtCaret(root, caretOn(line, 2), fragmentOf("<hr>"));
+
+    expect(root.innerHTML).toBe("<p>Run</p><hr><p>then</p>");
+  });
+
   it("keeps a block inserted in a list item inside that item", () => {
     const root: HTMLDivElement = mountMarkdown("- item one\n- item two");
 
