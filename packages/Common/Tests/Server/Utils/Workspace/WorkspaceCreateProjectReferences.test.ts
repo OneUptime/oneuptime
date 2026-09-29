@@ -53,7 +53,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * client, not by the form we rendered, so a user linked to one project could
  * send another project's monitors, labels, on-call policies or monitor status.
  * Teams then wrote currentMonitorStatusId onto every submitted monitor by id
- * alone, changing another project's monitors.
+ * alone, changing another project's monitors. Teams now hands the status to
+ * the incident or event (changeMonitorStatusToId), as Slack and the dashboard
+ * do, and the service applies it to the validated monitors.
  *
  * These tests run the real ProjectScopedReferenceValidator and only stub the
  * lookups it makes, so a foreign or unknown id has to be caught by the actual
@@ -183,24 +185,20 @@ function relationIds(
   });
 }
 
-function expectScopedStatusWrites(
-  updateOneBy: WriteSpies["updateOneBy"],
-  monitorIds: Array<string>,
+/*
+ * The chosen monitor status travels on the created incident or event, for
+ * IncidentService / ScheduledMaintenanceService to apply to its (validated)
+ * monitors with a status timeline entry. Nothing is written to a monitor
+ * directly any more.
+ */
+function expectStatusChangeHandedToService(
+  writes: WriteSpies,
+  created: Incident | ScheduledMaintenance,
   statusId: string,
 ): void {
-  expect(updateOneBy).toHaveBeenCalledTimes(monitorIds.length);
-
-  monitorIds.forEach((monitorId: string, index: number) => {
-    const args: Parameters<typeof MonitorService.updateOneBy>[0] =
-      updateOneBy.mock.calls[index]![0];
-
-    expect(args.query).toEqual({
-      _id: monitorId,
-      projectId: PROJECT_ID,
-    });
-    expect(String(args.data.currentMonitorStatusId)).toBe(statusId);
-    expect(args.props).toEqual({ isRoot: true });
-  });
+  expect(created.changeMonitorStatusToId?.toString()).toBe(statusId);
+  expect(writes.updateOneBy).not.toHaveBeenCalled();
+  expect(writes.updateOneById).not.toHaveBeenCalled();
 }
 
 function createTurnContext(): TurnContext {
@@ -365,7 +363,7 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
     });
   }
 
-  test("creates the incident and writes monitor status only within the linked project", async (): Promise<void> => {
+  test("creates the incident and hands the monitor status to IncidentService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof IncidentService.create> = jest
       .spyOn(IncidentService, "create")
@@ -395,12 +393,7 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
     expect(relationIds(incident.labels)).toEqual([OWN_LABEL_ID]);
     expect(relationIds(incident.onCallDutyPolicies)).toEqual([OWN_POLICY_ID]);
 
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID, SECOND_OWN_MONITOR_ID],
-      OWN_STATUS_ID,
-    );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
+    expectStatusChangeHandedToService(writes, incident, OWN_STATUS_ID);
     expect(sentMessages(turnContext)[0]).toContain(
       "Incident created successfully",
     );
@@ -420,9 +413,13 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
       expect(createSpy).not.toHaveBeenCalled();
       expect(writes.updateOneBy).not.toHaveBeenCalled();
       expect(writes.updateOneById).not.toHaveBeenCalled();
-      expect(sentMessages(turnContext)).toEqual([
-        "❌ Failed to create incident. Please try again.",
-      ]);
+
+      // One reply, and it says why: the validator's message is for the user.
+      const messages: Array<string> = sentMessages(turnContext);
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toMatch(
+        /^❌ Could not create the incident: This incident references records that (belong to a different project|do not exist)/,
+      );
     },
   );
 });
@@ -467,7 +464,7 @@ describe("Microsoft Teams card: submitNewIncident", (): void => {
       .mockResolvedValue(USER_ID);
   });
 
-  test("writes monitor status only within the linked project", async (): Promise<void> => {
+  test("hands the monitor status to IncidentService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof IncidentService.create> = jest
       .spyOn(IncidentService, "create")
@@ -481,12 +478,11 @@ describe("Microsoft Teams card: submitNewIncident", (): void => {
     });
 
     expect(createSpy).toHaveBeenCalledTimes(1);
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID],
+    expectStatusChangeHandedToService(
+      writes,
+      createSpy.mock.calls[0]![0].data,
       OWN_STATUS_ID,
     );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
   });
 
   test.each(INCIDENT_BAD_REFERENCES)(
@@ -543,7 +539,7 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
       .mockResolvedValue();
   });
 
-  test("creates the event and writes monitor status only within the linked project", async (): Promise<void> => {
+  test("creates the event and hands the monitor status to ScheduledMaintenanceService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
       jest
@@ -577,12 +573,11 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
     ]);
     expect(relationIds(scheduledMaintenance.labels)).toEqual([OWN_LABEL_ID]);
 
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID, SECOND_OWN_MONITOR_ID],
+    expectStatusChangeHandedToService(
+      writes,
+      scheduledMaintenance,
       OWN_STATUS_ID,
     );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
     expect(sentMessages(turnContext)[0]).toContain(
       "Scheduled maintenance created successfully",
     );
@@ -603,9 +598,13 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
       expect(createSpy).not.toHaveBeenCalled();
       expect(writes.updateOneBy).not.toHaveBeenCalled();
       expect(writes.updateOneById).not.toHaveBeenCalled();
-      expect(sentMessages(turnContext)).toEqual([
-        "❌ Failed to create scheduled maintenance. Please try again.",
-      ]);
+
+      // One reply, and it says why: the validator's message is for the user.
+      const messages: Array<string> = sentMessages(turnContext);
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toMatch(
+        /^❌ Could not create the scheduled maintenance event: This scheduled maintenance event references records that (belong to a different project|do not exist)/,
+      );
     },
   );
 });
@@ -651,7 +650,7 @@ describe("Microsoft Teams card: submitNewScheduledMaintenance", (): void => {
       .mockResolvedValue(USER_ID);
   });
 
-  test("writes monitor status only within the linked project", async (): Promise<void> => {
+  test("hands the monitor status to ScheduledMaintenanceService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
       jest
@@ -666,12 +665,11 @@ describe("Microsoft Teams card: submitNewScheduledMaintenance", (): void => {
     });
 
     expect(createSpy).toHaveBeenCalledTimes(1);
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID],
+    expectStatusChangeHandedToService(
+      writes,
+      createSpy.mock.calls[0]![0].data,
       OWN_STATUS_ID,
     );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
   });
 
   test.each(SCHEDULED_MAINTENANCE_BAD_REFERENCES)(

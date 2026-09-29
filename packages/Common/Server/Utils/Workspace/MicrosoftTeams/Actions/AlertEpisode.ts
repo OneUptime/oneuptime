@@ -23,6 +23,7 @@ import AlertStateService from "../../../../Services/AlertStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
+import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 
 export default class MicrosoftTeamsAlertEpisodeActions {
   @CaptureSpan()
@@ -430,10 +431,11 @@ export default class MicrosoftTeamsAlertEpisodeActions {
 
         await turnContext.sendActivity("✅ Note added successfully.");
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        // Hide the form card. A failed delete must not undo the reply above.
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -514,10 +516,11 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           "✅ On-call policy executed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        // Hide the form card. A failed delete must not undo the reply above.
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -594,10 +597,11 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           "✅ Alert episode state changed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        // Hide the form card. A failed delete must not undo the reply above.
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
