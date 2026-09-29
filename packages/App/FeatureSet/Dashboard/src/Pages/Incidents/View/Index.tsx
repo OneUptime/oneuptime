@@ -54,8 +54,11 @@ import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
-import TelemetrySnapshotWindowAlert from "../../../Components/Telemetry/TelemetrySnapshotWindowAlert";
 import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
+import useTelemetrySnapshotZoom, {
+  TelemetrySnapshotBadge,
+  TelemetrySnapshotZoom,
+} from "../../../Components/Telemetry/TelemetrySnapshotZoom";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
@@ -208,6 +211,17 @@ const IncidentView: FunctionComponent<
    */
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
+  /*
+   * A drag on the snapshot's metric chart zooms the whole snapshot, every
+   * tab of it; see TelemetrySnapshotZoom. Held by the page, above the tabs,
+   * so it outlives a switch to another tab and back, and the background
+   * refresh (which re-reads an equal window) keeps it.
+   */
+  const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
+    snapshotWindow: telemetrySnapshotWindow,
+    metricViewData: telemetryQuery?.metricViewData,
+    subjectKey: modelIdString,
+  });
   /*
    * "host.name = prod-01" when a grouped metric monitor opened this
    * incident for one series. Empty for whole-monitor incidents.
@@ -830,7 +844,10 @@ const IncidentView: FunctionComponent<
    */
   const snapshotWindowAlert: ReactElement | undefined =
     telemetrySnapshotWindow ? (
-      <TelemetrySnapshotWindowAlert window={telemetrySnapshotWindow} />
+      <TelemetrySnapshotBadge
+        window={telemetrySnapshotWindow}
+        zoom={snapshotZoom.zoom}
+      />
     ) : undefined;
 
   return (
@@ -956,7 +973,9 @@ const IncidentView: FunctionComponent<
           {telemetryQuery && (
             <TelemetryCompanionSignalTabs
               telemetryQuery={telemetryQuery}
-              snapshotWindow={telemetrySnapshotWindow}
+              // The companion tabs follow the zoom: they show the slice too.
+              snapshotWindow={snapshotZoom.window}
+              isSnapshotZoomed={snapshotZoom.isZoomed}
               snapshotWindowAlert={snapshotWindowAlert}
               eventNoun="incident"
               primarySignalElement={
@@ -1007,7 +1026,7 @@ const IncidentView: FunctionComponent<
                     )}
 
                   {telemetryQuery.telemetryType === TelemetryType.Metric &&
-                    telemetryQuery.metricViewData && (
+                    snapshotZoom.metricViewData && (
                       <Card
                         title={"Metrics"}
                         description={
@@ -1018,16 +1037,21 @@ const IncidentView: FunctionComponent<
                         rightElement={snapshotWindowAlert}
                       >
                         <MetricView
-                          data={telemetryQuery.metricViewData}
+                          data={snapshotZoom.metricViewData}
                           hideQueryElements={true}
                           chartCssClass="rounded-lg border border-gray-200 shadow-sm"
                           hideStartAndEndDate={true}
                           /*
-                           * The snapshot window is pinned and nobody's to
-                           * change (onChange is a no-op): a drag zooms this
-                           * chart alone, and a double-click (or Reset zoom)
-                           * returns to the snapshot window.
+                           * A drag zooms the whole snapshot, and a
+                           * double-click (or Reset zoom beside the badge)
+                           * returns it to the snapshot window. The window
+                           * itself is a record, nobody's to change
+                           * (onChange is a no-op). A snapshot that stored
+                           * no window has nothing to hand the other tabs:
+                           * its chart zooms itself alone.
                            */
+                          onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
+                          onTimeRangeReset={snapshotZoom.onTimeRangeReset}
                           localChartZoom={true}
                           onChange={(_data: MetricViewData) => {
                             // do nothing!

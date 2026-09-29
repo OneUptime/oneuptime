@@ -13,7 +13,10 @@ import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
 import MetricView from "../Metrics/MetricView";
 import TracesViewer from "../Traces/TracesViewer";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
-import TelemetrySnapshotWindowAlert from "./TelemetrySnapshotWindowAlert";
+import useTelemetrySnapshotZoom, {
+  TelemetrySnapshotBadge,
+  TelemetrySnapshotZoom,
+} from "./TelemetrySnapshotZoom";
 
 export interface ComponentProps {
   telemetryQuery: TelemetryQuery;
@@ -43,17 +46,31 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
   const { telemetryQuery, snapshotWindow, seriesSummary, eventNoun } = props;
 
   /*
+   * A drag on the metric chart zooms the whole snapshot, every tab of it;
+   * see TelemetrySnapshotZoom. Held here, above the tabs, so it outlives a
+   * switch to another tab and back. The episode page unmounts this panel
+   * while it loads another episode, so the zoom never follows the reader
+   * there.
+   */
+  const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
+    snapshotWindow: snapshotWindow,
+    metricViewData: telemetryQuery.metricViewData,
+  });
+
+  /*
    * Deliberately `undefined`, not an empty fragment — Card lays out
    * rightElement from presence.
    */
   const snapshotWindowAlert: ReactElement | undefined = snapshotWindow ? (
-    <TelemetrySnapshotWindowAlert window={snapshotWindow} />
+    <TelemetrySnapshotBadge window={snapshotWindow} zoom={snapshotZoom.zoom} />
   ) : undefined;
 
   return (
     <TelemetryCompanionSignalTabs
       telemetryQuery={telemetryQuery}
-      snapshotWindow={snapshotWindow}
+      // The companion tabs follow the zoom: they show the slice too.
+      snapshotWindow={snapshotZoom.window}
+      isSnapshotZoomed={snapshotZoom.isZoomed}
       snapshotWindowAlert={snapshotWindowAlert}
       eventNoun={eventNoun}
       primarySignalElement={
@@ -99,7 +116,7 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
             )}
 
           {telemetryQuery.telemetryType === TelemetryType.Metric &&
-            telemetryQuery.metricViewData && (
+            snapshotZoom.metricViewData && (
               <Card
                 title={"Metrics"}
                 description={
@@ -110,16 +127,20 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
                 rightElement={snapshotWindowAlert}
               >
                 <MetricView
-                  data={telemetryQuery.metricViewData}
+                  data={snapshotZoom.metricViewData}
                   hideQueryElements={true}
                   chartCssClass="rounded-lg border border-gray-200 shadow-sm"
                   hideStartAndEndDate={true}
                   /*
-                   * The snapshot window is pinned and nobody's to change
-                   * (onChange is a no-op): a drag zooms this chart alone,
-                   * and a double-click (or Reset zoom) returns to the
-                   * snapshot window.
+                   * A drag zooms the whole snapshot, and a double-click (or
+                   * Reset zoom beside the badge) returns it to the snapshot
+                   * window. The window itself is a record, nobody's to
+                   * change (onChange is a no-op). A snapshot that stored no
+                   * window has nothing to hand the other tabs: its chart
+                   * zooms itself alone.
                    */
+                  onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
+                  onTimeRangeReset={snapshotZoom.onTimeRangeReset}
                   localChartZoom={true}
                   onChange={(_data: MetricViewData) => {
                     // do nothing!

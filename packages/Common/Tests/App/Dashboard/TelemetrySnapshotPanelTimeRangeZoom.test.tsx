@@ -26,13 +26,15 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * card carries (TelemetryCompanionSignalTabs).
  *
  * - The primary metric chart is pinned to the window the monitor
- *   evaluated. It zooms itself alone and returns to that window.
- * - The companion tabs keep their own windows. The same card opens inside
- *   the investigation drawer, over pages whose charts zoom the page: none
- *   of that page's zoom may reach a companion (no "Reset zoom" in a
- *   companion's picker for the page behind the drawer, no retiming the
- *   page from the companion metric card), while the host's own primary
- *   element keeps whatever zoom the host gives it.
+ *   evaluated. A drag zooms the whole snapshot (the companion tabs are
+ *   handed the slice; see TelemetrySnapshotZoomAcrossTabs.test), and a
+ *   double-click or Reset zoom returns to that window.
+ * - A zoom made inside a companion tab stays the companion's own. The same
+ *   card opens inside the investigation drawer, over pages whose charts
+ *   zoom the page: none of that page's zoom may reach a companion (no
+ *   "Reset zoom" in a companion's picker for the page behind the drawer,
+ *   no retiming the page from the companion metric card), while the
+ *   host's own primary element keeps whatever zoom the host gives it.
  *
  * MetricView and EmbeddedMetricCard are real; MetricCharts is stood in for
  * by buttons that call exactly the handlers MetricView hands the charts.
