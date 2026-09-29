@@ -486,7 +486,7 @@ export default class IncidentForm extends BaseModel {
     type: TableColumnType.VeryLongText,
     title: "IP Allowlist",
     description:
-      "The networks the form can be opened and submitted from: one IP address or CIDR range per line. Leave it empty to allow any network.",
+      "The networks the form can be opened and submitted from: one IPv4 or IPv6 address, or one IPv4 range in CIDR notation (such as 10.0.0.0/8), per line. IPv6 ranges are not supported. Leave it empty to allow any network.",
     example: "203.0.113.0/24\n198.51.100.7",
   })
   @Column({

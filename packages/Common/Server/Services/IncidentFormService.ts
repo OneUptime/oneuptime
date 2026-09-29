@@ -46,9 +46,14 @@ import {
   isIncidentFormFieldSetting,
   validateIncidentFormSubmission,
 } from "../../Types/Incident/IncidentFormPublic";
+import {
+  getIncidentFormIpAllowlistEntries,
+  validateIncidentFormIpAllowlist,
+} from "../../Types/Incident/IncidentFormIpAllowlist";
 import IP from "../../Types/IP/IP";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import {
   neutralizeChatControlSequences,
@@ -81,6 +86,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  *     only ever replaced by another UUID;
  *   - its custom field questions and description question are settings the
  *     public page and the submit route understand;
+ *   - its IP allowlist holds only entries the public routes can match;
  *   - its severity and template belong to its own project, because every
  *     incident declared through it is created in that project with them;
  *   - it has a severity: a submission needs one, and "incidentSeverityId is
@@ -378,6 +384,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     this.assertValidCustomFieldSettings(createBy.data.customFieldSettings);
+    this.assertValidIpAllowlist(createBy.data.ipWhitelist);
 
     /*
      * Null is the column's default on create (DatabaseService drops a null
@@ -422,6 +429,10 @@ export class Service extends DatabaseService<Model> {
 
     if (data["customFieldSettings"] !== undefined) {
       this.assertValidCustomFieldSettings(data["customFieldSettings"]);
+    }
+
+    if (data["ipWhitelist"] !== undefined) {
+      this.assertValidIpAllowlist(data["ipWhitelist"]);
     }
 
     // NOT NULL in the database, so null is refused here rather than there.
@@ -665,19 +676,22 @@ export class Service extends DatabaseService<Model> {
    * there is an entry, a request whose address cannot be established is
    * refused, and so is one IP.isInWhitelist cannot read: this is an access
    * decision, so every doubt is a no.
+   *
+   * An address is compared in its canonical spelling on both sides
+   * (IpCanonicalUtil): IP.isInWhitelist matches an IPv6 entry letter for
+   * letter, and "2001:DB8::1" or "2001:db8:0:0:0:0:0:1" written in the list
+   * is the very address the proxy reports as "2001:db8::1". Nothing is
+   * rewritten in the stored list, and ranges are left to the matcher.
    */
   public isClientIpAllowed(data: {
     ipWhitelist: string | null | undefined;
     clientIp: string | undefined;
   }): boolean {
-    const entries: Array<string> = (data.ipWhitelist || "")
-      .split(/\r?\n/)
-      .map((entry: string): string => {
-        return entry.trim();
-      })
-      .filter((entry: string): boolean => {
-        return entry.length > 0;
-      });
+    const entries: Array<string> = getIncidentFormIpAllowlistEntries(
+      data.ipWhitelist,
+    ).map((entry: string): string => {
+      return IP.isIP(entry) ? IpCanonicalUtil.canonicalize(entry) : entry;
+    });
 
     if (entries.length === 0) {
       return true;
@@ -689,7 +703,9 @@ export class Service extends DatabaseService<Model> {
 
     try {
       return IP.isInWhitelist({
-        ip: data.clientIp,
+        ip: IP.isIP(data.clientIp)
+          ? IpCanonicalUtil.canonicalize(data.clientIp)
+          : data.clientIp,
         whitelist: entries,
       });
     } catch {
@@ -1168,6 +1184,19 @@ export class Service extends DatabaseService<Model> {
    */
   private assertValidCustomFieldSettings(value: unknown): void {
     const problem: string | null = validateCustomFieldCreateSettings(value);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * Every line an entry the public routes can match (see
+   * IncidentFormIpAllowlist): an entry that can never match would lock every
+   * reporter on that network out, silently. Refused, never rewritten.
+   */
+  private assertValidIpAllowlist(value: unknown): void {
+    const problem: string | null = validateIncidentFormIpAllowlist(value);
 
     if (problem) {
       throw new BadDataException(problem);

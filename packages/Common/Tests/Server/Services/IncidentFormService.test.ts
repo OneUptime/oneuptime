@@ -17,6 +17,7 @@ import ProjectScopedReferenceValidator, {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { validateCustomFieldCreateSettings } from "../../../Types/CustomField/CustomFieldCreateSettings";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { validateIncidentFormIpAllowlist } from "../../../Types/Incident/IncidentFormIpAllowlist";
 import { IncidentFormFieldSetting } from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -570,5 +571,90 @@ describe("IncidentFormService.onBeforeUpdate", () => {
     await expect(
       runBeforeUpdate({ customFieldSettings: [] }, { isRoot: true }),
     ).rejects.toThrow(BadDataException);
+  });
+});
+
+/*
+ * The public routes check the IP allowlist with a matcher that understands
+ * IPv4 and IPv6 addresses and IPv4 ranges only, and fail closed: an entry
+ * it cannot match locks that whole network out. So the list is refused at
+ * the write that would store it - naming the line - and never rewritten.
+ */
+describe("IncidentFormService: the IP allowlist", () => {
+  const ACCEPTED: Array<[string, string | null]> = [
+    ["a cleared list", null],
+    ["an empty list", ""],
+    ["only blank lines", "\n \r\n"],
+    [
+      "addresses and IPv4 ranges, with Windows line endings",
+      "10.0.0.0/8\r\n203.0.113.7\n2001:db8::1\n",
+    ],
+    ["an IPv6 address in another spelling", "2001:DB8:0:0:0:0:0:1"],
+  ];
+
+  const REFUSED: Array<[string, string]> = [
+    ["an IPv6 range", "2001:db8::/32"],
+    ["two addresses on one line", "10.0.0.1, 10.0.0.2"],
+    ["a word", "not-a-network"],
+    ["a prefix past 32", "203.0.113.0/99"],
+    ["a /0 range", "0.0.0.0/0"],
+  ];
+
+  test.each(ACCEPTED)(
+    "a create with %s stores it exactly as sent",
+    async (_label: string, ipWhitelist: string | null) => {
+      const created: IncidentForm = await runBeforeCreate(
+        newForm({ ipWhitelist: ipWhitelist as string }),
+      );
+
+      expect(created.ipWhitelist).toBe(ipWhitelist);
+    },
+  );
+
+  test.each(ACCEPTED)(
+    "an update with %s stores it exactly as sent",
+    async (_label: string, ipWhitelist: string | null) => {
+      expect(
+        (await runBeforeUpdate({ ipWhitelist: ipWhitelist }))["ipWhitelist"],
+      ).toBe(ipWhitelist);
+    },
+  );
+
+  test.each(REFUSED)(
+    "a create with %s is refused with the line it is on",
+    async (_label: string, entry: string) => {
+      const ipWhitelist: string = `203.0.113.7\n${entry}`;
+
+      await expect(
+        runBeforeCreate(newForm({ ipWhitelist: ipWhitelist })),
+      ).rejects.toThrow(
+        new BadDataException(validateIncidentFormIpAllowlist(ipWhitelist)!),
+      );
+      await expect(
+        runBeforeCreate(newForm({ ipWhitelist: ipWhitelist })),
+      ).rejects.toThrow(`line 2 (${JSON.stringify(entry)})`);
+      expect(validator).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(REFUSED)(
+    "an update with %s is refused with the line it is on",
+    async (_label: string, entry: string) => {
+      await expect(runBeforeUpdate({ ipWhitelist: entry })).rejects.toThrow(
+        `line 1 (${JSON.stringify(entry)})`,
+      );
+    },
+  );
+
+  test("a root update - a workflow's, or Terraform's through the API - is held to the same rule", async () => {
+    await expect(
+      runBeforeUpdate({ ipWhitelist: "2001:db8::/32" }, { isRoot: true }),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  test("an update that does not touch the list does not check it", async () => {
+    expect(await runBeforeUpdate({ name: "Renamed" })).toEqual({
+      name: "Renamed",
+    });
   });
 });
