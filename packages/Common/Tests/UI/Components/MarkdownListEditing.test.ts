@@ -485,6 +485,69 @@ describe("toggleMarkdownList", () => {
     );
   });
 
+  /*
+   * "1. " is a column wider than "- ". The nested items kept their indent,
+   * which left them outside their parent once it was numbered, and they
+   * were numbered on with it: "- a\n  - b\n- c" became "1. a\n  2. b\n3. c",
+   * one flat list to every parser.
+   */
+  it("numbers a nested list on its own, and keeps it nested", () => {
+    const text: string = "- a\n  - b\n- c";
+    const result: string = textOf(
+      toggleMarkdownList(text, 0, text.length, "ordered"),
+    );
+
+    expect(result).toBe("1. a\n   1. b\n2. c");
+    expect(listShape(result)).toBe("ol[li[ol[li]],li]");
+    expect(internalShape(result)).toBe("ol[li[ol[li]],li]");
+  });
+
+  it("numbers every level of a deeper list", () => {
+    const text: string = "- a\n  - b\n  - c\n    - d\n- e";
+    const result: string = textOf(
+      toggleMarkdownList(text, 0, text.length, "ordered"),
+    );
+
+    expect(result).toBe("1. a\n   1. b\n   2. c\n      1. d\n2. e");
+    expect(listShape(result)).toBe("ol[li[ol[li,li[ol[li]]]],li]");
+    expect(internalShape(result)).toBe("ol[li[ol[li,li[ol[li]]]],li]");
+  });
+
+  it("numbers a bullet list nested under a numbered item", () => {
+    const text: string = "1. a\n   - b\n2. c";
+
+    expect(textOf(toggleMarkdownList(text, 0, text.length, "ordered"))).toBe(
+      "1. a\n   1. b\n2. c",
+    );
+  });
+
+  // The button's commonest use: the caret on one item that has children.
+  it("carries what is nested in the caret's item along when it is numbered", () => {
+    expect(textOf(toggleMarkdownList("- a\n  - b", 0, 0, "ordered"))).toBe(
+      "1. a\n   - b",
+    );
+    const code: string = "- step\n  ```\n  run\n  ```";
+    expect(textOf(toggleMarkdownList(code, 0, 0, "ordered"))).toBe(
+      "1. step\n   ```\n   run\n   ```",
+    );
+  });
+
+  it("brings nested items back in when a numbered item becomes a bullet", () => {
+    const text: string = "1. a\n   - b";
+
+    expect(textOf(toggleMarkdownList(text, 0, text.length, "bullet"))).toBe(
+      "- a\n  - b",
+    );
+  });
+
+  it("numbers lines on from the numbered item they join", () => {
+    const text: string = "1. a\n- b\n- c";
+
+    expect(
+      textOf(toggleMarkdownList(text, at(text, "b"), text.length, "ordered")),
+    ).toBe("1. a\n2. b\n3. c");
+  });
+
   it("leaves blank lines in the selection alone", () => {
     const text: string = "a\n\nb";
 

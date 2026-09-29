@@ -886,6 +886,21 @@ describe("MarkdownEditor list buttons", () => {
       expect(textarea.value).toBe("1. a\n2. b\n3. c");
     });
 
+    // Nested items move to the numbered item's content column, and count from 1.
+    test("Numbered List keeps a nested list nested", () => {
+      const onChange: jest.Mock = jest.fn();
+      render(
+        <MarkdownEditor initialValue={"- a\n  - b\n- c"} onChange={onChange} />,
+      );
+      const textarea: HTMLTextAreaElement = switchToMarkdown();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      fireEvent.click(screen.getByTitle("Numbered List"));
+
+      expect(textarea.value).toBe("1. a\n   1. b\n2. c");
+      expect(lastChange(onChange)).toBe("1. a\n   1. b\n2. c");
+    });
+
     test("a second click takes the markers off again", () => {
       render(<MarkdownEditor initialValue={"a\nb"} />);
       const textarea: HTMLTextAreaElement = switchToMarkdown();

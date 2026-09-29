@@ -1201,14 +1201,45 @@ const stripSourceMarkers: (body: string) => string = (body: string): string => {
 };
 
 /*
+ * The number an item gets from the Numbered List button: 1 when it starts a
+ * list of its own, otherwise one on from the item before it at its level --
+ * counted per list, so a nested list starts again at 1 rather than carrying
+ * on from its parent's numbers.
+ */
+const nextListNumber: (
+  parsed: Array<SourceLine>,
+  index: number,
+  counters: Map<number, number>,
+) => number = (
+  parsed: Array<SourceLine>,
+  index: number,
+  counters: Map<number, number>,
+): number => {
+  const parent: number = parentItemOf(parsed, index);
+  const previous: number = previousSiblingOf(parsed, index);
+  let number: number = 1;
+  if (previous !== -1) {
+    const counted: number | undefined = counters.get(parent);
+    const previousItem: ListMarker | null = parsed[previous]?.item || null;
+    if (counted !== undefined) {
+      number = counted + 1;
+    } else if (previousItem && previousItem.ordered) {
+      number = previousItem.number + 1;
+    }
+  }
+  counters.set(parent, number);
+  return number;
+};
+
+/*
  * The Bullet List, Numbered List and Task List buttons in the source. Every
  * selected line that has text becomes an item of that kind: whatever marker
  * it already had -- another kind's, or a bullet character pasted as text --
  * is replaced rather than kept beside the new one, and numbered lines count
- * 1, 2, 3 down the selection. When every one of those lines already is an
- * item of that kind, the button takes the markers off instead. A task item
- * keeps its checked state. With no text selected, the caret's own line is
- * used even when it is empty, to start a list there. Returns null when
+ * 1, 2, 3 down each list they are in. When every one of those lines already
+ * is an item of that kind, the button takes the markers off instead. A task
+ * item keeps its checked state. With no text selected, the caret's own line
+ * is used even when it is empty, to start a list there. Returns null when
  * nothing changed (the caret is inside a fenced code block).
  */
 export const toggleMarkdownList: (
@@ -1260,31 +1291,57 @@ export const toggleMarkdownList: (
     },
   );
 
-  let number: number = 0;
-  targets.forEach((index: number, position: number): void => {
-    const entry: { indent: string; body: string } | undefined =
-      bodies[position];
-    if (!entry) {
-      return;
-    }
-    const content: string = stripSourceMarkers(entry.body);
-    if (allOfKind) {
-      lines[index] = `${entry.indent}${content}`;
-      return;
-    }
+  if (allOfKind) {
+    targets.forEach((index: number, position: number): void => {
+      const entry: { indent: string; body: string } | undefined =
+        bodies[position];
+      if (entry) {
+        lines[index] = `${entry.indent}${stripSourceMarkers(entry.body)}`;
+      }
+    });
+    return finishEdit(before, lines, selectionStart, selectionEnd);
+  }
+
+  /*
+   * Top down, re-reading the text after each line. "1. " is wider than
+   * "- ", so an item's text starts a column further in once it is numbered
+   * -- and the lines nested in it (its sub-items, a code block in it) move
+   * with it, or "  - b" under a new "1. a" would fall out of the item: the
+   * button turned "- a\n  - b\n- c" into the flat list "1. a\n  2. b\n3. c".
+   * A line's own indent can have moved with its parent before it is reached.
+   */
+  let current: Array<SourceLine> = parsed;
+  const counters: Map<number, number> = new Map<number, number>();
+  for (const index of targets) {
+    const line: string = lines[index] || "";
+    const indent: string = leadingWhitespace(line);
+    const body: string = line.slice(indent.length);
     let prefix: string;
     if (kind === "ordered") {
-      number++;
-      prefix = `${number}. `;
+      prefix = `${nextListNumber(current, index, counters)}. `;
     } else if (kind === "task") {
-      const task: RegExpMatchArray | null = entry.body.match(RE_TASK_LINE);
+      const task: RegExpMatchArray | null = body.match(RE_TASK_LINE);
       const checked: boolean = Boolean(task && (task[1] || "").trim());
       prefix = checked ? "- [x] " : "- [ ] ";
     } else {
       prefix = "- ";
     }
-    lines[index] = `${entry.indent}${prefix}${content}`;
-  });
+    lines[index] = `${indent}${prefix}${stripSourceMarkers(body)}`;
+    const item: ListMarker | null = current[index]?.item || null;
+    if (item) {
+      // A task's "[ ] " is the item's text, which starts after "- ".
+      const width: number = kind === "ordered" ? prefix.length : 2;
+      const shift: number = columnsOf(indent, 0) + width - item.contentColumn;
+      const end: number = blockEnd(current, index);
+      for (let j: number = index + 1; j < end && shift !== 0; j++) {
+        const nested: SourceLine = current[j] as SourceLine;
+        if (!nested.blank) {
+          lines[j] = withIndent(lines[j] || "", nested.indent + shift);
+        }
+      }
+    }
+    current = parseSourceLines(lines);
+  }
 
   return finishEdit(before, lines, selectionStart, selectionEnd);
 };
