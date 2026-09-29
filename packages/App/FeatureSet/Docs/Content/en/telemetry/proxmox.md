@@ -43,7 +43,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and Proxmox API details, installs to `/opt/oneuptime-proxmox-agent`, and starts the agent with Docker Compose.
+The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and Proxmox API details — and whether the [AI agent](#ai-agent) may apply fixes, and if so for a token of its own and the guests it must never change — installs to `/opt/oneuptime-proxmox-agent`, and starts the agent with Docker Compose.
 
 ## Alternative — Docker Compose
 
@@ -67,7 +67,7 @@ docker compose up -d
 
 That is it. Once the agent connects, your cluster will appear automatically in the **Proxmox** section of the OneUptime dashboard.
 
-If you already run prometheus-pve-exporter somewhere, drop `COMPOSE_PROFILES`, `PVE_API_TOKEN_ID`, and `PVE_API_TOKEN_SECRET` and point the agent at it instead:
+If you already run prometheus-pve-exporter somewhere, drop `COMPOSE_PROFILES` and point the agent at it instead. Keep `PVE_API_TOKEN_ID` and `PVE_API_TOKEN_SECRET` if you use the [AI agent](#ai-agent), which calls the API with that token; otherwise drop them too:
 
 ```bash
 PVE_EXPORTER_URL=your-exporter-host:9221
@@ -75,17 +75,17 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 
 ## Environment Variables
 
-| Variable                            | Required              | Description                                                                                                                                                                                                   |
-| ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`                     | Yes                   | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                          |
-| `PROXMOX_CLUSTER_NAME`              | Yes                   | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
-| `PVE_HOST`                          | Yes                   | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10`                                                                                                                       |
-| `PVE_EXPORTER_URL`                  | No                    | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
-| `PVE_API_TOKEN_ID`                  | Bundled exporter only | Full Proxmox API token id, e.g. `oneuptime@pve!exporter`                                                                                                                                                      |
-| `PVE_API_TOKEN_SECRET`              | Bundled exporter only | Proxmox API token secret                                                                                                                                                                                      |
-| `PVE_VERIFY_SSL`                    | No                    | Verify the Proxmox API TLS certificate. Defaults to `false` because Proxmox ships self-signed certificates                                                                                                    |
-| `COMPOSE_PROFILES`                  | No                    | Set to `pve-exporter` to start the bundled exporter container                                                                                                                                                 |
+| Variable                            | Required                     | Description                                                                                                                                                                                                   |
+| ----------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | Yes                          | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                          | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                          |
+| `PROXMOX_CLUSTER_NAME`              | Yes                          | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
+| `PVE_HOST`                          | Yes                          | Proxmox VE API host (any node of the cluster) the exporter and the AI agent query, e.g. `192.168.1.10`                                                                                                        |
+| `PVE_EXPORTER_URL`                  | No                           | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
+| `PVE_API_TOKEN_ID`                  | Bundled exporter or AI agent | Full Proxmox API token id, e.g. `oneuptime@pve!exporter`. The AI agent reads the API with it unless it has a token of its own (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`)         |
+| `PVE_API_TOKEN_SECRET`              | Bundled exporter or AI agent | Proxmox API token secret                                                                                                                                                                                      |
+| `PVE_VERIFY_SSL`                    | No                           | Verify the Proxmox API TLS certificate (the exporter and the AI agent). Defaults to `false` because Proxmox ships self-signed certificates                                                                    |
+| `COMPOSE_PROFILES`                  | No                           | Set to `pve-exporter` to start the bundled exporter container                                                                                                                                                 |
 
 ## Verify the Installation
 
@@ -273,6 +273,17 @@ Guest series (`qemu/*`, `lxc/*` ids) come from the exporter's cluster collector.
 ### Metrics land under the wrong cluster
 
 OneUptime auto-registers Proxmox clusters by `proxmox.cluster.name`, taken from the `PROXMOX_CLUSTER_NAME` environment variable. Changing it after the first telemetry batch creates a second cluster row rather than renaming the existing one.
+
+## AI agent
+
+The agent's `docker-compose.yml` also runs the **Proxmox AI agent**, `oneuptime-proxmox-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cluster it runs read-only `pvesh` commands through it — `pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20` — and, only if you allow it, applies fixes such as starting or rebooting a guest. There is no `pvesh` binary in it: each command becomes exactly one call to the Proxmox VE API at `PVE_HOST`, with a token from the same `.env`. It registers as the cluster named `PROXMOX_CLUSTER_NAME`, like the collector, and shows up on the cluster's **AI → AI agent** page in OneUptime.
+
+- **The API token is the hard limit.** Investigations use the collector's PVEAuditor token (`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`), which can read and nothing else; if you run your own exporter and have no token in `.env`, add one. Fixes need a token of the AI agent's own that may power guests (`VM.PowerMgmt`, for example the `PVEVMUser` role on `/vms` or on one pool), set as `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (VMIDs such as `100,101`, and `<node>/<service>` for node services) limits what a fix may touch. If the agent runs in a guest of this cluster, put that guest's VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`. Then choose on the AI agent page whether each fix needs a person's approval.
+- Like the exporter, it does not verify the API's self-signed certificate unless you set `PVE_VERIFY_SSL=true` or point `PVE_CA_FILE` at the cluster's CA (`/etc/pve/pve-root-ca.pem`, mounted into the container).
+- It runs as UID 1000 with no capabilities and a read-only root filesystem, and never reads `/access`, opens a console or changes configuration. Delete the `oneuptime-proxmox-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-clusters). The agent's README has the exact `pveum` commands for a fixes token.
 
 ## Next steps
 

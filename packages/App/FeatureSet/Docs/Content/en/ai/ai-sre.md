@@ -137,6 +137,10 @@ A cluster that does not run the chart — one that sends Kubernetes telemetry so
 
 Clusters set up with an earlier chart (`aiAccess.enabled=true`) reach OneUptime AI through the previous in-cluster Runner until the chart is upgraded. The upgrade replaces that Runner with the Kubernetes AI agent and carries its settings over — see [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent).
 
+## Infrastructure access — Docker, Podman, Swarm, Proxmox, VMware, Ceph, databases and hosts
+
+The same kind of access exists for the rest of your infrastructure. A resource AI agent (image `oneuptime/resource-ai-agent`) runs next to the collector of a Docker or Podman host, a Docker Swarm cluster, a Proxmox cluster, a VMware vCenter, a Ceph cluster or a database server — or on its own on a Linux host — and lets OneUptime AI run read-only commands there while it investigates (`docker logs`, `pvesh get`, `govc vm.info`, `ceph health detail`, a fixed catalog of database diagnostics, `systemctl status`, `journalctl`, …) and, only when you start the agent with `ONEUPTIME_AI_ALLOW_WRITES=true` and turn fixes on for the resource, apply fixes with the same four modes and the same three checks as a Kubernetes cluster. Each such resource has the same **AI agent** and **Insights** pages. See [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents) for how to install them, what each one may run, and its security model.
+
 ## Quiet mode
 
 An investigation that cannot determine a cause posts its analysis to the timeline **without** pinging your Slack/Teams workspace or the on-call. A non-answer should never page anyone — the analysis is there when someone looks, but nobody is woken up for "inconclusive". Confident analyses notify the workspace normally.
