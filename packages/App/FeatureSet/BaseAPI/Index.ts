@@ -94,6 +94,7 @@ import IncidentEpisodePublicNoteAPI from "Common/Server/API/IncidentEpisodePubli
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
+import IncidentFormAPI from "Common/Server/API/IncidentFormAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
 import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
 import AlertAPI from "Common/Server/API/AlertAPI";
@@ -624,9 +625,6 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
-import IncidentFormService, {
-  Service as IncidentFormServiceType,
-} from "Common/Server/Services/IncidentFormService";
 import IncidentFormSubmissionService, {
   Service as IncidentFormSubmissionServiceType,
 } from "Common/Server/Services/IncidentFormSubmissionService";
@@ -1293,7 +1291,6 @@ import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
-import IncidentForm from "Common/Models/DatabaseModels/IncidentForm";
 import IncidentFormSubmission from "Common/Models/DatabaseModels/IncidentFormSubmission";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
@@ -4097,12 +4094,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * IncidentForm's CRUD routes plus the public routes its shareable link
+     * uses (/incident-form/public/...), in one router - mounted once, since
+     * a second router for the model would shadow the first.
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentForm, IncidentFormServiceType>(
-        IncidentForm,
-        IncidentFormService,
-      ).getRouter(),
+      new IncidentFormAPI().getRouter(),
     );
 
     app.use(

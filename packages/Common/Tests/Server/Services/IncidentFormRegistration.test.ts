@@ -21,10 +21,13 @@ import path from "path";
  * - both CRUD routers must be mounted in the BaseAPI feature set, or the
  *   dashboard's Forms pages and the API get a 404.
  *
- * IncidentForm's router may be a plain BaseAPI or the IncidentFormAPI that
- * extends it with the public routes; either way it is mounted exactly once,
- * since a second router would shadow the first. The mounts are checked in
- * the source text, tolerant of the ways prettier may wrap them.
+ * IncidentForm's router is the IncidentFormAPI, which extends BaseAPI with
+ * the public routes every form link uses (/incident-form/public/...). A
+ * plain BaseAPI in its place would compile and keep the dashboard working
+ * while every shared link answered 404, so only IncidentFormAPI passes. It
+ * is mounted exactly once, since a second router would shadow the first.
+ * The mounts are checked in the source text, tolerant of the ways prettier
+ * may wrap them.
  */
 
 const BASE_API_INDEX: string = path.join(
@@ -80,13 +83,16 @@ describe("IncidentForm and IncidentFormSubmission registration", () => {
     },
   );
 
-  test("BaseAPI imports both models", () => {
+  /*
+   * IncidentForm itself is imported by IncidentFormAPI, which the index
+   * mounts; an unused model import in the index would fail App's
+   * noUnusedLocals.
+   */
+  test("BaseAPI imports IncidentFormSubmission and the IncidentFormAPI that serves IncidentForm", () => {
     const source: string = dense(readBaseApiSource());
 
     expect(source).toContain(
-      dense(
-        'import IncidentForm from "Common/Models/DatabaseModels/IncidentForm";',
-      ),
+      dense('import IncidentFormAPI from "Common/Server/API/IncidentFormAPI";'),
     );
     expect(source).toContain(
       dense(
@@ -116,7 +122,7 @@ describe("IncidentForm and IncidentFormSubmission registration", () => {
     );
   });
 
-  test("BaseAPI mounts IncidentForm's router under /api exactly once, as a BaseAPI or as IncidentFormAPI", () => {
+  test("BaseAPI mounts IncidentForm's router under /api exactly once, as the IncidentFormAPI with the public routes", () => {
     const source: string = readBaseApiSource();
 
     const plainMount: RegExp = new RegExp(
@@ -134,21 +140,12 @@ describe("IncidentForm and IncidentFormSubmission registration", () => {
     const plainMounts: number = count(source.match(plainMount));
     const customMounts: number = count(source.match(customMount));
 
-    expect(plainMounts + customMounts).toBe(1);
+    expect(customMounts).toBe(1);
+    expect(plainMounts).toBe(0);
 
     // No other router for the model hides behind a different spelling.
-    expect(count(source.match(/new BaseAPI<\s*IncidentForm,/g))).toBe(
-      plainMounts,
-    );
-    expect(count(source.match(/new IncidentFormAPI\(/g))).toBe(customMounts);
-
-    if (plainMounts === 1) {
-      expect(dense(source)).toContain(
-        dense(`import IncidentFormService, {
-  Service as IncidentFormServiceType,
-} from "Common/Server/Services/IncidentFormService";`),
-      );
-    }
+    expect(count(source.match(/new BaseAPI<\s*IncidentForm,/g))).toBe(0);
+    expect(count(source.match(/new IncidentFormAPI\(/g))).toBe(1);
   });
 
   test("the routers serve the models' own CRUD paths", () => {
