@@ -14,6 +14,7 @@ import path from "path";
  * Dashboard:
  *
  *   MetricViewOwnZoomResetPlacement.test.tsx       MetricView's own Reset
+ *   MetricViewFirstResultLands.test.tsx            its first results
  *   MetricChartsBucketInspectorDoubleClick.test.tsx the bucket inspector
  *   ChartCardZoomAffordances.test.tsx               ChartCard
  */
@@ -130,6 +131,24 @@ describe("MetricView's own Reset zoom (Components/Metrics/MetricView.tsx)", () =
     expect(floating).toContain(
       ') : isMetricResultsLoading ? ( getRefreshingIndicator( "absolute right-2 top-2 z-10 bg-white/90 py-1", ) ) : ( <></> )}',
     );
+  });
+});
+
+describe("MetricView's first results (Components/Metrics/MetricView.tsx)", () => {
+  const code: string = readCode("Components/Metrics/MetricView.tsx");
+
+  test("the fetch once the catalog is in runs only if none has started: it reads the first render's data", () => {
+    const loadMetricTypes: string = between(
+      code,
+      "const loadMetricTypes: PromiseVoidFunction",
+      "const loadTelemetryAttributesForMetric",
+    );
+
+    expect(loadMetricTypes).toContain(
+      "if (props.data && fetchSeqRef.current === 0) { fetchAggregatedResults().catch(",
+    );
+    // Every fetch claims a token first, so a started one is always seen.
+    expect(code).toContain("const fetchSeq: number = ++fetchSeqRef.current;");
   });
 });
 

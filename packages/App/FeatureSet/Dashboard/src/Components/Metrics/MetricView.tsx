@@ -528,7 +528,17 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
         }
       }
 
-      if (props.data) {
+      /*
+       * The first results - unless the fetch effect below has already
+       * asked for them, as it does whenever the view has a window it has
+       * not fetched (a host that sets its window after mount, like the
+       * monitor step forms, gets there before the metric types are in).
+       * This call reads the first render's data: fetching here too
+       * superseded that fetch with a stale one, and with no window yet it
+       * dropped the only result the view was waiting for, leaving the
+       * charts empty until the next fetch.
+       */
+      if (props.data && fetchSeqRef.current === 0) {
         fetchAggregatedResults().catch((err: Error) => {
           setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
         });
