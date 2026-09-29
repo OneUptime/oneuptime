@@ -696,9 +696,8 @@ describe("an opener re-rendering with an equal view keeps the drawer as it is", 
   test("the metric card, the companion tabs and the event markers are handed the same queries", async () => {
     const rendered: ReturnType<typeof render> = await renderDrawer();
     const cardQueries: unknown = lastProps(embeddedCardMock)["queryConfigs"];
-    const companionQuery: unknown = lastProps(companionTabsMock)[
-      "telemetryQuery"
-    ];
+    const companionQuery: unknown =
+      lastProps(companionTabsMock)["telemetryQuery"];
     const markerQueries: unknown = (
       lastProps(eventOverlayMock) as { queryConfigs: unknown }
     ).queryConfigs;
@@ -711,9 +710,7 @@ describe("an opener re-rendering with an equal view keeps the drawer as it is", 
      * event markers refetch on a new one.
      */
     expect(lastProps(embeddedCardMock)["queryConfigs"]).toBe(cardQueries);
-    expect(lastProps(companionTabsMock)["telemetryQuery"]).toBe(
-      companionQuery,
-    );
+    expect(lastProps(companionTabsMock)["telemetryQuery"]).toBe(companionQuery);
     expect(
       (lastProps(eventOverlayMock) as { queryConfigs: unknown }).queryConfigs,
     ).toBe(markerQueries);

@@ -263,7 +263,10 @@ function exception(): TelemetryException {
 async function renderPage(): Promise<void> {
   await act(async () => {
     render(
-      <ExceptionOccurrences exception={exception()} fingerprint={FINGERPRINT} />,
+      <ExceptionOccurrences
+        exception={exception()}
+        fingerprint={FINGERPRINT}
+      />,
     );
   });
 

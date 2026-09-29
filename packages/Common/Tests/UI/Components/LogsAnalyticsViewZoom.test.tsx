@@ -71,11 +71,13 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 
 jest.mock("recharts", () => {
   const react: typeof React = jest.requireActual("react") as typeof React;
-  const actual: Record<string, React.ComponentType<Record<string, unknown>>> =
-    jest.requireActual("recharts") as Record<
-      string,
-      React.ComponentType<Record<string, unknown>>
-    >;
+  const actual: Record<
+    string,
+    React.ComponentType<Record<string, unknown>>
+  > = jest.requireActual("recharts") as Record<
+    string,
+    React.ComponentType<Record<string, unknown>>
+  >;
 
   interface StubRow {
     time: string;

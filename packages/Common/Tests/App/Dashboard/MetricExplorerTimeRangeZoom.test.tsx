@@ -1141,9 +1141,7 @@ describe("the investigation drawer is a snapshot of the view it was opened on", 
     const second: DrawerRender = latestDrawer();
     expect(second.window).not.toBe(first.window);
     expect(second.window.endValue.getTime()).toBeGreaterThan(NOW.getTime());
-    expect(second.window.endValue.getTime()).toBe(
-      lastFetchedChartWindow()[1],
-    );
+    expect(second.window.endValue.getTime()).toBe(lastFetchedChartWindow()[1]);
   });
 
   test("a zoom made on the explorer behind an open drawer does not move the drawer", async () => {
@@ -1155,8 +1153,10 @@ describe("the investigation drawer is a snapshot of the view it was opened on", 
 
     expectZoomedTo(ZOOM_START, ZOOM_END);
     expect(latestDrawer().window).toBe(opened.window);
-    expect(drawerRenders.every((render: DrawerRender) => {
-      return render.pageZoom === null;
-    })).toBe(true);
+    expect(
+      drawerRenders.every((render: DrawerRender) => {
+        return render.pageZoom === null;
+      }),
+    ).toBe(true);
   });
 });

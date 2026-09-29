@@ -494,7 +494,9 @@ describe("Metric Explorer auto-refresh and the investigation drawer", () => {
   test("the drawer's card keeps the queries it was opened with across ticks", async () => {
     await renderAndInvestigate();
     const queries: Array<MetricQueryConfigData> = (
-      embeddedCardMock.mock.calls[embeddedCardMock.mock.calls.length - 1]![0] as {
+      embeddedCardMock.mock.calls[
+        embeddedCardMock.mock.calls.length - 1
+      ]![0] as {
         queryConfigs: Array<MetricQueryConfigData>;
       }
     ).queryConfigs;

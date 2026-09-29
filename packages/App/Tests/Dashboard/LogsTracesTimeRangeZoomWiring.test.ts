@@ -21,6 +21,7 @@ import path from "path";
  *   Common/Tests/App/Dashboard/ExceptionOccurrenceTrendZoom.test.tsx
  *   Common/Tests/App/Dashboard/InvestigationDrawerZoom.test.tsx
  *   Common/Tests/App/Dashboard/TraceTimelineMinimapZoom.test.tsx
+ *   Common/Tests/App/Dashboard/RechartsHostsPlotCursor.test.tsx
  */
 
 const PACKAGES_ROOT: string = path.join(__dirname, "..", "..", "..");
@@ -248,6 +249,38 @@ describe("Logs > Insights zooms as one page", () => {
       "onPageTimeRangeSelect?.( firstBucketStart, new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)), );",
     );
   });
+
+  test("the drawer drops a correlation for a window the page has left", () => {
+    const source: string = read(ERROR_PATTERN_DETAIL);
+
+    /*
+     * The drawer stays open through a zoom and its reset, each of which
+     * asks for the correlation again: only the latest request may show its
+     * answer or its error, or take the loader down.
+     */
+    expect(source).toContain(
+      "const requestSequence: number = ++requestSequenceRef.current;",
+    );
+    expect(source).toContain(
+      "if (isStale()) { return; } setCorrelation(result);",
+    );
+    expect(source).toContain(
+      "} catch (err) { if (isStale()) { return; } setError(API.getFriendlyMessage(err as Error));",
+    );
+    expect(source).toContain(
+      "} finally { if (!isStale()) { setIsLoading(false); } }",
+    );
+  });
+
+  test("the drawer carries its own Reset zoom beside its timeline's hint", () => {
+    /*
+     * The wide drawer covers the page's picker and the Reset zoom beside
+     * it, and a zoom made from the drawer keeps the drawer open.
+     */
+    expect(read(ERROR_PATTERN_DETAIL)).toContain(
+      "<TimeRangeZoomHint /> <ResetTimeRangeZoomButton /> </div>",
+    );
+  });
 });
 
 // The options object of the one useHistogramRangeSelection call in a source.
@@ -307,7 +340,7 @@ describe("the crosshair is set on the recharts root, only where a drag zooms", (
     ["the traces Analytics timeseries", TRACES_ANALYTICS_VIEW, 3, "canZoom"],
     ["the error drawer's timeline", ERROR_PATTERN_DETAIL, 1, "pageZoom"],
   ])(
-    "%s spreads it onto all %s of its chart roots",
+    "%s spreads it onto every one of its chart roots",
     (_name: string, file: string, roots: number, condition: string) => {
       const source: string = read(file);
 
@@ -345,7 +378,7 @@ describe("Logs Analytics drops superseded responses", () => {
     );
     // Before any setter: a stale group-by must not relabel newer rows.
     expect(source).toContain(
-      "if (isStale()) { return; } const data: unknown = response.data[\"data\"] || []; setResultGroupByFields(requestGroupBy);",
+      'if (isStale()) { return; } const data: unknown = response.data["data"] || []; setResultGroupByFields(requestGroupBy);',
     );
     expect(source).toContain("} catch { if (isStale()) { return; }");
     expect(source).toContain(

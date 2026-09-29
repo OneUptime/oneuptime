@@ -304,7 +304,8 @@ describe("buildExceptionTrendZoomRequest", () => {
           zoomWindow: new InBetween<Date>(new Date(startMs), new Date(endMs)),
           now: NOW,
         });
-        const bucketMs: number = Number(zoomed!["bucketSizeInMinutes"]) * MINUTE;
+        const bucketMs: number =
+          Number(zoomed!["bucketSizeInMinutes"]) * MINUTE;
 
         const rows: Array<ExceptionTrendRow> = buildExceptionTrendRows(
           [],

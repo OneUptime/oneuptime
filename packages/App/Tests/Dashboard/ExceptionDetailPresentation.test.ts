@@ -344,9 +344,9 @@ describe("buildExceptionTrendRows", () => {
         expect(row.timeMs).toBeLessThan(endMs);
       }
       // ...and still the bucket the end falls in, whenever one starts before it.
-      expect(rows[rows.length - 1]!.timeMs + 30 * MINUTE).toBeGreaterThanOrEqual(
-        endMs,
-      );
+      expect(
+        rows[rows.length - 1]!.timeMs + 30 * MINUTE,
+      ).toBeGreaterThanOrEqual(endMs);
     }
   });
 
