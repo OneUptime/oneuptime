@@ -273,26 +273,40 @@ describe("what the page asks", () => {
     ).toContain("customField.allowImageUpload = false;");
   });
 
-  test("every Markdown box says what to type in the reporter's language", () => {
-    // The editor's own words, looked up by the page as a flat key...
-    expect(pageSource).toContain(
-      'const MARKDOWN_PLACEHOLDER: string = "Type your content here...";',
+  /*
+   * The editor looks up what an empty box says itself, in the page's
+   * language, and says it for each of its two modes. A placeholder handed
+   * to it replaces both - the source box would say "Type your content
+   * here..." too - so the page hands none, to the description or to any
+   * Markdown question.
+   */
+  test("every Markdown box keeps the editor's own words, in both its modes", () => {
+    const descriptionField: string = sliceBetween(
+      pageSource,
+      "const descriptionField: Field<JSONObject> = {",
+      "};",
     );
-    expect(pageSource).toMatch(
-      /const markdownPlaceholder: string = t\( ?MARKDOWN_PLACEHOLDER, FLAT_KEY_OPTIONS,? ?\);/,
+
+    expect(descriptionField).toContain(
+      "fieldType: FormFieldSchemaType.Markdown,",
     );
-    // ...and handed to the description and to every Markdown question.
-    expect(
-      countOccurrences(pageSource, "placeholder: markdownPlaceholder,"),
-    ).toBe(1);
+    expect(descriptionField).not.toContain("placeholder");
     expect(
       sliceBetween(
         pageSource,
         "if (customField.fieldType === FormFieldSchemaType.Markdown) {",
         "}",
       ),
-    ).toContain("customField.placeholder = markdownPlaceholder;");
-    expect(MARKDOWN_EDITOR_SENTENCES).toContain("Type your content here...");
+    ).not.toContain("placeholder");
+    expect(pageSource).not.toContain("markdownPlaceholder");
+    expect(pageSource).not.toContain('"Type your content here..."');
+    expect(pageSource).not.toContain('"Type your markdown here..."');
+    // The words themselves are the editor's, and every Accounts locale has them.
+    expect(MARKDOWN_EDITOR_SENTENCES).toEqual([
+      "Type your content here...",
+      "Type your markdown here...",
+      "Formatting help",
+    ]);
   });
 
   test("custom fields are built by the shared builder, required where the form says", () => {
@@ -363,7 +377,7 @@ const SHARED_FORM_SENTENCES: Array<string> = [
 /*
  * The Markdown editor's own words on the page - what an empty box says, in
  * each of its two modes, and the help under it. Flat keys, as the editor
- * looks them up; the page hands the first to every Markdown box itself.
+ * looks all three up itself, in the page's locale.
  */
 const MARKDOWN_EDITOR_SENTENCES: Array<string> = [
   "Type your content here...",

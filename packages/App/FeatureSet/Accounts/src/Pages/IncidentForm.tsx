@@ -92,14 +92,6 @@ const FLAT_KEY_OPTIONS: { keySeparator: false; nsSeparator: false } = {
   nsSeparator: false,
 };
 
-/*
- * What an empty Markdown box says - the editor's own words, as a flat key.
- * Looked up here and handed to the Description and to every Markdown
- * question, so a reporter reading the page in their language does not find
- * the one English sentence inside the box.
- */
-const MARKDOWN_PLACEHOLDER: string = "Type your content here...";
-
 type RequireTextFunction = (
   fieldKey: string,
   label: string,
@@ -352,10 +344,6 @@ const IncidentFormPage: () => JSX.Element = () => {
     const titleLabel: string = t("incidentForm.title");
     const descriptionLabel: string = t("incidentForm.description");
     const reporterNameLabel: string = t("incidentForm.reporterName");
-    const markdownPlaceholder: string = t(
-      MARKDOWN_PLACEHOLDER,
-      FLAT_KEY_OPTIONS,
-    );
 
     const formFields: Fields<JSONObject> = [
       {
@@ -381,9 +369,12 @@ const IncidentFormPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Markdown,
         required: isRequired,
         validation: { maxLength: INCIDENT_FORM_DESCRIPTION_MAX_LENGTH },
-        // Uploading an image needs a signed-in user; a reporter may be none.
+        /*
+         * Uploading an image needs a signed-in user; a reporter may be none.
+         * No placeholder: the editor looks up its own, in the page's
+         * language, for each of its two modes.
+         */
         allowImageUpload: false,
-        placeholder: markdownPlaceholder,
         dataTestId: "incident-form-description",
         spanFullRow: true,
       };
@@ -446,9 +437,9 @@ const IncidentFormPage: () => JSX.Element = () => {
           spanFullRow: true,
         };
 
+        // As for the description, and with the editor's own placeholders.
         if (customField.fieldType === FormFieldSchemaType.Markdown) {
           customField.allowImageUpload = false;
-          customField.placeholder = markdownPlaceholder;
         }
 
         if (
