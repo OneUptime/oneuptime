@@ -22,6 +22,7 @@ import AnalyticsDatabaseService, {
   DbJSONResponse,
   Results,
 } from "./AnalyticsDatabaseService";
+import { createHash } from "crypto";
 
 type TelemetrySource = {
   service: AnalyticsDatabaseService<any>;
@@ -39,6 +40,16 @@ type TelemetrySource = {
 type TelemetryAttributesCacheEntry = {
   attributes: Array<string>;
   refreshedAt: Date;
+};
+
+type TelemetryAttributeValuesCacheEntry = {
+  values: Array<string>;
+  /*
+   * The query read to the end of the window and found fewer rows than its
+   * LIMIT, so `values` is every value the key had there and a search inside
+   * the key can filter it instead of scanning again.
+   */
+  isComplete: boolean;
 };
 
 export class TelemetryAttributeService {
@@ -422,6 +433,26 @@ export class TelemetryAttributeService {
   }
 
   private static readonly ATTRIBUTE_VALUES_LIMIT: number = 100;
+  private static readonly ATTRIBUTE_VALUES_MAX_EXECUTION_TIME_IN_SECONDS: number = 45;
+  private static readonly ATTRIBUTE_VALUES_CACHE_NAMESPACE: string =
+    "telemetry-attribute-values";
+  /*
+   * A key on most rows (deployment.environment, service.name) has few
+   * values yet costs a scan of the whole window, seconds on a busy project,
+   * and the value picker asks for the same key again each time it opens.
+   * Five minutes absorbs those repeats; a value first seen within them may
+   * be missing from the suggestions until the entry expires.
+   */
+  private static readonly ATTRIBUTE_VALUES_CACHE_TTL_IN_SECONDS: number =
+    5 * 60;
+  /*
+   * Loads running in this process, by cache key, so identical requests that
+   * arrive together share one query rather than each scanning the window.
+   */
+  private static readonly attributeValuesLoads: Map<
+    string,
+    Promise<TelemetryAttributeValuesCacheEntry>
+  > = new Map();
 
   @CaptureSpan()
   public async fetchAttributeValues(data: {
@@ -440,12 +471,223 @@ export class TelemetryAttributeService {
       return [];
     }
 
-    return TelemetryAttributeService.fetchAttributeValuesFromDatabase({
-      projectId: data.projectId,
-      source,
-      metricName: data.metricName,
-      attributeKey: data.attributeKey,
-      searchText: data.searchText,
+    const searchText: string = data.searchText?.trim() || "";
+
+    type FetchFromDatabaseFunction = (
+      text: string,
+    ) => Promise<TelemetryAttributeValuesCacheEntry>;
+
+    const fetchFromDatabase: FetchFromDatabaseFunction = (
+      text: string,
+    ): Promise<TelemetryAttributeValuesCacheEntry> => {
+      return TelemetryAttributeService.fetchAttributeValuesFromDatabase({
+        projectId: data.projectId,
+        source,
+        metricName: data.metricName,
+        attributeKey: data.attributeKey,
+        searchText: text,
+      });
+    };
+
+    // Mutable metrics are few, cheap to read and change in place.
+    if (source.isMutableMetricSource) {
+      return (await fetchFromDatabase(searchText)).values;
+    }
+
+    type GetCacheKeyFunction = (text: string) => string;
+
+    const getCacheKey: GetCacheKeyFunction = (text: string): string => {
+      return TelemetryAttributeService.getAttributeValuesCacheKey({
+        projectId: data.projectId,
+        telemetryType: data.telemetryType,
+        tableName: source.tableName,
+        metricName: data.metricName,
+        attributeKey: data.attributeKey,
+        searchText: text,
+      });
+    };
+
+    /*
+     * Picking a key loads its values unfiltered and typing then searches
+     * inside them, a request per pause. When that load found every value,
+     * the search filters them instead of scanning the window again. A key
+     * whose values reached the LIMIT still asks the database, which can
+     * find the ones the load did not return.
+     */
+    if (searchText) {
+      const unfilteredEntry: TelemetryAttributeValuesCacheEntry | null =
+        await TelemetryAttributeService.getLoadedAttributeValues(
+          getCacheKey(""),
+        );
+
+      if (unfilteredEntry?.isComplete) {
+        return TelemetryAttributeService.filterAttributeValues(
+          unfilteredEntry.values,
+          searchText,
+        );
+      }
+    }
+
+    const entry: TelemetryAttributeValuesCacheEntry =
+      await TelemetryAttributeService.loadAttributeValues(
+        getCacheKey(searchText),
+        (): Promise<TelemetryAttributeValuesCacheEntry> => {
+          return fetchFromDatabase(searchText);
+        },
+      );
+
+    return entry.values;
+  }
+
+  private static getAttributeValuesCacheKey(data: {
+    projectId: ObjectID;
+    telemetryType: TelemetryType;
+    tableName: string;
+    metricName?: string | undefined;
+    attributeKey: string;
+    searchText: string;
+  }): string {
+    /*
+     * Hashed because the metric name, key and search text are free text:
+     * joined with a separator, `a:b` + `c` and `a` + `b:c` would share an
+     * entry.
+     */
+    const digest: string = createHash("sha256")
+      .update(
+        JSON.stringify([
+          data.metricName || "",
+          data.attributeKey,
+          data.searchText,
+        ]),
+        "utf8",
+      )
+      .digest("hex");
+
+    return `${data.projectId.toString()}:${data.telemetryType}:${data.tableName}:${digest}`;
+  }
+
+  private static loadAttributeValues(
+    cacheKey: string,
+    fetchFromDatabase: () => Promise<TelemetryAttributeValuesCacheEntry>,
+  ): Promise<TelemetryAttributeValuesCacheEntry> {
+    const runningLoad: Promise<TelemetryAttributeValuesCacheEntry> | undefined =
+      TelemetryAttributeService.attributeValuesLoads.get(cacheKey);
+
+    if (runningLoad) {
+      return runningLoad;
+    }
+
+    const load: Promise<TelemetryAttributeValuesCacheEntry> =
+      (async (): Promise<TelemetryAttributeValuesCacheEntry> => {
+        const cachedEntry: TelemetryAttributeValuesCacheEntry | null =
+          await TelemetryAttributeService.getCachedAttributeValues(cacheKey);
+
+        if (cachedEntry) {
+          return cachedEntry;
+        }
+
+        const entry: TelemetryAttributeValuesCacheEntry =
+          await fetchFromDatabase();
+
+        await TelemetryAttributeService.storeAttributeValuesInCache(
+          cacheKey,
+          entry,
+        );
+
+        return entry;
+      })().finally((): void => {
+        TelemetryAttributeService.attributeValuesLoads.delete(cacheKey);
+      });
+
+    TelemetryAttributeService.attributeValuesLoads.set(cacheKey, load);
+
+    return load;
+  }
+
+  // The entry if it is cached or loading, without starting a load.
+  private static async getLoadedAttributeValues(
+    cacheKey: string,
+  ): Promise<TelemetryAttributeValuesCacheEntry | null> {
+    const runningLoad: Promise<TelemetryAttributeValuesCacheEntry> | undefined =
+      TelemetryAttributeService.attributeValuesLoads.get(cacheKey);
+
+    if (runningLoad) {
+      try {
+        return await runningLoad;
+      } catch {
+        return null;
+      }
+    }
+
+    return TelemetryAttributeService.getCachedAttributeValues(cacheKey);
+  }
+
+  private static async getCachedAttributeValues(
+    cacheKey: string,
+  ): Promise<TelemetryAttributeValuesCacheEntry | null> {
+    let payload: JSONObject | null = null;
+
+    try {
+      payload = await GlobalCache.getJSONObject(
+        TelemetryAttributeService.ATTRIBUTE_VALUES_CACHE_NAMESPACE,
+        cacheKey,
+      );
+    } catch {
+      return null;
+    }
+
+    if (!payload) {
+      return null;
+    }
+
+    const values: JSONObject["values"] = payload["values"];
+    const isComplete: JSONObject["isComplete"] = payload["isComplete"];
+
+    if (!Array.isArray(values) || typeof isComplete !== "boolean") {
+      return null;
+    }
+
+    return {
+      values: (values as Array<unknown>).filter(
+        (value: unknown): value is string => {
+          return typeof value === "string";
+        },
+      ),
+      isComplete,
+    };
+  }
+
+  private static async storeAttributeValuesInCache(
+    cacheKey: string,
+    entry: TelemetryAttributeValuesCacheEntry,
+  ): Promise<void> {
+    try {
+      await GlobalCache.setJSON(
+        TelemetryAttributeService.ATTRIBUTE_VALUES_CACHE_NAMESPACE,
+        cacheKey,
+        {
+          values: entry.values,
+          isComplete: entry.isComplete,
+        },
+        {
+          expiresInSeconds:
+            TelemetryAttributeService.ATTRIBUTE_VALUES_CACHE_TTL_IN_SECONDS,
+        },
+      );
+    } catch {
+      return;
+    }
+  }
+
+  // Case-insensitive substring, like the ILIKE the database would run.
+  private static filterAttributeValues(
+    values: Array<string>,
+    searchText: string,
+  ): Array<string> {
+    const needle: string = searchText.toLowerCase();
+
+    return values.filter((value: string): boolean => {
+      return value.toLowerCase().includes(needle);
     });
   }
 
@@ -579,7 +821,7 @@ export class TelemetryAttributeService {
      * returns partial values, acceptable for autocomplete.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      ` SETTINGS max_execution_time = ${TelemetryAttributeService.ATTRIBUTE_VALUES_MAX_EXECUTION_TIME_IN_SECONDS}, timeout_overflow_mode = 'break'`,
     );
 
     return statement;
@@ -591,7 +833,7 @@ export class TelemetryAttributeService {
     metricName?: string | undefined;
     attributeKey: string;
     searchText?: string | undefined;
-  }): Promise<Array<string>> {
+  }): Promise<TelemetryAttributeValuesCacheEntry> {
     const statement: Statement =
       TelemetryAttributeService.buildAttributeValuesStatement(data);
 
@@ -617,7 +859,24 @@ export class TelemetryAttributeService {
      * ClickHouse sorted ASCII values by. Trimming can make two stored values
      * equal, hence the Set.
      */
-    return Array.from(new Set(values)).sort();
+    const distinctValues: Array<string> = Array.from(new Set(values)).sort();
+
+    /*
+     * Fewer rows than the LIMIT means the query saw every value, unless
+     * max_execution_time stopped it: 'break' returns what it had without
+     * saying so. Such a query reports an elapsed time within a few percent
+     * of the limit, either side of it.
+     */
+    const elapsedInSeconds: number | undefined = response.statistics?.elapsed;
+
+    const isComplete: boolean =
+      rows.length < TelemetryAttributeService.ATTRIBUTE_VALUES_LIMIT &&
+      elapsedInSeconds !== undefined &&
+      elapsedInSeconds <
+        TelemetryAttributeService.ATTRIBUTE_VALUES_MAX_EXECUTION_TIME_IN_SECONDS *
+          0.9;
+
+    return { values: distinctValues, isComplete };
   }
 
   private static buildMutableMetricAttributesStatement(data: {
