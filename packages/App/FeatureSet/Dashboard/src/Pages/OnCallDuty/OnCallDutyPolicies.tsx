@@ -91,7 +91,6 @@ const OnCallDutyPage: FunctionComponent<
             "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
-        noItemsMessage={"No on-call policy found."}
         formFields={[
           {
             field: {

@@ -86,10 +86,10 @@ const ServicesPage: FunctionComponent<
         isViewable={true}
         cardProps={{
           title: "Services",
-          description: "List and manage services for this project here.",
+          description:
+            "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No services found."}
         selectMoreFields={{
           serviceColor: true,
           // Inputs for the auto-detected Technology column.

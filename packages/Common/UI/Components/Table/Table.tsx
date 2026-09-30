@@ -8,6 +8,7 @@ import BulkUpdateForm, {
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import { getEmptyTableMessage } from "./EmptyTableMessage";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
@@ -56,6 +57,13 @@ export interface ComponentProps<T extends GenericObject> {
   onRefreshClick?: undefined | (() => void);
 
   noItemsMessage?: undefined | string | ReactElement;
+  /*
+   * What to do about an empty table - typically the "Create X" button its
+   * header already has. Shown under the no-items message in place of the
+   * "Refresh?" link, which on an empty list read like a failed load and
+   * offered no way forward.
+   */
+  noItemsAction?: undefined | ReactElement;
 
   sortOrder: SortOrder;
   sortBy: keyof T | null;
@@ -226,6 +234,45 @@ const Table: TableFunction = <T extends GenericObject>(
   const isRefetchingWithData: boolean =
     props.isLoading && props.data.length > 0;
 
+  /*
+   * A finished load with nothing in it (loading shows skeletons, a failure
+   * shows its error). Its message is drawn below the table rather than in a
+   * row of it: a row spans every column, so on a wide table the message was
+   * centred across columns scrolled out of view, and cut off at the card's
+   * edge.
+   */
+  const isEmptyResult: boolean =
+    !props.isLoading && !props.error && props.data.length === 0;
+
+  const getNoItemsElement: GetReactElementFunction = (): ReactElement => {
+    return (
+      <div
+        /*
+         * The rule under the header row the table body used to draw. A phone
+         * shows no header row, and the table's own container already draws
+         * that line, so a second one would sit right under it.
+         */
+        className={`${isMobile ? "" : "border-t border-gray-200 "}px-6 md:-mx-6`}
+        data-testid={`${props.id}-no-items`}
+      >
+        <ErrorMessage
+          message={
+            props.noItemsMessage ||
+            getEmptyTableMessage({
+              pluralLabel: props.pluralLabel,
+              isFiltered: false,
+              translate: (value: string): string => {
+                return translateString(value) ?? value;
+              },
+            })
+          }
+          onRefreshClick={props.onRefreshClick}
+          action={props.noItemsAction}
+        />
+      </div>
+    );
+  };
+
   const getTablebody: GetReactElementFunction = (): ReactElement => {
     if (props.isLoading && props.data.length === 0) {
       return (
@@ -251,25 +298,6 @@ const Table: TableFunction = <T extends GenericObject>(
             <td colSpan={colspan} className="pl-10 pr-10">
               <ErrorMessage
                 message={props.error}
-                onRefreshClick={props.onRefreshClick}
-              />
-            </td>
-          </tr>
-        </tbody>
-      );
-    }
-
-    if (props.data.length === 0) {
-      return (
-        <tbody>
-          <tr>
-            <td colSpan={colspan}>
-              <ErrorMessage
-                message={
-                  props.noItemsMessage
-                    ? props.noItemsMessage
-                    : `${translateString("No") ?? "No"} ${translatedSingularLabel.toLocaleLowerCase()}`
-                }
                 onRefreshClick={props.onRefreshClick}
               />
             </td>
@@ -455,7 +483,7 @@ const Table: TableFunction = <T extends GenericObject>(
                 {isMobile ? (
                   // Mobile view: render as list
                   <div className="min-w-full divide-y divide-gray-200">
-                    {getTablebody()}
+                    {isEmptyResult ? <></> : getTablebody()}
                   </div>
                 ) : (
                   // Desktop view: render as table
@@ -483,13 +511,14 @@ const Table: TableFunction = <T extends GenericObject>(
                       }
                       hasTableItems={selectableRowsOnThePage.length > 0}
                     />
-                    {getTablebody()}
+                    {isEmptyResult ? <></> : getTablebody()}
                   </table>
                 )}
               </div>
             </div>
           </div>
         </div>
+        {isEmptyResult && getNoItemsElement()}
         <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
           {!props.disablePagination && (
             <Pagination
