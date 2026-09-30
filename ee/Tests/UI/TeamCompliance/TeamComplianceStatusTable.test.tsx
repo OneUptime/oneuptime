@@ -31,6 +31,7 @@ import TeamComplianceStatusTable, {
 } from "../../../Dashboard/TeamCompliance/TeamComplianceStatusTable";
 import { MemberStatusFilter } from "../../../Dashboard/TeamCompliance/ComplianceView";
 import {
+  CALL_AND_PUSH_RULE_ID,
   CALL_REASON,
   CALL_RULE_ID,
   EMAIL_REASON,
@@ -43,6 +44,7 @@ import {
   buildMember,
   buildRule,
   buildStatus,
+  callAndPushForIncidentsRule,
   callForIncidentsRule,
   emailRule,
   issue,
@@ -736,7 +738,7 @@ describe("filters and search", () => {
     });
     const major: TeamComplianceRuleJSON = callForIncidentsRule({
       settingId: "call-major",
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       severities: [{ id: "m", name: "Major Incident" }],
       compliantCount: 1,
       nonCompliantCount: 0,
@@ -779,6 +781,188 @@ describe("filters and search", () => {
     expect(
       screen.queryByTestId("compliance-members-rule-filter"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("a rule on several channels", () => {
+  /*
+   * "Call and Push notification for incidents" is met only with a rule on
+   * each channel. Wherever the members section names it on its own - a
+   * square, a failure, the filter chip - it names both channels, so it is
+   * never mistaken for a Call-only rule for the same severity.
+   */
+  const LABEL: string =
+    "Call and Push notification for incidents (Critical Incident)";
+  const PUSH_REASON: string =
+    "No Push notification rule for incident severities: Critical Incident";
+
+  const callAndPushStatus: () => TeamComplianceStatusJSON =
+    (): TeamComplianceStatusJSON => {
+      const rule: TeamComplianceRuleJSON = callAndPushForIncidentsRule({
+        compliantCount: 1,
+        nonCompliantCount: 1,
+      });
+
+      return buildStatus({
+        complianceSettings: [rule],
+        userComplianceStatuses: [
+          buildMember({
+            nonCompliantRules: [issue(rule, PUSH_REASON)],
+          }),
+          buildMember({
+            userId: OMAR_ID,
+            userName: "Omar Haddad",
+            userEmail: "omar@acme.com",
+          }),
+        ],
+      });
+    };
+
+  test("its squares are named with its channels", () => {
+    render(<Harness status={callAndPushStatus()} />);
+
+    const failing: HTMLElement = within(row(JANE_ID)).getByTestId(
+      `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+    );
+    const passing: HTMLElement = within(row(OMAR_ID)).getByTestId(
+      `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+    );
+
+    expect(failing).toHaveAttribute("data-result", "fail");
+    expect(failing).toHaveAttribute(
+      "aria-label",
+      `${LABEL}: not met. ${PUSH_REASON}`,
+    );
+    expect(passing).toHaveAttribute("data-result", "pass");
+    expect(passing).toHaveAttribute("aria-label", `${LABEL}: met`);
+  });
+
+  test("a failure of it is listed under its title, channels and all", () => {
+    render(<Harness status={callAndPushStatus()} />);
+
+    expect(
+      within(row(JANE_ID)).getByTestId("compliance-member-issues"),
+    ).toHaveTextContent(
+      `Call and Push notification for incidents: ${PUSH_REASON}`,
+    );
+  });
+
+  test("its filter chip names its channels", () => {
+    render(
+      <Harness
+        status={callAndPushStatus()}
+        initialFailingRuleId={CALL_AND_PUSH_RULE_ID}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent(`Failing${LABEL}`);
+    expect(listedNames()).toEqual(["Jane Doe"]);
+  });
+
+  test("a Call-only rule for the same severity gets a different name", () => {
+    const callOnly: TeamComplianceRuleJSON = callForIncidentsRule({
+      severities: [{ id: "c", name: "Critical Incident" }],
+      compliantCount: 1,
+      nonCompliantCount: 0,
+    });
+    const callAndPush: TeamComplianceRuleJSON = callAndPushForIncidentsRule({
+      compliantCount: 0,
+      nonCompliantCount: 1,
+    });
+
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [callOnly, callAndPush],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [issue(callAndPush, PUSH_REASON)],
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getByTestId(
+        `compliance-member-rule-${CALL_RULE_ID}`,
+      ),
+    ).toHaveAttribute(
+      "aria-label",
+      "Call for incidents (Critical Incident): met",
+    );
+    expect(
+      within(row(JANE_ID)).getByTestId(
+        `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+      ),
+    ).toHaveAttribute("aria-label", `${LABEL}: not met. ${PUSH_REASON}`);
+  });
+
+  /*
+   * Failing on both channels is one failure of one rule, fixed on one page:
+   * one link, to the member's own incident on-call rules.
+   */
+  test("the member failing it is sent to their incident on-call rules, once", () => {
+    const rule: TeamComplianceRuleJSON = callAndPushForIncidentsRule({
+      compliantCount: 0,
+      nonCompliantCount: 1,
+    });
+
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [rule],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [
+                issue(
+                  rule,
+                  "No Call rule for incident severities: Critical Incident. No Push notification rule for incident severities: Critical Incident",
+                ),
+              ],
+            }),
+          ],
+        })}
+        currentUserId={JANE_ID}
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getAllByRole("link", {
+        name: /Open my incident on-call rules/,
+      }),
+    ).toHaveLength(1);
+  });
+
+  /*
+   * A failure whose rule is not in the list carries no channels, so it is
+   * titled as its kind - never as a rule on channels it may not have had.
+   */
+  test("a failure of an on-call rule that is not listed is titled by its kind alone", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [emailRule()],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [
+                {
+                  settingId: "gone",
+                  ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+                  reason: PUSH_REASON,
+                },
+              ],
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getByTestId("compliance-member-issues"),
+    ).toHaveTextContent(`Incident on-call rules: ${PUSH_REASON}`);
   });
 });
 

@@ -101,7 +101,8 @@ let settingCounter: number = 0;
 function rule(data: {
   ruleType: ComplianceRuleType | string | undefined;
   enabled?: boolean | undefined;
-  notificationChannel?: string | null | undefined;
+  // As the service reads it off the row: a list, not yet checked.
+  notificationChannels?: Array<string> | null | undefined;
   incidentSeverities?: Array<ComplianceSeverityInput> | undefined;
   alertSeverities?: Array<ComplianceSeverityInput> | undefined;
   settingId?: string | undefined;
@@ -119,7 +120,7 @@ function rule(data: {
       `5e771000-0000-4000-8000-${settingCounter.toString().padStart(12, "0")}`,
     ruleType: data.ruleType,
     enabled: data.enabled === undefined ? true : data.enabled,
-    notificationChannel: data.notificationChannel,
+    notificationChannels: data.notificationChannels,
     createdAt:
       "createdAt" in data
         ? data.createdAt
@@ -193,6 +194,31 @@ function methods(
       ),
     ],
   ]);
+}
+
+// Method rows on several channels at once, as the service reads them.
+function methodsOn(
+  rowsByChannel: Array<
+    [ComplianceNotificationChannel, Array<ComplianceMethodInput>]
+  >,
+): Map<ComplianceNotificationChannel, Map<string, ComplianceMethodInput>> {
+  const byChannel: Map<
+    ComplianceNotificationChannel,
+    Map<string, ComplianceMethodInput>
+  > = new Map<
+    ComplianceNotificationChannel,
+    Map<string, ComplianceMethodInput>
+  >();
+
+  for (const [channel, rows] of rowsByChannel) {
+    byChannel.set(
+      channel,
+      methods(channel, rows).get(channel) ||
+        new Map<string, ComplianceMethodInput>(),
+    );
+  }
+
+  return byChannel;
 }
 
 function buildInput(
@@ -349,11 +375,11 @@ function scopedRule(data: {
   ruleType: ComplianceRuleType;
   kind: ComplianceSeverityKind;
   selected: Array<ComplianceSeverityInput>;
-  notificationChannel?: ComplianceNotificationChannel | undefined;
+  notificationChannels?: Array<ComplianceNotificationChannel> | undefined;
 }): ComplianceRuleInput {
   return rule({
     ruleType: data.ruleType,
-    notificationChannel: data.notificationChannel,
+    notificationChannels: data.notificationChannels,
     incidentSeverities:
       data.kind === ComplianceSeverityKind.Incident ? data.selected : [],
     alertSeverities:
@@ -394,7 +420,7 @@ const CALL_FOR_CRITICAL_INCIDENTS: () => ComplianceRuleInput =
   (): ComplianceRuleInput => {
     return rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [CRITICAL],
     });
   };
@@ -464,7 +490,10 @@ describe("resolveRules", () => {
     const resolved: ResolvedComplianceRule = resolveOne(
       rule({
         ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
         incidentSeverities: [CRITICAL],
         alertSeverities: [HIGH],
       }),
@@ -473,7 +502,7 @@ describe("resolveRules", () => {
     expect(resolved.definition?.ruleType).toBe(
       ComplianceRuleType.HasNotificationEmailMethod,
     );
-    expect(resolved.notificationChannel).toBeNull();
+    expect(resolved.notificationChannels).toEqual([]);
     expect(resolved.severityKind).toBeNull();
     expect(resolved.severities).toEqual([]);
   });
@@ -489,16 +518,16 @@ describe("resolveRules", () => {
       const resolved: ResolvedComplianceRule = resolveOne(
         rule({
           ruleType: ruleType,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           incidentSeverities: [CRITICAL],
           alertSeverities: [HIGH],
         }),
       );
 
       expect(resolved.severityKind).toBe(kind);
-      expect(resolved.notificationChannel).toBe(
+      expect(resolved.notificationChannels).toEqual([
         ComplianceNotificationChannel.Push,
-      );
+      ]);
       expect(
         resolved.severities.map((severity: ComplianceSeverityInput): string => {
           return severity.id;
@@ -556,14 +585,14 @@ describe("resolveRules", () => {
     const resolved: ResolvedComplianceRule = resolveOne(
       rule({
         ruleType: "HasCarrierPigeon",
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [CRITICAL],
       }),
     );
 
     expect(resolved.ruleType).toBe("HasCarrierPigeon");
     expect(resolved.definition).toBeUndefined();
-    expect(resolved.notificationChannel).toBeNull();
+    expect(resolved.notificationChannels).toEqual([]);
     expect(resolved.severityKind).toBeNull();
     expect(resolved.severities).toEqual([]);
   });
@@ -573,10 +602,122 @@ describe("resolveRules", () => {
       resolveOne(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: "CarrierPigeon",
+          notificationChannels: ["CarrierPigeon"],
         }),
-      ).notificationChannel,
-    ).toBeNull();
+      ).notificationChannels,
+    ).toEqual([]);
+  });
+
+  /*
+   * A rule on several channels is read into one canonical list, so the
+   * order an admin happened to pick them in - or a channel picked twice -
+   * never changes what is checked, how it is worded, or what is sent.
+   */
+  test("an on-call rule's channels are kept once each, in catalog order - not the order they were picked in", () => {
+    expect(
+      resolveOne(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Webhook,
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ).notificationChannels,
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+      ComplianceNotificationChannel.Webhook,
+    ]);
+  });
+
+  test("a value in the list that is not a channel is dropped, and the channels around it are kept", () => {
+    expect(
+      resolveOne(
+        rule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          // "call" is not "Call": the stored values are case-sensitive.
+          notificationChannels: [
+            "CarrierPigeon",
+            ComplianceNotificationChannel.Push,
+            "call",
+            "",
+            ComplianceNotificationChannel.SMS,
+          ],
+        }),
+      ).notificationChannels,
+    ).toEqual([
+      ComplianceNotificationChannel.SMS,
+      ComplianceNotificationChannel.Push,
+    ]);
+  });
+
+  test("a list of nothing this build recognises reads as any channel", () => {
+    expect(
+      resolveOne(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: ["CarrierPigeon", "Pager"],
+        }),
+      ).notificationChannels,
+    ).toEqual([]);
+  });
+
+  test.each<[string, Array<string> | null | undefined]>([
+    ["no list at all", undefined],
+    ["a NULL list", null],
+    ["an empty list", []],
+  ])(
+    "%s is any channel",
+    (
+      _label: string,
+      notificationChannels: Array<string> | null | undefined,
+    ) => {
+      expect(
+        resolveOne(
+          rule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: notificationChannels,
+          }),
+        ).notificationChannels,
+      ).toEqual([]);
+    },
+  );
+
+  test.each(ON_CALL_RULES)(
+    "%s keeps every channel of its list",
+    (ruleType: ComplianceRuleType) => {
+      expect(
+        resolveOne(
+          rule({
+            ruleType: ruleType,
+            notificationChannels: [
+              ComplianceNotificationChannel.Telegram,
+              ComplianceNotificationChannel.Call,
+            ],
+          }),
+        ).notificationChannels,
+      ).toEqual([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Telegram,
+      ]);
+    },
+  );
+
+  test("an unrecognised rule type keeps no channels, however many it lists", () => {
+    expect(
+      resolveOne(
+        rule({
+          ruleType: "HasCarrierPigeon",
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ).notificationChannels,
+    ).toEqual([]);
   });
 
   test("an unset enabled flag is off", () => {
@@ -648,7 +789,7 @@ describe("planLoads", () => {
       const onCallPlan: ComplianceLoadPlan = plan([
         rule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: channel,
+          notificationChannels: [channel],
         }),
       ]);
 
@@ -724,22 +865,22 @@ describe("planLoads", () => {
       plan([
         rule({
           ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Telegram,
+          notificationChannels: [ComplianceNotificationChannel.Telegram],
         }),
         rule({ ruleType: ComplianceRuleType.HasNotificationSMSMethod }),
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
         }),
         rule({
           ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         }),
         rule({ ruleType: ComplianceRuleType.HasNotificationCallMethod }),
         rule({ ruleType: ComplianceRuleType.HasNotificationSMSMethod }),
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [CRITICAL],
         }),
         rule({ ruleType: ComplianceRuleType.HasAlertOnCallRules }),
@@ -769,6 +910,136 @@ describe("planLoads", () => {
         "enableSmsNotifications",
         "enableTelegramNotifications",
       ],
+    });
+  });
+
+  test("a rule on several channels needs every one of them, and the switch of each channel that has one", () => {
+    expect(
+      plan([
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.WhatsApp,
+            ComplianceNotificationChannel.Call,
+          ],
+          incidentSeverities: [CRITICAL],
+        }),
+      ]),
+    ).toEqual({
+      needsCoverage: false,
+      methodChannels: [],
+      onCallChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.WhatsApp,
+      ],
+      onCallRuleTypes: [NotificationRuleType.ON_CALL_EXECUTED_INCIDENT],
+      onCallSeverityKinds: [ComplianceSeverityKind.Incident],
+      // Push has no project switch; Call and WhatsApp do.
+      projectSwitches: [
+        "enableCallNotifications",
+        "enableWhatsAppNotifications",
+      ],
+    });
+  });
+
+  test("channels several rules share are planned once each, in catalog order", () => {
+    expect(
+      plan([
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+        rule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Telegram,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.SMS,
+          ],
+        }),
+        rule({ ruleType: ComplianceRuleType.HasNotificationSMSMethod }),
+      ]),
+    ).toEqual({
+      needsCoverage: false,
+      methodChannels: [ComplianceNotificationChannel.SMS],
+      onCallChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Telegram,
+      ],
+      onCallRuleTypes: [
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      ],
+      onCallSeverityKinds: [
+        ComplianceSeverityKind.Incident,
+        ComplianceSeverityKind.Alert,
+      ],
+      projectSwitches: [
+        "enableCallNotifications",
+        "enableSmsNotifications",
+        "enableTelegramNotifications",
+      ],
+    });
+  });
+
+  test("a list of nothing this build knows is an any-channel rule: readiness coverage, and no channel read", () => {
+    expect(
+      plan([
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: ["CarrierPigeon"],
+        }),
+      ]),
+    ).toEqual({
+      needsCoverage: true,
+      methodChannels: [],
+      onCallChannels: [],
+      onCallRuleTypes: [],
+      onCallSeverityKinds: [],
+      projectSwitches: [],
+    });
+  });
+
+  test("a paused rule on several channels, and one whose severities were deleted, plan nothing", () => {
+    const channels: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.SMS,
+    ];
+
+    expect(
+      plan([
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: channels,
+          enabled: false,
+        }),
+        rule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          notificationChannels: channels,
+          severitiesDeleted: true,
+        }),
+      ]),
+    ).toEqual({
+      needsCoverage: false,
+      methodChannels: [],
+      onCallChannels: [],
+      onCallRuleTypes: [],
+      onCallSeverityKinds: [],
+      projectSwitches: [],
     });
   });
 });
@@ -1320,7 +1591,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Webhook,
+          notificationChannels: [ComplianceNotificationChannel.Webhook],
           incidentSeverities: [CRITICAL],
         }),
         {
@@ -1367,7 +1638,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         }),
         {
           projectSeveritiesByKind: new Map<
@@ -1538,7 +1809,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           alertSeverities: [HIGH],
         }),
         {
@@ -1586,7 +1857,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         }),
         {
           notificationRules: [callRuleFor(MAJOR)],
@@ -1612,7 +1883,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [MAJOR, CRITICAL],
         }),
         {
@@ -1630,7 +1901,7 @@ describe("on-call rules for one channel", () => {
       rules: [
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [FOREIGN],
         }),
       ],
@@ -1660,7 +1931,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [deleted, CRITICAL],
         }),
         {
@@ -1678,7 +1949,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
         }),
         {
           projectSeveritiesByKind: new Map<
@@ -1693,7 +1964,7 @@ describe("on-call rules for one channel", () => {
   test("every kind of gap in one rule: missing, unverified and opted out, each in severity order", () => {
     const pushForEveryIncidentSeverity: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
     });
     const fourth: ComplianceSeverityInput = {
       id: "5e000000-0000-4000-8000-000000000004",
@@ -1773,7 +2044,7 @@ describe("on-call rules for one channel", () => {
       adaVerdict(
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.SMS,
+          notificationChannels: [ComplianceNotificationChannel.SMS],
         }),
         {
           projectSeveritiesByKind: new Map<
@@ -1802,7 +2073,7 @@ describe("on-call rules for one channel", () => {
             ruleType: ruleType,
             kind: kind,
             selected: [first!, second!],
-            notificationChannel: ComplianceNotificationChannel.Telegram,
+            notificationChannels: [ComplianceNotificationChannel.Telegram],
           }),
           {
             notificationRules: [
@@ -1832,7 +2103,7 @@ describe("on-call rules for one channel", () => {
   test("webhooks have no verification: an owned webhook covers, whatever its flag says", () => {
     const webhookForCritical: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Webhook,
+      notificationChannels: [ComplianceNotificationChannel.Webhook],
       incidentSeverities: [CRITICAL],
     });
 
@@ -1856,7 +2127,7 @@ describe("on-call rules for one channel", () => {
   test("a webhook rule pointing at nothing usable is never called 'unverified' - it is no webhook rule", () => {
     const webhookForCritical: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Webhook,
+      notificationChannels: [ComplianceNotificationChannel.Webhook],
       incidentSeverities: [CRITICAL],
     });
 
@@ -1886,7 +2157,7 @@ describe("on-call rules for one channel", () => {
         CALL_FOR_CRITICAL_INCIDENTS(),
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           incidentSeverities: [CRITICAL],
         }),
       ],
@@ -1931,6 +2202,620 @@ describe("on-call rules for one channel", () => {
 
 /*
  * ------------------------------------------------------------------------- *
+ * On-call rules on SEVERAL channels - "Call and Push notification for
+ * Critical incidents". A member needs a rule on EVERY one of them: the rule
+ * checks exactly what one rule per channel would, channel by channel.
+ * -------------------------------------------------------------------------
+ */
+
+describe("on-call rules for several channels", () => {
+  const verifiedCall: ComplianceMethodInput = {
+    methodId: CALL_ID,
+    userId: ADA,
+    isVerified: true,
+  };
+  const verifiedPush: ComplianceMethodInput = {
+    methodId: PUSH_ID,
+    userId: ADA,
+    isVerified: true,
+  };
+
+  // A member's incident rule for `severity`, notifying on `methodIds`.
+  function incidentRuleFor(
+    severity: ComplianceSeverityInput,
+    methodIds: Partial<Record<ComplianceNotificationChannel, string>>,
+    userId: string = ADA,
+  ): ComplianceNotificationRuleInput {
+    return adaRuleFor({
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      kind: ComplianceSeverityKind.Incident,
+      severity: severity,
+      methodIds: methodIds,
+      userId: userId,
+    });
+  }
+
+  function optOutFor(
+    severity: ComplianceSeverityInput,
+  ): ComplianceNotificationRuleInput {
+    return adaRuleFor({
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      kind: ComplianceSeverityKind.Incident,
+      severity: severity,
+      isOptOut: true,
+    });
+  }
+
+  function callRuleFor(
+    severity: ComplianceSeverityInput,
+  ): ComplianceNotificationRuleInput {
+    return incidentRuleFor(severity, {
+      [ComplianceNotificationChannel.Call]: CALL_ID,
+    });
+  }
+
+  function pushRuleFor(
+    severity: ComplianceSeverityInput,
+  ): ComplianceNotificationRuleInput {
+    return incidentRuleFor(severity, {
+      [ComplianceNotificationChannel.Push]: PUSH_ID,
+    });
+  }
+
+  const CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS: () => ComplianceRuleInput =
+    (): ComplianceRuleInput => {
+      return rule({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        incidentSeverities: [CRITICAL],
+      });
+    };
+
+  // Ada's verified phone and push device, as the method reads return them.
+  function adaMethods(): Map<
+    ComplianceNotificationChannel,
+    Map<string, ComplianceMethodInput>
+  > {
+    return methodsOn([
+      [ComplianceNotificationChannel.Call, [verifiedCall]],
+      [ComplianceNotificationChannel.Push, [verifiedPush]],
+    ]);
+  }
+
+  const NO_CALL: string =
+    "No Call rule for incident severities: Critical Incident";
+  const NO_PUSH: string =
+    "No Push notification rule for incident severities: Critical Incident";
+
+  test("a rule on each channel, each on a verified method the member owns => compliant", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [callRuleFor(CRITICAL), pushRuleFor(CRITICAL)],
+        methodsByChannel: adaMethods(),
+      }),
+    ).toBeNull();
+  });
+
+  test("covered on Call only: she fails, and is told the channel she is missing", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [callRuleFor(CRITICAL)],
+        methodsByChannel: adaMethods(),
+      }),
+    ).toBe(NO_PUSH);
+  });
+
+  test("covered on Push only: the same, the other way round", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [pushRuleFor(CRITICAL)],
+        methodsByChannel: adaMethods(),
+      }),
+    ).toBe(NO_CALL);
+  });
+
+  test("covered on neither: one sentence per channel, in catalog order whatever order they were picked in", () => {
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+          ],
+          incidentSeverities: [CRITICAL],
+        }),
+      ),
+    ).toBe(`${NO_CALL}. ${NO_PUSH}`);
+  });
+
+  test("the same channel listed twice is judged, and named, once", () => {
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Call,
+          ],
+          incidentSeverities: [CRITICAL],
+        }),
+      ),
+    ).toBe(NO_CALL);
+  });
+
+  test("one notification rule that notifies on both channels covers both", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [
+          incidentRuleFor(CRITICAL, {
+            [ComplianceNotificationChannel.Call]: CALL_ID,
+            [ComplianceNotificationChannel.Push]: PUSH_ID,
+          }),
+        ],
+        methodsByChannel: adaMethods(),
+      }),
+    ).toBeNull();
+  });
+
+  test("a rule on a channel the rule does not ask for covers nothing", () => {
+    // Email for Critical is a real rule - but neither Call nor Push.
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [
+          incidentRuleFor(CRITICAL, {
+            [ComplianceNotificationChannel.Email]: EMAIL_ID,
+          }),
+        ],
+        methodsByChannel: methodsOn([
+          [
+            ComplianceNotificationChannel.Email,
+            [{ methodId: EMAIL_ID, userId: ADA, isVerified: true }],
+          ],
+        ]),
+      }),
+    ).toBe(`${NO_CALL}. ${NO_PUSH}`);
+  });
+
+  test("unverified on one channel, missing on the other: each channel says its own problem", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [callRuleFor(CRITICAL)],
+        methodsByChannel: methodsOn([
+          [
+            ComplianceNotificationChannel.Call,
+            [{ ...verifiedCall, isVerified: false }],
+          ],
+          [ComplianceNotificationChannel.Push, [verifiedPush]],
+        ]),
+      }),
+    ).toBe(
+      "The Call rule for incident severities Critical Incident points at an unverified phone number for calls. " +
+        NO_PUSH,
+    );
+  });
+
+  test("covered on Push does not rescue a Call rule the runtime refuses", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [
+          { ...callRuleFor(CRITICAL), hasForeignMethod: true },
+          pushRuleFor(CRITICAL),
+        ],
+        methodsByChannel: adaMethods(),
+      }),
+    ).toBe(
+      "The Call rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user",
+    );
+  });
+
+  /*
+   * The runtime refuses the WHOLE notification rule when any method on it
+   * is somebody else's, so one refused row that names both channels is
+   * refused on both - it rings nothing and pushes nothing.
+   */
+  test("a refused rule that names both channels is refused on both", () => {
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        notificationRules: [
+          {
+            ...incidentRuleFor(CRITICAL, {
+              [ComplianceNotificationChannel.Call]: CALL_ID,
+              [ComplianceNotificationChannel.Push]: PUSH_ID,
+            }),
+            hasForeignMethod: true,
+          },
+        ],
+        methodsByChannel: adaMethods(),
+      }),
+    ).toBe(
+      "The Call rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user. " +
+        "The Push notification rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user",
+    );
+  });
+
+  test("an opt-out is said ONCE, after every channel, though neither channel is covered", () => {
+    const reason: string | null = adaVerdict(
+      rule({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        incidentSeverities: [CRITICAL, MAJOR],
+      }),
+      {
+        // Critical: rung, but never pushed. Major: opted out of altogether.
+        notificationRules: [callRuleFor(CRITICAL), optOutFor(MAJOR)],
+        methodsByChannel: adaMethods(),
+      },
+    );
+
+    expect(reason).toBe(
+      `${NO_PUSH}. Opted out of incident notifications for: Major Incident`,
+    );
+    expect(reason!.split("Opted out").length - 1).toBe(1);
+  });
+
+  test("a severity opted out of on only one channel is still named, with the others in scope order", () => {
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+        {
+          /*
+           * Minor: an opt-out and nothing else, so opted out on both.
+           * Critical: an opt-out beside a working Call rule - covered on Call,
+           * opted out on Push. Major: a rule on each channel.
+           */
+          notificationRules: [
+            optOutFor(MINOR),
+            optOutFor(CRITICAL),
+            callRuleFor(CRITICAL),
+            callRuleFor(MAJOR),
+            pushRuleFor(MAJOR),
+          ],
+          methodsByChannel: adaMethods(),
+        },
+      ),
+    ).toBe(
+      "Opted out of incident notifications for: Critical Incident, Minor Incident",
+    );
+  });
+
+  test("every heading on every channel, in order: each channel's missing, unverified and refused, then the opt-outs", () => {
+    const unverifiedPush: ComplianceMethodInput = {
+      methodId: "b0500000-0000-4000-8000-000000000002",
+      userId: ADA,
+      isVerified: false,
+    };
+
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+        {
+          notificationRules: [
+            // Critical: rung, and pushed to a device she never verified.
+            callRuleFor(CRITICAL),
+            incidentRuleFor(CRITICAL, {
+              [ComplianceNotificationChannel.Push]: unverifiedPush.methodId,
+            }),
+            // Major: nothing on Call; a Push rule the runtime refuses.
+            { ...pushRuleFor(MAJOR), hasForeignMethod: true },
+            // Minor: opted out.
+            optOutFor(MINOR),
+          ],
+          methodsByChannel: methodsOn([
+            [ComplianceNotificationChannel.Call, [verifiedCall]],
+            [
+              ComplianceNotificationChannel.Push,
+              [verifiedPush, unverifiedPush],
+            ],
+          ]),
+        },
+      ),
+    ).toBe(
+      "No Call rule for incident severities: Major Incident. " +
+        "The Push notification rule for incident severities Critical Incident points at an unverified push notification device. " +
+        "The Push notification rule for incident severities Major Incident is never sent, because another notification method on it belongs to a different user. " +
+        "Opted out of incident notifications for: Minor Incident",
+    );
+  });
+
+  test("webhooks keep their rule among others: an owned webhook covers whatever its flag, a borrowed one is missing - never unverified", () => {
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Webhook,
+            ComplianceNotificationChannel.Call,
+          ],
+          incidentSeverities: [CRITICAL],
+        }),
+      ],
+      members: [member(ADA, "Ada"), member(GRACE, "Grace")],
+      notificationRules: [
+        callRuleFor(CRITICAL),
+        incidentRuleFor(CRITICAL, {
+          [ComplianceNotificationChannel.Webhook]: WEBHOOK_ID,
+        }),
+        // Grace's rule posts to Ada's webhook.
+        incidentRuleFor(
+          CRITICAL,
+          { [ComplianceNotificationChannel.Webhook]: WEBHOOK_ID },
+          GRACE,
+        ),
+      ],
+      methodsByChannel: methodsOn([
+        [ComplianceNotificationChannel.Call, [verifiedCall]],
+        [
+          ComplianceNotificationChannel.Webhook,
+          [{ methodId: WEBHOOK_ID, userId: ADA, isVerified: false }],
+        ],
+      ]),
+    });
+
+    expect(statusOf(result, ADA).isCompliant).toBe(true);
+    expect(reasonsOf(result, GRACE)).toEqual([
+      `${NO_CALL}. No Webhook rule for incident severities: Critical Incident`,
+    ]);
+    expect(reasonsOf(result, GRACE)[0]).not.toContain("unverified");
+  });
+
+  test("with no severities selected, every project severity is checked on every channel, most severe first", () => {
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+        {
+          notificationRules: [callRuleFor(MAJOR)],
+          methodsByChannel: methods(ComplianceNotificationChannel.Call, [
+            verifiedCall,
+          ]),
+          projectSeveritiesByKind: new Map<
+            ComplianceSeverityKind,
+            Array<ComplianceSeverityInput>
+          >([[ComplianceSeverityKind.Incident, [MINOR, CRITICAL, MAJOR]]]),
+        },
+      ),
+    ).toBe(
+      "No Call rule for incident severities: Critical Incident, Minor Incident. " +
+        "No SMS rule for incident severities: Critical Incident, Major Incident, Minor Incident",
+    );
+  });
+
+  test("alert episode rules on two channels read their own rule type and severity column, in their own words", () => {
+    const TELEGRAM_ID: string = "7e1e0000-0000-4000-8000-000000000001";
+    const SLACK_ID: string = "51ac0000-0000-4000-8000-000000000001";
+
+    expect(
+      adaVerdict(
+        rule({
+          ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Slack,
+            ComplianceNotificationChannel.Telegram,
+          ],
+          alertSeverities: [HIGH, LOW],
+        }),
+        {
+          notificationRules: [
+            adaRuleFor({
+              ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+              kind: ComplianceSeverityKind.Alert,
+              severity: LOW,
+              methodIds: {
+                [ComplianceNotificationChannel.Telegram]: TELEGRAM_ID,
+              },
+            }),
+            // A plain alert rule is not an alert EPISODE rule.
+            adaRuleFor({
+              ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+              kind: ComplianceSeverityKind.Alert,
+              severity: HIGH,
+              methodIds: { [ComplianceNotificationChannel.Slack]: SLACK_ID },
+            }),
+          ],
+          methodsByChannel: methodsOn([
+            [
+              ComplianceNotificationChannel.Telegram,
+              [{ methodId: TELEGRAM_ID, userId: ADA, isVerified: true }],
+            ],
+            [
+              ComplianceNotificationChannel.Slack,
+              [{ methodId: SLACK_ID, userId: ADA, isVerified: true }],
+            ],
+          ]),
+        },
+      ),
+    ).toBe(
+      "No Telegram rule for alert episode severities: High. " +
+        "No Slack rule for alert episode severities: High, Low",
+    );
+  });
+
+  test("each member is judged on every channel, and the counts and failures name the one rule", () => {
+    const graceCall: ComplianceMethodInput = {
+      methodId: CALL_ID_2,
+      userId: GRACE,
+      isVerified: true,
+    };
+    const callAndPush: ComplianceRuleInput =
+      CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS();
+
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [callAndPush],
+      members: [
+        member(ADA, "Ada"),
+        member(GRACE, "Grace"),
+        member(LINUS, "Linus"),
+      ],
+      notificationRules: [
+        callRuleFor(CRITICAL),
+        pushRuleFor(CRITICAL),
+        incidentRuleFor(
+          CRITICAL,
+          { [ComplianceNotificationChannel.Call]: CALL_ID_2 },
+          GRACE,
+        ),
+      ],
+      methodsByChannel: methodsOn([
+        [ComplianceNotificationChannel.Call, [verifiedCall, graceCall]],
+        [ComplianceNotificationChannel.Push, [verifiedPush]],
+      ]),
+    });
+
+    expect(onlyRule(result)).toMatchObject({
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      compliantCount: 1,
+      nonCompliantCount: 2,
+    });
+    expect(statusOf(result, ADA).isCompliant).toBe(true);
+    expect(statusOf(result, GRACE).nonCompliantRules).toEqual([
+      {
+        settingId: callAndPush.settingId,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        reason: NO_PUSH,
+      },
+    ]);
+    // One failure for the one rule, however many of its channels are missing.
+    expect(statusOf(result, LINUS).nonCompliantRules).toEqual([
+      {
+        settingId: callAndPush.settingId,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        reason: `${NO_CALL}. ${NO_PUSH}`,
+      },
+    ]);
+  });
+
+  test("a rule on two channels checks exactly what two one-channel rules would", () => {
+    const graceCall: ComplianceMethodInput = {
+      methodId: CALL_ID_2,
+      userId: GRACE,
+      isVerified: false,
+    };
+    const gracePush: ComplianceMethodInput = {
+      methodId: "b0500000-0000-4000-8000-000000000003",
+      userId: GRACE,
+      isVerified: true,
+    };
+    // Somebody else's webhook on Grace's push rule: the runtime refuses it.
+    const borrowedWebhook: string = "3eb00000-0000-4000-8000-000000000002";
+
+    // Ada: both. Grace: an unverified phone, and a refused push. Linus: nothing.
+    const overrides: Partial<TeamComplianceEvaluationInput> = {
+      members: [
+        member(ADA, "Ada"),
+        member(GRACE, "Grace"),
+        member(LINUS, "Linus"),
+      ],
+      notificationRules: [
+        callRuleFor(CRITICAL),
+        pushRuleFor(CRITICAL),
+        incidentRuleFor(
+          CRITICAL,
+          { [ComplianceNotificationChannel.Call]: CALL_ID_2 },
+          GRACE,
+        ),
+        {
+          ...incidentRuleFor(
+            CRITICAL,
+            {
+              [ComplianceNotificationChannel.Push]: gracePush.methodId,
+              [ComplianceNotificationChannel.Webhook]: borrowedWebhook,
+            },
+            GRACE,
+          ),
+          hasForeignMethod: true,
+        },
+      ],
+      methodsByChannel: methodsOn([
+        [ComplianceNotificationChannel.Call, [verifiedCall, graceCall]],
+        [ComplianceNotificationChannel.Push, [verifiedPush, gracePush]],
+      ]),
+    };
+
+    const together: TeamComplianceStatusJSON = evaluate({
+      ...overrides,
+      rules: [CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS()],
+    });
+    const apart: TeamComplianceStatusJSON = evaluate({
+      ...overrides,
+      rules: [
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          incidentSeverities: [CRITICAL],
+        }),
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Push],
+          incidentSeverities: [CRITICAL],
+        }),
+      ],
+    });
+
+    for (const userId of [ADA, GRACE, LINUS]) {
+      expect(statusOf(together, userId).isCompliant).toBe(
+        statusOf(apart, userId).isCompliant,
+      );
+      expect(reasonsOf(together, userId)).toEqual(
+        reasonsOf(apart, userId).length > 0
+          ? [reasonsOf(apart, userId).join(". ")]
+          : [],
+      );
+    }
+
+    // And the case is not vacuous: somebody passes and somebody fails each way.
+    expect(statusOf(together, ADA).isCompliant).toBe(true);
+    expect(reasonsOf(apart, GRACE)).toEqual([
+      "The Call rule for incident severities Critical Incident points at an unverified phone number for calls",
+      "The Push notification rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user",
+    ]);
+    expect(reasonsOf(apart, LINUS)).toEqual([NO_CALL, NO_PUSH]);
+  });
+
+  test("a rule on several channels never consults readiness coverage", () => {
+    // Coverage says "covered"; the rule still wants a Call rule and a Push rule.
+    expect(
+      adaVerdict(CALL_AND_PUSH_FOR_CRITICAL_INCIDENTS(), {
+        coverageByUserId: coverageFor([
+          cell({
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            severity: CRITICAL,
+            hasRule: true,
+          }),
+        ]),
+      }),
+    ).toBe(`${NO_CALL}. ${NO_PUSH}`);
+  });
+});
+
+/*
+ * ------------------------------------------------------------------------- *
  * The whole status - counts, warnings, disabled and unknown rules, members,
  * and the exact JSON shape the Dashboard is typed against.
  * -------------------------------------------------------------------------
@@ -1961,7 +2846,7 @@ describe("evaluate - the status payload", () => {
       "compliantCount",
       "enabled",
       "nonCompliantCount",
-      "notificationChannel",
+      "notificationChannels",
       "ruleType",
       "settingId",
       "severities",
@@ -2021,7 +2906,7 @@ describe("evaluate - the status payload", () => {
   test("rule JSON: a channel rule scoped to severities", () => {
     const complianceRule: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [MAJOR, CRITICAL],
     });
 
@@ -2033,7 +2918,7 @@ describe("evaluate - the status payload", () => {
       settingId: complianceRule.settingId,
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: true,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [
@@ -2060,7 +2945,7 @@ describe("evaluate - the status payload", () => {
       settingId: complianceRule.settingId,
       ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
       enabled: true,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: ComplianceSeverityKind.Alert,
       appliesToAllSeverities: true,
       severities: [],
@@ -2073,7 +2958,7 @@ describe("evaluate - the status payload", () => {
   test("rule JSON: a method rule", () => {
     const complianceRule: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasNotificationSlackMethod,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [CRITICAL],
     });
 
@@ -2081,7 +2966,7 @@ describe("evaluate - the status payload", () => {
       settingId: complianceRule.settingId,
       ruleType: ComplianceRuleType.HasNotificationSlackMethod,
       enabled: true,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -2089,6 +2974,59 @@ describe("evaluate - the status payload", () => {
       nonCompliantCount: 1,
       warnings: [],
     });
+  });
+
+  test("rule JSON: a rule on several channels lists them once each, in catalog order", () => {
+    const complianceRule: ComplianceRuleInput = rule({
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.Webhook,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Webhook,
+        ComplianceNotificationChannel.SMS,
+      ],
+      alertSeverities: [HIGH],
+    });
+
+    expect(onlyRule(evaluate({ rules: [complianceRule] }))).toEqual({
+      settingId: complianceRule.settingId,
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      enabled: true,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Webhook,
+      ],
+      severityKind: ComplianceSeverityKind.Alert,
+      appliesToAllSeverities: false,
+      severities: [{ id: HIGH.id, name: "High", color: "#ef4444" }],
+      compliantCount: 0,
+      nonCompliantCount: 1,
+      warnings: [],
+    });
+  });
+
+  test("rule JSON: channels go on the wire as a list - empty for any channel - and never as the single channel of old", () => {
+    const sent: string = JSON.stringify(
+      evaluate({
+        rules: [
+          rule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Call,
+            ],
+          }),
+          rule({ ruleType: ComplianceRuleType.HasIncidentOnCallRules }),
+          rule({ ruleType: ComplianceRuleType.HasNotificationEmailMethod }),
+        ],
+        coverageByUserId: coverageFor([]),
+      }),
+    );
+
+    expect(sent).toContain('"notificationChannels":["Call","Push"]');
+    expect(sent.split('"notificationChannels":[]').length - 1).toBe(2);
+    expect(sent).not.toContain('"notificationChannel":');
   });
 
   test("a severity with no name is listed by its id", () => {
@@ -2180,7 +3118,7 @@ describe("evaluate - the status payload", () => {
     const call: ComplianceRuleInput = CALL_FOR_CRITICAL_INCIDENTS();
     const push: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       incidentSeverities: [CRITICAL],
     });
 
@@ -2227,7 +3165,7 @@ describe("evaluate - the status payload", () => {
   test("an UNRECOGNISED rule is listed, never failed, never counted, and says why", () => {
     const unknown: ComplianceRuleInput = rule({
       ruleType: "HasCarrierPigeon",
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
     });
 
     const result: TeamComplianceStatusJSON = evaluate({
@@ -2239,7 +3177,7 @@ describe("evaluate - the status payload", () => {
       settingId: unknown.settingId,
       ruleType: "HasCarrierPigeon",
       enabled: true,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -2372,7 +3310,7 @@ describe("evaluate - rule warnings", () => {
           rule({ ruleType: `HasNotification${channel}Method` }),
           rule({
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: channel,
+            notificationChannels: [channel],
           }),
         ],
         projectSwitches: { [projectSwitch]: false },
@@ -2394,7 +3332,7 @@ describe("evaluate - rule warnings", () => {
           rule({ ruleType: `HasNotification${channel}Method` }),
           rule({
             ruleType: ComplianceRuleType.HasAlertOnCallRules,
-            notificationChannel: channel,
+            notificationChannels: [channel],
           }),
         ],
         projectSwitches: { [projectSwitch]: true },
@@ -2451,7 +3389,7 @@ describe("evaluate - rule warnings", () => {
         rule({ ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod }),
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+          notificationChannels: [ComplianceNotificationChannel.WhatsApp],
         }),
       ],
       projectSwitches: { enableWhatsAppNotifications: false },
@@ -2517,7 +3455,7 @@ describe("evaluate - rule warnings", () => {
         rule({ ruleType: ComplianceRuleType.HasNotificationWebhookMethod }),
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Slack,
+          notificationChannels: [ComplianceNotificationChannel.Slack],
         }),
         rule({ ruleType: ComplianceRuleType.HasIncidentOnCallRules }),
       ],
@@ -2541,6 +3479,301 @@ describe("evaluate - rule warnings", () => {
         }),
       ).warnings,
     ).toEqual([]);
+  });
+
+  const CALL_AND_SMS_OFF: string =
+    "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
+
+  /*
+   * A rule on several switched-off channels says so in ONE sentence for the
+   * channels whose pages would not be sent, rather than the same sentence
+   * once per channel; WhatsApp keeps its own, because what it stops is a
+   * member adding a number.
+   */
+  test.each<[string, Array<ComplianceNotificationChannel>, Array<string>]>([
+    ["nothing switched off", [], []],
+    [
+      "Call alone keeps the one-channel sentence",
+      [ComplianceNotificationChannel.Call],
+      [
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+      ],
+    ],
+    [
+      "Call and SMS share one sentence",
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.SMS],
+      [CALL_AND_SMS_OFF],
+    ],
+    [
+      "three channels are named as prose",
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Telegram,
+      ],
+      [
+        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+      ],
+    ],
+    [
+      "channels arriving out of order, and twice, are named once each in catalog order",
+      [
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.WhatsApp,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+      ],
+      [CALL_AND_SMS_OFF, WHATSAPP_SWITCHED_OFF_WARNING],
+    ],
+    [
+      "WhatsApp alone",
+      [ComplianceNotificationChannel.WhatsApp],
+      [WHATSAPP_SWITCHED_OFF_WARNING],
+    ],
+    [
+      "Call and WhatsApp: Call's sentence, then WhatsApp's own",
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.WhatsApp,
+      ],
+      [
+        "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+        WHATSAPP_SWITCHED_OFF_WARNING,
+      ],
+    ],
+    [
+      "every switched channel: the combined sentence, then WhatsApp's",
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.WhatsApp,
+        ComplianceNotificationChannel.Telegram,
+      ],
+      [
+        "Call, SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+        WHATSAPP_SWITCHED_OFF_WARNING,
+      ],
+    ],
+  ])(
+    "getChannelsSwitchedOffWarnings: %s",
+    (
+      _label: string,
+      channels: Array<ComplianceNotificationChannel>,
+      warnings: Array<string>,
+    ) => {
+      expect(
+        TeamComplianceEvaluator.getChannelsSwitchedOffWarnings(channels),
+      ).toEqual(warnings);
+    },
+  );
+
+  test("a rule on Call, SMS and Push with calls and SMS switched off says so once - Push has no switch", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels: [
+                ComplianceNotificationChannel.Push,
+                ComplianceNotificationChannel.SMS,
+                ComplianceNotificationChannel.Call,
+              ],
+            }),
+          ],
+          projectSwitches: {
+            enableCallNotifications: false,
+            enableSmsNotifications: false,
+          },
+        }),
+      ).warnings,
+    ).toEqual([CALL_AND_SMS_OFF]);
+  });
+
+  test("only the channels that are off are named, and one of several off keeps the one-channel sentence", () => {
+    const channels: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.SMS,
+      ComplianceNotificationChannel.Telegram,
+    ];
+
+    const warningsFor: (
+      projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>>,
+    ) => Array<string> = (
+      projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>>,
+    ): Array<string> => {
+      return onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasAlertOnCallRules,
+              notificationChannels: channels,
+            }),
+          ],
+          projectSwitches: projectSwitches,
+        }),
+      ).warnings;
+    };
+
+    expect(
+      warningsFor({
+        enableCallNotifications: true,
+        enableSmsNotifications: false,
+        enableTelegramNotifications: false,
+      }),
+    ).toEqual([
+      "SMS and Telegram notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+    ]);
+    expect(
+      warningsFor({
+        enableCallNotifications: true,
+        enableSmsNotifications: false,
+        enableTelegramNotifications: true,
+      }),
+    ).toEqual([
+      TeamComplianceEvaluator.getChannelSwitchedOffWarning(
+        ComplianceNotificationChannel.SMS,
+      ),
+    ]);
+    expect(
+      warningsFor({
+        enableCallNotifications: true,
+        enableSmsNotifications: true,
+        enableTelegramNotifications: true,
+      }),
+    ).toEqual([]);
+  });
+
+  test("WhatsApp among a rule's channels gets its own warning, after the combined one", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels: [
+                ComplianceNotificationChannel.WhatsApp,
+                ComplianceNotificationChannel.SMS,
+                ComplianceNotificationChannel.Call,
+              ],
+            }),
+          ],
+          projectSwitches: {
+            enableCallNotifications: false,
+            enableSmsNotifications: false,
+            enableWhatsAppNotifications: false,
+          },
+        }),
+      ).warnings,
+    ).toEqual([CALL_AND_SMS_OFF, WHATSAPP_SWITCHED_OFF_WARNING]);
+  });
+
+  test("switches missing from a project record that WAS read are off, for every channel of the rule", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels: [
+                ComplianceNotificationChannel.SMS,
+                ComplianceNotificationChannel.Call,
+              ],
+            }),
+          ],
+          projectSwitches: {},
+        }),
+      ).warnings,
+    ).toEqual([CALL_AND_SMS_OFF]);
+  });
+
+  test("channels with no project switch never warn, however many a rule names", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels: [
+                ComplianceNotificationChannel.Push,
+                ComplianceNotificationChannel.Email,
+                ComplianceNotificationChannel.Slack,
+                ComplianceNotificationChannel.MicrosoftTeams,
+                ComplianceNotificationChannel.Webhook,
+              ],
+            }),
+          ],
+          projectSwitches: {},
+        }),
+      ).warnings,
+    ).toEqual([]);
+  });
+
+  test("a paused rule on several switched-off channels warns about nothing", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels: [
+                ComplianceNotificationChannel.Call,
+                ComplianceNotificationChannel.SMS,
+                ComplianceNotificationChannel.WhatsApp,
+              ],
+              enabled: false,
+            }),
+          ],
+          projectSwitches: {},
+        }),
+      ).warnings,
+    ).toEqual([]);
+  });
+
+  test("the combined warning is about the rule, not its members: one covered on every channel still passes", () => {
+    const smsId: string = "5a500000-0000-4000-8000-000000000001";
+
+    const result: TeamComplianceStatusJSON = evaluate({
+      rules: [
+        rule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.SMS,
+          ],
+          incidentSeverities: [CRITICAL],
+        }),
+      ],
+      notificationRules: [
+        adaRuleFor({
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          kind: ComplianceSeverityKind.Incident,
+          severity: CRITICAL,
+          methodIds: {
+            [ComplianceNotificationChannel.Call]: CALL_ID,
+            [ComplianceNotificationChannel.SMS]: smsId,
+          },
+        }),
+      ],
+      methodsByChannel: methodsOn([
+        [
+          ComplianceNotificationChannel.Call,
+          [{ methodId: CALL_ID, userId: ADA, isVerified: true }],
+        ],
+        [
+          ComplianceNotificationChannel.SMS,
+          [{ methodId: smsId, userId: ADA, isVerified: true }],
+        ],
+      ]),
+      projectSwitches: {
+        enableCallNotifications: false,
+        enableSmsNotifications: false,
+      },
+    });
+
+    expect(onlyRule(result).warnings).toEqual([CALL_AND_SMS_OFF]);
+    expect(onlyRule(result).compliantCount).toBe(1);
+    expect(statusOf(result, ADA).isCompliant).toBe(true);
   });
 
   test("a disabled rule on a switched-off channel does not warn", () => {
@@ -2576,7 +3809,7 @@ describe("a rule whose severities were all deleted", () => {
   const EMPTIED: () => ComplianceRuleInput = (): ComplianceRuleInput => {
     return rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       enabled: false,
       severitiesDeleted: true,
     });
@@ -2593,7 +3826,7 @@ describe("a rule whose severities were all deleted", () => {
 
     expect(listed).toMatchObject({
       enabled: false,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [],
@@ -2609,7 +3842,7 @@ describe("a rule whose severities were all deleted", () => {
         EMPTIED(),
         rule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         }),
       ],
       members: [member(ADA, "Ada")],
@@ -2686,7 +3919,7 @@ describe("a rule whose severities were all deleted", () => {
   test("a stale mark on a rule that has severities again is ignored: the rule is checked on them", () => {
     const rescoped: ComplianceRuleInput = rule({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [MAJOR],
       severitiesDeleted: true,
     });
@@ -2737,13 +3970,43 @@ describe("a rule whose severities were all deleted", () => {
     ).toEqual([UNKNOWN_RULE_TYPE_WARNING]);
   });
 
+  test("a rule on several channels whose severities were all deleted says only that - never that its channels are off", () => {
+    expect(
+      onlyRule(
+        evaluate({
+          rules: [
+            rule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels: [
+                ComplianceNotificationChannel.SMS,
+                ComplianceNotificationChannel.Call,
+              ],
+              severitiesDeleted: true,
+            }),
+          ],
+          members: [member(ADA, "Ada")],
+          projectSwitches: {},
+        }),
+      ),
+    ).toMatchObject({
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+      ],
+      appliesToAllSeverities: false,
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      warnings: [SEVERITIES_DELETED_WARNING],
+    });
+  });
+
   test("an unmarked rule with no severities is still a rule for every severity", () => {
     const everySeverity: TeamComplianceRuleJSON = onlyRule(
       evaluate({
         rules: [
           rule({
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             enabled: false,
             severitiesDeleted: false,
           }),

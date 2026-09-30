@@ -584,7 +584,19 @@ interface StubRule {
 interface StubSetting {
   ruleType: ComplianceRuleType;
   enabled: boolean;
-  notificationChannel?: ComplianceNotificationChannel | undefined;
+  notificationChannels?: Array<ComplianceNotificationChannel> | undefined;
+  /*
+   * The two channel columns exactly as stored, for a row a build from before
+   * the list wrote. Without it the row is stored the way the settings
+   * service stores it: the list, and notificationChannel set to its first
+   * channel.
+   */
+  storedChannelColumns?:
+    | {
+        notificationChannels: Array<string> | null;
+        notificationChannel: string | null;
+      }
+    | undefined;
   incidentSeverities?: Array<StubSeverity> | undefined;
   alertSeverities?: Array<StubSeverity> | undefined;
   // The row's options JSON (NULL when unset).
@@ -655,7 +667,10 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
           _id: `5e771000-0000-4000-8000-${index.toString().padStart(12, "0")}`,
           ruleType: stubSetting.ruleType,
           enabled: stubSetting.enabled,
-          notificationChannel: stubSetting.notificationChannel,
+          ...(stubSetting.storedChannelColumns || {
+            notificationChannels: stubSetting.notificationChannels ?? null,
+            notificationChannel: stubSetting.notificationChannels?.[0] ?? null,
+          }),
           createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
           incidentSeverities: relation(stubSetting.incidentSeverities),
           alertSeverities: relation(stubSetting.alertSeverities),
@@ -821,7 +836,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         "compliantCount",
         "enabled",
         "nonCompliantCount",
-        "notificationChannel",
+        "notificationChannels",
         "ruleType",
         "settingId",
         "severities",
@@ -834,7 +849,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       settingId: "5e771000-0000-4000-8000-000000000000",
       ruleType: ComplianceRuleType.HasNotificationEmailMethod,
       enabled: true,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -846,7 +861,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       settingId: "5e771000-0000-4000-8000-000000000001",
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: true,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: "Incident",
       appliesToAllSeverities: true,
       severities: [],
@@ -1181,7 +1196,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [critical],
         },
       ],
@@ -1228,7 +1243,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         settingId: "5e771000-0000-4000-8000-000000000000",
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         enabled: true,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         severityKind: "Incident",
         appliesToAllSeverities: false,
         severities: [
@@ -1261,6 +1276,206 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
     expect(firstCall(userCallFindBy).query["projectId"]).toBe(projectId);
   });
 
+  test("Call and Push for Critical incidents, end to end: every member checked on both, each channel's methods read once", async () => {
+    const carol: StubUser = {
+      id: ObjectID.generate(),
+      name: "Carol",
+      email: "carol@example.com",
+    };
+    const adaPhone: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+    const gracePhone: StubMethod = methodRow({
+      userId: grace.id,
+      isVerified: true,
+    });
+    const adaDevice: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+    const carolDevice: StubMethod = methodRow({
+      userId: carol.id,
+      isVerified: false,
+    });
+
+    const criticalRule: (
+      id: string,
+      user: StubUser,
+      methods: Partial<StubRule>,
+    ) => StubRule = (
+      id: string,
+      user: StubUser,
+      methods: Partial<StubRule>,
+    ): StubRule => {
+      return {
+        _id: id,
+        userId: user.id,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        incidentSeverityId: critical.id,
+        ...methods,
+      };
+    };
+
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: [critical],
+        },
+      ],
+      members: [ada, grace, carol],
+      rules: [
+        // Ada: rung and pushed.
+        criticalRule("rule-ada-call", ada, { userCallId: adaPhone.id }),
+        criticalRule("rule-ada-push", ada, { userPushId: adaDevice.id }),
+        // Grace: rung, never pushed.
+        criticalRule("rule-grace-call", grace, { userCallId: gracePhone.id }),
+        // Carol: pushed to a device she never verified, and never rung.
+        criticalRule("rule-carol-push", carol, { userPushId: carolDevice.id }),
+      ],
+      incidentSeverities: [critical, major],
+      alertSeverities: [],
+      callMethods: [adaPhone, gracePhone],
+      pushMethods: [adaDevice, carolDevice],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(rulesOf(payload)).toEqual([
+      {
+        settingId: "5e771000-0000-4000-8000-000000000000",
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        enabled: true,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        severityKind: "Incident",
+        appliesToAllSeverities: false,
+        severities: [{ id: critical.id.toString(), name: "Critical" }],
+        compliantCount: 1,
+        nonCompliantCount: 2,
+        warnings: [],
+      },
+    ]);
+
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(reasonsFor(payload, grace)).toEqual([
+      "No Push notification rule for incident severities: Critical",
+    ]);
+    expect(reasonsFor(payload, carol)).toEqual([
+      "No Call rule for incident severities: Critical. The Push notification rule for incident severities Critical points at an unverified push notification device",
+    ]);
+
+    // No readiness pass: a channel rule is answered from the rules themselves.
+    expect(escalationUserFindBy).not.toHaveBeenCalled();
+
+    // ONE rule read, selecting both channels' columns.
+    expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
+    expect(firstCall(notificationRuleFindBy).select?.["userCallId"]).toBe(true);
+    expect(firstCall(notificationRuleFindBy).select?.["userPushId"]).toBe(true);
+    expect(firstCall(notificationRuleFindBy).select?.["userSmsId"]).toBe(
+      undefined,
+    );
+
+    // And ONE read of each channel's methods, in this project.
+    expect(userCallFindBy).toHaveBeenCalledTimes(1);
+    expect(firstCall(userCallFindBy).query["projectId"]).toBe(projectId);
+    expect(userPushFindBy).toHaveBeenCalledTimes(1);
+    expect(firstCall(userPushFindBy).query["projectId"]).toBe(projectId);
+    expect(userSmsFindBy).not.toHaveBeenCalled();
+  });
+
+  test("a rule on Call and SMS, both switched off for the project, carries ONE warning naming both", async () => {
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Call,
+          ],
+        },
+      ],
+      members: [ada],
+      rules: [],
+      incidentSeverities: [critical],
+      alertSeverities: [],
+    });
+    projectFindOneById.mockResolvedValue({
+      id: projectId,
+      enableCallNotifications: false,
+      enableSmsNotifications: false,
+    } as never);
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(rulesOf(payload)[0]!["notificationChannels"]).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.SMS,
+    ]);
+    expect(rulesOf(payload)[0]!["warnings"]).toEqual([
+      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+    ]);
+    // The switches are the rule's problem; Ada fails only on what she lacks.
+    expect(reasonsFor(payload, ada)).toEqual([
+      "No Call rule for incident severities: Critical. No SMS rule for incident severities: Critical",
+    ]);
+  });
+
+  test("a rule a build from before the channel list stored - one channel, no list - is still checked on that channel", async () => {
+    const adaPhone: StubMethod = methodRow({
+      userId: ada.id,
+      isVerified: true,
+    });
+
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          storedChannelColumns: {
+            notificationChannels: null,
+            notificationChannel: ComplianceNotificationChannel.Call,
+          },
+          incidentSeverities: [critical],
+        },
+      ],
+      members: [ada, grace],
+      rules: [
+        {
+          _id: "rule-ada-call",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userCallId: adaPhone.id,
+        },
+      ],
+      incidentSeverities: [critical],
+      alertSeverities: [],
+      callMethods: [adaPhone],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(rulesOf(payload)[0]!["notificationChannels"]).toEqual([
+      ComplianceNotificationChannel.Call,
+    ]);
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(reasonsFor(payload, grace)).toEqual([
+      "No Call rule for incident severities: Critical",
+    ]);
+    // Checked as a Call rule - not waved through as "any channel" by readiness.
+    expect(escalationUserFindBy).not.toHaveBeenCalled();
+  });
+
   test("Push for critical alerts: an opt-out is not a push rule", async () => {
     const adaDevice: StubMethod = methodRow({
       userId: ada.id,
@@ -1272,7 +1487,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         {
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           alertSeverities: [page],
         },
       ],
@@ -1321,7 +1536,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         },
       ],
       members: [ada],
@@ -1404,7 +1619,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         },
         {
           ruleType: ComplianceRuleType.HasNotificationEmailMethod,
@@ -1465,12 +1680,12 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         enabled: true,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
       },
       {
         ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
         enabled: true,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
       },
       { ruleType: ComplianceRuleType.HasNotificationSMSMethod, enabled: true },
     ];
@@ -1655,13 +1870,13 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       settings: [
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: false,
           options: { severitiesDeleted: true },
         },
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
         },
       ],
@@ -1679,7 +1894,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       settingId: expect.any(String),
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: false,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [],

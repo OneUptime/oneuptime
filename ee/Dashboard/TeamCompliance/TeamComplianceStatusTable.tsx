@@ -273,7 +273,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
       );
 
     return getRuleTitle(
-      rule || { ruleType: issue.ruleType, notificationChannel: null },
+      rule || { ruleType: issue.ruleType, notificationChannels: [] },
     );
   };
 
