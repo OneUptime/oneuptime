@@ -279,8 +279,9 @@ export default class IncidentFormAPI extends BaseAPI<
    * save none of what it cost; and nothing after this does more work for a
    * larger body - only the answers the form asks are read, each text is
    * capped, a multi-select's list is bounded before its entries are read,
-   * and the token is capped below. A fixed size would also have to allow for
-   * a form with many long questions.
+   * an answer that is an object is refused unread, and the token is capped
+   * below. A fixed size would also have to allow for a form with many long
+   * questions.
    */
   public static readSubmissionRequest(
     body: unknown,

@@ -130,6 +130,10 @@ const TOO_MANY_CHOICES_MESSAGE: string =
 const NOT_A_LIST_MESSAGE: string = "{{field}} takes one answer, not a list.";
 const NESTED_CHOICE_MESSAGE: string =
   "{{field}} takes a list of its options, not lists or objects within it.";
+const OBJECT_ANSWER_MESSAGE: string =
+  "{{field}} takes one answer, not an object.";
+const OBJECT_CHOICES_MESSAGE: string =
+  "{{field}} takes a list of its options, not an object.";
 
 type FillMessageFunction = (
   template: string,
@@ -665,6 +669,31 @@ const validateAnswers: ValidateAnswersFunction = (data: {
       : undefined;
 
     /*
+     * An answer is one value - text, a number, a yes/no - or, for a
+     * multi-select, a list of them; nothing the form's page sends is an
+     * object. So an object is refused here, unread: checking it against
+     * its field (validateCustomFieldValues) would turn all of it into text
+     * twice before refusing it, and the request may carry millions of keys
+     * or a nesting millions deep, whose conversion alone blocks the server
+     * for seconds - a minute, at the body's 50 MB.
+     */
+    if (
+      answer !== null &&
+      typeof answer === "object" &&
+      !Array.isArray(answer)
+    ) {
+      data.errors.push(
+        fillMessage(
+          field.customFieldType === CustomFieldType.MultiSelectDropdown
+            ? OBJECT_CHOICES_MESSAGE
+            : OBJECT_ANSWER_MESSAGE,
+          { field: field.name },
+        ),
+      );
+      continue;
+    }
+
+    /*
      * A list is bounded before anything reads its entries: cleaning,
      * de-duplicating and checking them, and quoting the ones that are not
      * options back in the refusal, all cost as much as the list is long,
@@ -887,9 +916,12 @@ export type ValidateIncidentFormSubmissionFunction = (data: {
  *   at most 100.
  * - Custom fields: only those the form asks, each checked as an API write
  *   would be, required ones filled in (a required yes/no ticked), text at
- *   most 10000 characters, a list only for a multi-select and then with at
- *   most 100 choices (or as many as it has options), none of them a list
- *   or an object. Answers to anything else are dropped.
+ *   most 10000 characters, never an object, a list only for a multi-select
+ *   and then with at most 100 choices (or as many as it has options), none
+ *   of them a list or an object. Answers to anything else are dropped.
+ *
+ * No check costs more for a larger body: text is measured, a list is
+ * counted and an object refused before anything reads what they hold.
  */
 export const validateIncidentFormSubmission: ValidateIncidentFormSubmissionFunction =
   (data: {

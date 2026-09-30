@@ -939,6 +939,39 @@ describe("IncidentFormService.submitPublicForm - custom fields", () => {
   });
 
   /*
+   * Nothing the form's page sends is an object. Checked as an API write
+   * would check it, an object would be turned into text twice before it
+   * was refused - seconds of the server's time for one with a million
+   * keys - so it is refused before anything reads it.
+   */
+  test("refuses an object answer before reading it, with one short message, declaring nothing", async () => {
+    storedForm = buildForm({ customFieldSettings: FORM_QUESTIONS });
+
+    const answer: Record<string, string> = {};
+
+    for (let index: number = 0; index < 1_000_000; index++) {
+      answer[`k${index}`] = "EU";
+    }
+
+    const started: number = Date.now();
+
+    const error: Exception | undefined = await refusal(
+      submit({
+        answers: {
+          ...VALID_ANSWERS,
+          customFields: { Impact: "High", Region: answer },
+        },
+      }),
+    );
+
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe("Region takes one answer, not an object.");
+    expect(incidentCreate).not.toHaveBeenCalled();
+    expect(reserveFormSubmission).not.toHaveBeenCalled();
+  });
+
+  /*
    * A field mapped from a monitor field takes the monitor's value once the
    * incident has a monitor - and a form's incident gets its template's
    * monitors. Such a question is not asked then, so it cannot be required,

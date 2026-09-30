@@ -1376,8 +1376,121 @@ describe("validateIncidentFormSubmission: custom field answers", () => {
       '"Mobile" is not one of the options for "Systems". Choose from: "API", "Web".',
       '"Noticed On" holds a date, but was sent "yesterday-ish".',
       '"Noticed At" holds a date and time, but was sent "soon".',
-      '"Untyped" holds text, but was sent "{"nested":true}".',
+      "Untyped takes one answer, not an object.",
     ]);
+  });
+
+  /*
+   * An answer is one value - text, a number, a yes/no - or, for a
+   * multi-select, a list of them; nothing the form's page sends is an
+   * object. One is refused before anything reads it: checked as an API
+   * write would check it, it would be turned into text twice first -
+   * seconds for one with a million keys, and far longer for one nested
+   * millions deep.
+   */
+  test.each([
+    ["a text question", "Impact", "Impact takes one answer, not an object."],
+    [
+      "a long text question",
+      "Steps to Reproduce",
+      "Steps to Reproduce takes one answer, not an object.",
+    ],
+    ["a Markdown question", "Notes", "Notes takes one answer, not an object."],
+    [
+      "a number question",
+      "Users Affected",
+      "Users Affected takes one answer, not an object.",
+    ],
+    [
+      "a yes/no question",
+      "Customer Facing",
+      "Customer Facing takes one answer, not an object.",
+    ],
+    ["a dropdown", "Region", "Region takes one answer, not an object."],
+    [
+      "a multi-select",
+      "Systems",
+      "Systems takes a list of its options, not an object.",
+    ],
+    [
+      "a date question",
+      "Noticed On",
+      "Noticed On takes one answer, not an object.",
+    ],
+    [
+      "a date and time question",
+      "Noticed At",
+      "Noticed At takes one answer, not an object.",
+    ],
+    [
+      "a question with no type",
+      "Untyped",
+      "Untyped takes one answer, not an object.",
+    ],
+  ])(
+    "refuses an object for %s",
+    (_label: string, name: string, message: string) => {
+      expect(errorsOf(answer({ [name]: { nested: true } }))).toEqual([message]);
+    },
+  );
+
+  test("refuses an empty object as well: it is no more an answer", () => {
+    expect(errorsOf(answer({ Region: {} }))).toEqual([
+      "Region takes one answer, not an object.",
+    ]);
+  });
+
+  test("refuses an object without reading any of it", () => {
+    const refuseToBeRead: () => never = (): never => {
+      throw new Error("The answer was read.");
+    };
+
+    const unreadable: JSONObject = new Proxy(
+      {},
+      {
+        get: refuseToBeRead,
+        has: refuseToBeRead,
+        ownKeys: refuseToBeRead,
+        getOwnPropertyDescriptor: refuseToBeRead,
+        getPrototypeOf: refuseToBeRead,
+      },
+    ) as JSONObject;
+
+    let result: IncidentFormSubmissionValidationResult | undefined;
+
+    expect(() => {
+      result = answer({ Region: unreadable });
+    }).not.toThrow();
+
+    expect(errorsOf(result!)).toEqual([
+      "Region takes one answer, not an object.",
+    ]);
+  });
+
+  test("refuses an object nested two hundred thousand deep at once, without throwing", () => {
+    const depth: number = 200_000;
+    const nested: JSONObject = JSON.parse(
+      `${'{"a":'.repeat(depth)}1${"}".repeat(depth)}`,
+    ) as JSONObject;
+
+    const started: number = Date.now();
+    let result: IncidentFormSubmissionValidationResult | undefined;
+
+    expect(() => {
+      result = answer({ Notes: nested });
+    }).not.toThrow();
+
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(errorsOf(result!)).toEqual([
+      "Notes takes one answer, not an object.",
+    ]);
+  });
+
+  test("a null answer is still no answer", () => {
+    expect(errorsOf(answer({ Impact: null }))).toEqual(["Impact is required."]);
+    expect(
+      valueOf(answer({ Region: null })).customFields["Region"],
+    ).toBeUndefined();
   });
 
   test("good answers of every type are kept", () => {
