@@ -439,6 +439,78 @@ describe("SetupGuideCard", () => {
     });
   });
 
+  describe("tabs shared by several steps", () => {
+    const linkedContent: () => SetupGuideContent = (): SetupGuideContent => {
+      return {
+        steps: [
+          {
+            title: "Store the token",
+            variants: [
+              { label: "SDK direct", markdown: "STORE HEADER" },
+              { label: "Sidecar collector", markdown: "STORE TOKEN" },
+            ],
+          },
+          {
+            title: "Configure the service",
+            variants: [
+              { label: "SDK direct", markdown: "CONFIGURE SDK" },
+              { label: "Sidecar collector", markdown: "CONFIGURE SIDECAR" },
+            ],
+          },
+          {
+            title: "Run it",
+            variants: [
+              { label: "On the host", markdown: "RUN ON HOST" },
+              { label: "In Docker", markdown: "RUN IN DOCKER" },
+            ],
+          },
+        ],
+      };
+    };
+
+    test("picking a tab in one step switches every step with that tab", () => {
+      mockKeys([]);
+      renderCard({ getContent: linkedContent });
+
+      expect(screen.getByText("STORE HEADER")).toBeInTheDocument();
+      expect(screen.getByText("CONFIGURE SDK")).toBeInTheDocument();
+
+      const sidecarTabs: Array<HTMLElement> = screen.getAllByRole("tab", {
+        name: "Sidecar collector",
+      });
+      expect(sidecarTabs).toHaveLength(2);
+      fireEvent.click(sidecarTabs[0]!);
+
+      expect(screen.getByText("STORE TOKEN")).toBeInTheDocument();
+      expect(screen.getByText("CONFIGURE SIDECAR")).toBeInTheDocument();
+      expect(screen.queryByText("CONFIGURE SDK")).not.toBeInTheDocument();
+      for (const tab of screen.getAllByRole("tab", {
+        name: "Sidecar collector",
+      })) {
+        expect(tab).toHaveAttribute("aria-selected", "true");
+      }
+
+      // A step without that tab keeps its own selection.
+      expect(screen.getByText("RUN ON HOST")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("tab", { name: "In Docker" }));
+      expect(screen.getByText("RUN IN DOCKER")).toBeInTheDocument();
+      expect(screen.getByText("CONFIGURE SIDECAR")).toBeInTheDocument();
+    });
+
+    test("the arrow keys switch the linked steps too", () => {
+      mockKeys([]);
+      renderCard({ getContent: linkedContent });
+
+      fireEvent.keyDown(
+        screen.getAllByRole("tab", { name: "SDK direct" })[1]!,
+        { key: "ArrowRight" },
+      );
+
+      expect(screen.getByText("STORE TOKEN")).toBeInTheDocument();
+      expect(screen.getByText("CONFIGURE SIDECAR")).toBeInTheDocument();
+    });
+  });
+
   describe("Advanced and Troubleshooting", () => {
     beforeEach(() => {
       mockKeys([]);

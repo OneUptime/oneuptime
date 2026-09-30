@@ -117,6 +117,24 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   const [selectedKey, setSelectedKey] = useState<TelemetryIngestionKey | null>(
     null,
   );
+  /*
+   * Every tab label the reader has picked in any step, most recent first.
+   * Steps that offer a tab with one of these labels show it too, so
+   * "Docker Compose" or "Sidecar collector" is picked once for the whole
+   * guide.
+   */
+  const [pickedVariants, setPickedVariants] = useState<Array<string>>([]);
+
+  const onSelectVariant: (label: string) => void = (label: string): void => {
+    setPickedVariants((current: Array<string>): Array<string> => {
+      return [
+        label,
+        ...current.filter((item: string): boolean => {
+          return item !== label;
+        }),
+      ];
+    });
+  };
 
   useEffect(() => {
     const isOffered: boolean = options.some(
@@ -188,6 +206,8 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
             {step.markdown && <SetupGuideMarkdown text={step.markdown} />}
             {step.variants && step.variants.length > 0 && (
               <SetupGuideStepVariants
+                selectedLabels={pickedVariants}
+                onSelectLabel={onSelectVariant}
                 variants={step.variants.map(
                   (
                     variant: SetupGuideStepVariant,

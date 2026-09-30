@@ -81,6 +81,17 @@ export interface SetupGuideStepVariantView {
 
 export interface SetupGuideStepVariantsProps {
   variants: Array<SetupGuideStepVariantView>;
+  /*
+   * Link the tabs of several steps by label. `selectedLabels` is every tab
+   * label the reader has picked anywhere in the guide, most recent first;
+   * the step shows the first of them it has, and picking a tab reports its
+   * label. A guide whose steps all offer "SDK direct" and "Sidecar
+   * collector" then switches every step at once instead of asking the reader
+   * to pick the same tab in each — and a later pick in an unrelated step
+   * ("In Docker") does not undo it.
+   */
+  selectedLabels?: Array<string> | undefined;
+  onSelectLabel?: ((label: string) => void) | undefined;
 }
 
 export const SetupGuideStepVariants: FunctionComponent<
@@ -106,9 +117,31 @@ export const SetupGuideStepVariants: FunctionComponent<
     return <></>;
   }
 
+  let linkedIndex: number = -1;
+  for (const label of props.selectedLabels || []) {
+    linkedIndex = props.variants.findIndex(
+      (variant: SetupGuideStepVariantView): boolean => {
+        return variant.label === label;
+      },
+    );
+    if (linkedIndex >= 0) {
+      break;
+    }
+  }
   const safeIndex: number =
-    selectedIndex < props.variants.length ? selectedIndex : 0;
+    linkedIndex >= 0
+      ? linkedIndex
+      : selectedIndex < props.variants.length
+        ? selectedIndex
+        : 0;
   const selected: SetupGuideStepVariantView = props.variants[safeIndex]!;
+
+  const select: (index: number) => void = (index: number): void => {
+    setSelectedIndex(index);
+    if (props.onSelectLabel) {
+      props.onSelectLabel(props.variants[index]!.label);
+    }
+  };
 
   if (props.variants.length === 1) {
     return selected.content;
@@ -139,7 +172,7 @@ export const SetupGuideStepVariants: FunctionComponent<
     }
 
     event.preventDefault();
-    setSelectedIndex(next);
+    select(next);
     tabRefs.current[next]?.focus();
   };
 
@@ -165,7 +198,7 @@ export const SetupGuideStepVariants: FunctionComponent<
                 aria-controls={`${baseId}-panel`}
                 tabIndex={isSelected ? 0 : -1}
                 onClick={() => {
-                  setSelectedIndex(index);
+                  select(index);
                 }}
                 onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
                   onKeyDown(event, index);
