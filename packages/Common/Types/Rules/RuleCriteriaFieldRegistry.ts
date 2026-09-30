@@ -267,6 +267,18 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "kubernetesClusterNamePattern",
     "kubernetesClusterDescriptionPattern",
   ],
+  MessageQueueLabelRule: [
+    "messageQueueLabels",
+    "messageQueueNamePattern",
+    "messageQueueDescriptionPattern",
+    "messageQueueSystemPattern",
+  ],
+  MessageQueueOwnerRule: [
+    "messageQueueLabels",
+    "messageQueueNamePattern",
+    "messageQueueDescriptionPattern",
+    "messageQueueSystemPattern",
+  ],
   MonitorLabelRule: [
     "monitorLabels",
     "monitorNamePattern",

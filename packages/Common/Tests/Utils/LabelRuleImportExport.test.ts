@@ -90,6 +90,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "databaseServerDescriptionPattern",
     "databaseServerLabels",
   ],
+  MessageQueueLabelRule: [
+    "messageQueueNamePattern",
+    "messageQueueDescriptionPattern",
+    "messageQueueLabels",
+  ],
   DockerHostLabelRule: [
     "dockerHostNamePattern",
     "dockerHostDescriptionPattern",

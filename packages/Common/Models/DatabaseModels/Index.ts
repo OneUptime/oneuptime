@@ -78,6 +78,11 @@ import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
 import DatabaseServerOwnerUser from "./DatabaseServerOwnerUser";
 import DatabaseServerLabelRule from "./DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "./DatabaseServerOwnerRule";
+import MessageQueue from "./MessageQueue";
+import MessageQueueOwnerTeam from "./MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "./MessageQueueOwnerUser";
+import MessageQueueLabelRule from "./MessageQueueLabelRule";
+import MessageQueueOwnerRule from "./MessageQueueOwnerRule";
 import RumApplication from "./RumApplication";
 import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
 import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
@@ -991,6 +996,11 @@ const AllModelTypes: Array<{
   DatabaseServerOwnerUser,
   DatabaseServerLabelRule,
   DatabaseServerOwnerRule,
+  MessageQueue,
+  MessageQueueOwnerTeam,
+  MessageQueueOwnerUser,
+  MessageQueueLabelRule,
+  MessageQueueOwnerRule,
   RumApplication,
   RumApplicationOwnerTeam,
   RumApplicationOwnerUser,

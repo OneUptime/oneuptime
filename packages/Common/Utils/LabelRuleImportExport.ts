@@ -15,6 +15,7 @@ import IncidentLabelRule from "../Models/DatabaseModels/IncidentLabelRule";
 import IncomingCallPolicyLabelRule from "../Models/DatabaseModels/IncomingCallPolicyLabelRule";
 import IoTFleetLabelRule from "../Models/DatabaseModels/IoTFleetLabelRule";
 import KubernetesClusterLabelRule from "../Models/DatabaseModels/KubernetesClusterLabelRule";
+import MessageQueueLabelRule from "../Models/DatabaseModels/MessageQueueLabelRule";
 import MonitorLabelRule from "../Models/DatabaseModels/MonitorLabelRule";
 import NetworkDeviceLabelRule from "../Models/DatabaseModels/NetworkDeviceLabelRule";
 import OnCallDutyPolicyLabelRule from "../Models/DatabaseModels/OnCallDutyPolicyLabelRule";
@@ -66,6 +67,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   IncomingCallPolicyLabelRule,
   IoTFleetLabelRule,
   KubernetesClusterLabelRule,
+  MessageQueueLabelRule,
   MonitorLabelRule,
   NetworkDeviceLabelRule,
   OnCallDutyPolicyLabelRule,

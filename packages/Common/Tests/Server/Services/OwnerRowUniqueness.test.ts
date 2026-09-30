@@ -122,6 +122,9 @@ const OWNER_MODEL_CASES: Array<[string, OwnerModel]> = OWNER_MODELS.map(
 const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   "DatabaseServerOwnerTeam",
   "DatabaseServerOwnerUser",
+  // 1796500000000-AddMessageQueueTables
+  "MessageQueueOwnerTeam",
+  "MessageQueueOwnerUser",
 ];
 
 const MIGRATED_OWNER_MODELS: Array<OwnerModel> = OWNER_MODELS.filter(
