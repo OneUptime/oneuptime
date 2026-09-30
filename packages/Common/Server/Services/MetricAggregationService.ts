@@ -1,5 +1,8 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import {
+  appendAttributeOperatorFilter,
+  appendAttributeValuesPrefilter,
+} from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
@@ -433,7 +436,9 @@ export class MetricAggregationService {
         /*
          * Match attribute keys case-insensitively — see the matching note in
          * LogAggregationService.appendCommonFilters. Casings vary across
-         * OTEL conventions and app-emitted attributes.
+         * OTEL conventions and app-emitted attributes. Plain values get the
+         * same has()/hasAny() pre-filter as the operator forms — see
+         * appendAttributeValuesPrefilter.
          */
         if (Array.isArray(attrValue)) {
           /*
@@ -443,6 +448,7 @@ export class MetricAggregationService {
           if (attrValue.length === 0) {
             continue;
           }
+          appendAttributeValuesPrefilter({ statement, values: attrValue });
           statement.append(
             SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
               type: TableColumnType.Text,
@@ -480,6 +486,7 @@ export class MetricAggregationService {
           continue;
         }
 
+        appendAttributeValuesPrefilter({ statement, values: [attrValue] });
         statement.append(
           SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,

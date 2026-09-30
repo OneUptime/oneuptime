@@ -365,6 +365,25 @@ describe("trace attribute filters — operator support", () => {
       expect(paramValues(statement)).toContainEqual(["eu-west-1", "us-east-1"]);
     });
 
+    test("bare values carry the same value pre-filter as EqualTo / Includes", () => {
+      /*
+       * Implied by the match, so the result is unchanged; it lets a skip
+       * index on mapValues(attributes) prune, and lets AND short-circuit
+       * the lambda. See appendAttributeValuesPrefilter.
+       */
+      const single: Statement = histogramFor({ "url.host": "api.example" });
+      const list: Statement = histogramFor({
+        region: ["eu-west-1", "us-east-1"],
+      });
+
+      expect(normalizedQuery(single)).toMatch(
+        /AND has\(mapValues\(attributes\), \{p\d+:String\}\) AND arrayExists\(/,
+      );
+      expect(normalizedQuery(list)).toMatch(
+        /AND hasAny\(mapValues\(attributes\), \{p\d+:Array\(String\)\}\) AND arrayExists\(/,
+      );
+    });
+
     test("attributeSearches still compiles to a contains match", () => {
       /*
        * Saved views and existing deep links still send this channel, so it

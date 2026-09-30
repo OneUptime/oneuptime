@@ -3,7 +3,10 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import {
+  appendAttributeOperatorFilter,
+  appendAttributeValuesPrefilter,
+} from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -1255,7 +1258,9 @@ export class TraceAggregationService {
         /*
          * Match attribute keys case-insensitively — see the matching note in
          * LogAggregationService.appendCommonFilters. Casings vary across
-         * OTEL conventions and app-emitted attributes.
+         * OTEL conventions and app-emitted attributes. Plain values get the
+         * same has()/hasAny() pre-filter as the operator forms — see
+         * appendAttributeValuesPrefilter.
          */
         if (Array.isArray(attrValue)) {
           /*
@@ -1266,6 +1271,7 @@ export class TraceAggregationService {
           if (attrValue.length === 0) {
             continue;
           }
+          appendAttributeValuesPrefilter({ statement, values: attrValue });
           statement.append(
             SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
               type: TableColumnType.Text,
@@ -1310,6 +1316,7 @@ export class TraceAggregationService {
           continue;
         }
 
+        appendAttributeValuesPrefilter({ statement, values: [attrValue] });
         statement.append(
           SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,

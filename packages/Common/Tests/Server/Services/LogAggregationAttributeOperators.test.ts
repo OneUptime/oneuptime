@@ -420,6 +420,69 @@ describe("log attribute filters — operator support", () => {
     });
   });
 
+  describe("equality and membership carry a pre-filter the value index can use", () => {
+    /*
+     * idx_attribute_values indexes mapValues(attributes), but no skip index
+     * can see inside the arrayExists lambda — on its own the lambda read the
+     * whole attributes column for the time range, which is how attribute
+     * filtered searches over a few hours ran into the execution time limit.
+     * See appendAttributeValuesPrefilter.
+     */
+    test("a bare string is preceded by has() on the same value", () => {
+      const statement: Statement = histogramFor({ "http.route": "/api" });
+
+      expect(statement.query).toMatch(
+        /AND has\(mapValues\(attributes\), \{p\d+:String\}\)\s+AND arrayExists\(\(k, v\)/,
+      );
+      expect(
+        paramValues(statement).filter((value: unknown) => {
+          return value === "/api";
+        }),
+      ).toHaveLength(2);
+    });
+
+    test("a bare array is preceded by hasAny() on the same list", () => {
+      const statement: Statement = histogramFor({
+        region: ["eu-west-1", "us-east-1"],
+      });
+
+      expect(statement.query).toMatch(
+        /AND hasAny\(mapValues\(attributes\), \{p\d+:Array\(String\)\}\)\s+AND arrayExists\(\(k, v\)/,
+      );
+      expect(
+        paramValues(statement).filter((value: unknown) => {
+          return (
+            JSON.stringify(value) === JSON.stringify(["eu-west-1", "us-east-1"])
+          );
+        }),
+      ).toHaveLength(2);
+    });
+
+    test("a bare array with a blank member is not pre-filtered", () => {
+      const statement: Statement = histogramFor({ region: ["eu-west-1", ""] });
+
+      expect(statement.query).not.toMatch(/\bhas(Any)?\(/);
+      expect(statement.query).toContain("AND v IN (");
+    });
+
+    test("facets carry it too", () => {
+      const request: FacetRequest = {
+        projectId: PROJECT_ID,
+        startTime: START_TIME,
+        endTime: END_TIME,
+        facetKey: "severityText",
+        limit: 15,
+        attributes: { "http.route": "/api" },
+      };
+
+      const facetStatement: Statement = (
+        LogAggregationService as any
+      ).buildFacetStatement(request);
+
+      expect(facetStatement.query).toContain("has(mapValues(attributes), ");
+    });
+  });
+
   describe("safety", () => {
     test("values are bound as parameters, never inlined", () => {
       const statement: Statement = histogramFor(
