@@ -474,7 +474,8 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
  * that on its own; see getPinnedTimeRangeKey). Hosts hand over a new but
  * equal query whenever they re-read one: the incident and alert pages on
  * every background refresh, the telemetry snapshot card whenever it
- * re-derives a companion. Only a change of value is a new scope.
+ * re-derives a companion. Only a change of value is a new scope. The
+ * base-scope effect compares its rebuilt list query the same way.
  */
 function getLogQueryScopeKey(logQuery: Query<Log> | undefined): string {
   if (!logQuery) {
@@ -809,7 +810,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
      * like `timeRange` above: chip CHANGES flow through the interaction
      * handlers, not through this effect.
      */
-    setFilterOptions(applyLogsFacetFiltersToQuery(base, appliedFacetFilters));
+    const nextFilterOptions: Query<Log> = applyLogsFacetFiltersToQuery(
+      base,
+      appliedFacetFilters,
+    );
+
+    /*
+     * The pass right after mount rebuilds exactly the query the initializer
+     * built; only the clock under a relative window ("past 1 day") has moved
+     * on. Stamping that in anyway gave the query a new identity (and reset a
+     * page restored from the URL), so every page load ran the list query a
+     * second time — the most expensive request on the page, and on a long
+     * window the one closest to the server's query timeout. Every path that
+     * moves `time` also moves `timeRange`, so the same window plus the same
+     * query outside `time` is nothing new to fetch.
+     */
+    if (
+      TelemetryQueryTimeRange.isSameRange(nextTimeRange, timeRange) &&
+      getLogQueryScopeKey(nextFilterOptions) ===
+        getLogQueryScopeKey(filterOptions)
+    ) {
+      return;
+    }
+
+    setFilterOptions(nextFilterOptions);
     setPage(1);
   }, [scopeKey, pinnedTimeRangeKey]);
 
@@ -1233,13 +1257,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   /*
    * The slice of the list query the chart and the facet counts are built
-   * over, keyed by VALUE. `filterOptions` is rebuilt as a new object on every
-   * base-scope pass (including the one right after mount, which reproduces
-   * what the initializer already built), so keying the aggregate fetchers
-   * on the object itself refetched both endpoints twice per mount and, on a
-   * host prop change, once with the previous scope in the render before the
-   * query caught up. Keyed on this serialization they refetch exactly when
-   * what they would send changes.
+   * over, keyed by VALUE. `filterOptions` is rebuilt as a new object on
+   * every base-scope pass that changes anything, the window included, so
+   * keying the aggregate fetchers on the object itself refetched both
+   * endpoints for changes they do not send and, on a host prop change, once
+   * with the previous scope in the render before the query caught up. Keyed
+   * on this serialization they refetch exactly when what they would send
+   * changes.
    */
   const typedAggregateFilterKey: string = serializeTypedLogFilter(
     filterOptions as unknown as Record<string, unknown>,
