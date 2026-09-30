@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES,
+  MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES,
+  MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES,
+} from "../../FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
+import { MESSAGE_QUEUE_LATE_METRIC_MINUTES } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 
 /*
  * The queue pages' wiring, pinned at the source level (App's jest runs in
@@ -178,15 +184,23 @@ describe("the queue Overview's data loading", () => {
     );
   });
 
-  test("the spans are split by kind: PRODUCER publishes, CONSUMER consumes", () => {
-    expect(OVERVIEW).toContain("kind: MESSAGE_QUEUE_PUBLISH_SPAN_KIND,");
-    expect(OVERVIEW).toContain("kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND,");
+  test("the spans are split by kind and operation, which can depend on the row's specific system", () => {
+    // One read for the tiles and both cards, told the row's system.
+    const read: string = between(
+      OVERVIEW,
+      "fetchMessageQueueSpanOverview({",
+      "}),",
+    );
+    expect(read).toContain("messagingSystem: item.messagingSystem,");
     expect(QUERIES).toContain(
       "export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer;",
     );
     expect(QUERIES).toContain(
       "export const MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer;",
     );
+    // An empty card says whether the queue had any span at all.
+    expect(countOf(OVERVIEW, "queueHasSpans={hasSpans}")).toBe(2);
+    expect(OVERVIEW).toContain("const hasSpans: boolean = m.total > 0;");
   });
 });
 
@@ -362,5 +376,44 @@ describe("Create monitor", () => {
     );
     expect(hint).toContain("link.criteria");
     expect(hint).not.toContain("thresholdLabel");
+  });
+});
+
+/*
+ * The liveness pill's hover text states discovery's cadence and windows
+ * (MessageQueueOverviewPresentation). The browser cannot import the worker
+ * job, so the numbers are the pill's own; held here to the job's schedule
+ * and window and to discovery's late-metric reach, so the text cannot drift
+ * from what discovery does.
+ */
+describe("the liveness text follows discovery", () => {
+  const JOB: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "FeatureSet",
+      "Workers",
+      "Jobs",
+      "TelemetryEntity",
+      "ComputeServiceDependencies.ts",
+    ),
+    "utf8",
+  );
+
+  test("its run interval, its window and its reach for late cloud metrics", () => {
+    expect(JOB).toContain(
+      `const EVERY_TEN_MINUTES: string = "*/${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} * * * *";`,
+    );
+    expect(JOB).toContain(
+      "{ schedule: EVERY_TEN_MINUTES, runOnStartup: false }",
+    );
+    expect(JOB).toContain(
+      `export const WINDOW_MINUTES: number = ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES};`,
+    );
+    expect(MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES).toBe(
+      MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES +
+        MESSAGE_QUEUE_LATE_METRIC_MINUTES,
+    );
   });
 });

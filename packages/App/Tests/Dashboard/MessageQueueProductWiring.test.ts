@@ -853,17 +853,22 @@ describe("the pages follow the house idioms", () => {
     expect(source).toContain("RouteMap[PageMap.MESSAGE_QUEUE_VIEW] as Route");
   });
 
-  test("the create form offers the catalog's systems and asks for a namespace only when it is part of the identity", () => {
+  test("the create form offers the catalog's systems and any other, and asks for a namespace only when it is part of the identity", () => {
     const source: string = dense(
       stripComments(readSource("Pages", "MessageQueue", "MessageQueues.tsx")),
     );
 
+    // The catalog, then "Other messaging system" and its typed value.
     expect(source).toContain(
-      "constSYSTEM_OPTIONS:Array<MessageQueueOption>=getMessagingSystemOptions();",
+      "constCREATE_SYSTEM_OPTIONS:Array<MessageQueueOption>=getMessageQueueCreateSystemOptions();",
     );
-    expect(source).toContain("dropdownOptions:SYSTEM_OPTIONS");
+    expect(source).toContain("dropdownOptions:CREATE_SYSTEM_OPTIONS");
     expect(source).toContain(
-      "showIf:(values:FormValues<MessageQueue>):boolean=>{returnisNamespaceScopedMessagingSystem(values.messagingSystem);},required:false,",
+      "overrideFieldKey:MESSAGE_QUEUE_OTHER_SYSTEM_FIELD,showEvenIfPermissionDoesNotExist:true,",
+    );
+    // Every check and hint reads the system the values name, typed or chosen.
+    expect(source).toContain(
+      "showIf:(values:FormValues<MessageQueue>):boolean=>{returnisNamespaceScopedMessagingSystem(getMessageQueueFormSystem(valuesasRecord<string,unknown>),);},required:false,",
     );
     /*
      * Never required, even for Service Bus: the emulator's and a custom
@@ -871,10 +876,18 @@ describe("the pages follow the house idioms", () => {
      * accepts from a person too.
      */
     expect(source).not.toContain(
-      "required:(values:FormValues<MessageQueue>):boolean=>{returnisNamespaceScopedMessagingSystem(values.messagingSystem);}",
+      "required:(values:FormValues<MessageQueue>):boolean=>{returnisNamespaceScopedMessagingSystem(",
     );
-    expect(source).toContain("validateMessageQueueDestination(values)");
-    expect(source).toContain("validateMessageQueueNamespace(values)");
+    expect(source).toContain(
+      "validateMessageQueueDestination(toMessageQueueManualInput(valuesasRecord<string,unknown>),)",
+    );
+    expect(source).toContain(
+      "validateMessageQueueNamespace(toMessageQueueManualInput(valuesasRecord<string,unknown>),)",
+    );
+    // What is sent is the typed system, never the choice's own value.
+    expect(source).toContain(
+      "if(item.messagingSystem===MESSAGE_QUEUE_OTHER_SYSTEM_VALUE){item.messagingSystem=getMessageQueueFormSystem(",
+    );
   });
 
   test("the Archived list sends View to the queue's own page", () => {
@@ -954,14 +967,14 @@ describe("the pages follow the house idioms", () => {
     expect(code).toContain('modelNameField="name"');
   });
 
-  test("the Documentation tab renders the queue's own guide through ResourceDocumentationCard", () => {
+  test("the Documentation tab renders the queue's own guide through the Queues guide card", () => {
     const code: string = squash(
       stripComments(
         readSource("Pages", "MessageQueue", "View", "Documentation.tsx"),
       ),
     );
 
-    expect(code).toContain("<ResourceDocumentationCard");
+    expect(code).toContain("<MessageQueueGuideCard");
     expect(code).toContain(
       "getMessageQueueDocumentationMarkdown(vars, target)",
     );
@@ -977,7 +990,13 @@ describe("the pages follow the house idioms", () => {
   });
 
   test("the guides render markdown only through the lazy viewer", () => {
+    expect(
+      readSource("Pages", "MessageQueue", "Utils", "MessageQueueGuideCard.tsx"),
+    ).toContain(
+      'import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";',
+    );
     for (const file of [
+      ["Pages", "MessageQueue", "Utils", "MessageQueueGuideCard.tsx"],
       ["Pages", "MessageQueue", "Utils", "MessageQueueDocumentationCard.tsx"],
       ["Pages", "MessageQueue", "View", "Documentation.tsx"],
       ["Pages", "MessageQueue", "Documentation.tsx"],
@@ -1029,6 +1048,7 @@ describe("no other product's concepts leaked into the Queues scaffold", () => {
     ["Pages", "MessageQueue", "Utils", "MessageQueuePresentation.ts"],
     ["Pages", "MessageQueue", "Utils", "MessageQueueViewOutletContext.ts"],
     ["Pages", "MessageQueue", "Utils", "MessageQueueDocumentationCard.tsx"],
+    ["Pages", "MessageQueue", "Utils", "MessageQueueGuideCard.tsx"],
     ["Routes", "MessageQueueRoutes.tsx"],
     ["Utils", "Breadcrumbs", "MessageQueueBreadcrumbs.ts"],
   ];
@@ -1238,6 +1258,46 @@ describe("what several Queues pages share has one home", () => {
 });
 
 /*
+ * The Queues guides are the Queues product's own: their card
+ * (MessageQueueGuideCard, on the shared IngestionKeySelector) and their
+ * variables (MessageQueueGuideVariables). Master replaced the telemetry
+ * resources' guide card and markdown module (ResourceDocumentationCard,
+ * documentationMarkdown) with its SetupGuide layout and deleted both, so a
+ * Queues page that still imported either would stop compiling once master is
+ * merged in — the card's deletion merges cleanly, with no conflict to warn.
+ */
+describe("the Queues guides depend on no other product's guide module", () => {
+  const RETIRED_GUIDE_MODULES: ReadonlyArray<string> = [
+    "Components/TelemetryResource/ResourceDocumentationCard",
+    "Components/TelemetryResource/documentationMarkdown",
+  ];
+
+  test("no Queues source imports the telemetry resources' guide card or markdown", () => {
+    expect(
+      queuesImports
+        .filter((entry: QueuesImport): boolean => {
+          return RETIRED_GUIDE_MODULES.includes(entry.module);
+        })
+        .map((entry: QueuesImport): string => {
+          return `${entry.file} imports ${entry.name} from ${entry.module}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("the guide card is built on the shared ingestion key step", () => {
+    expect(queuesImports).toEqual(
+      expect.arrayContaining([
+        {
+          file: "Pages/MessageQueue/Utils/MessageQueueGuideCard.tsx",
+          module: "Components/Telemetry/IngestionKeySelector",
+          name: "default",
+        },
+      ]),
+    );
+  });
+});
+
+/*
  * The Queues pages take from the Databases product only what is generic
  * and pure — arithmetic over an aggregate result, value and axis
  * formatting by unit, the range the shared metric list writes in the URL —
@@ -1256,7 +1316,6 @@ describe("the Queues pages take only generic, pure helpers from the Databases pr
       "DatabaseCallingServices",
       "DatabaseTimePoint",
       "aggregatedResultToTimePoints",
-      "combineCallingServiceResults",
       "combineGaugeSeries",
       "counterResultToRatePerSecond",
       "getAttributeSeriesKey",

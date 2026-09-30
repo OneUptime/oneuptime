@@ -16,6 +16,7 @@ import {
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 import {
+  MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS,
   MESSAGE_QUEUE_METRIC_PROJECTS_SQL_MARKER,
   MESSAGE_QUEUE_METRIC_SQL_MARKER,
   MESSAGE_QUEUE_MIN_SPANS_ENV,
@@ -165,7 +166,10 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
-import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
+import {
+  ClickHouseClientConfigOptions,
+  dataSourceOptions,
+} from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
@@ -2360,7 +2364,7 @@ describe("message queues from messaging spans and broker metrics", () => {
     expect(spanSql[0]).toContain(`projectId = '${PROJECT_ID}'`);
     expect(spanSql[0]).toContain(`startTime >= ${WINDOW.startSql}`);
     expect(spanSql[0]).toContain(`startTime < ${WINDOW.endSql}`);
-    expect(spanSql[0]).toContain(`LIMIT ${MAX_MESSAGE_QUEUE_SPAN_ROWS}`);
+    expect(spanSql[0]).toContain(`LIMIT ${MAX_MESSAGE_QUEUE_SPAN_ROWS}\n`);
     expect(spanSql[0]).toContain("hasAny(attributeKeys,");
 
     const metricSql: Array<string> = sqlWith(
@@ -2373,7 +2377,26 @@ describe("message queues from messaging spans and broker metrics", () => {
       `time >= ${WINDOW.startSql} - INTERVAL 45 MINUTE`,
     );
     expect(metricSql[0]).toContain(`time < ${WINDOW.endSql}`);
-    expect(metricSql[0]).toContain(`LIMIT ${MAX_MESSAGE_QUEUE_METRIC_ROWS}`);
+    expect(metricSql[0]).toContain(`LIMIT ${MAX_MESSAGE_QUEUE_METRIC_ROWS}\n`);
+
+    /*
+     * Each ends while the client still waits for it: a time limit under the
+     * App pool's request_timeout, at which ClickHouse fails it with its own
+     * timeout error ('throw'), and no thread pin to slow it down.
+     */
+    for (const sql of [spanSql[0]!, metricSql[0]!]) {
+      expect(sql.trim().endsWith(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS)).toBe(
+        true,
+      );
+      expect(sql).toContain("timeout_overflow_mode = 'throw'");
+      expect(sql).not.toContain("max_threads");
+      const limitSeconds: number = Number(
+        sql.match(/max_execution_time = (\d+)/)![1],
+      );
+      expect(limitSeconds * 1000).toBeLessThan(
+        Number(dataSourceOptions.request_timeout),
+      );
+    }
 
     // Nothing named, nothing asked of Postgres.
     expect(messageQueueMock.findBy).not.toHaveBeenCalled();
@@ -3006,15 +3029,22 @@ describe("message queues from messaging spans and broker metrics", () => {
 
     await computeDependenciesForProject(WINDOW);
 
+    /*
+     * Each says what the cap kept — every share's busiest groups and a
+     * sample that changes every run — never that the rest is simply lost.
+     */
     expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
       expect.stringContaining(
-        `at least ${MAX_MESSAGE_QUEUE_SPAN_ROWS} messaging span groups`,
+        `at least ${MAX_MESSAGE_QUEUE_SPAN_ROWS} messaging span groups in the window; ${MAX_MESSAGE_QUEUE_SPAN_ROWS} were matched to queues this run (each messaging system's busiest and a sample of the rest that changes every run), the others are read on later runs`,
       ),
     );
     expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
       expect.stringContaining(
-        `at least ${MAX_MESSAGE_QUEUE_METRIC_ROWS} broker and messaging client metric groups`,
+        `at least ${MAX_MESSAGE_QUEUE_METRIC_ROWS} broker and messaging client metric groups in the window; ${MAX_MESSAGE_QUEUE_METRIC_ROWS} were matched to queues this run (each metric's busiest and a sample of the rest that changes every run), the others are read on later runs`,
       ),
+    );
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalledWith(
+      expect.stringContaining("(the busiest)"),
     );
     // Every broker-reported queue the cap let through is still created.
     expect(queueLookups()).toHaveLength(MAX_MESSAGE_QUEUE_METRIC_ROWS);
@@ -3250,6 +3280,10 @@ describe("message queues from messaging spans and broker metrics", () => {
     expect(scan).toHaveLength(1);
     expect(scan[0]).toContain("SELECT DISTINCT projectId");
     expect(scan[0]).toContain("- INTERVAL 45 MINUTE");
+    // …and ends at the queue queries' own time limit.
+    expect(
+      scan[0]!.trim().endsWith(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS),
+    ).toBe(true);
   });
 
   test("a failing messaging metric project scan never stops the other projects", async () => {

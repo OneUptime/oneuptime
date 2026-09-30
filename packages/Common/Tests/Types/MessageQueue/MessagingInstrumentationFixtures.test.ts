@@ -792,6 +792,62 @@ const RABBITMQ_SPANS: ReadonlyArray<SpanFixture> = [
     }),
   },
   {
+    /*
+     * RabbitMqMessageNameFormatter ("::", "--", ":", "-") writes a generic
+     * type's argument after "--" in its own `Namespace:Type`, so the
+     * Fault<T> MassTransit publishes on every consumer fault goes to an
+     * exchange with TWO colons — still one exchange, published to with an
+     * empty routing key. Semconv joins three parts on a consumer only.
+     */
+    id: "rabbitmq.dotnet-v7.publish.masstransit-fault-exchange",
+    source:
+      "RabbitMQ.Client .NET v7 publish from MassTransit of a Fault<T> ('MassTransit:Fault--Namespace:Type--', empty routing key)",
+    kind: PRODUCER,
+    attributes: {
+      ...RABBITMQ_DOTNET_CREATION_TAGS,
+      "messaging.operation.type": "send",
+      "messaging.operation.name": "publish",
+      "messaging.destination.name":
+        "MassTransit:Fault--Contoso.Billing.Contracts:InvoiceIssued--",
+      "messaging.rabbitmq.destination.routing_key": "",
+      "messaging.message.body.size": 2048,
+      "server.address": "rabbitmq.internal",
+      "server.port": 5672,
+    },
+    expected: queue({
+      system: "rabbitmq",
+      destination:
+        "MassTransit:Fault--Contoso.Billing.Contracts:InvoiceIssued--",
+      direction: "publish",
+      brokerAddress: "rabbitmq.internal:5672",
+    }),
+  },
+  {
+    /*
+     * The Java agent's opt-in consumer of a MassTransit exchange: the
+     * exchange's own colon, the empty routing key left out (and no
+     * routing-key attribute), then the queue.
+     */
+    id: "rabbitmq.java-agent.opt-in.process.masstransit-exchange",
+    source:
+      "Java agent rabbitmq-2.7 delivery, opt-in, from a MassTransit exchange: 'Namespace:Type:{queue}' (empty routing key omitted)",
+    kind: CONSUMER,
+    attributes: {
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name":
+        "Contoso.Billing.Contracts:InvoiceIssued:invoice-issued",
+      "messaging.operation.name": "process",
+      "messaging.operation.type": "process",
+      "messaging.rabbitmq.message.delivery_tag": 4,
+      "messaging.message.body.size": 1024,
+    },
+    expected: queue({
+      system: "rabbitmq",
+      destination: "invoice-issued",
+      direction: "consume",
+    }),
+  },
+  {
     id: "rabbitmq.amqplib.publish.default-exchange",
     source:
       "@opentelemetry/instrumentation-amqplib publish to the default exchange ('' exchange, routing key = queue)",
@@ -2559,6 +2615,34 @@ const RABBITMQ_DATAPOINTS: ReadonlyArray<DatapointFixture> = [
     expected: null,
   },
   {
+    id: "rabbitmq.message.current.invoice-issued",
+    source: "rabbitmq receiver queue depth of the 'invoice-issued' queue",
+    metricName: "rabbitmq.message.current",
+    attributes: {
+      state: "ready",
+      ...RABBITMQ_QUEUE_RESOURCE("invoice-issued"),
+    },
+    expected: queue({ system: "rabbitmq", destination: "invoice-issued" }),
+  },
+  {
+    /*
+     * MassTransit's bus endpoint (DefaultEndpointNameFormatter
+     * .GetTemporaryQueueName("bus")): `{machine}_{process}_bus_{NewId}`, a
+     * new one for every process; the receiver lists it like any queue.
+     */
+    id: "rabbitmq.message.current.masstransit-bus-endpoint",
+    source:
+      "rabbitmq receiver queue depth of a MassTransit bus endpoint (one per process)",
+    metricName: "rabbitmq.message.current",
+    attributes: {
+      state: "ready",
+      ...RABBITMQ_QUEUE_RESOURCE(
+        "billingapi5f7c9d8b6q2wzt_BillingApi_bus_3ibyyjnrydpynkcybdxt6fndr7",
+      ),
+    },
+    expected: null,
+  },
+  {
     id: "rabbitmq.node.mem_alarm",
     source: "rabbitmq receiver node metric (node resource only, opt-in)",
     metricName: "rabbitmq.node.mem_alarm",
@@ -3671,6 +3755,12 @@ const CLIENT_AND_APPLICATION_DATAPOINTS: ReadonlyArray<DatapointFixture> = [
       direction: "consume",
     }),
   },
+  /*
+   * The Java agent's opt-in client metrics keep what MessagingMetricsAdvice
+   * lists for each instrument: the operation NAME on all four, the
+   * operation type on messaging.client.operation.duration alone, never a
+   * routing key.
+   */
   {
     id: "java-agent.opt-in.client.consumed.messages",
     source:
@@ -3681,7 +3771,6 @@ const CLIENT_AND_APPLICATION_DATAPOINTS: ReadonlyArray<DatapointFixture> = [
       "messaging.system": "kafka",
       "messaging.consumer.group.name": "billing",
       "messaging.destination.name": "payments",
-      "messaging.operation.type": "process",
       "messaging.destination.partition.id": "0",
     },
     expected: queue({
@@ -3700,7 +3789,6 @@ const CLIENT_AND_APPLICATION_DATAPOINTS: ReadonlyArray<DatapointFixture> = [
       "messaging.operation.name": "publish",
       "messaging.system": "nats",
       "messaging.destination.template": "_INBOX.",
-      "messaging.operation.type": "send",
     },
     expected: null,
   },
@@ -3725,19 +3813,53 @@ const CLIENT_AND_APPLICATION_DATAPOINTS: ReadonlyArray<DatapointFixture> = [
     }),
   },
   {
+    id: "java-agent.opt-in.client.sent.messages.rabbitmq-publish",
+    source:
+      "Java agent opt-in messaging.client.sent.messages of the same RabbitMQ publish (the operation name, no operation type)",
+    metricName: "messaging.client.sent.messages",
+    attributes: {
+      "messaging.operation.name": "publish",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "orders.topic:orders.eu.created",
+      "server.address": "rabbitmq.internal",
+      "server.port": 5672,
+    },
+    expected: queue({
+      system: "rabbitmq",
+      destination: "orders.topic",
+      direction: "publish",
+      brokerAddress: "rabbitmq.internal:5672",
+    }),
+  },
+  {
     id: "java-agent.opt-in.process.duration.rabbitmq-consumer",
     source:
-      "Java agent opt-in messaging.process.duration of a RabbitMQ consumer ('direct_logs:warning': routing key == queue)",
+      "Java agent opt-in messaging.process.duration of a RabbitMQ consumer ('direct_logs:warning': routing key == queue; the operation name, no operation type)",
     metricName: "messaging.process.duration",
     attributes: {
       "messaging.operation.name": "process",
       "messaging.system": "rabbitmq",
       "messaging.destination.name": "direct_logs:warning",
-      "messaging.operation.type": "process",
     },
     expected: queue({
       system: "rabbitmq",
       destination: "warning",
+      direction: "consume",
+    }),
+  },
+  {
+    id: "java-agent.opt-in.client.consumed.messages.rabbitmq-fanout",
+    source:
+      "Java agent opt-in messaging.client.consumed.messages of a RabbitMQ delivery from a fanout exchange ('logs:logs-audit': the empty routing key left out)",
+    metricName: "messaging.client.consumed.messages",
+    attributes: {
+      "messaging.operation.name": "process",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "logs:logs-audit",
+    },
+    expected: queue({
+      system: "rabbitmq",
+      destination: "logs-audit",
       direction: "consume",
     }),
   },
@@ -3904,6 +4026,17 @@ const SAME_QUEUE_PAIRS: ReadonlyArray<SameQueuePair> = [
       system: "rabbitmq",
       brokerScope: "",
       destination: "logs-audit",
+    },
+  },
+  {
+    queue:
+      "RabbitMQ queue, Java agent opt-in consumer of a MassTransit exchange 'Namespace:Type:invoice-issued' vs the 'invoice-issued' queue's depth",
+    spanId: "rabbitmq.java-agent.opt-in.process.masstransit-exchange",
+    datapointId: "rabbitmq.message.current.invoice-issued",
+    identity: {
+      system: "rabbitmq",
+      brokerScope: "",
+      destination: "invoice-issued",
     },
   },
   {
@@ -4241,6 +4374,55 @@ const SAME_QUEUE_PAIRS: ReadonlyArray<SameQueuePair> = [
   },
 ];
 
+// ---- the same queue seen by a span and by its own client metrics ---------
+
+/*
+ * The Java agent records RabbitMQ client metrics in its opt-in mode only,
+ * with the span's joined name but none of its routing key: each metric of
+ * an operation must still key the queue its span does.
+ */
+const SPAN_AND_CLIENT_METRIC_PAIRS: ReadonlyArray<SameQueuePair> = [
+  {
+    queue:
+      "RabbitMQ exchange, Java agent opt-in publish vs its operation duration",
+    spanId: "rabbitmq.java-agent.opt-in.publish.exchange-and-routing-key",
+    datapointId: "java-agent.opt-in.client.operation.duration.rabbitmq-publish",
+    identity: {
+      system: "rabbitmq",
+      brokerScope: "",
+      destination: "orders.topic",
+    },
+  },
+  {
+    queue: "RabbitMQ exchange, Java agent opt-in publish vs its sent messages",
+    spanId: "rabbitmq.java-agent.opt-in.publish.exchange-and-routing-key",
+    datapointId: "java-agent.opt-in.client.sent.messages.rabbitmq-publish",
+    identity: {
+      system: "rabbitmq",
+      brokerScope: "",
+      destination: "orders.topic",
+    },
+  },
+  {
+    queue:
+      "RabbitMQ queue, Java agent opt-in delivery ('direct_logs:warning') vs its process duration",
+    spanId: "rabbitmq.java-agent.opt-in.process.routing-key-is-queue",
+    datapointId: "java-agent.opt-in.process.duration.rabbitmq-consumer",
+    identity: { system: "rabbitmq", brokerScope: "", destination: "warning" },
+  },
+  {
+    queue:
+      "RabbitMQ queue, Java agent opt-in delivery from a fanout exchange vs its consumed messages",
+    spanId: "rabbitmq.java-agent.opt-in.process.fanout-empty-routing-key",
+    datapointId: "java-agent.opt-in.client.consumed.messages.rabbitmq-fanout",
+    identity: {
+      system: "rabbitmq",
+      brokerScope: "",
+      destination: "logs-audit",
+    },
+  },
+];
+
 // ---- helpers --------------------------------------------------------------
 
 function getterOver(attributes: Attributes): AttributeGetter {
@@ -4358,7 +4540,7 @@ describe("the fixture corpus", () => {
   });
 
   test("every same-queue pair names a span and a datapoint that exist", () => {
-    for (const pair of SAME_QUEUE_PAIRS) {
+    for (const pair of [...SAME_QUEUE_PAIRS, ...SPAN_AND_CLIENT_METRIC_PAIRS]) {
       expect(SPAN_BY_ID.has(pair.spanId)).toBe(true);
       expect(DATAPOINT_BY_ID.has(pair.datapointId)).toBe(true);
     }
@@ -4454,30 +4636,51 @@ describe("broker and client metric datapoints, in the stored shape", () => {
   );
 });
 
-describe("a span and a broker metric of the same queue share one identity and one entity key", () => {
-  test.each(
-    SAME_QUEUE_PAIRS.map((pair: SameQueuePair): [string, SameQueuePair] => {
-      return [`${pair.queue} (${pair.spanId} ↔ ${pair.datapointId})`, pair];
-    }),
-  )("%s", (_name: string, pair: SameQueuePair) => {
-    const span: SpanFixture | undefined = SPAN_BY_ID.get(pair.spanId);
-    const datapoint: DatapointFixture | undefined = DATAPOINT_BY_ID.get(
-      pair.datapointId,
-    );
-    expect(span).toBeDefined();
-    expect(datapoint).toBeDefined();
-    if (!span || !datapoint) {
-      return;
-    }
-
-    const fromSpan: QueueKeys | null = queueKeysOf(resolveSpanFixture(span));
-    const fromDatapoint: QueueKeys | null = queueKeysOf(
-      resolveDatapointFixture(datapoint),
-    );
-    const expected: QueueKeys = expectedQueueKeys(pair.identity);
-
-    expect(fromSpan).toEqual(expected);
-    expect(fromDatapoint).toEqual(expected);
-    expect(fromSpan).toEqual(fromDatapoint);
+function pairCases(
+  pairs: ReadonlyArray<SameQueuePair>,
+): Array<[string, SameQueuePair]> {
+  return pairs.map((pair: SameQueuePair): [string, SameQueuePair] => {
+    return [`${pair.queue} (${pair.spanId} ↔ ${pair.datapointId})`, pair];
   });
+}
+
+// The pair's span and datapoint key the pair's queue, and so each other's.
+function expectOneQueue(pair: SameQueuePair): void {
+  const span: SpanFixture | undefined = SPAN_BY_ID.get(pair.spanId);
+  const datapoint: DatapointFixture | undefined = DATAPOINT_BY_ID.get(
+    pair.datapointId,
+  );
+  expect(span).toBeDefined();
+  expect(datapoint).toBeDefined();
+  if (!span || !datapoint) {
+    return;
+  }
+
+  const fromSpan: QueueKeys | null = queueKeysOf(resolveSpanFixture(span));
+  const fromDatapoint: QueueKeys | null = queueKeysOf(
+    resolveDatapointFixture(datapoint),
+  );
+  const expected: QueueKeys = expectedQueueKeys(pair.identity);
+
+  expect(fromSpan).toEqual(expected);
+  expect(fromDatapoint).toEqual(expected);
+  expect(fromSpan).toEqual(fromDatapoint);
+}
+
+describe("a span and a broker metric of the same queue share one identity and one entity key", () => {
+  test.each(pairCases(SAME_QUEUE_PAIRS))(
+    "%s",
+    (_name: string, pair: SameQueuePair) => {
+      expectOneQueue(pair);
+    },
+  );
+});
+
+describe("a span and the client metrics of its own operation share one identity and one entity key", () => {
+  test.each(pairCases(SPAN_AND_CLIENT_METRIC_PAIRS))(
+    "%s",
+    (_name: string, pair: SameQueuePair) => {
+      expectOneQueue(pair);
+    },
+  );
 });

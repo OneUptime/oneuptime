@@ -27,11 +27,16 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * replaced by markers. What it pins:
  *
  *   - every telemetry request is scoped by the queue's ONE entity key (built
- *     from its family identifier) and its project, and by no attribute;
- *   - the tiles read the spans by KIND: Published = PRODUCER spans,
- *     Consumed = CONSUMER spans, Errors = failed spans of any kind over all
- *     of them, p95 processing time = ONE percentile of the CONSUMER spans;
- *   - the charts are per interval; the cards group the spans by service;
+ *     from its family identifier) and its project; an attribute filter only
+ *     tells its spans apart (the operation they record, a batch's size);
+ *   - the tiles read the spans by kind and operation
+ *     (MessageQueueSpanPopulation; MessageQueueSpanPopulations pins which
+ *     spans each group holds): Published = PRODUCER spans plus the client
+ *     sends of services with none, Consumed = CONSUMER spans that handled
+ *     messages, Errors = failed spans of any kind over all of them, p95
+ *     processing time = ONE percentile of those consumer spans;
+ *   - the charts are per interval; the cards group the spans by service, and
+ *     an empty card says whether the queue had no span or none of its side;
  *   - Broker health reads the row's SPECIFIC system's catalog (an ActiveMQ
  *     row reads ActiveMQ's metrics under its JMS family key; a JMS row reads
  *     none and shows the JMS guidance), pooled on the server where the fold
@@ -241,7 +246,15 @@ jest.mock(
 import MessageQueueOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { MESSAGE_QUEUE_NOT_FOUND_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueuePresentation";
-import { BROKER_HEALTH_NO_DATA_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerHealthSection";
+import {
+  BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON,
+  BROKER_HEALTH_NO_DATA_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerHealthSection";
+import { getMessageQueueServicesEmptyText } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueServicesCard";
+import {
+  MESSAGE_QUEUE_OBSERVED_SERIES_TTL_MS,
+  MessageQueueObservedSeriesCache,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import Service from "../../../Models/DatabaseModels/Service";
 import Metric from "../../../Models/AnalyticsModels/Metric";
@@ -253,6 +266,7 @@ import Route from "../../../Types/API/Route";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import {
   MessageQueueMetricDescriptor,
   getMessageQueueMetricsForSystem,
@@ -334,6 +348,10 @@ interface Scenario {
   windowP95Ns: number | null;
   producers: Array<ServiceSpans>;
   consumers: Array<ServiceSpans>;
+  // Per service: its client spans that record a send (the "send" group).
+  sends?: Array<ServiceSpans> | undefined;
+  // The "send" group's spans per minute, of the services in `sends`.
+  sendsPerMinute?: number | undefined;
   // Metric name → the rows its chart query answers.
   metrics: Record<string, (request: AggregateRequest) => Rows>;
   // Metric name → the observed series (attributes) its monitor query sees.
@@ -403,14 +421,54 @@ function isDayWindow(request: AggregateRequest): boolean {
   );
 }
 
+/*
+ * Which of the queue's span groups (MessageQueueSpanPopulation) a request
+ * reads, told apart by its kind and operation filters — so a request for a
+ * group this mock does not know fails the test instead of reading another.
+ */
+function populationOf(query: Record<string, unknown>): string {
+  const kind: unknown = query["kind"];
+  const attributes: Record<string, unknown> =
+    (query["attributes"] as Record<string, unknown> | undefined) || {};
+  if (kind === undefined) {
+    return "all";
+  }
+  if (kind === SpanKind.Producer) {
+    return "publish";
+  }
+  if (kind === SpanKind.Client) {
+    return attributes["rpc.method"] !== undefined ? "awsSend" : "send";
+  }
+  if (kind === SpanKind.Consumer) {
+    return attributes["messaging.operation.type"] === "receive"
+      ? "receivedBatch"
+      : "consume";
+  }
+  throw new Error(`No span group reads kind ${String(kind)}`);
+}
+
 function spanRows(request: AggregateRequest, scale: number): Rows {
   const by: AggregateRequest["aggregateBy"] = request.aggregateBy;
-  const kind: unknown = by.query["kind"];
+  const population: string = populationOf(by.query);
   const errorsOnly: boolean = by.query["statusCode"] === SpanStatus.Error;
+  // Only the client-only publishers' own line asks by service id.
+  const serviceIds: Array<string> | null = by.query["primaryEntityId"]
+    ? (by.query["primaryEntityId"] as Includes).values.map(
+        (id: unknown): string => {
+          return String(id);
+        },
+      )
+    : null;
 
   if (by.groupBy && by.groupBy["primaryEntityId"]) {
     const services: Array<ServiceSpans> =
-      kind === SpanKind.Producer ? scenario.producers : scenario.consumers;
+      population === "publish"
+        ? scenario.producers
+        : population === "consume"
+          ? scenario.consumers
+          : population === "send"
+            ? scenario.sends || []
+            : [];
     return services.map((service: ServiceSpans): Record<string, unknown> => {
       return {
         timestamp: MINUTES[0],
@@ -434,13 +492,22 @@ function spanRows(request: AggregateRequest, scale: number): Rows {
     return perMinute(10_000_000);
   }
 
+  if (population === "send") {
+    // The client-only publishers' line: their sends per minute.
+    expect(serviceIds).not.toBeNull();
+    return perMinute((scenario.sendsPerMinute || 0) * scale);
+  }
+  if (population === "awsSend" || population === "receivedBatch") {
+    return [];
+  }
   if (errorsOnly) {
+    expect(population).toBe("all");
     return perMinute(scenario.errorsPerMinute * scale);
   }
-  if (kind === SpanKind.Producer) {
+  if (population === "publish") {
     return perMinute(scenario.publishedPerMinute * scale);
   }
-  if (kind === SpanKind.Consumer) {
+  if (population === "consume") {
     return perMinute(scenario.consumedPerMinute * scale);
   }
   return perMinute(scenario.allPerMinute * scale);
@@ -619,7 +686,7 @@ afterEach(() => {
 // ---- the tests -------------------------------------------------------------
 
 describe("the queue Overview's scope", () => {
-  test("every telemetry request is scoped by the queue's key and project, and by no attribute", async () => {
+  test("every telemetry request is scoped by the queue's key and project; an attribute only tells its spans apart", async () => {
     getItemMock.mockResolvedValue(queueRow());
 
     await renderLoaded();
@@ -632,7 +699,22 @@ describe("the queue Overview's scope", () => {
         KAFKA_ORDERS_KEY,
       ]);
       expect(String(query["projectId"])).toBe(PROJECT_ID_STRING);
-      expect(query["attributes"]).toBeUndefined();
+      if (request.modelType === Metric) {
+        // The key IS the queue: never an attribute filter on its metrics.
+        expect(query["attributes"]).toBeUndefined();
+        continue;
+      }
+      // A span attribute filter reads the operation or a batch's size only.
+      for (const key of Object.keys(
+        (query["attributes"] as Record<string, unknown> | undefined) || {},
+      )) {
+        expect([
+          "messaging.operation.type",
+          "messaging.operation",
+          "rpc.method",
+          "messaging.batch.message_count",
+        ]).toContain(key);
+      }
     }
   });
 
@@ -721,7 +803,7 @@ describe("the queue Overview's scope", () => {
 });
 
 describe("the message tiles and charts", () => {
-  test("Published counts PRODUCER spans, Consumed CONSUMER spans", async () => {
+  test("Published counts the producer spans, Consumed the consumer spans that handled messages", async () => {
     getItemMock.mockResolvedValue(queueRow());
 
     await renderLoaded();
@@ -729,6 +811,21 @@ describe("the message tiles and charts", () => {
     // 10 and 9 a minute over twelve minutes.
     expect(within(tile("Published")).getByText("120")).toBeInTheDocument();
     expect(within(tile("Consumed")).getByText("108")).toBeInTheDocument();
+    // Consumed leaves out the receives that returned nothing.
+    const consumed: AggregateRequest | undefined = spanRequests().find(
+      (request: AggregateRequest): boolean => {
+        return (
+          request.aggregateBy.aggregationType === AggregationType.Count &&
+          !request.aggregateBy.groupBy &&
+          request.aggregateBy.query["kind"] === SpanKind.Consumer
+        );
+      },
+    );
+    expect(
+      (consumed!.aggregateBy.query["attributes"] as Record<string, unknown>)[
+        "messaging.batch.message_count"
+      ],
+    ).toEqual(new IncludesNone(["0"]));
 
     const counts: Array<AggregateRequest> = spanRequests().filter(
       (request: AggregateRequest): boolean => {
@@ -746,9 +843,56 @@ describe("the message tiles and charts", () => {
     expect(kinds).toEqual(
       expect.arrayContaining([SpanKind.Producer, SpanKind.Consumer]),
     );
-    // Never a SERVER or CLIENT filter: those are not what the tiles say.
+    // Never a SERVER filter; a CLIENT one only for client-only publishers.
     expect(kinds).not.toContain(SpanKind.Server);
     expect(kinds).not.toContain(SpanKind.Client);
+  });
+
+  test("a publisher that records its sends only as client spans is counted: the tile, the chart and its card", async () => {
+    // An SNS topic the Java agent publishes to: CLIENT spans, no PRODUCER.
+    scenario = {
+      ...kafkaScenario(),
+      publishedPerMinute: 0,
+      producers: [],
+      sends: [{ id: BILLING_ID, count: 60, errors: 3, p95Ns: 7_000_000 }],
+      sendsPerMinute: 5,
+    };
+    getItemMock.mockResolvedValue(queueRow());
+
+    await renderLoaded();
+
+    // Its 60 sends, not the 0 producer spans.
+    expect(within(tile("Published")).getByText("60")).toBeInTheDocument();
+    const published: Array<{ y: number }> = (
+      chartProps("Messages")["series"] as Array<{
+        seriesName: string;
+        data: Array<{ y: number }>;
+      }>
+    )[0]!.data;
+    expect(published.length).toBeGreaterThan(0);
+    expect(published[0]!.y).toBe(5);
+    // The line reads exactly the client-only publishers' sends.
+    const line: AggregateRequest | undefined = spanRequests().find(
+      (request: AggregateRequest): boolean => {
+        return Boolean(request.aggregateBy.query["primaryEntityId"]);
+      },
+    );
+    expect(line!.aggregateBy.query["kind"]).toBe(SpanKind.Client);
+    expect(
+      (line!.aggregateBy.query["primaryEntityId"] as Includes).values.map(
+        (id: unknown): string => {
+          return String(id);
+        },
+      ),
+    ).toEqual([BILLING_ID]);
+
+    await waitFor(() => {
+      expect(screen.getByText("billing")).toBeInTheDocument();
+    });
+    const [producer] = screen.getAllByTestId("message-queue-producers-row");
+    expect(within(producer!).getByText("60")).toBeInTheDocument();
+    expect(within(producer!).getByText("5.0%")).toBeInTheDocument();
+    expect(within(producer!).getByText("7.0 ms")).toBeInTheDocument();
   });
 
   test("Errors counts failed spans of every kind, over all of the queue's spans", async () => {
@@ -925,7 +1069,7 @@ describe("the message tiles and charts", () => {
 });
 
 describe("Producers and Consumers", () => {
-  test("group the PRODUCER and CONSUMER spans by the service that recorded them", async () => {
+  test("group the publishes and the consumes by the service that recorded them", async () => {
     getItemMock.mockResolvedValue(queueRow());
 
     await renderLoaded();
@@ -935,15 +1079,32 @@ describe("Producers and Consumers", () => {
         return Boolean(request.aggregateBy.groupBy);
       },
     );
-    // Count, failed count and p95 per side.
-    expect(grouped).toHaveLength(6);
+    /*
+     * Count, failed count and p95 of each group a Kafka queue reads: its
+     * producer spans, its client sends and its consumer spans.
+     */
+    expect(grouped).toHaveLength(9);
+    expect(
+      grouped
+        .map((request: AggregateRequest): string => {
+          return populationOf(request.aggregateBy.query);
+        })
+        .sort(),
+    ).toEqual([
+      "consume",
+      "consume",
+      "consume",
+      "publish",
+      "publish",
+      "publish",
+      "send",
+      "send",
+      "send",
+    ]);
     for (const request of grouped) {
       expect(request.aggregateBy.groupBy).toEqual({ primaryEntityId: true });
       expect(request.aggregateBy.aggregationInterval).toBe(
         AggregationInterval.Total,
-      );
-      expect([SpanKind.Producer, SpanKind.Consumer]).toContain(
-        request.aggregateBy.query["kind"],
       );
     }
 
@@ -989,24 +1150,63 @@ describe("Producers and Consumers", () => {
     expect(ids).toEqual([CHECKOUT_ID, BILLING_ID, MAILER_ID].sort());
   });
 
-  test("with no spans of a kind, each card says so", async () => {
-    scenario = { ...kafkaScenario(), producers: [], consumers: [] };
+  test("spans, but none of a side's: each card says so, and never that nothing published", async () => {
+    scenario = {
+      ...kafkaScenario(),
+      publishedPerMinute: 0,
+      consumedPerMinute: 0,
+      windowP95Ns: null,
+      producers: [],
+      consumers: [],
+    };
     getItemMock.mockResolvedValue(queueRow());
 
     await renderLoaded();
 
     expect(
       screen.getByTestId("message-queue-producers-empty"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent(getMessageQueueServicesEmptyText("producers", true));
     expect(
       screen.getByTestId("message-queue-consumers-empty"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent(getMessageQueueServicesEmptyText("consumers", true));
+    expect(
+      screen.queryByText(
+        "No instrumented application published to this queue in the selected range.",
+      ),
+    ).toBeNull();
     // Nothing to name: no lookup.
     expect(
       getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
         return (call[0] as { modelType?: unknown }).modelType === Service;
       }),
     ).toHaveLength(0);
+  });
+
+  test("no span at all: each card says nothing was there", async () => {
+    scenario = {
+      ...kafkaScenario(),
+      publishedPerMinute: 0,
+      consumedPerMinute: 0,
+      allPerMinute: 0,
+      errorsPerMinute: 0,
+      windowP95Ns: null,
+      producers: [],
+      consumers: [],
+    };
+    getItemMock.mockResolvedValue(queueRow());
+
+    await renderLoaded();
+
+    expect(
+      screen.getByTestId("message-queue-producers-empty"),
+    ).toHaveTextContent(
+      "No instrumented application published to this queue in the selected range.",
+    );
+    expect(
+      screen.getByTestId("message-queue-consumers-empty"),
+    ).toHaveTextContent(
+      "No instrumented application consumed from this queue in the selected range.",
+    );
   });
 });
 
@@ -1166,6 +1366,18 @@ describe("Broker health", () => {
     );
     expect(unavailable).toBeDisabled();
     expect(unavailable.getAttribute("title")).toContain("would watch nothing");
+    /*
+     * The reason is on screen, not only on hover: a disabled button takes no
+     * focus and a title shows to a mouse alone.
+     */
+    const hint: HTMLElement = screen.getByTestId(
+      "message-queue-create-monitor-hint",
+    );
+    expect(hint).toBeVisible();
+    expect(hint).toHaveTextContent(BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON);
+    expect(unavailable).toHaveAccessibleDescription(
+      BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON,
+    );
   });
 
   test("an ActiveMQ queue reads ActiveMQ's metrics under its JMS family key", async () => {
@@ -1324,6 +1536,129 @@ describe("Broker health", () => {
     expect(
       screen.queryByTestId("message-queue-broker-health-guidance"),
     ).toBeNull();
+  });
+});
+
+/*
+ * The observed series of the broker metrics only build the Create monitor
+ * links. Re-read on every auto-refresh tick they cost a request per
+ * monitorable gauge each time, for attributes that change when a partition
+ * or a consumer group appears, not every 30 seconds.
+ */
+describe("the Create monitor links' observed series", () => {
+  // The observed-series reads: one per gauge, over the whole window.
+  function observedReads(): number {
+    return metricRequests().filter((request: AggregateRequest): boolean => {
+      return (
+        request.aggregateBy.aggregationInterval === AggregationInterval.Total
+      );
+    }).length;
+  }
+
+  async function settle(): Promise<void> {
+    for (let turn: number = 0; turn < 5; turn++) {
+      await act(async () => {
+        await new Promise((resolve: (value: unknown) => void): void => {
+          setTimeout(resolve, 10);
+        });
+      });
+    }
+  }
+
+  test("an auto-refresh tick reuses them; a new range reads them again", async () => {
+    getItemMock.mockResolvedValue(queueRow());
+
+    await renderLoaded();
+    await screen.findByTestId("message-queue-create-monitor");
+    await settle();
+    const first: number = observedReads();
+    expect(first).toBeGreaterThan(0);
+
+    // A tick reloads every chart, but none of the observed series.
+    const loaded: number = requests.length;
+    await act(async () => {
+      mockAutoRefreshTick!();
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(requests.length).toBeGreaterThan(loaded);
+    });
+    await settle();
+    expect(observedReads()).toBe(first);
+    // The link is still built from them.
+    expect(
+      screen.getByTestId("message-queue-create-monitor"),
+    ).toBeInTheDocument();
+
+    // A range the reader picks reads them for that range.
+    fireEvent.click(screen.getByText("Pick past day"));
+    await waitFor(() => {
+      expect(observedReads()).toBeGreaterThan(first);
+    });
+  });
+
+  test("the cache keeps a metric's series per queue, range and metric, for a while, and never an empty answer", () => {
+    const cache: MessageQueueObservedSeriesCache =
+      new MessageQueueObservedSeriesCache();
+    const window: {
+      projectId: string;
+      keys: Array<string>;
+      start: Date;
+      end: Date;
+    } = {
+      projectId: PROJECT_ID_STRING,
+      keys: [KAFKA_ORDERS_KEY],
+      start: new Date(NOW - 60 * 60 * 1000),
+      end: new Date(NOW),
+    };
+    const key: string = MessageQueueObservedSeriesCache.keyOf({
+      window,
+      rangeKey: '{"range":"Past 1 Hour"}',
+      metricName: "kafka.consumer_group.lag_sum",
+    });
+
+    cache.set(key, [{ topic: "orders" }], NOW);
+    expect(cache.get(key, NOW + 30 * 1000)).toEqual([{ topic: "orders" }]);
+    // The window a relative range moves each tick is not part of the key.
+    expect(
+      MessageQueueObservedSeriesCache.keyOf({
+        window: {
+          ...window,
+          start: new Date(window.start.getTime() + 30 * 1000),
+          end: new Date(window.end.getTime() + 30 * 1000),
+        },
+        rangeKey: '{"range":"Past 1 Hour"}',
+        metricName: "kafka.consumer_group.lag_sum",
+      }),
+    ).toBe(key);
+    // Another range, metric or queue is another entry.
+    for (const other of [
+      MessageQueueObservedSeriesCache.keyOf({
+        window,
+        rangeKey: '{"range":"Past 1 Day"}',
+        metricName: "kafka.consumer_group.lag_sum",
+      }),
+      MessageQueueObservedSeriesCache.keyOf({
+        window,
+        rangeKey: '{"range":"Past 1 Hour"}',
+        metricName: "kafka.consumer_group.lag",
+      }),
+      MessageQueueObservedSeriesCache.keyOf({
+        window: { ...window, keys: [JMS_ORDERS_KEY] },
+        rangeKey: '{"range":"Past 1 Hour"}',
+        metricName: "kafka.consumer_group.lag_sum",
+      }),
+    ]) {
+      expect(other).not.toBe(key);
+      expect(cache.get(other, NOW)).toBeNull();
+    }
+    // Expired.
+    expect(
+      cache.get(key, NOW + MESSAGE_QUEUE_OBSERVED_SERIES_TTL_MS),
+    ).toBeNull();
+    // An empty answer (none yet, or a failed read) is read again next time.
+    cache.set(key, [], NOW);
+    expect(cache.get(key, NOW)).toBeNull();
   });
 });
 

@@ -18,7 +18,7 @@ import {
   getMessageQueueBrokerMetricsGuidance,
   getMessageQueueBrokerMetricsNoDataDescription,
   getMessageQueueDocsRoute,
-} from "./MessageQueuePresentation";
+} from "./MessageQueueOverviewPresentation";
 import { getMessageQueueSystemLabel } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
 import {
   MessageQueueMetricMonitorLink,
@@ -408,8 +408,18 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
               {result.descriptor.kind === "gauge" ? (
                 <div className="mt-2 px-1">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-                    <span data-testid="message-queue-create-monitor-hint">
-                      {link ? getMessageQueueMetricMonitorHint(link) : ""}
+                    {/*
+                     * Without a link the hint says why, as text: a disabled
+                     * button takes no focus and a title shows on hover only,
+                     * so keyboard and touch readers would never learn it.
+                     */}
+                    <span
+                      id={`message-queue-create-monitor-hint-${id}`}
+                      data-testid="message-queue-create-monitor-hint"
+                    >
+                      {link
+                        ? getMessageQueueMetricMonitorHint(link)
+                        : BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON}
                     </span>
                     {link ? (
                       <span
@@ -429,6 +439,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                         disabled={true}
                         data-testid="message-queue-create-monitor-unavailable"
                         data-metric-id={id}
+                        aria-describedby={`message-queue-create-monitor-hint-${id}`}
                         title={BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON}
                         className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
                       >

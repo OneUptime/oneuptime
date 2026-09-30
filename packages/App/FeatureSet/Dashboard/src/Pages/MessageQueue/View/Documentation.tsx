@@ -14,10 +14,10 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
-import { DocVars } from "../../../Components/TelemetryResource/documentationMarkdown";
+import MessageQueueGuideCard from "../Utils/MessageQueueGuideCard";
 import {
   MessageQueueDocumentationTarget,
+  MessageQueueGuideVariables,
   getMessageQueueDocumentationMarkdown,
 } from "../Utils/DocumentationMarkdown";
 import {
@@ -97,13 +97,15 @@ const MessageQueueDocumentation: FunctionComponent<
     return <ErrorMessage message={MESSAGE_QUEUE_NOT_FOUND_MESSAGE} />;
   }
 
-  const buildMarkdown: (vars: DocVars) => string = (vars: DocVars): string => {
+  const buildMarkdown: (vars: MessageQueueGuideVariables) => string = (
+    vars: MessageQueueGuideVariables,
+  ): string => {
     return getMessageQueueDocumentationMarkdown(vars, target);
   };
 
   return (
     <Fragment>
-      <ResourceDocumentationCard
+      <MessageQueueGuideCard
         title={`Send ${getMessageQueueSystemLabel(target.system)} telemetry for this queue`}
         description="Instrument the applications that publish to and consume from this queue, and send its broker's metrics to OneUptime. Every value below is prefilled for this queue."
         buildMarkdown={buildMarkdown}

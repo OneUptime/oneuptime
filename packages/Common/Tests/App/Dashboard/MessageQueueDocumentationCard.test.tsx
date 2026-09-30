@@ -20,6 +20,11 @@ import MessageQueueDocumentationCard, {
   DEFAULT_MESSAGE_QUEUE_GUIDE_SYSTEM,
   resolveMessageQueueGuideSystem,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueDocumentationCard";
+import {
+  MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER,
+  MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER,
+  getMessageQueueGuideVariables,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
@@ -32,10 +37,11 @@ import {
 /*
  * The Queues setup guide with its messaging-system picker, as it reaches the
  * screen (the product Documentation page and the empty list). The picker
- * opens on the system it is given, falls back to Kafka for one the catalog
- * does not know, offers exactly the catalog's systems, re-renders the guide
- * when the selection changes, and hands the guide the selected ingestion
- * key rather than a placeholder.
+ * opens on Kafka, offers exactly the catalog's systems (aliases resolve to
+ * theirs, an unknown one to Kafka), re-renders the guide when the selection
+ * changes, and the guide card (MessageQueueGuideCard, on the shared
+ * ingestion key step) hands the guide the selected key rather than a
+ * placeholder, or the placeholders while there is none.
  *
  * react-markdown is mocked in Common's jest config to render its children
  * as text, and the lazy viewer is replaced by a plain one (see
@@ -63,13 +69,12 @@ KEY.id = new ObjectID("key-1");
 KEY.name = "Production Key";
 KEY.secretKey = new ObjectID("secret-production");
 
-function renderCard(initialSystem?: string | undefined): HTMLElement {
+function renderCard(): HTMLElement {
   const { container } = render(
     <MemoryRouter>
       <MessageQueueDocumentationCard
         title="Queues Installation Guide"
         description="Queues appear on their own."
-        initialSystem={initialSystem}
       />
     </MemoryRouter>,
   );
@@ -117,8 +122,13 @@ describe("MessageQueueDocumentationCard", () => {
     expect(container.textContent).toContain("Queues Installation Guide");
   });
 
-  test("opens on the system it is given, aliases included", async () => {
-    const container: HTMLElement = renderCard("azure_servicebus");
+  test("picking a system opens its guide", async () => {
+    const container: HTMLElement = renderCard();
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("## Connect Apache Kafka");
+    });
+    pickSystem("Azure Service Bus");
 
     await waitFor(() => {
       expect(container.textContent).toContain("## Connect Azure Service Bus");
@@ -127,19 +137,17 @@ describe("MessageQueueDocumentationCard", () => {
     expect(container.textContent).not.toContain("## Connect Apache Kafka");
   });
 
-  test("falls back to Kafka for a system the catalog does not know", async () => {
-    const container: HTMLElement = renderCard("ibmmq");
-
-    await waitFor(() => {
-      expect(container.textContent).toContain("## Connect Apache Kafka");
-    });
+  test("a system resolves through its aliases, and an unknown one to Kafka", () => {
+    expect(resolveMessageQueueGuideSystem("azure_servicebus")).toBe(
+      "servicebus",
+    );
+    expect(resolveMessageQueueGuideSystem("AmazonSQS")).toBe("aws_sqs");
     expect(resolveMessageQueueGuideSystem("ibmmq")).toBe("kafka");
     expect(resolveMessageQueueGuideSystem(undefined)).toBe("kafka");
-    expect(resolveMessageQueueGuideSystem("AmazonSQS")).toBe("aws_sqs");
   });
 
   test("interpolates the selected key's secret, not the placeholder", async () => {
-    const container: HTMLElement = renderCard("rabbitmq");
+    const container: HTMLElement = renderCard();
 
     await waitFor(() => {
       expect(container.textContent).toContain(
@@ -174,7 +182,7 @@ describe("MessageQueueDocumentationCard", () => {
   });
 
   test("switching the system switches the guide", async () => {
-    const container: HTMLElement = renderCard("kafka");
+    const container: HTMLElement = renderCard();
 
     await waitFor(() => {
       expect(container.textContent).toContain("## Connect Apache Kafka");
@@ -194,45 +202,50 @@ describe("MessageQueueDocumentationCard", () => {
     expect(container.textContent).not.toContain("## Connect Apache Kafka");
   });
 
-  test("follows a system its parent learns later, but never an unknown one", async () => {
-    const { container, rerender } = render(
-      <MemoryRouter>
-        <MessageQueueDocumentationCard
-          title="Guide"
-          description="Guide"
-          initialSystem={undefined}
-        />
-      </MemoryRouter>,
-    );
+  test("with no ingestion key yet, the guide keeps its placeholders", async () => {
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 50,
+    } as never);
+    const container: HTMLElement = renderCard();
 
     await waitFor(() => {
-      expect(container.textContent).toContain("## Connect Apache Kafka");
+      expect(screen.getByText("No ingestion keys yet")).toBeInTheDocument();
     });
-
-    rerender(
-      <MemoryRouter>
-        <MessageQueueDocumentationCard
-          title="Guide"
-          description="Guide"
-          initialSystem="gcp_pubsub"
-        />
-      </MemoryRouter>,
+    expect(container.textContent).toContain(
+      `x-oneuptime-token: "${MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER}"`,
     );
-    await waitFor(() => {
-      expect(container.textContent).toContain(
-        "## Connect Google Cloud Pub/Sub",
-      );
+  });
+
+  test("the guide's values: the OneUptime origin and the key, else their placeholders", () => {
+    expect(
+      getMessageQueueGuideVariables({
+        host: "oneuptime.example.com",
+        isHttps: true,
+        secretKey: "secret-1",
+      }),
+    ).toEqual({
+      oneuptimeUrl: "https://oneuptime.example.com",
+      apiKey: "secret-1",
     });
-
-    rerender(
-      <MemoryRouter>
-        <MessageQueueDocumentationCard
-          title="Guide"
-          description="Guide"
-          initialSystem="not-a-system"
-        />
-      </MemoryRouter>,
-    );
-    expect(container.textContent).toContain("## Connect Google Cloud Pub/Sub");
+    expect(
+      getMessageQueueGuideVariables({
+        host: "localhost:3000",
+        isHttps: false,
+        secretKey: " ",
+      }),
+    ).toEqual({
+      oneuptimeUrl: "http://localhost:3000",
+      apiKey: MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER,
+    });
+    expect(
+      getMessageQueueGuideVariables({
+        host: "",
+        isHttps: true,
+        secretKey: undefined,
+      }).oneuptimeUrl,
+    ).toBe(MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER);
   });
 });

@@ -31,7 +31,7 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1795000000000-AddDatabaseServerTables
   "DatabaseServerLabelRule",
   "DatabaseServerOwnerRule",
-  // 1796500000000-AddMessageQueueTables
+  // 1796700000000-AddMessageQueueTables
   "MessageQueueLabelRule",
   "MessageQueueOwnerRule",
 ];

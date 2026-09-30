@@ -1,11 +1,5 @@
 import "../../Server/TestingUtils/Init";
-import {
-  setTimeout as nodeSetTimeout,
-  clearTimeout as nodeClearTimeout,
-} from "timers";
-import { createClient, ClickHouseClient } from "@clickhouse/client";
 import Metric from "../../../Models/AnalyticsModels/Metric";
-import { MetricService } from "../../../Server/Services/MetricService";
 import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import MetricMonitorCriteria, {
@@ -57,17 +51,13 @@ import {
   buildMessageQueueMetricMonitorQuery,
   buildMessageQueueMetricMonitorViewConfig,
   formatMessageQueueThreshold,
-  getAllMessageQueueAlertTemplates,
   getMessageQueueAlertMeasure,
   getMessageQueueAlertPolicy,
-  getMessageQueueAlertTemplateById,
   getMessageQueueAlertTemplateForMetric,
-  getMessageQueueAlertTemplates,
   getMessageQueueMetricFilterAttributeKeys,
   getMessageQueueMetricMonitorRollingTime,
   getMessageQueueMetricMonitorSeed,
   getMessageQueueSourceWindowFloor,
-  getMessageQueueSystemsWithAlertTemplates,
   isMessageQueueMetricMonitorable,
 } from "../../../Types/Monitor/MessageQueueAlertTemplates";
 import {
@@ -114,19 +104,21 @@ import {
   toStoredColumns,
 } from "../MessageQueue/MessagingTelemetryFixtures";
 import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+  METRIC_ENGINE,
+  StoredPoint,
+  engineExpression,
+  engineFold,
+} from "./MetricEngineFold";
+import { describe, expect, test } from "@jest/globals";
 
 /*
- * The queue alert library is how a Queue gets a monitor without a person
- * hand-building a Metrics monitor on a broker metric they have to find,
- * filter and threshold themselves. Everything that can go wrong with it is
- * silent:
+ * MessageQueueAlertTemplates is where a queue's monitor comes from. The
+ * "Create monitor" link on a queue's Overview builds its query, its view and
+ * its window there, and starts from the threshold, comparison, severity and
+ * window of the metric's template; a template's getMonitorStep builds the
+ * complete monitor the template stands for, which nothing in the product
+ * offers yet (see WHO READS THEM in the module). Everything that can go
+ * wrong with either is silent:
  *
  *   - a filter that does not match the stored values exactly (a lowercased
  *     "orders" against a stored "Orders", `metadata_EntityName` against
@@ -145,20 +137,39 @@ import {
  *   - a count that goes quiet between events holds the monitor offline
  *     forever unless its recovery reads a silent window as zero.
  *
- * So this suite pins the whole library in one table, proves every template
+ * So this suite pins every template in one table, proves every template
  * reads a catalog GAUGE through the very query builder the queue page's
  * "Create monitor" link uses, builds that query from the realistic stored
- * datapoints the resolver suites use, EVALUATES the templates against
- * broker-shaped rows through a port of the metric engine's own folds (pinned
- * to the SQL it generates, and to a real ClickHouse on request) and the real
- * metric criteria evaluator, and replays the late receivers' fetch windows
- * against the telemetry worker's evaluations.
+ * datapoints the resolver suites use, EVALUATES the templates' monitors
+ * against broker-shaped rows through a port of the metric engine's own
+ * folds (MetricEngineFold: pinned here to the SQL the engine generates, and
+ * run on a real ClickHouse by App's MetricEngineFoldClickhouse suite) and
+ * the real metric criteria evaluator, and replays the late receivers' fetch
+ * windows against the telemetry worker's evaluations. The criteria Monitor
+ * Create builds from a link are pinned by MessageQueueMonitorLink.test and
+ * MessageQueueMonitorLinkMonitorCreate.test.
  */
 
 // --- fixtures and helpers -------------------------------------------------
 
+/*
+ * Every template, read the one way the product reads them — by catalog
+ * entry (getMessageQueueAlertTemplateForMetric) — in catalog order.
+ */
 const ALL_TEMPLATES: Array<MessageQueueAlertTemplate> =
-  getAllMessageQueueAlertTemplates();
+  MESSAGE_QUEUE_METRICS.map(
+    (
+      descriptor: MessageQueueMetricDescriptor,
+    ): MessageQueueAlertTemplate | undefined => {
+      return getMessageQueueAlertTemplateForMetric(descriptor);
+    },
+  ).filter(
+    (
+      template: MessageQueueAlertTemplate | undefined,
+    ): template is MessageQueueAlertTemplate => {
+      return template !== undefined;
+    },
+  );
 
 const TEMPLATE_CASES: Array<[string, MessageQueueAlertTemplate]> =
   ALL_TEMPLATES.map(
@@ -170,8 +181,11 @@ const TEMPLATE_CASES: Array<[string, MessageQueueAlertTemplate]> =
   );
 
 function getTemplate(id: string): MessageQueueAlertTemplate {
-  const template: MessageQueueAlertTemplate | undefined =
-    getMessageQueueAlertTemplateById(id);
+  const template: MessageQueueAlertTemplate | undefined = ALL_TEMPLATES.find(
+    (candidate: MessageQueueAlertTemplate): boolean => {
+      return candidate.id === id;
+    },
+  );
 
   if (!template) {
     throw new Error(`No message queue alert template ${id}`);
@@ -589,7 +603,7 @@ const UNGROUPED_SUM: ExpectedShape = {
 };
 
 /*
- * Every template, in display order, with everything a reviewer has to agree
+ * Every template, in catalog order, with everything a reviewer has to agree
  * with: the catalog entry it reads, its name, its threshold and comparison,
  * its window, how its query folds a bucket and what it alerts per.
  * Exhaustive both ways — a catalog change that adds, drops or reshapes a
@@ -887,7 +901,7 @@ function expectationFor(id: string): ExpectedTemplate {
 }
 
 describe("MessageQueueAlertTemplates — the library", () => {
-  test("ships exactly the pinned templates, in display order", () => {
+  test("ships exactly the pinned templates, in catalog order", () => {
     expect(
       ALL_TEMPLATES.map((template: MessageQueueAlertTemplate): string => {
         return template.id;
@@ -923,21 +937,6 @@ describe("MessageQueueAlertTemplates — the library", () => {
     },
   );
 
-  test("covers every system with a curated thresholdable gauge, and only those", () => {
-    expect(getMessageQueueSystemsWithAlertTemplates()).toEqual([
-      "kafka",
-      "rabbitmq",
-      "activemq",
-      "servicebus",
-      "eventhubs",
-      "aws_sqs",
-      "aws.sns",
-      "gcp_pubsub",
-      "pulsar",
-      "rocketmq",
-    ]);
-  });
-
   test("ids are unique, self-prefixed and kebab-case", () => {
     const ids: Array<string> = ALL_TEMPLATES.map(
       (template: MessageQueueAlertTemplate): string => {
@@ -965,23 +964,6 @@ describe("MessageQueueAlertTemplates — the library", () => {
       expect(template.id).toBe(
         `message-queue-${slug(template.system)}-${slug(template.metricName)}`,
       );
-    }
-  });
-
-  test("names are unique within the set one queue is offered", () => {
-    /*
-     * A queue only ever sees one system's set, so that is where a name
-     * collision would produce two indistinguishable cards. Across systems
-     * "Server Errors" repeats on purpose (Service Bus and Event Hubs).
-     */
-    for (const system of getMessageQueueSystemsWithAlertTemplates()) {
-      const names: Array<string> = getMessageQueueAlertTemplates(system).map(
-        (template: MessageQueueAlertTemplate): string => {
-          return template.name;
-        },
-      );
-
-      expect(new Set<string>(names).size).toBe(names.length);
     }
   });
 
@@ -1031,19 +1013,6 @@ describe("MessageQueueAlertTemplates — the library", () => {
       }
     },
   );
-
-  test("the library is not shared state a caller can corrupt", () => {
-    const first: Array<MessageQueueAlertTemplate> =
-      getAllMessageQueueAlertTemplates();
-    first.splice(0, first.length);
-
-    expect(getAllMessageQueueAlertTemplates()).toHaveLength(
-      EXPECTED_TEMPLATES.length,
-    );
-    expect(getMessageQueueAlertTemplates("kafka")).not.toBe(
-      getMessageQueueAlertTemplates("kafka"),
-    );
-  });
 });
 
 describe("MessageQueueAlertTemplates — every template reads a catalog gauge, never a counter", () => {
@@ -1180,11 +1149,11 @@ describe("MessageQueueAlertTemplates — every template reads a catalog gauge, n
 
     // ...while the queue size a stall shows up in is templated.
     expect(
-      getMessageQueueAlertTemplates("activemq").map(
-        (template: MessageQueueAlertTemplate): string => {
-          return template.metricName;
-        },
-      ),
+      ALL_TEMPLATES.filter((template: MessageQueueAlertTemplate): boolean => {
+        return template.system === "activemq";
+      }).map((template: MessageQueueAlertTemplate): string => {
+        return template.metricName;
+      }),
     ).toEqual(["activemq.message.queue.size", "activemq.message.current"]);
   });
 
@@ -3545,90 +3514,8 @@ describe("MessageQueueAlertTemplates — the monitor step each template builds",
   });
 });
 
-describe("MessageQueueAlertTemplates — system matching", () => {
-  test("a system gets exactly its own templates, in display order", () => {
-    for (const system of getMessageQueueSystemsWithAlertTemplates()) {
-      expect(
-        getMessageQueueAlertTemplates(system).map(
-          (template: MessageQueueAlertTemplate): string => {
-            return template.id;
-          },
-        ),
-      ).toEqual(
-        EXPECTED_TEMPLATES.filter((expected: ExpectedTemplate): boolean => {
-          return expected.system === system;
-        }).map((expected: ExpectedTemplate): string => {
-          return expected.id;
-        }),
-      );
-    }
-  });
-
-  test.each([
-    ["AmazonSQS", "aws_sqs"],
-    ["  aws.sqs  ", "aws_sqs"],
-    ["SQS", "aws_sqs"],
-    ["aws_sns", "aws.sns"],
-    ["azure_servicebus", "servicebus"],
-    ["Microsoft.ServiceBus", "servicebus"],
-    ["azure.eventhubs", "eventhubs"],
-    ["artemis", "activemq"],
-    ["apache_pulsar", "pulsar"],
-    ["gcp.pubsub", "gcp_pubsub"],
-    ["KAFKA", "kafka"],
-  ])("accepts %p as %p", (spelling: string, system: string) => {
-    expect(getMessageQueueAlertTemplates(spelling)).toEqual(
-      getMessageQueueAlertTemplates(system),
-    );
-    expect(getMessageQueueAlertTemplates(spelling).length).toBeGreaterThan(0);
-  });
-
-  test("a system without curated broker metrics, an unknown and an empty one get nothing", () => {
-    for (const system of [
-      "jms",
-      "nats",
-      "bullmq",
-      "eventgrid",
-      "ibmmq",
-      "spring_integration",
-      "",
-      "   ",
-      null,
-      undefined,
-      "not a system",
-    ]) {
-      expect(getMessageQueueAlertTemplates(system)).toEqual([]);
-    }
-
-    expect(getMessageQueueAlertTemplates(42 as unknown as string)).toEqual([]);
-  });
-
-  test("never offers one Azure service's templates to the other", () => {
-    const serviceBus: Array<string> = getMessageQueueAlertTemplates(
-      "servicebus",
-    ).map((template: MessageQueueAlertTemplate): string => {
-      return template.id;
-    });
-
-    for (const template of getMessageQueueAlertTemplates("eventhubs")) {
-      expect(serviceBus).not.toContain(template.id);
-      expect(template.system).toBe("eventhubs");
-    }
-  });
-
-  test("by id: the template, or nothing", () => {
-    expect(
-      getMessageQueueAlertTemplateById(
-        "message-queue-kafka-kafka-consumer-group-lag-sum",
-      )?.name,
-    ).toBe("Consumer Lag High");
-    expect(getMessageQueueAlertTemplateById("database-mysql-restarted")).toBe(
-      undefined,
-    );
-    expect(getMessageQueueAlertTemplateById("")).toBe(undefined);
-  });
-
-  test("by catalog entry: where the Create monitor link reads its default threshold", () => {
+describe("MessageQueueAlertTemplates — the lookup the Create monitor link reads", () => {
+  test("by catalog entry: the entry's policy, in the four fields the link reads", () => {
     for (const descriptor of MESSAGE_QUEUE_METRICS) {
       const template: MessageQueueAlertTemplate | undefined =
         getMessageQueueAlertTemplateForMetric(descriptor);
@@ -3642,7 +3529,18 @@ describe("MessageQueueAlertTemplates — system matching", () => {
 
       expect(template).toBeDefined();
       expect(template!.metricId).toBe(getMessageQueueMetricId(descriptor));
-      expect(template!.threshold).toBe(policy.threshold);
+      // MessageQueueMetricMonitorLink reads these and nothing else.
+      expect({
+        threshold: template!.threshold,
+        filterType: template!.filterType,
+        severity: template!.severity,
+        rollingTime: template!.rollingTime,
+      }).toEqual({
+        threshold: policy.threshold,
+        filterType: policy.filterType,
+        severity: policy.severity,
+        rollingTime: policy.rollingTime,
+      });
     }
 
     // Service Bus and Event Hubs share the name, not the template.
@@ -3882,118 +3780,14 @@ async function evaluate(
 // --- the metric engine's folds ------------------------------------------------
 
 /*
- * One stored Metric row, as far as a fold reads it: `value`, and for a
- * distribution point (a histogram or a summary: `count` set) its count,
- * sum, min and max. A CloudWatch point is a Summary — count = SampleCount,
- * sum = Sum (mirrored into value) — with no min or max column, because a
- * Summary proto carries none (OtelMetricsIngestService reads the point's
- * `min` / `max`, which only a histogram has).
- */
-interface StoredPoint {
-  value: number | null;
-  count?: number | null | undefined;
-  sum?: number | null | undefined;
-  min?: number | null | undefined;
-  max?: number | null | undefined;
-}
-
-function isPresent(value: number | null | undefined): value is number {
-  return value !== null && value !== undefined;
-}
-
-/*
- * How the metric engine folds one bucket of rows for a scalar aggregation:
- * a port of MetricService.getDistributionAwareAggregationExpression, which
- * every template query compiles to (its attribute filter keeps it off the
- * rollups). "the metric engine's folds" below pins the SQL this ports, and
- * runs it on a real ClickHouse when TEST_CLICKHOUSE_URL is set.
- */
-function engineFold(
-  points: Array<StoredPoint>,
-  aggregationType: MetricsAggregationType,
-): number | null {
-  const observationTotal: (point: StoredPoint) => number | null = (
-    point: StoredPoint,
-  ): number | null => {
-    return isPresent(point.sum) ? point.sum : point.value;
-  };
-  const isDistribution: (point: StoredPoint) => boolean = (
-    point: StoredPoint,
-  ): boolean => {
-    return isPresent(point.count) && isPresent(observationTotal(point));
-  };
-  const bound: (
-    point: StoredPoint,
-    stored: number | null | undefined,
-  ) => number | null = (
-    point: StoredPoint,
-    stored: number | null | undefined,
-  ): number | null => {
-    if (isPresent(stored)) {
-      return stored;
-    }
-    if (isDistribution(point) && point.count! > 0) {
-      return observationTotal(point)! / point.count!;
-    }
-    return isPresent(point.value) ? point.value : null;
-  };
-
-  let total: number = 0;
-  let observations: number = 0;
-
-  for (const point of points) {
-    if (isDistribution(point)) {
-      total += observationTotal(point)!;
-      observations += point.count!;
-    } else if (isPresent(point.value)) {
-      total += point.value;
-      observations += 1;
-    }
-  }
-
-  const bounds: (
-    pick: (point: StoredPoint) => number | null,
-  ) => Array<number> = (
-    pick: (point: StoredPoint) => number | null,
-  ): Array<number> => {
-    return points
-      .map((point: StoredPoint): number | null => {
-        return pick(point);
-      })
-      .filter((value: number | null): value is number => {
-        return value !== null;
-      });
-  };
-
-  switch (aggregationType) {
-    case MetricsAggregationType.Sum:
-      return total;
-    case MetricsAggregationType.Count:
-      return observations;
-    case MetricsAggregationType.Avg:
-      return observations === 0 ? 0 : total / observations;
-    case MetricsAggregationType.Min: {
-      const values: Array<number> = bounds(
-        (point: StoredPoint): number | null => {
-          return bound(point, point.min);
-        },
-      );
-      return values.length > 0 ? Math.min(...values) : null;
-    }
-    case MetricsAggregationType.Max: {
-      const values: Array<number> = bounds(
-        (point: StoredPoint): number | null => {
-          return bound(point, point.max);
-        },
-      );
-      return values.length > 0 ? Math.max(...values) : null;
-    }
-    default:
-      throw new Error(`No engine fold for ${aggregationType}`);
-  }
-}
-
-/*
+ * Rows are folded by engineFold (MetricEngineFold.ts), a port of
+ * MetricService.getDistributionAwareAggregationExpression, which every
+ * template query compiles to (its attribute filter keeps it off the
+ * rollups). "the metric engine's folds" below pins the SQL it ports; App's
+ * Tests/Workers/Jobs/TelemetryMonitor/MetricEngineFoldClickhouse suite runs
+ * that SQL on a real ClickHouse, because the App Test workflow is the one
+ * that provides a server.
+ *
  * One datapoint row as ingest stores it: the metric, its flattened
  * attributes, the second of the window it was taken at, and its value
  * (with count / sum for a Summary point).
@@ -4694,20 +4488,6 @@ describe("MessageQueueAlertTemplates — behaviour against broker data", () => {
 
 // --- the metric engine's folds -----------------------------------------------
 
-const ENGINE: MetricService = new MetricService();
-
-// The SQL fold the engine compiles a scalar aggregation over `value` to.
-function engineExpression(aggregationType: MetricsAggregationType): string {
-  return (
-    ENGINE as unknown as {
-      getDistributionAwareAggregationExpression: (
-        aggregationType: AggregationType,
-        column: string,
-      ) => string;
-    }
-  ).getDistributionAwareAggregationExpression(aggregationType, "value");
-}
-
 /*
  * The aggregate the telemetry worker asks MetricService for, per query of a
  * metric monitor (monitorMetric in MonitorTelemetryMonitor): the metric,
@@ -4782,6 +4562,7 @@ describe("MessageQueueAlertTemplates — the metric engine's folds (CloudWatch S
      * every behaviour test above folds rows through it.
      */
     expect(engineExpression(MetricsAggregationType.Sum)).toBe(total);
+    expect(engineExpression(MetricsAggregationType.Count)).toBe(observations);
     expect(engineExpression(MetricsAggregationType.Avg)).toBe(
       `if(${observations} = 0, 0, ${total} / ${observations})`,
     );
@@ -4800,7 +4581,9 @@ describe("MessageQueueAlertTemplates — the metric engine's folds (CloudWatch S
 
       for (const queryConfig of queryConfigsOf(step)) {
         const statement: { statement: Statement; columns: Array<string> } =
-          ENGINE.toAggregateStatement(workerAggregateBy(step, queryConfig));
+          METRIC_ENGINE.toAggregateStatement(
+            workerAggregateBy(step, queryConfig),
+          );
 
         // The attribute filter keeps every template off the rollups.
         expect(statement.statement.query).not.toContain("AggMV");
@@ -4916,131 +4699,6 @@ describe("MessageQueueAlertTemplates — the metric engine's folds (CloudWatch S
     }
   });
 });
-
-/*
- * The model against the engine's own SQL on a real ClickHouse server. Opt
- * in with TEST_CLICKHOUSE_URL=http://<user>:<password>@localhost:<port>; the
- * suite only runs SELECTs over literal rows and creates nothing.
- */
-const clickHouseEndpoint: string | undefined =
-  process.env["TEST_CLICKHOUSE_URL"];
-const withClickHouse: typeof describe.skip = clickHouseEndpoint
-  ? describe
-  : describe.skip;
-
-withClickHouse(
-  "MessageQueueAlertTemplates — the engine's folds on a real ClickHouse",
-  () => {
-    let client: ClickHouseClient;
-
-    beforeAll((): void => {
-      // The real ClickHouse HTTP client needs Node timers with unref().
-      jest.spyOn(globalThis, "setTimeout").mockImplementation(nodeSetTimeout);
-      jest
-        .spyOn(globalThis, "clearTimeout")
-        .mockImplementation(nodeClearTimeout);
-
-      const url: URL = new URL(clickHouseEndpoint!);
-
-      if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
-        throw new Error("This suite requires a local ClickHouse server.");
-      }
-
-      client = createClient({
-        url: `${url.protocol}//${url.host}`,
-        username: decodeURIComponent(url.username) || "default",
-        password: decodeURIComponent(url.password),
-        request_timeout: 60000,
-      });
-    });
-
-    afterAll(async (): Promise<void> => {
-      await client.close();
-      jest.restoreAllMocks();
-    });
-
-    const BUCKETS: Array<[string, Array<StoredPoint>]> = [
-      [
-        "one CloudWatch period of twelve failures",
-        [{ value: 12, count: 12, sum: 12, min: null, max: null }],
-      ],
-      [
-        "the same CloudWatch period reported twice",
-        [
-          { value: 12, count: 12, sum: 12, min: null, max: null },
-          { value: 12, count: 12, sum: 12, min: null, max: null },
-        ],
-      ],
-      [
-        "a CloudWatch level: five samples averaging 1,000",
-        [{ value: 5000, count: 5, sum: 5000, min: null, max: null }],
-      ],
-      [
-        "a Summary point with no samples",
-        [{ value: 0, count: 0, sum: 0, min: null, max: null }],
-      ],
-      [
-        "scalar gauge samples",
-        [{ value: 1200 }, { value: 50 }, { value: 7.5 }],
-      ],
-      [
-        "a histogram point that carries its min and max",
-        [{ value: 30, count: 3, sum: 30, min: 2, max: 20 }],
-      ],
-      [
-        "scalar and distribution rows in one bucket",
-        [
-          { value: 4 },
-          { value: 30, count: 3, sum: 30, min: null, max: null },
-          { value: 9, count: 1, sum: 9, min: 9, max: 9 },
-        ],
-      ],
-    ];
-
-    function sqlNumber(value: number | null | undefined): string {
-      return isPresent(value) ? String(value) : "NULL";
-    }
-
-    test.each(BUCKETS)(
-      "%s folds exactly as the model says, for every aggregation",
-      async (_name: string, points: Array<StoredPoint>) => {
-        const rows: string = points
-          .map((point: StoredPoint): string => {
-            return `(${sqlNumber(point.value)}, ${sqlNumber(
-              point.count,
-            )}, ${sqlNumber(point.sum)}, ${sqlNumber(point.min)}, ${sqlNumber(
-              point.max,
-            )})`;
-          })
-          .join(", ");
-
-        for (const aggregationType of [
-          MetricsAggregationType.Sum,
-          MetricsAggregationType.Avg,
-          MetricsAggregationType.Min,
-          MetricsAggregationType.Max,
-        ]) {
-          const result: { data: Array<{ folded: number | null }> } = (await (
-            await client.query({
-              query: `SELECT ${engineExpression(
-                aggregationType,
-              )} AS folded FROM values('value Nullable(Float64), count Nullable(UInt64), sum Nullable(Float64), min Nullable(Float64), max Nullable(Float64)', ${rows})`,
-              format: "JSON",
-            })
-          ).json()) as { data: Array<{ folded: number | null }> };
-
-          expect({
-            aggregationType: aggregationType,
-            folded: result.data[0]!.folded,
-          }).toEqual({
-            aggregationType: aggregationType,
-            folded: engineFold(points, aggregationType),
-          });
-        }
-      },
-    );
-  },
-);
 
 // --- late sources ---------------------------------------------------------------
 

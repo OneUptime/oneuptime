@@ -6,7 +6,7 @@ import {
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
   formatMessageQueueErrorRate,
-} from "./MessageQueuePresentation";
+} from "./MessageQueueOverviewPresentation";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -14,12 +14,16 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * One side of a queue: the services that publish to it (its PRODUCER spans)
- * or consume from it (its CONSUMER spans), grouped by the service that
- * recorded them, busiest first, with their error rate and p95 duration over
- * the selected range — the Databases product's "Calling services" card, once
- * per direction. The table holds the busiest few; when more services took
- * part, a footer says how many in all.
+ * One side of a queue: the services that publish to it (their producer
+ * spans, or the client spans that record their sends) or consume from it
+ * (their consumer spans, less empty receives and SQS's receive polls),
+ * grouped by the service that recorded them, busiest first, with their
+ * error rate and p95 duration over the selected range — the Databases
+ * product's "Calling services" card, once per direction
+ * (MessageQueueTelemetryQueries says which spans each side reads). The table
+ * holds the busiest few; when more services took part, a footer says how
+ * many in all. An empty side says whether the queue has no spans at all, or
+ * spans of which none is this side's, which the Traces tab then lists.
  */
 
 export type MessageQueueServicesSide = "producers" | "consumers";
@@ -33,6 +37,11 @@ export interface ComponentProps {
   isLoading: boolean;
   // Every service on this side in the range (the table may show fewer).
   totalServices?: number | undefined;
+  /*
+   * Whether the queue has any span at all in the range: an empty side then
+   * says none of them is this side's, rather than that nothing is there.
+   */
+  queueHasSpans?: boolean | undefined;
   // What the card's (i) says: a MESSAGE_QUEUE_METRIC_DESCRIPTIONS text.
   description: string;
 }
@@ -41,7 +50,10 @@ interface SideCopy {
   title: string;
   countHeader: string;
   durationHeader: string;
+  // The queue has no span at all in the range.
   empty: string;
+  // The queue has spans in the range, none of them this side's.
+  emptyWithSpans: string;
   // "publishing services", for the footer.
   noun: string;
 }
@@ -53,6 +65,8 @@ const SIDE_COPY: Record<MessageQueueServicesSide, SideCopy> = {
     durationHeader: "p95 publish",
     empty:
       "No instrumented application published to this queue in the selected range.",
+    emptyWithSpans:
+      "None of this queue's spans in the selected range records a publish: no producer spans, and no client spans that record a send. The Traces tab lists the spans it has.",
     noun: "publishing services",
   },
   consumers: {
@@ -61,15 +75,30 @@ const SIDE_COPY: Record<MessageQueueServicesSide, SideCopy> = {
     durationHeader: "p95 processing",
     empty:
       "No instrumented application consumed from this queue in the selected range.",
+    emptyWithSpans:
+      "None of this queue's spans in the selected range records a message being handled: no consumer spans, leaving out receives that returned nothing and SQS receive calls. The Traces tab lists the spans it has.",
     noun: "consuming services",
   },
 };
 
-/** The card's title, its column headers and its empty-state line. */
+/** The card's title, its column headers and its empty-state lines. */
 export function getMessageQueueServicesCopy(
   side: MessageQueueServicesSide,
 ): SideCopy {
   return SIDE_COPY[side];
+}
+
+/**
+ * What an empty side says: nothing at all in the range, or spans of which
+ * none is this side's — a queue whose publishers are not traced, or whose
+ * spans are all receives, settlements or client calls the side does not
+ * read.
+ */
+export function getMessageQueueServicesEmptyText(
+  side: MessageQueueServicesSide,
+  queueHasSpans: boolean | null | undefined,
+): string {
+  return queueHasSpans ? SIDE_COPY[side].emptyWithSpans : SIDE_COPY[side].empty;
 }
 
 /**
@@ -109,7 +138,7 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
           data-testid={`message-queue-${props.side}-empty`}
           className="text-sm text-gray-500"
         >
-          {copy.empty}
+          {getMessageQueueServicesEmptyText(props.side, props.queueHasSpans)}
         </div>
       ) : (
         <div

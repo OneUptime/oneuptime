@@ -3,12 +3,18 @@ import {
   DEFAULT_MESSAGE_QUEUE_MIN_SPANS,
   DiscoveredMessageQueue,
   MESSAGE_QUEUE_DISCOVERY_EXCLUDED_SPAN_KIND,
+  MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS,
   MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES,
+  MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS,
+  MESSAGE_QUEUE_DISCOVERY_SHADOWED_VALUE,
   MESSAGE_QUEUE_LATE_METRIC_MINUTES,
   MESSAGE_QUEUE_LATE_METRIC_NAMES,
   MESSAGE_QUEUE_METRIC_PROJECTS_SQL_MARKER,
   MESSAGE_QUEUE_METRIC_SQL_MARKER,
   MESSAGE_QUEUE_MIN_SPANS_ENV,
+  MESSAGE_QUEUE_NATS_GENERATED_SUBJECTS,
+  MESSAGE_QUEUE_RABBITMQ_DEFAULT_EXCHANGES,
+  MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW,
   MESSAGE_QUEUE_SPAN_SQL_MARKER,
   MessageQueueDiscoveryWindow,
   MessageQueueEvidence,
@@ -29,19 +35,30 @@ import {
 } from "../../../../Server/Utils/Telemetry/MessageQueueDiscovery";
 import { DATABASE_ENDPOINT_SQL_MARKER } from "../../../../Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 import { QUERY_SETTINGS } from "../../../../Server/Utils/Telemetry/ServiceDependencyDiscovery";
+import { dataSourceOptions } from "../../../../Server/Infrastructure/ClickhouseConfig";
 import { SpanKind, SpanStatus } from "../../../../Models/AnalyticsModels/Span";
 import {
   AZURE_MESSAGING_PROVIDER_NAMESPACES,
   AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
   MESSAGE_QUEUE_METRIC_EXCLUDED_SERIES_ATTRIBUTES,
+  MESSAGING_DESTINATION_ATTRIBUTES,
   MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
   MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+  MESSAGING_SYSTEM_ATTRIBUTE,
+  MESSAGING_TEMPORARY_FLAG_ATTRIBUTES,
   MESSAGING_TRIGGER_ATTRIBUTES,
+  RABBITMQ_ROUTING_KEY_ATTRIBUTES,
   ResolvedMessagingDestination,
   hasMessagingTrigger,
   resolveMessagingMetricDatapoint,
   resolveMessagingSpan,
 } from "../../../../Types/MessageQueue/MessagingTelemetryResolver";
+import {
+  StoredSpan,
+  foldStoredSpan,
+  foldedSpanRow,
+  natsSpellings,
+} from "./MessageQueueSpanQueryTwin";
 import {
   MESSAGE_QUEUE_BROKER_METRIC_NAMES,
   MESSAGE_QUEUE_METRICS,
@@ -73,11 +90,15 @@ import {
  *   1. the queries — the core's own attribute lists selected and grouped on,
  *      nothing per message or per instance, the ingest trigger (Azure
  *      provider values included) as a prefilter that can only admit MORE
- *      than ingest, late cloud metrics read further back, bounded, and
+ *      than ingest, late cloud metrics read further back, bounded (the cap
+ *      shared out by broker or metric, part of it rotating every run), and
  *      recognisable by their markers;
  *   2. that a stored row, read back through those columns, resolves to
  *      exactly the queue ingest keyed its telemetry on — for every fixture of
- *      the core's real-instrumentation corpus;
+ *      the core's real-instrumentation corpus — and that the span query's
+ *      folding of values that vary per message (held here through its
+ *      TypeScript twin, MessageQueueSpanQueryTwin) never changes what the
+ *      resolver answers;
  *   3. merging (one entry per identity, the most specific system, the
  *      busiest spelling and address) and the create policy.
  *
@@ -131,9 +152,14 @@ function collapse(sql: string): string {
   return sql.replace(/\s+/g, " ");
 }
 
-// Every `attributes['<key>'] AS <column>` a query selects, in order.
+/*
+ * Every column a query selects, in order, with the key it reads: a plain
+ * `attributes['<key>'] AS <column>`, or a folded
+ * `if(…, attributes['<key>']) AS <column>`, which holds the key as stored
+ * whenever it holds more than a placeholder.
+ */
 function selectedColumns(sql: string): Array<[string, string]> {
-  return Array.from(sql.matchAll(/attributes\['([^']+)'\] AS (a\d+)/g)).map(
+  return Array.from(sql.matchAll(/attributes\['([^']+)'\]\)? AS (a\d+)/g)).map(
     (match: RegExpMatchArray): [string, string] => {
       return [match[1]!, match[2]!];
     },
@@ -306,14 +332,26 @@ describe("buildMessagingSpanDiscoverySql", () => {
     // No allow-list of kinds: a pipeline can store any kind, or none.
     expect(sql).not.toMatch(/kind IN/i);
     /*
-     * Outside string literals the column appears three times: the
-     * predicate, the SELECT column and the GROUP BY column.
+     * Outside string literals the column appears five times, and filters in
+     * one of them only: the returned and the grouped column, the rotating
+     * order's hash, the predicate and the GROUP BY column.
      */
-    expect(sql.replace(/'[^']*'/g, "''").match(/\bkind\b/g)).toEqual([
-      "kind",
-      "kind",
-      "kind",
+    expect(
+      sql
+        .replace(/'[^']*'/g, "''")
+        .match(/(SELECT |GROUP BY |ifNull\()?\bkind\b[^,]*/g),
+    ).toEqual([
+      "SELECT kind",
+      "SELECT kind",
+      "ifNull(kind",
+      "ifNull(kind",
+      "GROUP BY kind",
     ]);
+    expect(sql).toContain(
+      "rotation FROM oneuptime.SpanItemV3 WHERE projectId =",
+    );
+    expect(sql).toContain("cityHash64(toUnixTimestamp64Milli(");
+    expect(sql).toContain("), ifNull(kind, ''), a0, a1,");
   });
 
   test("the kinds it reads resolve exactly as ingest resolved them: another SERVER spelling to nothing", () => {
@@ -473,10 +511,13 @@ describe("buildMessagingSpanDiscoverySql", () => {
       },
     ).join(", ")}])`;
     expect(sql).toContain(allTriggers);
-    // The bloom-indexed prefilter comes before the map-reading condition.
-    expect(sql.indexOf(allTriggers)).toBeLessThan(
-      sql.indexOf("multiSearchAnyCaseInsensitive"),
+    // The bloom-indexed prefilter comes before the map-reading conditions.
+    const where: string = sql.substring(sql.indexOf("WHERE projectId ="));
+    expect(where.indexOf(allTriggers)).toBeGreaterThan(0);
+    expect(where.indexOf(allTriggers)).toBeLessThan(
+      where.indexOf("multiSearchAnyCaseInsensitive"),
     );
+    expect(where.indexOf(allTriggers)).toBeLessThan(where.indexOf("AND NOT ("));
   });
 
   test("admits an Azure provider key only when it names Service Bus or Event Hubs, like the ingest trigger", () => {
@@ -533,9 +574,43 @@ describe("buildMessagingSpanDiscoverySql", () => {
     expect(corpusKeys.has("messaging.client_id")).toBe(true);
   });
 
-  test("is bounded: the busiest groups first, row cap, query settings", () => {
-    expect(sql).toContain("ORDER BY spanCount DESC LIMIT 321 ");
-    expect(sql.trim().endsWith(QUERY_SETTINGS)).toBe(true);
+  test("is bounded: the row cap shared out by messaging system, busiest and rotating rows alternating", () => {
+    const heap: number = 321 * MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW;
+    const system: string = getMessagingDiscoveryColumn(
+      MESSAGING_RESOLVER_INPUT_ATTRIBUTES.indexOf(MESSAGING_SYSTEM_ATTRIBUTE),
+    );
+    expect(system).toBe("a0");
+
+    // The grouped rows reach the ranking through a top-N heap…
+    expect(sql).toContain(
+      `GROUP BY kind, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39, a40, a41, a42, a43, a44 ORDER BY spanCount DESC, rotation LIMIT ${heap} ) )`,
+    );
+    // …are ranked within their system twice: busiest, and rotating…
+    expect(sql).toContain(
+      `row_number() OVER (PARTITION BY ${system} ORDER BY spanCount DESC, rotation) AS busiestRank, row_number() OVER (PARTITION BY ${system} ORDER BY rotation) AS rotationRank`,
+    );
+    // …and taken alternately from both, every system in turn, under the cap.
+    expect(sql).toContain(
+      "ORDER BY least(2 * busiestRank - 1, 2 * rotationRank), spanCount DESC, rotation LIMIT 321 SETTINGS",
+    );
+    // The rows it returns are the grouped columns alone.
+    expect(sql).toMatch(
+      /^ \/\* message-queue-span-discovery \*\/ SELECT kind, a0, a1, [a0-9, ]+a44, spanCount, errorCount, lastSeenUnixMs FROM \( SELECT \*, row_number\(\)/,
+    );
+    expect(MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW).toBe(50);
+  });
+
+  test("scans as wide as the server lets it, and ends in time: the queue queries' settings, no thread or block pin", () => {
+    expect(
+      sql.trim().endsWith(` ${MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS}`),
+    ).toBe(true);
+    for (const pin of [
+      "max_threads",
+      "max_block_size",
+      "preferred_block_size_bytes",
+    ]) {
+      expect(sql).not.toContain(pin);
+    }
   });
 
   test("a nonsensical row cap still yields a bounded query", () => {
@@ -565,6 +640,571 @@ describe("buildMessagingSpanDiscoverySql", () => {
     expect(sql).not.toContain("INNER JOIN");
   });
 });
+
+/*
+ * ---- The span query's folding of values that vary per message -------------
+ *
+ * The query leaves out spans the resolver certainly names no queue for, and
+ * folds the values it reads no more than a placeholder of, so a
+ * per-message value is not a group of its own. These tests pin the SQL to
+ * the rules, then hold the rules — through their TypeScript twin
+ * (MessageQueueSpanQueryTwin, which the real-ClickHouse suite holds the SQL
+ * to) — to the resolver: whatever is left out names no queue, and whatever
+ * is folded resolves exactly as it was stored, over the core's corpus and
+ * every variant below.
+ */
+
+// A span stored with these attributes: its map as ClickHouse keeps it.
+function storedSpanOf(
+  kind: string | null,
+  attributes: FixtureAttributes,
+): StoredSpan {
+  return {
+    kind: kind,
+    attributeKeys: Object.keys(attributes),
+    attributes: toStoredColumns(
+      attributes,
+      MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+    ),
+  };
+}
+
+// The resolver over a span query row's values (by key), as discovery runs it.
+function resolveValues(
+  kind: string | null,
+  values: Readonly<Record<string, string>>,
+): ResolvedMessagingDestination | null {
+  return resolveMessagingSpan({
+    getAttribute: (key: string): unknown => {
+      return Object.prototype.hasOwnProperty.call(values, key)
+        ? values[key]
+        : undefined;
+    },
+    kind: kind,
+  });
+}
+
+// What the fold makes of a span, and whether the resolver still agrees.
+function foldOutcome(
+  label: string,
+  kind: string | null,
+  attributes: FixtureAttributes,
+): {
+  label: string;
+  dropped: boolean;
+  resolved: ResolvedMessagingDestination | null;
+} {
+  const span: StoredSpan = storedSpanOf(kind, attributes);
+  const folded: Record<string, string> | null = foldStoredSpan(span);
+  return {
+    label: label,
+    dropped: folded === null,
+    resolved: folded ? resolveValues(kind, folded) : null,
+  };
+}
+
+function expectFoldKeepsTheAnswer(
+  label: string,
+  kind: string | null,
+  attributes: FixtureAttributes,
+): void {
+  const asStored: ResolvedMessagingDestination | null = resolveValues(
+    kind,
+    storedSpanOf(kind, attributes).attributes,
+  );
+  const outcome: {
+    label: string;
+    dropped: boolean;
+    resolved: ResolvedMessagingDestination | null;
+  } = foldOutcome(label, kind, attributes);
+  if (outcome.dropped) {
+    // Left out: only a span the resolver names no queue for.
+    expect({ label, asStored }).toEqual({ label, asStored: null });
+    return;
+  }
+  expect(outcome).toEqual({ label, dropped: false, resolved: asStored });
+}
+
+// A publish to RabbitMQ's `orders` exchange, which the variants alone overlay.
+const RABBITMQ_ORDERS_EXCHANGE: FixtureAttributes = {
+  "messaging.system": "rabbitmq",
+  "messaging.destination.name": "orders",
+  "messaging.operation": "publish",
+};
+
+/*
+ * Attributes laid over every corpus fixture. Each is a shape some
+ * instrumentation sends, or the edge of a rule: blank, non-ASCII and
+ * control-character text beside a destination, per-message names beside a
+ * template and routing keys beside an exchange, flags in every case, NATS
+ * spellings and subjects the resolver does and does not treat as
+ * generated, and RabbitMQ names the resolver splits or reads the routing key
+ * of.
+ */
+const FOLD_VARIANTS: ReadonlyArray<FixtureAttributes> = [
+  { "messaging.destination.template": "orders.{id}" },
+  { "messaging.destination.template": "   " },
+  { "messaging.destination.template": NO_BREAK_SPACE },
+  { "messaging.destination.template": `${IDEOGRAPHIC_SPACE}orders` },
+  { "messaging.destination.template": "заказы" },
+  { "messaging.destination.template": "\u0001" },
+  { "messaging.destination.template": "(temporary)" },
+  { "messaging.destination.template": "***" },
+  {
+    "messaging.destination.template": "orders.{id}",
+    "message_bus.destination": "orders.42",
+  },
+  {
+    "messaging.destination.name": "orders.4711",
+    "messaging.source.name": "orders.4712",
+  },
+  { "messaging.destination.name": " ", "messaging.source.name": "orders.4712" },
+  {
+    "messaging.source.template": "orders.{id}",
+    "messaging.source.name": "orders.1",
+  },
+  { "messaging.destination": "orders.4711" },
+  { "message_bus.destination": "orders/Subscriptions/billing" },
+  {
+    "messaging.destination.name": "orders",
+    "message_bus.destination": `${DOTTED_CAPITAL_I}`,
+  },
+  { "messaging.rabbitmq.destination.routing_key": "order.4711.created" },
+  { "messaging.rabbitmq.routing_key": "order.4711.created" },
+  { "messaging.rabbitmq.destination.routing_key": "   " },
+  { "messaging.rabbitmq.destination.routing_key": "new-invoice" },
+  { "messaging.rabbitmq.destination.routing_key": "" },
+  { "messaging.destination.temporary": "TRUE" },
+  { "messaging.destination.anonymous": "True" },
+  { "messaging.source.temporary": " true" },
+  { "messaging.source.anonymous": "false" },
+  { "messaging.destination.temporary": true },
+  {
+    "messaging.system": "NATS",
+    "messaging.destination.name":
+      "$JS.ACK.ORDERS.billing.1.42.42.1727698123456789012.0",
+  },
+  {
+    "messaging.system": "JetStream",
+    "messaging.destination.name": "_INBOX.k3qTbUQ4AkVZe9L1u8A1rd",
+  },
+  { "messaging.system": " nats ", "messaging.destination.name": "_INBOX.abc" },
+  { "messaging.system": "nats", "messaging.destination.name": "  _INBOX.abc" },
+  { "messaging.system": "nats", "messaging.destination.name": "_INBOX" },
+  { "messaging.system": "nats", "messaging.destination.name": "_INBOXES.abc" },
+  { "messaging.system": "nats", "messaging.destination.name": "$JS.ACKED" },
+  { "messaging.system": "nats", "messaging.destination.template": "$JS.ACK" },
+  { "messaging.system": "nats", "messaging.destination.name": "orders.42" },
+  { "messaging.system": "kafka", "messaging.destination.name": "_INBOX.abc" },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "shop:new-invoice:invoices",
+    "messaging.rabbitmq.destination.routing_key": "new-invoice",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "AMQ.Default",
+    "messaging.rabbitmq.destination.routing_key": "invoices",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "<DEFAULT>",
+    "messaging.rabbitmq.routing_key": "invoices",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": " amq.default ",
+    "messaging.rabbitmq.routing_key": "invoices",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "amq.default:invoices",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "events,order.created",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "",
+    "messaging.rabbitmq.destination.routing_key": "invoices",
+  },
+  {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "events",
+    "messaging.destination.template": "amq.default",
+  },
+];
+
+describe("the span query's folding of values that vary per message", () => {
+  const sql: string = collapse(buildMessagingSpanDiscoverySql(WINDOW));
+
+  const quoted: (values: ReadonlyArray<string>) => string = (
+    values: ReadonlyArray<string>,
+  ): string => {
+    return values
+      .map((value: string): string => {
+        return `'${value}'`;
+      })
+      .join(", ");
+  };
+  const destinationText: (count: number) => string = (
+    count: number,
+  ): string => {
+    return `(${MESSAGING_DESTINATION_ATTRIBUTES.slice(0, count)
+      .map((_key: string, position: number): string => {
+        return `destinationText${position}`;
+      })
+      .join(" OR ")})`;
+  };
+
+  test("names each destination key's tests once, in the resolver's precedence", () => {
+    expect([...MESSAGING_DESTINATION_ATTRIBUTES]).toEqual([
+      "messaging.destination.template",
+      "messaging.destination.name",
+      "messaging.source.template",
+      "messaging.source.name",
+      "messaging.destination",
+      "message_bus.destination",
+    ]);
+    const aliases: Array<string> = [
+      ...MESSAGING_DESTINATION_ATTRIBUTES.map(
+        (key: string, position: number): string => {
+          return `match(attributes['${key}'], '[!-~]') AS destinationText${position}`;
+        },
+      ),
+      `concat(${MESSAGING_DESTINATION_ATTRIBUTES.map((key: string): string => {
+        return `attributes['${key}']`;
+      }).join(", ")}) AS storedDestinations`,
+      `lower(ifNull(coalesce(${MESSAGING_DESTINATION_ATTRIBUTES.map(
+        (key: string): string => {
+          return `nullIf(attributes['${key}'], '')`;
+        },
+      ).join(", ")}), '')) AS firstStoredDestination`,
+    ];
+    expect(sql).toContain(`WITH ${aliases.join(", ")} SELECT kind,`);
+  });
+
+  test("leaves out flagged spans and NATS generated subjects (rule 1)", () => {
+    expect([...MESSAGE_QUEUE_NATS_GENERATED_SUBJECTS]).toEqual([
+      "_inbox",
+      "$js.ack",
+    ]);
+    expect(natsSpellings()).toEqual(["jetstream", "nats"]);
+    expect(sql).toContain(
+      `AND NOT (${MESSAGING_TEMPORARY_FLAG_ATTRIBUTES.map(
+        (key: string): string => {
+          return `lower(attributes['${key}']) = 'true'`;
+        },
+      ).join(" OR ")} OR (lower(attributes['messaging.system']) IN (${quoted(
+        natsSpellings(),
+      )}) AND (firstStoredDestination IN ('_inbox', '$js.ack') OR startsWith(firstStoredDestination, '_inbox.') OR startsWith(firstStoredDestination, '$js.ack.')))) GROUP BY kind,`,
+    );
+  });
+
+  test("selects each key as stored, a shadowed destination key as the placeholder (rule 2) and a routing key the resolver cannot read blank (rule 3)", () => {
+    expect(MESSAGE_QUEUE_DISCOVERY_SHADOWED_VALUE).toBe("*");
+    expect([...MESSAGE_QUEUE_RABBITMQ_DEFAULT_EXCHANGES]).toEqual([
+      "amq.default",
+      "<default>",
+    ]);
+    MESSAGING_RESOLVER_INPUT_ATTRIBUTES.forEach(
+      (key: string, index: number): void => {
+        const stored: string = `attributes['${key}']`;
+        const position: number = MESSAGING_DESTINATION_ATTRIBUTES.indexOf(key);
+        let expression: string = stored;
+        if (position > 0) {
+          expression = `if(${destinationText(position)} AND destinationText${position}, '*', ${stored})`;
+        } else if (RABBITMQ_ROUTING_KEY_ATTRIBUTES.includes(key)) {
+          expression = `if(${destinationText(
+            MESSAGING_DESTINATION_ATTRIBUTES.length,
+          )} AND NOT multiSearchAny(storedDestinations, [':', ',']) AND NOT multiSearchAnyCaseInsensitive(storedDestinations, ['amq.default', '<default>']), '', ${stored})`;
+        }
+        expect({ key, sql }).toEqual({
+          key,
+          sql: expect.stringContaining(
+            `${index === 0 ? "SELECT kind, " : ", "}${expression} AS a${index},`,
+          ),
+        });
+      },
+    );
+  });
+
+  test("its constants mean to the resolver what the rules say", () => {
+    // The placeholder is text, and a scrubbed value: never a queue itself.
+    expect(hasMessagingTrigger({ "messaging.destination.name": "*" })).toBe(
+      true,
+    );
+    expect(
+      resolveMessagingSpan({
+        getAttribute: getterOf({
+          "messaging.system": "kafka",
+          "messaging.destination.name": MESSAGE_QUEUE_DISCOVERY_SHADOWED_VALUE,
+        }),
+        kind: SpanKind.Producer,
+      }),
+    ).toBeNull();
+
+    // A generated subject, alone or followed by "." and anything: no queue…
+    for (const subject of MESSAGE_QUEUE_NATS_GENERATED_SUBJECTS) {
+      for (const spelling of natsSpellings()) {
+        for (const destination of [
+          subject,
+          subject.toUpperCase(),
+          `${subject}.abc`,
+          `${subject.toUpperCase()}.ABC.1`,
+        ]) {
+          expect({
+            destination,
+            resolved: resolveMessagingSpan({
+              getAttribute: getterOf({
+                "messaging.system": spelling,
+                "messaging.destination.name": destination,
+              }),
+              kind: SpanKind.Consumer,
+            }),
+          }).toEqual({ destination, resolved: null });
+        }
+      }
+      // …but a subject that merely starts like one is a queue.
+      expect(
+        identifierOf(
+          resolveMessagingSpan({
+            getAttribute: getterOf({
+              "messaging.system": "nats",
+              "messaging.destination.name": `${subject}x.orders`,
+            }),
+            kind: SpanKind.Producer,
+          }),
+        ),
+      ).toBe(`nats||${subject}x.orders`);
+    }
+
+    // A default exchange's routing key IS the queue.
+    for (const exchange of MESSAGE_QUEUE_RABBITMQ_DEFAULT_EXCHANGES) {
+      expect(
+        resolveMessagingSpan({
+          getAttribute: getterOf({
+            "messaging.system": "rabbitmq",
+            "messaging.destination.name": exchange.toUpperCase(),
+            "messaging.rabbitmq.destination.routing_key": "invoices",
+          }),
+          kind: SpanKind.Producer,
+        })?.destination,
+      ).toBe("invoices");
+    }
+  });
+
+  test("whatever it leaves out names no queue, and whatever it folds resolves as stored: every corpus fixture", () => {
+    let dropped: number = 0;
+    let shadowed: number = 0;
+    let unrouted: number = 0;
+    for (const fixture of SPAN_FIXTURES) {
+      expectFoldKeepsTheAnswer(fixture.name, fixture.kind, fixture.attributes);
+
+      const span: StoredSpan = storedSpanOf(fixture.kind, fixture.attributes);
+      const values: Record<string, string> | null = foldStoredSpan(span);
+      if (!values) {
+        dropped++;
+        continue;
+      }
+      if (
+        MESSAGING_DESTINATION_ATTRIBUTES.some((key: string): boolean => {
+          return values[key] !== span.attributes[key];
+        })
+      ) {
+        shadowed++;
+      }
+      if (
+        RABBITMQ_ROUTING_KEY_ATTRIBUTES.some((key: string): boolean => {
+          return values[key] !== span.attributes[key];
+        })
+      ) {
+        unrouted++;
+      }
+
+      // …and through the discovery path, to the queue ingest keyed it on.
+      const atIngest: ResolvedMessagingDestination | null =
+        resolveMessagingSpan({
+          getAttribute: getterOf(fixture.attributes),
+          kind: fixture.kind,
+        });
+      expect({
+        fixture: fixture.name,
+        queues: identifiers(
+          resolveMessagingSpanDiscoveryRows([
+            foldedSpanRow(fixture.kind, values),
+          ]),
+        ),
+      }).toEqual({
+        fixture: fixture.name,
+        queues: identifierOf(atIngest) ? [identifierOf(atIngest)] : [],
+      });
+    }
+    // The corpus exercises every rule: the checks above are not vacuous.
+    expect(dropped).toBeGreaterThanOrEqual(3);
+    expect(shadowed).toBeGreaterThanOrEqual(2);
+    expect(unrouted).toBeGreaterThanOrEqual(2);
+  });
+
+  test("…and every variant of the corpus that tests a rule's edges", () => {
+    let dropped: number = 0;
+    for (const fixture of SPAN_FIXTURES) {
+      for (let index: number = 0; index < FOLD_VARIANTS.length; index++) {
+        const attributes: FixtureAttributes = {
+          ...fixture.attributes,
+          ...FOLD_VARIANTS[index],
+        };
+        expectFoldKeepsTheAnswer(
+          `${fixture.name} + variant ${index}`,
+          fixture.kind,
+          attributes,
+        );
+        if (foldOutcome("", fixture.kind, attributes).dropped) {
+          dropped++;
+        }
+      }
+    }
+    // Three flag variants alone leave out every fixture's span.
+    expect(dropped).toBeGreaterThanOrEqual(SPAN_FIXTURES.length * 3);
+
+    // The variants alone, on RabbitMQ's exchange, in every kind.
+    for (const kind of [
+      SpanKind.Producer,
+      SpanKind.Consumer,
+      SpanKind.Client,
+      SpanKind.Internal,
+      null,
+    ]) {
+      FOLD_VARIANTS.forEach((variant: FixtureAttributes, index: number) => {
+        expectFoldKeepsTheAnswer(`variant ${index} (${kind})`, kind, {
+          ...RABBITMQ_ORDERS_EXCHANGE,
+          ...variant,
+        });
+      });
+    }
+  });
+
+  test("the shapes that vary per message fold into one group each, or none", () => {
+    // What distinct values of each shape become: the set of folded rows.
+    const groupsOf: (
+      kind: string,
+      spans: Array<FixtureAttributes>,
+    ) => Set<string | null> = (
+      kind: string,
+      spans: Array<FixtureAttributes>,
+    ): Set<string | null> => {
+      const groups: Set<string | null> = new Set<string | null>();
+      for (const attributes of spans) {
+        expectFoldKeepsTheAnswer(JSON.stringify(attributes), kind, attributes);
+        const folded: Record<string, string> | null = foldStoredSpan(
+          storedSpanOf(kind, attributes),
+        );
+        groups.add(folded ? JSON.stringify(folded) : null);
+      }
+      return groups;
+    };
+    const perMessage: (
+      shape: (message: number) => FixtureAttributes,
+    ) => Array<FixtureAttributes> = (
+      shape: (message: number) => FixtureAttributes,
+    ): Array<FixtureAttributes> => {
+      const spans: Array<FixtureAttributes> = [];
+      for (let message: number = 0; message < 300; message++) {
+        spans.push(shape(message));
+      }
+      return spans;
+    };
+
+    // JetStream acknowledgements, as the Java agent names them by default…
+    expect(
+      groupsOf(
+        SpanKind.Client,
+        perMessage((message: number): FixtureAttributes => {
+          return {
+            "messaging.system": "nats",
+            "messaging.destination.name": `$JS.ACK.ORDERS.billing.1.${message}.${message}.1727698123456789012.0`,
+            "messaging.operation": "settle",
+          };
+        }),
+      ),
+    ).toEqual(new Set<string | null>([null]));
+    // …and with boundJetStreamAckDestination on.
+    expect(
+      groupsOf(
+        SpanKind.Client,
+        perMessage((message: number): FixtureAttributes => {
+          return {
+            "messaging.system": "nats",
+            "messaging.destination.template": "$JS.ACK",
+            "messaging.destination.name": `$JS.ACK.ORDERS.billing.1.${message}.${message}.1727698123456789012.0`,
+          };
+        }),
+      ),
+    ).toEqual(new Set<string | null>([null]));
+    // A reply inbox in the stable-semconv mode.
+    expect(
+      groupsOf(
+        SpanKind.Producer,
+        perMessage((message: number): FixtureAttributes => {
+          return {
+            "messaging.system": "nats",
+            "messaging.destination.template": "_INBOX.",
+            "messaging.destination.name": `_INBOX.k3qTbUQ4AkVZe9L1u8A${message}`,
+            "messaging.destination.temporary": true,
+            "messaging.operation.type": "send",
+          };
+        }),
+      ),
+    ).toEqual(new Set<string | null>([null]));
+
+    // A topic exchange's publishes, the order id in the routing key.
+    const routed: Set<string | null> = groupsOf(
+      SpanKind.Producer,
+      perMessage((message: number): FixtureAttributes => {
+        return {
+          ...RABBITMQ_ORDERS_EXCHANGE,
+          "messaging.destination.name": "events",
+          "messaging.rabbitmq.destination.routing_key": `order.${message}.created`,
+        };
+      }),
+    );
+    expect(routed.size).toBe(1);
+    expect(routed.has(null)).toBe(false);
+
+    // Names beside their template.
+    const templated: Set<string | null> = groupsOf(
+      SpanKind.Producer,
+      perMessage((message: number): FixtureAttributes => {
+        return {
+          "messaging.system": "nats",
+          "messaging.destination.template": "orders.{id}",
+          "messaging.destination.name": `orders.${message}`,
+        };
+      }),
+    );
+    expect(templated.size).toBe(1);
+    expect(templated.has(null)).toBe(false);
+
+    // A queue per request the resolver templates: no rule folds it.
+    expect(
+      groupsOf(
+        SpanKind.Producer,
+        perMessage((message: number): FixtureAttributes => {
+          return kafkaReplyTopic(message);
+        }),
+      ).size,
+    ).toBe(300);
+  });
+});
+
+function kafkaReplyTopic(message: number): FixtureAttributes {
+  const suffix: string = String(message).padStart(12, "0");
+  return {
+    "messaging.system": "kafka",
+    "messaging.destination.name": `reply-7f1c2a9e-4b1d-4c3e-9f1a-${suffix}`,
+  };
+}
 
 describe("the Azure provider values the span query admits", () => {
   // ClickHouse's multiSearchAnyCaseInsensitive: ASCII case folding, substring.
@@ -816,8 +1456,25 @@ describe("buildMessagingMetricDiscoverySql", () => {
   });
 
   test("is bounded and escaped, and never mentions another query's routing markers", () => {
-    expect(sql).toContain("ORDER BY pointCount DESC LIMIT 321 ");
-    expect(sql.trim().endsWith(QUERY_SETTINGS)).toBe(true);
+    // The row cap is shared out by metric: busiest and rotating rows alternate.
+    expect(sql).toContain(
+      `, a59, a60 ORDER BY pointCount DESC, rotation LIMIT ${321 * MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW} ) )`,
+    );
+    expect(sql).toContain(
+      "row_number() OVER (PARTITION BY name ORDER BY pointCount DESC, rotation) AS busiestRank, row_number() OVER (PARTITION BY name ORDER BY rotation) AS rotationRank",
+    );
+    expect(sql).toContain(
+      "ORDER BY least(2 * busiestRank - 1, 2 * rotationRank), pointCount DESC, rotation LIMIT 321 SETTINGS",
+    );
+    expect(sql).toContain(
+      "AS lastSeenUnixMs, cityHash64(toUnixTimestamp64Milli(toDateTime64('2026-09-24 09:45:00.000000000', 9)), name, a0, a1,",
+    );
+    expect(sql).toMatch(
+      /^ \/\* message-queue-metric-discovery \*\/ SELECT name, a0, a1, [a0-9, ]+a60, pointCount, lastSeenUnixMs FROM \(/,
+    );
+    expect(
+      sql.trim().endsWith(` ${MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS}`),
+    ).toBe(true);
     expect(
       collapse(buildMessagingMetricDiscoverySql({ ...WINDOW, maxRows: -1 })),
     ).toContain("LIMIT 1 ");
@@ -852,11 +1509,138 @@ describe("buildMessagingMetricProjectsSql", () => {
       `AND time >= ${WINDOW.startSql} - INTERVAL 45 MINUTE AND time < ${WINDOW.endSql} AND (time >= ${WINDOW.startSql} OR name IN (`,
     );
     expect(sql).toContain("LIMIT 1000 ");
-    expect(sql.trim().endsWith(QUERY_SETTINGS)).toBe(true);
+    expect(
+      sql.trim().endsWith(` ${MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS}`),
+    ).toBe(true);
     // A project scan reads no attribute at all.
     expect(sql).not.toContain("attributes[");
     expect(sql).not.toContain(MESSAGE_QUEUE_METRIC_SQL_MARKER + " ");
   });
+});
+
+/*
+ * ---- The queue queries' settings ---------------------------------------------
+ *
+ * The cron's ClickHouse client gives up on a query that has sent it nothing
+ * for its request_timeout, and a grouped query sends nothing until it is
+ * done. So every queue query ends on the server well before then, with
+ * ClickHouse's own timeout error: QUERY_SETTINGS with a time limit of its
+ * own and 'throw' (a 'break' returns no rows on ClickHouse 26.7, see the
+ * real-ClickHouse suite), no setting named twice, and no thread or block
+ * pin slowing the scan down.
+ */
+describe("the queue queries' settings", () => {
+  const QUERIES: Array<[string, string]> = [
+    ["span", buildMessagingSpanDiscoverySql(WINDOW)],
+    ["metric", buildMessagingMetricDiscoverySql(WINDOW)],
+    [
+      "metric project",
+      buildMessagingMetricProjectsSql({
+        startSql: WINDOW.startSql,
+        endSql: WINDOW.endSql,
+        maxProjects: 1000,
+      }),
+    ],
+  ];
+
+  /*
+   * How long after its time limit a query's error may take to reach the
+   * client: within 50 ms in the measurements MessageQueueDiscovery cites,
+   * mid-merge of a grouping spilled to disk too; ten seconds leaves room for
+   * a loaded server.
+   */
+  const TAIL_AFTER_LIMIT_MS: number = 10000;
+
+  // The SETTINGS clause a query ends with.
+  function settingsClauseOf(sql: string): string {
+    const collapsed: string = collapse(sql).trim();
+    const start: number = collapsed.lastIndexOf(" SETTINGS ");
+    expect(start).toBeGreaterThan(0);
+    return collapsed.substring(start + 1);
+  }
+
+  // A SETTINGS clause's settings, in order.
+  function settingsOf(clause: string): Array<[string, string]> {
+    const body: string = collapse(clause).trim();
+    expect(body.startsWith("SETTINGS ")).toBe(true);
+    return body
+      .substring("SETTINGS ".length)
+      .split(", ")
+      .map((setting: string): [string, string] => {
+        const match: RegExpMatchArray | null =
+          setting.match(/^([a-z_]+) = (\S+)$/);
+        expect({ setting, match: Boolean(match) }).toEqual({
+          setting,
+          match: true,
+        });
+        return [match![1]!, match![2]!];
+      });
+  }
+
+  test("are QUERY_SETTINGS — its memory limit and its spills to disk — with a time limit of their own, at which a query fails with ClickHouse's timeout error", () => {
+    expect(settingsOf(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS)).toEqual(
+      settingsOf(QUERY_SETTINGS).map(
+        (setting: [string, string]): [string, string] => {
+          if (setting[0] === "max_execution_time") {
+            return [
+              setting[0],
+              String(MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS),
+            ];
+          }
+          if (setting[0] === "timeout_overflow_mode") {
+            return [setting[0], "'throw'"];
+          }
+          return setting;
+        },
+      ),
+    );
+    // Spelled out, so that a change to either shows here.
+    expect(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS).toBe(
+      "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'throw', max_memory_usage = 2000000000, max_bytes_before_external_group_by = 1000000000, max_bytes_before_external_sort = 1000000000",
+    );
+  });
+
+  test.each(QUERIES)(
+    "the %s query ends with them, names each setting once and pins no thread or block size",
+    (_name: string, sql: string) => {
+      const clause: string = settingsClauseOf(sql);
+      expect(clause).toBe(MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS);
+      const names: Array<string> = settingsOf(clause).map(
+        (setting: [string, string]): string => {
+          return setting[0];
+        },
+      );
+      expect(new Set<string>(names).size).toBe(names.length);
+      for (const pin of [
+        "max_threads",
+        "max_block_size",
+        "preferred_block_size_bytes",
+      ]) {
+        expect(sql).not.toContain(pin);
+      }
+    },
+  );
+
+  test.each(QUERIES)(
+    "the %s query ends while the client still waits for it: its time limit well under the client's request_timeout",
+    (_name: string, sql: string) => {
+      const requestTimeoutMs: number = Number(
+        dataSourceOptions.request_timeout,
+      );
+      expect(requestTimeoutMs).toBeGreaterThan(0);
+
+      const settings: Map<string, string> = new Map<string, string>(
+        settingsOf(settingsClauseOf(sql)),
+      );
+      const limitMs: number = Number(settings.get("max_execution_time")) * 1000;
+      expect(limitMs).toBeGreaterThan(0);
+      expect(limitMs + TAIL_AFTER_LIMIT_MS).toBeLessThanOrEqual(
+        requestTimeoutMs,
+      );
+      // …and there it fails, with ClickHouse's own timeout error.
+      expect(settings.get("timeout_overflow_mode")).toBe("'throw'");
+    },
+  );
 });
 
 describe("a stored row resolves to exactly the queue ingest keyed its telemetry on", () => {

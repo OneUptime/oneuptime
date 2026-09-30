@@ -1,4 +1,4 @@
-import { AddMessageQueueTables1796500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796500000000-AddMessageQueueTables";
+import { AddMessageQueueTables1796700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796700000000-AddMessageQueueTables";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import MessageQueue from "../../../../Models/DatabaseModels/MessageQueue";
 import MessageQueueLabelRule from "../../../../Models/DatabaseModels/MessageQueueLabelRule";
@@ -32,7 +32,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
 
 const namingStrategy: DefaultNamingStrategy = new DefaultNamingStrategy();
 
-const OWN_TIMESTAMP: number = 1796500000000;
+const OWN_TIMESTAMP: number = 1796700000000;
 
 type RecordQueriesFunction = (
   direction: "up" | "down",
@@ -49,7 +49,7 @@ const recordQueries: RecordQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new AddMessageQueueTables1796500000000()[direction](queryRunner);
+  await new AddMessageQueueTables1796700000000()[direction](queryRunner);
 
   return statements;
 };
@@ -85,7 +85,7 @@ function columnsAddedByLaterMigrations(tableName: string): Set<string> {
     __dirname,
     "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
   );
-  const ownFileName: string = "1796500000000-AddMessageQueueTables.ts";
+  const ownFileName: string = "1796700000000-AddMessageQueueTables.ts";
   const added: Set<string> = new Set<string>();
 
   for (const fileName of fs.readdirSync(migrationsDirectory)) {
@@ -235,16 +235,16 @@ const CHILD_TABLES: Array<string> = [
   "MessageQueueOwnerUser",
 ];
 
-describe("AddMessageQueueTables1796500000000", () => {
+describe("AddMessageQueueTables1796700000000", () => {
   test("is registered under the name its class carries", () => {
-    const migration: AddMessageQueueTables1796500000000 =
-      new AddMessageQueueTables1796500000000();
+    const migration: AddMessageQueueTables1796700000000 =
+      new AddMessageQueueTables1796700000000();
 
-    expect(migration.name).toBe("AddMessageQueueTables1796500000000");
-    expect(SchemaMigrations).toContain(AddMessageQueueTables1796500000000);
+    expect(migration.name).toBe("AddMessageQueueTables1796700000000");
+    expect(SchemaMigrations).toContain(AddMessageQueueTables1796700000000);
     expect(
       SchemaMigrations.filter((registered: unknown): boolean => {
-        return registered === AddMessageQueueTables1796500000000;
+        return registered === AddMessageQueueTables1796700000000;
       }),
     ).toHaveLength(1);
   });
@@ -270,7 +270,7 @@ describe("AddMessageQueueTables1796500000000", () => {
     });
 
     const ownIndex: number = names.indexOf(
-      "AddMessageQueueTables1796500000000",
+      "AddMessageQueueTables1796700000000",
     );
 
     // indexOf -1 would make the slice below empty and this test vacuous.

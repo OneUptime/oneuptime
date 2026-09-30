@@ -862,6 +862,39 @@ const RABBITMQ_GENERATED_PREFIXES: ReadonlyArray<string> = [
 const RABBITMQ_ANONYMOUS_QUEUE_PATTERN: RegExp =
   /\.anonymous\.[A-Za-z0-9_-]{22}$/;
 
+/*
+ * MassTransit's per-process endpoints, on each broker it runs on (RabbitMQ,
+ * ActiveMQ, Azure Service Bus, Amazon SQS). Every process names its own,
+ * deleted once the process is gone, so each start of a process would be a
+ * new queue; MassTransit's own diagnostics fold them into "bus",
+ * "endpoint", "signalr" and "instance" (its send spans name those, which
+ * are left alone: a real queue may be called that). Two shapes, where {id}
+ * is a NewId in lowercase z-base-32 (26 characters):
+ *   - a temporary endpoint (DefaultEndpointNameFormatter
+ *     .GetTemporaryQueueName), `{machine}_{process}_{tag}_{id}`: the machine
+ *     and process names cut down to ASCII letters and digits, and the tag
+ *     "bus" (the bus endpoint, where a request client's responses arrive),
+ *     "endpoint", "response", "signalr_{hub}" or the application's own;
+ *   - a service's instance endpoint (InstanceEndpointDefinition),
+ *     `Instance_{id}`, or `instance_{id}` / `instance-{id}` under the snake-
+ *     and kebab-case endpoint name formatters.
+ * Matched on the lowercased name. MassTransit caps these names at 72
+ * characters; a name longer than a queue name may be is not tested, which
+ * bounds the pattern's cost on any attribute value.
+ */
+const MASSTRANSIT_TEMPORARY_ENDPOINT_PATTERN: RegExp =
+  /^[a-z0-9]+_[a-z0-9]+_.+_[ybndrfg8ejkmcpqxot1uwisza345h769]{26}$/;
+const MASSTRANSIT_INSTANCE_ENDPOINT_PATTERN: RegExp =
+  /^instance[_-][ybndrfg8ejkmcpqxot1uwisza345h769]{26}$/;
+
+function isMassTransitProcessEndpoint(lower: string): boolean {
+  return (
+    lower.length <= MESSAGE_QUEUE_DESTINATION_MAX_LENGTH &&
+    (MASSTRANSIT_TEMPORARY_ENDPOINT_PATTERN.test(lower) ||
+      MASSTRANSIT_INSTANCE_ENDPOINT_PATTERN.test(lower))
+  );
+}
+
 // TIBCO's temporary destinations; ActiveMQ's advisory topics.
 const JMS_GENERATED_PREFIXES: ReadonlyArray<string> = [
   "$tmp$",
@@ -909,7 +942,8 @@ function isNameOrChild(value: string, names: ReadonlyArray<string>): boolean {
  * temporary, generated or a placeholder rather than a queue: the
  * placeholders above, a value a scrubber replaced whole, a bare UUID, a JMS
  * temporary destination, and per system — RabbitMQ's generated and
- * reply-to queues, JMS / ActiveMQ's `$TMP$` and advisory topics, NATS
+ * reply-to queues, JMS / ActiveMQ's `$TMP$` and advisory topics,
+ * MassTransit's per-process endpoints on the brokers it runs on, NATS
  * inboxes and JetStream ack subjects, Pulsar's system topics, SNS phone
  * numbers and their placeholders. Case-insensitive; true for a blank or
  * non-string name too (never a queue).
@@ -940,11 +974,18 @@ export function isTemporaryMessagingDestination(
     case "rabbitmq":
       return (
         startsWithAny(lower, RABBITMQ_GENERATED_PREFIXES) ||
-        RABBITMQ_ANONYMOUS_QUEUE_PATTERN.test(value)
+        RABBITMQ_ANONYMOUS_QUEUE_PATTERN.test(value) ||
+        isMassTransitProcessEndpoint(lower)
       );
     case "jms":
     case "activemq":
-      return startsWithAny(lower, JMS_GENERATED_PREFIXES);
+      return (
+        startsWithAny(lower, JMS_GENERATED_PREFIXES) ||
+        isMassTransitProcessEndpoint(lower)
+      );
+    case "servicebus":
+    case "aws_sqs":
+      return isMassTransitProcessEndpoint(lower);
     case "nats":
       return isNameOrChild(lower, NATS_GENERATED_NAMES);
     case "pulsar":
@@ -1242,6 +1283,31 @@ function rabbitMqCommaName(value: string, routingKey: string | null): string {
 }
 
 /*
+ * Whether a three-part RabbitMQ name, `middle` its second part, is semconv
+ * 1.30's consumer name `{exchange}:{routing key}:{queue}`, so its third part
+ * is the queue. Only a consumer's or a settlement's can be. With the
+ * routing-key attribute, the routing key must be the middle part. Without
+ * it, the name is also an exchange named with a colon, its empty routing
+ * key left out (`Namespace:Type:{queue}`), when it is written to the joining
+ * conventions (hasJoinedNaming) — a datapoint's as much as a span's. One
+ * that is not is one name, as the same consumer's span is read: the older
+ * conventions name the exchange, MassTransit's Fault<T> exchange
+ * (`MassTransit:Fault--Namespace:Type--`) among them.
+ */
+function isJoinedRabbitMqConsumerName(
+  middle: string,
+  naming: RabbitMqNaming,
+): boolean {
+  if (!naming.consumerSide) {
+    return false;
+  }
+  if (naming.routingKey !== null) {
+    return naming.routingKey === middle;
+  }
+  return naming.hasJoinedNaming();
+}
+
+/*
  * RabbitMQ destinations, where two naming conventions meet:
  *   - most instrumentations put ONE name in the key — the exchange (the
  *     Java agent's default mode, amqplib, pika, RabbitMQ.Client for .NET,
@@ -1260,20 +1326,31 @@ function rabbitMqCommaName(value: string, routingKey: string | null): string {
  * A consumer resolves to its queue, which is what the broker's own metrics
  * are keyed by; a producer to its exchange (a publisher names no queue).
  *
- * The routing-key attribute tells the conventions apart: semconv requires
- * it whenever the key is non-empty, so a joined name always comes with it,
- * in the place the joined form puts it —
- *   - three parts → the queue, unless the routing key is not the middle;
- *   - two parts with the routing key → on a consumer the second part (the
- *     queue after the exchange, or after the routing key of a
- *     default-exchange delivery); on a producer the exchange when the
- *     routing key is the second part; otherwise the name is one name.
- * Without the attribute:
- *   - a producer SPAN's name is one exchange name, colon and all;
- *   - a consumer's is `{exchange}:{queue}` only when it is written to the
- *     joining conventions (see RabbitMqNaming), else one name;
- *   - a DATAPOINT never carries the key, so a producer's joined name splits
- *     to its exchange on the same condition.
+ * Three parts are a joined name only on the consuming side: semconv joins
+ * three nowhere else (a producer's is `{exchange}:{routing key}`). On a
+ * producer, or with no direction, three parts are one exchange name —
+ * MassTransit names a generic message type's exchange, a Fault<T>'s among
+ * them, with two colons (`MassTransit:Fault--Sample.Contracts:SubmitOrder--`)
+ * and publishes to it with an empty routing key. See
+ * isJoinedRabbitMqConsumerName for when a consumer's three parts name its
+ * queue. An empty third part leaves two parts.
+ *
+ * For two parts, the routing-key attribute tells the conventions apart:
+ * semconv requires it whenever the key is non-empty, so a joined name with a
+ * routing key in it comes with the attribute, in the place the joined form
+ * puts it — on a consumer the second part is the queue (after the exchange,
+ * or after the routing key of a default-exchange delivery); on a producer
+ * the first is the exchange when the routing key is the second; otherwise
+ * the name is one name. Without the attribute:
+ *   - a producer SPAN's two parts are one exchange name, colon and all;
+ *   - a consumer's two parts are `{exchange}:{queue}` only when it is
+ *     written to the joining conventions (see RabbitMqNaming), else one
+ *     name;
+ *   - a DATAPOINT never carries the key, so a producer's two joined parts
+ *     split to their exchange on the same condition. Without the key,
+ *     `{exchange}:{routing key}` — how the Java agent names every publish
+ *     that has one — and an exchange named with a colon, published to with
+ *     an empty routing key, look alike; a datapoint takes the first.
  * A default-exchange marker as the first part (`:orders`,
  * `amq.default:orders`) can only be a split name: its second part is the
  * queue. The default exchange alone names the routing key, else nothing.
@@ -1292,11 +1369,8 @@ function rabbitMqQueue(value: string, naming: RabbitMqNaming): string {
     const exchange: string = parts[0] || "";
     const key: string = parts[1] || "";
     const queue: string = parts[2] || "";
-    if (routingKey !== null && routingKey !== key) {
-      return value;
-    }
     if (queue) {
-      return queue;
+      return isJoinedRabbitMqConsumerName(key, naming) ? queue : value;
     }
     // `exchange:key:` — no queue part: read what is left as two parts.
     parts = [exchange, key];
@@ -1918,17 +1992,48 @@ function finishDestination(
     : null;
 }
 
+// What is being resolved: a span, or a metric datapoint.
+type MessagingSignal = "span" | "datapoint";
+
+/*
+ * The 1.26+ operation keys that show a RabbitMQ span or datapoint is written
+ * to the conventions that join its names, as each signal carries them. A
+ * span, `messaging.operation.type`, which those conventions set on the span
+ * of every messaging operation. A datapoint, the operation name too —
+ * semconv puts the type on
+ * messaging.client.operation.duration alone and the name on all four
+ * messaging client metrics, and so does the Java agent
+ * (MessagingMetricsAdvice), whose sent-messages, consumed-messages and
+ * process-duration datapoints show their conventions by the name alone.
+ * The agent is the one instrumentation found recording RabbitMQ client
+ * metrics (rabbitmq-2.7 and spring-rabbit-1.0, from 2.31.0), and only in
+ * its opt-in mode, which joins names — so its span and every metric of the
+ * same operation key one queue.
+ */
+const JOINED_RABBITMQ_NAMING_EVIDENCE: Readonly<
+  Record<MessagingSignal, ReadonlyArray<string>>
+> = {
+  span: [OPERATION_TYPE_ATTRIBUTE],
+  datapoint: [OPERATION_TYPE_ATTRIBUTE, OPERATION_NAME_ATTRIBUTE],
+};
+
 /*
  * Whether a RabbitMQ span or datapoint is written to the conventions that
  * join exchange, routing key and queue with ":" (semconv 1.30): it carries
- * the 1.26+ `messaging.operation.type`, and it is not RabbitMQ.Client for
- * .NET's, which writes that key but names the exchange alone (see
- * MESSAGING_PROTOCOL_NAME_ATTRIBUTE). The older conventions — the Java
- * agent's default mode, amqplib, pika, MassTransit's own spans — name one
- * thing and carry no operation type.
+ * a 1.26+ operation key (JOINED_RABBITMQ_NAMING_EVIDENCE), and it is not
+ * RabbitMQ.Client for .NET's, which writes those keys but names the
+ * exchange alone (see MESSAGING_PROTOCOL_NAME_ATTRIBUTE). The older
+ * conventions — the Java agent's default mode, amqplib, pika, MassTransit's
+ * own spans — name one thing and carry neither key.
  */
-function hasJoinedRabbitMqNaming(getAttribute: AttributeGetter): boolean {
-  if (readText(getAttribute, OPERATION_TYPE_ATTRIBUTE) === null) {
+function hasJoinedRabbitMqNaming(
+  getAttribute: AttributeGetter,
+  signal: MessagingSignal,
+): boolean {
+  if (
+    readFirstText(getAttribute, JOINED_RABBITMQ_NAMING_EVIDENCE[signal]) ===
+    null
+  ) {
     return false;
   }
   const protocol: string | null = readText(
@@ -1950,7 +2055,7 @@ interface AttributeResolution {
    * A span, which carries RabbitMQ's routing key whenever there is one, or
    * a datapoint, which never does.
    */
-  source: "span" | "datapoint";
+  source: MessagingSignal;
   /*
    * The system a metric's name implies (MESSAGING_SDK_METRIC_SYSTEMS), used
    * only when the datapoint carries no `messaging.system` at all.
@@ -2002,7 +2107,7 @@ function resolveFromAttributes(
             consumerSide: direction === "consume" || direction === "settle",
             routingKeyReported: resolution.source === "span",
             hasJoinedNaming: (): boolean => {
-              return hasJoinedRabbitMqNaming(getAttribute);
+              return hasJoinedRabbitMqNaming(getAttribute, resolution.source);
             },
           }
         : null,
@@ -2167,7 +2272,9 @@ function resolveCatalogDatapoint(
  *   state. A messaging SDK metric that names no system (the Azure SDK for
  *   Java's `messaging.servicebus.*`) gets the one its name implies
  *   (MESSAGING_SDK_METRIC_SYSTEMS). A datapoint never carries RabbitMQ's
- *   routing key, which decides how its joined names split (rabbitMqQueue).
+ *   routing key, which decides how its joined names split (rabbitMqQueue);
+ *   its operation keys show whether they are joined at all
+ *   (JOINED_RABBITMQ_NAMING_EVIDENCE).
  */
 export function resolveMessagingMetricDatapoint(input: {
   metricName: string;

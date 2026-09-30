@@ -139,9 +139,12 @@ const MAX_PROJECTS_PER_RUN: number = 1000;
 export const MAX_DATABASE_ENDPOINT_ROWS: number = 500;
 /*
  * Grouped messaging span rows and broker / client metric rows read per
- * project per run, busiest first. A queue is several rows of each (one per
- * span kind, consumer group, semconv generation, partition name; one per
- * metric name), so these sit above the database cap.
+ * project per run. A queue is several rows of each (one per span kind,
+ * consumer group, semconv generation, partition name; one per metric name),
+ * so these sit above the database cap. Over a cap, the query keeps every
+ * broker's (spans) or metric's (datapoints) busiest rows and a sample of the
+ * rest that changes every run, so no queue is left out run after run (see
+ * MessageQueueDiscovery's "Which rows the cap keeps").
  */
 export const MAX_MESSAGE_QUEUE_SPAN_ROWS: number = 2000;
 export const MAX_MESSAGE_QUEUE_METRIC_ROWS: number = 2000;
@@ -594,12 +597,19 @@ export async function discoverDatabaseServersForProject(args: {
 /*
  * One queue query's rows, isolated: a failing query costs only its own
  * evidence (the other query's queues are still matched and sighted), and a
- * query at its row cap says so.
+ * query at its row cap says so — and what the cap kept: each share's
+ * busiest groups and a sample of the rest that changes every run, so the
+ * groups left out this run are read on later ones. A query that runs out
+ * of time fails on the server, with ClickHouse's own timeout error, before
+ * this client would give up on it (MessageQueueDiscovery's
+ * MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS).
  */
 async function readMessageQueueRows<T>(data: {
   projectId: string;
   // What the rows are, for the log lines.
   what: string;
+  // What the query shares its cap out by, for the log line.
+  share: string;
   maxRows: number;
   read: () => Promise<Array<T>>;
 }): Promise<Array<T>> {
@@ -608,7 +618,7 @@ async function readMessageQueueRows<T>(data: {
 
     if (rows.length >= data.maxRows) {
       logger.warn(
-        `ComputeServiceDependencies: project ${data.projectId} had at least ${data.maxRows} ${data.what} groups in the window; only the first ${data.maxRows} (the busiest) were matched to queues this run`,
+        `ComputeServiceDependencies: project ${data.projectId} had at least ${data.maxRows} ${data.what} groups in the window; ${data.maxRows} were matched to queues this run (each ${data.share}'s busiest and a sample of the rest that changes every run), the others are read on later runs`,
       );
     }
 
@@ -716,6 +726,7 @@ export async function discoverMessageQueuesForProject(args: {
       await readMessageQueueRows<MessagingSpanDiscoveryRow>({
         projectId: args.projectId,
         what: "messaging span",
+        share: "messaging system",
         maxRows: MAX_MESSAGE_QUEUE_SPAN_ROWS,
         read: () => {
           return readRows<MessagingSpanDiscoveryRow>(
@@ -735,6 +746,7 @@ export async function discoverMessageQueuesForProject(args: {
       await readMessageQueueRows<MessagingMetricDiscoveryRow>({
         projectId: args.projectId,
         what: "broker and messaging client metric",
+        share: "metric",
         maxRows: MAX_MESSAGE_QUEUE_METRIC_ROWS,
         read: () => {
           return readRows<MessagingMetricDiscoveryRow>(

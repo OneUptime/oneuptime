@@ -16,7 +16,12 @@ import {
  * code that computes the number it explains, read from the source — so a
  * change to a query that leaves its words behind fails here:
  *
- *   - Published / Consumed count PRODUCER / CONSUMER spans, and say so;
+ *   - Published / Consumed count producer / consumer spans, and say what
+ *     else they count or leave out: a publisher's client sends, a receive
+ *     that returned nothing, SQS's receive calls;
+ *   - a Consumers row counts what Consumed counts for that service (an SQS
+ *     receive that returned messages once, as its batch), and its time
+ *     leaves those receives out — and the card's text says both;
  *   - Errors counts failed spans of any kind over all of the queue's spans;
  *   - the p95 tile is ONE percentile over the window (AggregationInterval
  *     .Total), the chart one per interval — and each says which;
@@ -129,6 +134,67 @@ describe("the queue Overview's descriptions", () => {
     expect(QUERIES).toContain(
       "MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer",
     );
+
+    // A publisher that records its sends only as client spans is counted.
+    expect(TEXT.published).toContain("records its sends only as client spans");
+    expect(QUERIES).toContain(
+      "published: sumOf(tiles.publishedSeries) + (producers?.clientOnlyPublished || 0),",
+    );
+    // A receive that returned nothing is not a message taken.
+    expect(TEXT.consumed).toContain(
+      "Receives that returned nothing are left out",
+    );
+    expect(QUERIES).toContain(
+      '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
+    );
+    // SQS's receive calls: a batch at most, never a processing time.
+    expect(TEXT.consumed).toContain("an SQS receive call counts only when");
+    expect(TEXT.p95Processing).toContain(
+      "Receives that returned nothing and SQS receive calls are left out",
+    );
+  });
+
+  /*
+   * A consumer's row counts what Consumed counts for it
+   * (combineMessageQueueConsumerServices): its consumer spans less the
+   * receives that returned nothing, plus — on SQS — each receive that
+   * reported returning messages, once, as one batch. Its failures and time
+   * are its consumer spans' alone.
+   */
+  test("the Consumers card says what a row counts, as the card combines a service's spans", () => {
+    const combine: string = between(
+      QUERIES,
+      "export function combineMessageQueueConsumerServices(",
+      "return sortedServiceRows(",
+    );
+
+    // A receive that returned nothing is in no part of a row, the count too.
+    expect(TEXT.consumers).toContain(
+      "Receives that returned nothing are left out;",
+    );
+    expect(TEXT.consumers).not.toContain("left out of the time");
+    expect(QUERIES).toContain(
+      '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
+    );
+
+    // An SQS receive that returned messages is counted, once per batch...
+    expect(TEXT.consumers).toContain(
+      "an SQS receive that returned messages counts once per batch",
+    );
+    expect(QUERIES).toContain(
+      "[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new GreaterThan<number>(0),",
+    );
+    expect(QUERIES).toContain(
+      "consumers: combineMessageQueueConsumerServices({ consume: consume!, receivedBatches: receivedBatches,",
+    );
+    expect(combine).toContain("const consumed: number = handled + received;");
+    expect(combine).toContain("calls: consumed,");
+
+    // ...and never in the time, which is its consumer spans' alone.
+    expect(TEXT.consumers).toContain("never in the time");
+    expect(combine).toContain(
+      "p95DurationMs: handled > 0 ? finiteOrNull(data.consume.p95Ms.get(id)) : null,",
+    );
   });
 
   test("Errors covers spans of every kind, over all of the queue's spans", () => {
@@ -136,16 +202,15 @@ describe("the queue Overview's descriptions", () => {
     expect(TEXT.errors).toMatch(
       /publishes, receives, message processing and settlements/,
     );
-    // The failed-span query sets no kind.
-    expect(QUERIES.replace(/\s+/g, "")).toContain(
-      "buildMessageQueueSpanQuery(window,{errorsOnly:true},)",
+    // The failed-span query reads every span: the "all" group sets no filter.
+    expect(QUERIES).toContain(
+      'const errorQuery: Record<string, unknown> = queryOf("all", true)!;',
     );
+    expect(QUERIES).toContain("default: return {};");
   });
 
   test("the p95 tile is one percentile over the range, the chart one per interval", () => {
-    expect(TEXT.p95Processing).toContain(
-      "one percentile over every consumer span in the range",
-    );
+    expect(TEXT.p95Processing).toContain("One percentile over the whole range");
     expect(TEXT.p95Processing).not.toContain("averaged");
     expect(TEXT.p95ProcessingChart).toContain("in each interval");
     expect(QUERIES).toContain(
@@ -159,7 +224,10 @@ describe("the queue Overview's descriptions", () => {
       "publishedSeries: getCompleteBucketSeries(publishedSeries, window)",
     );
     expect(QUERIES).toContain(
-      "errorSeries: getCompleteBucketSeries(errorSeries, window)",
+      "consumedSeries: getCompleteBucketSeries(tiles.consumedSeries, window)",
+    );
+    expect(QUERIES).toContain(
+      "errorSeries: getCompleteBucketSeries(tiles.errorSeries, window)",
     );
   });
 

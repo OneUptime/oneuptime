@@ -164,7 +164,7 @@ jest.mock("../../../UI/Components/ModelDelete/ModelDelete", () => {
 });
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceDocumentationCard",
+  "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueGuideCard",
   () => {
     return {
       __esModule: true,

@@ -10,6 +10,12 @@ import MessageQueueService, {
 } from "../../../Server/Services/MessageQueueService";
 import logger from "../../../Server/Utils/Logger";
 import SingleFlight from "../../../Server/Utils/SingleFlight";
+import {
+  DiscoveredMessageQueue,
+  MessagingMetricDiscoveryRow,
+  getMessagingDiscoveryColumn,
+  resolveMessagingMetricDiscoveryRows,
+} from "../../../Server/Utils/Telemetry/MessageQueueDiscovery";
 import ResourceHeartbeat from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
@@ -17,6 +23,7 @@ import {
   buildMessageQueueDisplayName,
   toMessageQueueIdentity,
 } from "../../../Types/MessageQueue/MessageQueueIdentity";
+import { MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES } from "../../../Types/MessageQueue/MessagingTelemetryResolver";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { DataSource } from "typeorm";
@@ -1107,6 +1114,71 @@ describePostgres("Queues SQL against Postgres", () => {
       expect(found).toMatchObject({ created: false });
       expect(found.queue!.id!.toString()).toBe(created.id!.toString());
     });
+
+    /*
+     * The rabbitmq receiver reports a queue under its exact name, and the
+     * discovery cron creates or sights the queue by it. A queue a person
+     * added is that queue - never a second one beside it - even when its
+     * name carries the separators of a span's joined RabbitMQ name, as
+     * Hutch's `namespace:consumer` and EasyNetQ's `Type, Assembly_sub`
+     * queue names do.
+     */
+    test.each([
+      ["myapp:billing:invoice_consumer"],
+      ["MyApp.Messages.OrderCreated, MyApp.Messages_billing"],
+    ])(
+      "a RabbitMQ queue a person adds is the queue its broker's metrics sight: %p",
+      async (queue: string) => {
+        const created: MessageQueue = await MessageQueueService.create({
+          data: manual("rabbitmq", queue),
+          props: personProps([
+            Permission.CreateMessageQueue,
+            Permission.ReadMessageQueue,
+          ]),
+        });
+
+        // A rabbitmq.message.current row as the discovery SQL returns it.
+        const attributes: Record<string, string> = {
+          state: "ready",
+          "resource.rabbitmq.node.name": "rabbit@broker-1",
+          "resource.rabbitmq.queue.name": queue,
+          "resource.rabbitmq.vhost.name": "/",
+        };
+        const row: MessagingMetricDiscoveryRow = {
+          name: "rabbitmq.message.current",
+          pointCount: 1,
+          lastSeenUnixMs: Date.now(),
+        };
+        MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES.forEach(
+          (key: string, index: number): void => {
+            row[getMessagingDiscoveryColumn(index)] = attributes[key] ?? "";
+          },
+        );
+        const discovered: Array<DiscoveredMessageQueue> =
+          resolveMessagingMetricDiscoveryRows([row]);
+        expect(discovered).toHaveLength(1);
+        expect(discovered[0]!.identifier).toBe(
+          `rabbitmq||${queue.toLowerCase()}`,
+        );
+
+        const sighted: MessageQueueFindOrCreateResult =
+          await MessageQueueService.findOrCreateByIdentity({
+            projectId: projectId,
+            identity: discovered[0]!.identity,
+            system: discovered[0]!.system,
+            destination: discovered[0]!.destination,
+            source: "broker-metrics",
+            allowCreate: true,
+          });
+
+        expect(sighted).toMatchObject({ created: false });
+        expect(sighted.queue!.id!.toString()).toBe(created.id!.toString());
+        const live: Array<any> = await liveQueues();
+        expect(live).toHaveLength(1);
+        expect(live[0].destinationName).toBe(queue);
+        expect(live[0].discoverySource).toBe("manual");
+      },
+    );
 
     test("the same queue twice is refused, naming it for a caller who may read it", async () => {
       await insertQueue({

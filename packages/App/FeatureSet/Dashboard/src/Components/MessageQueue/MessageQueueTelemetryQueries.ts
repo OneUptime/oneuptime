@@ -4,7 +4,6 @@ import {
   DatabaseCallingServices,
   DatabaseTimePoint,
   aggregatedResultToTimePoints,
-  combineCallingServiceResults,
   combineGaugeSeries,
   counterResultToRatePerSecond,
   getAttributeSeriesKey,
@@ -23,8 +22,10 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
@@ -32,6 +33,7 @@ import {
   MessageQueueMetricSeriesCombine,
   getMessageQueueMetricsForSystem,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import { getMessagingSystemDescriptor } from "Common/Types/MessageQueue/MessagingSystem";
 import {
   MessageQueueSourceWindowFloor,
   getMessageQueueMetricFilterAttributeKeys,
@@ -39,6 +41,7 @@ import {
   isMessageQueueMetricMonitorable,
 } from "Common/Types/Monitor/MessageQueueAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import AnalyticsModelAPI, {
   ListResult,
@@ -55,11 +58,18 @@ import AnalyticsModelAPI, {
  * and its broker metrics under a different key per broker, which is exactly
  * why ingest stamps one key on all of them.
  *
- * Spans are split by KIND, the direction every instrumentation sets
- * reliably: PRODUCER spans are publishes, CONSUMER spans are deliveries /
- * processing. (fetchSpanMetrics in Components/TelemetryResource counts every
- * span it matches and averages per-interval p95s, so it cannot answer
- * either; it is left as it is for the products that use it.) Errors and the
+ * Spans are told apart by kind AND by the operation they record
+ * (MessageQueueSpanPopulation): PRODUCER spans are publishes, and so are the
+ * CLIENT spans that record a send — the Azure SDKs time their sends there
+ * and make a zero-length PRODUCER span per message, and some AWS SDK
+ * instrumentations record publishes only that way; CONSUMER spans are
+ * deliveries and processing, less the receives that returned nothing and,
+ * on SQS, the receive calls, which time a long poll rather than any work.
+ * Every such filter is one conjunction on top of the key, and every one
+ * reads an attribute the resolver's direction rule reads, or the batch
+ * size. (fetchSpanMetrics in Components/TelemetryResource counts every span
+ * it matches and averages per-interval p95s, so it cannot answer any of
+ * this; it is left as it is for the products that use it.) Errors and the
  * error rate cover the queue's spans of every kind — a failed settlement or
  * a failed pull (CLIENT spans) is a failure on the queue too.
  *
@@ -109,14 +119,224 @@ export interface MessageQueueQueryWindow {
   end: Date;
 }
 
-// A publish, as every messaging instrumentation marks it.
+// A publish, as most messaging instrumentations mark it.
 export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer;
 
 // A delivery / processing of a message.
 export const MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer;
 
+// The kind of a span that calls the broker: a send, a receive, a settlement.
+export const MESSAGE_QUEUE_CLIENT_SPAN_KIND: SpanKind = SpanKind.Client;
+
 // How many services each of the Producers / Consumers cards lists.
 export const MESSAGE_QUEUE_SERVICE_LIMIT: number = 10;
+
+// ---- which spans are which ---------------------------------------------------
+
+/*
+ * The span attributes the Overview reads an operation from: the keys the
+ * resolver's direction rule reads (MESSAGING_DIRECTION_ATTRIBUTES:
+ * `messaging.operation.type` since semconv 1.26, the older
+ * `messaging.operation`, and for SQS / SNS the AWS SDK operation in
+ * `rpc.method`), and the number of messages a batch operation moved.
+ * Values are matched as instrumentations write them: semconv's operation
+ * types in lowercase, the AWS operations in the SDK's own spelling.
+ */
+export const MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE: string =
+  "messaging.operation.type";
+export const MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE: string =
+  "messaging.operation";
+export const MESSAGE_QUEUE_RPC_METHOD_ATTRIBUTE: string = "rpc.method";
+export const MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE: string =
+  "messaging.batch.message_count";
+
+/*
+ * The operations a client span records a publish with: "send" (semconv
+ * 1.28 and later) and "publish" (before, and still the Azure SDKs'
+ * `messaging.operation`). "" stands for the key being absent — ClickHouse
+ * reads a missing map key as "" — so either key may be the one set.
+ */
+export const MESSAGE_QUEUE_SEND_OPERATIONS: ReadonlyArray<string> = [
+  "publish",
+  "send",
+];
+
+/*
+ * A receive: a consumer asking the broker for messages. What that span
+ * measures depends on who records it: SQS's is a ReceiveMessage call.
+ */
+export const MESSAGE_QUEUE_RECEIVE_OPERATION: string = "receive";
+
+/*
+ * The AWS SDK operations that publish, as `rpc.method` spells them: the
+ * Java agent and botocore write the operation, Go's otelaws prefixes it
+ * with the service. The resolver reads them (lowercased) only on SQS and
+ * SNS spans, and so does the Overview.
+ */
+export const MESSAGE_QUEUE_AWS_SEND_RPC_METHODS: ReadonlyArray<string> = [
+  "SendMessage",
+  "SendMessageBatch",
+  "Publish",
+  "PublishBatch",
+  "SQS/SendMessage",
+  "SQS/SendMessageBatch",
+  "SNS/Publish",
+  "SNS/PublishBatch",
+];
+
+// The systems whose spans name a publish only by the AWS SDK operation.
+export const MESSAGE_QUEUE_AWS_RPC_SYSTEMS: ReadonlyArray<string> = [
+  "aws_sqs",
+  "aws.sns",
+];
+
+/*
+ * The systems whose consumer RECEIVE spans always wrap a call that asks the
+ * broker for messages — and so time the wait, not the work. Amazon SQS's
+ * ReceiveMessage long-polls for up to 20 seconds and may return nothing:
+ * boto3sqs and Node's instrumentation-aws-sdk before 0.58 record every call
+ * as a CONSUMER `receive` span, empty ones included, and a CONSUMER
+ * `process` span per message on top; the Java agent records the receive
+ * (when it returned messages) and a `process` span per message; Node's
+ * 0.58 and later record only the receive, with the number of messages it
+ * returned in messaging.batch.message_count. So on an SQS queue the
+ * `process` spans are the messages consumed and processed, and a receive
+ * counts only when it says it returned messages — once, as one batch.
+ * Elsewhere a CONSUMER `receive` span can be a delivery (pika and aio-pika
+ * record each pushed message that way) and stays in.
+ */
+export const MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS: ReadonlyArray<string> = [
+  "aws_sqs",
+];
+
+function canonicalSystemOf(system: string | null | undefined): string {
+  return getMessagingSystemDescriptor(system)?.system || "";
+}
+
+/** Whether a system's receive spans are polls (see the list above). */
+export function isMessageQueuePolledReceiveSystem(
+  system: string | null | undefined,
+): boolean {
+  return MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS.includes(
+    canonicalSystemOf(system),
+  );
+}
+
+/** Whether a system's spans can name a publish by its AWS SDK operation. */
+export function isMessageQueueAwsRpcSystem(
+  system: string | null | undefined,
+): boolean {
+  return MESSAGE_QUEUE_AWS_RPC_SYSTEMS.includes(canonicalSystemOf(system));
+}
+
+/*
+ * The groups of a queue's spans the Overview reads, each ONE conjunction of
+ * column and attribute filters on top of the queue's key (the key scopes the
+ * queue; these only tell its spans apart):
+ *
+ *   - "all": every span naming the queue — the error rate's denominator.
+ *   - "publish": PRODUCER spans — a send, or the per-message span a client
+ *     creates before a batched send.
+ *   - "send": CLIENT spans that record a publish in either operation key.
+ *     The Azure SDKs (Service Bus, Event Hubs) create a zero-length PRODUCER
+ *     span per message BEFORE the send, and time the send — and record its
+ *     failure — in this CLIENT span; Go's otelaws records SNS publishes only
+ *     this way. Both keys must be one of the send operations or absent, and
+ *     at least one must be present (attributeKeys).
+ *   - "awsSend" (SQS and SNS only): CLIENT spans that name a publish only by
+ *     the AWS SDK operation — the Java agent's SNS publishes, botocore's and
+ *     Go's SQS sends.
+ *   - "consume": CONSUMER spans that handled messages. A span that says its
+ *     batch held no message (messaging.batch.message_count 0: a receive
+ *     that returned nothing) is left out everywhere; on a queue whose
+ *     receive spans are polls (MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS), so is
+ *     every receive span.
+ *   - "receivedBatch" (polled systems only): the receive spans that report
+ *     returning messages — Node's instrumentation-aws-sdk 0.58+, which
+ *     records nothing else. Each is one batch consumed; its time is the
+ *     poll's, so never a processing time.
+ */
+export type MessageQueueSpanPopulation =
+  | "all"
+  | "publish"
+  | "send"
+  | "awsSend"
+  | "consume"
+  | "receivedBatch";
+
+export interface MessageQueueSpanQueryOptions {
+  // Which of the queue's spans; every span when omitted.
+  population?: MessageQueueSpanPopulation | undefined;
+  // Only the ones that ended with an error status.
+  errorsOnly?: boolean | undefined;
+  // The row's specific system: SQS reads its receive spans apart.
+  messagingSystem?: string | null | undefined;
+}
+
+function populationFilter(
+  population: MessageQueueSpanPopulation,
+  system: string | null | undefined,
+): Record<string, unknown> {
+  const sendOrAbsent: Array<string> = [...MESSAGE_QUEUE_SEND_OPERATIONS, ""];
+
+  switch (population) {
+    case "publish":
+      return { kind: MESSAGE_QUEUE_PUBLISH_SPAN_KIND };
+    case "send":
+      return {
+        kind: MESSAGE_QUEUE_CLIENT_SPAN_KIND,
+        attributes: {
+          [MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE]: new Includes([
+            ...sendOrAbsent,
+          ]),
+          [MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE]: new Includes([
+            ...sendOrAbsent,
+          ]),
+        },
+        attributeKeys: new Includes([
+          MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
+          MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE,
+        ]),
+      };
+    case "awsSend":
+      return {
+        kind: MESSAGE_QUEUE_CLIENT_SPAN_KIND,
+        attributes: {
+          [MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE]: "",
+          [MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE]: "",
+          [MESSAGE_QUEUE_RPC_METHOD_ATTRIBUTE]: new Includes([
+            ...MESSAGE_QUEUE_AWS_SEND_RPC_METHODS,
+          ]),
+        },
+      };
+    case "consume": {
+      const attributes: Record<string, unknown> = {
+        [MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),
+      };
+      if (isMessageQueuePolledReceiveSystem(system)) {
+        attributes[MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE] = new IncludesNone([
+          MESSAGE_QUEUE_RECEIVE_OPERATION,
+        ]);
+        attributes[MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE] = new IncludesNone(
+          [MESSAGE_QUEUE_RECEIVE_OPERATION],
+        );
+      }
+      return { kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND, attributes: attributes };
+    }
+    case "receivedBatch":
+      return {
+        kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND,
+        attributes: {
+          [MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE]:
+            MESSAGE_QUEUE_RECEIVE_OPERATION,
+          [MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]:
+            new GreaterThan<number>(0),
+        },
+      };
+    default:
+      return {};
+  }
+}
 
 /*
  * The span figures of a queue's Overview. Counts are spans (one per
@@ -125,19 +345,29 @@ export const MESSAGE_QUEUE_SERVICE_LIMIT: number = 10;
 export interface MessageQueueSpanMetrics {
   // Every span naming the queue, of any kind: the error rate's denominator.
   total: number;
-  // PRODUCER spans.
+  /*
+   * PRODUCER spans, plus the send spans of every service that records its
+   * publishes only as client spans.
+   */
   published: number;
-  // CONSUMER spans.
+  /*
+   * CONSUMER spans that handled messages, plus (SQS) the receives that
+   * returned some, once per batch.
+   */
   consumed: number;
   // Spans of any kind that ended with an error status.
   errors: number;
   errorRatePercent: number | null;
-  // One percentile over every CONSUMER span in the window (not an average).
+  /*
+   * One percentile over every "consume" span in the window (not an
+   * average): receives that returned nothing, and SQS's receive polls, are
+   * not in it.
+   */
   p95ProcessingMs: number | null;
   publishedSeries: Array<MessageQueueTimePoint>;
   consumedSeries: Array<MessageQueueTimePoint>;
   errorSeries: Array<MessageQueueTimePoint>;
-  // The p95 of each interval's CONSUMER spans, for the chart.
+  // The p95 of each interval's "consume" spans, for the chart.
   p95ProcessingSeries: Array<MessageQueueTimePoint>;
 }
 
@@ -158,6 +388,13 @@ export const EMPTY_MESSAGE_QUEUE_SERVICES: MessageQueueServices = {
   services: [],
   total: 0,
 };
+
+// Everything the Overview reads from the queue's spans, in one read.
+export interface MessageQueueSpanOverview {
+  metrics: MessageQueueSpanMetrics;
+  producers: MessageQueueServices;
+  consumers: MessageQueueServices;
+}
 
 const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
@@ -188,17 +425,24 @@ function emptyServices(): MessageQueueServices {
   return { services: [], total: 0 };
 }
 
+function emptySpanOverview(): MessageQueueSpanOverview {
+  return {
+    metrics: emptySpanMetrics(),
+    producers: emptyServices(),
+    consumers: emptyServices(),
+  };
+}
+
 /**
- * The Span query for the queue's spans in a window, or null when the queue
- * is unscoped (no keys) or there is no project. `kind` narrows it to one
- * span kind (PRODUCER / CONSUMER); `errorsOnly` to failed spans.
+ * The Span query for one group of the queue's spans in a window
+ * (MessageQueueSpanPopulation), or null when the queue is unscoped (no
+ * keys) or there is no project. `errorsOnly` narrows it to failed spans.
+ * The queue is ALWAYS scoped by its entity key; attribute filters only
+ * tell its spans apart, never find them.
  */
 export function buildMessageQueueSpanQuery(
   window: MessageQueueQueryWindow,
-  options?: {
-    kind?: SpanKind | undefined;
-    errorsOnly?: boolean | undefined;
-  },
+  options?: MessageQueueSpanQueryOptions,
 ): Record<string, unknown> | null {
   const entityKeys: Includes | null = getMessageQueueEntityKeysQueryValue(
     window.keys,
@@ -210,14 +454,11 @@ export function buildMessageQueueSpanQuery(
   }
 
   const query: Record<string, unknown> = {
+    ...populationFilter(options?.population || "all", options?.messagingSystem),
     projectId: projectId,
     startTime: new InBetween<Date>(window.start, window.end),
     entityKeys: entityKeys,
   };
-
-  if (options?.kind) {
-    query["kind"] = options.kind;
-  }
 
   if (options?.errorsOnly) {
     query["statusCode"] = SpanStatus.Error;
@@ -316,6 +557,31 @@ function sumOf(series: ReadonlyArray<MessageQueueTimePoint>): number {
   );
 }
 
+/**
+ * Two count series added up interval by interval: a point of either is kept,
+ * and one both have holds the total. Ordered by time.
+ */
+export function addMessageQueueCountSeries(
+  first: ReadonlyArray<MessageQueueTimePoint>,
+  second: ReadonlyArray<MessageQueueTimePoint>,
+): Array<MessageQueueTimePoint> {
+  const totals: Map<number, number> = new Map<number, number>();
+  for (const point of [...first, ...second]) {
+    const time: number = point.x.getTime();
+    if (!Number.isFinite(time) || !Number.isFinite(point.y)) {
+      continue;
+    }
+    totals.set(time, (totals.get(time) || 0) + point.y);
+  }
+  return Array.from(totals.keys())
+    .sort((a: number, b: number): number => {
+      return a - b;
+    })
+    .map((time: number): MessageQueueTimePoint => {
+      return { x: new Date(time), y: totals.get(time)! };
+    });
+}
+
 function firstFiniteValue(
   result: AggregatedResult | null | undefined,
   scale: number = 1,
@@ -329,154 +595,317 @@ function firstFiniteValue(
   return null;
 }
 
-/**
- * The queue's span figures: PRODUCER spans (published), CONSUMER spans
- * (consumed), failed spans of any kind over all of its spans (errors and
- * the error rate), and the p95 duration of its CONSUMER spans — ONE
- * percentile over the window for the tile, one per interval for the chart.
- * The count series keep whole intervals only (getCompleteBucketSeries: the
- * newest is still filling); the tiles count every span in the range.
- * Resolves to the empty figures (no API call) when unscoped, and on a
- * failed request, so the Overview never breaks on one bad chart.
+/*
+ * One group of the queue's spans read per service over the whole window:
+ * service id → spans, failed spans and the p95 duration (milliseconds).
  */
-export async function fetchMessageQueueSpanMetrics(
-  window: MessageQueueQueryWindow,
-): Promise<MessageQueueSpanMetrics> {
-  const allQuery: Record<string, unknown> | null =
-    buildMessageQueueSpanQuery(window);
-  const errorQuery: Record<string, unknown> | null = buildMessageQueueSpanQuery(
-    window,
-    { errorsOnly: true },
-  );
-  const publishQuery: Record<string, unknown> | null =
-    buildMessageQueueSpanQuery(window, {
-      kind: MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
-    });
-  const consumeQuery: Record<string, unknown> | null =
-    buildMessageQueueSpanQuery(window, {
-      kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND,
-    });
-
-  if (!allQuery || !errorQuery || !publishQuery || !consumeQuery) {
-    return emptySpanMetrics();
-  }
-
-  try {
-    const [
-      allResult,
-      errorResult,
-      publishResult,
-      consumeResult,
-      p95Result,
-      windowP95Result,
-    ]: [
-      AggregatedResult,
-      AggregatedResult,
-      AggregatedResult,
-      AggregatedResult,
-      AggregatedResult,
-      AggregatedResult,
-    ] = await Promise.all([
-      spanAggregate({
-        window,
-        query: allQuery,
-        aggregationType: AggregationType.Count,
-      }),
-      spanAggregate({
-        window,
-        query: errorQuery,
-        aggregationType: AggregationType.Count,
-      }),
-      spanAggregate({
-        window,
-        query: publishQuery,
-        aggregationType: AggregationType.Count,
-      }),
-      spanAggregate({
-        window,
-        query: consumeQuery,
-        aggregationType: AggregationType.Count,
-      }),
-      spanAggregate({
-        window,
-        query: consumeQuery,
-        aggregationType: AggregationType.P95,
-      }),
-      spanAggregate({
-        window,
-        query: consumeQuery,
-        aggregationType: AggregationType.P95,
-        aggregationInterval: AggregationInterval.Total,
-      }),
-    ]);
-
-    const allSeries: Array<MessageQueueTimePoint> =
-      aggregatedResultToTimePoints(allResult);
-    const errorSeries: Array<MessageQueueTimePoint> =
-      aggregatedResultToTimePoints(errorResult);
-    const publishedSeries: Array<MessageQueueTimePoint> =
-      aggregatedResultToTimePoints(publishResult);
-    const consumedSeries: Array<MessageQueueTimePoint> =
-      aggregatedResultToTimePoints(consumeResult);
-    const p95ProcessingSeries: Array<MessageQueueTimePoint> =
-      aggregatedResultToTimePoints(p95Result, 1 / NANOSECONDS_PER_MILLISECOND);
-
-    const total: number = sumOf(allSeries);
-    /*
-     * The failed spans are some of the spans: a failed count read a moment
-     * later than the total (spans still arriving) never exceeds it.
-     */
-    const errors: number = Math.min(sumOf(errorSeries), total);
-    const consumed: number = sumOf(consumedSeries);
-
-    return {
-      total: total,
-      published: sumOf(publishedSeries),
-      consumed: consumed,
-      errors: errors,
-      errorRatePercent: total > 0 ? (errors / total) * 100 : null,
-      p95ProcessingMs:
-        consumed > 0
-          ? firstFiniteValue(windowP95Result, 1 / NANOSECONDS_PER_MILLISECOND)
-          : null,
-      publishedSeries: getCompleteBucketSeries(publishedSeries, window),
-      consumedSeries: getCompleteBucketSeries(consumedSeries, window),
-      errorSeries: getCompleteBucketSeries(errorSeries, window),
-      p95ProcessingSeries: p95ProcessingSeries,
-    };
-  } catch {
-    return emptySpanMetrics();
-  }
+export interface MessageQueueServiceSpanFigures {
+  counts: Map<string, number>;
+  errors: Map<string, number>;
+  p95Ms: Map<string, number>;
 }
 
-/**
- * The services on one side of the queue — its spans of `kind` (PRODUCER:
- * who publishes, CONSUMER: who consumes) grouped by the service that
- * recorded them (primaryEntityId) over the whole window — busiest first,
- * and how many there are in all. Empty (no API call) when unscoped or on
- * failure.
- */
-export async function fetchMessageQueueServices(
-  window: MessageQueueQueryWindow & {
-    kind: SpanKind;
-    limit?: number | undefined;
-  },
-): Promise<MessageQueueServices> {
-  const baseQuery: Record<string, unknown> | null = buildMessageQueueSpanQuery(
-    window,
-    { kind: window.kind },
+function emptyServiceSpanFigures(): MessageQueueServiceSpanFigures {
+  return { counts: new Map(), errors: new Map(), p95Ms: new Map() };
+}
+
+// service id → the row's value, for rows grouped by primaryEntityId.
+function valuesByService(
+  result: AggregatedResult | null | undefined,
+  scale: number = 1,
+): Map<string, number> {
+  const values: Map<string, number> = new Map<string, number>();
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const raw: unknown = row["primaryEntityId"];
+    const id: string =
+      raw === null || raw === undefined ? "" : String(raw).trim();
+    const value: number = Number(row["value"]);
+    if (!id || !Number.isFinite(value)) {
+      continue;
+    }
+    values.set(id, (values.get(id) || 0) + value * scale);
+  }
+  return values;
+}
+
+/** The three grouped aggregates of one span group, as per-service maps. */
+export function toMessageQueueServiceSpanFigures(data: {
+  countResult: AggregatedResult | null | undefined;
+  errorResult?: AggregatedResult | null | undefined;
+  p95Result?: AggregatedResult | null | undefined;
+}): MessageQueueServiceSpanFigures {
+  return {
+    counts: valuesByService(data.countResult),
+    errors: valuesByService(data.errorResult),
+    p95Ms: valuesByService(data.p95Result, 1 / NANOSECONDS_PER_MILLISECOND),
+  };
+}
+
+function sortedServiceRows(
+  rows: Array<MessageQueueServiceRow>,
+  limit: number,
+): MessageQueueServices {
+  const busy: Array<MessageQueueServiceRow> = rows.filter(
+    (row: MessageQueueServiceRow): boolean => {
+      return row.calls > 0;
+    },
   );
-  const errorQuery: Record<string, unknown> | null = buildMessageQueueSpanQuery(
-    window,
-    {
-      kind: window.kind,
-      errorsOnly: true,
+  busy.sort((a: MessageQueueServiceRow, b: MessageQueueServiceRow): number => {
+    if (b.calls !== a.calls) {
+      return b.calls - a.calls;
+    }
+    return a.serviceId < b.serviceId ? -1 : a.serviceId > b.serviceId ? 1 : 0;
+  });
+  return { services: busy.slice(0, limit), total: busy.length };
+}
+
+function finiteOrNull(value: number | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/*
+ * The Producers card and the part of Published that producer spans miss:
+ *
+ *   - a service's messages are its PRODUCER spans (one per message, or per
+ *     batch sent in one call); a service that records no producer span but
+ *     client send spans ("send" / "awsSend") is counted from those, and is
+ *     one of `clientOnlyServiceIds`;
+ *   - its failures and p95 publish time are those of its client send spans
+ *     when it records any — the Azure SDKs' producer spans are zero-length
+ *     markers made before the send, and the send's time and failure are in
+ *     the client span — and of its producer spans otherwise. Where a
+ *     service has sends of both client groups (it never has in practice),
+ *     the busier group's p95 stands for its sends.
+ */
+export interface MessageQueueProducerServices extends MessageQueueServices {
+  // Services counted from client send spans alone, busiest first.
+  clientOnlyServiceIds: Array<string>;
+  // Their send spans, all of them: what Published adds for them.
+  clientOnlyPublished: number;
+}
+
+export function combineMessageQueueProducerServices(data: {
+  producer: MessageQueueServiceSpanFigures;
+  sends: ReadonlyArray<MessageQueueServiceSpanFigures>;
+  limit?: number | undefined;
+}): MessageQueueProducerServices {
+  const ids: Set<string> = new Set<string>(data.producer.counts.keys());
+  for (const figures of data.sends) {
+    for (const id of figures.counts.keys()) {
+      ids.add(id);
+    }
+  }
+
+  const rows: Array<MessageQueueServiceRow> = [];
+  const clientOnly: Array<{ id: string; sends: number }> = [];
+
+  for (const id of ids) {
+    const produced: number = data.producer.counts.get(id) || 0;
+    let sendCount: number = 0;
+    let sendErrors: number = 0;
+    let busiestSends: number = 0;
+    let sendP95: number | null = null;
+
+    for (const figures of data.sends) {
+      const count: number = figures.counts.get(id) || 0;
+      if (count <= 0) {
+        continue;
+      }
+      sendCount += count;
+      sendErrors += Math.min(figures.errors.get(id) || 0, count);
+      if (count > busiestSends) {
+        busiestSends = count;
+        sendP95 = finiteOrNull(figures.p95Ms.get(id));
+      }
+    }
+
+    if (produced <= 0 && sendCount <= 0) {
+      continue;
+    }
+
+    if (produced <= 0) {
+      clientOnly.push({ id: id, sends: sendCount });
+    }
+
+    const errors: number =
+      sendCount > 0
+        ? sendErrors
+        : Math.min(data.producer.errors.get(id) || 0, produced);
+    const attempts: number = sendCount > 0 ? sendCount : produced;
+
+    rows.push({
+      serviceId: id,
+      calls: produced > 0 ? produced : sendCount,
+      errors: errors,
+      errorRatePercent: attempts > 0 ? (errors / attempts) * 100 : null,
+      p95DurationMs:
+        sendCount > 0 ? sendP95 : finiteOrNull(data.producer.p95Ms.get(id)),
+    });
+  }
+
+  clientOnly.sort(
+    (
+      a: { id: string; sends: number },
+      b: { id: string; sends: number },
+    ): number => {
+      return b.sends - a.sends || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     },
   );
 
-  if (!baseQuery || !errorQuery) {
-    return emptyServices();
+  return {
+    ...sortedServiceRows(
+      rows,
+      typeof data.limit === "number" && data.limit > 0
+        ? Math.floor(data.limit)
+        : MESSAGE_QUEUE_SERVICE_LIMIT,
+    ),
+    clientOnlyServiceIds: clientOnly.map(
+      (entry: { id: string; sends: number }): string => {
+        return entry.id;
+      },
+    ),
+    clientOnlyPublished: clientOnly.reduce(
+      (total: number, entry: { id: string; sends: number }): number => {
+        return total + entry.sends;
+      },
+      0,
+    ),
+  };
+}
+
+/*
+ * The Consumers card: a service's messages are its "consume" spans plus,
+ * on SQS, its receives that returned messages (one per batch); its
+ * failures and p95 processing time are those of its "consume" spans alone
+ * — a receive's time is the poll's, and a receive that failed returned no
+ * message, so it is in neither group.
+ */
+export function combineMessageQueueConsumerServices(data: {
+  consume: MessageQueueServiceSpanFigures;
+  receivedBatches?: MessageQueueServiceSpanFigures | undefined;
+  limit?: number | undefined;
+}): MessageQueueServices {
+  const batches: MessageQueueServiceSpanFigures =
+    data.receivedBatches || emptyServiceSpanFigures();
+  const ids: Set<string> = new Set<string>([
+    ...data.consume.counts.keys(),
+    ...batches.counts.keys(),
+  ]);
+
+  const rows: Array<MessageQueueServiceRow> = [];
+  for (const id of ids) {
+    const handled: number = data.consume.counts.get(id) || 0;
+    const received: number = batches.counts.get(id) || 0;
+    const consumed: number = handled + received;
+    const errors: number = Math.min(data.consume.errors.get(id) || 0, handled);
+    rows.push({
+      serviceId: id,
+      calls: consumed,
+      errors: errors,
+      errorRatePercent: consumed > 0 ? (errors / consumed) * 100 : null,
+      p95DurationMs:
+        handled > 0 ? finiteOrNull(data.consume.p95Ms.get(id)) : null,
+    });
   }
+
+  return sortedServiceRows(
+    rows,
+    typeof data.limit === "number" && data.limit > 0
+      ? Math.floor(data.limit)
+      : MESSAGE_QUEUE_SERVICE_LIMIT,
+  );
+}
+
+// What the tiles and charts read, before client-only publishers join them.
+interface MessageQueueTileReads {
+  allSeries: Array<MessageQueueTimePoint>;
+  errorSeries: Array<MessageQueueTimePoint>;
+  publishedSeries: Array<MessageQueueTimePoint>;
+  // "consume" spans plus SQS's receives that returned messages.
+  consumedSeries: Array<MessageQueueTimePoint>;
+  // The "consume" spans alone: whether there is a processing time.
+  handledCount: number;
+  p95ProcessingSeries: Array<MessageQueueTimePoint>;
+  windowP95Ms: number | null;
+}
+
+// What the two cards read.
+interface MessageQueueServiceReads {
+  producers: MessageQueueProducerServices;
+  consumers: MessageQueueServices;
+}
+
+/**
+ * Everything the Overview reads from the queue's spans:
+ *
+ *   - the tiles and charts: every span (the error rate's denominator), the
+ *     failed ones of any kind, Published ("publish" spans, plus the client
+ *     send spans of services that record no producer span), Consumed
+ *     ("consume" spans, plus SQS receives that returned messages) and the
+ *     p95 of the "consume" spans — ONE percentile over the window for the
+ *     tile, one per interval for the chart. The count series keep whole
+ *     intervals only (getCompleteBucketSeries: the newest is still
+ *     filling); the tiles count every span in the range;
+ *   - the Producers and Consumers cards (combineMessageQueueProducerServices,
+ *     combineMessageQueueConsumerServices), each group of spans read per
+ *     service over the whole window.
+ *
+ * The groups are MessageQueueSpanPopulation's; which of them a queue reads
+ * depends on its system (`messagingSystem`, the row's specific one). The
+ * tiles, the cards and the client-only publishers' chart line are read
+ * apart, so one failed request empties its own part only. Resolves to the
+ * empty figures (no API call) when unscoped.
+ */
+export async function fetchMessageQueueSpanOverview(
+  window: MessageQueueQueryWindow & {
+    messagingSystem?: string | null | undefined;
+    serviceLimit?: number | undefined;
+  },
+): Promise<MessageQueueSpanOverview> {
+  const system: string | null | undefined = window.messagingSystem;
+  const polled: boolean = isMessageQueuePolledReceiveSystem(system);
+  const awsRpc: boolean = isMessageQueueAwsRpcSystem(system);
+  const base: MessageQueueQueryWindow = {
+    projectId: window.projectId,
+    keys: window.keys,
+    start: window.start,
+    end: window.end,
+  };
+
+  const queryOf: (
+    population: MessageQueueSpanPopulation,
+    errorsOnly?: boolean,
+  ) => Record<string, unknown> | null = (
+    population: MessageQueueSpanPopulation,
+    errorsOnly?: boolean,
+  ): Record<string, unknown> | null => {
+    return buildMessageQueueSpanQuery(base, {
+      population: population,
+      errorsOnly: errorsOnly,
+      messagingSystem: system,
+    });
+  };
+
+  const allQuery: Record<string, unknown> | null = queryOf("all");
+  if (!allQuery) {
+    return emptySpanOverview();
+  }
+  const errorQuery: Record<string, unknown> = queryOf("all", true)!;
+  const publishQuery: Record<string, unknown> = queryOf("publish")!;
+  const consumeQuery: Record<string, unknown> = queryOf("consume")!;
+  const receivedBatchQuery: Record<string, unknown> = queryOf("receivedBatch")!;
+
+  const noRows: AggregatedResult = { data: [] };
+
+  const count: (query: Record<string, unknown>) => Promise<AggregatedResult> = (
+    query: Record<string, unknown>,
+  ): Promise<AggregatedResult> => {
+    return spanAggregate({
+      window: base,
+      query: query,
+      aggregationType: AggregationType.Count,
+    });
+  };
 
   const byService: (
     query: Record<string, unknown>,
@@ -486,7 +915,7 @@ export async function fetchMessageQueueServices(
     aggregationType: AggregationType,
   ): Promise<AggregatedResult> => {
     return spanAggregate({
-      window,
+      window: base,
       query: query,
       aggregationType: aggregationType,
       groupBy: { primaryEntityId: true },
@@ -494,29 +923,220 @@ export async function fetchMessageQueueServices(
     });
   };
 
-  try {
-    const [countResult, errorResult, p95Result]: [
-      AggregatedResult,
-      AggregatedResult,
-      AggregatedResult,
-    ] = await Promise.all([
-      byService(baseQuery, AggregationType.Count),
-      byService(errorQuery, AggregationType.Count),
-      byService(baseQuery, AggregationType.P95),
-    ]);
+  // One group per service: spans, failed spans, p95.
+  const figuresOf: (
+    population: MessageQueueSpanPopulation,
+  ) => Promise<MessageQueueServiceSpanFigures> = (
+    population: MessageQueueSpanPopulation,
+  ): Promise<MessageQueueServiceSpanFigures> => {
+    return Promise.all([
+      byService(queryOf(population)!, AggregationType.Count),
+      byService(queryOf(population, true)!, AggregationType.Count),
+      byService(queryOf(population)!, AggregationType.P95),
+    ]).then(
+      ([countResult, errorResult, p95Result]: [
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+      ]): MessageQueueServiceSpanFigures => {
+        return toMessageQueueServiceSpanFigures({
+          countResult,
+          errorResult,
+          p95Result,
+        });
+      },
+    );
+  };
 
-    return combineCallingServiceResults({
-      countResult,
-      errorResult,
-      p95Result,
-      limit:
-        typeof window.limit === "number" && window.limit > 0
-          ? window.limit
-          : MESSAGE_QUEUE_SERVICE_LIMIT,
-    });
-  } catch {
-    return emptyServices();
+  /*
+   * Each part settles to null on a failed request rather than rejecting:
+   * one bad chart never empties the cards, nor a bad card the tiles.
+   */
+  const readTiles: () => Promise<MessageQueueTileReads | null> =
+    (): Promise<MessageQueueTileReads | null> => {
+      return Promise.all([
+        count(allQuery),
+        count(errorQuery),
+        count(publishQuery),
+        count(consumeQuery),
+        polled ? count(receivedBatchQuery) : Promise.resolve(noRows),
+        spanAggregate({
+          window: base,
+          query: consumeQuery,
+          aggregationType: AggregationType.P95,
+        }),
+        spanAggregate({
+          window: base,
+          query: consumeQuery,
+          aggregationType: AggregationType.P95,
+          aggregationInterval: AggregationInterval.Total,
+        }),
+      ])
+        .then(
+          ([
+            allResult,
+            errorResult,
+            publishResult,
+            consumeResult,
+            receivedBatchResult,
+            p95Result,
+            windowP95Result,
+          ]: Array<AggregatedResult>): MessageQueueTileReads => {
+            const handledSeries: Array<MessageQueueTimePoint> =
+              aggregatedResultToTimePoints(consumeResult);
+            return {
+              allSeries: aggregatedResultToTimePoints(allResult),
+              errorSeries: aggregatedResultToTimePoints(errorResult),
+              publishedSeries: aggregatedResultToTimePoints(publishResult),
+              consumedSeries: addMessageQueueCountSeries(
+                handledSeries,
+                aggregatedResultToTimePoints(receivedBatchResult),
+              ),
+              handledCount: sumOf(handledSeries),
+              p95ProcessingSeries: aggregatedResultToTimePoints(
+                p95Result,
+                1 / NANOSECONDS_PER_MILLISECOND,
+              ),
+              windowP95Ms: firstFiniteValue(
+                windowP95Result,
+                1 / NANOSECONDS_PER_MILLISECOND,
+              ),
+            };
+          },
+        )
+        .catch((): null => {
+          return null;
+        });
+    };
+
+  const readServices: () => Promise<MessageQueueServiceReads | null> =
+    (): Promise<MessageQueueServiceReads | null> => {
+      return Promise.all([
+        figuresOf("publish"),
+        figuresOf("send"),
+        awsRpc
+          ? figuresOf("awsSend")
+          : Promise.resolve(emptyServiceSpanFigures()),
+        figuresOf("consume"),
+        polled
+          ? byService(receivedBatchQuery, AggregationType.Count).then(
+              (
+                countResult: AggregatedResult,
+              ): MessageQueueServiceSpanFigures => {
+                return toMessageQueueServiceSpanFigures({ countResult });
+              },
+            )
+          : Promise.resolve(emptyServiceSpanFigures()),
+      ])
+        .then(
+          ([
+            producer,
+            send,
+            awsSend,
+            consume,
+            receivedBatches,
+          ]: Array<MessageQueueServiceSpanFigures>): MessageQueueServiceReads => {
+            return {
+              producers: combineMessageQueueProducerServices({
+                producer: producer!,
+                sends: [send!, awsSend!],
+                limit: window.serviceLimit,
+              }),
+              consumers: combineMessageQueueConsumerServices({
+                consume: consume!,
+                receivedBatches: receivedBatches,
+                limit: window.serviceLimit,
+              }),
+            };
+          },
+        )
+        .catch((): null => {
+          return null;
+        });
+    };
+
+  const [tiles, services]: [
+    MessageQueueTileReads | null,
+    MessageQueueServiceReads | null,
+  ] = await Promise.all([readTiles(), readServices()]);
+
+  const producers: MessageQueueProducerServices | null =
+    services?.producers || null;
+
+  /*
+   * The chart line of the services counted from client send spans alone:
+   * their sends per interval, read only when there are any.
+   */
+  let clientOnlySeries: Array<MessageQueueTimePoint> = [];
+  if (tiles && producers && producers.clientOnlyServiceIds.length > 0) {
+    const clientOnlyServices: Includes = new Includes(
+      producers.clientOnlyServiceIds.map((id: string): ObjectID => {
+        return new ObjectID(id);
+      }),
+    );
+    const sendPopulations: Array<MessageQueueSpanPopulation> = awsRpc
+      ? ["send", "awsSend"]
+      : ["send"];
+    clientOnlySeries = await Promise.all(
+      sendPopulations.map(
+        (population: MessageQueueSpanPopulation): Promise<AggregatedResult> => {
+          return count({
+            ...queryOf(population)!,
+            primaryEntityId: clientOnlyServices,
+          });
+        },
+      ),
+    )
+      .then(
+        (results: Array<AggregatedResult>): Array<MessageQueueTimePoint> => {
+          let series: Array<MessageQueueTimePoint> = [];
+          for (const result of results) {
+            series = addMessageQueueCountSeries(
+              series,
+              aggregatedResultToTimePoints(result),
+            );
+          }
+          return series;
+        },
+      )
+      .catch((): Array<MessageQueueTimePoint> => {
+        return [];
+      });
   }
+
+  let metrics: MessageQueueSpanMetrics = emptySpanMetrics();
+  if (tiles) {
+    const total: number = sumOf(tiles.allSeries);
+    /*
+     * The failed spans are some of the spans: a failed count read a moment
+     * later than the total (spans still arriving) never exceeds it.
+     */
+    const errors: number = Math.min(sumOf(tiles.errorSeries), total);
+    const publishedSeries: Array<MessageQueueTimePoint> =
+      addMessageQueueCountSeries(tiles.publishedSeries, clientOnlySeries);
+    metrics = {
+      total: total,
+      // The client-only publishers' sends, all of them, whatever the chart got.
+      published:
+        sumOf(tiles.publishedSeries) + (producers?.clientOnlyPublished || 0),
+      consumed: sumOf(tiles.consumedSeries),
+      errors: errors,
+      errorRatePercent: total > 0 ? (errors / total) * 100 : null,
+      p95ProcessingMs: tiles.handledCount > 0 ? tiles.windowP95Ms : null,
+      publishedSeries: getCompleteBucketSeries(publishedSeries, window),
+      consumedSeries: getCompleteBucketSeries(tiles.consumedSeries, window),
+      errorSeries: getCompleteBucketSeries(tiles.errorSeries, window),
+      p95ProcessingSeries: tiles.p95ProcessingSeries,
+    };
+  }
+
+  return {
+    metrics: metrics,
+    producers: producers
+      ? { services: producers.services, total: producers.total }
+      : emptyServices(),
+    consumers: services?.consumers || emptyServices(),
+  };
 }
 
 /** The service ids of both cards, each once, for one name lookup. */
@@ -1161,15 +1781,106 @@ export function toMessageQueueBrokerMetricResult(
   };
 }
 
+/*
+ * How long a metric's observed series are reused across the Overview's
+ * refreshes. They only build the "Create monitor" link (the attributes a
+ * monitor filter pins, not what a chart shows), and they change when a new
+ * partition, consumer group or broker appears, not every tick: re-read on
+ * every auto-refresh (30 s by default) they cost a request per monitorable
+ * gauge each time.
+ */
+export const MESSAGE_QUEUE_OBSERVED_SERIES_TTL_MS: number = 5 * 60 * 1000;
+
+/**
+ * The observed series of the queue's metrics, kept across the Overview's
+ * refreshes: per queue scope (project, keys), metric and RANGE — what the
+ * reader picked ("Past 1 Hour", or a zoom's start and end), not the window,
+ * which moves with every tick of a relative range — for
+ * MESSAGE_QUEUE_OBSERVED_SERIES_TTL_MS. A new range or a zoom reads them
+ * again; an empty answer (none, or a failed read) is never kept, so the link
+ * appears as soon as a series does.
+ */
+export class MessageQueueObservedSeriesCache {
+  private readonly ttlMs: number;
+  private readonly entries: Map<
+    string,
+    { storedAt: number; series: Array<MessageQueueObservedSeries> }
+  > = new Map();
+
+  public constructor(ttlMs: number = MESSAGE_QUEUE_OBSERVED_SERIES_TTL_MS) {
+    this.ttlMs = ttlMs;
+  }
+
+  public static keyOf(data: {
+    window: MessageQueueQueryWindow;
+    rangeKey: string;
+    metricName: string;
+  }): string {
+    return JSON.stringify([
+      String(data.window.projectId || ""),
+      [...data.window.keys],
+      data.rangeKey,
+      data.metricName,
+    ]);
+  }
+
+  public get(
+    key: string,
+    now: number,
+  ): Array<MessageQueueObservedSeries> | null {
+    const entry:
+      | { storedAt: number; series: Array<MessageQueueObservedSeries> }
+      | undefined = this.entries.get(key);
+    if (!entry || now - entry.storedAt >= this.ttlMs) {
+      return null;
+    }
+    return entry.series.map(
+      (series: MessageQueueObservedSeries): MessageQueueObservedSeries => {
+        return { ...series };
+      },
+    );
+  }
+
+  public set(
+    key: string,
+    series: ReadonlyArray<MessageQueueObservedSeries>,
+    now: number,
+  ): void {
+    if (series.length === 0) {
+      this.entries.delete(key);
+      return;
+    }
+    this.entries.set(key, {
+      storedAt: now,
+      series: series.map(
+        (entry: MessageQueueObservedSeries): MessageQueueObservedSeries => {
+          return { ...entry };
+        },
+      ),
+    });
+  }
+}
+
 /**
  * Every catalog metric of the queue's system, fetched in parallel, and then
  * — for each gauge a monitor can evaluate that has data — the series it was
  * observed with, which the "Create monitor" link filters on. Counters and
- * quiet gauges cost no second request. Empty (no API call) when unscoped.
+ * quiet gauges cost no second request, and with `observedSeriesCache` a
+ * gauge whose series were read for this range lately costs none either.
+ * Empty (no API call) when unscoped.
  */
 export async function fetchMessageQueueBrokerMetrics(
   window: MessageQueueQueryWindow & {
     metrics: ReadonlyArray<MessageQueueMetricDescriptor>;
+    observedSeriesCache?:
+      | {
+          cache: MessageQueueObservedSeriesCache;
+          // The range the reader picked (see MessageQueueObservedSeriesCache).
+          rangeKey: string;
+          // When the entries are judged fresh; the present by default.
+          now?: number | undefined;
+        }
+      | undefined;
   },
 ): Promise<Array<MessageQueueBrokerMetricResult>> {
   if (!getMessageQueueEntityKeysQueryValue(window.keys)) {
@@ -1209,15 +1920,45 @@ export async function fetchMessageQueueBrokerMetrics(
         ) {
           return result;
         }
+        const cached: MessageQueueBrokerMetricsCacheUse | null =
+          window.observedSeriesCache
+            ? {
+                cache: window.observedSeriesCache.cache,
+                key: MessageQueueObservedSeriesCache.keyOf({
+                  window: base,
+                  rangeKey: window.observedSeriesCache.rangeKey,
+                  metricName: result.descriptor.metricName,
+                }),
+                now:
+                  window.observedSeriesCache.now ??
+                  OneUptimeDate.getCurrentDate().getTime(),
+              }
+            : null;
+        const kept: Array<MessageQueueObservedSeries> | null = cached
+          ? cached.cache.get(cached.key, cached.now)
+          : null;
+        if (kept) {
+          return { ...result, observedSeries: kept };
+        }
         const observedSeries: Array<MessageQueueObservedSeries> =
           await fetchMessageQueueObservedSeries({
             ...base,
             descriptor: result.descriptor,
           });
+        if (cached) {
+          cached.cache.set(cached.key, observedSeries, cached.now);
+        }
         return { ...result, observedSeries: observedSeries };
       },
     ),
   );
+}
+
+// One metric's place in the observed-series cache, for one read.
+interface MessageQueueBrokerMetricsCacheUse {
+  cache: MessageQueueObservedSeriesCache;
+  key: string;
+  now: number;
 }
 
 /** True when any broker metric returned at least one point. */

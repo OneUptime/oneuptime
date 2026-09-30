@@ -116,26 +116,47 @@ import {
   getMessageQueueBrokerMetricsNoDataDescription,
   getMessageQueueMetricListCaption,
   getMessageQueueSystemDocsRoute,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueuePresentation";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 import { MessageQueueMetricMonitorLink } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueMetricMonitorLink";
+import {
+  MessageQueueChartedMetricRow,
+  getMessageQueueChartedMetricRows,
+  getMessageQueueSystemGuideMarkdown,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
 import slugify from "../../../Server/Types/MarkdownSlugify";
 import Metric from "../../../Models/AnalyticsModels/Metric";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import { parseMessageQueueIdentifier } from "../../../Types/MessageQueue/MessageQueueIdentity";
+import {
+  MessageQueueIdentity,
+  parseMessageQueueIdentifier,
+  toMessageQueueIdentity,
+} from "../../../Types/MessageQueue/MessageQueueIdentity";
 import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
   getMessageQueueMetricDescriptorsByName,
+  getMessageQueueMetricId,
   getMessageQueueMetricsForSystem,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   MESSAGING_SYSTEMS,
   MessagingSystemDescriptor,
 } from "../../../Types/MessageQueue/MessagingSystem";
+import {
+  ResolvedMessagingDestination,
+  resolveMessagingMetricDatapoint,
+} from "../../../Types/MessageQueue/MessagingTelemetryResolver";
+import { getMessageQueueMetricFilterAttributeKeys } from "../../../Types/Monitor/MessageQueueAlertTemplates";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  FixtureAttributes,
+  METRIC_FIXTURES,
+  MetricFixture,
+  toStoredColumns,
+} from "../../Types/MessageQueue/MessagingTelemetryFixtures";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const MODEL_ID: ObjectID = new ObjectID("5c1e0d2a-7b3c-4d5e-8f60-000000000456");
@@ -1161,6 +1182,101 @@ describe("Broker health with data", () => {
         queueName: "orders",
       }).size,
     ).toBe(0);
+  });
+
+  /*
+   * The Documentation tab's guide promises Create monitor on "each gauge and
+   * each count per period" of the table it prints (a cloud metric's count
+   * is a gauge summed per interval). Held to what the section links: every
+   * catalog metric, charted with the series of its realistic stored
+   * datapoint, gets a link exactly when its row is typed Gauge or Count per
+   * period — never a counter's, which charts a rate.
+   */
+  test("links each gauge and each count per period, as the guide promises, and no counter", () => {
+    const linkedByType: Map<string, Array<boolean>> = new Map();
+
+    for (const descriptor of MESSAGE_QUEUE_METRICS) {
+      const fixture: MetricFixture | undefined = METRIC_FIXTURES.find(
+        (candidate: MetricFixture): boolean => {
+          return (
+            candidate.metricName === descriptor.metricName &&
+            candidate.expected?.system === descriptor.system
+          );
+        },
+      );
+      expect(fixture).toBeDefined();
+      const attributes: FixtureAttributes = fixture!.attributes;
+      const resolved: ResolvedMessagingDestination | null =
+        resolveMessagingMetricDatapoint({
+          metricName: descriptor.metricName,
+          getAttribute: (key: string): unknown => {
+            return Object.prototype.hasOwnProperty.call(attributes, key)
+              ? attributes[key]
+              : undefined;
+          },
+        });
+      const identity: MessageQueueIdentity | null = resolved
+        ? toMessageQueueIdentity({
+            system: resolved.system,
+            brokerScope: resolved.brokerScope,
+            destination: resolved.destination,
+          })
+        : null;
+      expect(identity).not.toBeNull();
+
+      const id: string = getMessageQueueMetricId(descriptor);
+      const linked: boolean = getMessageQueueBrokerMonitorLinks({
+        results: [
+          toMessageQueueBrokerMetricResult(descriptor, points([3, 4]), [
+            toStoredColumns(
+              attributes,
+              getMessageQueueMetricFilterAttributeKeys(descriptor),
+            ),
+          ]),
+        ],
+        identity: identity,
+        queueName: "orders",
+      }).has(id);
+
+      const row: MessageQueueChartedMetricRow | undefined =
+        getMessageQueueChartedMetricRows(descriptor.system).find(
+          (candidate: MessageQueueChartedMetricRow): boolean => {
+            return candidate.metric.includes(`\`${descriptor.metricName}\``);
+          },
+        );
+      expect(row).toBeDefined();
+      expect({ id, type: row!.type, linked }).toEqual({
+        id,
+        type: row!.type,
+        linked: row!.type === "Gauge" || row!.type === "Count per period",
+      });
+      linkedByType.set(row!.type, [
+        ...(linkedByType.get(row!.type) || []),
+        linked,
+      ]);
+    }
+
+    // Rows of all three types, so none of the above holds vacuously.
+    expect(Array.from(linkedByType.keys()).sort()).toEqual([
+      "Count per period",
+      "Counter, charted per second",
+      "Gauge",
+    ]);
+
+    // And the guide says so wherever it prints the table.
+    for (const descriptor of MESSAGING_SYSTEMS) {
+      if (getMessageQueueChartedMetricRows(descriptor.system).length === 0) {
+        continue;
+      }
+      expect(
+        getMessageQueueSystemGuideMarkdown(
+          { oneuptimeUrl: "https://oneuptime.example.com", apiKey: "key" },
+          descriptor.system,
+        ),
+      ).toContain(
+        "under **Broker health**, and each gauge and each count per period has **Create monitor**.",
+      );
+    }
   });
 
   test("while a reload runs the charts stay, and no loader replaces them", () => {

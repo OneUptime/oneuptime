@@ -33,6 +33,7 @@ import {
   getMessageQueueMetricsForSystem,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import slugify from "../../../Server/Types/MarkdownSlugify";
 
 /*
  * The in-app Queues setup guide. A collector config that does not parse, or
@@ -459,6 +460,91 @@ describe("the configs run the catalog's receivers", () => {
   });
 });
 
+/*
+ * How late the guide's `aws_cloudwatch` receiver delivers. It asks
+ * CloudWatch, once per `collection_interval`, for the whole periods that
+ * ended by now - `delay`, each point stamped with its period's start
+ * (receiver/awscloudwatchreceiver metrics.go @v0.161.0): right after a
+ * scrape the newest point is delay + period old, just before the next one
+ * delay + 2 × period + collection_interval. The guide states that for the
+ * configuration it prints, in the docs page's words, and sends whoever
+ * builds a monitor over those metrics to Late metrics under Alerting.
+ */
+describe("how late CloudWatch's metrics arrive", () => {
+  // "10m" → 10, "30s" → 0.5.
+  function minutesOf(value: unknown): number {
+    const match: RegExpMatchArray | null = String(value).match(/^(\d+)(s|m)$/);
+    expect({ value, duration: Boolean(match) }).toEqual({
+      value,
+      duration: true,
+    });
+    const amount: number = Number(match![1]);
+    return match![2] === "m" ? amount : amount / 60;
+  }
+
+  function delayLine(markdown: string): string {
+    const lines: Array<string> = markdown
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.includes("`delay` waits for CloudWatch");
+      });
+    expect(lines).toHaveLength(1);
+    return lines[0]!;
+  }
+
+  test.each(["aws_sqs", "aws.sns"])(
+    "%s's guides state it for the configuration they print, as the docs page does",
+    (system: string) => {
+      const guides: Array<[string, string]> = [
+        ["a queue's", getMessageQueueSystemGuideMarkdown(VARS, system)],
+        ["this queue's", queueGuide(sampleQueue(system))],
+      ];
+      for (const [whose, markdown] of guides) {
+        const configs: Array<YamlMap> = yamlBlocks(markdown);
+        expect(configs).toHaveLength(1);
+        const receivers: Array<YamlMap> = Object.entries(
+          configs[0]!["receivers"] as YamlMap,
+        )
+          .filter(([id]: [string, unknown]): boolean => {
+            return id.split("/")[0] === "aws_cloudwatch";
+          })
+          .map(([, receiver]: [string, unknown]): YamlMap => {
+            return receiver as YamlMap;
+          });
+        expect(receivers).toHaveLength(1);
+
+        const metrics: YamlMap = receivers[0]!["metrics"];
+        const period: number = minutesOf(metrics["period"]);
+        const delay: number = minutesOf(metrics["delay"]);
+        const interval: number = minutesOf(metrics["collection_interval"]);
+        const late: string = `${delay + period} to ${
+          delay + 2 * period + interval
+        } minutes late`;
+
+        expect(delayLine(markdown)).toBe(
+          `- \`delay\` waits for CloudWatch to publish a period, so with this configuration ${whose} broker metrics arrive ${late}: a monitor over them needs a longer window (see **Late metrics** under [Alerting](${MESSAGE_QUEUE_DOCS_PATH}#alerting)).`,
+        );
+        expect(markdown).not.toContain("minutes behind");
+
+        // The docs page says the same of the same configuration.
+        expect(delayLine(docsSection("Amazon SQS"))).toContain(
+          `so with this configuration a queue's broker metrics arrive ${late}: a monitor over them needs a longer window (see **Late metrics** under [Alerting](#alerting)).`,
+        );
+      }
+    },
+  );
+
+  test("the Alerting link lands on the section that says how long a window to use", () => {
+    const heading: string = "\n## Alerting\n";
+    const start: number = QUEUES_DOC.indexOf(heading);
+    expect(start).toBeGreaterThan(-1);
+    const rest: string = QUEUES_DOC.slice(start + heading.length);
+    const alerting: string = rest.slice(0, rest.search(/\n## /));
+    expect(alerting).toContain("**Late metrics.**");
+    expect(alerting).toContain("needs a window longer than that");
+  });
+});
+
 describe("what a queue's page charts", () => {
   /* The docs section's "| Metric | Shown as | Type |" rows. */
   function docsRows(displayName: string): Array<MessageQueueChartedMetricRow> {
@@ -494,8 +580,9 @@ describe("what a queue's page charts", () => {
       );
     }
     if (rows.length > 0) {
+      // Every row but a counter's: MessageQueueBrokerHealth.test holds it.
       expect(markdown).toContain(
-        "under **Broker health**, and each gauge has **Create monitor**",
+        "under **Broker health**, and each gauge and each count per period has **Create monitor**",
       );
     } else {
       expect(markdown).toContain(
@@ -623,6 +710,48 @@ describe("the product guide", () => {
     );
     // The awsfirehose pointer.
     expect(QUEUES_DOC).toContain("\n### Amazon SQS\n");
+  });
+
+  test("every docs link any guide carries lands on a heading of the docs page", () => {
+    const slugs: Set<string> = new Set<string>();
+    for (const line of QUEUES_DOC.split("\n")) {
+      const heading: RegExpMatchArray | null =
+        line.match(/^#{1,6}\s+(.+?)\s*$/);
+      if (heading) {
+        slugs.add(slugify(heading[1]!));
+      }
+    }
+
+    const guides: Array<string> = SYSTEMS.flatMap(
+      (system: string): Array<string> => {
+        return [
+          getMessageQueueSystemGuideMarkdown(VARS, system),
+          queueGuide(sampleQueue(system)),
+        ];
+      },
+    );
+    // A system outside the catalog links the list of supported ones.
+    guides.push(queueGuide({ system: "ibmmq", destination: "DEV.QUEUE.1" }));
+
+    const anchors: Set<string> = new Set<string>();
+    for (const markdown of guides) {
+      for (const link of markdown.matchAll(
+        /\]\(\/docs\/telemetry\/queues#([^)\s]*)\)/g,
+      )) {
+        anchors.add(link[1]!);
+      }
+    }
+
+    // The system sections, the fallback, the Metric Stream and Late metrics.
+    expect(anchors).toContain("amazon-sqs");
+    expect(anchors).toContain("alerting");
+    expect(anchors).toContain(MESSAGE_QUEUE_SUPPORTED_SYSTEMS_ANCHOR);
+    for (const anchor of anchors) {
+      expect({ anchor, resolves: slugs.has(anchor) }).toEqual({
+        anchor,
+        resolves: true,
+      });
+    }
   });
 
   test("the picker's systems are the catalog's, alphabetical", () => {
@@ -935,7 +1064,7 @@ describe("broker metrics are promised only where they reach the queue", () => {
       expect(markdown).not.toContain("the broker's own metrics");
       expect(markdown).not.toContain("The queue's Overview charts these");
       expect(markdown).toContain(
-        "This queue has no namespace, so Azure Monitor's metrics never reach it: they chart under **Broker health** on the same destination's queue in their namespace, where each gauge has **Create monitor**.",
+        "This queue has no namespace, so Azure Monitor's metrics never reach it: they chart under **Broker health** on the same destination's queue in their namespace, where each gauge and each count per period has **Create monitor**.",
       );
       // The table still says what that namespaced queue charts.
       for (const row of getMessageQueueChartedMetricRows(system)) {

@@ -12,6 +12,7 @@ import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementG
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import {
   DiscoveredMessageQueue,
+  MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS,
   MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES,
   MESSAGE_QUEUE_LATE_METRIC_MINUTES,
   MESSAGE_QUEUE_LATE_METRIC_NAMES,
@@ -48,6 +49,11 @@ import {
   SPAN_FIXTURES,
   toStoredKind,
 } from "Common/Tests/Types/MessageQueue/MessagingTelemetryFixtures";
+import {
+  StoredSpan,
+  spanQueryGroupKey,
+  spanQueryRowGroupKey,
+} from "Common/Tests/Server/Utils/Telemetry/MessageQueueSpanQueryTwin";
 import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
 import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
 import TracePipelineProcessorType, {
@@ -89,7 +95,16 @@ import {
  *   2. temporary, generated, SERVER and non-messaging telemetry names none;
  *   3. the spans and datapoints counted per queue are the ones stamped with
  *      its key;
- *   4. nothing per instance is grouped on: twelve pods' spans are one row.
+ *   4. nothing per instance is grouped on: twelve pods' spans are one row;
+ *   5. values that vary per message are folded exactly as the query's
+ *      TypeScript twin says (ClickHouse's groups are the twin's, over every
+ *      stored span), so five million acknowledgement and inbox subjects in
+ *      a window are no group at all;
+ *   6. over its row cap, every messaging system and every metric keeps its
+ *      share: a busy source never crowds out a quiet one, and rows that tie
+ *      are cut differently every run, so every queue is sighted;
+ *   7. a query that runs out of time fails with ClickHouse's own timeout
+ *      error — where a 'break' would answer with no rows at all.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -146,6 +161,17 @@ const CORPUS_PROJECT_ID: string = "5d6e7f80-9a1b-4c2d-8e3f-4a5b6c7d8e9f";
 const OTHER_PROJECT_ID: string = "0b1c2d3e-4f50-4617-8829-3a4b5c6d7e8f";
 const GAUGE_ONLY_PROJECT_ID: string = "1c2d3e4f-5061-4728-9a3b-4c5d6e7f8091";
 const LATE_ONLY_PROJECT_ID: string = "2d3e4f50-6172-4839-8a4b-5c6d7e8f9012";
+// Spans whose values vary per message (PER_MESSAGE_SPANS).
+const PER_MESSAGE_PROJECT_ID: string = "3e4f5061-7283-4a4b-9c5d-6e7f80910a1b";
+/*
+ * Projects the row-cap tests fill themselves, after every other test has
+ * read its own (the project scan test lists the metric projects exactly).
+ */
+const FLOOD_PROJECT_ID: string = "4f506172-8394-4b5c-8d6e-7f8091a2b3c4";
+const TIED_PROJECT_ID: string = "50617283-94a5-4c6d-9e7f-8091a2b3c4d5";
+const CROWDED_PROJECT_ID: string = "61728394-a5b6-4d7e-8f90-91a2b3c4d5e6";
+// Spans the time-limit tests fill in, too many to read in their limit.
+const SLOW_PROJECT_ID: string = "728394a5-b6c7-4e8f-9a01-a2b3c4d5e6f7";
 
 const now: number = Date.now();
 
@@ -559,6 +585,175 @@ const SCENARIO_SPANS: Array<QueueSpanFixture> = [
 ];
 
 /*
+ * ---- Spans whose values vary per message ------------------------------------
+ *
+ * Every span below carries a value of its own — an acknowledgement subject,
+ * a reply inbox, a routing key or a subject beside its template — which the
+ * resolver reads no more than a placeholder of, or names no queue for. The
+ * span query folds them (MessageQueueDiscovery, "Values that vary per
+ * message"), so each shape is one group, or none. The last few are the
+ * rules' edges, which must stay a group per value.
+ */
+const PER_MESSAGE_COPIES: number = 400;
+
+interface PerMessageSpanFixture extends QueueSpanFixture {
+  // The queue each copy names, where the copies name different ones.
+  queueOfCopy?: ((copy: number) => string | null) | undefined;
+}
+
+function perMessage(
+  label: string,
+  kind: SpanKind,
+  queue: string | null | ((copy: number) => string | null),
+  perCopy: (copy: number) => FixtureAttributes,
+  count: number = PER_MESSAGE_COPIES,
+): PerMessageSpanFixture {
+  return {
+    label: label,
+    kind: kind,
+    attributes: {},
+    count: count,
+    perCopy: perCopy,
+    projectId: PER_MESSAGE_PROJECT_ID,
+    queue: typeof queue === "function" ? null : queue,
+    queueOfCopy: typeof queue === "function" ? queue : undefined,
+  };
+}
+
+const PER_MESSAGE_SPANS: Array<PerMessageSpanFixture> = [
+  perMessage(
+    "JetStream acknowledgements named by their whole subject (the Java agent's default)",
+    SpanKind.Client,
+    null,
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "nats",
+        "messaging.destination.name": `$JS.ACK.ORDERS.billing.1.${copy}.${copy}.1727698123456789012.0`,
+        "messaging.operation": "settle",
+        "messaging.client_id": String(copy % 4),
+      };
+    },
+  ),
+  perMessage(
+    "JetStream acknowledgements beside their template",
+    SpanKind.Client,
+    null,
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "NATS",
+        "messaging.destination.template": "$JS.ACK",
+        "messaging.destination.name": `$JS.ACK.ORDERS.billing.1.${copy}.${copy}.1727698123456789012.0`,
+      };
+    },
+  ),
+  perMessage(
+    "NATS request inboxes (stable semconv: template, name and flag)",
+    SpanKind.Producer,
+    null,
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "nats",
+        "messaging.destination.template": "_INBOX.",
+        "messaging.destination.name": `_INBOX.k3qTbUQ4AkVZe9L1u8A${copy}`,
+        "messaging.destination.temporary": true,
+        "messaging.operation.type": "send",
+      };
+    },
+  ),
+  perMessage(
+    "RabbitMQ topic exchange publishes, the order id in the routing key",
+    SpanKind.Producer,
+    "rabbitmq||events",
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name": "events",
+        "messaging.rabbitmq.destination.routing_key": `order.${copy}.created`,
+        "messaging.operation": "publish",
+        "network.peer.address": "10.0.0.5",
+        "network.peer.port": 5672,
+      };
+    },
+  ),
+  perMessage(
+    "NATS subjects beside their template",
+    SpanKind.Producer,
+    "nats||orders.{id}",
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "nats",
+        "messaging.destination.template": "orders.{id}",
+        "messaging.destination.name": `orders.${copy}`,
+      };
+    },
+  ),
+  perMessage(
+    "Kafka reply topics named per request (templated by the resolver, folded by no rule)",
+    SpanKind.Producer,
+    "kafka||reply-{uuid}",
+    (copy: number): FixtureAttributes => {
+      return kafka(
+        `reply-7f1c2a9e-4b1d-4c3e-9f1a-${String(copy).padStart(12, "0")}`,
+      );
+    },
+    20,
+  ),
+  perMessage(
+    "RabbitMQ consumers' joined names, a routing key per message (folded by no rule)",
+    SpanKind.Consumer,
+    "rabbitmq||billing",
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name": `events:order.${copy}.created:billing`,
+        "messaging.rabbitmq.destination.routing_key": `order.${copy}.created`,
+        "messaging.operation.type": "process",
+      };
+    },
+    3,
+  ),
+  perMessage(
+    "RabbitMQ default exchange in upper case: its routing key is the queue",
+    SpanKind.Producer,
+    "rabbitmq||invoices",
+    (): FixtureAttributes => {
+      return {
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name": "AMQ.Default",
+        "messaging.rabbitmq.destination.routing_key": "invoices",
+      };
+    },
+    3,
+  ),
+  perMessage(
+    "A template that is only a no-break space: the names beside it stay",
+    SpanKind.Producer,
+    (copy: number): string => {
+      return `nats||orders.${copy}`;
+    },
+    (copy: number): FixtureAttributes => {
+      return {
+        "messaging.system": "nats",
+        "messaging.destination.template": String.fromCharCode(0xa0),
+        "messaging.destination.name": `orders.${copy}`,
+      };
+    },
+    3,
+  ),
+  perMessage(
+    "Kafka topics beside all of it",
+    SpanKind.Producer,
+    (copy: number): string => {
+      return `kafka||per-message-topic-${copy % 5}`;
+    },
+    (copy: number): FixtureAttributes => {
+      return kafka(`per-message-topic-${copy % 5}`);
+    },
+    20,
+  ),
+];
+
+/*
  * ---- Scenario datapoints ----------------------------------------------------
  */
 interface QueueMetricFixture {
@@ -957,7 +1152,7 @@ function buildSpans(): Array<InsertedSpan> {
     });
   };
 
-  for (const fixture of SCENARIO_SPANS) {
+  for (const fixture of [...SCENARIO_SPANS, ...PER_MESSAGE_SPANS]) {
     for (let copy: number = 0; copy < (fixture.count || 1); copy++) {
       add({
         label: fixture.label,
@@ -1147,6 +1342,15 @@ function addCount(
   count: number,
 ): void {
   counts.set(key, (counts.get(key) || 0) + count);
+}
+
+// The span query column that holds a resolver input key.
+function columnOf(key: string): string {
+  const index: number = MESSAGING_RESOLVER_INPUT_ATTRIBUTES.indexOf(key);
+  if (index < 0) {
+    throw new Error(`Not a span query column: ${key}`);
+  }
+  return getMessagingDiscoveryColumn(index);
 }
 
 function keyOf(projectId: string, queue: DiscoveredMessageQueue): string {
@@ -1369,6 +1573,10 @@ integration("Message queue discovery SQL against ClickHouse", () => {
       spanRows.set(projectId, await runSpanQuery(projectId, 5000));
       metricRows.set(projectId, await runMetricQuery(projectId, 5000));
     }
+    spanRows.set(
+      PER_MESSAGE_PROJECT_ID,
+      await runSpanQuery(PER_MESSAGE_PROJECT_ID, 5000),
+    );
   });
 
   afterAll(async (): Promise<void> => {
@@ -1540,13 +1748,19 @@ integration("Message queue discovery SQL against ClickHouse", () => {
     }
     expect(MESSAGING_RESOLVER_INPUT_ATTRIBUTES[4]).toBe("az.namespace");
 
-    // The flagged-temporary spans are read, and counted towards no queue.
+    /*
+     * The flagged-temporary spans are left out before grouping (the query's
+     * rule 1), and counted towards no queue.
+     */
     const orders: DiscoveredMessageQueue | undefined = merged.find(
       (queue: DiscoveredMessageQueue): boolean => {
         return queue.identifier === "kafka||orders";
       },
     );
     expect(orders?.spans?.count).toBe(12 + 5);
+    for (const row of spanRows.get(PROJECT_ID)!) {
+      expect(row[columnOf("messaging.destination.temporary")]).not.toBe("true");
+    }
   });
 
   test("spans whose kind a trace pipeline rewrote are found as ingest keyed them: any kind but SERVER, a missing one included", async () => {
@@ -1985,31 +2199,544 @@ integration("Message queue discovery SQL against ClickHouse", () => {
     );
   });
 
-  test("with a tight row cap, the busiest groups win", async () => {
+  test("the per-message fixtures name what they say, copy by copy", () => {
+    for (const fixture of PER_MESSAGE_SPANS) {
+      const stamped: Array<string | null> = spans
+        .filter((span: InsertedSpan): boolean => {
+          return span.label === fixture.label;
+        })
+        .map((span: InsertedSpan): string | null => {
+          return span.queueKey;
+        });
+      expect(stamped).toHaveLength(fixture.count || 1);
+      stamped.forEach((key: string | null, copy: number): void => {
+        const queue: string | null = fixture.queueOfCopy
+          ? fixture.queueOfCopy(copy)
+          : fixture.queue;
+        expect({ fixture: fixture.label, copy, key }).toEqual({
+          fixture: fixture.label,
+          copy,
+          key: queue ? queueKeyOf(PER_MESSAGE_PROJECT_ID, queue) : null,
+        });
+      });
+    }
+  });
+
+  test("ClickHouse groups the spans exactly as the query's TypeScript twin does, over every stored span", async () => {
+    for (const projectId of [
+      PROJECT_ID,
+      CORPUS_PROJECT_ID,
+      PER_MESSAGE_PROJECT_ID,
+    ]) {
+      const stored: Array<StoredSpan> = await query<StoredSpan>(
+        `SELECT kind, attributeKeys, attributes FROM oneuptime.${spanTable} WHERE projectId = '${projectId}' AND startTime >= ${START_SQL} AND startTime < ${END_SQL}`,
+      );
+      expect(stored.length).toBeGreaterThan(10);
+
+      const expected: Map<string, number> = new Map<string, number>();
+      for (const span of stored) {
+        const group: string | null = spanQueryGroupKey(span);
+        if (group !== null) {
+          addCount(expected, group, 1);
+        }
+      }
+      const found: Map<string, number> = new Map<string, number>();
+      for (const row of spanRows.get(projectId)!) {
+        addCount(found, spanQueryRowGroupKey(row), Number(row.spanCount));
+      }
+
+      expect({ projectId, groups: sorted(found) }).toEqual({
+        projectId,
+        groups: sorted(expected),
+      });
+    }
+  });
+
+  test("values that vary per message are one group per shape, or none — and every queue is the one ingest keyed", () => {
+    const rows: Array<MessagingSpanDiscoveryRow> = spanRows.get(
+      PER_MESSAGE_PROJECT_ID,
+    )!;
+    const withValue: (
+      key: string,
+      value: string,
+    ) => Array<MessagingSpanDiscoveryRow> = (
+      key: string,
+      value: string,
+    ): Array<MessagingSpanDiscoveryRow> => {
+      return rows.filter((row: MessagingSpanDiscoveryRow): boolean => {
+        return row[columnOf(key)] === value;
+      });
+    };
+
+    // No acknowledgement subject or inbox is read at all.
+    for (const row of rows) {
+      for (const key of [
+        "messaging.destination.template",
+        "messaging.destination.name",
+      ]) {
+        expect(String(row[columnOf(key)])).not.toMatch(/^(\$js\.ack|_inbox)/i);
+      }
+    }
+
+    // Routing keys beside their exchange: one row, the key blank.
+    const routed: Array<MessagingSpanDiscoveryRow> = withValue(
+      "messaging.destination.name",
+      "events",
+    );
+    expect(routed).toHaveLength(1);
+    expect(Number(routed[0]!.spanCount)).toBe(PER_MESSAGE_COPIES);
+    expect(
+      routed[0]![columnOf("messaging.rabbitmq.destination.routing_key")],
+    ).toBe("");
+
+    // Subjects beside their template: one row, the subject a placeholder.
+    const templated: Array<MessagingSpanDiscoveryRow> = withValue(
+      "messaging.destination.template",
+      "orders.{id}",
+    );
+    expect(templated).toHaveLength(1);
+    expect(Number(templated[0]!.spanCount)).toBe(PER_MESSAGE_COPIES);
+    expect(templated[0]![columnOf("messaging.destination.name")]).toBe("*");
+
+    /*
+     * The rules' edges stay a row per value — 20 reply topics, 3 joined
+     * names, 3 subjects beside a blank template — beside the default
+     * exchange's publishes and the 5 topics.
+     */
+    expect(rows).toHaveLength(1 + 1 + 20 + 3 + 3 + 1 + 5);
+
+    expect(
+      sorted(
+        foundCounts(
+          PER_MESSAGE_PROJECT_ID,
+          spanQueues(PER_MESSAGE_PROJECT_ID),
+          "spans",
+        ),
+      ),
+    ).toEqual(sorted(stampedSpanCounts(spans, PER_MESSAGE_PROJECT_ID)));
+  });
+
+  /*
+   * ---- The row cap ---------------------------------------------------------
+   *
+   * The tests below fill projects of their own with SQL, so they run last:
+   * the project scan test above lists every metric project exactly.
+   */
+  function windowSql(date: Date): string {
+    return `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(date)}', 9)`;
+  }
+
+  const retention: string = `toDateTime(toDate('${retentionDate}'))`;
+
+  async function insertSpans(data: {
+    projectId: string;
+    // Spans numbered from `from`.
+    from: number;
+    count: number;
+    // SQL over `number`: the attribute map and the stored kind.
+    attributesSql: string;
+    kindSql: string;
+    // SQL: the newest start; the spans reach five minutes further back.
+    newestSql: string;
+  }): Promise<void> {
+    await client.command({
+      query: `INSERT INTO ${database}.${spanTable} (projectId, primaryEntityId, primaryEntityType, startTime, endTime, startTimeUnixNano, endTimeUnixNano, durationUnixNano, traceId, spanId, parentSpanId, attributes, attributeKeys, entityKeys, statusCode, name, kind, retentionDate)
+        SELECT '${data.projectId}', 'service', 'OpenTelemetry', startedAt, startedAt, toUInt64(toUnixTimestamp64Nano(startedAt)), toUInt64(toUnixTimestamp64Nano(startedAt)), toInt128(1000000), concat('trace-', toString(number)), concat('span-', toString(number)), '', spanAttributes, mapKeys(spanAttributes), [], ${SpanStatus.Unset}, 'messaging', ${data.kindSql}, ${retention}
+        FROM (
+          SELECT number, ${data.newestSql} - toIntervalMillisecond(number % 300000) AS startedAt, ${data.attributesSql} AS spanAttributes
+          FROM numbers(${data.from}, ${data.count})
+        )`,
+    });
+  }
+
+  async function insertDatapoints(data: {
+    projectId: string;
+    count: number;
+    // SQL over `number`: the metric name and the attribute map.
+    nameSql: string;
+    attributesSql: string;
+    // SQL: the newest time; the datapoints reach a minute further back.
+    newestSql: string;
+  }): Promise<void> {
+    await client.command({
+      query: `INSERT INTO ${database}.${metricTable} (projectId, primaryEntityId, primaryEntityType, name, metricPointType, time, timeUnixNano, value, attributes, attributeKeys, entityKeys, retentionDate)
+        SELECT '${data.projectId}', 'service', 'OpenTelemetry', metricName, 'Gauge', takenAt, toUInt64(toUnixTimestamp64Nano(takenAt)), 1, pointAttributes, mapKeys(pointAttributes), [], ${retention}
+        FROM (
+          SELECT number, ${data.newestSql} - toIntervalSecond(number % 60) AS takenAt, ${data.nameSql} AS metricName, ${data.attributesSql} AS pointAttributes
+          FROM numbers(${data.count})
+        )`,
+    });
+  }
+
+  function identifiersOf(queues: Array<DiscoveredMessageQueue>): Array<string> {
+    return queues.map((queue: DiscoveredMessageQueue): string => {
+      return queue.identifier;
+    });
+  }
+
+  const SQS_CLOUDWATCH_METRICS: Array<string> = [
+    "amazonaws.com/aws/sqs/approximateageofoldestmessage",
+    "amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible",
+    "amazonaws.com/aws/sqs/approximatenumberofmessagesvisible",
+    "amazonaws.com/aws/sqs/numberofmessagesdeleted",
+    "amazonaws.com/aws/sqs/numberofmessagesreceived",
+    "amazonaws.com/aws/sqs/numberofmessagessent",
+  ];
+
+  // The SQS metric of datapoint `number`, `per` datapoints a metric.
+  function sqsMetricSql(per: number): string {
+    return `[${SQS_CLOUDWATCH_METRICS.map((name: string): string => {
+      return `'${name}'`;
+    }).join(", ")}][1 + intDiv(number, ${per})]`;
+  }
+
+  test("with a tight row cap, every messaging system keeps its busiest group, and a cap of one the busiest of all", async () => {
     const all: Array<MessagingSpanDiscoveryRow> = spanRows.get(PROJECT_ID)!;
+    const system: string = columnOf("messaging.system");
+    const busiest: Map<string, number> = new Map<string, number>();
+    for (const row of all) {
+      const share: string = String(row[system]);
+      busiest.set(
+        share,
+        Math.max(busiest.get(share) || 0, Number(row.spanCount)),
+      );
+    }
+    expect(busiest.size).toBeGreaterThan(5);
+
     const capped: Array<MessagingSpanDiscoveryRow> = await runSpanQuery(
       PROJECT_ID,
-      2,
+      busiest.size,
+    );
+    expect(
+      capped
+        .map((row: MessagingSpanDiscoveryRow): string => {
+          return `${String(row[system])} ${Number(row.spanCount)}`;
+        })
+        .sort(),
+    ).toEqual(
+      Array.from(busiest.entries())
+        .map((entry: [string, number]): string => {
+          return `${entry[0]} ${entry[1]}`;
+        })
+        .sort(),
     );
 
-    expect(capped).toHaveLength(2);
-    const counts: Array<number> = all
-      .map((row: MessagingSpanDiscoveryRow): number => {
-        return Number(row.spanCount);
-      })
-      .sort((a: number, b: number): number => {
-        return b - a;
-      });
-    expect(
-      capped.map((row: MessagingSpanDiscoveryRow): number => {
-        return Number(row.spanCount);
-      }),
-    ).toEqual(counts.slice(0, 2));
+    const one: Array<MessagingSpanDiscoveryRow> = await runSpanQuery(
+      PROJECT_ID,
+      1,
+    );
+    expect(one).toHaveLength(1);
+    expect(Number(one[0]!.spanCount)).toBe(
+      Math.max(...Array.from(busiest.values())),
+    );
 
     const cappedMetrics: Array<MessagingMetricDiscoveryRow> =
       await runMetricQuery(PROJECT_ID, 1);
     expect(cappedMetrics).toHaveLength(1);
   });
+
+  test("five million acknowledgement and inbox subjects in the window make no group at all: the topics beside them are all found", async () => {
+    const newest: string = windowSql(new Date(now - 60 * 1000));
+    const subject: string =
+      "concat('$JS.ACK.ORDERS.billing.1.', toString(number), '.', toString(number), '.1727698123456789012.', toString(number % 500))";
+    // A million at a time, so no insert outlasts the client's timeout.
+    for (let batch: number = 0; batch < 5; batch++) {
+      await insertSpans({
+        projectId: FLOOD_PROJECT_ID,
+        from: batch * 1000000,
+        count: 1000000,
+        attributesSql: `multiIf(
+          number % 5 < 2, map('messaging.system', 'nats', 'messaging.destination.name', ${subject}, 'messaging.operation', 'settle', 'messaging.client_id', toString(number % 8)),
+          number % 5 < 4, map('messaging.system', 'nats', 'messaging.destination.template', '$JS.ACK', 'messaging.destination.name', ${subject}),
+          map('messaging.system', 'nats', 'messaging.destination.template', '_INBOX.', 'messaging.destination.name', concat('_INBOX.', hex(cityHash64(number))), 'messaging.destination.temporary', 'true', 'messaging.operation.type', 'send'))`,
+        kindSql: "if(number % 5 < 4, 'SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER')",
+        newestSql: newest,
+      });
+    }
+    await insertSpans({
+      projectId: FLOOD_PROJECT_ID,
+      from: 0,
+      count: 2000,
+      attributesSql:
+        "map('messaging.system', 'kafka', 'messaging.destination.name', concat('flood-topic-', toString(number % 100)), 'messaging.operation', 'publish')",
+      kindSql: "'SPAN_KIND_PRODUCER'",
+      newestSql: newest,
+    });
+
+    // The cron's own cap (MAX_MESSAGE_QUEUE_SPAN_ROWS).
+    const rows: Array<MessagingSpanDiscoveryRow> = await runSpanQuery(
+      FLOOD_PROJECT_ID,
+      2000,
+    );
+
+    expect(rows).toHaveLength(100);
+    const expected: Array<string> = [];
+    for (let topic: number = 0; topic < 100; topic++) {
+      expected.push(`kafka||flood-topic-${topic} 20`);
+    }
+    expect(
+      resolveMessagingSpanDiscoveryRows(rows)
+        .map((queue: DiscoveredMessageQueue): string => {
+          return `${queue.identifier} ${queue.spans?.count}`;
+        })
+        .sort(),
+    ).toEqual(expected.sort());
+  }, 600000);
+
+  /*
+   * CloudWatch's datapoints of 300 SQS queues, six metrics each, two a
+   * series: every row ties. A cap of 600 keeps a third of them.
+   */
+  test("rows that tie are not cut the same way every run: each metric gets its share, and within a few runs every queue is sighted", async () => {
+    const end: Date = new Date("2026-01-15T10:00:00.000Z");
+    await insertDatapoints({
+      projectId: TIED_PROJECT_ID,
+      count: 300 * SQS_CLOUDWATCH_METRICS.length * 2,
+      nameSql: sqsMetricSql(600),
+      attributesSql:
+        "map('Dimensions.QueueName', concat('tied-', toString(intDiv(number, 2) % 300)), 'resource.cloud.provider', 'aws')",
+      newestSql: windowSql(new Date(end.getTime() - 2 * 60 * 1000)),
+    });
+
+    const runs: Array<Set<string>> = [];
+    for (let run: number = 0; run < 8; run++) {
+      // Every run's window holds every datapoint; only its start moves.
+      const rows: Array<MessagingMetricDiscoveryRow> =
+        await query<MessagingMetricDiscoveryRow>(
+          buildMessagingMetricDiscoverySql({
+            projectId: TIED_PROJECT_ID,
+            startSql: windowSql(
+              new Date(end.getTime() - (15 * 60 + run) * 1000),
+            ),
+            endSql: windowSql(end),
+            maxRows: 600,
+          }),
+        );
+      expect(rows).toHaveLength(600);
+
+      // Each metric gets its share of the cap.
+      const perMetric: Map<string, number> = new Map<string, number>();
+      for (const row of rows) {
+        addCount(perMetric, String(row.name), 1);
+      }
+      expect(sorted(perMetric)).toEqual(
+        SQS_CLOUDWATCH_METRICS.map((name: string): [string, number] => {
+          return [name, 100];
+        }),
+      );
+
+      runs.push(
+        new Set<string>(
+          identifiersOf(resolveMessagingMetricDiscoveryRows(rows)),
+        ),
+      );
+    }
+
+    const sighted: Set<string> = new Set<string>();
+    for (const queues of runs) {
+      expect(queues.size).toBeLessThan(300);
+      for (const identifier of queues) {
+        sighted.add(identifier);
+      }
+    }
+    expect(sighted.size).toBe(300);
+    // The sample moves: no two runs sight the same queues.
+    expect(
+      new Set<string>(
+        runs.map((queues: Set<string>): string => {
+          return Array.from(queues).sort().join(",");
+        }),
+      ).size,
+    ).toBe(runs.length);
+  });
+
+  test("a busy source never crowds out another: every metric's and every messaging system's queues keep their rows", async () => {
+    const newest: string = windowSql(new Date(now - 60 * 1000));
+    // 150 Kafka topics scraped every few seconds: ten datapoints a series…
+    await insertDatapoints({
+      projectId: CROWDED_PROJECT_ID,
+      count: 150 * 2 * 10,
+      nameSql:
+        "if(number < 1500, 'kafka.consumer_group.lag_sum', 'kafka.partition.current_offset')",
+      attributesSql:
+        "if(number < 1500, map('topic', concat('busy-', toString(number % 150)), 'group', 'billing'), map('topic', concat('busy-', toString(number % 150)), 'partition', toString(number % 3)))",
+      newestSql: newest,
+    });
+    // …and 20 SQS queues CloudWatch reports twice a series.
+    await insertDatapoints({
+      projectId: CROWDED_PROJECT_ID,
+      count: 20 * SQS_CLOUDWATCH_METRICS.length * 2,
+      nameSql: sqsMetricSql(40),
+      attributesSql:
+        "map('Dimensions.QueueName', concat('quiet-', toString(intDiv(number, 2) % 20)))",
+      newestSql: newest,
+    });
+
+    const metricRowsCapped: Array<MessagingMetricDiscoveryRow> =
+      await runMetricQuery(CROWDED_PROJECT_ID, 200);
+    expect(metricRowsCapped).toHaveLength(200);
+    const metricQueueIds: Array<string> = identifiersOf(
+      resolveMessagingMetricDiscoveryRows(metricRowsCapped),
+    );
+    for (let queue: number = 0; queue < 20; queue++) {
+      expect(metricQueueIds).toContain(`aws_sqs||quiet-${queue}`);
+    }
+    // The Kafka metrics share the rest: forty rows each.
+    const kafkaRows: Map<string, number> = new Map<string, number>();
+    for (const row of metricRowsCapped) {
+      if (String(row.name).startsWith("kafka.")) {
+        addCount(kafkaRows, String(row.name), 1);
+      }
+    }
+    expect(sorted(kafkaRows)).toEqual([
+      ["kafka.consumer_group.lag_sum", 40],
+      ["kafka.partition.current_offset", 40],
+    ]);
+
+    // Spans alike: 150 busy Kafka topics beside 20 quiet RabbitMQ queues.
+    await insertSpans({
+      projectId: CROWDED_PROJECT_ID,
+      from: 0,
+      count: 150 * 6,
+      attributesSql:
+        "map('messaging.system', 'kafka', 'messaging.destination.name', concat('busy-', toString(number % 150)), 'messaging.operation', 'publish')",
+      kindSql: "'SPAN_KIND_PRODUCER'",
+      newestSql: newest,
+    });
+    await insertSpans({
+      projectId: CROWDED_PROJECT_ID,
+      from: 0,
+      count: 20 * 3,
+      attributesSql:
+        "map('messaging.system', 'rabbitmq', 'messaging.destination.name', concat('quiet-', toString(number % 20)), 'messaging.operation', 'receive')",
+      kindSql: "'SPAN_KIND_CONSUMER'",
+      newestSql: newest,
+    });
+    const spanRowsCapped: Array<MessagingSpanDiscoveryRow> = await runSpanQuery(
+      CROWDED_PROJECT_ID,
+      60,
+    );
+    expect(spanRowsCapped).toHaveLength(60);
+    const spanQueueIds: Array<string> = identifiersOf(
+      resolveMessagingSpanDiscoveryRows(spanRowsCapped),
+    );
+    for (let queue: number = 0; queue < 20; queue++) {
+      expect(spanQueueIds).toContain(`rabbitmq||quiet-${queue}`);
+    }
+    expect(
+      spanQueueIds.filter((identifier: string): boolean => {
+        return identifier.startsWith("kafka||");
+      }),
+    ).toHaveLength(40);
+  });
+
+  /*
+   * ---- The time limit ------------------------------------------------------
+   *
+   * Every queue query ends on the server at its own time limit, before the
+   * cron's client gives up on it (MessageQueueDiscovery, "The queue queries'
+   * settings"). Here two million spans, read on one thread, outlast a limit
+   * of a quarter of a second, which stands in for the queries' own.
+   */
+  const SHORT_LIMIT_SECONDS: number = 0.25;
+  let slowSpansInserted: Promise<void> | null = null;
+
+  function insertSlowSpans(): Promise<void> {
+    if (!slowSpansInserted) {
+      slowSpansInserted = (async (): Promise<void> => {
+        for (let batch: number = 0; batch < 2; batch++) {
+          await insertSpans({
+            projectId: SLOW_PROJECT_ID,
+            from: batch * 1000000,
+            count: 1000000,
+            attributesSql:
+              "map('messaging.system', 'kafka', 'messaging.destination.name', concat('slow-topic-', toString(number % 100)), 'messaging.operation', 'publish', 'messaging.client_id', toString(number % 50))",
+            kindSql: "'SPAN_KIND_PRODUCER'",
+            newestSql: windowSql(new Date(now - 60 * 1000)),
+          });
+        }
+      })();
+    }
+    return slowSpansInserted;
+  }
+
+  /*
+   * The span query over them as the cron sends it, but for the short limit
+   * (and, where given, another overflow mode).
+   */
+  function slowSpanSql(overflowMode?: "break" | undefined): string {
+    const sql: string = buildMessagingSpanDiscoverySql({
+      projectId: SLOW_PROJECT_ID,
+      startSql: START_SQL,
+      endSql: END_SQL,
+      maxRows: 2000,
+    });
+    const limit: string = `max_execution_time = ${MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS},`;
+    expect(sql).toContain(limit);
+    const slow: string = sql
+      .replace(`FROM oneuptime.${spanTable}`, `FROM ${database}.${spanTable}`)
+      .replace(limit, `max_execution_time = ${SHORT_LIMIT_SECONDS},`);
+    return overflowMode
+      ? slow.replace(
+          /timeout_overflow_mode = '[a-z]+'/,
+          `timeout_overflow_mode = '${overflowMode}'`,
+        )
+      : slow;
+  }
+
+  test("a queue query that runs out of time fails with ClickHouse's own timeout error", async () => {
+    await insertSlowSpans();
+    const sql: string = slowSpanSql();
+
+    // Read as the cron reads it: the query, then its rows.
+    let failure: unknown = null;
+    try {
+      const result: { json: () => Promise<unknown> } = await client.query({
+        query: sql,
+        format: "JSON",
+        clickhouse_settings: { max_threads: 1 },
+      });
+      await result.json();
+    } catch (err) {
+      failure = err;
+    }
+
+    expect(failure).toBeInstanceOf(Error);
+    expect({
+      code: (failure as { code?: unknown }).code,
+      timedOut: (failure as Error).message.includes("Timeout exceeded"),
+    }).toEqual({ code: "159", timedOut: true });
+  }, 600000);
+
+  /*
+   * Why the queries throw: on the ClickHouse the suite runs (26.7), a
+   * query broken off at its time limit reads spans and answers with an
+   * empty body — no rows, which the cron's client cannot even parse — not
+   * the groups of the part of the window it read.
+   */
+  test("…where a 'break' would return no rows at all, not the part of the window it read", async () => {
+    await insertSlowSpans();
+    const sql: string = slowSpanSql("break");
+    expect(sql).toContain("timeout_overflow_mode = 'break'");
+
+    const result: { text: () => Promise<string>; response_headers: unknown } =
+      await client.query({
+        query: sql,
+        format: "JSON",
+        clickhouse_settings: { max_threads: 1 },
+      });
+    const summary: { read_rows?: string; result_rows?: string } = JSON.parse(
+      String(
+        (result.response_headers as Record<string, unknown>)[
+          "x-clickhouse-summary"
+        ],
+      ),
+    ) as { read_rows?: string; result_rows?: string };
+
+    expect(await result.text()).toBe("");
+    expect(Number(summary.read_rows)).toBeGreaterThan(0);
+    expect(Number(summary.result_rows)).toBe(0);
+  }, 600000);
 });
 
 describe("Message queue discovery ClickHouse suite wiring", () => {

@@ -830,6 +830,86 @@ export const SPAN_FIXTURES: ReadonlyArray<SpanFixture> = [
       brokerAddress: "10.0.0.7:5672",
     }),
   },
+  {
+    /*
+     * RabbitMqMessageNameFormatter writes a generic type's argument after
+     * "--" in its own `Namespace:Type`: the Fault<T> MassTransit publishes on
+     * a consumer fault goes to an exchange with two colons, still one name.
+     */
+    name: "MassTransit publish of a Fault<T> (a generic type's exchange: two colons, no routing key)",
+    kind: PRODUCER,
+    attributes: {
+      "messaging.system": "rabbitmq",
+      "messaging.operation": "send",
+      "messaging.destination.name":
+        "MassTransit:Fault--MyApp.Contracts:OrderSubmitted--",
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "MassTransit:Fault--MyApp.Contracts:OrderSubmitted--",
+      direction: "publish",
+    }),
+  },
+  {
+    name: ".NET RabbitMQ.Client v7 deliver from a MassTransit Fault<T> exchange (the exchange alone)",
+    kind: CONSUMER,
+    attributes: {
+      "messaging.system": "rabbitmq",
+      "network.protocol.name": "amqp",
+      "network.protocol.version": "0.9.1",
+      "messaging.operation.type": "process",
+      "messaging.operation.name": "deliver",
+      "messaging.destination.name":
+        "MassTransit:Fault--MyApp.Contracts:OrderSubmitted--",
+      "messaging.rabbitmq.destination.routing_key": "",
+      "messaging.rabbitmq.delivery_tag": 11,
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "MassTransit:Fault--MyApp.Contracts:OrderSubmitted--",
+      direction: "consume",
+    }),
+  },
+  {
+    /*
+     * Semconv 1.30 on a consumer of an exchange named with a colon: the
+     * empty routing key is left out, and no routing-key attribute is set.
+     */
+    name: "Java agent RabbitMQ process (opt-in) from a MassTransit exchange: Namespace:Type:{queue}",
+    kind: CONSUMER,
+    attributes: {
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name":
+        "MyApp.Contracts:OrderSubmitted:billing-order-submitted",
+      "messaging.operation.type": "process",
+      "messaging.operation.name": "process",
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "billing-order-submitted",
+      direction: "consume",
+    }),
+  },
+  {
+    /*
+     * A responder answering a MassTransit request client: the response goes
+     * to the requester's bus endpoint, one per process
+     * (`{machine}_{process}_bus_{NewId}`).
+     */
+    name: ".NET RabbitMQ.Client v7 publish of a response to a MassTransit bus endpoint (one per process)",
+    kind: PRODUCER,
+    attributes: {
+      "messaging.system": "rabbitmq",
+      "network.protocol.name": "amqp",
+      "network.protocol.version": "0.9.1",
+      "messaging.operation.type": "send",
+      "messaging.operation.name": "publish",
+      "messaging.destination.name":
+        "ordersapi7d9f8c6b5xk2lq_OrdersApi_bus_kd4oyqbeynuojexybdxt7414fx",
+      "messaging.rabbitmq.destination.routing_key": "",
+    },
+    expected: null,
+  },
 
   // ---- JMS / Apache ActiveMQ -------------------------------------------------
   {
@@ -2462,6 +2542,18 @@ export const METRIC_FIXTURES: ReadonlyArray<MetricFixture> = [
     attributes: { ...RABBITMQ_RESOURCE },
     expected: RABBITMQ_ORDERS,
   },
+  {
+    // The receiver lists every queue: a bus endpoint per MassTransit process.
+    name: "rabbitmq queue depth of a MassTransit bus endpoint (one per process)",
+    metricName: "rabbitmq.message.current",
+    attributes: {
+      ...RABBITMQ_RESOURCE,
+      "resource.rabbitmq.queue.name":
+        "ordersapi7d9f8c6b5xk2lq_OrdersApi_bus_kd4oyqbeynuojexybdxt7414fx",
+      state: "ready",
+    },
+    expected: null,
+  },
 
   // Apache ActiveMQ — JMX Scraper (live capture against ActiveMQ Classic 6.2.0).
   {
@@ -2602,6 +2694,16 @@ export const METRIC_FIXTURES: ReadonlyArray<MetricFixture> = [
     },
     expected: SERVICE_BUS_ORDERS,
   },
+  {
+    name: "Azure Monitor ActiveMessages of a MassTransit bus endpoint (one per process)",
+    metricName: "azure_activemessages_average",
+    attributes: {
+      ...SERVICE_BUS_ENTITY,
+      metadata_entityname:
+        "billingworker02_BillingWorker_bus_7d4yysgeydaos4hybdxt76a6rx",
+    },
+    expected: null,
+  },
 
   // Azure Event Hubs — azure_monitor.
   {
@@ -2678,6 +2780,18 @@ export const METRIC_FIXTURES: ReadonlyArray<MetricFixture> = [
     cloudWatchName: "NumberOfMessagesDeleted",
     direction: "consume",
   }),
+  {
+    name: "CloudWatch ApproximateNumberOfMessagesVisible of a MassTransit bus endpoint (one per process)",
+    metricName: "amazonaws.com/aws/sqs/approximatenumberofmessagesvisible",
+    attributes: {
+      ...CLOUDWATCH_OTEL_RESOURCE,
+      Namespace: "AWS/SQS",
+      MetricName: "ApproximateNumberOfMessagesVisible",
+      "Dimensions.QueueName":
+        "ip10012034euwe_ContosoBillingWorker_bus_68pobtdryda85beybdxt68ffbx",
+    },
+    expected: null,
+  },
 
   // Amazon SNS — both CloudWatch shapes.
   ...snsFixtures({
@@ -2959,6 +3073,89 @@ export const METRIC_FIXTURES: ReadonlyArray<MetricFixture> = [
       brokerScope: "ingest-prod",
       brokerAddress: EVENT_HUBS_HOST,
       direction: "publish",
+    }),
+  },
+  /*
+   * The Java agent's opt-in RabbitMQ client metrics, as MessagingMetricsAdvice
+   * keeps them: the span's joined name and its operation name, never the
+   * routing key, and the operation type on messaging.client.operation.duration
+   * alone. Each keys the queue of the opt-in span above that it measures.
+   */
+  {
+    name: "Java agent opt-in messaging.client.sent.messages of a RabbitMQ publish ({exchange}:{routing key})",
+    metricName: "messaging.client.sent.messages",
+    attributes: {
+      "messaging.operation.name": "publish",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "direct_logs:warning",
+      "server.address": "rabbit.prod",
+      "server.port": 5672,
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "direct_logs",
+      direction: "publish",
+      brokerAddress: "rabbit.prod:5672",
+    }),
+  },
+  {
+    name: "Java agent opt-in messaging.client.operation.duration of a RabbitMQ publish ({exchange}:{routing key})",
+    metricName: "messaging.client.operation.duration",
+    attributes: {
+      "messaging.operation.name": "publish",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "direct_logs:warning",
+      "messaging.operation.type": "send",
+      "server.address": "rabbit.prod",
+      "server.port": 5672,
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "direct_logs",
+      direction: "publish",
+      brokerAddress: "rabbit.prod:5672",
+    }),
+  },
+  {
+    name: "Java agent opt-in messaging.client.consumed.messages of a RabbitMQ delivery ({exchange}:{routing key}:{queue})",
+    metricName: "messaging.client.consumed.messages",
+    attributes: {
+      "messaging.operation.name": "process",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "direct_logs:warning:warning_queue",
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "warning_queue",
+      direction: "consume",
+    }),
+  },
+  {
+    name: "Java agent opt-in messaging.process.duration of a RabbitMQ delivery ({exchange}:{routing key}, the routing key the queue)",
+    metricName: "messaging.process.duration",
+    attributes: {
+      "messaging.operation.name": "process",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "direct_logs:warning",
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "warning",
+      direction: "consume",
+    }),
+  },
+  {
+    name: "Java agent opt-in messaging.client.consumed.messages of a RabbitMQ delivery from a fanout exchange ({exchange}:{queue})",
+    metricName: "messaging.client.consumed.messages",
+    attributes: {
+      "messaging.operation.name": "process",
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "logs:logs-audit",
+    },
+    expected: destinationOf({
+      system: "rabbitmq",
+      destination: "logs-audit",
+      direction: "consume",
     }),
   },
   {

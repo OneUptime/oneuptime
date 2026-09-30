@@ -2,9 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
-import MessageQueue, {
-  getMessageQueueDiscoverySourceLabel,
-} from "Common/Models/DatabaseModels/MessageQueue";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import MessageQueueOwnerTeam from "Common/Models/DatabaseModels/MessageQueueOwnerTeam";
 import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
@@ -30,7 +28,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { FilterChipDropdownOption } from "../../Components/ResourceOwners/FilterChipDropdownTypes";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -42,18 +43,28 @@ import MessageQueueDocumentationCard from "./Utils/MessageQueueDocumentationCard
 import {
   MESSAGE_QUEUE_DESTINATION_DESCRIPTION,
   MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
+  MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION,
+  MESSAGE_QUEUE_OTHER_SYSTEM_FIELD,
+  MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
   MessageQueueBrokerLabel,
   MessageQueueOption,
   getMessageQueueBrokerLabel,
+  getMessageQueueCreateSystemOptions,
   getMessageQueueDestinationHint,
+  getMessageQueueDiscoveryLabel,
   getMessageQueueDiscoverySourceOptions,
+  getMessageQueueFormSystem,
   getMessageQueueLastSeenText,
   getMessageQueueNamespaceHint,
+  getMessageQueueOtherSystemHint,
+  getMessageQueueSystemFacetOptions,
   getMessageQueueSystemLabel,
   getMessagingSystemOptions,
   isNamespaceScopedMessagingSystem,
+  toMessageQueueManualInput,
   validateMessageQueueDestination,
   validateMessageQueueNamespace,
+  validateMessageQueueOtherSystem,
 } from "./Utils/MessageQueuePresentation";
 
 /*
@@ -67,9 +78,52 @@ export const MESSAGE_QUEUE_NAME_COLUMN_MAX_WIDTH_CLASS: string =
 export const MESSAGE_QUEUE_BROKER_COLUMN_MAX_WIDTH_CLASS: string =
   "max-w-[12rem]";
 
-const SYSTEM_OPTIONS: Array<MessageQueueOption> = getMessagingSystemOptions();
+// The create form's System dropdown: the catalog, then "Other".
+const CREATE_SYSTEM_OPTIONS: Array<MessageQueueOption> =
+  getMessageQueueCreateSystemOptions();
 const DISCOVERY_SOURCE_OPTIONS: Array<MessageQueueOption> =
   getMessageQueueDiscoverySourceOptions();
+
+/**
+ * The System facet's options: the catalog's systems, then every system
+ * outside it that one of the project's live queues has — a long-tail
+ * broker's spans create queues under the value they report, and those
+ * queues must be filterable too. Only the rows of such systems are read, and
+ * only live ones, as the table it filters lists (isArchived false): a system
+ * whose queues are all archived would filter the table down to nothing. On a
+ * failed read the catalog alone, as before.
+ */
+export async function fetchMessageQueueSystemFacetOptions(): Promise<
+  Array<FilterChipDropdownOption>
+> {
+  try {
+    const result: ListResult<MessageQueue> =
+      await ModelAPI.getList<MessageQueue>({
+        modelType: MessageQueue,
+        query: {
+          isArchived: false,
+          messagingSystem: new IncludesNone(
+            getMessagingSystemOptions().map(
+              (option: MessageQueueOption): string => {
+                return option.value;
+              },
+            ),
+          ),
+        },
+        select: { messagingSystem: true },
+        sort: {},
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
+    return getMessageQueueSystemFacetOptions(
+      (result.data || []).map((item: MessageQueue): string => {
+        return (item.messagingSystem as string) || "";
+      }),
+    );
+  } catch {
+    return getMessagingSystemOptions();
+  }
+}
 
 /*
  * The create form's hints, rendered under their fields: how a pasted URL /
@@ -115,7 +169,7 @@ const MessageQueues: FunctionComponent<
       label: "System",
       icon: IconProp.QueueList,
       isMultiSelect: true,
-      options: SYSTEM_OPTIONS,
+      fetchOptions: fetchMessageQueueSystemFacetOptions,
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
@@ -196,16 +250,25 @@ const MessageQueues: FunctionComponent<
         onBeforeCreate={(
           item: MessageQueue,
           _miscDataProps: JSONObject,
+          formValues?: JSONObject,
         ): Promise<MessageQueue> => {
           /*
            * The server derives everything that makes the row findable — the
            * normalized system and destination, the Azure namespace, the
            * identifier, the "manual" source and a default name — from what
-           * is typed here. Only trim, drop a namespace the chosen system
+           * is typed here. Only put the typed system in for "Other
+           * messaging system", trim, drop a namespace the chosen system
            * does not use (a Service Bus namespace left behind after
            * switching to Kafka), and leave an empty name out so the server
            * names the queue after its destination like a discovered one.
            */
+          if (item.messagingSystem === MESSAGE_QUEUE_OTHER_SYSTEM_VALUE) {
+            item.messagingSystem = getMessageQueueFormSystem({
+              messagingSystem: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+              [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]:
+                formValues?.[MESSAGE_QUEUE_OTHER_SYSTEM_FIELD],
+            });
+          }
           item.destinationName = String(item.destinationName || "").trim();
           if (isNamespaceScopedMessagingSystem(item.messagingSystem)) {
             item.brokerScope = String(item.brokerScope || "").trim();
@@ -253,11 +316,57 @@ const MessageQueues: FunctionComponent<
             },
             title: "Messaging System",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: SYSTEM_OPTIONS,
+            dropdownOptions: CREATE_SYSTEM_OPTIONS,
             required: true,
             placeholder: "Select a messaging system",
             description:
-              "The broker this queue lives on. Your spans name it in messaging.system.",
+              "The broker this queue lives on. Your spans name it in messaging.system. Not in the list? Choose Other messaging system and type that value.",
+          },
+          {
+            /*
+             * Not a MessageQueue column: the messaging.system value of a
+             * broker the list does not know, which onBeforeCreate puts in
+             * messagingSystem. overrideField keeps it out of the payload,
+             * and showEvenIfPermissionDoesNotExist is needed because there
+             * is no column to derive the field's permissions from.
+             */
+            overrideField: {
+              [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: true,
+            },
+            overrideFieldKey: MESSAGE_QUEUE_OTHER_SYSTEM_FIELD,
+            showEvenIfPermissionDoesNotExist: true,
+            title: "messaging.system Value",
+            fieldType: FormFieldSchemaType.Text,
+            showIf: (values: FormValues<MessageQueue>): boolean => {
+              return (
+                values.messagingSystem === MESSAGE_QUEUE_OTHER_SYSTEM_VALUE
+              );
+            },
+            required: (values: FormValues<MessageQueue>): boolean => {
+              return (
+                values.messagingSystem === MESSAGE_QUEUE_OTHER_SYSTEM_VALUE
+              );
+            },
+            placeholder: "mqtt",
+            description: MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION,
+            // The server's own check, so a refusal is explained before sending.
+            customValidation: (
+              values: FormValues<MessageQueue>,
+            ): string | null => {
+              return validateMessageQueueOtherSystem(
+                values as Record<string, unknown>,
+              );
+            },
+            getFooterElement: (
+              values: FormValues<MessageQueue>,
+            ): ReactElement | undefined => {
+              return renderHint(
+                getMessageQueueOtherSystemHint(
+                  values as Record<string, unknown>,
+                ),
+                "message-queue-other-system-hint",
+              );
+            },
           },
           {
             field: {
@@ -276,13 +385,17 @@ const MessageQueues: FunctionComponent<
             customValidation: (
               values: FormValues<MessageQueue>,
             ): string | null => {
-              return validateMessageQueueDestination(values);
+              return validateMessageQueueDestination(
+                toMessageQueueManualInput(values as Record<string, unknown>),
+              );
             },
             getFooterElement: (
               values: FormValues<MessageQueue>,
             ): ReactElement | undefined => {
               return renderHint(
-                getMessageQueueDestinationHint(values),
+                getMessageQueueDestinationHint(
+                  toMessageQueueManualInput(values as Record<string, unknown>),
+                ),
                 "message-queue-destination-hint",
               );
             },
@@ -295,7 +408,9 @@ const MessageQueues: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             // Only Azure Service Bus and Event Hubs key a queue on its namespace.
             showIf: (values: FormValues<MessageQueue>): boolean => {
-              return isNamespaceScopedMessagingSystem(values.messagingSystem);
+              return isNamespaceScopedMessagingSystem(
+                getMessageQueueFormSystem(values as Record<string, unknown>),
+              );
             },
             /*
              * Optional even for them: spans from the emulator or through a
@@ -309,13 +424,17 @@ const MessageQueues: FunctionComponent<
             customValidation: (
               values: FormValues<MessageQueue>,
             ): string | null => {
-              return validateMessageQueueNamespace(values);
+              return validateMessageQueueNamespace(
+                toMessageQueueManualInput(values as Record<string, unknown>),
+              );
             },
             getFooterElement: (
               values: FormValues<MessageQueue>,
             ): ReactElement | undefined => {
               return renderHint(
-                getMessageQueueNamespaceHint(values),
+                getMessageQueueNamespaceHint(
+                  toMessageQueueManualInput(values as Record<string, unknown>),
+                ),
                 "message-queue-namespace-hint",
               );
             },
@@ -463,7 +582,7 @@ const MessageQueues: FunctionComponent<
             getElement: (item: MessageQueue): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {getMessageQueueDiscoverySourceLabel(item.discoverySource)}
+                  {getMessageQueueDiscoveryLabel(item.discoverySource)}
                 </span>
               );
             },

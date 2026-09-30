@@ -38,9 +38,9 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import {
   MessageQueueIdentity,
   buildMessageQueueDisplayName,
-  buildMessageQueueIdentifier,
   toMessageQueueIdentity,
 } from "../../../Types/MessageQueue/MessageQueueIdentity";
+import { resolveManualMessageQueue as sharedResolveManualMessageQueue } from "../../../Types/MessageQueue/MessageQueueManualIdentity";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -53,10 +53,11 @@ import crypto from "crypto";
  * Pinned here, everything external mocked at its seam (no Postgres, no Redis):
  *
  *   - a MANUAL create through the real create pipeline, column permission
- *     check included: system normalized, destination normalized exactly as
- *     discovery normalizes a span's, identity computed on the system's
- *     family, discoverySource forced to manual, and a friendly refusal for
- *     every unusable value and for a duplicate;
+ *     check included: system normalized, destination normalized as
+ *     discovery normalizes it (a RabbitMQ queue's name taken whole, as its
+ *     broker reports it), identity computed on the system's family,
+ *     discoverySource forced to manual, and a friendly refusal for every
+ *     unusable value and for a duplicate;
  *   - findOrCreateByIdentity: lookup first, the system refined within its
  *     family (never back, never across), discovery's archive undone and a
  *     person's never, allowCreate=false and the budget never create, the
@@ -258,298 +259,15 @@ afterEach(() => {
  * ---------------------------------------------------------------------------
  * The identity of a queue a person types
  * ---------------------------------------------------------------------------
+ * Every system's normalization and refusal is pinned where the resolution
+ * lives, in the pure module the create form shares
+ * (Tests/Types/MessageQueue/MessageQueueManualIdentity.test.ts). Here: that
+ * the service hands its callers that same function, and applies it in
+ * onBeforeCreate (the manual create suite below).
  */
 describe("resolveManualMessageQueue", () => {
-  test.each([
-    // system, destination, scope -> system, destination, scope, identifier
-    [
-      "kafka",
-      "orders.created",
-      undefined,
-      "kafka",
-      "orders.created",
-      "",
-      "kafka||orders.created",
-    ],
-    // Casing is kept for display; the identity is canonical.
-    [
-      "kafka",
-      "  Orders.Created  ",
-      undefined,
-      "kafka",
-      "Orders.Created",
-      "",
-      "kafka||orders.created",
-    ],
-    // Aliases fold ("AmazonSQS" is how the Java agent up to 2.3 spells it).
-    [
-      "AmazonSQS",
-      "https://sqs.us-east-1.amazonaws.com/123456789012/orders",
-      undefined,
-      "aws_sqs",
-      "orders",
-      "",
-      "aws_sqs||orders",
-    ],
-    [" Kafka ", "orders", undefined, "kafka", "orders", "", "kafka||orders"],
-    // An SNS topic ARN keys by its name, like the span that published to it.
-    [
-      "aws.sns",
-      "arn:aws:sns:us-east-1:123456789012:order-events",
-      undefined,
-      "aws.sns",
-      "order-events",
-      "",
-      "aws.sns||order-events",
-    ],
-    [
-      "gcp_pubsub",
-      "projects/acme/topics/orders",
-      undefined,
-      "gcp_pubsub",
-      "orders",
-      "",
-      "gcp_pubsub||orders",
-    ],
-    // A Pulsar short name is the default tenant's persistent topic.
-    [
-      "pulsar",
-      "orders",
-      undefined,
-      "pulsar",
-      "persistent://public/default/orders",
-      "",
-      "pulsar||persistent://public/default/orders",
-    ],
-    [
-      "pulsar",
-      "persistent://acme/prod/orders-partition-3",
-      undefined,
-      "pulsar",
-      "persistent://acme/prod/orders",
-      "",
-      "pulsar||persistent://acme/prod/orders",
-    ],
-    // ActiveMQ keys on the JMS family, so its JMS clients' spans join it.
-    [
-      "activemq",
-      "queue://orders",
-      undefined,
-      "activemq",
-      "orders",
-      "",
-      "jms||orders",
-    ],
-    ["jms", "orders", undefined, "jms", "orders", "", "jms||orders"],
-    // A Service Bus namespace host is reduced to its namespace, a path to its entity.
-    [
-      "servicebus",
-      "orders/subscriptions/billing",
-      "orders-prod.servicebus.windows.net",
-      "servicebus",
-      "orders",
-      "orders-prod",
-      "servicebus|orders-prod|orders",
-    ],
-    [
-      "azure_servicebus",
-      "orders",
-      " Orders-Prod ",
-      "servicebus",
-      "orders",
-      "orders-prod",
-      "servicebus|orders-prod|orders",
-    ],
-    // A namespace-scoped entity whose namespace nobody named keys without one.
-    [
-      "servicebus",
-      "orders",
-      "",
-      "servicebus",
-      "orders",
-      "",
-      "servicebus||orders",
-    ],
-    [
-      "eventhubs",
-      "telemetry/consumergroups/$default",
-      "hub-ns",
-      "eventhubs",
-      "telemetry",
-      "hub-ns",
-      "eventhubs|hub-ns|telemetry",
-    ],
-    // A scope means nothing to Kafka: ignored, never refused.
-    [
-      "kafka",
-      "orders",
-      "ignored-scope",
-      "kafka",
-      "orders",
-      "",
-      "kafka||orders",
-    ],
-    [
-      "rabbitmq",
-      "orders",
-      undefined,
-      "rabbitmq",
-      "orders",
-      "",
-      "rabbitmq||orders",
-    ],
-    // UUIDs are templated, so per-request names key one queue.
-    [
-      "kafka",
-      "jobs-550e8400-e29b-41d4-a716-446655440000",
-      undefined,
-      "kafka",
-      "jobs-{uuid}",
-      "",
-      "kafka||jobs-{uuid}",
-    ],
-    // A long-tail broker is kept as it came.
-    [
-      "ibmmq",
-      "DEV.QUEUE.1",
-      undefined,
-      "ibmmq",
-      "DEV.QUEUE.1",
-      "",
-      "ibmmq||dev.queue.1",
-    ],
-    ["bullmq", "emails", undefined, "bullmq", "emails", "", "bullmq||emails"],
-  ])(
-    "%p %p (scope %p) -> %p %p %p",
-    (
-      system: string,
-      destination: string,
-      scope: string | undefined,
-      expectedSystem: string,
-      expectedDestination: string,
-      expectedScope: string,
-      expectedIdentifier: string,
-    ) => {
-      expect(
-        resolveManualMessageQueue({
-          messagingSystem: system,
-          destinationName: destination,
-          brokerScope: scope,
-        }),
-      ).toEqual({
-        system: expectedSystem,
-        destination: expectedDestination,
-        brokerScope: expectedScope,
-        queueIdentifier: expectedIdentifier,
-      });
-    },
-  );
-
-  test("builds the identifier the identity module builds for the same queue", () => {
-    const manual: any = resolveManualMessageQueue({
-      messagingSystem: "activemq",
-      destinationName: "orders",
-      brokerScope: undefined,
-    });
-
-    expect(manual.queueIdentifier).toBe(
-      buildMessageQueueIdentifier(
-        identityOf({ system: "activemq", destination: "orders" }),
-      ),
-    );
-  });
-
-  test.each([
-    [undefined, "Messaging system is required"],
-    ["", "Messaging system is required"],
-    ["   ", "Messaging system is required"],
-    [42, "Messaging system is required"],
-    ["my broker", `"my broker" is not a messaging system`],
-    ["kafka/prod", `"kafka/prod" is not a messaging system`],
-    ["spring_integration", "does not name a message broker"],
-    ["Spring_Integration", "does not name a message broker"],
-  ])("system %p is refused: %s", (system: unknown, message: string) => {
-    expect(() => {
-      resolveManualMessageQueue({
-        messagingSystem: system,
-        destinationName: "orders",
-        brokerScope: undefined,
-      });
-    }).toThrow(message);
-  });
-
-  test.each([
-    [undefined, "Destination is required"],
-    ["", "Destination is required"],
-    ["  ", "Destination is required"],
-    // RabbitMQ's server-named reply queues, a bare UUID, placeholders, lists.
-    ["amq.gen-JzTY20BRgKO-HjmUJj0wLg", "cannot be a queue"],
-    ["550e8400-e29b-41d4-a716-446655440000", "cannot be a queue"],
-    ["(temporary)", "cannot be a queue"],
-    ['["a","b"]', "cannot be a queue"],
-    ["orders\u0000", "cannot be a queue"],
-    ["x".repeat(256), "cannot be a queue"],
-  ])(
-    "RabbitMQ destination %p is refused: %s",
-    (destination: unknown, message: string) => {
-      expect(() => {
-        resolveManualMessageQueue({
-          messagingSystem: "rabbitmq",
-          destinationName: destination,
-          brokerScope: undefined,
-        });
-      }).toThrow(message);
-    },
-  );
-
-  test("a NATS inbox is refused - an inbox is a reply subject, not a queue", () => {
-    expect(() => {
-      resolveManualMessageQueue({
-        messagingSystem: "nats",
-        destinationName: "_INBOX.abc",
-        brokerScope: undefined,
-      });
-    }).toThrow(BadDataException);
-  });
-
-  test("a destination of exactly 255 characters is kept", () => {
-    const destination: string = "x".repeat(255);
-
-    expect(
-      resolveManualMessageQueue({
-        messagingSystem: "kafka",
-        destinationName: destination,
-        brokerScope: undefined,
-      }).destination,
-    ).toBe(destination);
-  });
-
-  test("a scope that cannot be an Azure namespace is refused for Service Bus", () => {
-    expect(() => {
-      resolveManualMessageQueue({
-        messagingSystem: "servicebus",
-        destinationName: "orders",
-        brokerScope: "my namespace",
-      });
-    }).toThrow(`"my namespace" is not an Azure namespace name`);
-  });
-
-  test("every refusal is a BadDataException that quotes at most 100 typed characters", () => {
-    let caught: unknown = null;
-
-    try {
-      resolveManualMessageQueue({
-        messagingSystem: "rabbitmq",
-        destinationName: `amq.gen-${"y".repeat(300)}`,
-        brokerScope: undefined,
-      });
-    } catch (error) {
-      caught = error;
-    }
-
-    expect(caught).toBeInstanceOf(BadDataException);
-    expect((caught as Error).message).toContain(`"amq.gen-${"y".repeat(92)}…"`);
-    expect((caught as Error).message).not.toContain("y".repeat(93));
+  test("is the shared module's, re-exported", () => {
+    expect(resolveManualMessageQueue).toBe(sharedResolveManualMessageQueue);
   });
 });
 
@@ -663,6 +381,63 @@ describe("MessageQueueService - manual create (real create pipeline)", () => {
     expect(created.destinationName).toBe("orders");
     expect(created.queueIdentifier).toBe("jms||orders");
   });
+
+  /*
+   * The rabbitmq receiver keys a queue's metrics on its exact name, and
+   * Hutch (`namespace:consumer`) and EasyNetQ (`Type, Assembly_sub`) put
+   * the separators of a span's joined RabbitMQ names in real queue names.
+   */
+  test.each([
+    ["myapp:billing:invoice_consumer"],
+    ["MyApp.Messages.OrderCreated, MyApp.Messages_billing"],
+  ])(
+    "a RabbitMQ queue %p is stored and looked up under its whole name",
+    async (queue: string) => {
+      const created: MessageQueue = await MessageQueueService.create(
+        manualRequest({ messagingSystem: "rabbitmq", destinationName: queue }),
+      );
+
+      const identifier: string = `rabbitmq||${queue.toLowerCase()}`;
+      expect(created.messagingSystem).toBe("rabbitmq");
+      expect(created.destinationName).toBe(queue);
+      expect(created.name).toBe(queue);
+      expect(created.queueIdentifier).toBe(identifier);
+      expect(findSameIdentity.mock.calls[0]![0].query.queueIdentifier).toBe(
+        identifier,
+      );
+    },
+  );
+
+  /*
+   * Split like a span's joined name, a Hutch queue was cut to its last
+   * part, and an EasyNetQ queue to its message type - so every subscription
+   * to one type was refused as the first one's queue.
+   */
+  test.each([
+    ["app:payments:dlq", "dlq"],
+    [
+      "MyApp.Messages.OrderCreated, MyApp.Messages_shipping",
+      "MyApp.Messages.OrderCreated",
+    ],
+  ])(
+    "RabbitMQ queue %p is not refused as the queue %p",
+    async (queue: string, cutName: string) => {
+      // A row keyed by the identifier the name was once cut down to.
+      const cutIdentifier: string = `rabbitmq||${cutName.toLowerCase()}`;
+      findSameIdentity.mockImplementation(async (input: any) => {
+        return input.query?.queueIdentifier === cutIdentifier
+          ? queueRow({ name: cutName, queueIdentifier: cutIdentifier })
+          : null;
+      });
+
+      const created: MessageQueue = await MessageQueueService.create(
+        manualRequest({ messagingSystem: "rabbitmq", destinationName: queue }),
+      );
+
+      expect(created.queueIdentifier).toBe(`rabbitmq||${queue.toLowerCase()}`);
+      expect(save).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test("a Service Bus queue carries its namespace in its identity and its column", async () => {
     const created: MessageQueue = await MessageQueueService.create(
@@ -796,6 +571,10 @@ describe("MessageQueueService - manual create (real create pipeline)", () => {
     [
       { messagingSystem: "rabbitmq", destinationName: "amq.gen-abc" },
       "cannot be a queue",
+    ],
+    [
+      { messagingSystem: "rabbitmq", destinationName: "amq.default" },
+      "is RabbitMQ's default exchange, not a queue",
     ],
     [
       {

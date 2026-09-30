@@ -9,12 +9,12 @@ import {
   MessageQueueBrokerMetricsTarget,
   canBrokerMetricsReachMessageQueue,
   getMessageQueueSystemLabel,
+  toMessageQueueDate,
 } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
 import { MESSAGE_QUEUE_DOCS_PATH } from "../../Pages/MessageQueue/Utils/DocumentationMarkdown";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import { getMessageQueueDiscoverySourceLabel } from "Common/Models/DatabaseModels/MessageQueue";
 import { MessageQueueMetricDescriptor } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   MessagingBrokerMetricsSource,
@@ -28,10 +28,11 @@ import {
  * has seen it lately, where its broker metrics come from when none have
  * arrived, and how a curated broker metric reads on a tile, a chart and a
  * Metrics row. Pure (no React, no API) so the wording and the arithmetic are
- * unit-tested without a renderer. What every Queues page shares — the "not
- * found" guard, the system and broker labels, and whether a system's broker
- * metrics can reach a queue (canBrokerMetricsReachMessageQueue, which the
- * Documentation tab's guide follows too) — lives in
+ * unit-tested without a renderer (MessageQueueOverviewPresentation.test).
+ * What every Queues page shares — the "not found" guard, the system, broker
+ * and discovery-source labels, the one parse of a row's dates, and whether a
+ * system's broker metrics can reach a queue (canBrokerMetricsReachMessageQueue,
+ * which the Documentation tab's guide follows too) — lives in
  * Pages/MessageQueue/Utils/MessageQueuePresentation, and the docs path in
  * Pages/MessageQueue/Utils/DocumentationMarkdown; this module imports them
  * rather than keeping copies.
@@ -48,10 +49,26 @@ import {
 // ---- liveness ------------------------------------------------------------
 
 /*
- * A queue counts as "seen recently" when a sighting landed inside this
- * window. Discovery (the service-dependency job) runs every 10 minutes over
- * the last 15 minutes of spans and broker metrics, so the window covers
- * three of its runs.
+ * When discovery (the service-dependency job, ComputeServiceDependencies)
+ * sights a queue, and so what lastSeenAt says. It runs every
+ * MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES and reads the last
+ * MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES of spans and broker metrics — but
+ * the last MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES of the cloud
+ * monitoring metrics (Amazon CloudWatch, Azure Monitor, Google Cloud
+ * Monitoring: MessageQueueDiscovery's MESSAGE_QUEUE_LATE_METRIC_MINUTES
+ * more), which are stored under the time they measured and arrive late. A
+ * sighting stamps lastSeenAt with the time of the run, not of the telemetry:
+ * lastSeenAt is when discovery last saw the queue, which can be up to a
+ * window (an hour, for a cloud metric) after the newest span or datapoint
+ * that named it.
+ */
+export const MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES: number = 10;
+export const MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES: number = 15;
+export const MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES: number = 60;
+
+/*
+ * A queue counts as "seen recently" when discovery sighted it within this
+ * window: three of its runs.
  */
 export const MESSAGE_QUEUE_LIVE_WINDOW_MINUTES: number = 30;
 
@@ -61,19 +78,11 @@ export enum MessageQueueLivenessStatus {
   NeverSeen = "never-seen",
 }
 
-function toValidDate(value: Date | string | null | undefined): Date | null {
-  if (!value) {
-    return null;
-  }
-  const date: Date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 export function getMessageQueueLivenessStatus(
   lastSeenAt: Date | string | null | undefined,
   now: Date = OneUptimeDate.getCurrentDate(),
 ): MessageQueueLivenessStatus {
-  const seenAt: Date | null = toValidDate(lastSeenAt);
+  const seenAt: Date | null = toMessageQueueDate(lastSeenAt);
   if (!seenAt) {
     return MessageQueueLivenessStatus.NeverSeen;
   }
@@ -112,17 +121,11 @@ export function getMessageQueueLivenessTone(
   }
 }
 
-// The pill's hover text: what "seen" means.
-export const MESSAGE_QUEUE_LIVENESS_DESCRIPTION: string = `Seen recently: the messaging spans of an instrumented application or a broker metric named this queue in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes.`;
-
-// ---- the row -------------------------------------------------------------
-
-/** "Application traces", "Broker metrics" or "Added manually". */
-export function getMessageQueueDiscoveryLabel(
-  source: string | null | undefined,
-): string {
-  return getMessageQueueDiscoverySourceLabel(source) || "Unknown";
-}
+/*
+ * The pill's hover text: what "seen" means — when discovery last found the
+ * queue, not when the telemetry that named it was produced.
+ */
+export const MESSAGE_QUEUE_LIVENESS_DESCRIPTION: string = `Seen recently: in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes, discovery found spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late.`;
 
 // ---- docs ------------------------------------------------------------------
 
@@ -284,7 +287,7 @@ export function getMessageQueueBrokerMetricsNoDataDescription(data: {
   lastReceivedAt: Date | string | null | undefined;
 }): string {
   const label: string = getMessageQueueSystemLabel(data.system);
-  const lastReceivedAt: Date | null = toValidDate(data.lastReceivedAt);
+  const lastReceivedAt: Date | null = toMessageQueueDate(data.lastReceivedAt);
   const since: string = lastReceivedAt
     ? ` The last one arrived ${OneUptimeDate.getDateAsLocalFormattedString(
         lastReceivedAt,

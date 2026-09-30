@@ -555,6 +555,54 @@ describe("a queue's spans and its broker metrics land on the same key", () => {
     ).toBe(submitted);
   });
 
+  test("RabbitMQ: MassTransit's Fault<T> exchanges are one queue each, never their message type's last segment", () => {
+    const send: (exchange: string) => string | null = (
+      exchange: string,
+    ): string | null => {
+      return spanKey(
+        {
+          "messaging.system": "rabbitmq",
+          "messaging.operation": "send",
+          "messaging.destination.name": exchange,
+        },
+        PRODUCER,
+      );
+    };
+    const billing: string | null = send(
+      "MassTransit:Fault--Billing.Contracts:SubmitOrder--",
+    );
+    const sales: string | null = send(
+      "MassTransit:Fault--Sales.Contracts:SubmitOrder--",
+    );
+    const jobCompleted: string | null = send(
+      "MassTransit.Contracts.JobService:JobCompleted--MyApp.Jobs:ConvertVideo--",
+    );
+    const jobFaulted: string | null = send(
+      "MassTransit:Fault--MyApp.Jobs:ConvertVideo--",
+    );
+    for (const key of [billing, sales, jobCompleted, jobFaulted]) {
+      expect(key).not.toBeNull();
+    }
+    expect(new Set([billing, sales, jobCompleted, jobFaulted]).size).toBe(4);
+    // Not the phantom queues the last segments would name.
+    expect(billing).not.toBe(send("SubmitOrder--"));
+    expect(jobFaulted).not.toBe(send("ConvertVideo--"));
+    // The .NET client's deliver of the fault names the same exchange.
+    expect(
+      spanKey(
+        {
+          "messaging.system": "rabbitmq",
+          "network.protocol.name": "amqp",
+          "messaging.operation.type": "process",
+          "messaging.destination.name":
+            "MassTransit:Fault--Billing.Contracts:SubmitOrder--",
+          "messaging.rabbitmq.destination.routing_key": "",
+        },
+        CONSUMER,
+      ),
+    ).toBe(billing);
+  });
+
   test("Apache Kafka", () => {
     expectOneQueue(
       metricKey("kafka.consumer_group.lag_sum", {

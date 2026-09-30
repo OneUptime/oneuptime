@@ -9,24 +9,17 @@ import {
   MessagingSystemDescriptor,
   getMessagingBrokerScope,
   getMessagingSystemDisplayName,
-  isExcludedMessagingSystem,
   normalizeMessagingSystem,
 } from "Common/Types/MessageQueue/MessagingSystem";
 import {
   MessageQueueMetricDescriptor,
   getMessageQueueMetricsForSystem,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import { canonicalizeMessageQueueBrokerScope } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import {
-  MessageQueueIdentity,
-  buildMessageQueueIdentifier,
-  canonicalizeMessageQueueBrokerScope,
-  toMessageQueueIdentity,
-} from "Common/Types/MessageQueue/MessageQueueIdentity";
-import {
-  MESSAGING_SYSTEM_ATTRIBUTE,
-  ResolvedMessagingDestination,
-  resolveMessagingSpan,
-} from "Common/Types/MessageQueue/MessagingTelemetryResolver";
+  ManualMessageQueueCheck,
+  checkManualMessageQueue,
+} from "Common/Types/MessageQueue/MessageQueueManualIdentity";
 
 /*
  * How the Queues pages describe a MessageQueue row: the options of the
@@ -71,6 +64,156 @@ export function getMessagingSystemOptions(): Array<MessageQueueOption> {
   });
 }
 
+/*
+ * The create form's "Other messaging system" choice: a broker the catalog
+ * does not know (IBM MQ, MQTT, Solace, Sidekiq...), whose spans still create
+ * queues under the messaging.system value they report — so a queue of it can
+ * be added by hand too, under that same value, typed into the field this
+ * choice shows (MESSAGE_QUEUE_OTHER_SYSTEM_FIELD). The choice's own value is
+ * never a messaging.system: it is not well formed (it starts with "_"), so
+ * the server would refuse it if it were ever sent, and onBeforeCreate
+ * replaces it with the typed value first.
+ */
+export const MESSAGE_QUEUE_OTHER_SYSTEM_VALUE: string = "__other__";
+export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string =
+  "Other messaging system...";
+// The form-only field the typed messaging.system value is held in.
+export const MESSAGE_QUEUE_OTHER_SYSTEM_FIELD: string = "otherMessagingSystem";
+
+export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string =
+  'The messaging.system value your applications\' spans report for this broker, exactly as they report it: lowercase letters, digits, ".", "_" and "-", at most 64 characters.';
+
+/**
+ * The create form's System dropdown: every catalog system, then the "Other
+ * messaging system" choice for one it does not know.
+ */
+export function getMessageQueueCreateSystemOptions(): Array<MessageQueueOption> {
+  return [
+    ...getMessagingSystemOptions(),
+    {
+      label: MESSAGE_QUEUE_OTHER_SYSTEM_LABEL,
+      value: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+    },
+  ];
+}
+
+/**
+ * The list's System facet: every catalog system, then each system outside
+ * the catalog that a queue of the project has (`present`: the stored
+ * messagingSystem values), by its stored value — the value the facet
+ * filters on. Deduplicated, blanks and catalog systems (aliases included)
+ * left out.
+ */
+export function getMessageQueueSystemFacetOptions(
+  present: ReadonlyArray<string | null | undefined>,
+): Array<MessageQueueOption> {
+  const catalog: Array<MessageQueueOption> = getMessagingSystemOptions();
+  const known: Set<string> = new Set<string>(
+    catalog.map((option: MessageQueueOption): string => {
+      return option.value;
+    }),
+  );
+  const others: Set<string> = new Set<string>();
+  for (const value of present) {
+    const system: string = (value || "").toString().trim();
+    if (
+      !system ||
+      known.has(system) ||
+      known.has(normalizeMessagingSystem(system) || "")
+    ) {
+      continue;
+    }
+    others.add(system);
+  }
+  return [
+    ...catalog,
+    ...Array.from(others)
+      .sort((a: string, b: string): number => {
+        return a.localeCompare(b);
+      })
+      .map((system: string): MessageQueueOption => {
+        return { label: system, value: system };
+      }),
+  ];
+}
+
+/**
+ * The messaging system a create form's values name: the typed value when
+ * "Other messaging system" is chosen, else the chosen catalog system.
+ */
+export function getMessageQueueFormSystem(
+  values: Record<string, unknown> | null | undefined,
+): string {
+  const chosen: string = trimmedText(values?.["messagingSystem"]);
+  if (chosen === MESSAGE_QUEUE_OTHER_SYSTEM_VALUE) {
+    return trimmedText(values?.[MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]);
+  }
+  return chosen;
+}
+
+/** The create form's values as the manual create reads them. */
+export function toMessageQueueManualInput(
+  values: Record<string, unknown> | null | undefined,
+): MessageQueueManualInput {
+  return {
+    messagingSystem: getMessageQueueFormSystem(values),
+    destinationName: values?.["destinationName"],
+    brokerScope: values?.["brokerScope"],
+  };
+}
+
+/**
+ * The typed system's check ("Other messaging system" only): null for a
+ * value the server takes, otherwise its refusal, word for word. Nothing to
+ * say while it is empty (the field's own "required" says that).
+ */
+export function validateMessageQueueOtherSystem(
+  values: Record<string, unknown> | null | undefined,
+): string | null {
+  if (
+    trimmedText(values?.["messagingSystem"]) !==
+    MESSAGE_QUEUE_OTHER_SYSTEM_VALUE
+  ) {
+    return null;
+  }
+  const typed: string = getMessageQueueFormSystem(values);
+  if (!typed) {
+    return null;
+  }
+  const check: ManualMessageQueueCheck = checkManualMessageQueue({
+    messagingSystem: typed,
+  });
+  return check.refusal?.field === "messagingSystem"
+    ? check.refusal.message
+    : null;
+}
+
+/**
+ * The hint under the typed system when it will be stored differently: an
+ * alias of a catalog system ("AmazonSQS" is Amazon SQS, aws_sqs) or a value
+ * in another case ("MQTT" is stored "mqtt"). Null when stored as typed, or
+ * refused (the check above says why).
+ */
+export function getMessageQueueOtherSystemHint(
+  values: Record<string, unknown> | null | undefined,
+): string | null {
+  if (
+    trimmedText(values?.["messagingSystem"]) !==
+    MESSAGE_QUEUE_OTHER_SYSTEM_VALUE
+  ) {
+    return null;
+  }
+  const typed: string = getMessageQueueFormSystem(values);
+  const system: string | null = normalizeMessagingSystem(typed);
+  if (!typed || !system || system === typed) {
+    return null;
+  }
+  const displayName: string = getMessagingSystemDisplayName(system);
+  return displayName && displayName !== system
+    ? `Saved as "${system}", ${displayName}.`
+    : `Saved as "${system}".`;
+}
+
 /**
  * "Apache Kafka" for a known system (aliases accepted), the stored value
  * for a long-tail one ("ibmmq"), and "—" when the row has none. The list and
@@ -96,6 +239,18 @@ export function isNamespaceScopedMessagingSystem(system: unknown): boolean {
 }
 
 // ---- discovery source ---------------------------------------------------
+
+/**
+ * How a queue's discovery source reads — "Application traces", "Broker
+ * metrics", "Added manually" — and "Unknown" for a row without one. The
+ * list's "Discovered from" cell and the Overview (its chip and detail row)
+ * both name the source with it, so the two never disagree.
+ */
+export function getMessageQueueDiscoveryLabel(
+  source: string | null | undefined,
+): string {
+  return getMessageQueueDiscoverySourceLabel(source) || "Unknown";
+}
 
 /** Every discovery source, in the order the facet offers them. */
 export function getMessageQueueDiscoverySourceOptions(): Array<MessageQueueOption> {
@@ -195,6 +350,21 @@ export function canBrokerMetricsReachMessageQueue(
 // ---- last seen ------------------------------------------------------------
 
 /**
+ * A row's date column as a Date: a Date as it is, text (the API's JSON)
+ * parsed, and null for none or a value that is no date. The Last seen cell
+ * and the Overview's liveness read lastSeenAt through this one parse.
+ */
+export function toMessageQueueDate(
+  value: Date | string | null | undefined,
+): Date | null {
+  if (!value) {
+    return null;
+  }
+  const date: Date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
  * The Last seen cell: relative ("5 minutes ago"), with the full local date
  * and time on hover. "Never" for a queue nothing has seen yet — a queue
  * added by hand before its first span or broker metric.
@@ -205,9 +375,8 @@ export function getMessageQueueLastSeenText(
   if (!lastSeenAt) {
     return { text: "Never", title: "" };
   }
-  const date: Date =
-    lastSeenAt instanceof Date ? lastSeenAt : new Date(lastSeenAt);
-  if (Number.isNaN(date.getTime())) {
+  const date: Date | null = toMessageQueueDate(lastSeenAt);
+  if (!date) {
     return { text: "—", title: "" };
   }
   return {
@@ -280,16 +449,16 @@ export const MESSAGE_QUEUE_NAMESPACE_DESCRIPTION: string =
 /*
  * What MessageQueueService.onBeforeCreate will store for a manual create,
  * computed in the browser so the form can explain a refusal before it is
- * sent and show how a pasted URL or path will be read. It chains the SAME
- * catalog calls, in the same order, as the server's
- * resolveManualMessageQueue (Common/Server/Services/MessageQueueService.ts),
- * which the browser cannot import: the system normalized, the namespace
- * canonicalized for a namespace-scoped system, the destination resolved
- * exactly as discovery resolves a span's (resolveMessagingSpan: URL / ARN /
- * path reduction, temporary and generated names refused, UUIDs templated),
- * and the family-keyed identifier built. MessageQueuePresentation.test pins
- * it to the server function over a large input table, so the two cannot
- * drift. Null wherever the server would refuse.
+ * sent and show how a pasted URL or path will be read. It IS the server's
+ * check (checkManualMessageQueue, Common/Types/MessageQueue/
+ * MessageQueueManualIdentity, which the server's resolveManualMessageQueue
+ * applies): the system normalized, the namespace canonicalized for a
+ * namespace-scoped system, the destination resolved as discovery resolves a
+ * span's (a RabbitMQ queue's name taken whole), and the family-keyed
+ * identifier built — so the form can never preview an identity the server
+ * does not store, nor quote a refusal it would not make. The check itself
+ * is tested in MessageQueueManualIdentity.test, and how the form reads it
+ * in MessageQueuePresentation.test. Null wherever the server would refuse.
  */
 export interface MessageQueueManualPreview {
   // The specific canonical system ("activemq").
@@ -314,62 +483,19 @@ function trimmedText(value: unknown): string {
 export function previewManualMessageQueue(
   input: MessageQueueManualInput | null | undefined,
 ): MessageQueueManualPreview | null {
-  const rawSystem: string = trimmedText(input?.messagingSystem);
-  if (!rawSystem || isExcludedMessagingSystem(rawSystem)) {
-    return null;
-  }
-
-  const system: string | null = normalizeMessagingSystem(rawSystem);
-  if (!system) {
-    return null;
-  }
-
-  const rawDestination: string = trimmedText(input?.destinationName);
-  if (!rawDestination) {
-    return null;
-  }
-
-  const brokerScope: string | null = canonicalizeMessageQueueBrokerScope(
-    system,
-    input?.brokerScope,
-  );
-  if (brokerScope === null) {
-    return null;
-  }
-
-  const resolved: ResolvedMessagingDestination | null = resolveMessagingSpan({
-    getAttribute: (key: string): unknown => {
-      if (key === MESSAGING_SYSTEM_ATTRIBUTE) {
-        return system;
-      }
-      if (key === "messaging.destination.name") {
-        return rawDestination;
-      }
-      return undefined;
-    },
-    kind: null,
+  const check: ManualMessageQueueCheck = checkManualMessageQueue({
+    messagingSystem: input?.messagingSystem,
+    destinationName: input?.destinationName,
+    brokerScope: input?.brokerScope,
   });
-  if (!resolved) {
+  if (!check.queue) {
     return null;
   }
-
-  const identity: MessageQueueIdentity | null = toMessageQueueIdentity({
-    system: resolved.system,
-    brokerScope: brokerScope,
-    destination: resolved.destination,
-  });
-  const queueIdentifier: string | null = identity
-    ? buildMessageQueueIdentifier(identity)
-    : null;
-  if (!identity || !queueIdentifier) {
-    return null;
-  }
-
   return {
-    system: resolved.system,
-    destination: resolved.destination,
-    brokerScope: identity.brokerScope,
-    queueIdentifier: queueIdentifier,
+    system: check.queue.system,
+    destination: check.queue.destination,
+    brokerScope: check.queue.brokerScope,
+    queueIdentifier: check.queue.queueIdentifier,
   };
 }
 
@@ -389,36 +515,38 @@ export function validateMessageQueueDestination(
   if (!system || !destination) {
     return null;
   }
-  if (
-    canonicalizeMessageQueueBrokerScope(system, values.brokerScope) === null
-  ) {
-    return null;
-  }
-  if (previewManualMessageQueue(values)) {
-    return null;
-  }
-  return `"${destination}" cannot be a queue: OneUptime never keeps a queue for a temporary, generated or placeholder destination (a reply queue, an inbox, a bare UUID), a list of names, a name with control characters or a name longer than 255 characters.`;
+  /*
+   * The server's refusal of the destination, word for word. A refused
+   * system or namespace is its own field's to explain.
+   */
+  const check: ManualMessageQueueCheck = checkManualMessageQueue({
+    messagingSystem: values.messagingSystem,
+    destinationName: values.destinationName,
+    brokerScope: values.brokerScope,
+  });
+  return check.refusal?.field === "destinationName"
+    ? check.refusal.message
+    : null;
 }
 
 /**
  * The create form's Namespace check (Service Bus / Event Hubs only): null
  * for an empty value (a queue without a namespace, as the emulator's and a
- * custom domain's spans key it) or a valid namespace or namespace host,
- * otherwise the server's explanation.
+ * custom domain's spans key it), a valid namespace or namespace host, or a
+ * system without namespaces; otherwise the server's refusal, word for word.
+ * The shared check judges the namespace before the destination, so it
+ * speaks while the destination is still empty. A refused system is its own
+ * field's to explain.
  */
 export function validateMessageQueueNamespace(
   values: MessageQueueManualInput,
 ): string | null {
-  const scope: string = trimmedText(values.brokerScope);
-  if (!scope || !isNamespaceScopedMessagingSystem(values.messagingSystem)) {
-    return null;
-  }
-  if (
-    canonicalizeMessageQueueBrokerScope(values.messagingSystem, scope) !== null
-  ) {
-    return null;
-  }
-  return `"${scope}" is not an Azure namespace name. Enter the namespace - the first part of <namespace>.servicebus.windows.net - or that whole host name.`;
+  const check: ManualMessageQueueCheck = checkManualMessageQueue({
+    messagingSystem: values.messagingSystem,
+    destinationName: values.destinationName,
+    brokerScope: values.brokerScope,
+  });
+  return check.refusal?.field === "brokerScope" ? check.refusal.message : null;
 }
 
 /**

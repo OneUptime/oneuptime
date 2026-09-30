@@ -18,7 +18,7 @@ import {
 import {
   formatMessageQueueMetricAxisValue,
   getMessageQueueBrokerMetricChartTitle,
-} from "./MessageQueuePresentation";
+} from "./MessageQueueOverviewPresentation";
 import {
   MessageQueueMetricMonitorLink,
   buildMessageQueueMetricMonitorLink,

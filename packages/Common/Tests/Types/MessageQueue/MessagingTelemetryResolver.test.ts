@@ -1103,17 +1103,34 @@ describe("per-system destination normalization", () => {
   test.each([
     // A PRODUCER span: [destination, routing key, queue]
     ["direct_logs:warning", "warning", "direct_logs"],
-    ["direct_logs:warning:my_queue", "warning", "my_queue"],
+    /*
+     * A producer names no queue: semconv joins three parts on a consumer
+     * only, so a producer's three are one exchange name even when its
+     * routing key happens to be the middle one.
+     */
+    ["direct_logs:warning:my_queue", "warning", "direct_logs:warning:my_queue"],
     /*
      * Without its routing key, a producer span's name is ONE exchange name:
      * semconv requires the routing-key attribute whenever the key is
      * non-empty, so a joined {exchange}:{routing key} never comes without
-     * it. MassTransit names exchanges `Namespace:Type` and publishes to them
-     * with an empty routing key.
+     * it, and it joins three parts on a consumer only. MassTransit names
+     * exchanges `Namespace:Type` — a generic message type's, a Fault<T>'s
+     * among them, with two colons (RabbitMqMessageNameFormatter) — and
+     * publishes to them with an empty routing key.
      */
     ["direct_logs:warning", null, "direct_logs:warning"],
     ["MyApp.Contracts:OrderSubmitted", null, "MyApp.Contracts:OrderSubmitted"],
-    ["direct_logs:warning:my_queue", null, "my_queue"],
+    ["direct_logs:warning:my_queue", null, "direct_logs:warning:my_queue"],
+    [
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      null,
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    [
+      "Sample.Contracts:EntityChanged--Sample.Domain:Customer--",
+      null,
+      "Sample.Contracts:EntityChanged--Sample.Domain:Customer--",
+    ],
     ["amq.default:orders", "orders", "orders"],
     ["<default>:orders", null, "orders"],
     [":orders", null, "orders"],
@@ -1176,6 +1193,35 @@ describe("per-system destination normalization", () => {
     ["invoices:invoices-audit", "invoices", JOINING, "invoices-audit"],
     ["direct_logs:warning:my_queue", "warning", JOINING, "my_queue"],
     ["direct_logs:warning:my_queue", null, JOINING, "my_queue"],
+    /*
+     * An exchange named with a colon, its empty routing key left out: the
+     * Java agent's opt-in consumer of a MassTransit exchange.
+     */
+    ["MyApp.Contracts:OrderSubmitted:billing", null, JOINING, "billing"],
+    /*
+     * Three parts, no routing key, and not the joining conventions: one
+     * exchange name, as the .NET client and the Java agent's default mode
+     * name a MassTransit Fault<T> exchange.
+     */
+    [
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      null,
+      DOTNET_CLIENT,
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    [
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      null,
+      OLDER,
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    [
+      "direct_logs:warning:my_queue",
+      null,
+      OLDER,
+      "direct_logs:warning:my_queue",
+    ],
+    ["direct_logs:warning:my_queue", null, {}, "direct_logs:warning:my_queue"],
     // A routing key where the joined form cannot put it: one name.
     [
       "MyApp.Contracts:OrderSubmitted",
@@ -1287,6 +1333,19 @@ describe("per-system destination normalization", () => {
     ],
     // The routing key as the first part is no producer's joined name.
     ["invoices:x", "invoices", "invoices:x"],
+    /*
+     * Three parts on a producer are one exchange name, whatever the
+     * conventions and wherever the routing key is: semconv joins three on
+     * a consumer only.
+     */
+    [
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      null,
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    ["direct_logs:warning:my_queue", "warning", "direct_logs:warning:my_queue"],
+    // An empty third part leaves the two-part rule: the exchange.
+    ["orders.topic:orders.eu.created:", "orders.eu.created", "orders.topic"],
   ])(
     "RabbitMQ joined producer %s (routing key %s) → %s",
     (raw: string, routingKey: string | null, exchange: string) => {
@@ -1320,6 +1379,106 @@ describe("per-system destination normalization", () => {
         "messaging.rabbitmq.destination.routing_key": "",
       }),
     ).toBe("MyApp.Contracts:OrderSubmitted");
+  });
+
+  /*
+   * RabbitMqMessageNameFormatter writes a generic type's arguments after
+   * "--" in their own `Namespace:Type`, so the exchange of Fault<T> — which
+   * MassTransit publishes on every consumer fault, by default — and of the
+   * job service's JobStarted<T> / JobCompleted<T> holds two colons. Each is
+   * one exchange: its last segment names no queue, and cutting it there
+   * would merge every message type sharing that segment.
+   */
+  test("MassTransit: a generic message type's exchange, a Fault<T>'s among them, is kept whole by every instrumentation", () => {
+    const exchanges: Array<string> = [
+      "MassTransit:Fault--Billing.Contracts:SubmitOrder--",
+      "MassTransit:Fault--Sales.Contracts:SubmitOrder--",
+      "MassTransit:Fault--MyApp.Jobs:ConvertVideo--",
+      "MassTransit.Contracts.JobService:JobStarted--MyApp.Jobs:ConvertVideo--",
+      "MassTransit.Contracts.JobService:JobCompleted--MyApp.Jobs:ConvertVideo--",
+    ];
+    const shapes: Array<[string, FixtureAttributes, string]> = [
+      // MassTransit's own send span (StartSendActivity): no empty key tag.
+      ["MassTransit send", { "messaging.operation": "send" }, PRODUCER],
+      [
+        "RabbitMQ.Client v7 publish",
+        {
+          "messaging.operation.type": "send",
+          "messaging.operation.name": "publish",
+          "network.protocol.name": "amqp",
+          "messaging.rabbitmq.destination.routing_key": "",
+        },
+        PRODUCER,
+      ],
+      [
+        "RabbitMQ.Client v7 deliver",
+        {
+          "messaging.operation.type": "process",
+          "messaging.operation.name": "deliver",
+          "network.protocol.name": "amqp",
+          "messaging.rabbitmq.destination.routing_key": "",
+        },
+        CONSUMER,
+      ],
+      [
+        "Java agent default-mode process",
+        { "messaging.operation": "process" },
+        CONSUMER,
+      ],
+      // The Java agent's opt-in publish: the exchange alone, the key empty.
+      [
+        "Java agent opt-in publish",
+        {
+          "messaging.operation.type": "send",
+          "messaging.operation.name": "publish",
+        },
+        PRODUCER,
+      ],
+    ];
+    for (const [shape, conventions, kind] of shapes) {
+      const destinations: Array<string | null> = exchanges.map(
+        (exchange: string): string | null => {
+          return (
+            resolveSpan(
+              {
+                "messaging.system": "rabbitmq",
+                "messaging.destination.name": exchange,
+                ...conventions,
+              },
+              kind,
+            )?.destination ?? null
+          );
+        },
+      );
+      expect({ shape, destinations }).toEqual({
+        shape,
+        destinations: exchanges,
+      });
+    }
+  });
+
+  test("a three-part name on a span with no direction is one name", () => {
+    expect(
+      resolveSpan({
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name":
+          "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      })?.destination,
+    ).toBe("MassTransit:Fault--Sample.Contracts:SubmitOrder--");
+    expect(
+      resolveSpan({
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name": "direct_logs:warning:my_queue",
+      })?.destination,
+    ).toBe("direct_logs:warning:my_queue");
+    // Its routing key as the middle part does not make it a consumer's.
+    expect(
+      resolveSpan({
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name": "direct_logs:warning:my_queue",
+        "messaging.rabbitmq.destination.routing_key": "warning",
+      })?.destination,
+    ).toBe("direct_logs:warning:my_queue");
   });
 
   test("the pre-1.17 routing key key is read too", () => {
@@ -1609,6 +1768,164 @@ describe("temporary, anonymous and placeholder destinations", () => {
     expect(destinationFor("kafka", "user-[REDACTED]-events")).toBe(
       "user-[REDACTED]-events",
     );
+  });
+});
+
+/*
+ * MassTransit's per-process endpoints, named the way MassTransit names them:
+ * DefaultEndpointNameFormatter.GetTemporaryQueueName writes
+ * `{machine}_{process}_{tag}_{id}`, the machine and process names stripped
+ * to ASCII letters and digits (the machine cut to 14 characters when the
+ * whole would pass 72), and InstanceEndpointDefinition `Instance_{id}`; the
+ * {id} is a NewId in lowercase z-base-32 (these are ZBase32Formatter.Format
+ * of NewIds' formatter arrays).
+ */
+describe("MassTransit's per-process endpoints", () => {
+  // The pod ordersapi-7d9f8c6b5-xk2lq running OrdersApi: its bus endpoint.
+  const BUS_ENDPOINT: string =
+    "ordersapi7d9f8c6b5xk2lq_OrdersApi_bus_kd4oyqbeynuojexybdxt7414fx";
+  // The next pod of the same deployment: a new name.
+  const NEXT_POD_BUS_ENDPOINT: string =
+    "ordersapi7d9f8c6b5mnp4r_OrdersApi_bus_kawyb4raybmxtdeybdxt7hihry";
+  const INSTANCE_ENDPOINT: string = "Instance_axhob3yrynqhyacybdxt6jeg8m";
+
+  test.each([
+    ["rabbitmq", BUS_ENDPOINT, true],
+    ["rabbitmq", NEXT_POD_BUS_ENDPOINT, true],
+    // TemporaryEndpointDefinition's default tag, on a Windows host.
+    [
+      "rabbitmq",
+      "BILLINGWORKER02_dotnet_endpoint_7d4yysgeydaos4hybdxt76a6rx",
+      true,
+    ],
+    // ConnectResponseEndpoint.
+    [
+      "rabbitmq",
+      "ordersapi7d9f8c6b5xk2lq_OrdersApi_response_3rfybnfaybu7a1yybdxt6yhynm",
+      true,
+    ],
+    // A SignalR hub's endpoint: its tag holds an underscore.
+    [
+      "rabbitmq",
+      "webfrontend6c8d9_WebFrontend_signalr_ChatHub_6x7ry6deyyr7c3hybdxt6n9b88",
+      true,
+    ],
+    // ip-10-0-12-34.eu-west-1.compute.internal, cut to 14 characters.
+    [
+      "rabbitmq",
+      "ip10012034euwe_ContosoBillingWorker_bus_68pobtdryda85beybdxt68ffbx",
+      true,
+    ],
+    // A service's instance endpoint, under each endpoint name formatter.
+    ["rabbitmq", INSTANCE_ENDPOINT, true],
+    ["rabbitmq", "instance_axhob3yrynqhyacybdxt6jeg8m", true],
+    ["rabbitmq", "instance-axhob3yrynqhyacybdxt6jeg8m", true],
+    // Every broker MassTransit runs on, by any alias, in any case.
+    ["activemq", BUS_ENDPOINT, true],
+    ["artemis", BUS_ENDPOINT, true],
+    ["jms", BUS_ENDPOINT, true],
+    ["servicebus", BUS_ENDPOINT, true],
+    ["servicebus", BUS_ENDPOINT.toUpperCase(), true],
+    ["azure_servicebus", INSTANCE_ENDPOINT, true],
+    ["aws_sqs", BUS_ENDPOINT, true],
+    ["amazonsqs", NEXT_POD_BUS_ENDPOINT, true],
+    // Real names, however close.
+    ["rabbitmq", "event_bus_orders", false],
+    ["rabbitmq", "service_bus_topic", false],
+    ["rabbitmq", "orders_endpoint_v2", false],
+    ["rabbitmq", "submit-order", false],
+    ["rabbitmq", "instance_settings", false],
+    ["rabbitmq", "orders_kd4oyqbeynuojexybdxt7414fx", false],
+    // An id is 26 z-base-32 characters (no l, v, 0 or 2): no more, no fewer.
+    ["rabbitmq", BUS_ENDPOINT.slice(0, -1), false],
+    ["rabbitmq", `${BUS_ENDPOINT}y`, false],
+    ["rabbitmq", `${BUS_ENDPOINT.slice(0, -1)}l`, false],
+    ["rabbitmq", `${BUS_ENDPOINT.slice(0, -1)}0`, false],
+    // MassTransit strips the machine name to letters and digits.
+    [
+      "rabbitmq",
+      "ordersapi-7d9f8c6b5-xk2lq_OrdersApi_bus_kd4oyqbeynuojexybdxt7414fx",
+      false,
+    ],
+    // Only on the brokers MassTransit runs on.
+    ["kafka", BUS_ENDPOINT, false],
+    ["eventhubs", BUS_ENDPOINT, false],
+    ["gcp_pubsub", BUS_ENDPOINT, false],
+    ["kafka", INSTANCE_ENDPOINT, false],
+  ])(
+    "isTemporaryMessagingDestination(%s, %s) = %s",
+    (system: string, destination: string, temporary: boolean) => {
+      expect(isTemporaryMessagingDestination(system, destination)).toBe(
+        temporary,
+      );
+    },
+  );
+
+  test("however a span names one, it is no queue; the service's own endpoints are", () => {
+    // RabbitMQ.Client v7: a responder answering on the requester's bus endpoint.
+    expect(
+      resolveSpan(
+        {
+          "messaging.system": "rabbitmq",
+          "network.protocol.name": "amqp",
+          "messaging.operation.type": "send",
+          "messaging.operation.name": "publish",
+          "messaging.destination.name": BUS_ENDPOINT,
+          "messaging.rabbitmq.destination.routing_key": "",
+        },
+        PRODUCER,
+      ),
+    ).toBeNull();
+    /*
+     * MassTransit's own send span folds only "_bus_", "_endpoint_",
+     * "_signalr_" and "Instance_" names: a response endpoint's is whole.
+     */
+    expect(
+      resolveSpan(
+        {
+          "messaging.system": "rabbitmq",
+          "messaging.operation": "send",
+          "messaging.destination.name":
+            "ordersapi7d9f8c6b5xk2lq_OrdersApi_response_3rfybnfaybu7a1yybdxt6yhynm",
+        },
+        PRODUCER,
+      ),
+    ).toBeNull();
+    expect(
+      resolveSpan(
+        {
+          "messaging.system": "servicebus",
+          "messaging.destination.name": BUS_ENDPOINT,
+          "server.address": "shop-prod.servicebus.windows.net",
+        },
+        CONSUMER,
+      ),
+    ).toBeNull();
+    expect(
+      resolveSpan(
+        {
+          "messaging.system": "aws_sqs",
+          "aws.sqs.queue.url": `https://sqs.eu-west-1.amazonaws.com/123456789012/${NEXT_POD_BUS_ENDPOINT}`,
+        },
+        CONSUMER,
+      ),
+    ).toBeNull();
+    expect(
+      resolveSpan(
+        {
+          "messaging.system": "rabbitmq",
+          "messaging.operation": "process",
+          "messaging.destination.name": "submit-order",
+        },
+        CONSUMER,
+      )?.destination,
+    ).toBe("submit-order");
+  });
+
+  test("a name longer than a queue name may be is never tested, and never a queue", () => {
+    const long: string = `a_b_${"x_".repeat(20000)}kd4oyqbeynuojexybdxt7414fx`;
+    expect(isTemporaryMessagingDestination("rabbitmq", long)).toBe(false);
+    expect(destinationFor("rabbitmq", long)).toBeNull();
   });
 });
 

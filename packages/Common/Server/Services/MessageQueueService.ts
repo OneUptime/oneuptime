@@ -32,22 +32,20 @@ import {
   MessageQueueIdentity,
   buildMessageQueueDisplayName,
   buildMessageQueueIdentifier,
-  canonicalizeMessageQueueBrokerScope,
   hasControlCharacter,
   toMessageQueueIdentity,
 } from "../../Types/MessageQueue/MessageQueueIdentity";
 import {
+  ManualMessageQueue,
+  quoteManualMessageQueueInput,
+  resolveManualMessageQueue,
+} from "../../Types/MessageQueue/MessageQueueManualIdentity";
+import {
   getMessagingIdentitySystem,
   getMessagingSystemDisplayName,
   getMoreSpecificMessagingSystem,
-  isExcludedMessagingSystem,
   normalizeMessagingSystem,
 } from "../../Types/MessageQueue/MessagingSystem";
-import {
-  MESSAGING_SYSTEM_ATTRIBUTE,
-  ResolvedMessagingDestination,
-  resolveMessagingSpan,
-} from "../../Types/MessageQueue/MessagingTelemetryResolver";
 import ObjectID from "../../Types/ObjectID";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
@@ -85,13 +83,6 @@ const DEFAULT_AUTO_CREATE_BUDGET: number = 500;
 const AUTO_CREATE_BUDGET_CACHE_MS: number = 60 * 1000;
 // One "budget reached" warning per project per ten minutes per process.
 const AUTO_CREATE_BUDGET_WARNING_MS: number = 10 * 60 * 1000;
-
-// What the manual-create refusals quote of a value the person typed.
-const MAX_QUOTED_INPUT_LENGTH: number = 100;
-
-// The attribute the manual create hands the destination to the resolver as.
-const MESSAGING_DESTINATION_NAME_ATTRIBUTE: string =
-  "messaging.destination.name";
 
 const MANUAL_DISCOVERY_SOURCE: MessageQueueDiscoverySource = "manual";
 
@@ -221,16 +212,13 @@ interface AutoCreateCount {
   readAtMs: number;
 }
 
-// A manual create's identity, as MessageQueueService.onBeforeCreate stores it.
-export interface ManualMessageQueue {
-  // The SPECIFIC canonical system ("activemq").
-  system: string;
-  // The destination normalized as discovery normalizes it, original casing.
-  destination: string;
-  // The canonical Azure namespace, "" for none.
-  brokerScope: string;
-  queueIdentifier: string;
-}
+/*
+ * A manual create's identity. The create form previews it in the browser,
+ * so it is resolved in Common/Types/MessageQueue (MessageQueueManualIdentity)
+ * and re-exported here, where the service's callers have always found it.
+ */
+export type { ManualMessageQueue };
+export { resolveManualMessageQueue };
 
 /*
  * The Queues product's root service. A MessageQueue row is found and created
@@ -285,7 +273,8 @@ export class Service extends DatabaseService<Model> {
    * The typed system and destination go through the same normalization
    * discovery applies (resolveManualMessageQueue), so the row keys the same
    * identity the queue's own telemetry builds - an SQS queue URL is keyed by
-   * its name, a Pulsar short name by its persistent:// topic.
+   * its name, a Pulsar short name by its persistent:// topic, a RabbitMQ
+   * queue by its whole name, as its broker's metrics key it.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -341,11 +330,13 @@ export class Service extends DatabaseService<Model> {
         : "";
 
       throw new BadDataException(
-        `The ${getMessagingSystemDisplayName(manual.system)} queue ${quoteInput(
-          manual.destination,
-        )}${
+        `The ${getMessagingSystemDisplayName(
+          manual.system,
+        )} queue ${quoteManualMessageQueueInput(manual.destination)}${
           manual.brokerScope
-            ? ` in the ${quoteInput(manual.brokerScope)} namespace`
+            ? ` in the ${quoteManualMessageQueueInput(
+                manual.brokerScope,
+              )} namespace`
             : ""
         } already exists${sameIdentityName ? `: "${sameIdentityName}"` : ""}.`,
       );
@@ -1302,116 +1293,6 @@ export class Service extends DatabaseService<Model> {
 }
 
 /**
- * A manually added queue's identity, from what the person typed: the system
- * normalized (aliases folded: "AmazonSQS" -> aws_sqs), the destination
- * normalized exactly as discovery normalizes a span's (resolveMessagingSpan:
- * an SQS queue URL -> its name, an SNS topic ARN -> its name, a Pub/Sub path
- * -> its id, a Pulsar short name -> persistent://public/default/<name>,
- * ActiveMQ's queue:// prefix dropped, UUIDs templated), the namespace
- * canonicalized for Azure Service Bus / Event Hubs (a namespace host is
- * reduced to its namespace; ignored for every other system), and the
- * identifier built from the family-keyed identity. Throws BadDataException,
- * saying what to change, for a missing or unusable value - including a
- * destination discovery would never keep (temporary, generated,
- * placeholder, over 255 characters).
- */
-export function resolveManualMessageQueue(input: {
-  messagingSystem: unknown;
-  destinationName: unknown;
-  brokerScope: unknown;
-}): ManualMessageQueue {
-  const rawSystem: string =
-    typeof input.messagingSystem === "string"
-      ? input.messagingSystem.trim()
-      : "";
-
-  if (!rawSystem) {
-    throw new BadDataException(
-      "Messaging system is required. Choose the broker this queue lives on, for example Apache Kafka, RabbitMQ or Amazon SQS.",
-    );
-  }
-
-  if (isExcludedMessagingSystem(rawSystem)) {
-    throw new BadDataException(
-      `${quoteInput(rawSystem)} does not name a message broker - its channels are in-process calls - so it has no queues.`,
-    );
-  }
-
-  const system: string | null = normalizeMessagingSystem(rawSystem);
-
-  if (!system) {
-    throw new BadDataException(
-      `${quoteInput(rawSystem)} is not a messaging system. Choose one from the list, or enter the messaging.system value your applications report: lowercase letters, digits, ".", "_" and "-", at most 64 characters.`,
-    );
-  }
-
-  const rawDestination: string =
-    typeof input.destinationName === "string"
-      ? input.destinationName.trim()
-      : "";
-
-  if (!rawDestination) {
-    throw new BadDataException(
-      "Destination is required: the queue, topic or subscription name, as your applications and the broker name it.",
-    );
-  }
-
-  const brokerScope: string | null = canonicalizeMessageQueueBrokerScope(
-    system,
-    input.brokerScope,
-  );
-
-  if (brokerScope === null) {
-    throw new BadDataException(
-      `${quoteInput(
-        typeof input.brokerScope === "string" ? input.brokerScope : "",
-      )} is not an Azure namespace name. Enter the namespace - the first part of <namespace>.servicebus.windows.net - or that whole host name.`,
-    );
-  }
-
-  const resolved: ResolvedMessagingDestination | null = resolveMessagingSpan({
-    getAttribute: (key: string): unknown => {
-      if (key === MESSAGING_SYSTEM_ATTRIBUTE) {
-        return system;
-      }
-      if (key === MESSAGING_DESTINATION_NAME_ATTRIBUTE) {
-        return rawDestination;
-      }
-      return undefined;
-    },
-    kind: null,
-  });
-
-  if (!resolved) {
-    throw new BadDataException(
-      `${quoteInput(rawDestination)} cannot be a queue: OneUptime never keeps a queue for a temporary, generated or placeholder destination (a reply queue, an inbox, a bare UUID), a list of names, a name with control characters or a name longer than 255 characters.`,
-    );
-  }
-
-  const identity: MessageQueueIdentity | null = toMessageQueueIdentity({
-    system: resolved.system,
-    brokerScope: brokerScope,
-    destination: resolved.destination,
-  });
-  const queueIdentifier: string | null = identity
-    ? buildMessageQueueIdentifier(identity)
-    : null;
-
-  if (!identity || !queueIdentifier) {
-    throw new BadDataException(
-      "This queue's identity - its system, namespace and destination together - is too long to store. Shorten the destination.",
-    );
-  }
-
-  return {
-    system: resolved.system,
-    destination: resolved.destination,
-    brokerScope: identity.brokerScope,
-    queueIdentifier: queueIdentifier,
-  };
-}
-
-/**
  * The values a label or owner rule's messaging system pattern is matched
  * against: the canonical messaging.system value ("kafka") and its display
  * name ("Apache Kafka"), deduped, empty ones dropped - so both `^kafka$`
@@ -1497,16 +1378,6 @@ function getSightingTime(at: unknown, now: Date): Date {
   }
 
   return at.getTime() > now.getTime() ? now : at;
-}
-
-// A typed value, quoted and clamped for a refusal message.
-function quoteInput(value: string): string {
-  const clipped: string =
-    value.length > MAX_QUOTED_INPUT_LENGTH
-      ? `${value.substring(0, MAX_QUOTED_INPUT_LENGTH)}…`
-      : value;
-
-  return `"${clipped}"`;
 }
 
 /*

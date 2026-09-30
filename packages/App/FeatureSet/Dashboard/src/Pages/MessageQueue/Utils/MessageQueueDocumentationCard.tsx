@@ -1,11 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
-import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
-import { DocVars } from "../../../Components/TelemetryResource/documentationMarkdown";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -14,23 +7,24 @@ import {
   MessagingSystemDescriptor,
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
+import MessageQueueGuideCard from "./MessageQueueGuideCard";
 import {
+  MessageQueueGuideVariables,
   getMessageQueueGuideSystems,
   getMessageQueueSystemGuideMarkdown,
 } from "./DocumentationMarkdown";
 
 /*
- * The "Connect a messaging system" guide, with a system picker.
+ * The "Connect a messaging system" guide, with a system picker — the
+ * product's install guide (Pages/MessageQueue/Documentation.tsx) and the
+ * empty list (Pages/MessageQueue/MessageQueues.tsx):
  *
- * Contract used by Pages/MessageQueue/Documentation.tsx (the product's
- * install guide) and Pages/MessageQueue/MessageQueues.tsx (the empty list):
- *
- *   - `initialSystem` pre-selects the picker; an unknown or missing value
- *     (a long-tail broker, a typo) falls back to Apache Kafka.
- *   - The rendered guide is per system: what traces its clients, where the
+ *   - the picker opens on Apache Kafka;
+ *   - the rendered guide is per system: what traces its clients, where the
  *     broker's health metrics come from and the collector (or scraper)
  *     configuration that sends them, and what a queue page charts — with the
- *     viewer's OneUptime URL and the ingestion key picked in the card.
+ *     viewer's OneUptime URL and the ingestion key picked in the card
+ *     (MessageQueueGuideCard).
  *
  * The options come from the messaging-system catalog, so the picker can only
  * offer a system OneUptime knows, and a system added to the catalog is
@@ -41,7 +35,6 @@ import {
 export interface ComponentProps {
   title: string;
   description: string;
-  initialSystem?: string | undefined;
 }
 
 export const DEFAULT_MESSAGE_QUEUE_GUIDE_SYSTEM: string = "kafka";
@@ -73,18 +66,8 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [system, setSystem] = useState<string>(
-    resolveMessageQueueGuideSystem(props.initialSystem),
+    DEFAULT_MESSAGE_QUEUE_GUIDE_SYSTEM,
   );
-
-  /*
-   * A parent that learns the system later moves the picker with it, but a
-   * choice the reader already made is never overridden by an unknown value.
-   */
-  useEffect(() => {
-    if (getMessagingSystemDescriptor(props.initialSystem)) {
-      setSystem(resolveMessageQueueGuideSystem(props.initialSystem));
-    }
-  }, [props.initialSystem]);
 
   const selectedOption: DropdownOption | undefined = SYSTEM_OPTIONS.find(
     (option: DropdownOption): boolean => {
@@ -92,7 +75,9 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const buildMarkdown: (vars: DocVars) => string = (vars: DocVars): string => {
+  const buildMarkdown: (vars: MessageQueueGuideVariables) => string = (
+    vars: MessageQueueGuideVariables,
+  ): string => {
     return getMessageQueueSystemGuideMarkdown(vars, system);
   };
 
@@ -123,7 +108,7 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
           configuration that sends them to OneUptime.
         </p>
       </div>
-      <ResourceDocumentationCard
+      <MessageQueueGuideCard
         title={props.title}
         description={props.description}
         buildMarkdown={buildMarkdown}

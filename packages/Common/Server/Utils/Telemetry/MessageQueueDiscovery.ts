@@ -12,17 +12,23 @@ import {
   MessageQueueMetricDescriptor,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
+  MessagingSystemDescriptor,
   getMessagingBrokerMetricsSource,
+  getMessagingSystemDescriptor,
   getMoreSpecificMessagingSystem,
 } from "../../../Types/MessageQueue/MessagingSystem";
 import {
   AZURE_MESSAGING_PROVIDER_NAMESPACES,
   AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
   AttributeGetter,
+  MESSAGING_DESTINATION_ATTRIBUTES,
   MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
   MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+  MESSAGING_SYSTEM_ATTRIBUTE,
+  MESSAGING_TEMPORARY_FLAG_ATTRIBUTES,
   MESSAGING_TRIGGER_ATTRIBUTES,
   MessagingDirection,
+  RABBITMQ_ROUTING_KEY_ATTRIBUTES,
   ResolvedMessagingDestination,
   resolveMessagingMetricDatapoint,
   resolveMessagingSpan,
@@ -49,10 +55,23 @@ import { QUERY_SETTINGS, escapeSql } from "./ServiceDependencyDiscovery";
  * direction, and with it how a RabbitMQ consumer's joined name splits) or the
  * metric name (it decides which catalog entry reads the datapoint). Every
  * span of one group therefore resolves exactly as each of them did at
- * ingest. None of those keys varies per message or per instance (the core
- * keeps offsets, partitions, message, client and consumer ids out of its
- * lists), so a topic a thousand pods consume is a handful of rows, not a
- * thousand.
+ * ingest. None of those keys is per message or per instance by design (the
+ * core keeps offsets, partitions, message, client and consumer ids out of
+ * its lists), so a topic a thousand pods consume is a handful of rows, not
+ * a thousand. A few of them can still HOLD a value per message — a
+ * JetStream acknowledgement subject, a destination name beside its
+ * template, a routing key carrying an id — which the span query folds
+ * before grouping, without changing what the resolver answers (see
+ * "Values that vary per message" below).
+ *
+ * Each query returns at most its row cap, and the rows it keeps are chosen
+ * so that no queue is left out run after run: every broker (span query) or
+ * metric (metric query) gets its share, and half of each share goes to its
+ * busiest groups, the other half to a sample that rotates every run (see
+ * "Which rows the cap keeps" below). And each query ends on the server
+ * before the cron's client gives up on it: a window too big to read in time
+ * fails with ClickHouse's own timeout error, not the client's (see "The
+ * queue queries' settings" below).
  *
  * Everything here is synchronous and side-effect free apart from reading one
  * environment variable, so it can be tested without ClickHouse or Postgres.
@@ -263,6 +282,415 @@ function spanTriggerSql(): string {
   ].join(" OR ");
 }
 
+/*
+ * ---- Values that vary per message --------------------------------------------
+ *
+ * The span query groups on the VALUES of the resolver's keys, and a few of
+ * those keys can hold a new value on every message although the resolver
+ * gives all of them one answer, or none:
+ *
+ *   - the Java agent names a JetStream acknowledgement by its whole subject
+ *     (`$JS.ACK.<stream>.<consumer>.<delivered>.<stream seq>.<consumer
+ *     seq>.<timestamp>.<pending>`; the template `$JS.ACK` goes beside it
+ *     only when boundJetStreamAckDestination is on), and a reply inbox
+ *     (`_INBOX.<id>`) whole in its stable-semconv mode — the resolver names
+ *     no queue for either;
+ *   - a destination name beside a template (the spec asks for a template
+ *     exactly when the name is not low-cardinality): the resolver reads the
+ *     template, and the name only for whether it is blank;
+ *   - a RabbitMQ routing key carrying an id (`order.4711.created`, the
+ *     usual topic-exchange key) beside the exchange it was published to:
+ *     the resolver names the exchange.
+ *
+ * Grouped as stored, each such value is a group of its own: ten million
+ * acknowledgements in a window took the query past its memory limit on
+ * every run (ClickHouse Code 241). The failure is logged and costs the
+ * project its span evidence, so span-only queues were never sighted, and
+ * were archived a week later. So the query hands the resolver the same
+ * answer in far fewer groups:
+ *
+ *   1. it leaves out the spans the resolver certainly names no queue for —
+ *      a temporary or anonymous flag that is "true", and a NATS span whose
+ *      destination is an inbox or acknowledgement subject;
+ *   2. a destination key after one that certainly holds text is read only
+ *      for whether it is blank (a trigger, the Azure legacy evidence), so
+ *      its text becomes one placeholder;
+ *   3. a routing key is blanked beside destinations the resolver reads as
+ *      one name — none holds a ':' or ',' or spells the default exchange —
+ *      where nothing reads the key at all.
+ *
+ * Each rule errs toward keeping a value as stored: "certainly holds text"
+ * means a printable, non-space ASCII character, which no trim removes, and
+ * every comparison is one ClickHouse makes exactly as the resolver does, or
+ * more strictly. The tests hold a TypeScript twin of these rules to the
+ * resolver over the core's fixture corpus and generated variants, and the
+ * real-ClickHouse suite holds the query to the twin. With them, ten million
+ * acknowledgements beside eight hundred thousand Kafka spans are three
+ * hundred groups: 4.2 s and 0.8 GiB at 32 threads, nearly all of it the
+ * scan's (see "The queue queries' settings").
+ *
+ * A shape no rule folds still makes a group per message — a joined RabbitMQ
+ * name per routing key, a topic named per request that the resolver
+ * templates into one. Such groups spill to disk past QUERY_SETTINGS'
+ * max_bytes_before_external_group_by, but the more threads the scan runs,
+ * the fewer of them merge back from disk within the memory limit: at 32
+ * threads a million in a window finished (1.0 GiB) and two million failed
+ * (Code 241, which costs the run the project's span evidence), where four
+ * threads finished eight million.
+ */
+
+/**
+ * What a destination key the resolver reads only for blankness holds in the
+ * span query's rows (rule 2): non-blank, like the text it stands for, and a
+ * value the resolver reads as scrubbed — so even read as the destination it
+ * could never name a queue.
+ */
+export const MESSAGE_QUEUE_DISCOVERY_SHADOWED_VALUE: string = "*";
+
+/**
+ * The NATS subjects the resolver names no queue for, lowercased as it
+ * compares them: reply inboxes and JetStream acknowledgements, each on its
+ * own or followed by "." and anything (rule 1).
+ */
+export const MESSAGE_QUEUE_NATS_GENERATED_SUBJECTS: ReadonlyArray<string> = [
+  "_inbox",
+  "$js.ack",
+];
+
+/**
+ * The non-empty spellings of RabbitMQ's default exchange, lowercased, whose
+ * routing key the resolver reads as the queue (rule 3). The empty spelling
+ * cannot be a destination the resolver reads, and a joined name that leads
+ * with it holds a ':' or ',' anyway.
+ */
+export const MESSAGE_QUEUE_RABBITMQ_DEFAULT_EXCHANGES: ReadonlyArray<string> = [
+  "amq.default",
+  "<default>",
+];
+
+// A system's spellings the catalog maps to it, lowercased (NATS: "jetstream").
+function systemSpellings(system: string): ReadonlyArray<string> {
+  const descriptor: MessagingSystemDescriptor | null =
+    getMessagingSystemDescriptor(system);
+  return uniqueSorted(
+    (descriptor ? [descriptor.system, ...descriptor.aliases] : [system]).map(
+      (spelling: string): string => {
+        return spelling.toLowerCase();
+      },
+    ),
+  );
+}
+
+const NATS_SPELLINGS: ReadonlyArray<string> = systemSpellings("nats");
+
+// A span attribute as stored.
+function storedAttributeSql(key: string): string {
+  return `attributes[${sqlString(key)}]`;
+}
+
+/*
+ * The span query names the destination keys' shared tests once (a WITH
+ * clause, which ClickHouse expands where they are used):
+ *
+ *   - destinationText<i>: destination key i (MESSAGING_DESTINATION_ATTRIBUTES
+ *     order) certainly holds text the resolver reads as non-blank — a
+ *     printable, non-space ASCII character, which no trim removes. Saying
+ *     no proves nothing (a name in another script holds text too), so the
+ *     rules then leave a value as stored;
+ *   - storedDestinations: every destination key as stored, joined, for the
+ *     searches that must find nothing in any of them;
+ *   - firstStoredDestination: the first non-empty destination key as
+ *     stored, lowercased as ClickHouse lowercases (ASCII only).
+ */
+function destinationTextAlias(position: number): string {
+  return `destinationText${position}`;
+}
+
+const STORED_DESTINATIONS_ALIAS: string = "storedDestinations";
+const FIRST_STORED_DESTINATION_ALIAS: string = "firstStoredDestination";
+
+function spanAliasesSql(): string {
+  return [
+    ...MESSAGING_DESTINATION_ATTRIBUTES.map(
+      (key: string, position: number): string => {
+        return `match(${storedAttributeSql(key)}, '[!-~]') AS ${destinationTextAlias(position)}`;
+      },
+    ),
+    `concat(${MESSAGING_DESTINATION_ATTRIBUTES.map(storedAttributeSql).join(
+      ", ",
+    )}) AS ${STORED_DESTINATIONS_ALIAS}`,
+    `lower(ifNull(coalesce(${MESSAGING_DESTINATION_ATTRIBUTES.map(
+      (key: string): string => {
+        return `nullIf(${storedAttributeSql(key)}, '')`;
+      },
+    ).join(", ")}), '')) AS ${FIRST_STORED_DESTINATION_ALIAS}`,
+  ].join(",\n          ");
+}
+
+// Whether any of the first `count` destination keys certainly holds text.
+function anyDestinationTextSql(count: number): string {
+  return `(${MESSAGING_DESTINATION_ATTRIBUTES.slice(0, count)
+    .map((_key: string, position: number): string => {
+      return destinationTextAlias(position);
+    })
+    .join(" OR ")})`;
+}
+
+/*
+ * The spans the resolver certainly names no queue for (rule 1):
+ *
+ *   - a temporary or anonymous flag it reads as true — the stored text
+ *     "true" in any case (the resolver trims and lowercases it); it checks
+ *     the flags before it looks for a destination at all;
+ *   - a NATS span (its `messaging.system` exactly a spelling the catalog
+ *     maps to NATS) whose first non-empty destination key holds an inbox or
+ *     acknowledgement subject: every key before it is empty and it starts
+ *     with a character no trim removes, so it is the destination the
+ *     resolver reads, and the resolver finds the generated subject in it.
+ */
+function certainlyNoQueueSql(): string {
+  const flags: Array<string> = MESSAGING_TEMPORARY_FLAG_ATTRIBUTES.map(
+    (key: string): string => {
+      return `lower(${storedAttributeSql(key)}) = 'true'`;
+    },
+  );
+  const generated: Array<string> = [
+    `${FIRST_STORED_DESTINATION_ALIAS} IN ${sqlTuple(
+      MESSAGE_QUEUE_NATS_GENERATED_SUBJECTS,
+    )}`,
+    ...MESSAGE_QUEUE_NATS_GENERATED_SUBJECTS.map((subject: string): string => {
+      return `startsWith(${FIRST_STORED_DESTINATION_ALIAS}, ${sqlString(`${subject}.`)})`;
+    }),
+  ];
+  return [
+    ...flags,
+    `(lower(${storedAttributeSql(MESSAGING_SYSTEM_ATTRIBUTE)}) IN ${sqlTuple(
+      NATS_SPELLINGS,
+    )} AND (${generated.join(" OR ")}))`,
+  ].join(" OR ");
+}
+
+/*
+ * A destination key's column (rule 2): as stored, unless an earlier
+ * destination key certainly holds text — the resolver then takes the
+ * destination from that one, and reads this one only for whether it is
+ * blank — and this one certainly holds text too: then the placeholder,
+ * non-blank like it.
+ */
+function destinationColumnSql(key: string): string {
+  const position: number = MESSAGING_DESTINATION_ATTRIBUTES.indexOf(key);
+  const stored: string = storedAttributeSql(key);
+  if (position <= 0) {
+    return stored;
+  }
+  return `if(${anyDestinationTextSql(position)} AND ${destinationTextAlias(
+    position,
+  )}, ${sqlString(MESSAGE_QUEUE_DISCOVERY_SHADOWED_VALUE)}, ${stored})`;
+}
+
+/*
+ * A routing key's column (rule 3): blank where the resolver never reads it —
+ * some destination key certainly holds text (so the key is not the
+ * destination), none holds a ':' or ',' (so no joined or aio-pika name is
+ * split and compared against it) and none spells the default exchange
+ * (whose routing key IS the queue) — else as stored. Beside such a
+ * destination the resolver keeps the name as it is, whatever the key.
+ */
+function routingKeyColumnSql(key: string): string {
+  return `if(${anyDestinationTextSql(
+    MESSAGING_DESTINATION_ATTRIBUTES.length,
+  )} AND NOT multiSearchAny(${STORED_DESTINATIONS_ALIAS}, ${sqlArray([
+    ":",
+    ",",
+  ])}) AND NOT multiSearchAnyCaseInsensitive(${STORED_DESTINATIONS_ALIAS}, ${sqlArray(
+    MESSAGE_QUEUE_RABBITMQ_DEFAULT_EXCHANGES,
+  )}), '', ${storedAttributeSql(key)})`;
+}
+
+// One span query column: folded by rule 2 or 3, or as stored.
+function spanAttributeColumnSql(key: string): string {
+  if (MESSAGING_DESTINATION_ATTRIBUTES.includes(key)) {
+    return destinationColumnSql(key);
+  }
+  if (RABBITMQ_ROUTING_KEY_ATTRIBUTES.includes(key)) {
+    return routingKeyColumnSql(key);
+  }
+  return storedAttributeSql(key);
+}
+
+// `<column expression> AS a<i>` for every key the span resolver reads.
+function spanAttributeColumnsSql(): string {
+  return MESSAGING_RESOLVER_INPUT_ATTRIBUTES.map(
+    (key: string, index: number): string => {
+      return `${spanAttributeColumnSql(key)} AS ${getMessagingDiscoveryColumn(index)}`;
+    },
+  ).join(",\n          ");
+}
+
+/*
+ * ---- Which rows the cap keeps -------------------------------------------------
+ *
+ * A queue is several rows — one per span kind, consumer group, semconv
+ * generation or broker address, one per metric name — and a busy project
+ * has more rows than either cap. Cut busiest-first alone, the cap failed
+ * two ways: a busy source took every slot (a Kafka scrape's datapoints
+ * outnumber a CloudWatch queue's by a hundred to one, so a few hundred
+ * topics left no SQS queue a row), and rows that tie (every CloudWatch
+ * queue reports as often as the next) were cut in ClickHouse's hash order:
+ * the same queues, run after run. A queue left out is never created or
+ * sighted, and is archived a week later while its broker keeps reporting
+ * it.
+ *
+ * So the rows are ranked within their share — a metric name; for spans a
+ * `messaging.system` value — twice: busiest first, and in a rotating order
+ * (the row's grouped values hashed with the window's start, so it changes
+ * every run), which also breaks the busiest ranking's ties. They are then
+ * taken alternately from the two rankings, and from every share in turn:
+ * each share's busiest row, a rotating one, its next busiest, and so on. A
+ * project under the cap loses nothing; over it, every share gets its part
+ * (a small share all of its rows), its busiest groups are read every run,
+ * and the others by turns, a different sample every run (within the bound
+ * MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW sets).
+ */
+
+/*
+ * A row's place in this run's rotating order: its grouped values (`values`,
+ * SQL) hashed with the window's start.
+ */
+function rotationSql(startSql: string, values: string): string {
+  return `cityHash64(toUnixTimestamp64Milli(${startSql}), ${values}) AS rotation`;
+}
+
+/**
+ * How many grouped rows, per row the cap keeps, are ranked for it: the
+ * busiest this many times the cap (ties in the rotating order). Ranking
+ * holds and sorts the rows it ranks in full, which is cheap for the rows of
+ * any real project but not for millions of per-message groups no rule folds:
+ * ranked in full, a million reply topics named per request took 1.49 GiB at
+ * 32 threads, and four million took the query past its memory limit at
+ * four. So the grouped rows reach the ranking through a top-N heap of this
+ * size (ORDER BY … LIMIT), with which those finished at 1.0 GiB and
+ * 1.25 GiB. That heap cuts by count alone, so a share is crowded out only
+ * where other shares hold more than this many times the cap of busier
+ * groups (100,000 for the cron's caps); its own memory is small beside the
+ * grouping's (one a fifth its size saved 10 MiB of the million groups'
+ * 1.0 GiB).
+ */
+export const MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW: number = 50;
+
+function rotatingShareOrderSql(data: {
+  // The grouped rows, each with its `rotation` (rotationSql).
+  groupedSql: string;
+  // The columns the query returns, in order.
+  columns: string;
+  // What a share is, as SQL over the grouped columns.
+  shareSql: string;
+  // The grouped count the busiest ranking reads.
+  countColumn: string;
+  maxRows: number;
+}): string {
+  const cap: number = rowCap(data.maxRows);
+  return `SELECT ${data.columns}
+    FROM (
+      SELECT
+        *,
+        row_number() OVER (PARTITION BY ${data.shareSql} ORDER BY ${data.countColumn} DESC, rotation) AS busiestRank,
+        row_number() OVER (PARTITION BY ${data.shareSql} ORDER BY rotation) AS rotationRank
+      FROM (${data.groupedSql}
+        ORDER BY ${data.countColumn} DESC, rotation
+        LIMIT ${cap * MESSAGE_QUEUE_RANKED_ROWS_PER_CAPPED_ROW}
+      )
+    )
+    ORDER BY least(2 * busiestRank - 1, 2 * rotationRank), ${data.countColumn} DESC, rotation
+    LIMIT ${cap}`;
+}
+
+// The span query's share: the stored `messaging.system` column.
+const SPAN_SHARE_COLUMN: string = getMessagingDiscoveryColumn(
+  MESSAGING_RESOLVER_INPUT_ATTRIBUTES.indexOf(MESSAGING_SYSTEM_ATTRIBUTE),
+);
+
+/*
+ * ---- The queue queries' settings ---------------------------------------------
+ *
+ * The cron reads each queue query through the App's ClickHouse client, which
+ * gives up on a request that has sent it nothing for its request_timeout
+ * (ClickhouseConfig: 58 s, an idle-socket timer), and a grouped query in
+ * FORMAT JSON sends nothing until it is done. QUERY_SETTINGS' own limit is
+ * 60 s, so a query still reading at 58 s was cut off by the client
+ * ("Timeout error.") while the server read on. The queue queries therefore
+ * end on the server first, at MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS:
+ * a window too big to read by then fails with ClickHouse's own
+ * TIMEOUT_EXCEEDED, which the cron logs, and costs that run the project's
+ * span (or metric) evidence. On ClickHouse 26.7 the error followed the
+ * limit within 50 ms, mid-merge of a grouping spilled to disk too, well
+ * inside the client's wait.
+ *
+ * They 'throw' rather than 'break': a break returns no rows at all. On
+ * ClickHouse 26.7 a query broken off at its time limit answers with an
+ * empty body — not the groups of the part of the window it read, whatever
+ * the query's shape — which the client then fails to parse ("Unexpected end
+ * of JSON input"). The real-ClickHouse suite holds both behaviours.
+ *
+ * Nothing pins the scan's threads: it runs as wide as the server lets it
+ * (max_threads, the server's cores by default). Measured on ClickHouse 26.7
+ * with 32 cores, four threads — the Logs aggregations' pin — took 14.8 s
+ * over 10.8 million spans where 32 took 4.2 s, and ran out of time over
+ * 40.8 million, which 32 read in 24 s. The price is memory, which grows
+ * with the threads: about 25 MiB each over spans carrying about 35
+ * attributes (0.8 GiB at 32 threads, 1.55 GiB at 64, of QUERY_SETTINGS'
+ * 1.86 GiB limit), and with it the fewer groups that no rule folds can
+ * spill to disk and merge back within the limit (see "Values that vary per
+ * message").
+ */
+export const MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS: number = 45;
+
+/*
+ * A SETTINGS clause (`SETTINGS a = 1, b = 'x'`) with `overrides` in place of
+ * the settings of the same name, or after them where it has none: each
+ * setting named once.
+ */
+function withSettings(
+  clause: string,
+  overrides: ReadonlyArray<[string, string]>,
+): string {
+  const settings: Map<string, string> = new Map<string, string>();
+  for (const setting of clause
+    .trim()
+    .replace(/^SETTINGS\s+/, "")
+    .split(",")) {
+    const equals: number = setting.indexOf("=");
+    settings.set(
+      setting.slice(0, equals).trim(),
+      setting.slice(equals + 1).trim(),
+    );
+  }
+  for (const [name, value] of overrides) {
+    settings.set(name, value);
+  }
+  return `SETTINGS ${Array.from(settings.entries())
+    .map((setting: [string, string]): string => {
+      return `${setting[0]} = ${setting[1]}`;
+    })
+    .join(", ")}`;
+}
+
+/**
+ * The SETTINGS clause every queue query ends with: QUERY_SETTINGS' memory
+ * limit and spills to disk, and a time limit of its own,
+ * MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS, at which it fails ('throw').
+ */
+export const MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS: string = withSettings(
+  QUERY_SETTINGS,
+  [
+    [
+      "max_execution_time",
+      String(MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS),
+    ],
+    ["timeout_overflow_mode", "'throw'"],
+  ],
+);
+
 export interface MessageQueueDiscoveryWindow {
   projectId: string;
   // ClickHouse DateTime64 expressions, e.g. toDateTime64('...', 9).
@@ -274,36 +702,52 @@ export interface MessageQueueDiscoveryWindow {
 
 /**
  * One row per (span kind, value of every attribute resolveMessagingSpan
- * reads) over the window's messaging spans, with how many spans, how many
- * of them failed and when the newest started — busiest first, under the row
- * cap. Spans are dropped on their kind (a stored SERVER span never names a
- * queue; every other kind, a remapped or missing one included, may) and on
- * `attributeKeys` (bloom-indexed, far smaller than the attribute map) before
- * the map is read: a span carries a messaging trigger key, and one whose only
- * trigger is an Azure provider key names Service Bus or Event Hubs there.
+ * reads — folded where the resolver reads no more than a placeholder, see
+ * "Values that vary per message") over the window's messaging spans, with
+ * how many spans, how many of them failed and when the newest started;
+ * under the row cap, each broker's busiest and a rotating share of the rest
+ * (rotatingShareOrderSql). Spans are dropped on their kind (a stored SERVER
+ * span never names a queue; every other kind, a remapped or missing one
+ * included, may) and on `attributeKeys` (bloom-indexed, far smaller than
+ * the attribute map) before the map is read: a span carries a messaging
+ * trigger key, and one whose only trigger is an Azure provider key names
+ * Service Bus or Event Hubs there. Then the spans the resolver certainly
+ * names no queue for are dropped too (rule 1).
  */
 export function buildMessagingSpanDiscoverySql(
   window: MessageQueueDiscoveryWindow,
 ): string {
+  const columns: string = attributeColumnNames(
+    MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+  );
   return `
     /* ${MESSAGE_QUEUE_SPAN_SQL_MARKER} */
-    SELECT
-      kind,
-      ${attributeColumnsSql(MESSAGING_RESOLVER_INPUT_ATTRIBUTES)},
-      count() AS spanCount,
-      countIf(statusCode = ${SpanStatus.Error}) AS errorCount,
-      toUnixTimestamp64Milli(max(startTime)) AS lastSeenUnixMs
-    FROM ${SPAN_TABLE}
-    WHERE projectId = '${escapeSql(window.projectId)}'
-      AND startTime >= ${window.startSql}
-      AND startTime < ${window.endSql}
-      AND ${spanKindSql()}
-      AND hasAny(attributeKeys, ${sqlArray(MESSAGING_TRIGGER_ATTRIBUTES)})
-      AND (${spanTriggerSql()})
-    GROUP BY kind, ${attributeColumnNames(MESSAGING_RESOLVER_INPUT_ATTRIBUTES)}
-    ORDER BY spanCount DESC
-    LIMIT ${rowCap(window.maxRows)}
-    ${QUERY_SETTINGS}
+    ${rotatingShareOrderSql({
+      groupedSql: `
+        WITH
+          ${spanAliasesSql()}
+        SELECT
+          kind,
+          ${spanAttributeColumnsSql()},
+          count() AS spanCount,
+          countIf(statusCode = ${SpanStatus.Error}) AS errorCount,
+          toUnixTimestamp64Milli(max(startTime)) AS lastSeenUnixMs,
+          ${rotationSql(window.startSql, `ifNull(kind, ''), ${columns}`)}
+        FROM ${SPAN_TABLE}
+        WHERE projectId = '${escapeSql(window.projectId)}'
+          AND startTime >= ${window.startSql}
+          AND startTime < ${window.endSql}
+          AND ${spanKindSql()}
+          AND hasAny(attributeKeys, ${sqlArray(MESSAGING_TRIGGER_ATTRIBUTES)})
+          AND (${spanTriggerSql()})
+          AND NOT (${certainlyNoQueueSql()})
+        GROUP BY kind, ${columns}`,
+      columns: `kind, ${columns}, spanCount, errorCount, lastSeenUnixMs`,
+      shareSql: SPAN_SHARE_COLUMN,
+      countColumn: "spanCount",
+      maxRows: window.maxRows,
+    })}
+    ${MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS}
   `;
 }
 
@@ -325,32 +769,43 @@ function metricWindowSql(window: { startSql: string; endSql: string }): string {
  * One row per (metric name, value of every attribute
  * resolveMessagingMetricDatapoint reads) over the window's curated broker
  * and messaging client datapoints (MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES),
- * with how many datapoints and when the newest was taken — busiest first,
- * under the row cap. The keys that only mark a curated metric's per-consumer
- * repeat (MESSAGE_QUEUE_METRIC_EXCLUDED_SERIES_ATTRIBUTES: Pulsar's consumer
- * name and id) are neither selected nor filtered on: they are per instance,
- * so grouping on them would split a topic's rows per consumer, and a repeat
- * folds into its subscription's own series of the same topic, which names
- * the same queue.
+ * with how many datapoints and when the newest was taken; under the row
+ * cap, each metric's busiest and a rotating share of the rest
+ * (rotatingShareOrderSql), so a busy scrape never crowds out a cloud
+ * provider's metrics. The keys that only mark a curated metric's
+ * per-consumer repeat (MESSAGE_QUEUE_METRIC_EXCLUDED_SERIES_ATTRIBUTES:
+ * Pulsar's consumer name and id) are neither selected nor filtered on: they
+ * are per instance, so grouping on them would split a topic's rows per
+ * consumer, and a repeat folds into its subscription's own series of the
+ * same topic, which names the same queue.
  */
 export function buildMessagingMetricDiscoverySql(
   window: MessageQueueDiscoveryWindow,
 ): string {
+  const columns: string = attributeColumnNames(
+    MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
+  );
   return `
     /* ${MESSAGE_QUEUE_METRIC_SQL_MARKER} */
-    SELECT
-      name,
-      ${attributeColumnsSql(MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES)},
-      count() AS pointCount,
-      toUnixTimestamp64Milli(max(time)) AS lastSeenUnixMs
-    FROM ${METRIC_TABLE}
-    WHERE projectId = '${escapeSql(window.projectId)}'
-      AND name IN ${sqlTuple(MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES)}
-      AND ${metricWindowSql(window)}
-    GROUP BY name, ${attributeColumnNames(MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES)}
-    ORDER BY pointCount DESC
-    LIMIT ${rowCap(window.maxRows)}
-    ${QUERY_SETTINGS}
+    ${rotatingShareOrderSql({
+      groupedSql: `
+        SELECT
+          name,
+          ${attributeColumnsSql(MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES)},
+          count() AS pointCount,
+          toUnixTimestamp64Milli(max(time)) AS lastSeenUnixMs,
+          ${rotationSql(window.startSql, `name, ${columns}`)}
+        FROM ${METRIC_TABLE}
+        WHERE projectId = '${escapeSql(window.projectId)}'
+          AND name IN ${sqlTuple(MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES)}
+          AND ${metricWindowSql(window)}
+        GROUP BY name, ${columns}`,
+      columns: `name, ${columns}, pointCount, lastSeenUnixMs`,
+      shareSql: "name",
+      countColumn: "pointCount",
+      maxRows: window.maxRows,
+    })}
+    ${MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS}
   `;
 }
 
@@ -373,7 +828,7 @@ export function buildMessagingMetricProjectsSql(data: {
     WHERE name IN ${sqlTuple(MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES)}
       AND ${metricWindowSql(data)}
     LIMIT ${rowCap(data.maxProjects)}
-    ${QUERY_SETTINGS}
+    ${MESSAGE_QUEUE_DISCOVERY_QUERY_SETTINGS}
   `;
 }
 

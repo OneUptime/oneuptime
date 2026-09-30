@@ -53,7 +53,7 @@ import {
 import {
   MessageQueueBrokerMetricsGuidance,
   getMessageQueueBrokerMetricsGuidance,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueuePresentation";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 
 const actualRule: ReachRule = (
   jest.requireActual(

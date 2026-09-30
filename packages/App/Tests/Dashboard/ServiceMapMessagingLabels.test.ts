@@ -206,12 +206,48 @@ function visibleMatches(model: ServiceMapModel, search: string): Array<string> {
   return Array.from(visibility.matchedKeys).sort();
 }
 
+interface ShownDetail {
+  label: string | null;
+  value: string | null;
+}
+
+/*
+ * The detail label and value the built Service Map gives a node — a service
+ * is drawn in its own right, anything else once a service calls it —
+ * checked against detailLabelForEntity and detailValueForEntity. The map
+ * builds its entries itself, so every label this suite pins is read off the
+ * map: pinning only the helpers would leave what the map shows unpinned.
+ */
+function shownDetail(node: TopologyEntity): ShownDetail {
+  const caller: string = "detail-label-caller";
+  const isService: boolean = node.entityType === EntityType.Service;
+  const shown: ServiceMapEntry | undefined = buildServiceMapModel(
+    isService ? [node] : [entity(caller, EntityType.Service), node],
+    isService ? [] : [calls(caller, node.entityKey!)],
+    {},
+  ).entryByKey.get(node.entityKey!);
+  expect(shown).toBeDefined();
+  const detail: ShownDetail = {
+    label: shown!.detailLabel,
+    value: shown!.detailValue,
+  };
+  expect(detail).toEqual({
+    label: detailLabelForEntity(node),
+    value: detailValueForEntity(node),
+  });
+  return detail;
+}
+
+function shownLabel(node: TopologyEntity): string | null {
+  return shownDetail(node).label;
+}
+
 describe("messaging systems get a friendly label on the Service Map", () => {
   test.each(SPELLING_CASES)(
     "%s reads as %s from the descriptive network.protocol.name",
     (spelling: string, label: string) => {
       expect(
-        detailLabelForEntity(
+        shownLabel(
           entity("broker", EntityType.RemoteService, {
             descriptiveAttributes: { "network.protocol.name": spelling },
           }),
@@ -224,7 +260,7 @@ describe("messaging systems get a friendly label on the Service Map", () => {
     "%s reads as %s from the identifying messaging.system alone",
     (spelling: string, label: string) => {
       expect(
-        detailLabelForEntity(
+        shownLabel(
           entity("broker", EntityType.RemoteService, {
             identifyingAttributes: { "messaging.system": spelling },
           }),
@@ -254,7 +290,7 @@ describe("messaging systems get a friendly label on the Service Map", () => {
       expect(group.spellings[0]).toBe(group.system);
       const labels: Set<string | null> = new Set(
         group.spellings.map((spelling: string): string | null => {
-          return detailLabelForEntity(
+          return shownLabel(
             entity("broker", EntityType.RemoteService, {
               descriptiveAttributes: { "network.protocol.name": spelling },
             }),
@@ -290,7 +326,7 @@ describe("messaging systems get a friendly label on the Service Map", () => {
     ] as Array<[string, string]>) {
       expect({
         raw,
-        label: detailLabelForEntity(
+        label: shownLabel(
           entity("broker", EntityType.RemoteService, {
             descriptiveAttributes: { "network.protocol.name": raw },
           }),
@@ -302,7 +338,7 @@ describe("messaging systems get a friendly label on the Service Map", () => {
   test("an unknown broker still shows its system as reported", () => {
     for (const raw of ["ibmmq", "solace", "mqtt", "Redis-Streams"]) {
       expect(
-        detailLabelForEntity(
+        shownLabel(
           entity("broker", EntityType.RemoteService, {
             identifyingAttributes: { "messaging.system": raw },
           }),
@@ -313,7 +349,7 @@ describe("messaging systems get a friendly label on the Service Map", () => {
 
   test("the descriptive value still wins over the identifying one", () => {
     expect(
-      detailLabelForEntity(
+      shownLabel(
         entity("broker", EntityType.RemoteService, {
           descriptiveAttributes: { "network.protocol.name": "servicebus" },
           identifyingAttributes: { "messaging.system": "kafka" },
@@ -369,11 +405,11 @@ describe("messaging systems get a friendly label on the Service Map", () => {
         EntityType.RemoteService,
         attributes,
       );
-      expect({
+      expect({ attributes, ...shownDetail(broker) }).toEqual({
         attributes,
-        value: detailValueForEntity(broker),
-        label: detailLabelForEntity(broker),
-      }).toEqual({ attributes, value, label });
+        value,
+        label,
+      });
     }
   });
 
@@ -395,7 +431,7 @@ describe("messaging systems get a friendly label on the Service Map", () => {
     ] as Array<[string, string, string]>) {
       expect({
         raw,
-        label: detailLabelForEntity(
+        label: shownLabel(
           entity("x", EntityType.RemoteService, {
             descriptiveAttributes: { [key]: raw },
           }),
@@ -435,7 +471,7 @@ describe("the label lookup only answers from its own table", () => {
 
   test.each(PROTOTYPE_NAMES)("%s reads as sent", (name: string) => {
     for (const raw of [name, name.toUpperCase(), ` ${name} `]) {
-      const label: string | null = detailLabelForEntity(
+      const label: string | null = shownLabel(
         entity("x", EntityType.RemoteService, {
           descriptiveAttributes: { "network.protocol.name": raw },
         }),

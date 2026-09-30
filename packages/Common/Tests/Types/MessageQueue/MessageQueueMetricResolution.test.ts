@@ -5,6 +5,7 @@ import {
   MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
   ResolvedMessagingDestination,
   resolveMessagingMetricDatapoint,
+  resolveMessagingSpan,
 } from "../../../Types/MessageQueue/MessagingTelemetryResolver";
 import {
   MESSAGE_QUEUE_METRICS,
@@ -381,6 +382,83 @@ describe("the other broker sources", () => {
           "resource.rabbitmq.queue.name": name,
         }),
       ).toBeNull();
+    }
+  });
+
+  /*
+   * Each broker's metrics list every queue it has, MassTransit's per-process
+   * endpoints among them: the bus endpoint of every process that uses a
+   * request client (`{machine}_{process}_bus_{NewId}`), temporary endpoints,
+   * a service's `Instance_{NewId}`. One datapoint of a curated broker metric
+   * creates a queue, so each process start would add one.
+   */
+  test("MassTransit's per-process endpoints are no queues on any broker's metrics; its named endpoints are", () => {
+    const podA: string =
+      "ordersapi7d9f8c6b5xk2lq_OrdersApi_bus_kd4oyqbeynuojexybdxt7414fx";
+    const podB: string =
+      "ordersapi7d9f8c6b5mnp4r_OrdersApi_bus_kawyb4raybmxtdeybdxt7hihry";
+    const instance: string = "Instance_axhob3yrynqhyacybdxt6jeg8m";
+    const brokerSeries: Array<[string, (name: string) => FixtureAttributes]> = [
+      [
+        "rabbitmq.message.current",
+        (name: string): FixtureAttributes => {
+          return {
+            "resource.rabbitmq.queue.name": name,
+            "resource.rabbitmq.vhost.name": "/",
+            "resource.rabbitmq.node.name": "rabbit@rabbitmq-0",
+            state: "ready",
+          };
+        },
+      ],
+      [
+        "rabbitmq.consumer.count",
+        (name: string): FixtureAttributes => {
+          return { "resource.rabbitmq.queue.name": name };
+        },
+      ],
+      [
+        "azure_activemessages_average",
+        (name: string): FixtureAttributes => {
+          return { ...SERVICE_BUS, metadata_entityname: name };
+        },
+      ],
+      [
+        "approximatenumberofmessagesvisible",
+        (name: string): FixtureAttributes => {
+          return { ...SQS_JSON, QueueName: name };
+        },
+      ],
+      [
+        "amazonaws.com/aws/sqs/approximatenumberofmessagesvisible",
+        (name: string): FixtureAttributes => {
+          return { "Dimensions.QueueName": name };
+        },
+      ],
+      [
+        "activemq.message.queue.size",
+        (name: string): FixtureAttributes => {
+          return {
+            "activemq.broker.name": "localhost",
+            "activemq.destination.type": "queue",
+            "messaging.destination.name": name,
+          };
+        },
+      ],
+    ];
+    for (const [metricName, attributesOf] of brokerSeries) {
+      for (const name of [podA, podB, instance]) {
+        expect({
+          metricName,
+          name,
+          resolved: resolveDatapoint(metricName, attributesOf(name)),
+        }).toEqual({ metricName, name, resolved: null });
+      }
+      expect({
+        metricName,
+        destination:
+          resolveDatapoint(metricName, attributesOf("submit-order"))
+            ?.destination ?? null,
+      }).toEqual({ metricName, destination: "submit-order" });
     }
   });
 
@@ -764,9 +842,10 @@ describe("messaging-client metrics and application gauges (the attribute path)",
 
   test.each([
     /*
-     * The Java agent's opt-in client metrics carry semconv 1.30's joined
-     * RabbitMQ names but never the routing key (no metric attribute): a
-     * consumer's names its queue, a producer's its exchange.
+     * Client metrics carry semconv 1.30's joined RabbitMQ names but never
+     * the routing key (no metric attribute): with a 1.26+ operation key —
+     * the type here — a consumer's names its queue, a producer's its
+     * exchange.
      */
     [
       "messaging.client.operation.duration",
@@ -798,6 +877,132 @@ describe("messaging-client metrics and application gauges (the attribute path)",
       "direct_logs:warning:my_queue",
       "my_queue",
     ],
+    /*
+     * Attributes exactly as the Java agent records its consumer metrics
+     * (MessagingMetricsAdvice): the operation name, never the operation
+     * type. A consumer's three parts still name its queue — also an
+     * exchange named with a colon, its empty routing key left out.
+     */
+    [
+      "messaging.client.consumed.messages",
+      { "messaging.operation.name": "process" },
+      "direct_logs:warning:my_queue",
+      "my_queue",
+    ],
+    [
+      "messaging.process.duration",
+      { "messaging.operation.name": "process" },
+      "MyApp.Contracts:OrderSubmitted:billing",
+      "billing",
+    ],
+    /*
+     * ...and two parts split as its span's do, a producer's too: the
+     * operation name is the one 1.26+ key the Java agent keeps on its
+     * sent-messages, consumed-messages and process-duration metrics.
+     */
+    [
+      "messaging.client.sent.messages",
+      { "messaging.operation.name": "publish" },
+      "orders.topic:orders.eu.created",
+      "orders.topic",
+    ],
+    [
+      "messaging.process.duration",
+      { "messaging.operation.name": "process" },
+      "direct_logs:warning",
+      "warning",
+    ],
+    [
+      "messaging.client.consumed.messages",
+      { "messaging.operation.name": "process" },
+      "logs:logs-audit",
+      "logs-audit",
+    ],
+    [
+      "messaging.client.consumed.messages",
+      { "messaging.operation.name": "receive" },
+      "invoices.direct:invoices-audit",
+      "invoices-audit",
+    ],
+    // A blank operation name is none.
+    [
+      "messaging.client.sent.messages",
+      { "messaging.operation.name": "  " },
+      "orders.topic:orders.eu.created",
+      "orders.topic:orders.eu.created",
+    ],
+    [
+      "messaging.process.duration",
+      { "messaging.operation.name": "" },
+      "direct_logs:warning",
+      "direct_logs:warning",
+    ],
+    // RabbitMQ.Client for .NET's protocol name: the exchange alone, as on its spans.
+    [
+      "messaging.client.consumed.messages",
+      {
+        "messaging.operation.name": "deliver",
+        "network.protocol.name": "amqp",
+      },
+      "MyApp.Contracts:OrderSubmitted",
+      "MyApp.Contracts:OrderSubmitted",
+    ],
+    [
+      "messaging.client.consumed.messages",
+      {
+        "messaging.operation.name": "deliver",
+        "network.protocol.name": "amqp",
+      },
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    /*
+     * The one thing a datapoint cannot tell: a producer's two parts are
+     * `{exchange}:{routing key}`, as the Java agent names every publish
+     * with a routing key, or an exchange named with a colon published to
+     * with an empty one — which its span tells apart by the routing-key
+     * attribute. A datapoint takes the joined reading, whichever 1.26+ key
+     * shows it.
+     */
+    [
+      "messaging.client.sent.messages",
+      { "messaging.operation.name": "publish" },
+      "MyApp.Contracts:OrderSubmitted",
+      "MyApp.Contracts",
+    ],
+    [
+      "messaging.client.operation.duration",
+      { "messaging.operation.type": "send" },
+      "MyApp.Contracts:OrderSubmitted",
+      "MyApp.Contracts",
+    ],
+    /*
+     * Semconv joins three parts on a consumer only: a producer's three are
+     * one exchange name, as its span says — MassTransit's Fault<T> exchange,
+     * published to with an empty routing key.
+     */
+    [
+      "messaging.client.sent.messages",
+      { "messaging.operation.name": "publish" },
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    [
+      "messaging.client.operation.duration",
+      {
+        "messaging.operation.name": "publish",
+        "messaging.operation.type": "send",
+      },
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    // An application's gauge states no direction: its three parts are one name.
+    [
+      "queue.size",
+      {},
+      "direct_logs:warning:my_queue",
+      "direct_logs:warning:my_queue",
+    ],
     // The older conventions' metrics name one exchange, colon and all.
     [
       "messaging.publish.duration",
@@ -810,6 +1015,29 @@ describe("messaging-client metrics and application gauges (the attribute path)",
       { "messaging.operation": "process" },
       "MyApp.Contracts:OrderSubmitted",
       "MyApp.Contracts:OrderSubmitted",
+    ],
+    /*
+     * Three parts too, on a consumer as much as a producer: without a 1.26+
+     * operation key a datapoint is read as its span would be — one name,
+     * MassTransit's Fault<T> exchange among them.
+     */
+    [
+      "messaging.receive.messages",
+      { "messaging.operation": "receive" },
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+      "MassTransit:Fault--Sample.Contracts:SubmitOrder--",
+    ],
+    [
+      "messaging.process.duration",
+      { "messaging.operation": "process" },
+      "direct_logs:warning:my_queue",
+      "direct_logs:warning:my_queue",
+    ],
+    [
+      "messaging.client.consumed.messages",
+      {},
+      "direct_logs:warning:my_queue",
+      "direct_logs:warning:my_queue",
     ],
   ])(
     "RabbitMQ client metric %s %j of %s names %s",
@@ -896,6 +1124,350 @@ describe("messaging-client metrics and application gauges (the attribute path)",
   });
 });
 
+/*
+ * The Java agent is the one instrumentation found recording RabbitMQ client
+ * metrics — rabbitmq-2.7 and spring-rabbit-1.0, from 2.31.0 — and only in
+ * its opt-in mode, whose names join exchange, routing key and queue. Here
+ * it is as its source has it (opentelemetry-java-instrumentation): the name
+ * a span and its metrics share (RabbitInstrumenterHelper
+ * .producerDestinationName / .consumerDestinationName), what each
+ * operation's span carries (MessagingAttributesExtractor; the routing key
+ * only when non-empty), the metrics each operation records
+ * (RabbitSingletons), and what each metric keeps of the span's attributes
+ * (MessagingMetricsAdvice: no destination when it is anonymous, never the
+ * routing key, the operation type on messaging.client.operation.duration
+ * alone). Whatever the route, a span and every metric of its operation
+ * resolve alike, to the queue the research says.
+ */
+describe("a Java agent RabbitMQ span and the client metrics of its operation", () => {
+  // MessagingMetricsAdvice.buildAttributes, instrument by instrument.
+  const SENT_MESSAGES_ADVICE: ReadonlyArray<string> = [
+    "messaging.operation.name",
+    "messaging.system",
+    "error.type",
+    "messaging.destination.name",
+    "messaging.destination.template",
+    "messaging.destination.partition.id",
+    "server.address",
+    "server.port",
+  ];
+  const CONSUMER_METRIC_ADVICE: ReadonlyArray<string> = [
+    ...SENT_MESSAGES_ADVICE,
+    "messaging.consumer.group.name",
+    "messaging.destination.subscription.name",
+  ];
+  const METRIC_ADVICE: ReadonlyMap<string, ReadonlyArray<string>> = new Map<
+    string,
+    ReadonlyArray<string>
+  >([
+    [
+      "messaging.client.operation.duration",
+      [...CONSUMER_METRIC_ADVICE, "messaging.operation.type"],
+    ],
+    ["messaging.client.sent.messages", SENT_MESSAGES_ADVICE],
+    ["messaging.client.consumed.messages", CONSUMER_METRIC_ADVICE],
+    ["messaging.process.duration", CONSUMER_METRIC_ADVICE],
+  ]);
+
+  interface AgentOperation {
+    // messaging.operation.name and messaging.operation.type.
+    name: string;
+    type: string;
+    kind: string;
+    publishes: boolean;
+    // What RabbitSingletons records for it.
+    metrics: ReadonlyArray<string>;
+  }
+
+  const PUBLISH: AgentOperation = {
+    name: "publish",
+    type: "send",
+    kind: "SPAN_KIND_PRODUCER",
+    publishes: true,
+    metrics: [
+      "messaging.client.operation.duration",
+      "messaging.client.sent.messages",
+    ],
+  };
+
+  const OPERATIONS: ReadonlyArray<AgentOperation> = [
+    PUBLISH,
+    // basic.get
+    {
+      name: "receive",
+      type: "receive",
+      kind: "SPAN_KIND_CLIENT",
+      publishes: false,
+      metrics: [
+        "messaging.client.operation.duration",
+        "messaging.client.consumed.messages",
+      ],
+    },
+    // A delivery to a consumer.
+    {
+      name: "process",
+      type: "process",
+      kind: "SPAN_KIND_CONSUMER",
+      publishes: false,
+      metrics: [
+        "messaging.process.duration",
+        "messaging.client.consumed.messages",
+      ],
+    },
+  ];
+
+  interface Route {
+    label: string;
+    exchange: string;
+    routingKey: string;
+    queue: string;
+    // The queue the research says a publisher's and a consumer's name.
+    publishesTo: string | null;
+    consumesFrom: string | null;
+  }
+
+  const ROUTES: ReadonlyArray<Route> = [
+    {
+      label: "the default exchange",
+      exchange: "",
+      routingKey: "invoices",
+      queue: "invoices",
+      publishesTo: "invoices",
+      consumesFrom: "invoices",
+    },
+    {
+      label: "a topic exchange",
+      exchange: "orders.topic",
+      routingKey: "orders.eu.created",
+      queue: "orders-eu",
+      publishesTo: "orders.topic",
+      consumesFrom: "orders-eu",
+    },
+    {
+      label: "a direct exchange to the queue named by its key",
+      exchange: "direct_logs",
+      routingKey: "warning",
+      queue: "warning",
+      publishesTo: "direct_logs",
+      consumesFrom: "warning",
+    },
+    {
+      label: "a fanout exchange",
+      exchange: "logs",
+      routingKey: "",
+      queue: "logs-audit",
+      publishesTo: "logs",
+      consumesFrom: "logs-audit",
+    },
+    {
+      label: "the default exchange to a server-named queue",
+      exchange: "",
+      routingKey: "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
+      queue: "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
+      publishesTo: null,
+      consumesFrom: null,
+    },
+  ];
+
+  /*
+   * A MassTransit message type's exchange, named with a colon, bound with
+   * an empty routing key. Its consumers are routed above; its publishers
+   * are the one case a metric cannot tell apart (see the last test).
+   */
+  const MASSTRANSIT_ROUTE: Route = {
+    label: "a MassTransit message-type exchange",
+    exchange: "Contoso.Billing.Contracts:InvoiceIssued",
+    routingKey: "",
+    queue: "invoice-issued",
+    publishesTo: "Contoso.Billing.Contracts:InvoiceIssued",
+    consumesFrom: "invoice-issued",
+  };
+
+  // appendDestinationPart: the non-empty parts, joined with ":".
+  function joinDestination(parts: ReadonlyArray<string>): string {
+    return parts
+      .filter((part: string): boolean => {
+        return part.length > 0;
+      })
+      .join(":");
+  }
+
+  // The part of isGeneratedQueueName these routes need.
+  function isGeneratedQueueName(name: string): boolean {
+    return name.startsWith("amq.gen-");
+  }
+
+  function spanAttributes(
+    operation: AgentOperation,
+    route: Route,
+  ): FixtureAttributes {
+    const destination: string = operation.publishes
+      ? joinDestination([route.exchange, route.routingKey]) || "amq.default"
+      : joinDestination([
+          route.exchange,
+          route.routingKey,
+          route.queue === route.routingKey ? "" : route.queue,
+        ]);
+    const anonymous: boolean = operation.publishes
+      ? route.exchange === "" && isGeneratedQueueName(route.routingKey)
+      : isGeneratedQueueName(route.queue);
+    return {
+      "messaging.system": "rabbitmq",
+      ...(destination ? { "messaging.destination.name": destination } : {}),
+      ...(anonymous ? { "messaging.destination.anonymous": true } : {}),
+      "messaging.operation.name": operation.name,
+      "messaging.operation.type": operation.type,
+      ...(route.routingKey
+        ? { "messaging.rabbitmq.destination.routing_key": route.routingKey }
+        : {}),
+      ...(operation.publishes
+        ? {}
+        : { "messaging.rabbitmq.message.delivery_tag": 7 }),
+      "server.address": "rabbitmq.internal",
+      "server.port": 5672,
+      "network.peer.address": "10.0.3.17",
+      "network.peer.port": 5672,
+    };
+  }
+
+  // MessagingMetricsAdvice.filterAttributes, then the instrument's advice.
+  function metricAttributes(
+    metricName: string,
+    span: FixtureAttributes,
+  ): FixtureAttributes {
+    const dropsName: boolean =
+      span["messaging.destination.template"] !== undefined ||
+      span["messaging.destination.anonymous"] === true ||
+      span["messaging.destination.temporary"] === true;
+    const kept: FixtureAttributes = {};
+    for (const key of METRIC_ADVICE.get(metricName) || []) {
+      if (
+        span[key] !== undefined &&
+        !(dropsName && key === "messaging.destination.name")
+      ) {
+        kept[key] = span[key];
+      }
+    }
+    return kept;
+  }
+
+  function resolveSpan(
+    operation: AgentOperation,
+    span: FixtureAttributes,
+  ): ResolvedMessagingDestination | null {
+    return resolveMessagingSpan({
+      getAttribute: (key: string): unknown => {
+        return span[key];
+      },
+      kind: operation.kind,
+    });
+  }
+
+  const CASES: Array<[string, AgentOperation, Route, string]> = [];
+  for (const operation of OPERATIONS) {
+    const routes: ReadonlyArray<Route> = operation.publishes
+      ? ROUTES
+      : [...ROUTES, MASSTRANSIT_ROUTE];
+    for (const route of routes) {
+      for (const metricName of operation.metrics) {
+        CASES.push([
+          `${operation.name} through ${route.label}: ${metricName}`,
+          operation,
+          route,
+          metricName,
+        ]);
+      }
+    }
+  }
+
+  test("the metrics keep no routing key, and the operation type only on the operation duration", () => {
+    for (const [metricName, advice] of METRIC_ADVICE) {
+      expect({
+        metricName,
+        routingKey: advice.includes(
+          "messaging.rabbitmq.destination.routing_key",
+        ),
+        operationName: advice.includes("messaging.operation.name"),
+        operationType: advice.includes("messaging.operation.type"),
+      }).toEqual({
+        metricName,
+        routingKey: false,
+        operationName: true,
+        operationType: metricName === "messaging.client.operation.duration",
+      });
+    }
+  });
+
+  test.each(CASES)(
+    "%s names the queue its span does",
+    (
+      _name: string,
+      operation: AgentOperation,
+      route: Route,
+      metricName: string,
+    ) => {
+      const span: FixtureAttributes = spanAttributes(operation, route);
+      const fromSpan: ResolvedMessagingDestination | null = resolveSpan(
+        operation,
+        span,
+      );
+      expect(fromSpan?.destination ?? null).toBe(
+        operation.publishes ? route.publishesTo : route.consumesFrom,
+      );
+      expect(
+        resolveDatapoint(metricName, metricAttributes(metricName, span)),
+      ).toEqual(fromSpan);
+    },
+  );
+
+  test("the names are the agent's: joined on both sides, the default exchange and a key equal to the queue left out", () => {
+    const names: Array<unknown> = [PUBLISH, OPERATIONS[2]!].map(
+      (operation: AgentOperation): unknown => {
+        return ROUTES.map((route: Route): unknown => {
+          return spanAttributes(operation, route)["messaging.destination.name"];
+        });
+      },
+    );
+    expect(names).toEqual([
+      [
+        "invoices",
+        "orders.topic:orders.eu.created",
+        "direct_logs:warning",
+        "logs",
+        "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
+      ],
+      [
+        "invoices",
+        "orders.topic:orders.eu.created:orders-eu",
+        "direct_logs:warning",
+        "logs:logs-audit",
+        "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
+      ],
+    ]);
+  });
+
+  /*
+   * A publish to an exchange named with a colon, with no routing key: its
+   * span knows the key is empty (the attribute is missing), so the name is
+   * one exchange; its metrics cannot know, and read `{exchange}:{routing
+   * key}` like every other publish's — both of them alike.
+   */
+  test("a publish to an exchange named with a colon: its metrics agree with each other, not with its span", () => {
+    const span: FixtureAttributes = spanAttributes(PUBLISH, MASSTRANSIT_ROUTE);
+    expect(resolveSpan(PUBLISH, span)?.destination).toBe(
+      "Contoso.Billing.Contracts:InvoiceIssued",
+    );
+    expect(
+      PUBLISH.metrics.map((metricName: string): string | null => {
+        return (
+          resolveDatapoint(metricName, metricAttributes(metricName, span))
+            ?.destination ?? null
+        );
+      }),
+    ).toEqual(["Contoso.Billing.Contracts", "Contoso.Billing.Contracts"]);
+  });
+});
+
 describe("MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES", () => {
   test("covers the span keys, every catalog key and the broker address", () => {
     const keys: Set<string> = new Set<string>(
@@ -919,6 +1491,23 @@ describe("MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES", () => {
       if (attribute.port) {
         expect(keys.has(attribute.port)).toBe(true);
       }
+    }
+  });
+
+  /*
+   * A RabbitMQ datapoint's joined name splits by the 1.26+ operation key it
+   * carries, so the cron must group by both keys, as ingest's memo does.
+   */
+  test("holds both operation keys that decide how a RabbitMQ name splits", () => {
+    for (const key of [
+      "messaging.operation.type",
+      "messaging.operation.name",
+    ]) {
+      expect({
+        key,
+        spans: MESSAGING_RESOLVER_INPUT_ATTRIBUTES.includes(key),
+        datapoints: MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES.includes(key),
+      }).toEqual({ key, spans: true, datapoints: true });
     }
   });
 
@@ -1103,5 +1692,67 @@ describe("the metric resolver never throws", () => {
         });
       }
     }
+  });
+});
+
+describe("a known limit: a RabbitMQ queue named with a colon, reached through the default exchange", () => {
+  /*
+   * The OpenTelemetry Java agent (opt-in messaging conventions) names a
+   * default-exchange publish and delivery after the routing key, which is
+   * the queue — here `app:orders`, colon and all — and its spans carry that
+   * key as messaging.rabbitmq.destination.routing_key, so a span resolves to
+   * the whole name. Its client metrics drop the routing-key attribute
+   * (MessagingMetricsAdvice), and without it `app:orders` reads exactly like
+   * the `{exchange}:{routing key}` name the agent gives every other publish,
+   * so a datapoint takes the far commoner joined reading. Both readings lose
+   * only a client metric's attachment to a queue — client metrics never
+   * create queues — and this pins which one is lost, so a change to it is a
+   * decision.
+   */
+  const COMMON: FixtureAttributes = {
+    "messaging.system": "rabbitmq",
+    "messaging.destination.name": "app:orders",
+  };
+
+  test("the spans resolve to the whole queue name", () => {
+    const publish: ResolvedMessagingDestination | null = resolveMessagingSpan({
+      getAttribute: (key: string): unknown => {
+        return {
+          ...COMMON,
+          "messaging.operation.type": "send",
+          "messaging.operation.name": "publish",
+          "messaging.rabbitmq.destination.routing_key": "app:orders",
+        }[key];
+      },
+      kind: "SPAN_KIND_PRODUCER",
+    });
+    const deliver: ResolvedMessagingDestination | null = resolveMessagingSpan({
+      getAttribute: (key: string): unknown => {
+        return {
+          ...COMMON,
+          "messaging.operation.type": "process",
+          "messaging.operation.name": "process",
+          "messaging.rabbitmq.destination.routing_key": "app:orders",
+        }[key];
+      },
+      kind: "SPAN_KIND_CONSUMER",
+    });
+    expect(publish?.destination).toBe("app:orders");
+    expect(deliver?.destination).toBe("app:orders");
+  });
+
+  test("the client metrics, which carry no routing key, take the joined reading", () => {
+    const sent: ResolvedMessagingDestination | null = resolveDatapoint(
+      "messaging.client.sent.messages",
+      { ...COMMON, "messaging.operation.name": "publish" },
+    );
+    const consumed: ResolvedMessagingDestination | null = resolveDatapoint(
+      "messaging.client.consumed.messages",
+      { ...COMMON, "messaging.operation.name": "receive" },
+    );
+    // `{exchange}:{routing key}` on the publishing side: the exchange.
+    expect(sent?.destination).toBe("app");
+    // `{exchange}:{queue}` on the consuming side: the queue part.
+    expect(consumed?.destination).toBe("orders");
   });
 });

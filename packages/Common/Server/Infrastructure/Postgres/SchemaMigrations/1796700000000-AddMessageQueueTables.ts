@@ -18,8 +18,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     join table MessageQueueLabel.
  */
 
-export class AddMessageQueueTables1796500000000 implements MigrationInterface {
-  public name: string = "AddMessageQueueTables1796500000000";
+export class AddMessageQueueTables1796700000000 implements MigrationInterface {
+  public name: string = "AddMessageQueueTables1796700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

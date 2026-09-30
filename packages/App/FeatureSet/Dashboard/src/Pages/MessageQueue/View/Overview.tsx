@@ -57,14 +57,13 @@ import {
 import {
   EMPTY_MESSAGE_QUEUE_SERVICES,
   EMPTY_MESSAGE_QUEUE_SPAN_METRICS,
-  MESSAGE_QUEUE_CONSUME_SPAN_KIND,
-  MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
   MessageQueueBrokerMetricResult,
+  MessageQueueObservedSeriesCache,
   MessageQueueServices,
   MessageQueueSpanMetrics,
+  MessageQueueSpanOverview,
   fetchMessageQueueBrokerMetrics,
-  fetchMessageQueueServices,
-  fetchMessageQueueSpanMetrics,
+  fetchMessageQueueSpanOverview,
   getMessageQueueServiceIds,
 } from "../../../Components/MessageQueue/MessageQueueTelemetryQueries";
 import {
@@ -73,14 +72,14 @@ import {
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
   formatMessageQueueErrorRate,
-  getMessageQueueDiscoveryLabel,
   getMessageQueueLivenessLabel,
   getMessageQueueLivenessStatus,
   getMessageQueueLivenessTone,
-} from "../../../Components/MessageQueue/MessageQueuePresentation";
+} from "../../../Components/MessageQueue/MessageQueueOverviewPresentation";
 import {
   MESSAGE_QUEUE_NOT_FOUND_MESSAGE,
   getMessageQueueBrokerLabel,
+  getMessageQueueDiscoveryLabel,
   getMessageQueueSystemLabel,
   isMessageQueueFound,
   isNamespaceScopedMessagingSystem,
@@ -93,9 +92,12 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
 /*
  * A queue's Overview:
  *
- *   1. Messages from applications — its PRODUCER spans (published), its
- *      CONSUMER spans (consumed), its failed spans of any kind, and the p95
- *      of its CONSUMER spans (processing time), with a chart per interval.
+ *   1. Messages from applications — its publishes (PRODUCER spans, and the
+ *      client send spans of services that record no producer span), its
+ *      consumed messages (CONSUMER spans, less empty receives and SQS's
+ *      receive polls), its failed spans of any kind, and the p95 of the
+ *      consumer spans that handled messages (processing time), with a chart
+ *      per interval — MessageQueueSpanPopulation says which spans are which.
  *   2. Producers and Consumers — the services on each side of it.
  *   3. Broker health — its messaging system's curated broker metrics, each
  *      gauge with a "Create monitor" link, or a card saying where they come
@@ -142,6 +144,14 @@ const MessageQueueOverview: FunctionComponent<
   // Set while the telemetry for the current window is still loading.
   const telemetryInFlightRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  /*
+   * The broker metrics' observed series (the Create monitor links' filters),
+   * kept across refreshes of one range: see MessageQueueObservedSeriesCache.
+   */
+  const observedSeriesCacheRef: React.MutableRefObject<MessageQueueObservedSeriesCache> =
+    useRef<MessageQueueObservedSeriesCache>(
+      new MessageQueueObservedSeriesCache(),
+    );
 
   const fetchModel: (showLoader: boolean) => Promise<void> = async (
     showLoader: boolean,
@@ -266,20 +276,13 @@ const MessageQueueOverview: FunctionComponent<
     telemetryInFlightRef.current = true;
 
     Promise.all([
-      fetchMessageQueueSpanMetrics({ projectId, keys, start, end }),
-      fetchMessageQueueServices({
+      fetchMessageQueueSpanOverview({
         projectId,
         keys,
         start,
         end,
-        kind: MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
-      }),
-      fetchMessageQueueServices({
-        projectId,
-        keys,
-        start,
-        end,
-        kind: MESSAGE_QUEUE_CONSUME_SPAN_KIND,
+        // Which of its spans are publishes and consumes can depend on it.
+        messagingSystem: item.messagingSystem,
       }),
       fetchMessageQueueBrokerMetrics({
         projectId,
@@ -287,28 +290,35 @@ const MessageQueueOverview: FunctionComponent<
         start,
         end,
         metrics: catalog,
+        /*
+         * Keyed on the range the reader picked, not on the window a
+         * relative range moves every tick: a tick reuses them, a new range
+         * or a zoom reads them again.
+         */
+        observedSeriesCache: {
+          cache: observedSeriesCacheRef.current,
+          rangeKey: JSON.stringify(timeRange),
+        },
       }),
     ])
       .then(
-        async ([spans, publishing, consuming, broker]: [
-          MessageQueueSpanMetrics,
-          MessageQueueServices,
-          MessageQueueServices,
+        async ([spans, broker]: [
+          MessageQueueSpanOverview,
           Array<MessageQueueBrokerMetricResult>,
         ]): Promise<void> => {
           if (ignore) {
             return;
           }
           telemetryInFlightRef.current = false;
-          setSpanMetrics(spans);
-          setProducers(publishing);
-          setConsumers(consuming);
+          setSpanMetrics(spans.metrics);
+          setProducers(spans.producers);
+          setConsumers(spans.consumers);
           setBrokerMetrics(broker);
           setTelemetryLoading(false);
 
           const ids: Array<string> = getMessageQueueServiceIds(
-            publishing,
-            consuming,
+            spans.producers,
+            spans.consumers,
           );
           if (ids.length === 0) {
             return;
@@ -464,7 +474,7 @@ const MessageQueueOverview: FunctionComponent<
       icon: IconProp.PaperAirplane,
       iconColor: "sky",
       loading: telemetryLoading,
-      sublabel: "producer spans, selected range",
+      sublabel: "publish spans, selected range",
       to: populate(PageMap.MESSAGE_QUEUE_VIEW_TRACES),
       description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.published,
     },
@@ -683,6 +693,7 @@ const MessageQueueOverview: FunctionComponent<
           totalServices={producers.total}
           serviceNames={serviceNames}
           isLoading={telemetryLoading}
+          queueHasSpans={hasSpans}
         />
         <MessageQueueServicesCard
           side="consumers"
@@ -691,6 +702,7 @@ const MessageQueueOverview: FunctionComponent<
           totalServices={consumers.total}
           serviceNames={serviceNames}
           isLoading={telemetryLoading}
+          queueHasSpans={hasSpans}
         />
       </div>
 

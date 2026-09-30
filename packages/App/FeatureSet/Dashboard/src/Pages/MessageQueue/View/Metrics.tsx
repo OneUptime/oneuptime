@@ -39,7 +39,7 @@ import {
 import {
   MESSAGE_QUEUE_METRIC_LIST_DEFAULT_CAPTION,
   getMessageQueueMetricListCaption,
-} from "../../../Components/MessageQueue/MessageQueuePresentation";
+} from "../../../Components/MessageQueue/MessageQueueOverviewPresentation";
 import { MESSAGE_QUEUE_NOT_FOUND_MESSAGE } from "../Utils/MessageQueuePresentation";
 /*
  * Generic and pure, so shared with the Databases product's Metrics tab

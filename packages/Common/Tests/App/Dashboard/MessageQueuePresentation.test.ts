@@ -3,8 +3,8 @@ import { describe, expect, jest, test } from "@jest/globals";
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
  * whose runtime require graph reaches it, and DatabaseService (behind
- * MessageQueueService, whose manual-create resolution the form's preview is
- * pinned to below) imports it.
+ * MessageQueueService, whose manual create the form's refusals are held to
+ * below) imports it.
  */
 jest.mock("../../../Server/Utils/PasswordHash", () => {
   return {
@@ -23,8 +23,6 @@ import {
   MESSAGE_QUEUE_DELETE_WARNING,
   MESSAGE_QUEUE_NAME_HELP,
   MESSAGE_QUEUE_NOT_FOUND_MESSAGE,
-  MessageQueueManualInput,
-  MessageQueueManualPreview,
   MessageQueueOption,
   canBrokerMetricsReachMessageQueue,
   getMessageQueueBrokerLabel,
@@ -45,6 +43,7 @@ import {
   ManualMessageQueue,
   resolveManualMessageQueue,
 } from "../../../Server/Services/MessageQueueService";
+import { quoteManualMessageQueueInput } from "../../../Types/MessageQueue/MessageQueueManualIdentity";
 import {
   MESSAGE_QUEUE_DISCOVERY_SOURCES,
   getMessageQueueDiscoverySourceLabel,
@@ -58,11 +57,12 @@ import OneUptimeDate from "../../../Types/Date";
 
 /*
  * How the Queues pages describe a row, and what the create form checks
- * before it sends one. The create form's preview chains the catalog calls
- * the server's manual create chains (resolveManualMessageQueue, which the
- * browser cannot import), so the agreement table below runs BOTH over the
- * same inputs: whatever the form previews is what the server stores, and
- * whatever the form refuses the server refuses too.
+ * before it sends one. The form's preview and checks read the very check
+ * the server's manual create applies (checkManualMessageQueue, shared in
+ * Common/Types/MessageQueue/MessageQueueManualIdentity and tested there), so
+ * they cannot drift from it. What is pinned here is how the form reads it:
+ * which field each refusal belongs to, and that the form says what the
+ * server's resolveManualMessageQueue throws, word for word.
  */
 
 describe("messaging system options", () => {
@@ -436,263 +436,13 @@ describe("the copy", () => {
   });
 });
 
-/*
- * The agreement table: every row runs through the form's preview AND the
- * server's resolution. The rows cover each normalization discovery applies
- * to a typed destination, every refusal, and the system / namespace rules.
- */
 const UUID: string = "7f1c2a9e-4b1d-4c3e-9f1a-2b3c4d5e6f70";
 
-const AGREEMENT_CASES: Array<[string, MessageQueueManualInput]> = [
-  ["a Kafka topic", { messagingSystem: "kafka", destinationName: "orders" }],
-  [
-    "a padded Kafka topic",
-    { messagingSystem: " kafka ", destinationName: "  Orders.Created  " },
-  ],
-  [
-    "an SQS queue URL",
-    {
-      messagingSystem: "aws_sqs",
-      destinationName:
-        "https://sqs.us-east-1.amazonaws.com/123456789012/orders",
-    },
-  ],
-  [
-    "an SQS queue ARN",
-    {
-      messagingSystem: "aws_sqs",
-      destinationName: "arn:aws:sqs:us-east-1:123456789012:orders",
-    },
-  ],
-  [
-    "an SQS alias spelling",
-    { messagingSystem: "AmazonSQS", destinationName: "orders" },
-  ],
-  [
-    "an SNS topic ARN",
-    {
-      messagingSystem: "aws.sns",
-      destinationName: "arn:aws:sns:us-east-1:123456789012:order-events",
-    },
-  ],
-  [
-    "an SNS phone number",
-    { messagingSystem: "aws.sns", destinationName: "+15555550123" },
-  ],
-  [
-    "a Pub/Sub topic path",
-    {
-      messagingSystem: "gcp_pubsub",
-      destinationName: "projects/shop/topics/orders",
-    },
-  ],
-  [
-    "a Pub/Sub subscription path",
-    {
-      messagingSystem: "gcp_pubsub",
-      destinationName: "projects/shop/subscriptions/orders-billing",
-    },
-  ],
-  [
-    "a Pulsar short name",
-    { messagingSystem: "pulsar", destinationName: "orders" },
-  ],
-  [
-    "a Pulsar partition",
-    { messagingSystem: "pulsar", destinationName: "orders-partition-3" },
-  ],
-  [
-    "a Pulsar system topic",
-    {
-      messagingSystem: "pulsar",
-      destinationName: "persistent://public/default/__change_events",
-    },
-  ],
-  [
-    "an ActiveMQ queue:// name",
-    { messagingSystem: "activemq", destinationName: "queue://orders" },
-  ],
-  [
-    "an Artemis alias",
-    { messagingSystem: "Artemis", destinationName: "orders" },
-  ],
-  ["a JMS queue", { messagingSystem: "jms", destinationName: "orders" }],
-  [
-    "a JMS temporary queue",
-    { messagingSystem: "jms", destinationName: "temp-queue://ID:abc-1:1:1" },
-  ],
-  [
-    "a RabbitMQ generated queue",
-    {
-      messagingSystem: "rabbitmq",
-      destinationName: "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
-    },
-  ],
-  [
-    "a RabbitMQ reply-to",
-    {
-      messagingSystem: "rabbitmq",
-      destinationName: "amq.rabbitmq.reply-to.g1h2AA",
-    },
-  ],
-  [
-    "a RabbitMQ exchange:routing-key:queue name",
-    { messagingSystem: "rabbitmq", destinationName: "shop:new-order:orders" },
-  ],
-  [
-    "a NATS inbox",
-    { messagingSystem: "nats", destinationName: "_INBOX.abcdef.1" },
-  ],
-  [
-    "a UUID inside a name",
-    { messagingSystem: "kafka", destinationName: `reply-${UUID}` },
-  ],
-  ["a bare UUID", { messagingSystem: "kafka", destinationName: UUID }],
-  [
-    "a placeholder",
-    { messagingSystem: "kafka", destinationName: "(temporary)" },
-  ],
-  [
-    "a list of names",
-    { messagingSystem: "kafka", destinationName: '["orders","payments"]' },
-  ],
-  [
-    "a name with a control character",
-    { messagingSystem: "kafka", destinationName: "orders\u0007" },
-  ],
-  [
-    "a 256-character name",
-    { messagingSystem: "kafka", destinationName: "o".repeat(256) },
-  ],
-  [
-    "a 255-character name",
-    { messagingSystem: "kafka", destinationName: "o".repeat(255) },
-  ],
-  [
-    "a Service Bus queue in a namespace",
-    {
-      messagingSystem: "servicebus",
-      destinationName: "orders",
-      brokerScope: "shop-prod",
-    },
-  ],
-  [
-    "a Service Bus namespace host",
-    {
-      messagingSystem: "servicebus",
-      destinationName: "orders",
-      brokerScope: "Shop-Prod.servicebus.windows.net",
-    },
-  ],
-  [
-    "a Service Bus dead-letter path",
-    {
-      messagingSystem: "servicebus",
-      destinationName: "orders/$DeadLetterQueue",
-      brokerScope: "shop-prod",
-    },
-  ],
-  [
-    "a Service Bus subscription path",
-    {
-      messagingSystem: "azure_servicebus",
-      destinationName: "orders/Subscriptions/billing",
-      brokerScope: "shop-prod",
-    },
-  ],
-  [
-    "an Event Hubs consumer-group path",
-    {
-      messagingSystem: "eventhubs",
-      destinationName: "telemetry/ConsumerGroups/$Default/Partitions/3",
-      brokerScope: "shop-prod",
-    },
-  ],
-  [
-    "an invalid namespace",
-    {
-      messagingSystem: "servicebus",
-      destinationName: "orders",
-      brokerScope: "my namespace",
-    },
-  ],
-  [
-    "a Service Bus queue without a namespace",
-    { messagingSystem: "servicebus", destinationName: "orders" },
-  ],
-  [
-    "a namespace sent for Kafka (ignored)",
-    {
-      messagingSystem: "kafka",
-      destinationName: "orders",
-      brokerScope: "shop-prod",
-    },
-  ],
-  [
-    "an invalid namespace sent for Kafka (ignored)",
-    {
-      messagingSystem: "kafka",
-      destinationName: "orders",
-      brokerScope: "not a namespace",
-    },
-  ],
-  [
-    "a long-tail system",
-    { messagingSystem: "ibmmq", destinationName: "DEV.QUEUE.1" },
-  ],
-  [
-    "Spring Integration",
-    { messagingSystem: "spring_integration", destinationName: "orders" },
-  ],
-  [
-    "a malformed system",
-    { messagingSystem: "My Broker", destinationName: "orders" },
-  ],
-  ["no system", { messagingSystem: "", destinationName: "orders" }],
-  ["no destination", { messagingSystem: "kafka", destinationName: "   " }],
-  ["nothing", {}],
-  [
-    "non-string values",
-    { messagingSystem: 42, destinationName: { name: "orders" } },
-  ],
-];
-
-describe("the create form's preview agrees with the server's manual create", () => {
-  test.each(AGREEMENT_CASES)(
-    "%s",
-    (_name: string, input: MessageQueueManualInput) => {
-      let server: ManualMessageQueue | null = null;
-      try {
-        server = resolveManualMessageQueue({
-          messagingSystem: input.messagingSystem,
-          destinationName: input.destinationName,
-          brokerScope: input.brokerScope,
-        });
-      } catch {
-        server = null;
-      }
-
-      const preview: MessageQueueManualPreview | null =
-        previewManualMessageQueue(input);
-
-      expect(preview).toEqual(server);
-    },
-  );
-
-  test("the table exercises both outcomes", () => {
-    let accepted: number = 0;
-    let refused: number = 0;
-    for (const [, input] of AGREEMENT_CASES) {
-      if (previewManualMessageQueue(input)) {
-        accepted++;
-      } else {
-        refused++;
-      }
-    }
-    expect(accepted).toBeGreaterThanOrEqual(15);
-    expect(refused).toBeGreaterThanOrEqual(12);
-  });
-
+/*
+ * What the form previews for a typed queue: the identity the server's
+ * manual create stores for it.
+ */
+describe("the create form's preview", () => {
   test("an SQS URL is stored by its queue name, keyed on the canonical system", () => {
     expect(
       previewManualMessageQueue({
@@ -745,6 +495,31 @@ describe("the create form's preview agrees with the server's manual create", () 
       })?.destination,
     ).toBe("reply-{uuid}");
   });
+
+  test("previews nothing the server would refuse", () => {
+    const refused: Array<{
+      messagingSystem?: string;
+      destinationName?: string;
+      brokerScope?: string;
+    }> = [
+      {},
+      { messagingSystem: "kafka", destinationName: "   " },
+      { messagingSystem: "spring_integration", destinationName: "orders" },
+      { messagingSystem: "kafka", destinationName: "(temporary)" },
+      { messagingSystem: "rabbitmq", destinationName: "amq.default" },
+      {
+        messagingSystem: "servicebus",
+        destinationName: "orders",
+        brokerScope: "my namespace",
+      },
+    ];
+    for (const input of refused) {
+      expect(previewManualMessageQueue(input)).toBeNull();
+      expect(() => {
+        resolveManualMessageQueue(input);
+      }).toThrow();
+    }
+  });
 });
 
 describe("the Destination field's check", () => {
@@ -795,16 +570,59 @@ describe("the Destination field's check", () => {
         destinationName: destination,
       });
       expect(message).toContain("cannot be a queue");
-      expect(message).toContain(`"${destination}"`);
+      // The server's refusal, word for word: a long value quoted clipped.
+      expect(message).toContain(quoteManualMessageQueueInput(destination));
       expect(() => {
         resolveManualMessageQueue({
           messagingSystem: system,
           destinationName: destination,
           brokerScope: "",
         });
-      }).toThrow();
+      }).toThrow(message!);
     },
   );
+
+  /*
+   * RabbitMQ queue names hold the separators a span's joined destination
+   * uses (EasyNetQ's "Namespace.Type, Assembly_subscription", Hutch's
+   * "app:billing:invoice_consumer"). The server takes a typed name whole;
+   * the form's preview and hint must say the same, never a split name.
+   */
+  test.each([
+    "Namespace.Type, Assembly_subscription",
+    "app:billing:invoice_consumer",
+  ])(
+    "a RabbitMQ queue name is previewed as the server stores it, whole: %s",
+    (destination: string) => {
+      const values: { messagingSystem: string; destinationName: string } = {
+        messagingSystem: "rabbitmq",
+        destinationName: destination,
+      };
+      const server: ManualMessageQueue = resolveManualMessageQueue(values);
+      expect(server.destination).toBe(destination);
+      expect(previewManualMessageQueue(values)).toEqual({
+        system: server.system,
+        destination: server.destination,
+        brokerScope: server.brokerScope,
+        queueIdentifier: server.queueIdentifier,
+      });
+      expect(validateMessageQueueDestination(values)).toBeNull();
+      // Stored as typed: no "Saved as" hint.
+      expect(getMessageQueueDestinationHint(values)).toBeNull();
+    },
+  );
+
+  test("RabbitMQ's default exchange is refused with the server's reason", () => {
+    const values: { messagingSystem: string; destinationName: string } = {
+      messagingSystem: "rabbitmq",
+      destinationName: "amq.default",
+    };
+    const message: string | null = validateMessageQueueDestination(values);
+    expect(message).toContain("is RabbitMQ's default exchange, not a queue");
+    expect(() => {
+      resolveManualMessageQueue(values);
+    }).toThrow(message!);
+  });
 
   test("leaves a bad namespace to the Namespace field", () => {
     expect(
@@ -856,15 +674,50 @@ describe("the Namespace field's check", () => {
       });
       expect(message).toContain("is not an Azure namespace name");
       expect(message).toContain("<namespace>.servicebus.windows.net");
+      // The server's refusal, word for word.
       expect(() => {
         resolveManualMessageQueue({
           messagingSystem: "servicebus",
           destinationName: "orders",
           brokerScope: scope,
         });
-      }).toThrow("is not an Azure namespace name");
+      }).toThrow(message!);
     },
   );
+
+  test("quotes a long value the way the server does: its first 100 characters", () => {
+    const scope: string = "shop-prod-".repeat(15);
+    const message: string | null = validateMessageQueueNamespace({
+      messagingSystem: "eventhubs",
+      brokerScope: scope,
+    });
+    expect(message).toContain(quoteManualMessageQueueInput(scope));
+    expect(message).not.toContain(scope);
+    expect(() => {
+      resolveManualMessageQueue({
+        messagingSystem: "eventhubs",
+        destinationName: "telemetry",
+        brokerScope: scope,
+      });
+    }).toThrow(message!);
+  });
+
+  test("leaves a refused system or destination to its own field", () => {
+    expect(
+      validateMessageQueueNamespace({
+        messagingSystem: "servicebus",
+        destinationName: "(temporary)",
+        brokerScope: "shop-prod",
+      }),
+    ).toBeNull();
+    expect(
+      validateMessageQueueNamespace({
+        messagingSystem: "spring_integration",
+        destinationName: "orders",
+        brokerScope: "my namespace",
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("the fields' hints", () => {

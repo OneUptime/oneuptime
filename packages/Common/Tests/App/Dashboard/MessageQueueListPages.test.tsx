@@ -22,6 +22,10 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 interface CapturedField {
   field?: Record<string, unknown>;
+  // A form-only input (not a MessageQueue column).
+  overrideField?: Record<string, unknown>;
+  overrideFieldKey?: string;
+  showEvenIfPermissionDoesNotExist?: boolean;
   title?: string;
   description?: string;
   required?: boolean | ((values: Record<string, unknown>) => boolean);
@@ -64,13 +68,18 @@ interface CapturedTableProps {
   noItemsMessage?: string;
   viewPageRoute?: unknown;
   onViewPage: (item: unknown) => Promise<{ toString: () => string }>;
-  onBeforeCreate?: (item: unknown, misc: unknown) => Promise<unknown>;
+  onBeforeCreate?: (
+    item: unknown,
+    misc: unknown,
+    formValues?: unknown,
+  ) => Promise<unknown>;
   onCreateSuccess?: (item: unknown) => Promise<unknown>;
   onFetchSuccess?: (data: Array<unknown>) => void;
 }
 
 let tableProps: CapturedTableProps | null = null;
 const countMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 const useResourceOwnersMock: MockFunction = getJestMockFunction();
 const onResourcesFetchedMock: MockFunction = getJestMockFunction();
 const ownerActionsMock: MockFunction = getJestMockFunction();
@@ -106,6 +115,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       count: (...args: Array<unknown>) => {
         return countMock(...args);
+      },
+      getList: (...args: Array<unknown>) => {
+        return getListMock(...args);
       },
     },
   };
@@ -218,13 +230,21 @@ jest.mock(
 import MessageQueues, {
   MESSAGE_QUEUE_BROKER_COLUMN_MAX_WIDTH_CLASS,
   MESSAGE_QUEUE_NAME_COLUMN_MAX_WIDTH_CLASS,
+  fetchMessageQueueSystemFacetOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/MessageQueues";
 import MessageQueueArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Archived";
 import {
   MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
+  MESSAGE_QUEUE_OTHER_SYSTEM_FIELD,
+  MESSAGE_QUEUE_OTHER_SYSTEM_LABEL,
+  MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+  getMessageQueueCreateSystemOptions,
+  getMessageQueueDiscoveryLabel,
   getMessagingSystemOptions,
   previewManualMessageQueue,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueuePresentation";
+import { resolveManualMessageQueue } from "../../../Types/MessageQueue/MessageQueueManualIdentity";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import MessageQueueOwnerTeam from "../../../Models/DatabaseModels/MessageQueueOwnerTeam";
@@ -305,6 +325,7 @@ async function renderList(): Promise<void> {
 beforeEach(() => {
   tableProps = null;
   countMock.mockReset();
+  getListMock.mockReset();
   useResourceOwnersMock.mockReset();
   onResourcesFetchedMock.mockReset();
   ownerActionsMock.mockReset();
@@ -451,7 +472,9 @@ describe("the Queues list table", () => {
     const system: Record<string, any> = facets[0]!;
     expect(system["label"]).toBe("System");
     expect(system["isMultiSelect"]).toBe(true);
-    expect(system["options"]).toEqual(getMessagingSystemOptions());
+    // Fetched: the catalog plus the project's systems outside it.
+    expect(system["options"]).toBeUndefined();
+    expect(system["fetchOptions"]).toBe(fetchMessageQueueSystemFacetOptions);
     const query: unknown = system["toQueryValue"](["kafka", "rabbitmq"], "is");
     expect(query).toBeInstanceOf(Includes);
     expect((query as Includes).values).toEqual(["kafka", "rabbitmq"]);
@@ -462,6 +485,96 @@ describe("the Queues list table", () => {
         return option.value;
       }),
     ).toEqual(["traces", "broker-metrics", "manual"]);
+  });
+
+  test("the System facet offers the catalog, then every system outside it the project's queues have", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        queue({ messagingSystem: "mqtt" }),
+        queue({ messagingSystem: "ibmmq" }),
+        queue({ messagingSystem: "mqtt" }),
+        queue({ messagingSystem: "" }),
+      ],
+      count: 4,
+    });
+
+    const options: Array<{ label: string; value: string }> =
+      await fetchMessageQueueSystemFacetOptions();
+
+    expect(options).toEqual([
+      ...getMessagingSystemOptions(),
+      { label: "ibmmq", value: "ibmmq" },
+      { label: "mqtt", value: "mqtt" },
+    ]);
+    // Only the rows of systems outside the catalog are read.
+    const request: Record<string, any> = getListMock.mock
+      .calls[0]![0] as Record<string, any>;
+    expect(request["modelType"]).toBe(MessageQueue);
+    expect(request["select"]).toEqual({ messagingSystem: true });
+    expect(request["query"]["messagingSystem"]).toBeInstanceOf(IncludesNone);
+    expect(
+      [...(request["query"]["messagingSystem"] as IncludesNone).values].sort(),
+    ).toEqual(
+      getMessagingSystemOptions()
+        .map((option: { value: string }): string => {
+          return option.value;
+        })
+        .sort(),
+    );
+    // Picking one filters on the value its queues store.
+    const facet: Record<string, any> = (
+      useResourceOwnersMock.mock.calls[0]![0] as Record<string, any>
+    )["extraFacets"][0]!;
+    expect((facet["toQueryValue"](["mqtt"], "is") as Includes).values).toEqual([
+      "mqtt",
+    ]);
+
+    // A failed read leaves the catalog, as before.
+    getListMock.mockRejectedValue(new Error("boom"));
+    expect(await fetchMessageQueueSystemFacetOptions()).toEqual(
+      getMessagingSystemOptions(),
+    );
+  });
+
+  /*
+   * The facet filters a table of live queues (isArchived false): a system
+   * whose queues are all archived would filter it down to nothing, and the
+   * Archived list has no System facet to use it on.
+   */
+  test("the System facet leaves out a system whose queues are all archived, reading only what the table lists", async () => {
+    const rows: Array<MessageQueue> = [
+      queue({ messagingSystem: "mqtt", isArchived: false }),
+      queue({ messagingSystem: "solace", isArchived: true }),
+      queue({ messagingSystem: "ibmmq", isArchived: true }),
+      queue({ messagingSystem: "ibmmq", isArchived: false }),
+    ];
+    // The API answers with the rows the query's isArchived matches.
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const query: Record<string, unknown> = (
+        args[0] as { query: Record<string, unknown> }
+      ).query;
+      const data: Array<MessageQueue> = rows.filter(
+        (row: MessageQueue): boolean => {
+          return (
+            !Object.prototype.hasOwnProperty.call(query, "isArchived") ||
+            row.isArchived === query["isArchived"]
+          );
+        },
+      );
+      return Promise.resolve({ data: data, count: data.length });
+    });
+
+    expect(await fetchMessageQueueSystemFacetOptions()).toEqual([
+      ...getMessagingSystemOptions(),
+      { label: "ibmmq", value: "ibmmq" },
+      { label: "mqtt", value: "mqtt" },
+    ]);
+
+    // The rows the table itself lists.
+    const request: Record<string, any> = getListMock.mock
+      .calls[0]![0] as Record<string, any>;
+    expect(request["query"]["isArchived"]).toBe(false);
+    expect(tableProps!.query).toEqual({ isArchived: false, merged: true });
   });
 
   test("hands fetched rows to the owners lookup", () => {
@@ -595,6 +708,14 @@ describe("the Queues list columns", () => {
     ).toHaveTextContent("Broker metrics");
   });
 
+  test("Discovered from names a row without a source as the Overview does", () => {
+    // The Overview's chip and detail row read the same helper.
+    expect(
+      renderCell("Discovered from", queue({ discoverySource: "" })),
+    ).toHaveTextContent(getMessageQueueDiscoveryLabel(""));
+    expect(getMessageQueueDiscoveryLabel("")).toBe("Unknown");
+  });
+
   test("Last Seen is relative, and never for a queue nothing has seen", () => {
     const seen: Date = OneUptimeDate.addRemoveMinutes(
       OneUptimeDate.getCurrentDate(),
@@ -627,10 +748,168 @@ describe("the Queues list columns", () => {
   });
 });
 
+/*
+ * The create form's fields named after their model field (or, for a
+ * form-only input, its override key), the way BasicForm validates them.
+ */
+function namedFormFields(): Array<Field<MessageQueue>> {
+  return (tableProps!.formFields || []).map(
+    (formField: CapturedField): Field<MessageQueue> => {
+      return {
+        name: Object.keys(formField.field || formField.overrideField || {})[0]!,
+        ...formField,
+      } as unknown as Field<MessageQueue>;
+    },
+  );
+}
+
 describe("the create form", () => {
   beforeEach(async () => {
     countMock.mockResolvedValue(2);
     await renderList();
+  });
+
+  /*
+   * A broker the catalog does not know (MQTT, IBM MQ, Sidekiq...) still
+   * creates queues from its spans, under the messaging.system value they
+   * report — and one whose spans are too few for discovery to create it
+   * must be addable by hand, under that same value.
+   */
+  test("'Other messaging system' asks for the messaging.system value, and checks it as the server does", () => {
+    const other: CapturedField = field("messaging.system Value");
+    expect(other.overrideField).toEqual({
+      [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: true,
+    });
+    expect(other.overrideFieldKey).toBe(MESSAGE_QUEUE_OTHER_SYSTEM_FIELD);
+    expect(other.showEvenIfPermissionDoesNotExist).toBe(true);
+
+    const chosen: Record<string, unknown> = {
+      messagingSystem: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+    };
+    expect(other.showIf!(chosen)).toBe(true);
+    expect(other.showIf!({ messagingSystem: "kafka" })).toBe(false);
+    const required: CapturedField["required"] = other.required;
+    expect(typeof required === "function" && required(chosen)).toBe(true);
+    expect(
+      typeof required === "function" && required({ messagingSystem: "kafka" }),
+    ).toBe(false);
+
+    // The server's own refusal, word for word.
+    const refusal: string | null = other.customValidation!({
+      ...chosen,
+      [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "Not A System",
+    });
+    expect(refusal).toContain('"Not A System" is not a messaging system.');
+    expect(() => {
+      resolveManualMessageQueue({
+        messagingSystem: "Not A System",
+        destinationName: "orders",
+      });
+    }).toThrow(refusal!);
+    expect(
+      other.customValidation!({
+        ...chosen,
+        [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "spring_integration",
+      }),
+    ).toContain("does not name a message broker");
+    expect(
+      other.customValidation!({
+        ...chosen,
+        [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "mqtt",
+      }),
+    ).toBeNull();
+
+    // How a typed value is stored, when not as typed.
+    const hint: React.ReactElement | undefined = other.getFooterElement!({
+      ...chosen,
+      [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "AmazonSQS",
+    });
+    render(<>{hint}</>);
+    expect(
+      screen.getByTestId("message-queue-other-system-hint"),
+    ).toHaveTextContent('Saved as "aws_sqs", Amazon SQS.');
+    expect(
+      other.getFooterElement!({
+        ...chosen,
+        [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "mqtt",
+      }),
+    ).toBeUndefined();
+  });
+
+  test("an 'Other' queue validates end to end and is sent under the typed system, the queue its spans key on", async () => {
+    const values: Record<string, unknown> = {
+      messagingSystem: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+      [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: " mqtt ",
+      destinationName: "sensors/temperature",
+    };
+    expect(
+      Validation.validate<MessageQueue>({
+        formFields: namedFormFields(),
+        values: values as FormValues<MessageQueue>,
+        onValidate: undefined,
+      }),
+    ).toEqual({});
+
+    const sent: MessageQueue = (await tableProps!.onBeforeCreate!(
+      queue({
+        messagingSystem: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+        destinationName: "sensors/temperature",
+      }),
+      {},
+      values,
+    )) as MessageQueue;
+    expect(sent.messagingSystem).toBe("mqtt");
+
+    const attributes: Map<string, string> = new Map<string, string>([
+      ["messaging.system", "mqtt"],
+      ["messaging.destination.name", "sensors/temperature"],
+    ]);
+    const span: ResolvedMessagingDestination | null = resolveMessagingSpan({
+      getAttribute: (key: string): unknown => {
+        return attributes.get(key);
+      },
+      kind: "SPAN_KIND_PRODUCER",
+    });
+    expect(
+      resolveManualMessageQueue({
+        messagingSystem: sent.messagingSystem,
+        destinationName: sent.destinationName,
+      }).queueIdentifier,
+    ).toBe(
+      buildMessageQueueIdentifier(
+        toMessageQueueIdentity({
+          system: span!.system,
+          brokerScope: span!.brokerScope,
+          destination: span!.destination,
+        })!,
+      ),
+    );
+  });
+
+  test("the destination and namespace are judged under the typed system", () => {
+    const other: Record<string, unknown> = {
+      messagingSystem: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+    };
+    // A system typed by its alias is still namespace-scoped.
+    expect(
+      field("Namespace").showIf!({
+        ...other,
+        [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "azure_servicebus",
+      }),
+    ).toBe(true);
+    expect(
+      field("Namespace").showIf!({
+        ...other,
+        [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "mqtt",
+      }),
+    ).toBe(false);
+    expect(
+      field("Destination").customValidation!({
+        ...other,
+        [MESSAGE_QUEUE_OTHER_SYSTEM_FIELD]: "rabbitmq",
+        destinationName: "amq.gen-JzTY20BRgKO-HjmUJj0wLg",
+      }),
+    ).toContain("cannot be a queue");
   });
 
   test("asks for the system, destination, namespace, name, description and labels", () => {
@@ -640,6 +919,7 @@ describe("the create form", () => {
       }),
     ).toEqual([
       "Messaging System",
+      "messaging.system Value",
       "Destination",
       "Namespace",
       "Name",
@@ -651,10 +931,17 @@ describe("the create form", () => {
     expect(field("Namespace").field).toEqual({ brokerScope: true });
   });
 
-  test("the system dropdown is the catalog's systems, and required", () => {
+  test("the system dropdown is the catalog's systems, then Other, and required", () => {
     expect(field("Messaging System").dropdownOptions).toEqual(
-      getMessagingSystemOptions(),
+      getMessageQueueCreateSystemOptions(),
     );
+    expect(field("Messaging System").dropdownOptions).toEqual([
+      ...getMessagingSystemOptions(),
+      {
+        label: MESSAGE_QUEUE_OTHER_SYSTEM_LABEL,
+        value: MESSAGE_QUEUE_OTHER_SYSTEM_VALUE,
+      },
+    ]);
     expect(field("Messaging System").required).toBe(true);
     expect(field("Destination").required).toBe(true);
     expect(field("Name").required).toBe(false);
@@ -684,8 +971,8 @@ describe("the create form", () => {
   /*
    * Spans from the Service Bus emulator or through a custom domain name no
    * namespace host, so discovery keys them on `servicebus||orders`; the
-   * server accepts that queue from a person too (the agreement table in
-   * MessageQueuePresentation.test). The form must let it through.
+   * server accepts that queue from a person too (the shared manual check,
+   * MessageQueueManualIdentity.test). The form must let it through.
    */
   test("a Service Bus queue without a namespace can be added: the queue the emulator's spans key on", async () => {
     const values: FormValues<MessageQueue> = {
@@ -693,15 +980,7 @@ describe("the create form", () => {
       destinationName: "orders",
       brokerScope: "",
     };
-    // Named after their model field, the way BasicForm validates them.
-    const formFields: Array<Field<MessageQueue>> = (
-      tableProps!.formFields || []
-    ).map((formField: CapturedField): Field<MessageQueue> => {
-      return {
-        name: Object.keys(formField.field || {})[0]!,
-        ...formField,
-      } as unknown as Field<MessageQueue>;
-    });
+    const formFields: Array<Field<MessageQueue>> = namedFormFields();
     expect(
       Validation.validate<MessageQueue>({
         formFields,

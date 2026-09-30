@@ -1,4 +1,19 @@
+/*
+ * The Alerting tests read a counter the way the queue page does
+ * (MessageQueueTelemetryQueries). That module imports the aggregate API
+ * client, which reads the browser's configuration when loaded; nothing here
+ * queries anything, so it is replaced with an empty stand-in.
+ */
+jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
+  return { __esModule: true, default: {} };
+});
+
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import {
+  getMessageQueueMetricReadPlan,
+  MessageQueueMetricReadPlan,
+} from "../../../FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
+import { counterResultToRatePerSecond } from "../../../FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import {
   getMessagingBrokerMetricsReceivers,
   getMessagingSystemDescriptor,
@@ -37,17 +52,29 @@ import {
   MESSAGE_QUEUE_BROKER_METRIC_NAMES,
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
+  MessageQueueSignal,
   MESSAGING_CLIENT_METRIC_NAMES,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   buildMessageQueueMetricMonitorQuery,
   buildMessageQueueMetricMonitorViewConfig,
+  getMessageQueueAlertTemplateForMetric,
+  isMessageQueueMetricMonitorable,
+  MESSAGE_QUEUE_SOURCE_WINDOW_FLOORS,
+  MESSAGE_QUEUE_THRESHOLDABLE_SIGNALS,
   MessageQueueMetricMonitorQuery,
   MessageQueueMetricMonitorViewConfig,
   MessageQueueSeriesTotal,
+  MessageQueueSourceWindowFloor,
+  UNTEMPLATED_MESSAGE_QUEUE_GAUGES,
 } from "Common/Types/Monitor/MessageQueueAlertTemplates";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import { keyForMessageQueue } from "Common/Utils/Telemetry/EntityKey";
 import {
   buildMessagingMetricDiscoverySql,
@@ -114,6 +141,8 @@ const TOKEN_HEADER: string = "x-oneuptime-token";
  * 0.161.0 — the image the OneUptime agents pin (otlphttp is core's
  * deprecated but working alias of otlp_http, which the rest of the docs
  * use). A new type needs the same check before it goes on the page.
+ * cumulative_to_delta is the name 0.161.0 lists: it logs its old name,
+ * cumulativetodelta, as a deprecated alias.
  */
 const PINNED_COMPONENT_TYPES: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -127,7 +156,7 @@ const PINNED_COMPONENT_TYPES: Readonly<Record<string, ReadonlyArray<string>>> =
       "prometheus",
       "rabbitmq",
     ],
-    processors: ["batch", "transform"],
+    processors: ["batch", "cumulative_to_delta", "transform"],
     exporters: ["otlphttp"],
     extensions: ["awscloudwatchmetricstreams_encoding", "azure_auth"],
   };
@@ -1145,17 +1174,24 @@ describe("Queues docs", (): void => {
       }
     });
 
-    it("keeps every collector config on the page inside a system's section", (): void => {
+    /*
+     * Every config sits in a system's section, where the per-system checks
+     * below read it — except the one Alerting's counter copy adds to the
+     * RabbitMQ config, which "converts a copy of a counter" checks against
+     * that section's config.
+     */
+    it("keeps every collector config on the page inside a system's section, but Alerting's counter copy", (): void => {
       const all: number = yamlBlocks(readPage()).length;
 
       expect(all).toBeGreaterThanOrEqual(12);
+      expect(yamlBlocks(section(readPage(), "## Alerting"))).toHaveLength(1);
       expect(
         MESSAGING_SYSTEMS.reduce(
           (count: number, descriptor: MessagingSystemDescriptor): number => {
             return count + yamlBlocks(systemSection(descriptor)).length;
           },
           0,
-        ),
+        ) + 1,
       ).toBe(all);
     });
 
@@ -3122,7 +3158,163 @@ describe("Queues docs", (): void => {
       }
 
       expect(alerting).toContain("Counters get no monitor");
-      expect(alerting).toContain("`cumulativetodelta`");
+      expect(alerting).toContain("`cumulative_to_delta`");
+    });
+
+    /*
+     * What Create monitor covers on a queue's Broker health: every catalog
+     * entry of kind "gauge" (MessageQueueBrokerHealthSection renders the
+     * link for those and never for a counter) — a level, and a per-period
+     * count (aggregation Sum), which the metric tables print as "Gauge" and
+     * "Count per period". Its starting threshold is its alert template's
+     * (buildMessageQueueMetricMonitorLink seeds it from
+     * getMessageQueueAlertTemplateForMetric, and none without one), so the
+     * page's promise — a threshold where the signal has a bad direction —
+     * and its list of exceptions are held to the templates.
+     */
+    it("names what Create monitor covers, and the metrics of a bad direction it starts without a threshold", (): void => {
+      const paragraph: string = paragraphWith(
+        section(readPage(), "## Alerting"),
+        "**From the queue's page.**",
+      );
+      const gauges: Array<MessageQueueMetricDescriptor> =
+        MESSAGE_QUEUE_METRICS.filter(
+          (metric: MessageQueueMetricDescriptor): boolean => {
+            return metric.kind === "gauge";
+          },
+        );
+      const typesOf: (
+        metrics: Array<MessageQueueMetricDescriptor>,
+      ) => Array<string> = (
+        metrics: Array<MessageQueueMetricDescriptor>,
+      ): Array<string> => {
+        return Array.from(
+          new Set<string>(metrics.map(expectedTypeCell)),
+        ).sort();
+      };
+
+      // Both kinds of gauge get the link, and a monitor can read each one.
+      expect(typesOf(gauges)).toEqual(["Count per period", "Gauge"]);
+      expect(
+        typesOf(
+          MESSAGE_QUEUE_METRICS.filter(
+            (metric: MessageQueueMetricDescriptor): boolean => {
+              return metric.kind !== "gauge";
+            },
+          ),
+        ),
+      ).toEqual(["Counter, charted per second"]);
+      expect(paragraph).toContain(
+        "Each gauge and each count per period in **Broker health** has **Create monitor**",
+      );
+      expect(paragraph).toContain("Counters get no monitor");
+
+      for (const metric of MESSAGE_QUEUE_METRICS) {
+        expect({
+          metric: metric.metricName,
+          monitorable: isMessageQueueMetricMonitorable(metric),
+        }).toEqual({
+          metric: metric.metricName,
+          monitorable: metric.kind === "gauge",
+        });
+      }
+
+      // The signals the page calls a bad direction are the thresholdable ones.
+      const SIGNAL_WORDS: Readonly<Record<MessageQueueSignal, string>> = {
+        backlog: "backlog",
+        deadLetter: "dead letters",
+        consumerLag: "consumer lag",
+        oldestMessageAge: "oldest message age",
+        throttled: "throttling",
+        errors: "errors",
+        published: "published",
+        consumed: "consumed",
+        consumers: "consumers",
+      };
+      const listed: RegExpMatchArray | null = paragraph.match(
+        /obvious bad direction — ([^.]+)\./,
+      );
+
+      expect(listed).not.toBeNull();
+      expect(
+        (listed as RegExpMatchArray)[1]!
+          .split(/, | or /)
+          .map((word: string): string => {
+            return word.trim();
+          })
+          .sort(),
+      ).toEqual(
+        MESSAGE_QUEUE_THRESHOLDABLE_SIGNALS.map(
+          (signal: MessageQueueSignal): string => {
+            return SIGNAL_WORDS[signal];
+          },
+        ).sort(),
+      );
+
+      /*
+       * The exceptions: every gauge of such a signal without a template —
+       * exactly the deliberate UNTEMPLATED_MESSAGE_QUEUE_GAUGES — each
+       * named, and nothing else named. A gauge of any other signal has no
+       * template either.
+       */
+      const exceptions: Array<string> = gauges
+        .filter((metric: MessageQueueMetricDescriptor): boolean => {
+          return (
+            MESSAGE_QUEUE_THRESHOLDABLE_SIGNALS.includes(metric.signal) &&
+            !getMessageQueueAlertTemplateForMetric(metric)
+          );
+        })
+        .map((metric: MessageQueueMetricDescriptor): string => {
+          return metric.metricName;
+        })
+        .sort();
+
+      expect(exceptions).toEqual(
+        UNTEMPLATED_MESSAGE_QUEUE_GAUGES.map(
+          (gauge: { metricName: string }): string => {
+            return gauge.metricName;
+          },
+        ).sort(),
+      );
+
+      const sentence: string =
+        paragraph
+          .split(/(?<=\.)\s+(?=[A-Z*])/)
+          .find((text: string): boolean => {
+            return text.includes("start without one");
+          }) || "";
+      const NUMBER_WORDS: ReadonlyArray<string> = [
+        "None",
+        "One",
+        "Two",
+        "Three",
+        "Four",
+        "Five",
+        "Six",
+      ];
+
+      expect(sentence).toContain(
+        `${NUMBER_WORDS[exceptions.length]} of those start without one`,
+      );
+      expect(
+        Array.from(sentence.matchAll(/`([^`]+)`/g))
+          .map((match: RegExpMatchArray): string => {
+            return match[1] as string;
+          })
+          .filter((token: string): boolean => {
+            return MESSAGE_QUEUE_BROKER_METRIC_NAMES.has(token);
+          })
+          .sort(),
+      ).toEqual(exceptions);
+
+      for (const metric of gauges) {
+        if (!MESSAGE_QUEUE_THRESHOLDABLE_SIGNALS.includes(metric.signal)) {
+          expect({
+            metric: metric.metricName,
+            template: Boolean(getMessageQueueAlertTemplateForMetric(metric)),
+          }).toEqual({ metric: metric.metricName, template: false });
+        }
+      }
     });
 
     /*
@@ -3217,7 +3409,7 @@ describe("Queues docs", (): void => {
 
     /*
      * The catalog counters that do NOT reach the collector as monotonic
-     * sums. `cumulativetodelta` converts only monotonic sums and
+     * sums. `cumulative_to_delta` converts only monotonic sums and
      * (exponential) histograms (processor/cumulativetodeltaprocessor
      * processor.go @v0.161.0) and passes gauges through unchanged:
      * kafka_metrics declares both offsets as gauges (metadata.yaml
@@ -3234,7 +3426,7 @@ describe("Queues docs", (): void => {
       "pulsar_out_messages_total",
     ];
 
-    it("offers cumulativetodelta only for the counters that reach the collector as sums", (): void => {
+    it("offers cumulative_to_delta only for the counters that reach the collector as sums", (): void => {
       const paragraph: string = paragraphWith(
         section(readPage(), "## Alerting"),
         "**Counters.**",
@@ -3255,8 +3447,10 @@ describe("Queues docs", (): void => {
           },
         );
 
-      expect(sums).toContain("`cumulativetodelta` processor");
-      expect(gauges).toContain("`cumulativetodelta` leaves alone");
+      expect(sums).toContain(
+        "`cumulative_to_delta` processor (`cumulativetodelta` in older collectors)",
+      );
+      expect(gauges).toContain("`cumulative_to_delta` leaves alone");
 
       // The list above names catalog counters only, so it cannot go stale.
       for (const metricName of COUNTERS_REPORTED_AS_GAUGES) {
@@ -3292,6 +3486,422 @@ describe("Queues docs", (): void => {
           namedAsGauge: reportedAsGauge,
         });
       }
+    });
+
+    /*
+     * Alerting's counter copy. The queue page reads every catalog counter
+     * as a running total, whatever temporality it was stored with: the Max
+     * of each series per interval, differenced into a per-second rate
+     * (getMessageQueueMetricReadPlan's "rate" mode, then
+     * counterResultToRatePerSecond) under Broker health, on the Metrics tab
+     * and in its chart. A counter the collector turned into deltas in place
+     * charts the change between successive deltas there: 0 for steady
+     * traffic. So the page converts a COPY under a name of its own, and the
+     * counter the queue page charts reaches OneUptime unchanged. The config
+     * is the RabbitMQ section's with the two processors added; `otelcol
+     * validate` of 0.161.0 passes it as printed, and a live run of it
+     * against RabbitMQ 4 kept `rabbitmq.message.published` a cumulative sum
+     * while its copy arrived as deltas adding up to the original's growth.
+     */
+    it("converts a copy of a counter for alerting, never a counter the queue page charts", (): void => {
+      const alerting: string = section(readPage(), "## Alerting");
+      const counters: Array<MessageQueueMetricDescriptor> =
+        MESSAGE_QUEUE_METRICS.filter(
+          (metric: MessageQueueMetricDescriptor): boolean => {
+            return metric.kind === "counter";
+          },
+        );
+
+      // Why: the page reads each counter as a running total ...
+      for (const counter of counters) {
+        const plan: MessageQueueMetricReadPlan =
+          getMessageQueueMetricReadPlan(counter);
+
+        expect({
+          metric: counter.metricName,
+          mode: plan.mode,
+          aggregation: plan.aggregationType,
+        }).toEqual({
+          metric: counter.metricName,
+          mode: "rate",
+          aggregation: AggregationType.Max,
+        });
+      }
+
+      /*
+       * ... so 10 messages a second as deltas (a minute's Max of 30-second
+       * deltas) reads 0, where the running total reads 10.
+       */
+      const start: number = Date.UTC(2026, 0, 1, 12, 0, 0);
+      const ratesOf: (values: Array<number>) => Array<number> = (
+        values: Array<number>,
+      ): Array<number> => {
+        const result: AggregatedResult = {
+          data: values.map((value: number, index: number): AggregatedModel => {
+            return {
+              timestamp: new Date(start + index * 60 * 1000),
+              value: value,
+              attributes: { "resource.rabbitmq.queue.name": "orders" },
+            };
+          }),
+        };
+
+        return counterResultToRatePerSecond(result).map(
+          (point: { y: number }): number => {
+            return point.y;
+          },
+        );
+      };
+
+      expect(ratesOf([0, 600, 1200, 1800, 2400])).toEqual([10, 10, 10, 10]);
+      expect(ratesOf([300, 300, 300, 300, 300])).toEqual([0, 0, 0, 0]);
+
+      const counterParagraph: string = paragraphWith(alerting, "**Counters.**");
+
+      expect(counterParagraph).toContain(
+        "Convert a copy under a name of its own, never the counter itself",
+      );
+      expect(counterParagraph).toContain(
+        "steady traffic reads as 0 messages per second",
+      );
+
+      // How: the RabbitMQ section's config, with a copy made and converted.
+      const own: YamlMap = parseYaml(
+        yamlBlocks(
+          systemSection(
+            getMessagingSystemDescriptor(
+              "rabbitmq",
+            ) as MessagingSystemDescriptor,
+          ),
+        )[0] as string,
+      );
+      const config: YamlMap = parseYaml(yamlBlocks(alerting)[0] as string);
+      const metricsPipeline: (of: YamlMap) => YamlMap = (
+        of: YamlMap,
+      ): YamlMap => {
+        return ((of["service"] as YamlMap)["pipelines"] as YamlMap)[
+          "metrics"
+        ] as YamlMap;
+      };
+      const ownPipeline: YamlMap = metricsPipeline(own);
+      const pipeline: YamlMap = metricsPipeline(config);
+
+      expect(config["receivers"]).toEqual(own["receivers"]);
+      expect(config["exporters"]).toEqual(own["exporters"]);
+      expect(
+        Object.keys((config["service"] as YamlMap)["pipelines"] as YamlMap),
+      ).toEqual(
+        Object.keys((own["service"] as YamlMap)["pipelines"] as YamlMap),
+      );
+      expect(pipeline["receivers"]).toEqual(ownPipeline["receivers"]);
+      expect(pipeline["exporters"]).toEqual(ownPipeline["exporters"]);
+
+      // The section's own processors stay, unchanged and last ...
+      const ownProcessors: Array<string> = ownPipeline[
+        "processors"
+      ] as Array<string>;
+      const processors: Array<string> = pipeline["processors"] as Array<string>;
+
+      expect(processors.slice(-ownProcessors.length)).toEqual(ownProcessors);
+
+      for (const id of ownProcessors) {
+        expect((config["processors"] as YamlMap)[id]).toEqual(
+          (own["processors"] as YamlMap)[id],
+        );
+      }
+
+      // ... after the copy, then its conversion.
+      const added: Array<string> = processors.slice(
+        0,
+        processors.length - ownProcessors.length,
+      );
+
+      expect(added.map(componentType)).toEqual([
+        "transform",
+        "cumulative_to_delta",
+      ]);
+
+      const copies: Map<string, string> = new Map<string, string>();
+
+      for (const statement of (
+        (config["processors"] as YamlMap)[added[0] as string] as YamlMap
+      )["metric_statements"] as Array<string>) {
+        const match: RegExpMatchArray | null = statement.match(
+          /^copy_metric\(name="([^"]+)"\) where metric\.name == "([^"]+)"$/,
+        );
+
+        expect({ statement, copies: Boolean(match) }).toEqual({
+          statement,
+          copies: true,
+        });
+        copies.set(
+          (match as RegExpMatchArray)[1] as string,
+          (match as RegExpMatchArray)[2] as string,
+        );
+      }
+
+      expect(copies.size).toBeGreaterThan(0);
+
+      for (const [copy, original] of Array.from(copies.entries())) {
+        const counter: MessageQueueMetricDescriptor | undefined = counters.find(
+          (metric: MessageQueueMetricDescriptor): boolean => {
+            return (
+              metric.system === "rabbitmq" && metric.metricName === original
+            );
+          },
+        );
+
+        // A RabbitMQ counter the processor converts ...
+        expect({ original, counter: Boolean(counter) }).toEqual({
+          original,
+          counter: true,
+        });
+        expect(COUNTERS_REPORTED_AS_GAUGES).not.toContain(original);
+
+        // ... copied under a name nothing on the queue page reads ...
+        expect({
+          copy,
+          curated: MESSAGE_QUEUE_BROKER_METRIC_NAMES.has(copy.toLowerCase()),
+          client: MESSAGING_CLIENT_METRIC_NAMES.has(copy.toLowerCase()),
+        }).toEqual({ copy, curated: false, client: false });
+
+        // ... and alerted on by the key that names the queue in it.
+        expect(paragraphWith(alerting, `Each point of \`${copy}\``)).toContain(
+          `filtered on \`${(counter as MessageQueueMetricDescriptor).destinationAttributes[0]}\` and summed over its window`,
+        );
+      }
+
+      // Only the copies are converted, by their exact names.
+      const conversion: YamlMap = (config["processors"] as YamlMap)[
+        added[1] as string
+      ] as YamlMap;
+
+      expect(conversion["exclude"]).toBeUndefined();
+      expect((conversion["include"] as YamlMap)["match_type"]).toBe("strict");
+      expect(
+        [
+          ...((conversion["include"] as YamlMap)["metrics"] as Array<string>),
+        ].sort(),
+      ).toEqual(Array.from(copies.keys()).sort());
+    });
+
+    /*
+     * A converted counter's first point. `cumulative_to_delta` has nothing
+     * to subtract a series' first point from, and `initial_value` says what
+     * it does with it (processor/cumulativetodeltaprocessor
+     * internal/tracking/tracker.go @v0.161.0). The default, `auto`, drops
+     * it only when the point's start time is older than the processor, and
+     * the `rabbitmq` receiver stamps its points with the time the receiver
+     * was built (NewMetricsBuilder in newScraper, rabbitmqreceiver
+     * scraper.go @v0.161.0), which the collector does after it builds its
+     * processors. So after every collector start `auto` sends each queue's
+     * first point as it is — the counter's whole running total, which a Sum
+     * over the monitor's window reads as that many messages in one scrape.
+     * `drop` keeps it back. A live run of the page's config on 0.161.0
+     * (exporter swapped for a file) against RabbitMQ 4, with 50 messages
+     * published to the queue before the collector started and 7 during the
+     * run: without `initial_value` the copy's points were 50, 0, 7, 0; with
+     * `drop` they were 0, 7, 0; `rabbitmq.message.published` stayed a
+     * cumulative sum in both. `otelcol validate` passes the config with
+     * `drop` (RABBITMQ_USERNAME and RABBITMQ_PASSWORD set, as every
+     * RabbitMQ config on the page needs) and refuses an unknown value.
+     */
+    it("keeps back a converted counter's first point, which is the counter's whole running total", (): void => {
+      const page: string = readPage();
+      const conversions: Array<{ id: string; initialValue: unknown }> =
+        yamlBlocks(page).flatMap(
+          (body: string): Array<{ id: string; initialValue: unknown }> => {
+            const processors: unknown = parseYaml(body)["processors"];
+
+            if (!isMapping(processors)) {
+              return [];
+            }
+
+            return Object.keys(processors)
+              .filter((id: string): boolean => {
+                // The current type and its deprecated alias.
+                return ["cumulative_to_delta", "cumulativetodelta"].includes(
+                  componentType(id),
+                );
+              })
+              .map((id: string): { id: string; initialValue: unknown } => {
+                const processor: unknown = processors[id];
+
+                return {
+                  id,
+                  initialValue: isMapping(processor)
+                    ? processor["initial_value"]
+                    : undefined,
+                };
+              });
+          },
+        );
+
+      // Every conversion on the page, the counter copy's included ...
+      expect(conversions.length).toBeGreaterThan(0);
+
+      for (const conversion of conversions) {
+        expect(conversion).toEqual({
+          id: conversion.id,
+          initialValue: "drop",
+        });
+      }
+
+      // ... and the page says why, where it explains the copy's points.
+      const paragraph: string = paragraphWith(
+        section(page, "## Alerting"),
+        "`initial_value: drop`",
+      );
+
+      expect(paragraph).toContain("Each point of `");
+      expect(paragraph).toContain(
+        "by default it sends that point as it is: the counter's whole running total",
+      );
+      expect(paragraph).toContain(
+        "`initial_value: drop` keeps that point back, so a queue's copy starts with the second scrape that reports its counter",
+      );
+    });
+
+    /*
+     * How late the `aws_cloudwatch` receiver's points arrive. It asks
+     * CloudWatch, once per `collection_interval`, for the whole periods
+     * that ended by now - `delay`, each point stamped with its period's
+     * start (receiver/awscloudwatchreceiver metrics.go @v0.161.0): right
+     * after a scrape the newest point is delay + period old, just before
+     * the next one delay + 2 × period + collection_interval. The page says
+     * so for its own configuration and for the receiver's default period
+     * (config.go @v0.161.0: period 5m, delay 10m, collection_interval 5m),
+     * and the window Create monitor starts such a monitor at
+     * (MESSAGE_QUEUE_SOURCE_WINDOW_FLOORS) states the same lateness and
+     * outlasts both.
+     */
+    it("states how late CloudWatch's metrics arrive with the page's configuration, as Create monitor's window assumes", (): void => {
+      const page: string = readPage();
+      const minutesOf: (value: unknown) => number = (
+        value: unknown,
+      ): number => {
+        const match: RegExpMatchArray | null =
+          String(value).match(/^(\d+)(s|m)$/);
+
+        expect({ value, duration: Boolean(match) }).toEqual({
+          value,
+          duration: true,
+        });
+
+        const amount: number = Number((match as RegExpMatchArray)[1]);
+
+        return (match as RegExpMatchArray)[2] === "m" ? amount : amount / 60;
+      };
+
+      // Every aws_cloudwatch receiver on the page polls the same way.
+      const settings: Array<{
+        period: number;
+        delay: number;
+        interval: number;
+      }> = yamlBlocks(page)
+        .flatMap((body: string): Array<{ id: string; config: YamlMap }> => {
+          return receiverConfigs(parseYaml(body), "aws_cloudwatch");
+        })
+        .map(
+          (receiver: {
+            id: string;
+            config: YamlMap;
+          }): { period: number; delay: number; interval: number } => {
+            const metrics: YamlMap = receiver.config["metrics"] as YamlMap;
+
+            return {
+              period: minutesOf(metrics["period"]),
+              delay: minutesOf(metrics["delay"]),
+              interval: minutesOf(metrics["collection_interval"]),
+            };
+          },
+        );
+
+      expect(settings.length).toBeGreaterThanOrEqual(2);
+
+      for (const setting of settings) {
+        expect(setting).toEqual(settings[0]);
+      }
+
+      const { period, delay, interval } = settings[0] as {
+        period: number;
+        delay: number;
+        interval: number;
+      };
+      const newest: number = delay + period;
+      const oldest: number = delay + 2 * period + interval;
+      const oldestWithDefaultPeriod: number = delay + 2 * 5 + interval;
+      const late: string = `${newest} to ${oldest} minutes late`;
+
+      // The SQS setup, Late metrics and troubleshooting all say it.
+      const sqs: string = systemSection(
+        getMessagingSystemDescriptor("aws_sqs") as MessagingSystemDescriptor,
+      );
+      const lateMetrics: string = paragraphWith(
+        section(page, "## Alerting"),
+        "**Late metrics.**",
+      );
+
+      expect(lineWith(sqs, "`delay` waits for CloudWatch")).toContain(
+        `so with this configuration a queue's broker metrics arrive ${late}`,
+      );
+      expect(lateMetrics).toContain(
+        `the \`aws_cloudwatch\` receiver's newest point is ${newest} to ${oldest} minutes old with the configuration on this page, and up to ${oldestWithDefaultPeriod} with the receiver's default five-minute \`period\``,
+      );
+      expect(
+        lineWith(section(page, "## Troubleshooting"), "It is late."),
+      ).toContain(
+        `waits \`delay\` (${delay} minutes) for CloudWatch to publish, so its points arrive ${late}`,
+      );
+      expect(page).not.toContain("about 10 minutes behind");
+
+      // Create monitor's windows: the lateness the code states, outlasted.
+      const windowMinutes: (receiver: string) => {
+        floor: MessageQueueSourceWindowFloor;
+        minutes: number;
+      } = (
+        receiver: string,
+      ): { floor: MessageQueueSourceWindowFloor; minutes: number } => {
+        const floor: MessageQueueSourceWindowFloor | undefined =
+          MESSAGE_QUEUE_SOURCE_WINDOW_FLOORS.find(
+            (candidate: MessageQueueSourceWindowFloor): boolean => {
+              return candidate.receiver === receiver;
+            },
+          );
+
+        expect({ receiver, floor: Boolean(floor) }).toEqual({
+          receiver,
+          floor: true,
+        });
+
+        const window: InBetween<Date> =
+          RollingTimeUtil.convertToStartAndEndDate(
+            (floor as MessageQueueSourceWindowFloor).minimumRollingTime,
+          );
+
+        return {
+          floor: floor as MessageQueueSourceWindowFloor,
+          minutes: Math.round(
+            (window.endValue.getTime() - window.startValue.getTime()) /
+              (60 * 1000),
+          ),
+        };
+      };
+      const cloudWatch: {
+        floor: MessageQueueSourceWindowFloor;
+        minutes: number;
+      } = windowMinutes("aws_cloudwatch");
+      const pubSub: { floor: MessageQueueSourceWindowFloor; minutes: number } =
+        windowMinutes("googlecloudmonitoring");
+
+      expect(cloudWatch.floor.reason).toContain(late);
+      expect(cloudWatch.floor.reason).toContain(
+        `up to ${oldestWithDefaultPeriod} minutes late`,
+      );
+      expect(cloudWatch.minutes).toBeGreaterThan(oldestWithDefaultPeriod);
+      expect(lateMetrics).toContain(
+        `**Create monitor** starts those monitors at ${cloudWatch.minutes} and ${pubSub.minutes} minutes`,
+      );
     });
   });
 

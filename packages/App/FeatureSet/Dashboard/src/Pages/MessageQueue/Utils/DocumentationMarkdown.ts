@@ -18,7 +18,6 @@ import {
   MessageQueueMetricDescriptor,
   getMessageQueueMetricsForSystem,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
-import { DocVars } from "../../../Components/TelemetryResource/documentationMarkdown";
 
 /*
  * The in-app setup guide of the Queues product: the product Documentation
@@ -57,6 +56,42 @@ import { DocVars } from "../../../Components/TelemetryResource/documentationMark
  *
  * Pure: plain values in, markdown out. No React, no API.
  */
+
+/*
+ * What every guide is filled in with: where to send data, and with which
+ * key — the same two values every in-app setup guide takes. The Queues
+ * guide declares them itself rather than borrowing another product's guide
+ * types, so it depends on no other product's guide module.
+ */
+export interface MessageQueueGuideVariables {
+  oneuptimeUrl: string;
+  apiKey: string;
+}
+
+// What the guide shows until the reader has picked a key.
+export const MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER: string =
+  "<YOUR_ONEUPTIME_URL>";
+export const MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER: string = "<YOUR_API_KEY>";
+
+/**
+ * The guide's values: the OneUptime origin (`https://host`, or `http://`),
+ * or its placeholder when the dashboard does not know its own host, and the
+ * selected key's secret, or its placeholder while none is selected.
+ */
+export function getMessageQueueGuideVariables(data: {
+  host: string | null | undefined;
+  isHttps: boolean;
+  secretKey: string | null | undefined;
+}): MessageQueueGuideVariables {
+  const host: string = (data.host || "").toString().trim();
+  const secretKey: string = (data.secretKey || "").toString().trim();
+  return {
+    oneuptimeUrl: host
+      ? `${data.isHttps ? "https" : "http"}://${host}`
+      : MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER,
+    apiKey: secretKey || MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER,
+  };
+}
 
 export const MESSAGE_QUEUE_DOCS_PATH: string = "/docs/telemetry/queues";
 
@@ -196,7 +231,7 @@ interface QueueContext {
 }
 
 interface GuideContext {
-  vars: DocVars;
+  vars: MessageQueueGuideVariables;
   // The canonical system, or the raw value of one the catalog does not know.
   system: string;
   descriptor: MessagingSystemDescriptor | null;
@@ -211,7 +246,7 @@ interface GuideContext {
 }
 
 function buildContext(
-  vars: DocVars,
+  vars: MessageQueueGuideVariables,
   systemInput: string | null | undefined,
   queue: QueueContext | null,
 ): GuideContext {
@@ -231,7 +266,7 @@ function buildContext(
 
 // ---- collector configuration pieces ------------------------------------------
 
-function exporterLines(vars: DocVars): Array<string> {
+function exporterLines(vars: MessageQueueGuideVariables): Array<string> {
   return [
     "exporters:",
     "  otlphttp:",
@@ -247,7 +282,7 @@ function exporterLines(vars: DocVars): Array<string> {
  * every broker config on the docs page.
  */
 function metricsCollectorConfig(data: {
-  vars: DocVars;
+  vars: MessageQueueGuideVariables;
   extensionLines?: Array<string> | undefined;
   extensions?: Array<string> | undefined;
   receiverLines: Array<string>;
@@ -618,7 +653,7 @@ function activeMqScraperSteps(context: GuideContext): Array<string> {
  * `messaging.system`: a transform processor in the collector the
  * applications send to adds the two keys OneUptime reads.
  */
-function bullMqTransformConfig(vars: DocVars): string {
+function bullMqTransformConfig(vars: MessageQueueGuideVariables): string {
   return codeBlock("yaml", [
     "receivers:",
     "  otlp:",
@@ -1171,7 +1206,7 @@ function identitySection(context: GuideContext): Array<string> {
   return lines;
 }
 
-function otlpEnvironmentBlock(vars: DocVars): Array<string> {
+function otlpEnvironmentBlock(vars: MessageQueueGuideVariables): Array<string> {
   return [
     codeBlock("bash", [
       `OTEL_EXPORTER_OTLP_ENDPOINT=${quoted(`${vars.oneuptimeUrl}/otlp`)}`,
@@ -1348,7 +1383,16 @@ function brokerMetricsSection(context: GuideContext): Array<string> {
           "",
           `- **Leave \`stats\` unset.** Without it each metric arrives as one summary per period, which is what OneUptime reads.`,
           "- `discovery.limit` must be set, and caps the metrics read per scrape.",
-          "- `delay` waits for CloudWatch to publish a period, so the queue's broker metrics run about 10 minutes behind.",
+          /*
+           * The receiver asks, once per collection_interval, for the whole
+           * periods that ended by now - delay, each point stamped with its
+           * period's start: the newest point is delay + period to
+           * delay + 2 × period + collection_interval old (10m, 1m and 5m
+           * above: 11 to 17 minutes), as queues.md says of the same config.
+           */
+          `- \`delay\` waits for CloudWatch to publish a period, so with this configuration ${
+            context.queue ? "this queue's" : "a queue's"
+          } broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](${MESSAGE_QUEUE_DOCS_PATH}#alerting)).`,
           `- One receiver reads one region and one namespace: add an instance per region.${
             region
               ? ` The region is prefilled from this queue's endpoint (${markdownInlineCode(
@@ -1471,10 +1515,16 @@ function chartedMetricsSection(context: GuideContext): Array<string> {
     return lines;
   }
 
+  /*
+   * Broker health offers Create monitor on every entry it charts as a gauge
+   * (getMessageQueueBrokerMonitorLinks: kind "gauge"), which the table below
+   * types "Gauge" or "Count per period" (a cloud metric's count, a gauge
+   * summed per interval); a counter, charted as a rate, has none.
+   */
   lines.push(
     isOutsideBrokerMetricsScope(context)
-      ? "This queue has no namespace, so Azure Monitor's metrics never reach it: they chart under **Broker health** on the same destination's queue in their namespace, where each gauge has **Create monitor**."
-      : "The queue's Overview charts these under **Broker health**, and each gauge has **Create monitor**. Until one arrives, the section says where they come from.",
+      ? "This queue has no namespace, so Azure Monitor's metrics never reach it: they chart under **Broker health** on the same destination's queue in their namespace, where each gauge and each count per period has **Create monitor**."
+      : "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.",
     "",
     "| Metric | Shown as | Type |",
     "| --- | --- | --- |",
@@ -1517,7 +1567,7 @@ function buildGuide(context: GuideContext): string {
  * what a queue page charts.
  */
 export function getMessageQueueSystemGuideMarkdown(
-  vars: DocVars,
+  vars: MessageQueueGuideVariables,
   system: string,
 ): string {
   return buildGuide(buildContext(vars, system, null));
@@ -1530,7 +1580,7 @@ export function getMessageQueueSystemGuideMarkdown(
  * reported about the broker.
  */
 export function getMessageQueueDocumentationMarkdown(
-  vars: DocVars,
+  vars: MessageQueueGuideVariables,
   target: MessageQueueDocumentationTarget,
 ): string {
   const brokerAddress: string = (target.brokerAddress || "").toString().trim();

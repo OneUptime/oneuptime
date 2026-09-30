@@ -277,7 +277,7 @@ service:
 
 - **Leave `stats` unset.** Without it each metric arrives as one summary per period, which is what OneUptime reads; with it, each statistic becomes a series of its own and the charts mix them.
 - `discovery.limit` must be set, and caps the metrics read per scrape — about nine per queue. Each one costs four `GetMetricData` sub-queries per scrape, which AWS bills.
-- `delay` waits for CloudWatch to publish a period (it takes a few minutes), so a queue's broker metrics run about 10 minutes behind.
+- `delay` waits for CloudWatch to publish a period (it takes a few minutes), so with this configuration a queue's broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](#alerting)).
 - One receiver reads one region and one namespace: add an instance per region.
 
 **Streaming** pushes the metrics as CloudWatch publishes them. Create a CloudWatch Metric Stream for the `AWS/SQS` (and `AWS/SNS`) namespaces with the **OpenTelemetry 1.0** output format, delivering to an Amazon Data Firehose stream whose destination is an HTTP endpoint: your collector, with an access key. Firehose only delivers to `https://` on port 443, so the collector needs a certificate and a public port 443 (for example behind a load balancer):
@@ -922,9 +922,52 @@ service:
 
 Queues are watched with **Metrics** monitors over their broker metrics (see [Metrics Monitor](/docs/monitor/metrics-monitor)).
 
-**From the queue's page.** Each gauge in **Broker health** has **Create monitor**: it opens a new Metrics monitor over that metric, filtered on the exact attribute values that name this queue in it, with a starting threshold where the metric measures something with an obvious bad direction — backlog, dead letters, consumer lag, oldest message age, throttling or errors. Counters get no monitor: their chart shows a rate, and a monitor has no rate function.
+**From the queue's page.** Each gauge and each count per period in **Broker health** has **Create monitor**: it opens a new Metrics monitor over that metric, filtered on the exact attribute values that name this queue in it, with a starting threshold where the metric measures something with an obvious bad direction — backlog, dead letters, consumer lag, oldest message age, throttling or errors. Four of those start without one, because a fixed threshold on them misleads: Kafka's partition lag (`kafka.consumer_group.lag`), which its consumer group's lag already covers; ActiveMQ's average time in queue (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), an average since the broker started that stays high long after a stall; and Pulsar's backlog age (`pulsar_storage_backlog_age_seconds`), which reads `-1` while the broker cannot tell. Counters get no monitor: their chart shows a rate, and a monitor has no rate function.
 
-**Counters.** RabbitMQ's, Apache ActiveMQ's and Apache RocketMQ's counters reach the collector as cumulative sums, which a `cumulativetodelta` processor turns into deltas that a monitor can alert on; the [databases page](/docs/telemetry/databases#what-to-alert-on) shows its configuration, and ActiveMQ's JMX Scraper must then send through that collector. Apache Kafka's offsets (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) and Apache Pulsar's `pulsar_in_messages_total` and `pulsar_out_messages_total` arrive as gauges, which `cumulativetodelta` leaves alone: alert on those systems' lag and backlog gauges instead.
+**Counters.** RabbitMQ's, Apache ActiveMQ's and Apache RocketMQ's counters reach the collector as cumulative sums, which a `cumulative_to_delta` processor (`cumulativetodelta` in older collectors) turns into deltas that a monitor can alert on. Convert a copy under a name of its own, never the counter itself: the queue page reads each of these counters as a running total and charts how fast it grows, so a counter turned into deltas charts nonsense under **Broker health** and on the **Metrics** tab — steady traffic reads as 0 messages per second. Apache Kafka's offsets (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) and Apache Pulsar's `pulsar_in_messages_total` and `pulsar_out_messages_total` arrive as gauges, which `cumulative_to_delta` leaves alone: alert on those systems' lag and backlog gauges instead.
+
+The [RabbitMQ](#rabbitmq) config with a copy of `rabbitmq.message.published` to alert on:
+
+```yaml
+receivers:
+  rabbitmq:
+    endpoint: http://rabbitmq:15672
+    username: ${env:RABBITMQ_USERNAME}
+    password: ${env:RABBITMQ_PASSWORD}
+    collection_interval: 30s
+
+processors:
+  # A copy of each counter to alert on, under a name of its own: the queue
+  # page keeps charting the original.
+  transform/alerting:
+    error_mode: ignore
+    metric_statements:
+      - copy_metric(name="rabbitmq.message.published.delta") where metric.name == "rabbitmq.message.published"
+  # Turns only the copies into deltas. `drop` keeps back each copy's first
+  # point after a start, which would otherwise be the counter's whole total.
+  cumulative_to_delta/alerting:
+    initial_value: drop
+    include:
+      metrics:
+        - rabbitmq.message.published.delta
+      match_type: strict
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [rabbitmq]
+      processors: [transform/alerting, cumulative_to_delta/alerting, batch]
+      exporters: [otlphttp]
+```
+
+Each point of `rabbitmq.message.published.delta` is the number of messages published since the previous scrape, so a Metrics monitor on it, filtered on `resource.rabbitmq.queue.name` and summed over its window, counts what was published in that window: below 1 over 15 minutes, nobody publishes. After every collector start, the processor has no earlier value to subtract a queue's first point from, and by default it sends that point as it is: the counter's whole running total, as if every message the queue ever had were published in one scrape. `initial_value: drop` keeps that point back, so a queue's copy starts with the second scrape that reports its counter. Copy another counter the same way, with a `copy_metric` statement and an `include` entry each. ActiveMQ's JMX Scraper must then send through such a collector, to an `otlp` receiver in place of `rabbitmq`; RocketMQ's counters take the same two processors in the pipeline of its `prometheus` receiver.
 
 **By hand**, filter on the attribute that names the queue in that metric — they are the same for every queue of a system:
 
@@ -938,7 +981,7 @@ Queues are watched with **Metrics** monitors over their broker metrics (see [Met
 
 To watch every queue of a system with one monitor, group by that attribute instead of filtering on it: each queue then alerts on its own (see [Per-Series Alerting](/docs/monitor/metrics-monitor#per-series-alerting-group-by)). A RabbitMQ queue's depth (`rabbitmq.message.current`) arrives as two series, `state` = `ready` and `state` = `unacknowledged`. The monitor **Create monitor** builds adds them up the way the queue page does: a query per state, `a_ready` and `a_unacknowledged`, and the formula `a_ready + a_unacknowledged`, whose alias `a` its starting threshold applies to. A monitor built by hand should do the same, with its criteria on the formula.
 
-**Late metrics.** Cloud monitoring APIs publish their numbers minutes after the fact: the `aws_cloudwatch` receiver's newest point is typically 11 to 25 minutes old, and the `googlecloudmonitoring` receiver's up to 9. A monitor over SQS, SNS or Pub/Sub metrics therefore needs a window longer than that, or it sees no data and never fires; **Create monitor** starts those monitors at 30 and 15 minutes.
+**Late metrics.** Cloud monitoring APIs publish their numbers minutes after the fact: the `aws_cloudwatch` receiver's newest point is 11 to 17 minutes old with the configuration on this page, and up to 25 with the receiver's default five-minute `period`; the `googlecloudmonitoring` receiver's is up to 9. A monitor over SQS, SNS or Pub/Sub metrics therefore needs a window longer than that, or it sees no data and never fires; **Create monitor** starts those monitors at 30 and 15 minutes.
 
 ## Limitations
 
@@ -976,7 +1019,7 @@ When its spans do name it, create it by hand with the same system and destinatio
 - Check the collector's log. OneUptime refuses a wrong ingestion key with `401` (`422` for a disabled key or a browser key), and the collector logs `Exporting failed` for every batch it drops.
 - The metric names the queue differently from the spans. RabbitMQ spans usually name the exchange, while the broker's metrics describe queues; a Pub/Sub topic has the topic metrics and its subscriptions the subscription metrics; Service Bus and Event Hubs spans without a namespace host are on a different queue from Azure Monitor's metrics (see [Limitations](#limitations)).
 - The receiver does not report it. Kafka reports a consumer group's lag only after the group commits an offset; RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest (see [RabbitMQ](#rabbitmq)); RabbitMQ's counters appear with the first activity; Azure Monitor returns 10 queues per metric and namespace unless `maximum_number_of_records_per_resource` is raised; Cloud Monitoring reads only the types in `metrics_list`.
-- It is late. `aws_cloudwatch` waits `delay` (10 minutes) for CloudWatch to publish, and Pub/Sub's metrics arrive minutes late.
+- It is late. `aws_cloudwatch` waits `delay` (10 minutes) for CloudWatch to publish, so its points arrive 11 to 17 minutes late, and Pub/Sub's metrics arrive minutes late.
 - The system has no charted metrics: Azure Event Grid, NATS, JMS brokers other than ActiveMQ and BullMQ (see their sections). Their metrics are in the **Metrics** explorer.
 
 ### Two queues for one destination

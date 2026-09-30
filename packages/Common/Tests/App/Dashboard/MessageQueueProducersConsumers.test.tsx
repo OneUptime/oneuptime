@@ -13,14 +13,19 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The two sides of a queue: the services that publish to it (its PRODUCER
- * spans) and the ones that consume from it (its CONSUMER spans), grouped by
- * the service that recorded them — the Databases product's calling-services
- * card, once per direction. What it pins:
+ * The two sides of a queue: the services that publish to it and the ones
+ * that consume from it, grouped by the service that recorded them — the
+ * Databases product's calling-services card, once per direction. Which spans
+ * are a side's (MessageQueueSpanPopulation) is pinned, span shape by span
+ * shape, in MessageQueueSpanPopulations. What this pins:
  *
- *   - each side is three aggregates over the whole window — spans, failed
- *     spans and the p95 duration — grouped by primaryEntityId, filtered by
- *     the side's span KIND and scoped by the queue's key, nothing else;
+ *   - each group a side reads is three aggregates over the whole window —
+ *     spans, failed spans and the p95 duration — grouped by primaryEntityId
+ *     and scoped by the queue's key;
+ *   - how a side's groups combine: a producer's messages from its producer
+ *     spans, its failures and time from its client sends when it records
+ *     any; a consumer's messages plus the SQS batches it received, never a
+ *     poll's time;
  *   - the rows: busiest first, error rate of the side's own spans, p95 in
  *     milliseconds, at most ten, with how many there were in all;
  *   - no key is no request; a failure is an empty side;
@@ -73,13 +78,16 @@ import MessageQueueServicesCard, {
   getMessageQueueServicesFooter,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueServicesCard";
 import {
-  MESSAGE_QUEUE_CONSUME_SPAN_KIND,
-  MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
   MESSAGE_QUEUE_SERVICE_LIMIT,
+  MessageQueueProducerServices,
   MessageQueueServiceRow,
+  MessageQueueServiceSpanFigures,
   MessageQueueServices,
+  MessageQueueSpanOverview,
   buildMessageQueueSpanQuery,
-  fetchMessageQueueServices,
+  combineMessageQueueConsumerServices,
+  combineMessageQueueProducerServices,
+  fetchMessageQueueSpanOverview,
   getMessageQueueServiceIds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 import { MESSAGE_QUEUE_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/MessageQueueMetricDescriptions";
@@ -111,15 +119,42 @@ function service(id: number): string {
   return `3c0e7b2a-2222-4222-8222-${String(id).padStart(12, "0")}`;
 }
 
-// Per service: spans, failed spans, p95 in ns.
+/*
+ * Which of the queue's span groups (MessageQueueSpanPopulation) a request
+ * reads, told apart by its kind and operation filters.
+ */
+function populationOf(query: Record<string, unknown>): string {
+  const kind: unknown = query["kind"];
+  const attributes: Record<string, unknown> =
+    (query["attributes"] as Record<string, unknown> | undefined) || {};
+  if (kind === undefined) {
+    return "all";
+  }
+  if (kind === SpanKind.Producer) {
+    return "publish";
+  }
+  if (kind === SpanKind.Client) {
+    return attributes["rpc.method"] !== undefined ? "awsSend" : "send";
+  }
+  if (kind === SpanKind.Consumer) {
+    return attributes["messaging.operation.type"] === "receive"
+      ? "receivedBatch"
+      : "consume";
+  }
+  throw new Error(`No span group reads kind ${String(kind)}`);
+}
+
+// Per group, per service: spans, failed spans, p95 in ns.
 function answerFor(
-  sides: Record<string, Array<[string, number, number, number]>>,
+  groups: Record<string, Array<[string, number, number, number]>>,
 ): (request: unknown) => Promise<unknown> {
   return (request: unknown): Promise<unknown> => {
     const by: AggregateRequest["aggregateBy"] = (request as AggregateRequest)
       .aggregateBy;
-    const rows: Array<[string, number, number, number]> =
-      sides[String(by.query["kind"])] || [];
+    // Only the cards' reads group by service.
+    const rows: Array<[string, number, number, number]> = by["groupBy"]
+      ? groups[populationOf(by.query)] || []
+      : [];
     return Promise.resolve({
       data: rows.map(
         ([id, count, errors, p95]: [string, number, number, number]): Record<
@@ -151,82 +186,109 @@ afterEach(() => {
   cleanup();
 });
 
-describe("fetching one side of the queue", () => {
-  test.each([
-    ["producers", MESSAGE_QUEUE_PUBLISH_SPAN_KIND, SpanKind.Producer],
-    ["consumers", MESSAGE_QUEUE_CONSUME_SPAN_KIND, SpanKind.Consumer],
-  ])(
-    "%s: spans, failed spans and p95 of the side's kind, grouped by service over the whole window",
-    async (_side: string, kind: SpanKind, expected: SpanKind) => {
-      expect(kind).toBe(expected);
+describe("fetching the two sides of the queue", () => {
+  function overview(
+    system: string,
+    serviceLimit?: number,
+  ): Promise<MessageQueueSpanOverview> {
+    return fetchMessageQueueSpanOverview({
+      projectId: PROJECT_ID,
+      keys: [KEY],
+      start: START,
+      end: END,
+      messagingSystem: system,
+      serviceLimit: serviceLimit,
+    });
+  }
 
-      await fetchMessageQueueServices({
-        projectId: PROJECT_ID,
-        keys: [KEY],
-        start: START,
-        end: END,
-        kind: kind,
+  function groupedRequests(): Array<AggregateRequest> {
+    return aggregateMock.mock.calls
+      .map((call: Array<unknown>): AggregateRequest => {
+        return call[0] as AggregateRequest;
+      })
+      .filter((request: AggregateRequest): boolean => {
+        return Boolean(request.aggregateBy["groupBy"]);
       });
+  }
 
-      expect(aggregateMock).toHaveBeenCalledTimes(3);
-      const requests: Array<AggregateRequest> = aggregateMock.mock.calls.map(
-        (call: Array<unknown>): AggregateRequest => {
-          return call[0] as AggregateRequest;
-        },
+  test("each side's groups: spans, failed spans and p95, grouped by service over the whole window, scoped by the queue's key", async () => {
+    await overview("kafka");
+
+    const requests: Array<AggregateRequest> = groupedRequests();
+    // Producer spans, client sends and consumer spans: three reads each.
+    expect(requests).toHaveLength(9);
+    for (const request of requests) {
+      expect(request.modelType).toBe(Span);
+      expect(request.aggregateBy["groupBy"]).toEqual({
+        primaryEntityId: true,
+      });
+      expect(request.aggregateBy["aggregationInterval"]).toBe(
+        AggregationInterval.Total,
       );
-      for (const request of requests) {
-        expect(request.modelType).toBe(Span);
-        expect(request.aggregateBy["groupBy"]).toEqual({
-          primaryEntityId: true,
-        });
-        expect(request.aggregateBy["aggregationInterval"]).toBe(
-          AggregationInterval.Total,
-        );
-        expect(request.aggregateBy["aggregateColumnName"]).toBe(
-          "durationUnixNano",
-        );
-        expect(request.aggregateBy.query["kind"]).toBe(expected);
-        expect(
-          (request.aggregateBy.query["entityKeys"] as Includes).values,
-        ).toEqual([KEY]);
-        expect(String(request.aggregateBy.query["projectId"])).toBe(PROJECT_ID);
-        expect(request.aggregateBy.query["startTime"]).toBeInstanceOf(
-          InBetween,
-        );
-        expect(request.aggregateBy.query["attributes"]).toBeUndefined();
-      }
+      expect(request.aggregateBy["aggregateColumnName"]).toBe(
+        "durationUnixNano",
+      );
       expect(
-        requests.map((request: AggregateRequest): unknown => {
+        (request.aggregateBy.query["entityKeys"] as Includes).values,
+      ).toEqual([KEY]);
+      expect(String(request.aggregateBy.query["projectId"])).toBe(PROJECT_ID);
+      expect(request.aggregateBy.query["startTime"]).toBeInstanceOf(InBetween);
+    }
+    expect(
+      requests
+        .map((request: AggregateRequest): string => {
           return [
+            populationOf(request.aggregateBy.query),
             request.aggregateBy["aggregationType"],
-            request.aggregateBy.query["statusCode"],
+            request.aggregateBy.query["statusCode"] ?? "",
+          ].join(" ");
+        })
+        .sort(),
+    ).toEqual(
+      ["publish", "send", "consume"]
+        .flatMap((population: string): Array<string> => {
+          return [
+            `${population} ${AggregationType.Count} `,
+            `${population} ${AggregationType.Count} ${SpanStatus.Error}`,
+            `${population} ${AggregationType.P95} `,
           ];
-        }),
-      ).toEqual([
-        [AggregationType.Count, undefined],
-        [AggregationType.Count, SpanStatus.Error],
-        [AggregationType.P95, undefined],
-      ]);
-    },
-  );
+        })
+        .sort(),
+    );
+  });
+
+  test("an AWS queue also reads the sends named by the AWS SDK operation; an SQS one its receives that returned messages", async () => {
+    await overview("aws_sqs");
+
+    const populations: Array<string> = groupedRequests().map(
+      (request: AggregateRequest): string => {
+        return populationOf(request.aggregateBy.query);
+      },
+    );
+    expect(
+      populations.filter((population: string): boolean => {
+        return population === "awsSend";
+      }),
+    ).toHaveLength(3);
+    // A batch's time is the poll's: only counted.
+    expect(
+      populations.filter((population: string): boolean => {
+        return population === "receivedBatch";
+      }),
+    ).toHaveLength(1);
+  });
 
   test("busiest first, with the side's own error rate and p95 in milliseconds", async () => {
     aggregateMock.mockImplementation(
       answerFor({
-        [SpanKind.Producer]: [
+        publish: [
           [BILLING, 20, 2, 5_000_000],
           [CHECKOUT, 100, 0, 3_000_000],
         ],
       }),
     );
 
-    const producers: MessageQueueServices = await fetchMessageQueueServices({
-      projectId: PROJECT_ID,
-      keys: [KEY],
-      start: START,
-      end: END,
-      kind: SpanKind.Producer,
-    });
+    const producers: MessageQueueServices = (await overview("kafka")).producers;
 
     expect(producers).toEqual({
       services: [
@@ -256,83 +318,62 @@ describe("fetching one side of the queue", () => {
         return [service(index), 100 + index, 0, 1_000_000];
       },
     );
-    aggregateMock.mockImplementation(answerFor({ [SpanKind.Consumer]: many }));
+    aggregateMock.mockImplementation(answerFor({ consume: many }));
 
-    const consumers: MessageQueueServices = await fetchMessageQueueServices({
-      projectId: PROJECT_ID,
-      keys: [KEY],
-      start: START,
-      end: END,
-      kind: SpanKind.Consumer,
-    });
+    const consumers: MessageQueueServices = (await overview("kafka")).consumers;
 
     expect(consumers.services).toHaveLength(MESSAGE_QUEUE_SERVICE_LIMIT);
     expect(consumers.total).toBe(25);
     expect(consumers.services[0]!.serviceId).toBe(service(24));
 
-    const three: MessageQueueServices = await fetchMessageQueueServices({
-      projectId: PROJECT_ID,
-      keys: [KEY],
-      start: START,
-      end: END,
-      kind: SpanKind.Consumer,
-      limit: 3,
-    });
+    const three: MessageQueueServices = (await overview("kafka", 3)).consumers;
     expect(three.services).toHaveLength(3);
     expect(three.total).toBe(25);
   });
 
   test("never more failures than spans, whatever the counts say", async () => {
     aggregateMock.mockImplementation(
-      answerFor({ [SpanKind.Consumer]: [[MAILER, 4, 9, 1_000_000]] }),
+      answerFor({ consume: [[MAILER, 4, 9, 1_000_000]] }),
     );
 
-    const consumers: MessageQueueServices = await fetchMessageQueueServices({
-      projectId: PROJECT_ID,
-      keys: [KEY],
-      start: START,
-      end: END,
-      kind: SpanKind.Consumer,
-    });
+    const consumers: MessageQueueServices = (await overview("kafka")).consumers;
 
     expect(consumers.services[0]!.errors).toBe(4);
     expect(consumers.services[0]!.errorRatePercent).toBe(100);
   });
 
   test("no key or no project: no request; a failure: an empty side", async () => {
-    expect(
-      await fetchMessageQueueServices({
+    const empty: MessageQueueServices = { services: [], total: 0 };
+    const unscoped: MessageQueueSpanOverview =
+      await fetchMessageQueueSpanOverview({
         projectId: PROJECT_ID,
         keys: [],
         start: START,
         end: END,
-        kind: SpanKind.Producer,
-      }),
-    ).toEqual({ services: [], total: 0 });
-    expect(
-      await fetchMessageQueueServices({
+      });
+    expect(unscoped.producers).toEqual(empty);
+    expect(unscoped.consumers).toEqual(empty);
+    const noProject: MessageQueueSpanOverview =
+      await fetchMessageQueueSpanOverview({
         projectId: null,
         keys: [KEY],
         start: START,
         end: END,
-        kind: SpanKind.Producer,
-      }),
-    ).toEqual({ services: [], total: 0 });
+      });
+    expect(noProject.producers).toEqual(empty);
     expect(aggregateMock).not.toHaveBeenCalled();
 
-    aggregateMock.mockRejectedValue(new Error("boom"));
-    expect(
-      await fetchMessageQueueServices({
-        projectId: PROJECT_ID,
-        keys: [KEY],
-        start: START,
-        end: END,
-        kind: SpanKind.Producer,
-      }),
-    ).toEqual({ services: [], total: 0 });
+    aggregateMock.mockImplementation((): Promise<never> => {
+      return Promise.resolve().then((): never => {
+        throw new Error("boom");
+      });
+    });
+    const failed: MessageQueueSpanOverview = await overview("kafka");
+    expect(failed.producers).toEqual(empty);
+    expect(failed.consumers).toEqual(empty);
   });
 
-  test("the span query: key, project and window, a kind and failures only when asked", () => {
+  test("the span query: key, project and window; a group and failures only when asked", () => {
     const window: {
       projectId: ObjectID;
       keys: Array<string>;
@@ -352,7 +393,7 @@ describe("fetching one side of the queue", () => {
     );
     expect(
       buildMessageQueueSpanQuery(window, {
-        kind: SpanKind.Consumer,
+        population: "consume",
         errorsOnly: true,
       }),
     ).toEqual(
@@ -361,6 +402,9 @@ describe("fetching one side of the queue", () => {
         statusCode: SpanStatus.Error,
       }),
     );
+    expect(
+      buildMessageQueueSpanQuery(window, { population: "publish" }),
+    ).toEqual(expect.objectContaining({ kind: SpanKind.Producer }));
     expect(buildMessageQueueSpanQuery({ ...window, keys: [] })).toBeNull();
   });
 
@@ -383,6 +427,123 @@ describe("fetching one side of the queue", () => {
         { services: [], total: 0 },
       ),
     ).toEqual([CHECKOUT, BILLING, MAILER]);
+  });
+});
+
+describe("combining a side's groups", () => {
+  function figures(
+    rows: Array<[string, number, number, number]>,
+  ): MessageQueueServiceSpanFigures {
+    return {
+      counts: new Map(
+        rows.map(
+          ([id, count]: [string, number, number, number]): [string, number] => {
+            return [id, count];
+          },
+        ),
+      ),
+      errors: new Map(
+        rows.map(
+          ([id, , errors]: [string, number, number, number]): [
+            string,
+            number,
+          ] => {
+            return [id, errors];
+          },
+        ),
+      ),
+      p95Ms: new Map(
+        rows.map(
+          ([id, , , p95]: [string, number, number, number]): [
+            string,
+            number,
+          ] => {
+            return [id, p95];
+          },
+        ),
+      ),
+    };
+  }
+
+  const none: MessageQueueServiceSpanFigures = figures([]);
+
+  test("a producer's messages are its producer spans; its failures and time its sends when it records any", () => {
+    // The Azure SDKs: a zero-length producer span per message, one send.
+    const producers: MessageQueueProducerServices =
+      combineMessageQueueProducerServices({
+        producer: figures([[CHECKOUT, 300, 0, 0.004]]),
+        sends: [figures([[CHECKOUT, 100, 25, 42]]), none],
+      });
+
+    expect(producers.services).toEqual([
+      {
+        serviceId: CHECKOUT,
+        calls: 300,
+        errors: 25,
+        errorRatePercent: 25,
+        p95DurationMs: 42,
+      },
+    ]);
+    // Counted from its producer spans: nothing to add to Published.
+    expect(producers.clientOnlyServiceIds).toEqual([]);
+    expect(producers.clientOnlyPublished).toBe(0);
+  });
+
+  test("a producer with client sends only is counted from them, and added to Published", () => {
+    const producers: MessageQueueProducerServices =
+      combineMessageQueueProducerServices({
+        producer: figures([[CHECKOUT, 50, 1, 3]]),
+        sends: [none, figures([[BILLING, 80, 4, 30]])],
+      });
+
+    expect(producers.services).toEqual([
+      {
+        serviceId: BILLING,
+        calls: 80,
+        errors: 4,
+        errorRatePercent: 5,
+        p95DurationMs: 30,
+      },
+      {
+        serviceId: CHECKOUT,
+        calls: 50,
+        errors: 1,
+        errorRatePercent: 2,
+        p95DurationMs: 3,
+      },
+    ]);
+    expect(producers.clientOnlyServiceIds).toEqual([BILLING]);
+    expect(producers.clientOnlyPublished).toBe(80);
+  });
+
+  test("a consumer's messages add the SQS batches it received; its failures and time are its consumer spans'", () => {
+    const consumers: MessageQueueServices = combineMessageQueueConsumerServices(
+      {
+        consume: figures([[MAILER, 40, 2, 12]]),
+        receivedBatches: figures([
+          [MAILER, 10, 0, 20_000],
+          [BILLING, 6, 0, 20_000],
+        ]),
+      },
+    );
+
+    expect(consumers.services).toEqual([
+      {
+        serviceId: MAILER,
+        calls: 50,
+        errors: 2,
+        errorRatePercent: 4,
+        p95DurationMs: 12,
+      },
+      {
+        // Receives only: a poll's time is never a processing time.
+        serviceId: BILLING,
+        calls: 6,
+        errors: 0,
+        errorRatePercent: 0,
+        p95DurationMs: null,
+      },
+    ]);
   });
 });
 

@@ -291,10 +291,19 @@ export function detailValueForEntity(entity: TopologyEntity): string | null {
   return null;
 }
 
+/*
+ * The label a node shows for its detail value: the value's friendly name,
+ * the value as reported when it has none, and null when there is no value.
+ * buildServiceMapModel and detailLabelForEntity both label through here, so
+ * the map shows exactly what detailLabelForEntity returns.
+ */
+function detailLabelForValue(value: string | null): string | null {
+  return value ? friendlyDetailLabel(value) : null;
+}
+
 /* detailValueForEntity's value under its friendly name, when it has one. */
 export function detailLabelForEntity(entity: TopologyEntity): string | null {
-  const raw: string | null = detailValueForEntity(entity);
-  return raw ? friendlyDetailLabel(raw) : null;
+  return detailLabelForValue(detailValueForEntity(entity));
 }
 
 export function kindForEntityType(
@@ -448,7 +457,7 @@ export function buildServiceMapModel(
       label,
       kind,
       typeLabel: metaForEntityType(entity.entityType).label,
-      detailLabel: detailValue ? friendlyDetailLabel(detailValue) : null,
+      detailLabel: detailLabelForValue(detailValue),
       detailValue,
       inbound: emptyTotals(),
       outbound: emptyTotals(),

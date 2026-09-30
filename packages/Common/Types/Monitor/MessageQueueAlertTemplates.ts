@@ -20,7 +20,6 @@ import {
   MessageQueueSignal,
   getMessageQueueMetricId,
 } from "../MessageQueue/MessageQueueMetricCatalog";
-import { normalizeMessagingSystem } from "../MessageQueue/MessagingSystem";
 import {
   ResolvedMessagingDestination,
   resolveMessagingMetricDatapoint,
@@ -37,18 +36,40 @@ import {
 } from "./Recommendation/RecommendationCriteriaBuilder";
 
 /*
- * The curated alert library for ONE message queue (a MessageQueue row),
- * generated from the broker health metrics the Queues product curates
- * (MESSAGE_QUEUE_METRICS): the collector-contrib receivers, Prometheus
+ * The alert policy of the broker health metrics the Queues product curates
+ * (MESSAGE_QUEUE_METRICS: the collector-contrib receivers, Prometheus
  * scrapes and cloud monitoring sources each messaging system's catalog entry
- * names. Pure and isomorphic, like the catalog it reads.
+ * names), as one template per catalog entry, and the builders that turn a
+ * catalog entry into a Metrics monitor on ONE queue (a MessageQueue row).
+ * Pure and isomorphic, like the catalog it reads.
  *
- * WHY THESE ARE PLAIN METRICS MONITORS
+ * WHO READS THEM
  *
- * A queue's broker health is ordinary OTel metrics, so every template
- * creates a `MonitorType.Metrics` monitor — the pattern the Database,
- * Service and RUM libraries use — and gets the generic metric evaluator, the
- * monitor-overview preview and the incident root-cause chart for free.
+ * A queue's broker health is ordinary OTel metrics, so a queue is watched by
+ * a plain `MonitorType.Metrics` monitor, which gets the generic metric
+ * evaluator, the monitor-overview preview and the incident root-cause chart
+ * for free. In the product, this module builds one in exactly one place:
+ * "Create monitor" beside a broker health gauge on a queue's Overview
+ * (Components/MessageQueue/MessageQueueMetricMonitorLink.ts). The link builds
+ * its query and view with buildMessageQueueMetricMonitorQuery and
+ * buildMessageQueueMetricMonitorViewConfig, and reads four fields of the
+ * entry's template (getMessageQueueAlertTemplateForMetric): the threshold,
+ * the comparison, the severity and the window. They are only a starting
+ * point: Monitor Create builds its own criteria from them, which fire on ANY
+ * point above the threshold, not the held breach and the recovery that
+ * THRESHOLDS below describes. The Overview's broker health reads use the
+ * rest (Components/MessageQueue/MessageQueueTelemetryQueries.ts): which
+ * metrics a monitor can evaluate, the attributes an observed series is read
+ * with, and how late a source's points arrive.
+ *
+ * Nothing lists or offers the templates themselves. The Database library's
+ * templates reach people through the monitor Recommendations, and
+ * MonitorRecommendationResourceType has no queue member, so a template's
+ * getMonitorStep (the complete monitor it stands for: queries, breach and
+ * recovery criteria, incident text) has no caller in the product. The tests
+ * build it and evaluate it against broker-shaped rows through the real
+ * metric criteria evaluator. Offering the templates would be a feature of
+ * its own.
  *
  * WHAT MAKES THEM THIS QUEUE'S MONITORS
  *
@@ -63,8 +84,8 @@ import {
  * filter compiles to `attributes['<key>'] = '<value>'`: the queue's identity
  * is canonical (lowercased), but a stored "Orders" only matches "Orders".
  *
- * buildMessageQueueMetricMonitorQuery is that one code path, shared by these
- * templates and the queue page's "Create monitor" link: hand it the catalog
+ * buildMessageQueueMetricMonitorQuery is that one code path, shared by the
+ * queue page's "Create monitor" link and getMonitorStep: hand it the catalog
  * entry and the stored attributes of the series observed for it, and it
  * builds the query only from series that resolve, through the same resolver
  * ingest runs, to the same queue — so a filter can never watch another queue.
@@ -147,16 +168,20 @@ import {
  * unit, always "at or above", and a few catalog entries whose meaning differs
  * from their signal's override it (MESSAGE_QUEUE_ALERT_POLICY_OVERRIDES).
  * Every threshold is a starting point a team retunes to its own queue; each
- * default, and why, is documented where it is declared. A level must hold
- * for the whole window (the sustained evaluation the recommendation
- * builders default to), while a count fires on any one point: each point
- * already is the count for its minute or CloudWatch period, and whether a
- * period without events arrives as a 0 or as nothing at all depends on the
- * source, so "every point" would only ever mean "every period that had
- * some". Recovery needs the value back below a dead band for the whole
- * window; for a count, and for a metric its source stops reporting when it
- * is zero, a silent window counts as zero there, or an alert opened by a
- * burst would hold the monitor offline forever.
+ * default, and why, is documented where it is declared.
+ *
+ * The rest of this section describes the criteria getMonitorStep builds; a
+ * monitor opened from the "Create monitor" link has Monitor Create's own
+ * instead (see WHO READS THEM). A level must hold for the whole window (the
+ * sustained evaluation the recommendation builders default to), while a
+ * count fires on any one point: each point already is the count for its
+ * minute or CloudWatch period, and whether a period without events arrives
+ * as a 0 or as nothing at all depends on the source, so "every point" would
+ * only ever mean "every period that had some". Recovery needs the value back
+ * below a dead band for the whole window; for a count, and for a metric its
+ * source stops reporting when it is zero, a silent window counts as zero
+ * there, or an alert opened by a burst would hold the monitor offline
+ * forever.
  *
  * WINDOWS AND LATE SOURCES
  *
@@ -256,6 +281,11 @@ export interface MessageQueueAlertTemplateArgs {
   monitorName: string;
 }
 
+/*
+ * One catalog entry's alert. The "Create monitor" link reads `threshold`,
+ * `filterType`, `severity` and `rollingTime`; everything else describes the
+ * monitor getMonitorStep builds (see WHO READS THEM).
+ */
 export interface MessageQueueAlertTemplate {
   // "message-queue-<system>-<metric name>", kebab-cased: stable per entry.
   id: string;
@@ -303,7 +333,8 @@ export interface MessageQueueAlertTemplate {
   /*
    * The monitor step for one queue, or null when none of the observed series
    * resolves to the queue under this template's metric — a template never
-   * builds a monitor that would watch nothing or another queue.
+   * builds a monitor that would watch nothing or another queue. Nothing in
+   * the product calls it yet (see WHO READS THEM).
    */
   getMonitorStep: (args: MessageQueueAlertTemplateArgs) => MonitorStep | null;
 }
@@ -641,11 +672,18 @@ const COUNTER_TEMPTATION_BY_SIGNAL: Readonly<
 /*
  * Every catalog counter, which no template reads, and what a team would
  * reach for it for. The honest workaround for a team that needs one alerted
- * today is a `cumulativetodelta` processor in its collector pipeline, which
- * turns the counter into per-interval deltas a Sum over the window does
- * threshold correctly. That processor only converts sums, so it leaves
- * Pulsar's totals, which the broker types as gauges, as they are. The queue
- * page still charts every counter as a rate.
+ * today is a `cumulative_to_delta` processor in its collector pipeline
+ * (`cumulativetodelta`, its old name, is a deprecated alias in
+ * collector-contrib 0.161.0) converting a COPY of the counter, made under a
+ * name of its own, into per-scrape deltas that a Sum over the window
+ * thresholds correctly; `initial_value: drop` keeps back the copy's first
+ * point after a collector start, the counter's whole running total. The
+ * config is at /docs/telemetry/queues#alerting. Never convert the counter
+ * itself: the queue page reads each counter as a running total and charts
+ * how fast it grows, so a counter converted in place charts about 0/s for
+ * steady traffic. The processor only converts sums, so it leaves Kafka's
+ * offsets and Pulsar's totals, which reach the collector as gauges, as they
+ * are.
  */
 export const UNALERTABLE_MESSAGE_QUEUE_COUNTERS: ReadonlyArray<{
   system: string;
@@ -1154,7 +1192,7 @@ function getSeriesQueueIdentifier(
 /**
  * The metric monitor query that watches one queue through one catalog
  * entry, built from the stored attributes of the series observed for it —
- * the code path the templates and the queue page's "Create monitor" link
+ * the code path the queue page's "Create monitor" link and getMonitorStep
  * share. Null when the entry cannot be monitored
  * (isMessageQueueMetricMonitorable) or no observed series resolves to the
  * queue.
@@ -1360,9 +1398,9 @@ function buildQueryConfig(data: {
 }
 
 /**
- * The metric monitor view for a queue query — what the templates build and
- * what the "Create monitor" link pre-seeds Monitor Create with: the exact
- * filters, the fold, the grouping, and the catalog's unit as the legend
+ * The metric monitor view for a queue query — what the "Create monitor"
+ * link pre-seeds Monitor Create with, and what getMonitorStep builds: the
+ * exact filters, the fold, the grouping, and the catalog's unit as the legend
  * unit. A plain query is one query config, aliased `metricVariable`. A
  * series total is one query per part, each also filtered on its value and
  * aliased `<metricVariable>_<value>`, plus the formula adding them up,
@@ -2048,8 +2086,9 @@ function buildTemplate(
 }
 
 /*
- * Catalog order is display order within a system: the catalog lists each
- * system's backlog and lag first, so the cards a team wants first lead.
+ * Every catalog entry's template, in catalog order, built once. The product
+ * reads them one at a time, by catalog entry, and never as a list (see WHO
+ * READS THEM).
  */
 const ALL_MESSAGE_QUEUE_ALERT_TEMPLATES: Array<MessageQueueAlertTemplate> =
   MESSAGE_QUEUE_METRICS.map(
@@ -2066,48 +2105,11 @@ const ALL_MESSAGE_QUEUE_ALERT_TEMPLATES: Array<MessageQueueAlertTemplate> =
     },
   );
 
-export function getAllMessageQueueAlertTemplates(): Array<MessageQueueAlertTemplate> {
-  return [...ALL_MESSAGE_QUEUE_ALERT_TEMPLATES];
-}
-
 /**
- * The templates to offer ONE queue, given its messaging system (the row's
- * specific `messagingSystem`; aliases and any casing accepted): the
- * templates of that system's curated metrics, in display order. Both
- * CloudWatch shapes of an Amazon metric are offered — a caller showing only
- * the metrics with data shows one of them. A system with no curated broker
- * metrics (JMS, NATS, BullMQ, Event Grid, an unknown one) and an empty one
- * get an empty list, never a guess.
- */
-export function getMessageQueueAlertTemplates(
-  system: string | null | undefined,
-): Array<MessageQueueAlertTemplate> {
-  const normalized: string | null = normalizeMessagingSystem(system);
-
-  if (!normalized) {
-    return [];
-  }
-
-  return ALL_MESSAGE_QUEUE_ALERT_TEMPLATES.filter(
-    (template: MessageQueueAlertTemplate): boolean => {
-      return template.system === normalized;
-    },
-  );
-}
-
-export function getMessageQueueAlertTemplateById(
-  id: string,
-): MessageQueueAlertTemplate | undefined {
-  return ALL_MESSAGE_QUEUE_ALERT_TEMPLATES.find(
-    (template: MessageQueueAlertTemplate): boolean => {
-      return template.id === id;
-    },
-  );
-}
-
-/**
- * The template of one catalog entry — where the "Create monitor" link reads
- * its default threshold from — or undefined when the entry has none.
+ * The template of one catalog entry, or undefined when the entry has none:
+ * where the "Create monitor" link reads its starting threshold, comparison,
+ * severity and window. Keyed by the entry (getMessageQueueMetricId), not the
+ * metric name, which Service Bus and Event Hubs share.
  */
 export function getMessageQueueAlertTemplateForMetric(
   descriptor: MessageQueueMetricDescriptor,
@@ -2123,20 +2125,4 @@ export function getMessageQueueAlertTemplateForMetric(
       return template.metricId === metricId;
     },
   );
-}
-
-/*
- * The systems this library has templates for, in declaration order. Derived
- * rather than hand-listed so it cannot drift from the catalog.
- */
-export function getMessageQueueSystemsWithAlertTemplates(): Array<string> {
-  const systems: Array<string> = [];
-
-  for (const template of ALL_MESSAGE_QUEUE_ALERT_TEMPLATES) {
-    if (!systems.includes(template.system)) {
-      systems.push(template.system);
-    }
-  }
-
-  return systems;
 }
