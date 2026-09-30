@@ -118,6 +118,7 @@ router.post(
       const view: JSONObject = await InvestigationThreadService.getView({
         projectId: context.tenantId,
         subject: context.subject,
+        viewerUserId: context.userId,
       });
 
       Response.sendJsonObjectResponse(req, res, {

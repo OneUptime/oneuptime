@@ -103,6 +103,7 @@ export default class InvestigationThreadService {
   public static async getView(data: {
     projectId: ObjectID;
     subject: InvestigationThreadSubject;
+    viewerUserId: ObjectID;
   }): Promise<JSONObject> {
     const conversation: AIConversation | null =
       await InvestigationThread.findThread(data);
@@ -200,13 +201,24 @@ export default class InvestigationThreadService {
           name: getMessageAuthorName(message.user as User | undefined),
         };
 
+        /*
+         * Widgets are charts and tables built from the RAW rows a tool
+         * fetched under the ASKER's permissions, so they go only to the
+         * person who asked. Everyone else reads the cited answer — the same
+         * trust model as the RCA note posted to the incident timeline.
+         */
+        const isViewersOwn: boolean =
+          message.userId?.toString() === data.viewerUserId.toString();
+
         return {
           _id: message.id?.toString() || null,
           role: message.role || null,
           contentInMarkdown: message.contentInMarkdown || "",
           status: message.status || null,
           citations: (message.citations || []) as unknown as JSONArray,
-          widgets: (message.widgets || []) as unknown as JSONArray,
+          widgets: (isViewersOwn
+            ? message.widgets || []
+            : []) as unknown as JSONArray,
           toolActions: (message.toolActions || []) as unknown as JSONArray,
           errorMessage: message.errorMessage || null,
           aiRunId: message.aiRunId ? message.aiRunId.toString() : null,

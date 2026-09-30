@@ -92,6 +92,18 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              alertAiInvestigationTimeLimitInMinutes: true,
+            },
+            stepId: "limits",
+            title: "Alert Investigation Time Limit (Minutes)",
+            description:
+              "Stop an alert investigation after this many minutes and report what it found. Leave empty for no time limit — OneUptime AI keeps investigating (running every query and command it needs) until it is done.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "No time limit",
+          },
+          {
+            field: {
               alertAiDailyAutonomousTokenLimit: true,
             },
             stepId: "limits",
@@ -174,6 +186,14 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Max Concurrent Alert Investigations",
               placeholder: "Default (3)",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                alertAiInvestigationTimeLimitInMinutes: true,
+              },
+              title: "Alert Investigation Time Limit (Minutes)",
+              placeholder: "No time limit",
               fieldType: FieldType.Number,
             },
             {
