@@ -1,0 +1,367 @@
+/*
+ * CodeEditor: a transparent <textarea> laid exactly over a highlighted copy
+ * of its own text.
+ *
+ * The textarea does all the editing - caret, selection, IME, spell check,
+ * undo, the context menu, mobile keyboards - and the layer under it only
+ * paints colours. That only works while every glyph of the two lands in the
+ * same place, so both layers take ALL of their text metrics from
+ * .ou-code-editor__layer below and nothing else may set a font property on
+ * either. CodeEditor.tsx does arithmetic with the line height and padding;
+ * Tests/UI/Components/CodeEditor/CodeEditorStyles.test.ts holds the two
+ * files to the same numbers.
+ */
+
+.ou-code-editor {
+  --ou-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --ou-code-font-size: 13px;
+  --ou-code-line-height: 20px;
+  --ou-code-padding-y: 10px;
+  --ou-code-padding-x: 12px;
+
+  --ou-code-text: #1f2937;
+  --ou-code-caret: #111827;
+  --ou-code-selection: rgb(99 102 241 / 24%);
+  --ou-code-placeholder: #9ca3af;
+  --ou-code-active-line: rgb(99 102 241 / 6%);
+  --ou-code-gutter-background: #f9fafb;
+  --ou-code-gutter-border: #f3f4f6;
+  --ou-code-gutter-text: #9ca3af;
+  --ou-code-gutter-active: #4b5563;
+  --ou-code-gutter-error-text: #b91c1c;
+  --ou-code-gutter-error-background: #fee2e2;
+  --ou-code-tab: rgb(220 38 38 / 12%);
+  --ou-code-scrollbar: #d1d5db;
+
+  /* Tokens: every colour clears 4.5:1 on white (WCAG 1.4.3). */
+  --ou-code-token-keyword: #7c3aed;
+  --ou-code-token-string: #047857;
+  --ou-code-token-number: #b45309;
+  --ou-code-token-property: #1d4ed8;
+  --ou-code-token-comment: #6b7280;
+  --ou-code-token-function: #0e7490;
+  --ou-code-token-tag: #be123c;
+  --ou-code-token-variable: #c2410c;
+  --ou-code-token-meta: #4b5563;
+  --ou-code-token-regexp: #be185d;
+}
+
+/*
+ * The dark theme is a class on <html> (Utils/Theme.ts), not a media query:
+ * a user who picked light keeps light on a dark OS.
+ */
+html.dark .ou-code-editor {
+  --ou-code-text: #e2e8f0;
+  --ou-code-caret: #f8fafc;
+  --ou-code-selection: rgb(129 140 248 / 32%);
+  --ou-code-placeholder: #64748b;
+  --ou-code-active-line: rgb(148 163 184 / 8%);
+  --ou-code-gutter-background: #1b2536;
+  --ou-code-gutter-border: #273449;
+  --ou-code-gutter-text: #64748b;
+  --ou-code-gutter-active: #cbd5e1;
+  --ou-code-gutter-error-text: #fca5a5;
+  --ou-code-gutter-error-background: rgb(239 68 68 / 18%);
+  --ou-code-tab: rgb(248 113 113 / 18%);
+  --ou-code-scrollbar: #475569;
+
+  --ou-code-token-keyword: #c4b5fd;
+  --ou-code-token-string: #6ee7b7;
+  --ou-code-token-number: #fcd34d;
+  --ou-code-token-property: #93c5fd;
+  --ou-code-token-comment: #94a3b8;
+  --ou-code-token-function: #67e8f9;
+  --ou-code-token-tag: #fda4af;
+  --ou-code-token-variable: #fdba74;
+  --ou-code-token-meta: #cbd5e1;
+  --ou-code-token-regexp: #f9a8d4;
+}
+
+.ou-code-editor__scroller {
+  position: relative;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ou-code-scrollbar) transparent;
+}
+
+.ou-code-editor__content {
+  display: flex;
+  align-items: stretch;
+  min-width: 100%;
+  width: max-content;
+  min-height: 100%;
+}
+
+.ou-code-editor--wrap .ou-code-editor__content {
+  width: 100%;
+}
+
+.ou-code-editor__gutter {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  flex: none;
+  box-sizing: border-box;
+  padding: var(--ou-code-padding-y) 10px var(--ou-code-padding-y) 12px;
+  border-right: 1px solid var(--ou-code-gutter-border);
+  background: var(--ou-code-gutter-background);
+  color: var(--ou-code-gutter-text);
+  font-family: var(--ou-code-font);
+  font-size: 12px;
+  line-height: var(--ou-code-line-height);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: pre;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ou-code-editor__gutter-active {
+  color: var(--ou-code-gutter-active);
+}
+
+.ou-code-editor__gutter-error {
+  border-radius: 3px;
+  margin-right: -4px;
+  padding-right: 4px;
+  background: var(--ou-code-gutter-error-background);
+  color: var(--ou-code-gutter-error-text);
+}
+
+.ou-code-editor__code {
+  position: relative;
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+/* Wrapped text takes the width it is given instead of setting it. */
+.ou-code-editor--wrap .ou-code-editor__code {
+  flex: 1 1 0%;
+}
+
+/* A run of digits the caret arithmetic measures the character width from. */
+.ou-code-editor__measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre;
+  font-family: var(--ou-code-font);
+  font-size: var(--ou-code-font-size);
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+}
+
+.ou-code-editor__active-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--ou-code-line-height);
+  background: var(--ou-code-active-line);
+  pointer-events: none;
+}
+
+.ou-code-editor__layer {
+  box-sizing: border-box;
+  display: block;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: var(--ou-code-padding-y) var(--ou-code-padding-x);
+  font-family: var(--ou-code-font);
+  font-size: var(--ou-code-font-size);
+  font-weight: 400;
+  font-style: normal;
+  font-variant-ligatures: none;
+  font-feature-settings: normal;
+  line-height: var(--ou-code-line-height);
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-indent: 0;
+  text-transform: none;
+  text-align: left;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.ou-code-editor--wrap .ou-code-editor__layer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ou-code-editor__highlight {
+  position: relative;
+  pointer-events: none;
+  color: var(--ou-code-text);
+  background: transparent;
+}
+
+/*
+ * Room past the longest line for the caret. The textarea is exactly as wide
+ * as this layer, so without it the caret at the end of the longest line
+ * would scroll the textarea's own content by a few pixels and every glyph
+ * would drift off the colours under it. Wrapped layers must stay identical
+ * (padding decides where a line wraps), and never need it.
+ */
+.ou-code-editor:not(.ou-code-editor--wrap) .ou-code-editor__highlight {
+  padding-right: calc(var(--ou-code-padding-x) + 32px);
+}
+
+/* Highlight spans may colour text, never reshape it. */
+.ou-code-editor__highlight span {
+  font-style: inherit;
+  font-weight: inherit;
+}
+
+.ou-code-editor__placeholder {
+  color: var(--ou-code-placeholder);
+}
+
+/* An example keeps its colours, faded: it is code, but not yours yet. */
+.ou-code-editor__example {
+  opacity: 0.55;
+}
+
+.ou-code-editor__input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--ou-code-caret);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ou-code-editor__input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/*
+ * The placeholder attribute is kept for assistive technology; the layer
+ * underneath draws it, highlighted when it is an example.
+ */
+.ou-code-editor__input::placeholder {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+}
+
+/*
+ * The selection paints over transparent text. Theme.css gives html.dark a
+ * ::selection with white text, which here would draw a second copy of every
+ * selected glyph on top of the highlighted one.
+ */
+.ou-code-editor .ou-code-editor__input::selection,
+html.dark .ou-code-editor .ou-code-editor__input::selection {
+  background: var(--ou-code-selection);
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.ou-code-editor--readonly .ou-code-editor__input {
+  caret-color: transparent;
+}
+
+.ou-code-editor__tab {
+  border-radius: 2px;
+  background: var(--ou-code-tab);
+}
+
+/*
+ * Token colours. Scoped under the editor so they outrank CodeBlock's global
+ * a11y-dark theme, which colours the same .hljs-* classes for a dark panel
+ * and would be unreadable on a white one.
+ */
+.ou-code-editor .hljs-keyword,
+.ou-code-editor .hljs-selector-tag,
+.ou-code-editor .hljs-meta-keyword,
+.ou-code-editor .hljs-doctag {
+  color: var(--ou-code-token-keyword);
+}
+
+.ou-code-editor .hljs-string,
+.ou-code-editor .hljs-meta-string,
+.ou-code-editor .hljs-addition,
+.ou-code-editor .hljs-code {
+  color: var(--ou-code-token-string);
+}
+
+.ou-code-editor .hljs-number,
+.ou-code-editor .hljs-literal,
+.ou-code-editor .hljs-symbol {
+  color: var(--ou-code-token-number);
+}
+
+.ou-code-editor .hljs-attr,
+.ou-code-editor .hljs-attribute,
+.ou-code-editor .hljs-property,
+.ou-code-editor .hljs-section,
+.ou-code-editor .hljs-selector-attr,
+.ou-code-editor .hljs-selector-pseudo {
+  color: var(--ou-code-token-property);
+}
+
+.ou-code-editor .hljs-comment,
+.ou-code-editor .hljs-quote {
+  color: var(--ou-code-token-comment);
+}
+
+.ou-code-editor .hljs-title,
+.ou-code-editor .hljs-built_in,
+.ou-code-editor .hljs-builtin-name,
+.ou-code-editor .hljs-type,
+.ou-code-editor .hljs-class {
+  color: var(--ou-code-token-function);
+}
+
+.ou-code-editor .hljs-tag,
+.ou-code-editor .hljs-name,
+.ou-code-editor .hljs-selector-id,
+.ou-code-editor .hljs-selector-class,
+.ou-code-editor .hljs-deletion {
+  color: var(--ou-code-token-tag);
+}
+
+.ou-code-editor .hljs-variable,
+.ou-code-editor .hljs-template-variable,
+.ou-code-editor .hljs-template-tag,
+.ou-code-editor .hljs-params,
+.ou-code-editor .hljs-bullet,
+.ou-code-editor .hljs-link {
+  color: var(--ou-code-token-variable);
+}
+
+.ou-code-editor .hljs-meta,
+.ou-code-editor .hljs-subst,
+.ou-code-editor .hljs-formula,
+.ou-code-editor .hljs-function {
+  color: var(--ou-code-token-meta);
+}
+
+.ou-code-editor .hljs-regexp {
+  color: var(--ou-code-token-regexp);
+}
+
+/* Markdown's emphasis would change glyph widths; mark it without doing so. */
+.ou-code-editor .hljs-emphasis,
+.ou-code-editor .hljs-strong {
+  color: var(--ou-code-token-keyword);
+}
+
+.ou-code-editor .hljs-link {
+  text-decoration: underline;
+}

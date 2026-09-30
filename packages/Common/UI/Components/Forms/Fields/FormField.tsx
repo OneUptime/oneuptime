@@ -714,7 +714,13 @@ const FormField: <T extends GenericObject>(
             <CodeEditor
               ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
+              ariaInvalid={Boolean(props.touched && props.error)}
               type={CodeType.JSON}
+              /*
+               * The form validates this field with JSON5 when the value is
+               * read that way, so the editor's own check has to agree.
+               */
+              allowJSON5={props.field.allowJSON5}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
@@ -822,6 +828,7 @@ const FormField: <T extends GenericObject>(
             <CodeEditor
               ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
+              ariaInvalid={Boolean(props.touched && props.error)}
               tabIndex={0}
               onChange={async (value: string) => {
                 onChange(value);
