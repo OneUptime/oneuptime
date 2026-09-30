@@ -42,11 +42,14 @@ import {
  *
  * The fix does NOT weaken the tiebreaker — that would reintroduce the
  * skip/repeat paging bug it was added for. It bounds the rows the sort has to
- * consider, using a predicate that is result-preserving by construction:
- * `min(k)` over the top `skip + limit` values of the leading sort key is a
- * rank statistic of k's MULTISET, so it does not depend on which of several
- * tied rows the inner LIMIT kept, and every row tied at the boundary value is
- * admitted.
+ * consider, using a predicate that is result-preserving by construction: it
+ * admits the rows whose leading sort key holds one of the top `skip + limit`
+ * values of that key. The set is a function of the key's MULTISET, so it does
+ * not depend on which of several tied rows the inner LIMIT kept, every row
+ * tied with one of its values is admitted, and it admits exactly the rows
+ * `k >= min(set)` would — while letting the primary index skip every granule
+ * that holds none of the values, and read nothing at all when nothing
+ * matches.
  *
  * Because the predicate cannot change results, every gate below is a
  * PERFORMANCE gate: getting one wrong makes a query slower, never wrong. The
@@ -190,6 +193,21 @@ function paramValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
 }
 
+/* The statement's SQL with every `{pN:Type}` placeholder resolved. */
+function rendered(statement: Statement): string {
+  return statement.query.replace(
+    /\{(p\d+):[A-Za-z0-9]+\}/g,
+    (_placeholder: string, name: string): string => {
+      return String(statement.query_params[name]);
+    },
+  );
+}
+
+function renderedBoundaryClause(statement: Statement): string {
+  const query: string = rendered(statement);
+  return query.slice(query.indexOf(" AND "), query.lastIndexOf(" ORDER BY "));
+}
+
 describe("AnalyticsDatabaseService sort key boundary", () => {
   let service: AnalyticsDatabaseService<LogLikeModel>;
 
@@ -247,29 +265,47 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
       });
 
       expect(hasBoundary(statement)).toBe(true);
-      expect(boundaryClause(statement)).toContain("min(");
+      expect(boundaryClause(statement)).toContain(" GLOBAL IN (SELECT ");
       expect(paramValues(statement)).toContain(TIME_COLUMN);
     });
 
-    test("the bound is a lower bound for a descending sort", () => {
-      const clause: string = boundaryClause(
-        runFind({ sort: { [TIME_COLUMN]: SortOrder.Descending } }),
+    /*
+     * The key is matched against the set of its own top values, read from
+     * the same table under the same WHERE.
+     */
+    test("the bound matches the leading key against its own top values", () => {
+      const clause: string = renderedBoundaryClause(
+        runFind({
+          sort: { [TIME_COLUMN]: SortOrder.Descending },
+          limit: 50,
+          skip: 0,
+        }),
       );
 
-      expect(clause).toContain(">=");
-      expect(clause).toContain("min(");
-      expect(clause).not.toContain("max(");
-    });
-
-    test("the bound flips to an upper bound for an ascending sort", () => {
-      const clause: string = boundaryClause(
-        runFind({ sort: { [TIME_COLUMN]: SortOrder.Ascending } }),
+      expect(clause).toMatch(
+        /^ AND time GLOBAL IN \(SELECT time FROM [^ ]+\.<log-like-table> WHERE TRUE <where> ORDER BY time DESC LIMIT 50\)$/,
       );
-
-      expect(clause).toContain("<=");
-      expect(clause).toContain("max(");
-      expect(clause).not.toContain("min(");
     });
+
+    /*
+     * A set of values rather than the `>= min()` / `<= max()` range it is
+     * equivalent to: the primary index can skip every granule holding none
+     * of the values, and an empty set reads nothing.
+     */
+    test.each([[SortOrder.Descending], [SortOrder.Ascending]])(
+      "the bound is a value set, not a range (%s)",
+      (order: SortOrder) => {
+        const clause: string = boundaryClause(
+          runFind({ sort: { [TIME_COLUMN]: order } }),
+        );
+
+        expect(clause).toContain(" GLOBAL IN (SELECT ");
+        expect(clause).not.toContain("min(");
+        expect(clause).not.toContain("max(");
+        expect(clause).not.toContain(">=");
+        expect(clause).not.toContain("<=");
+      },
+    );
 
     test("the inner sort direction matches the outer one", () => {
       expect(
@@ -321,8 +357,8 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
     test("emits exactly one boundary subquery", () => {
       const query: string = runFind({}).query;
 
-      expect(query.split("(SELECT ").length - 1).toBe(2);
-      expect(query.split("min(").length - 1).toBe(1);
+      expect(query.split("(SELECT ").length - 1).toBe(1);
+      expect(query.split(" GLOBAL IN (").length - 1).toBe(1);
     });
 
     /* The bound must read the same rows the outer query filters on. */
@@ -360,7 +396,7 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
     });
 
     /*
-     * A non-required column is Nullable in the DDL, and `k >= NULL` is
+     * A non-required column is Nullable in the DDL, and `NULL IN (...)` is
      * NULL — the bound would DROP those rows rather than narrow the scan.
      * `endedAt` IS in sortKeys, so only the `required` gate can stop this.
      */
@@ -533,46 +569,36 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
     }
 
     /*
-     * The fix: min(time) over the top skip+limit rows by time DESC, admit
-     * every row at or after it, then apply the same total order and slice.
+     * The fix: the values of time on the top `n` rows by time DESC (the
+     * inner `ORDER BY time DESC LIMIT n`), and every scanned row whose time
+     * is one of them.
      */
+    function admit(scanned: Array<Row>, n: number): Array<Row> {
+      const topValues: Set<number> = new Set(
+        scanned.slice(0, n).map((row: Row): number => {
+          return row.time;
+        }),
+      );
+
+      return scanned.filter((row: Row): boolean => {
+        return topValues.has(row.time);
+      });
+    }
+
+    /* Then the same total order and slice as the unbounded query. */
     function boundedPage(
       skip: number,
       limit: number,
       tieSeed: number,
     ): Array<Row> {
-      const scanned: Array<Row> = scan(ROWS, tieSeed);
-      const topN: Array<Row> = scanned.slice(0, skip + limit);
-
-      if (topN.length === 0) {
-        return [];
-      }
-
-      const boundary: number = Math.min(
-        ...topN.map((row: Row): number => {
-          return row.time;
-        }),
-      );
-
-      const admitted: Array<Row> = scanned.filter((row: Row): boolean => {
-        return row.time >= boundary;
-      });
+      const admitted: Array<Row> = admit(scan(ROWS, tieSeed), skip + limit);
 
       return sortTotal(admitted).slice(skip, skip + limit);
     }
 
     test("the bound admits every row tied at the boundary value", () => {
-      /* Top 2 rows by time DESC both sit at 300; the bound is 300. */
-      const scanned: Array<Row> = scan(ROWS, 0);
-      const boundary: number = Math.min(
-        ...scanned.slice(0, 2).map((row: Row): number => {
-          return row.time;
-        }),
-      );
-
-      const admitted: Array<Row> = scanned.filter((row: Row): boolean => {
-        return row.time >= boundary;
-      });
+      /* Top 2 rows by time DESC both sit at 300; the set is {300}. */
+      const admitted: Array<Row> = admit(scan(ROWS, 0), 2);
 
       /* All FOUR rows at t=300 survive, not just the two that were scanned. */
       expect(admitted).toHaveLength(4);
@@ -603,6 +629,31 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
       },
     );
 
+    /*
+     * The set admits exactly the rows the range it replaced,
+     * `time >= min(top values)`, admitted: a row ranked inside the top n
+     * carries one of the values, and a row outside it can only tie with the
+     * smallest.
+     */
+    test("the value set admits exactly the rows the >= min() range did", () => {
+      for (let n: number = 1; n <= ROWS.length + 1; n++) {
+        for (let tieSeed: number = 0; tieSeed < 4; tieSeed++) {
+          const scanned: Array<Row> = scan(ROWS, tieSeed);
+          const minimum: number = Math.min(
+            ...scanned.slice(0, n).map((row: Row): number => {
+              return row.time;
+            }),
+          );
+
+          expect(admit(scanned, n)).toStrictEqual(
+            scanned.filter((row: Row): boolean => {
+              return row.time >= minimum;
+            }),
+          );
+        }
+      }
+    });
+
     test("paging the whole set with the bound returns every row exactly once", () => {
       const seen: Array<string> = [];
 
@@ -621,10 +672,8 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
     });
 
     /*
-     * The final page matches fewer rows than skip + limit. This is why the
-     * bound is min() over a subquery rather than the N-th value directly:
-     * `ORDER BY time DESC LIMIT 1 OFFSET n-1` returns no row here, the
-     * scalar is NULL, `time >= NULL` is NULL, and the page comes back empty.
+     * The final page matches fewer rows than skip + limit, so the inner
+     * LIMIT returns every matching row and the set holds all their values.
      */
     test("a final page shorter than skip + limit is not truncated", () => {
       expect(boundedPage(10, 5, 0)).toStrictEqual(unboundedPage(10, 5, 0));
@@ -641,18 +690,7 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         return { time: 500, _id: row._id };
       });
 
-      const scanned: Array<Row> = [...allTied];
-      const boundary: number = Math.min(
-        ...scanned.slice(0, 5).map((row: Row): number => {
-          return row.time;
-        }),
-      );
-
-      expect(
-        scanned.filter((row: Row): boolean => {
-          return row.time >= boundary;
-        }),
-      ).toHaveLength(12);
+      expect(admit(allTied, 5)).toHaveLength(12);
     });
   });
 });
