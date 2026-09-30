@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import { Mock } from "jest-mock";
 import SetupGuideCard, {
   SetupGuideRenderContext,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
@@ -248,7 +249,8 @@ describe("SetupGuideCard", () => {
     });
 
     test("picking an option swaps the instructions and reports the pick", () => {
-      const onOptionChange: jest.Mock<(option: string) => void> = jest.fn();
+      const onOptionChange: Mock<(option: string) => void> =
+        jest.fn<(option: string) => void>();
       renderCard({ onOptionChange: onOptionChange });
 
       fireEvent.click(radio("Beta"));
