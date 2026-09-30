@@ -41,7 +41,8 @@ describe("InvestigationStatusBadge", () => {
     render(<InvestigationStatusBadge text="Completed" indicator="done" />);
 
     expect(badge()).toHaveTextContent("Completed");
-    expect(badge().tagName).toBe("SPAN");
+    // A div, since the icon inside it renders a div of its own.
+    expect(badge().tagName).toBe("DIV");
     expect(badge()).toHaveAttribute("data-indicator", "done");
   });
 
@@ -75,7 +76,7 @@ describe("InvestigationStatusBadge", () => {
     ) as HTMLElement;
     expect(dot).not.toBeNull();
     const ping: HTMLElement = dot.firstElementChild as HTMLElement;
-    expect(ping).toHaveClass("motion-safe:animate-ping", "bg-indigo-400");
+    expect(ping).toHaveClass("motion-safe:animate-ping", "bg-indigo-500");
     expect(dot.lastElementChild).toHaveClass("bg-indigo-500");
     // Reduced motion keeps the dot and drops only the ping.
     expect(ping.className).not.toMatch(/(^|\s)animate-ping/);

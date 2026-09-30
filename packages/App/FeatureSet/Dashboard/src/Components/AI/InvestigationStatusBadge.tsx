@@ -34,7 +34,7 @@ export function renderInvestigationStatusIndicator(
   if (indicator === "live") {
     return (
       <span aria-hidden="true" className="relative flex h-2 w-2 flex-shrink-0">
-        <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75 motion-safe:animate-ping" />
+        <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75 motion-safe:animate-ping" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
       </span>
     );
@@ -83,19 +83,21 @@ export function renderInvestigationStatusIndicator(
  * the words carries colour. The card used to change the whole pill's colour
  * with the state (green, indigo, red, amber), which added one more tinted
  * shape to a card that already had several.
+ *
+ * A div, not a span: Icon renders its own div around the svg.
  */
 const InvestigationStatusBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <span
+    <div
       aria-label="Investigation status"
       data-indicator={props.indicator}
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
     >
       {renderInvestigationStatusIndicator(props.indicator)}
       <span>{props.text}</span>
-    </span>
+    </div>
   );
 };
 

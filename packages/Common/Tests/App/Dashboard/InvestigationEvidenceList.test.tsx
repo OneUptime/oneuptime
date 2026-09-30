@@ -1128,7 +1128,7 @@ describe("InvestigationEvidenceList focus requests", () => {
     const row: HTMLElement = toggle.closest("li")!;
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(row).toHaveAttribute("data-highlighted", "true");
-    expect(row).toHaveClass("before:ring-2", "before:ring-indigo-400");
+    expect(row).toHaveClass("before:ring-2", "before:ring-indigo-500");
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
       block: "nearest",

@@ -93,7 +93,7 @@ export const EVIDENCE_ROW_CLASS_NAME: string =
   "relative isolate scroll-mt-32 before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg before:transition-colors before:duration-300 before:content-['']";
 
 export const EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME: string =
-  "before:bg-indigo-50/70 before:ring-2 before:ring-inset before:ring-indigo-400 dark:before:bg-indigo-950/40";
+  "before:bg-indigo-50/70 before:ring-2 before:ring-inset before:ring-indigo-500";
 
 const CITATION_BADGE_CLASS_NAME: string =
   "inline-flex h-5 min-w-[2.25rem] flex-shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums";

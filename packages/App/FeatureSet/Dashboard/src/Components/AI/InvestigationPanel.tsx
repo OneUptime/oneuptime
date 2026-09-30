@@ -173,9 +173,10 @@ const InvestigationPanelNotice: FunctionComponent<
       data-testid={props.testId}
       className="flex items-start gap-3"
     >
-      <span className="flex h-5 w-4 flex-shrink-0 items-center justify-center">
+      {/* A div, not a span: Icon renders its own div around the svg. */}
+      <div className="flex h-5 w-4 flex-shrink-0 items-center justify-center">
         {props.indicator}
-      </span>
+      </div>
       <div className="min-w-0">
         <p className="text-sm font-medium text-gray-900">{props.title}</p>
         {props.children ? (
@@ -1505,7 +1506,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                   <div className="max-w-full">
                     {humanVerdict && !isChangingVerdict ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        <span
+                        {/* A div, not a span: Icon renders a div. */}
+                        <div
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
                             isConfirmed
                               ? "bg-green-50 text-green-700 ring-green-200"
@@ -1520,7 +1522,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             You {isConfirmed ? "confirmed" : "rejected"} this
                             analysis
                           </span>
-                        </span>
+                        </div>
                         <button
                           type="button"
                           className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
