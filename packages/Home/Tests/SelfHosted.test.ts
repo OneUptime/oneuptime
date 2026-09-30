@@ -153,6 +153,7 @@ describe("SelfHosted content model", () => {
       "VMware",
       "Kubernetes",
       "Ceph",
+      "Database",
     ]) {
       expect(agents!.description).toContain(product);
     }

@@ -104,6 +104,29 @@ describe("AIDiscovery", () => {
     }
   });
 
+  test("the Databases product page is listed for machines", () => {
+    const products: Array<JSONObject> = generateProductsJson(homeUrl)[
+      "products"
+    ] as Array<JSONObject>;
+    const databases: JSONObject | undefined = products.find(
+      (product: JSONObject): boolean => {
+        return product["url"] === "https://oneuptime.com/product/databases";
+      },
+    );
+
+    expect(databases).toBeDefined();
+    expect(databases!["markdownUrl"]).toBe(
+      "https://oneuptime.com/product/databases.md",
+    );
+    expect((databases!["features"] as Array<string>).length).toBeGreaterThan(0);
+    expect(generateLlmsTxt(homeUrl, [])).toContain(
+      "https://oneuptime.com/product/databases.md",
+    );
+    expect(
+      generatePageMarkdown(PageSEOConfig["/product/databases"]!, homeUrl),
+    ).toContain("Canonical page: https://oneuptime.com/product/databases");
+  });
+
   test("llms.txt lists the enterprise pages and the claims matrix", () => {
     const txt: string = generateLlmsTxt(homeUrl, []);
 

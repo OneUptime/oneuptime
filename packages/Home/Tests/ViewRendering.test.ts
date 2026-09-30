@@ -27,6 +27,31 @@ import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
+import {
+  DatabaseAlertTemplateEntry,
+  DatabaseAlertTemplateGroup,
+  DatabaseEngineGroup,
+  DatabasesPageContent,
+  getDatabaseEngineGroupKey,
+  getDatabasesPageContent,
+} from "../Utils/Databases";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+} from "Common/Types/DatabaseServer/DatabaseSystem";
+import {
+  DatabaseAlertTemplate,
+  getAllDatabaseAlertTemplates,
+  getDatabaseAlertTemplates,
+} from "Common/Types/Monitor/DatabaseAlertTemplates";
+import {
+  DatabaseServerMetricDefinition,
+  getDatabaseServerMetrics,
+} from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import DatabaseServerDiscoverySource, {
+  DATABASE_SERVER_DISCOVERY_SOURCES,
+  getDatabaseServerDiscoverySourceLabel,
+} from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
@@ -1023,6 +1048,684 @@ describe("VMware on every product surface", () => {
     expect(icon).toContain('class="h-3 w-3 text-indigo-600"');
     // Not a trademarked wordmark: the mark is the neutral hypervisor glyph.
     expect(icon).not.toMatch(/<title>VMware<\/title>/);
+  });
+});
+
+/*
+ * The repository root, for the checks that hold the Databases page to the
+ * product it describes: the agent it installs, the docs it links to and the
+ * defaults it quotes.
+ */
+const REPO_ROOT: string = path.join(__dirname, "..", "..", "..");
+
+function repoFile(relativePath: string): string {
+  return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf-8");
+}
+
+/*
+ * A default the page quotes, read from the `const NAME: number = <n>;` that
+ * defines it. Reading the source rather than importing it keeps the server
+ * modules (and their database clients) out of the website's test run.
+ */
+function numericConstantIn(relativePath: string, name: string): number {
+  const match: RegExpMatchArray | null = repoFile(relativePath).match(
+    new RegExp(`\\b${name}: number = (\\d+);`),
+  );
+
+  if (!match) {
+    throw new Error(
+      `${name} is no longer declared as a number literal in ${relativePath}: point this test at its new definition.`,
+    );
+  }
+
+  return Number(match[1]);
+}
+
+function escapeForRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// The circle-stack glyph IconProp.Database draws in the dashboard.
+const DATABASE_GLYPH_PATH_START: string =
+  "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375";
+
+describe("databases.ejs", () => {
+  let html: string = "";
+  const seo: PageSEOData = PageSEOConfig["/product/databases"]!;
+  const content: DatabasesPageContent = getDatabasesPageContent();
+
+  beforeAll(async () => {
+    // Exactly the locals Routes.ts hands the template, plus homeUrl.
+    html = await render("databases.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/databases"),
+      databases: getDatabasesPageContent(),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("renders a complete page", () => {
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html.length).toBeGreaterThan(10000);
+  });
+
+  test("the hardcoded head is identical to the SEO entry", () => {
+    // Search engines read the first pair, social cards the second.
+    expect(html).toContain(`<title>${seo.title}</title>`);
+    expect(html).toContain(`content="${seo.description}"`);
+    expect(html).toContain(
+      '<link rel="canonical" href="https://oneuptime.com/product/databases"',
+    );
+  });
+
+  test("renders the sections the page is built around", () => {
+    for (const heading of [
+      "Every database you run, found and monitored",
+      "Four sources, one page per database",
+      "From the telemetry you already send to a monitored database",
+      "Database monitoring that starts where your services do",
+      `${content.engineCount} engines, known by name`,
+      `${content.alertTemplateCount} ready-made monitors for ${content.enginesWithAlertTemplatesCount} engines`,
+      "Built for the way databases actually run",
+      "Database alerts where your team already works",
+      "Pay for data, or run it yourself",
+      "Questions database teams ask",
+    ]) {
+      expect(html).toContain(heading);
+    }
+  });
+
+  test("covers every source a database is assembled from", () => {
+    for (const source of [
+      "Application traces",
+      "Kubernetes",
+      "Docker &amp; Podman",
+      "Database Agent",
+    ]) {
+      expect(html).toContain(`>${source}</h3>`);
+    }
+  });
+
+  test("prints the counts the catalogs give it, not numbers typed into the copy", async () => {
+    expect(html).toContain(`${DATABASE_SYSTEMS.length} engines known by name`);
+    expect(html).toContain(
+      `${getAllDatabaseAlertTemplates().length} ready-made monitors for`,
+    );
+
+    // Control: other counts in, other counts out.
+    const doctored: string = await render("databases.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/databases"),
+      databases: {
+        ...content,
+        engineCount: 1234,
+        alertTemplateCount: 567,
+        enginesWithAlertTemplatesCount: 89,
+      },
+      homeUrl: HOME_URL,
+    });
+
+    expect(doctored).toContain("1234 engines, known by name");
+    expect(doctored).toContain("1234 engines known by name");
+    expect(doctored).toContain("567 ready-made monitors for 89 engines");
+  });
+
+  test("lists every catalog engine once, under the source of its engine metrics", () => {
+    const chips: Array<string> = [
+      ...html.matchAll(/data-engine="([^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect([...chips].sort()).toEqual(
+      DATABASE_SYSTEMS.map((descriptor: DatabaseSystemDescriptor): string => {
+        return descriptor.system;
+      }).sort(),
+    );
+
+    // Each group card holds the chips up to the next card.
+    const cards: Array<string> = html
+      .split('data-engine-group="')
+      .slice(1)
+      .map((card: string): string => {
+        return card.split("</ul>")[0]!;
+      });
+
+    expect(cards.length).toBe(content.engineGroups.length);
+
+    for (const card of cards) {
+      const key: string = card.slice(0, card.indexOf('"'));
+
+      for (const match of card.matchAll(/data-engine="([^"]+)">([^<]+)</g)) {
+        const descriptor: DatabaseSystemDescriptor = DATABASE_SYSTEMS.find(
+          (candidate: DatabaseSystemDescriptor): boolean => {
+            return candidate.system === match[1];
+          },
+        )!;
+
+        expect({ engine: descriptor.system, group: key }).toEqual({
+          engine: descriptor.system,
+          group: getDatabaseEngineGroupKey(descriptor),
+        });
+        expect(match[2]).toBe(escapeForHtml(descriptor.displayName));
+      }
+    }
+  });
+
+  test("renders the engine groups in the order the content gives", () => {
+    const keys: Array<string> = [
+      ...html.matchAll(/data-engine-group="([^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(keys).toEqual(
+      content.engineGroups.map((group: DatabaseEngineGroup): string => {
+        return group.key;
+      }),
+    );
+  });
+
+  test("quotes every recommended monitor by its real name and severity, under its engine", () => {
+    const monitorsSection: string = html.slice(
+      html.indexOf('id="databases-monitors"'),
+      html.indexOf("<!-- Build your own -->"),
+    );
+    const cards: Array<string> = monitorsSection
+      .split('data-alert-template-group="')
+      .slice(1);
+
+    expect(cards.length).toBe(content.alertTemplateGroups.length);
+
+    let quoted: number = 0;
+
+    content.alertTemplateGroups.forEach(
+      (group: DatabaseAlertTemplateGroup, index: number) => {
+        const card: string = cards[index]!;
+
+        expect(card.startsWith(`${group.receiver}"`)).toBe(true);
+        expect(card).toContain(`>${escapeForHtml(group.title)}</h3>`);
+
+        const rows: Array<DatabaseAlertTemplateEntry> = [
+          ...card.matchAll(
+            /<span>([^<]+)<\/span><span[^>]*>(Critical|Warning)<\/span>/g,
+          ),
+        ].map((match: RegExpMatchArray): DatabaseAlertTemplateEntry => {
+          return {
+            name: match[1]!,
+            severity: match[2] as DatabaseAlertTemplateEntry["severity"],
+          };
+        });
+
+        expect(rows).toEqual(
+          group.templates.map(
+            (
+              template: DatabaseAlertTemplateEntry,
+            ): DatabaseAlertTemplateEntry => {
+              return {
+                name: escapeForHtml(template.name),
+                severity: template.severity,
+              };
+            },
+          ),
+        );
+
+        quoted += rows.length;
+      },
+    );
+
+    expect(quoted).toBe(getAllDatabaseAlertTemplates().length);
+  });
+
+  test("colours each severity the way the rest of the site does", () => {
+    expect(html).toMatch(
+      /<span class="[^"]*text-red-600[^"]*">Critical<\/span>/,
+    );
+    expect(html).toMatch(
+      /<span class="[^"]*text-amber-600[^"]*">Warning<\/span>/,
+    );
+    expect(html).not.toMatch(
+      /<span class="[^"]*text-amber-600[^"]*">Critical<\/span>/,
+    );
+    expect(html).not.toMatch(
+      /<span class="[^"]*text-red-600[^"]*">Warning<\/span>/,
+    );
+  });
+
+  test("names the forks each engine's monitors are also offered to", () => {
+    expect(html).toContain("Also offered to MariaDB<");
+    expect(html).toContain("Also offered to Valkey, KeyDB and Dragonfly<");
+    expect(html).toContain("Also offered to OpenSearch<");
+
+    // Only under the engines that have forks: no empty "Also offered to".
+    expect(html.split("Also offered to ").length - 1).toBe(
+      content.alertTemplateGroups.filter(
+        (group: DatabaseAlertTemplateGroup): boolean => {
+          return group.alsoOfferedTo.length > 0;
+        },
+      ).length,
+    );
+  });
+
+  test("the alerts in the mockups are real recommended monitors of the engines they are shown on", () => {
+    for (const [templateName, engineLabel, system] of [
+      ["Connections Nearly Exhausted", "PostgreSQL", "postgresql"],
+      ["Replica Lag", "MySQL", "mysql"],
+      ["Memory Near maxmemory", "Valkey", "valkey"],
+      ["Engine Metrics Stopped", "SQL Server", "microsoft.sql_server"],
+    ] as Array<[string, string, string]>) {
+      expect(html).toMatch(
+        new RegExp(
+          `>${escapeForRegExp(templateName)}</div>\\s*<div[^>]*>${escapeForRegExp(engineLabel)} `,
+        ),
+      );
+      expect(
+        getDatabaseAlertTemplates(system).map(
+          (template: DatabaseAlertTemplate): string => {
+            return template.name;
+          },
+        ),
+      ).toContain(templateName);
+    }
+  });
+
+  test("the engine metrics mockup charts titles from the PostgreSQL catalog", () => {
+    const titles: Array<string> = getDatabaseServerMetrics("postgresql").map(
+      (metric: DatabaseServerMetricDefinition): string => {
+        return metric.title;
+      },
+    );
+
+    for (const title of [
+      "Connections",
+      "Commits",
+      "Rollbacks",
+      "Database size",
+      "Replication lag",
+      "WAL age",
+    ]) {
+      expect(titles).toContain(title);
+      expect(html).toContain(`>${title}</span>`);
+    }
+  });
+
+  test("the hero labels discovery sources the way the product does", () => {
+    const labels: Array<string> = DATABASE_SERVER_DISCOVERY_SOURCES.map(
+      (source: DatabaseServerDiscoverySource): string => {
+        return getDatabaseServerDiscoverySourceLabel(source);
+      },
+    );
+
+    for (const label of [
+      "Application traces",
+      "Kubernetes",
+      "Docker",
+      "OpenTelemetry Collector",
+      "Added manually",
+    ]) {
+      expect(labels).toContain(label);
+      expect(html).toContain(`>${label}</`);
+    }
+  });
+
+  test("quotes the discovery defaults the product actually uses", () => {
+    const minCalls: number = numericConstantIn(
+      "packages/Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery.ts",
+      "DEFAULT_DATABASE_SERVER_MIN_CALLS",
+    );
+    const budget: number = numericConstantIn(
+      "packages/Common/Server/Services/DatabaseServerService.ts",
+      "DEFAULT_AUTO_CREATE_BUDGET",
+    );
+    const archiveDays: number = numericConstantIn(
+      "packages/Common/Server/Services/DatabaseServerService.ts",
+      "DEFAULT_AUTO_ARCHIVE_DAYS",
+    );
+
+    expect(html).toContain(`${minCalls} queries in 15 minutes`);
+    expect(html).toContain(`${budget} live discovered databases`);
+    expect(html).toContain(`seen for ${archiveDays} days`);
+  });
+
+  test("quotes the discovery schedules the workers actually run", () => {
+    // Client spans in ComputeServiceDependencies; pods and containers apart.
+    expect(html).toContain(
+      "Traces are read every 10 minutes and workloads every 5.",
+    );
+    const clientSpanJob: string = repoFile(
+      "packages/App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
+    );
+
+    expect(clientSpanJob).toMatch(
+      /EVERY_TEN_MINUTES: string = "\*\/10 \* \* \* \*"/,
+    );
+    expect(clientSpanJob).toMatch(/schedule: EVERY_TEN_MINUTES\b/);
+    expect(
+      repoFile(
+        "packages/App/FeatureSet/Workers/Jobs/DatabaseServer/DiscoverContainerDatabases.ts",
+      ),
+    ).toMatch(/schedule: EVERY_FIVE_MINUTE\b/);
+  });
+
+  test("describes the Database Agent the way it ships", () => {
+    const compose: string = repoFile("agents/DatabaseAgent/docker-compose.yml");
+
+    // A stock collector image, and query events off unless switched on.
+    expect(html).toContain("otel/opentelemetry-collector-contrib</code>");
+    expect(compose).toMatch(/image: otel\/opentelemetry-collector-contrib:/);
+    expect(html).toContain("DATABASE_QUERY_EVENTS=true</code>");
+    expect(compose).toContain(
+      "DATABASE_QUERY_EVENTS=${DATABASE_QUERY_EVENTS:-false}",
+    );
+  });
+
+  test("names the monitoring grants the Databases docs prescribe", () => {
+    const docs: string = repoFile(
+      "packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md",
+    );
+
+    for (const grant of [
+      "pg_monitor",
+      "VIEW SERVER STATE",
+      "SELECT_CATALOG_ROLE",
+      "clusterMonitor",
+    ]) {
+      expect(html).toContain(`>${grant}</code>`);
+      expect(docs).toContain(grant);
+    }
+  });
+
+  test("every docs link in the page body is a real docs page and heading", () => {
+    const docsLinks: Array<string> = [
+      ...new Set(
+        [...pageBodyOf(html).matchAll(/href="(\/docs\/[^"]+)"/g)].map(
+          (match: RegExpMatchArray): string => {
+            return match[1]!;
+          },
+        ),
+      ),
+    ];
+
+    expect(docsLinks).toEqual(
+      expect.arrayContaining([
+        "/docs/telemetry/databases",
+        "/docs/telemetry/databases#alerts-on-a-database",
+        "/docs/monitor/database-health-monitor",
+        "/docs/monitor/sql-monitor",
+      ]),
+    );
+
+    for (const link of docsLinks) {
+      const [docsPath, anchor] = link.replace(/^\/docs\//, "").split("#") as [
+        string,
+        string | undefined,
+      ];
+      const markdown: string = repoFile(
+        `packages/App/FeatureSet/Docs/Content/en/${docsPath}.md`,
+      );
+
+      if (anchor) {
+        const slugs: Array<string> = [
+          ...markdown.matchAll(/^#{2,4} (.+)$/gm),
+        ].map((match: RegExpMatchArray): string => {
+          return match[1]!
+            .toLowerCase()
+            .replace(/[^a-z0-9 -]/g, "")
+            .trim()
+            .replace(/\s+/g, "-");
+        });
+
+        expect(slugs).toContain(anchor);
+      }
+    }
+  });
+
+  test("cross-links the products and pages it leans on", () => {
+    for (const href of [
+      "/product/kubernetes",
+      "/product/ai-agent",
+      "/product/monitoring",
+      "/pricing",
+      "/enterprise/self-hosted",
+      "/accounts/register",
+      "/enterprise/demo",
+    ]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+  });
+
+  test("every product link in the page body is a real canonical page", () => {
+    const productLinks: Array<string> = catalogueLinksIn(pageBodyOf(html));
+
+    expect(productLinks.length).toBeGreaterThan(2);
+
+    for (const href of productLinks) {
+      expect(PageSEOConfig[href]?.canonicalPath).toBe(href);
+    }
+  });
+
+  test("names engines without presenting OneUptime as any vendor's product", () => {
+    const body: string = pageBodyOf(html);
+
+    expect(body).toContain("not affiliated with or endorsed by them");
+    expect(body).not.toMatch(
+      /official (?:PostgreSQL|MySQL|MariaDB|MongoDB|Redis|Oracle|Microsoft|Elastic)/i,
+    );
+    expect(body).not.toMatch(/certified by/i);
+    expect(body).not.toMatch(/partner(?:ed)? with/i);
+  });
+
+  test("keeps the Community Edition claim exact", () => {
+    expect(html).toContain(
+      "Databases is part of the open source Community Edition (Apache 2.0).",
+    );
+  });
+
+  test("never leaks another resource page's vocabulary into its own sections", () => {
+    const body: string = databasesOwnSectionsOf(html);
+
+    for (const leak of [
+      /vCenter/,
+      /ESXi/,
+      /vSphere/,
+      /Proxmox/,
+      /datastore/i,
+      /CrashLoopBackOff/,
+      /kubelet/i,
+    ]) {
+      expect(body).not.toMatch(leak);
+    }
+  });
+
+  test("wires the cursor glow to its own element ids", () => {
+    expect(html).toContain('id="databases-hero-section"');
+    expect(html).toContain('id="databases-grid-glow"');
+    expect(html).toContain("getElementById('databases-hero-section')");
+    expect(html).toContain("getElementById('databases-grid-glow')");
+    for (const borrowed of ["vmware", "kubernetes", "proxmox"]) {
+      expect(html).not.toContain(`${borrowed}-hero-section`);
+      expect(html).not.toContain(`${borrowed}-grid-glow`);
+    }
+  });
+});
+
+/*
+ * The Databases page's own sections: everything in <main> up to the end of
+ * its FAQ. The shared features-table include that follows lists the other
+ * products' cards, vocabulary and all.
+ */
+function databasesOwnSectionsOf(html: string): string {
+  const body: string = pageBodyOf(html);
+  const faqStart: number = body.indexOf('id="databases-faq"');
+  const faqEnd: number = body.indexOf("</dl>", faqStart);
+
+  expect(faqStart).toBeGreaterThan(-1);
+  expect(faqEnd).toBeGreaterThan(faqStart);
+
+  return body.slice(0, faqEnd);
+}
+
+// The markup of the first link to `href` in `html`, up to its </a>.
+function linkBlockOf(html: string, href: string): string {
+  const start: number = html.indexOf(`<a href="${href}"`);
+
+  expect(start).toBeGreaterThan(-1);
+
+  return html.slice(start, html.indexOf("</a>", start));
+}
+
+function productLinksIn(html: string): Array<string> {
+  return [...html.matchAll(/href="(\/product\/[^"#]+)"/g)].map(
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  );
+}
+
+describe("Databases on every product surface", () => {
+  test("the navigation lists Databases right after Services, in both product lists", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+    const links: Array<string> = productLinksIn(nav);
+
+    expect(nav.split('href="/product/databases"').length - 1).toBe(2);
+
+    /*
+     * The dashboard files Databases beside Services, with the catalogs that
+     * span every platform, not under one platform.
+     */
+    const afterServices: Array<string> = links
+      .map((href: string, index: number): string | null => {
+        return href === "/product/services" ? links[index + 1] || null : null;
+      })
+      .filter((href: string | null): href is string => {
+        return href !== null;
+      });
+
+    expect(afterServices).toEqual(["/product/databases", "/product/databases"]);
+    expect(nav).toContain(
+      'data-search="databases database monitoring db postgres postgresql mysql mariadb sql server oracle redis valkey mongodb elasticsearch queries engine metrics"',
+    );
+  });
+
+  test("the mobile menu lists what the flyout lists, with no hole before the AI card", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+
+    // The mobile menu's two-column grid, which ends with a full-width AI card.
+    const mobileStart: number = nav.indexOf(
+      '<nav class="grid grid-cols-2 gap-3">',
+    );
+    const mobile: string = nav.slice(
+      mobileStart,
+      nav.indexOf("</nav>", mobileStart),
+    );
+    const mobileLinks: Array<string> = productLinksIn(mobile);
+    const fullWidth: Array<string> = [
+      ...mobile.matchAll(/<a href="(\/product\/[^"#]+)" class="col-span-2/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(mobileStart).toBeGreaterThan(-1);
+    expect(fullWidth).toEqual(["/product/ai-agent"]);
+    // An odd count leaves an empty cell right before the full-width card.
+    expect((mobileLinks.length - fullWidth.length) % 2).toBe(0);
+
+    // The flyout: every product card, plus its featured AI banner.
+    const flyoutLinks: Array<string> = productLinksIn(
+      nav.slice(nav.indexOf('id="product-modal"')),
+    );
+
+    expect([...mobileLinks].sort()).toEqual([...flyoutLinks].sort());
+  });
+
+  test("the flyout search keeps the short aliases of other products unambiguous", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+    const search: string = nav.match(
+      /href="\/product\/databases"[^>]*data-search="([^"]+)"/,
+    )![1]!;
+
+    // Typing either alias must still narrow the flyout to its one product.
+    for (const alias of ["rum", "k8s"]) {
+      expect(search).not.toContain(alias);
+    }
+  });
+
+  test("the footer lists Databases after Hosts", async () => {
+    const footer: string = await render("footer.ejs", {
+      footerCards: false,
+      cta: false,
+      homeUrl: HOME_URL,
+    });
+    const links: Array<string> = productLinksIn(footer);
+
+    expect(links).toContain("/product/databases");
+    expect(links[links.indexOf("/product/host") + 1]).toBe(
+      "/product/databases",
+    );
+  });
+
+  test.each([
+    "features-table.ejs",
+    "Partials/product-showcase.ejs",
+    "Partials/hero-cards/product-grid.ejs",
+    "Partials/home-products.ejs",
+    "Partials/home-detect.ejs",
+  ])(
+    "%s links to the Databases product with its glyph",
+    async (templateFileName: string) => {
+      const partial: string = await render(templateFileName, {
+        homeUrl: HOME_URL,
+      });
+
+      expect(partial.split('href="/product/databases"').length - 1).toBe(1);
+      expect(linkBlockOf(partial, "/product/databases")).toContain(
+        DATABASE_GLYPH_PATH_START,
+      );
+    },
+  );
+
+  test("the homepage lists Databases next to Hosts", async () => {
+    const products: string = await render("Partials/home-products.ejs", {
+      homeUrl: HOME_URL,
+    });
+    const pills: string = await render("Partials/home-detect.ejs", {
+      homeUrl: HOME_URL,
+    });
+
+    for (const partial of [products, pills]) {
+      const links: Array<string> = productLinksIn(partial);
+
+      expect(links[links.indexOf("/product/host") + 1]).toBe(
+        "/product/databases",
+      );
+    }
+  });
+
+  test("the hero card and icon partials render on their own", async () => {
+    const card: string = await render("Partials/hero-cards/databases.ejs", {});
+    const icon: string = await render("Partials/icons/databases.ejs", {
+      iconClass: "h-3 w-3",
+    });
+
+    expect(card).toContain('href="/product/databases"');
+    expect(card).toContain(">Databases<");
+    expect(card).toContain("hero-glow-emerald");
+    expect(icon).toContain('class="h-3 w-3 text-emerald-600"');
+    expect(icon).not.toMatch(/<title>/);
+  });
+
+  test("the icon is the dashboard's own Database glyph", async () => {
+    const icon: string = await render("Partials/icons/databases.ejs", {});
+    const iconSource: string = repoFile(
+      "packages/Common/UI/Components/Icon/Icon.tsx",
+    );
+    const dashboardPath: string = iconSource.match(
+      /icon === IconProp\.Database\)[\s\S]*?d="([^"]+)"/,
+    )![1]!;
+
+    expect(icon).toContain(`d="${dashboardPath}"`);
+    expect(dashboardPath.startsWith(DATABASE_GLYPH_PATH_START)).toBe(true);
   });
 });
 
