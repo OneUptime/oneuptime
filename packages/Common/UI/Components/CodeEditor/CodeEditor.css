@@ -213,10 +213,22 @@ html.dark .ou-code-editor {
   padding-right: calc(var(--ou-code-padding-x) + 32px);
 }
 
-/* Highlight spans may colour text, never reshape it. */
-.ou-code-editor__highlight span {
+/*
+ * Token spans may colour text, never reshape it. Every frontend's index.ejs
+ * sets `* { font-family: Inter, ... }`, and a rule that matches an element
+ * beats what it inherits: without this each highlighted token (and each
+ * marked line number) would switch to a proportional font and slide off the
+ * textarea's glyphs. A class selector outranks `*`.
+ */
+.ou-code-editor__highlight *,
+.ou-code-editor__gutter * {
+  font-family: inherit;
+  font-size: inherit;
   font-style: inherit;
   font-weight: inherit;
+  font-variant-ligatures: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
 }
 
 .ou-code-editor__placeholder {

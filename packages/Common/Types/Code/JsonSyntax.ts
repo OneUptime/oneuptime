@@ -106,10 +106,10 @@ const describeCharacter: DescribeCharacterFunction = (
     code === 0x2028 ||
     code === 0x2029
   ) {
-    return `an invisible character (U+${code
+    return `invisible character U+${code
       .toString(16)
       .toUpperCase()
-      .padStart(4, "0")})`;
+      .padStart(4, "0")}`;
   }
 
   return `'${character}'`;
@@ -522,7 +522,9 @@ export const findJsonSyntaxError: FindJsonSyntaxErrorFunction = (
       }
 
       return {
-        message: `Unexpected ${describeCharacter(character)} after the end of the JSON value`,
+        message: `Unexpected ${describeCharacter(
+          String.fromCodePoint(text.codePointAt(index) as number),
+        )} after the end of the JSON value`,
         offset: index,
       };
     }
@@ -584,22 +586,89 @@ export const offsetToLineColumn: OffsetToLineColumnFunction = (
   return { line, column: clamped - lineStart + 1 };
 };
 
-type MaskTemplatesFunction = (text: string) => string;
+export type LineColumnToOffsetFunction = (
+  text: string,
+  line: number,
+  column: number,
+) => number;
+
+/** The 0-based offset of a 1-based line and column. */
+export const lineColumnToOffset: LineColumnToOffsetFunction = (
+  text: string,
+  line: number,
+  column: number,
+): number => {
+  let offset: number = 0;
+
+  for (let current: number = 1; current < line; current++) {
+    const next: number = text.indexOf("\n", offset);
+
+    if (next === -1) {
+      return text.length;
+    }
+
+    offset = next + 1;
+  }
+
+  return Math.min(offset + Math.max(0, column - 1), text.length);
+};
+
+interface MaskedTemplates {
+  text: string;
+  /** Maps an offset in the masked text back to the text as written. */
+  toOriginal: (offset: number) => number;
+}
+
+type MaskTemplatesFunction = (text: string) => MaskedTemplates;
 
 /*
- * checkJSONSyntax masks each {{...}} with "1" before parsing. Here every
- * character of the expression becomes a "1", which the grammar treats exactly
- * the same way (a run of digits is a number wherever one digit is, and is
- * ordinary text inside a string) while keeping every later offset - and so
- * every reported line and column - where it is in the text the person sees.
- * The expression pattern never spans a line break.
+ * Exactly the masking checkJSONSyntax does - every {{...}} becomes "1" - so
+ * the verdict is the form's verdict. (Masking each character instead, to keep
+ * offsets still, was not the same: `"\u{{x}}"` got the four hex digits its
+ * escape needs, and the status bar called valid what Save refused.) The
+ * error's offset is then carried back to the text the person sees; one inside
+ * an expression lands on its opening brace.
  */
-const maskTemplatesPreservingLength: MaskTemplatesFunction = (
+const maskTemplates: MaskTemplatesFunction = (
   text: string,
-): string => {
-  return text.replace(getTemplateExpressionRegex(), (match: string) => {
-    return "1".repeat(match.length);
-  });
+): MaskedTemplates => {
+  const spans: Array<{ maskedAt: number; originalAt: number; length: number }> =
+    [];
+  let removed: number = 0;
+
+  const masked: string = text.replace(
+    getTemplateExpressionRegex(),
+    (match: string, _expression: string, offset: number): string => {
+      spans.push({
+        maskedAt: offset - removed,
+        originalAt: offset,
+        length: match.length,
+      });
+      removed += match.length - 1;
+      return "1";
+    },
+  );
+
+  return {
+    text: masked,
+    toOriginal: (offset: number): number => {
+      let shift: number = 0;
+
+      for (const span of spans) {
+        if (offset < span.maskedAt) {
+          break;
+        }
+
+        if (offset === span.maskedAt) {
+          return span.originalAt;
+        }
+
+        shift = span.originalAt + span.length - (span.maskedAt + 1);
+      }
+
+      return offset + shift;
+    },
+  };
 };
 
 type ReadJson5ErrorFunction = (error: unknown) => {
@@ -658,20 +727,35 @@ export const checkJsonSyntax: CheckJsonSyntaxFunction = (
     return skipped;
   }
 
-  const masked: string = maskTemplatesPreservingLength(value);
+  const masked: MaskedTemplates = maskTemplates(value);
 
   if (options?.allowJSON5) {
     try {
-      JSON5.parse(masked);
+      JSON5.parse(masked.text);
     } catch (err: unknown) {
       const { message, line, column } = readJson5Error(err);
+
+      if (line === null || column === null) {
+        return {
+          isValid: false,
+          errorMessage: message,
+          wasSkipped: false,
+          line,
+          column,
+        };
+      }
+
+      const position: { line: number; column: number } = offsetToLineColumn(
+        value,
+        masked.toOriginal(lineColumnToOffset(masked.text, line, column)),
+      );
 
       return {
         isValid: false,
         errorMessage: message,
         wasSkipped: false,
-        line,
-        column,
+        line: position.line,
+        column: position.column,
       };
     }
 
@@ -684,7 +768,7 @@ export const checkJsonSyntax: CheckJsonSyntaxFunction = (
     };
   }
 
-  const error: JsonSyntaxError | null = findJsonSyntaxError(masked);
+  const error: JsonSyntaxError | null = findJsonSyntaxError(masked.text);
 
   if (!error) {
     return {
@@ -696,7 +780,10 @@ export const checkJsonSyntax: CheckJsonSyntaxFunction = (
     };
   }
 
-  const { line, column } = offsetToLineColumn(value, error.offset);
+  const { line, column } = offsetToLineColumn(
+    value,
+    masked.toOriginal(error.offset),
+  );
 
   return {
     isValid: false,

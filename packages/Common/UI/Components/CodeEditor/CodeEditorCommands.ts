@@ -377,8 +377,12 @@ const lastSignificant: LastSignificantFunction = (text: string): string => {
   return trimmed[trimmed.length - 1] || "";
 };
 
-// `key:`, `key: |`, `key: >-`, `- key:` - the lines YAML nests under.
-const YAML_OPENS_BLOCK: RegExp = /(?::|\s[|>][+-]?[0-9]?)\s*$/;
+/*
+ * `key:`, `key: |`, `key: >-`, `key: |2-`, `- key:` - the lines YAML nests
+ * under. A block scalar's chomping and indentation indicators come in either
+ * order.
+ */
+const YAML_OPENS_BLOCK: RegExp = /(?::|\s[|>](?:[+-]?[0-9]?|[0-9][+-]))\s*$/;
 
 export type NewLineFunction = (
   state: EditorState,
