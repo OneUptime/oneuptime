@@ -233,6 +233,43 @@ describe("self-hosted.ejs", () => {
     expect(html).not.toContain("Community and Enterprise run the same product");
     expect(html).toContain("Open-source core");
   });
+
+  test("puts single sign-on in every edition, in the hero and in the Enterprise Edition section", () => {
+    expect(html).toContain("<span>SSO in every edition</span>");
+    expect(html).toContain("<span>Enterprise SCIM &amp; audit logs</span>");
+    expect(html).not.toContain("Enterprise SSO");
+
+    const section: string = html
+      .slice(
+        html.indexOf('id="enterprise-edition"'),
+        html.indexOf('id="data-residency"'),
+      )
+      .replace(/\s+/g, " ");
+    const intro: string =
+      "The Community Edition is the core platform under Apache 2.0, SAML and OpenID Connect single sign-on included.";
+
+    expect(section).toContain(intro);
+    // Past that sentence, nothing the section lists as Enterprise names single sign-on.
+    expect(section.replace(intro, "")).not.toMatch(
+      /\bSSO\b|single sign-on|\bSAML\b|\bOIDC\b|OpenID Connect/i,
+    );
+  });
+
+  test("lists single sign-on among what the Community Edition includes", () => {
+    const community: SupportTierRow = (
+      SupportBoundaries as Array<SupportTierRow>
+    ).find((tier: SupportTierRow) => {
+      return tier.key === "community";
+    })!;
+    const singleSignOn: string | undefined = community.included.find(
+      (item: string) => {
+        return item.includes("single sign-on");
+      },
+    );
+
+    expect(singleSignOn).toBeDefined();
+    expect(html).toContain(`<span>${escapeForHtml(singleSignOn!)}</span>`);
+  });
 });
 
 describe("trust.ejs with the claims matrix", () => {

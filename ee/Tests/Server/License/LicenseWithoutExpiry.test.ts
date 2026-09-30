@@ -43,8 +43,8 @@ import { DAY_IN_MS, legacyToken } from "./Helpers/LicenseTestKit";
  * strip an installation of the expiry it has), and nothing reconciles the
  * pair afterwards.
  *
- * That state used to classify "invalid", which is not usable, so SSO, SCIM
- * and audit logging stopped at once on upgrade - no trial, no grace - for a
+ * That state used to classify "invalid", which is not usable, so every
+ * licensed feature stopped at once on upgrade - no trial, no grace - for a
  * customer with a valid paid license. It is now the unlicensed trial: a
  * warning and a countdown, with two weeks to re-activate or re-sync.
  *
@@ -175,8 +175,7 @@ describe("a license-server response with a token and no expiry, end to end", () 
 
   /*
    * THE test. Before the fix this classified "invalid", which is not usable,
-   * so single sign-on, SCIM provisioning and audit logging stopped the moment
-   * the installation upgraded.
+   * so every licensed feature stopped the moment the installation upgraded.
    */
   test("the installation is put on the trial, not stopped", () => {
     const result: LicenseTokenClassification = classifyAfterSync({
@@ -294,31 +293,37 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
     );
   };
 
-  test("SSO, SCIM and audit logging keep running through the trial", () => {
-    expect(runtimeAnswers(snapshotAt(DAY_IN_MS))).toEqual([true, true, true]);
-    expect(
-      runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS)),
-    ).toEqual([true, true, true]);
+  test("SCIM and audit logging keep running through the trial", () => {
+    expect(RUNTIME_ENTERPRISE_FEATURES).toEqual([
+      EnterpriseFeature.SCIM,
+      EnterpriseFeature.AuditLogs,
+    ]);
+    expect(runtimeAnswers(snapshotAt(DAY_IN_MS))).toEqual([true, true]);
+    expect(runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS))).toEqual([
+      true,
+      true,
+    ]);
   });
 
   test("they stop once the trial has ended, exactly as for an unlicensed install", () => {
-    expect(
-      runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS + 1)),
-    ).toEqual([false, false, false]);
+    expect(runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS + 1))).toEqual([
+      false,
+      false,
+    ]);
   });
 
   test("enterprise configuration writes are allowed through the trial and refused after it", () => {
     installFakeEnterpriseModule({ snapshot: snapshotAt(DAY_IN_MS) });
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      true,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(true);
 
     installFakeEnterpriseModule({
       snapshot: snapshotAt(TRIAL_DAYS * DAY_IN_MS + 1),
     });
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      false,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(false);
   });
 
   /*
@@ -326,7 +331,8 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
    * so whether the trial is over is UNKNOWN. The runtime fails open on it and
    * configuration fails closed - the same as for an install with no token at
    * all. If the fallback ever collapsed the two states into one, an install
-   * that cannot record its stamp would lose SSO instead of keeping it.
+   * that cannot record its stamp would lose SCIM and audit logging instead of
+   * keeping them.
    */
   test("with no first-run stamp the runtime still fails open and configuration still fails closed", () => {
     const snapshot: EnterpriseLicenseSnapshot = LicenseInputsUtil.toSnapshot(
@@ -345,10 +351,10 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
     expect(EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(snapshot)).toBe(
       true,
     );
-    expect(runtimeAnswers(snapshot)).toEqual([true, true, true]);
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      false,
-    );
+    expect(runtimeAnswers(snapshot)).toEqual([true, true]);
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(false);
   });
 
   test("the lapsed state is a known lapse, not the unknown one", () => {

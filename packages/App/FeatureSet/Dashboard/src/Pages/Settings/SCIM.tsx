@@ -8,8 +8,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * Settings > SCIM: user provisioning for the project, and its logs.
  *
- * The screen is part of the Enterprise Edition (ee/Dashboard/SSO). This shell
- * keeps the route and the page module where they were: it renders the
+ * The screen is part of the Enterprise Edition (ee/Dashboard/Identity). This
+ * shell keeps the route and the page module where they were: it renders the
  * Enterprise screen when the project may use the feature and this build
  * includes it, and the upsell card otherwise.
  */

@@ -18,9 +18,10 @@ export default class CreatePermission {
   ): void {
     /*
      * Master admins skip every table-level check below, but not the edition
-     * check: creating enterprise configuration (global SSO/OIDC providers
-     * are only ever created by master admins) needs the license for them
-     * too. Everyone else gets the same check through TablePermission.
+     * check: creating enterprise configuration (a master admin can create
+     * SCIM configuration and team compliance settings on any project) needs
+     * the license for them too. Everyone else gets the same check through
+     * TablePermission.
      */
     if (props.isMasterAdmin && !props.isRoot) {
       EditionPermissions.checkEditionPermissions(

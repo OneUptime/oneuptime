@@ -157,7 +157,7 @@ Die **Authentifizierungseinstellungen** haben außerdem eine Karte **Master-Pass
 
 ### SSO und OIDC
 
-Für eine private Seite, die an Ihren Identitätsanbieter gekoppelt ist, konfigurieren Sie unter **Statusseiten → Ihre Seite → Sicherheit → SSO** SAML (Sign-on-URL, Issuer, x509-Zertifikat, Signatur- und Digest-Verfahren) und unter **Statusseiten → Ihre Seite → Sicherheit → OIDC** OpenID Connect (Discovery-URL, Issuer, Client-ID und Secret, Scopes, Claim-Namen). **SCIM** stellt private Benutzer automatisch aus dem IdP bereit. Diese Funktionen hängen an einem Tarif-Feature und sind daher nicht in jeder Installation verfügbar.
+Für eine private Seite, die an Ihren Identitätsanbieter gekoppelt ist, konfigurieren Sie unter **Statusseiten → Ihre Seite → Sicherheit → SSO** SAML (Sign-on-URL, Issuer, x509-Zertifikat, Signatur- und Digest-Verfahren) und unter **Statusseiten → Ihre Seite → Sicherheit → OIDC** OpenID Connect (Discovery-URL, Issuer, Client-ID und Secret, Scopes, Claim-Namen). **SCIM** stellt private Benutzer automatisch aus dem IdP bereit. In OneUptime Cloud setzen alle drei den Scale-Plan oder höher voraus. In einer selbst gehosteten Installation sind SSO und OIDC Teil jeder Edition, SCIM erfordert die [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Eine Karte **SSO-Einstellungen** bietet **SSO für Anmeldung erzwingen** (`requireSsoForLogin`, standardmäßig aus). Testen Sie Ihre SSO-Konfiguration, bevor Sie den Schalter umlegen – funktioniert sie nicht, sperren Sie sich selbst aus der Statusseite aus.
 

@@ -7,35 +7,39 @@ import {
   test,
 } from "@jest/globals";
 import EnterpriseModule from "../../../Server/Index";
-import IdentityFeatureSet from "App/FeatureSet/Identity/Index";
+import { IDENTITY_ROUTERS } from "../../../Server/Identity/Index";
+import {
+  SSO_ROUTERS,
+  SsoRouterEntry,
+} from "App/FeatureSet/Identity/SsoRouters";
+import {
+  expectEverySsoProbeAnswered,
+  IdentityServer,
+  startIdentityServer,
+  stubRenderedViews,
+  stubSsoDatabaseReads,
+} from "App/Tests/FeatureSet/Identity/SsoRouteProbes";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
-import UserService from "Common/Server/Services/UserService";
-import Express, {
-  ExpressApplication,
-  ExpressRequest,
-  ExpressResponse,
-  NextFunction,
-} from "Common/Server/Utils/Express";
+import { ExpressRouter } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
-import Response from "Common/Server/Utils/Response";
-import Exception from "Common/Types/Exception/Exception";
-import { createServer, Server } from "http";
-import { AddressInfo } from "net";
 
 /*
- * The real enterprise identity routers, mounted by the real core Identity
+ * The real Enterprise Edition module, registered with the real core Identity
  * feature set (packages/App/FeatureSet/Identity/Index.ts) the way the App
- * boots with the Enterprise Edition loaded, answer on both prefixes core
- * mounts them at: "/api/identity/..." and "/..." (nginx forwards /identity/
- * to the latter).
+ * boots with the Enterprise Edition loaded: the enterprise identity routers
+ * (SCIM) and core's own single sign-on routers both answer on the two
+ * prefixes core mounts them at: "/api/identity/..." and "/..." (nginx
+ * forwards /identity/ to the latter). Loading ee/ neither shadows nor
+ * re-gates single sign-on.
  *
  * Every request here is one the handlers turn away before touching the
- * database - a SCIM call without a bearer token, an SSO discovery call
- * without an email - so the test needs no Postgres. The service lookups are
- * spied on to prove it. The three core identity routers are replaced by
- * empty ones: they are not what this test is about.
+ * database - a SCIM call without a bearer token, an SSO request for a
+ * provider that does not exist (App's SsoRouteProbes) - so the test needs no
+ * Postgres. The SCIM lookups are spied on to prove it. The authentication,
+ * reseller and status page authentication routers are replaced by empty
+ * ones: they are not what this test is about.
  */
 jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
@@ -73,8 +77,7 @@ jest.mock("App/FeatureSet/Identity/API/StatusPageAuthentication", () => {
 
 const SCIM_ID: string = "11111111-1111-4111-8111-111111111111";
 
-let server: Server;
-let baseUrl: string;
+let server: IdentityServer;
 
 const request: (
   method: string,
@@ -83,9 +86,12 @@ const request: (
   method: string,
   path: string,
 ): Promise<{ status: number; body: string }> => {
-  const response: globalThis.Response = await fetch(`${baseUrl}${path}`, {
-    method,
-  });
+  const response: globalThis.Response = await fetch(
+    `${server.baseUrl}${path}`,
+    {
+      method,
+    },
+  );
 
   return { status: response.status, body: await response.text() };
 };
@@ -104,50 +110,51 @@ beforeAll(async () => {
   jest.spyOn(StatusPageSCIMService, "findOneBy").mockImplementation(() => {
     throw new Error("the database must not be reached");
   });
-  jest.spyOn(UserService, "findOneBy").mockImplementation(() => {
-    throw new Error("the database must not be reached");
-  });
+
+  stubSsoDatabaseReads();
+  stubRenderedViews();
 
   EnterpriseEdition.resetForTests();
   EnterpriseEdition.register(EnterpriseModule);
 
-  Express.setupExpress();
-  await IdentityFeatureSet.init();
-
-  const app: ExpressApplication = Express.getExpressApp();
-
-  // What core's server adds after every router: errors become JSON answers.
-  app.use(
-    (
-      err: Exception,
-      req: ExpressRequest,
-      res: ExpressResponse,
-      _next: NextFunction,
-    ): void => {
-      Response.sendErrorResponse(req, res, err);
-    },
-  );
-
-  server = createServer(app);
-  await new Promise<void>((resolve: () => void) => {
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  server = await startIdentityServer();
 });
 
 afterAll(async () => {
-  await new Promise<void>((resolve: () => void) => {
-    server.close(() => {
-      resolve();
-    });
-  });
+  await server.close();
   EnterpriseEdition.resetForTests();
   jest.restoreAllMocks();
 });
 
-describe("enterprise identity routes, mounted by core", () => {
+describe("the Enterprise Edition hands core its SCIM routers only", () => {
+  test("getIdentityRouters is exactly the Identity area's two SCIM routers", () => {
+    expect(EnterpriseModule.getIdentityRouters()).toEqual(
+      IDENTITY_ROUTERS.map((entry: { router: ExpressRouter }) => {
+        return entry.router;
+      }),
+    );
+    expect(EnterpriseModule.getIdentityRouters()).toHaveLength(2);
+  });
+
+  test("none of them is a core single sign-on router", () => {
+    const eeRouters: Array<ExpressRouter> =
+      EnterpriseModule.getIdentityRouters();
+
+    for (const entry of SSO_ROUTERS) {
+      expect(eeRouters).not.toContain(entry.router);
+    }
+
+    expect(
+      SSO_ROUTERS.map((entry: SsoRouterEntry): string => {
+        return entry.name;
+      }),
+    ).toHaveLength(7);
+  });
+});
+
+describe("identity routes with the Enterprise Edition loaded, mounted by core", () => {
   test.each(["", "/api/identity"])(
-    "project SCIM answers at %s/scim/v2/... and demands a bearer token",
+    "project SCIM (ee) answers at %s/scim/v2/... and demands a bearer token",
     async (prefix: string) => {
       const response: { status: number; body: string } = await request(
         "GET",
@@ -163,7 +170,7 @@ describe("enterprise identity routes, mounted by core", () => {
   );
 
   test.each(["", "/api/identity"])(
-    "status page SCIM answers at %s/status-page-scim/v2/... and demands a bearer token",
+    "status page SCIM (ee) answers at %s/status-page-scim/v2/... and demands a bearer token",
     async (prefix: string) => {
       const response: { status: number; body: string } = await request(
         "GET",
@@ -178,19 +185,8 @@ describe("enterprise identity routes, mounted by core", () => {
     },
   );
 
-  test.each([
-    ["", "/service-provider-login"],
-    ["/api/identity", "/service-provider-login"],
-    ["", "/service-provider-login-oidc"],
-    ["/api/identity", "/service-provider-login-oidc"],
-  ])("SSO discovery answers at %s%s", async (prefix: string, path: string) => {
-    const response: { status: number; body: string } = await request(
-      "GET",
-      `${prefix}${path}`,
-    );
-
-    expect(response.status).toBe(400);
-    expect(response.body).toContain("Email is required");
+  test("every single sign-on route (core) answers with its own handler, at both prefixes", async () => {
+    await expectEverySsoProbeAnswered(server.baseUrl);
   });
 
   test.each([
@@ -210,9 +206,8 @@ describe("enterprise identity routes, mounted by core", () => {
     },
   );
 
-  test("none of the requests above reached the database", () => {
+  test("none of the requests above reached the SCIM database", () => {
     expect(ProjectSCIMService.findOneBy).not.toHaveBeenCalled();
     expect(StatusPageSCIMService.findOneBy).not.toHaveBeenCalled();
-    expect(UserService.findOneBy).not.toHaveBeenCalled();
   });
 });

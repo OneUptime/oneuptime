@@ -207,7 +207,7 @@ Fügen Sie kopierfertige, **OpenTelemetry-basierte** Agenten ein, um alles zu ü
 | **Ideal für** | Selbst-Hoster und kleine Teams | Regulierte Teams, die Premium-Support benötigen |
 | **Kosten** | Kostenlos und Open Source | [Vertrieb kontaktieren](mailto:sales@oneuptime.com) |
 | **Lizenz** | Apache 2.0 | Apache 2.0, dazu die [OneUptime Enterprise License](/ee/LICENSE) für das Verzeichnis `ee/` |
-| **Funktionen** | Alles aus „Alles inklusive“ oben — Monitoring, Statusseiten, Incidents, Bereitschaftsdienst, Logs, Traces, Metriken, Fehler-Tracking, Workflows und KI | Alles aus Community + SAML- und OIDC-Single-Sign-On, SCIM-Provisionierung, Audit-Logs, Team-Compliance und Dashboards zum Zustand der Instanz, mit Prioritäts-Support, individuellen Funktionen und Datenresidenz |
+| **Funktionen** | Alles aus „Alles inklusive“ oben — Monitoring, Statusseiten, Incidents, Bereitschaftsdienst, Logs, Traces, Metriken, Fehler-Tracking, Workflows und KI — sowie SAML- und OIDC-Single-Sign-On | Alles aus Community + SCIM-Provisionierung, Audit-Logs, Team-Compliance und Dashboards zum Zustand der Instanz, mit Prioritäts-Support, individuellen Funktionen und Datenresidenz |
 
 Die Enterprise-Funktionen liegen im Verzeichnis [`ee/`](/ee) und sind nur im Enterprise-Image enthalten. Den vollständigen Vergleich finden Sie unter [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md).
 

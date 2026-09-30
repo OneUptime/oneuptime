@@ -11,6 +11,30 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 
 ## Upgrade notes
 
+- **Unreleased (after 14.0.10)** — Single sign-on is part of the Community
+  Edition again. SAML and OIDC sign-in for projects and status pages, global
+  SSO and "Require SSO for login" run on both `image.type` values, and no
+  license state switches them off. No values change and no migration: the
+  sign-in URLs your identity provider has (SAML ACS URLs, OIDC redirect URIs)
+  stay the same.
+
+  - **`image.type: community-edition`:** single sign-on you configured is
+    served again. A "Require SSO for login" setting that was saved but not
+    enforced is enforced again after the upgrade, so check that its provider
+    still works before you upgrade.
+  - **`image.type: enterprise-edition`:** after the **14-day trial**, or 30
+    days after a license expires, only SCIM and audit logging stop.
+    Enterprise configuration still becomes read-only and the Health
+    dashboards are still locked. Single sign-on is not affected. A "Require
+    SSO for login" setting that was not enforced while the license was lapsed
+    is enforced again after the upgrade, so check that its provider still
+    works before you upgrade. SCIM, team compliance, audit logs and the
+    Health dashboards still need the Enterprise Edition.
+  - See the [Enterprise Edition](https://oneuptime.com/docs/self-hosted/enterprise)
+    page for what each edition includes, and the
+    [upgrading guide](https://oneuptime.com/docs/installation/upgrading#community-and-enterprise-edition-images)
+    for the same notes with Docker Compose.
+
 - **14.0.0 (2026-09-21)** — The app ships as two editions, and the image
   now decides which one runs. The **Community Edition** images
   (`image.type: community-edition`, the default) are Apache-2.0 and do not

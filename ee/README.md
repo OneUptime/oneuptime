@@ -35,14 +35,14 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | Path | What it is |
 | --- | --- |
 | `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
-| `Server/Identity/` | SAML SSO, OIDC and SCIM for projects, status pages and the whole instance (global SSO). Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`), so it refuses while its feature is not active. |
+| `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO for login") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
 | `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). Only the `SeatUsage` type stays in core. |
 | `Server/LicenseServer/` | The license server that oneuptime.com runs. Mounted only when billing is enabled. |
 | `Server/AdminHealth/` | The live OneUptime Health dashboards (overview, queues, Valkey, logs, ClickHouse cluster, telemetry ingestion, Postgres cluster and activity) and the query console, served by one router mounted ahead of core's. Core keeps the every-edition routes, the probes they share (`App/API/AdminHealthProbes.ts`) and a 402 fallback for each enterprise path. |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
-| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. Two areas are shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard) and the read-only incident actions (`Dashboard/SSO/TightenOnly/`, also used by the Admin Dashboard). |
+| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
 
@@ -92,9 +92,9 @@ The enterprise module must never take core monitoring down.
 
 The boot also stops when `IS_ENTERPRISE_EDITION=true` asks for the Enterprise
 Edition but `ee/` did not load, for example an old Enterprise `config.env` on
-the Community image (`APP_TAG=release`). Running on would silently stop
-enforcing "Require SSO", SSO, SCIM and audit logging. The error says what to
-set: `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+the Community image (`APP_TAG=release`). Running on would silently stop SCIM
+provisioning (deprovisioning included) and audit logging. The error says what
+to set: `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
 `IS_ENTERPRISE_EDITION=false` for the Community Edition. An explicit
 `ONEUPTIME_EDITION=community` only logs a warning. Both the guard and the
 admin UI's "requested but not loaded" notice use `isEnterpriseEditionRequested`
@@ -144,17 +144,21 @@ load creates an import cycle that crashes the Enterprise bundle.
   process? It says nothing about the license. It decides which enterprise
   routers and jobs exist and which edition operators are told they run.
 - `EnterpriseEdition.isFeatureActive(feature)`: does the feature's runtime
-  behaviour run right now? This governs SSO sign-in (SAML and OIDC, for
-  projects, status pages and the whole instance, including the mobile flows),
-  "Require SSO for login" enforcement and the SSO provider listings (`SSO`),
-  SCIM provisioning and the SCIM Push Groups team locks (`SCIM`), and
-  audit-log recording (`AuditLogs`). Core reads the first two through
+  behaviour run right now? This governs SCIM provisioning and the SCIM Push
+  Groups team locks (`SCIM`) and audit-log recording (`AuditLogs`). Core reads
+  the SCIM team locks through
   `packages/Common/Server/Utils/EditionEnforcement.ts`.
 - `EnterpriseEdition.isFeatureAvailable(feature)` and
   `isFeatureAvailableSync(feature)`: may enterprise configuration be created
   or changed now? This governs enterprise configuration writes (including the
-  tighten-only updates allowed without a license), the enterprise admin Health
-  dashboards and the query console. It fails closed.
+  one tighten-only update allowed without a license, a SCIM bearer-token
+  rotation), the enterprise admin Health dashboards and the query console. It
+  fails closed.
+
+Single sign-on asks none of these questions. SAML and OIDC sign-in (projects,
+status pages, the whole instance and the mobile flows), the provider listings
+and "Require SSO for login" (project, instance-wide and status page) are core,
+so they behave the same in every edition and every license state.
 
 With billing on (OneUptime Cloud) both license questions answer yes whenever
 `ee/` is loaded, and plan tiers gate the features. Self-hosted, a feature is
@@ -172,19 +176,6 @@ license is installed, when the license expired more than 30 days ago, when it
 is invalid, or when its feature list leaves the feature out. That is exactly
 what `isFeatureAvailableSync` treats as unavailable. Then:
 
-- **SSO stops**, the same as on the Community Edition. Every SSO route
-  refuses per request: browser flows show the Identity message page, logins
-  the mobile app started end on its failure deep link, and the JSON discovery
-  routes answer 402. Provider listings are empty, and "Require SSO for login"
-  (project, instance-wide and status page) is no longer enforced, because
-  enforcing it with SSO switched off would lock every user out. Users sign in
-  with their password; users who only ever signed in with SSO use password
-  reset. Reads made for a caller report a project's or status page's
-  requirement as off, and a caller's write can neither switch the stored
-  requirement off nor set one (`EditionEnforcement.guardSsoRequirementWrite`:
-  a write of the masked value is dropped, anything else is refused with a
-  402), so a settings form saved while SSO is stopped never loses the
-  requirement.
 - **SCIM stops.** Every SCIM endpoint (project and status page) answers 403
   with a SCIM error body naming the lapsed license, and the SCIM Push Groups
   team locks relax so teams can be managed in OneUptime.
@@ -192,31 +183,47 @@ what `isFeatureAvailableSync` treats as unavailable. Then:
 - Enterprise configuration becomes read-only (`isFeatureAvailable`). The
   Health dashboards and team compliance keep their own rules.
 
+Single sign-on is not affected: its routes have no license gate, and "Require
+SSO for login" stays enforced whatever the license state.
+
 Nothing is deleted or changed. When a license is activated, everything resumes
 without a restart. `isFeatureActive` logs a warning once when features stop
-and an info line when they resume, and the relaxed SSO requirements and SCIM
-locks are listed by `packages/Common/Server/Utils/CommunityEditionSsoReport.ts`.
+and an info line when they resume, and the relaxed SCIM team locks are listed
+by `packages/Common/Server/Utils/RelaxedScimTeamLocksReport.ts`.
 
-An **unknown** license state never locks anyone out or relaxes SSO: before the
-first license snapshot has loaded, when reading the cached snapshot throws, or
-when no license is installed and the start of the trial has not been recorded
-yet (the first-run stamp could not be written, or the GlobalConfig row does
-not exist yet, so nobody can tell whether the trial is over),
-`isFeatureActive` answers "active" (keep enforcing, serving and recording) and
-warns once per process. The loader waits, bounded, for the first snapshot
-before any router is mounted, so this window is small. `isFeatureAvailable`
-fails closed instead.
+An **unknown** license state never stops SCIM or audit logging or relaxes the
+SCIM team locks: before the first license snapshot has loaded, when reading
+the cached snapshot throws, or when no license is installed and the start of
+the trial has not been recorded yet (the first-run stamp could not be
+written, or the GlobalConfig row does not exist yet, so nobody can tell
+whether the trial is over), `isFeatureActive` answers "active" (keep serving,
+enforcing and recording) and warns once per process. The loader waits,
+bounded, for the first snapshot before any router is mounted, so this window
+is small. `isFeatureAvailable` fails closed instead.
 
-The identity routers are mounted once at boot, but the license changes at
-runtime, and an ee router may not have `router.use()` layers. So every
-identity route starts with a gate from `Server/Identity/Middleware/LicensedFeatureGate.ts`
+The SCIM routers are mounted once at boot, but the license changes at
+runtime, and an ee router may not have `router.use()` layers. So every SCIM
+route starts with a gate from `Server/Identity/Middleware/LicensedFeatureGate.ts`
 that asks per request. `Tests/Server/Identity/IdentityLicenseGates.test.ts`
-checks every route has the gate for its feature. Because the license is asked
-on every such request, the license provider reuses a computed snapshot for at
-most a second (`LICENSE_SNAPSHOT_REUSE_IN_MS`), and never past an expiry, grace
-or trial boundary, so it does not verify a signed license on every request.
+checks every route has the gate, and that no core single sign-on route carries
+one; `Tests/Server/Identity/RoutePathsUnchanged.test.ts` pins the SCIM route
+paths. Core pins and probes the single sign-on routes itself, in
+`packages/App/Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts` and
+`SsoRoutesServedInEveryEdition.test.ts`. Because the license is asked on every such
+request, the license provider reuses a computed snapshot for at most a second
+(`LICENSE_SNAPSHOT_REUSE_IN_MS`), and never past an expiry, grace or trial
+boundary, so it does not verify a signed license on every request.
 
 The model-to-feature map lives in `EnterpriseEdition.getModelFeature()`.
+
+A license names the features it entitles with the `EnterpriseFeature` values
+(`packages/Common/Server/Enterprise/EnterpriseFeature.ts`), or `*` for all of
+them. `sso` is retired (`RETIRED_ENTERPRISE_FEATURE_VALUES`): single sign-on
+moved to core, and a license that still lists `sso` parses as before, but the
+name grants nothing and must never name another feature. The license server
+(`Server/LicenseServer/LicenseSigner.ts`) keeps issuing `*`, because releases
+up to 14.0.10 gate single sign-on on the `sso` claim (or `*`); a narrower
+feature list must keep `sso` while those releases are supported.
 
 ## Working on `ee/`
 
@@ -258,7 +265,7 @@ frontend builds at another directory.
 
 An unlicensed Enterprise install gets a 14-day trial, counted from the first
 time it ran the Enterprise Edition (`GlobalConfig.enterpriseEditionFirstSeenAt`).
-After that, enterprise configuration becomes read-only and SSO, SCIM and audit
+After that, enterprise configuration becomes read-only and SCIM and audit
 logging stop until a license is activated (see
 [When the license lapses](#when-the-license-lapses)). The trial is for
 evaluation. Production use needs a subscription.
@@ -273,8 +280,8 @@ self-hosted Enterprise Edition:
 | job (`test-release.yaml` on master, `release.yml` on a release) | App tag | billing | what it is |
 | --- | --- | --- | --- |
 | `test-e2e-{test,release}-saas` | `enterprise-<version>` | on | OneUptime Cloud. `EnterpriseEdition` answers "cloud" to every check, so the license decides nothing. |
-| `test-e2e-{test,release}-self-hosted` | `<version>` | off | Community Edition. No `ee/` in the image at all, so every enterprise route 404s. |
-| `test-e2e-{test,release}-enterprise` | `enterprise-<version>` | off | Self-hosted Enterprise. The **license** decides whether SSO, SCIM and audit logging run. |
+| `test-e2e-{test,release}-self-hosted` | `<version>` | off | Community Edition. No `ee/` in the image at all, so every enterprise route (SCIM included) 404s, while the single sign-on routes, which are core, answer as on every other stack. |
+| `test-e2e-{test,release}-enterprise` | `enterprise-<version>` | off | Self-hosted Enterprise. The **license** decides whether SCIM and audit logging run. |
 
 The enterprise job runs the suite twice against one booted stack:
 
@@ -283,14 +290,14 @@ The enterprise job runs the suite twice against one booted stack:
   a booted stack can prove: the identity routes answer **through nginx** (jest
   mounts Express directly and never exercises `location /identity` or its
   rewrite), the **shipped UI bundles** really carry the ee plugins so the
-  dashboard renders the SSO/OIDC/SCIM and audit-log screens instead of the
-  upsell, and the audit recorder in the real image writes a real row to
-  ClickHouse.
+  dashboard renders the SCIM and audit-log screens instead of the upsell, and
+  the audit recorder in the real image writes a real row to ClickHouse.
 - **Phase B, lapsed** (`npm run test-enterprise-lapsed`). Same stack, same data,
-  lapsed license: the gates refuse with 402/403 rather than 404 — the routes are
-  still mounted, which is what tells "no `ee/`" apart from "`ee/` with a dead
-  license" — enterprise configuration becomes read-only, and password sign-in
-  still works.
+  lapsed license: the SCIM gates refuse with 403 rather than 404 — the routes
+  are still mounted, which is what tells "no `ee/`" apart from "`ee/` with a
+  dead license" — while the single sign-on routes answer exactly as in phase A,
+  enterprise configuration becomes read-only, and password sign-in still
+  works.
 
 Between the phases the job makes the license lapse. There is deliberately **no
 test hook, env var or API** for faking a license state: a switch that could say
@@ -384,7 +391,7 @@ Turn it off only in a separate, announced release, after:
 
 Once it is off, an unverified license classifies as invalid, with no grace
 period. On any install still holding one, enterprise configuration becomes
-read-only and SSO, SCIM and audit logging stop (see
+read-only and SCIM and audit logging stop (see
 [When the license lapses](#when-the-license-lapses)) until a signed license is
 activated. The upgrade notes must say so.
 
@@ -392,8 +399,8 @@ activated. The upgrade notes must say so.
 
 OneUptime Cloud (`BILLING_ENABLED=true`) must run the Enterprise image.
 
-- The Community image has no SSO, SCIM or audit logging, and no license server,
-  so every self-hosted activation would fail.
+- The Community image has no SCIM or audit logging, and no license server, so
+  every self-hosted activation would fail.
 - The boot therefore refuses billing without `ee/`.
   `ALLOW_BILLING_WITHOUT_ENTERPRISE=true` overrides this, but only for local
   development.

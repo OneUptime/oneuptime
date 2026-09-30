@@ -47,13 +47,6 @@ export interface AdminDashboardEnterprisePlugins {
    */
   buildMarker?: string | undefined;
 
-  // Settings > Global SSO (SAML): the provider list and one provider.
-  GlobalSSOList?: EnterprisePluginComponent | undefined;
-  GlobalSSOView?: EnterprisePluginComponent | undefined;
-  // Settings > Global OIDC: the provider list and one provider.
-  GlobalOIDCList?: EnterprisePluginComponent | undefined;
-  GlobalOIDCView?: EnterprisePluginComponent | undefined;
-
   /*
    * OneUptime Health. HealthOverview is what the landing page adds on top of
    * the Community content (capacity and links to Migrations / Support). The
@@ -100,10 +93,6 @@ export type AdminDashboardEnterprisePluginKey = Exclude<
  * so is listing a key the interface does not have.
  */
 const PLUGIN_KEY_SET: Record<AdminDashboardEnterprisePluginKey, true> = {
-  GlobalSSOList: true,
-  GlobalSSOView: true,
-  GlobalOIDCList: true,
-  GlobalOIDCView: true,
   HealthOverview: true,
   HealthQueues: true,
   HealthPostgres: true,

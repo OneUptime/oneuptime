@@ -14,8 +14,7 @@ import path from "path";
  *     suite can show that a further audited write records NOTHING while the
  *     licence is dead, and that the existing trail is still readable;
  *   - the project has a ProjectSCIM row, so the Lapsed suite can show that
- *     changing it is refused (402) while disabling it - a tighten-only update -
- *     still goes through, and that it is still readable and deletable;
+ *     changing it is refused (402) while it is still readable and listed;
  *   - the owner account exists with the shared signup password, so the Lapsed
  *     suite can show that a lapsed licence does NOT break password sign-in.
  *

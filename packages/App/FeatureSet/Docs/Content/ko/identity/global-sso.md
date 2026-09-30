@@ -2,7 +2,7 @@
 
 Global SSO를 사용하면 OneUptime **인스턴스 관리자**(마스터 관리자)가 단일 SAML 2.0 또는 OpenID Connect(OIDC) ID 공급자를 **인스턴스 수준에서 한 번만** 구성하고 이를 서버의 모든 프로젝트에 연결할 수 있습니다. 이는 프로젝트별 SSO에 대응하는 인스턴스 전체 기능입니다. 모든 프로젝트 소유자가 각자의 ID 공급자를 구성하는 대신, 마스터 관리자가 전체 인스턴스에 사용할 수 있는 하나를 설정합니다.
 
-Global SSO는 **OneUptime Enterprise Edition** 기능이며 Enterprise Edition 빌드를 실행하는 인스턴스에서만 사용할 수 있습니다. 실행 방법, 라이선스 작동 방식, Community Edition에서 SSO 요구 사항이 어떻게 되는지는 [Enterprise Edition](/docs/self-hosted/enterprise)을 참고하세요. 유효한 라이선스가 없으면(14일 평가판 종료 후 또는 라이선스 만료 30일 후) 라이선스가 활성화될 때까지 전역 SSO 로그인이 중지되고 인스턴스 전체의 "Require SSO"가 적용되지 않습니다.
+인스턴스 전체의 "Require SSO for Login" 토글을 포함한 Global SSO는 모든 OneUptime 에디션에 포함됩니다. Community Edition을 포함한 모든 셀프 호스팅 인스턴스에서 사용할 수 있으며 라이선스가 필요하지 않습니다. 인스턴스 관리 기능이므로 OneUptime Cloud에는 해당되지 않습니다. 각 에디션에 포함된 기능은 [Enterprise Edition](/docs/self-hosted/enterprise)을 참고하세요.
 
 ## Global SSO와 Project SSO 비교
 
@@ -48,7 +48,7 @@ Global SSO는 **OneUptime Enterprise Edition** 기능이며 Enterprise Edition �
 전역 공급자를 구성한다고 해서 누군가에게 그것을 사용하도록 강제하지는 않습니다. 비밀번호 로그인은 여전히 작동합니다. SSO를 요구하려면 **Require SSO for Login** 컨트롤을 사용하십시오:
 
 - **프로젝트별:** 프로젝트는 SSO를 요구할 수 있으며, 선택적으로 _특정_ 공급자(프로젝트 또는 전역)를 요구할 수 있습니다.
-- **인스턴스 전체:** **Admin** > **설정** > **인증**에는 인스턴스의 모든 사용자에게 SSO를 강제하는 **Require SSO for Login** 토글이 있습니다. 마스터 관리자는 잠기지 않도록 예외로 유지됩니다.
+- **인스턴스 전체:** **Admin** > **설정** > **인증**에는 인스턴스의 모든 사용자에게 SSO를 강제하는 **로그인에 SSO 필수** 토글이 있습니다. 마스터 관리자는 잠기지 않도록 예외로 유지됩니다.
 
 ## 관련 항목
 

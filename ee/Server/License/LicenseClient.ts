@@ -231,8 +231,8 @@ export default class LicenseClient {
        * token and forgets expiresAt now classifies as the unlicensed trial, so
        * an administrator pressing Validate on a correctly licensed install
        * would have overwritten a working license with one that cannot say
-       * whether it is current - losing single sign-on, SCIM and audit logging
-       * on the spot, and reporting 200. The same ranking the refresh path has
+       * whether it is current - losing SCIM provisioning and audit logging on
+       * the spot, and reporting 200. The same ranking the refresh path has
        * always applied catches it, and catches everything else that would take
        * this installation backwards.
        *

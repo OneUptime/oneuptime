@@ -27,14 +27,6 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
  */
 const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
   new Map<string, EnterpriseFeature>([
-    ["GlobalSSO", EnterpriseFeature.SSO],
-    ["GlobalOIDC", EnterpriseFeature.SSO],
-    ["GlobalSSOProject", EnterpriseFeature.SSO],
-    ["GlobalOIDCProject", EnterpriseFeature.SSO],
-    ["ProjectSSO", EnterpriseFeature.SSO],
-    ["ProjectOIDC", EnterpriseFeature.SSO],
-    ["StatusPageSSO", EnterpriseFeature.SSO],
-    ["StatusPageOIDC", EnterpriseFeature.SSO],
     ["ProjectSCIM", EnterpriseFeature.SCIM],
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
@@ -45,7 +37,6 @@ const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
  * lapses (see isFeatureActive), in the order the lapse log names them.
  */
 export const RUNTIME_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> = [
-  EnterpriseFeature.SSO,
   EnterpriseFeature.SCIM,
   EnterpriseFeature.AuditLogs,
 ];
@@ -55,7 +46,6 @@ const FEATURE_NAMES: ReadonlyMap<EnterpriseFeature, string> = new Map<
   EnterpriseFeature,
   string
 >([
-  [EnterpriseFeature.SSO, "single sign-on (SSO)"],
   [EnterpriseFeature.SCIM, "SCIM provisioning"],
   [EnterpriseFeature.AuditLogs, "audit logging"],
   [EnterpriseFeature.TeamCompliance, "team compliance"],
@@ -90,8 +80,7 @@ export type EnterpriseFeatureStateListener = (
  *                         jobs exist and which edition operators are told they
  *                         run.
  *   isFeatureActive()     the ee code is present AND the feature is licensed
- *                         right now. Governs RUNTIME behaviour: SSO sign-in
- *                         and "Require SSO for login" enforcement, SCIM
+ *                         right now. Governs RUNTIME behaviour: SCIM
  *                         provisioning and its team locks, audit-log
  *                         recording. When a self-hosted license lapses these
  *                         stop, exactly as on the Community Edition, and they
@@ -181,11 +170,11 @@ export default class EnterpriseEdition {
   }
 
   /*
-   * Whether the feature's runtime behaviour runs right now: SSO sign-in and
-   * "Require SSO for login" enforcement (SSO), SCIM provisioning and its team
-   * locks (SCIM), audit-log recording (AuditLogs). Synchronous, because it is
-   * asked on every request that could need it; the license changes at runtime
-   * and routers are mounted once, so callers ask per request.
+   * Whether the feature's runtime behaviour runs right now: SCIM provisioning
+   * and its team locks (SCIM), audit-log recording (AuditLogs). Synchronous,
+   * because it is asked on every request that could need it; the license
+   * changes at runtime and routers are mounted once, so callers ask per
+   * request.
    *
    *   no enterprise module        false (the Community Edition)
    *   billing on                  true (OneUptime Cloud: plan tiers gate)
@@ -196,8 +185,8 @@ export default class EnterpriseEdition {
    *                               read or written yet, so whether the trial
    *                               is over is not known; see
    *                               EnterpriseLicenseSnapshotUtil.isTrialStartUnknown).
-   *                               An unknown state must never lock anyone out
-   *                               or switch SSO enforcement off. The loader
+   *                               An unknown state must never stop SCIM
+   *                               provisioning or audit logging. The loader
    *                               waits (bounded) for the first snapshot
    *                               before any router is mounted, so the window
    *                               is small. Warned about once per process.
@@ -228,7 +217,7 @@ export default class EnterpriseEdition {
       if (!EnterpriseEdition.hasWarnedAboutUnreadableLicense) {
         EnterpriseEdition.hasWarnedAboutUnreadableLicense = true;
         logger.warn(
-          "EnterpriseEdition: could not read the cached license snapshot. Until it can be read, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
+          "EnterpriseEdition: could not read the cached license snapshot. Until it can be read, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
         );
         logger.warn(err);
       }
@@ -240,7 +229,7 @@ export default class EnterpriseEdition {
       if (!EnterpriseEdition.hasWarnedAboutUnreadLicense) {
         EnterpriseEdition.hasWarnedAboutUnreadLicense = true;
         logger.warn(
-          "EnterpriseEdition: the license has not been read yet. Until it is, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
+          "EnterpriseEdition: the license has not been read yet. Until it is, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
         );
       }
 
@@ -257,7 +246,7 @@ export default class EnterpriseEdition {
            * trial (LicenseToken's classifyUnverifiedWithoutExpiry), so this
            * must not assert that nothing is installed.
            */
-          `EnterpriseEdition: there is no license this installation can date, and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
+          `EnterpriseEdition: there is no license this installation can date, and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
         );
       }
 
@@ -512,12 +501,6 @@ export default class EnterpriseEdition {
         ? `The OneUptime Enterprise license does not include ${names}: ${stopped.length === 1 ? "it" : "they"} ${verb} stopped until a license that includes ${stopped.length === 1 ? "it" : "them"} is activated.`
         : `The OneUptime Enterprise license has lapsed (status: ${snapshot.status}): ${names} ${verb} stopped until a license is activated.`,
     ];
-
-    if (stopped.includes(EnterpriseFeature.SSO)) {
-      parts.push(
-        '"Require SSO for login" is not enforced meanwhile: users sign in with their password, and users who only ever signed in with SSO can reset their password.',
-      );
-    }
 
     if (snapshot.message) {
       parts.push(`License status: ${snapshot.message}`);

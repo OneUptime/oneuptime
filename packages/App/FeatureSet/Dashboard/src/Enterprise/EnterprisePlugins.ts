@@ -64,10 +64,6 @@ export interface DashboardEnterprisePlugins {
    */
   buildMarker?: string | undefined;
 
-  // Settings > SSO (SAML) for the current project.
-  SettingsSSO?: EnterprisePluginComponent<PageComponentProps> | undefined;
-  // Settings > OIDC for the current project.
-  SettingsOIDC?: EnterprisePluginComponent<PageComponentProps> | undefined;
   // Settings > SCIM for the current project (includes its SCIM logs).
   SettingsSCIM?: EnterprisePluginComponent<PageComponentProps> | undefined;
   // Settings > Audit Logs (the recording switch and retention).
@@ -75,10 +71,6 @@ export interface DashboardEnterprisePlugins {
     | EnterprisePluginComponent<PageComponentProps>
     | undefined;
 
-  // Status page > SSO (SAML) for private status page users.
-  StatusPageSSO?: EnterprisePluginComponent<PageComponentProps> | undefined;
-  // Status page > OIDC for private status page users.
-  StatusPageOIDC?: EnterprisePluginComponent<PageComponentProps> | undefined;
   // Status page > SCIM for private status page users (includes its logs).
   StatusPageSCIM?: EnterprisePluginComponent<PageComponentProps> | undefined;
 
@@ -116,12 +108,8 @@ export type DashboardEnterprisePluginKey = Exclude<
  * so is listing a key the interface does not have.
  */
 const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
-  SettingsSSO: true,
-  SettingsOIDC: true,
   SettingsSCIM: true,
   SettingsAuditLogsSettings: true,
-  StatusPageSSO: true,
-  StatusPageOIDC: true,
   StatusPageSCIM: true,
   TeamCompliance: true,
   AuditLogsTable: true,

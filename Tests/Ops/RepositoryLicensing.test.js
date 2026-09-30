@@ -121,6 +121,23 @@ function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
 }
 
+/**
+ * The Community and Enterprise cells of the edition table's features row:
+ * "| **Features** | <community> | <enterprise> |".
+ */
+function featuresCells(row) {
+  const cells = String(row)
+    .split("|")
+    .slice(1, -1)
+    .map((cell) => cell.trim());
+
+  if (cells.length !== 3) {
+    throw new Error(`not a features row: ${row}`);
+  }
+
+  return [cells[1], cells[2]];
+}
+
 function exists(relativePath) {
   return fs.existsSync(path.join(REPO_ROOT, relativePath));
 }
@@ -890,6 +907,121 @@ describe("ee/README.md", () => {
     expect(readme).toContain("ACCEPT_UNVERIFIED_LEGACY_LICENSES");
     expect(readme).toContain("## oneuptime.com must run the Enterprise image");
   });
+
+  test("describes its identity area as SCIM only, with single sign-on in core", () => {
+    const identityRow = readme
+      .split("\n")
+      .find((line) => line.startsWith("| `Server/Identity/` |"));
+
+    expect(identityRow).toContain(
+      "SCIM provisioning for projects and status pages.",
+    );
+    expect(identityRow).toContain("`packages/App/FeatureSet/Identity`");
+    expect(identityRow).not.toContain("SAML SSO, OIDC and SCIM");
+    expect(readme).toContain("`Dashboard/Identity/`");
+    expect(readme).not.toContain("Dashboard/SSO/");
+  });
+
+  test("says a lapse stops SCIM and audit logging, never single sign-on", () => {
+    const text = normaliseWhitespace(readme);
+
+    expect(text).toContain(
+      'Single sign-on is not affected: its routes have no license gate, and "Require SSO for login" stays enforced whatever the license state.',
+    );
+    expect(text).toContain(
+      "the relaxed SCIM team locks are listed by `packages/Common/Server/Utils/RelaxedScimTeamLocksReport.ts`",
+    );
+    expect(text).toContain(
+      "while the single sign-on routes answer exactly as in phase A",
+    );
+    expect(text).toContain(
+      "`sso` is retired (`RETIRED_ENTERPRISE_FEATURE_VALUES`)",
+    );
+
+    for (const retired of [
+      "**SSO stops**",
+      "CommunityEditionSsoReport",
+      "guardSsoRequirementWrite",
+      '"Require SSO", SSO, SCIM and audit logging',
+      "SSO, SCIM and audit logging stop",
+      "The Community image has no SSO",
+      "SSO/OIDC/SCIM",
+    ]) {
+      expect({ retired, present: readme.includes(retired) }).toEqual({
+        retired,
+        present: false,
+      });
+    }
+  });
+});
+
+/**
+ * Single sign-on moved from ee/ back into core, so it is Apache-2.0 again:
+ * the routers, their helpers and the screens live outside ee/, and nothing
+ * named after single sign-on is left under ee/LICENSE. SCIM stays in ee/.
+ */
+describe("single sign-on lives in the Apache-2.0 part of the repository", () => {
+  const SSO_ROUTERS = [
+    "SSO",
+    "OIDC",
+    "GlobalSSO",
+    "GlobalOIDC",
+    "StatusPageSSO",
+    "StatusPageOIDC",
+    "ProjectSsoSignInConfirmation",
+  ];
+
+  const SSO_FILE_NAME =
+    /^(?:SSO|OIDC|GlobalSSO|GlobalOIDC|StatusPageSSO|StatusPageOIDC|MobileSso|ProjectSsoSignInConfirmation)\.tsx?$/;
+
+  test.each(SSO_ROUTERS)("the %s router is in core, not in ee/", (name) => {
+    expect({
+      core: exists(`packages/App/FeatureSet/Identity/API/${name}.ts`),
+      ee: exists(`ee/Server/Identity/API/${name}.ts`),
+    }).toEqual({ core: true, ee: false });
+  });
+
+  test("ee/ keeps only the SCIM routers", () => {
+    expect(
+      fs.readdirSync(path.join(REPO_ROOT, "ee/Server/Identity/API")).sort(),
+    ).toEqual(["SCIM.ts", "StatusPageSCIM.ts"]);
+  });
+
+  test("the single sign-on screens are in the core frontends", () => {
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/SSO.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/OIDC.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/OIDC.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/Index.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/View.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalOIDC/Index.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalOIDC/View.tsx",
+    ]) {
+      expect({ file, exists: exists(file) }).toEqual({ file, exists: true });
+    }
+
+    expect(exists("ee/AdminDashboard/GlobalSSO")).toBe(false);
+    expect(exists("ee/Dashboard/SSO")).toBe(false);
+  });
+
+  test("no file named after single sign-on is left under ee/", () => {
+    const leftovers = findFiles(path.join(REPO_ROOT, "ee"), (name) =>
+      SSO_FILE_NAME.test(name),
+    ).map(relative);
+
+    expect(leftovers).toEqual([]);
+  });
+
+  test("the leftover check sees single sign-on file names", () => {
+    for (const name of ["SSO.ts", "GlobalOIDC.tsx", "MobileSso.ts"]) {
+      expect(SSO_FILE_NAME.test(name)).toBe(true);
+    }
+
+    for (const name of ["SCIM.ts", "SSOLogs.tsx", "UseSsoMode.ts"]) {
+      expect(SSO_FILE_NAME.test(name)).toBe(false);
+    }
+  });
 });
 
 describe("package.json license fields", () => {
@@ -1142,23 +1274,66 @@ describe("README and its translations", () => {
     );
   });
 
-  test("the edition table lists what the Enterprise Edition adds", () => {
+  test("the edition table lists what the Enterprise Edition adds, and puts single sign-on in Community", () => {
     const featuresRow = english
       .split("\n")
       .find((line) => line.startsWith("| **Features** |"));
+    const [community, enterprise] = featuresCells(featuresRow);
+
+    expect(community).toContain("SAML & OIDC single sign-on");
 
     for (const feature of [
-      "SAML & OIDC single sign-on",
       "SCIM provisioning",
       "audit logs",
       "team compliance",
       "instance health dashboards",
     ]) {
-      expect(featuresRow).toContain(feature);
+      expect(enterprise).toContain(feature);
+    }
+
+    for (const singleSignOn of ["single sign-on", "SAML", "OIDC", "SSO"]) {
+      expect(enterprise).not.toContain(singleSignOn);
     }
 
     expect(featuresRow).not.toContain("Full feature set");
   });
+
+  test("the features row is found by its cells, not by where they sit", () => {
+    expect(
+      featuresCells(
+        "| **Features** | Everything — plus SAML & OIDC single sign-on | Everything in Community + SCIM provisioning |",
+      ),
+    ).toEqual([
+      "Everything — plus SAML & OIDC single sign-on",
+      "Everything in Community + SCIM provisioning",
+    ]);
+    expect(() => featuresCells("| **Features** | only one cell |")).toThrow(
+      "not a features row",
+    );
+  });
+
+  /*
+   * Language-neutral: every translation keeps the English line layout, so the
+   * features row is on the same line, and "SAML", "OIDC" and "SCIM" are the
+   * same in every language.
+   */
+  test.each(readmes)(
+    "%s puts single sign-on in the Community column and SCIM in the Enterprise column",
+    (_language, _file, content) => {
+      const rowIndex = english
+        .split("\n")
+        .findIndex((line) => line.startsWith("| **Features** |"));
+      const [community, enterprise] = featuresCells(
+        content.split("\n")[rowIndex],
+      );
+
+      expect(community).toContain("SAML");
+      expect(community).toContain("OIDC");
+      expect(enterprise).toContain("SCIM");
+      expect(enterprise).not.toContain("SAML");
+      expect(enterprise).not.toContain("OIDC");
+    },
+  );
 
   test("the docs page every README links to exists", () => {
     expect(exists(ENTERPRISE_DOCS_PAGE)).toBe(true);

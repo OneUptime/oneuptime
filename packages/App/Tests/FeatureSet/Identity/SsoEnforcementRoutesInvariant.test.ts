@@ -2,13 +2,13 @@ import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import ProjectService from "Common/Server/Services/ProjectService";
-import EditionEnforcement from "Common/Server/Utils/EditionEnforcement";
 import Express, {
   ExpressApplication,
   ExpressRequest,
-  ExpressResponse,
   ExpressRouter,
+  OneUptimeRequest,
 } from "Common/Server/Utils/Express";
+import Dictionary from "Common/Types/Dictionary";
 import SsoAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import ObjectID from "Common/Types/ObjectID";
 import { UserTenantAccessPermission } from "Common/Types/Permission";
@@ -22,28 +22,26 @@ import FakeEnterpriseModule, {
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import IdentityFeatureSet from "../../../FeatureSet/Identity/Index";
+import {
+  SSO_ROUTERS,
+  SsoRouterEntry,
+} from "../../../FeatureSet/Identity/SsoRouters";
 
 /*
  * ---------------------------------------------------------------------------------------------
- * THE INVARIANT: SSO enforcement is on if and only if the SSO login routes are served.
+ * THE INVARIANT: SSO enforcement is on if and only if the SSO login routes are served - and
+ * single sign-on is part of every edition, so both are on in EVERY state.
  *
  * Enforcing SSO without the login routes locks every user out (there is no way to satisfy the
  * requirement). Serving the login routes without enforcing SSO lets a password through where an
  * owner required SSO - including for people already removed at the identity provider.
  *
- * Both halves are decided by one thing, whether SSO is ACTIVE
- * (EnterpriseEdition.isFeatureActive(SSO)): the Enterprise Edition is loaded and, with billing
- * off, its license covers SSO (or the license state is not known yet).
- *   - "served" is two things. The Identity feature set MOUNTS the enterprise module's identity
- *     routers whenever a module is registered (they are mounted once, at boot), and each of
- *     those routes ANSWERS only while EditionEnforcement.areSsoRoutesServed() - the ee routes
- *     start with a per-request license gate, pinned against this same method by
- *     ee/Tests/Server/Identity/IdentityLicenseGates.test.ts. So a lapsed Enterprise license
- *     keeps the routes mounted but refusing.
- *   - UserMiddleware enforces project and instance-wide SSO requirements exactly when
- *     EditionEnforcement.isSsoEnforced() says so.
- * This suite drives the REAL mount code and the REAL enforcement code through every edition,
- * license and billing state and asserts they never disagree.
+ * The core Identity feature set mounts its SSO routers (FeatureSet/Identity/SsoRouters.ts) in
+ * every edition, and UserMiddleware enforces project and instance-wide "Require SSO" in every
+ * edition: the Community Edition, every Enterprise license state (lapsed ones included) and the
+ * Cloud. This suite drives the REAL mount code and the REAL enforcement code through every
+ * edition, license and billing state and asserts both halves are on in each. That every mounted
+ * SSO route also ANSWERS in every state is SsoRoutesServedInEveryEdition.test.ts.
  * ---------------------------------------------------------------------------------------------
  */
 
@@ -61,40 +59,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
   );
 });
 
-type MountRecord = { paths: unknown; router: unknown };
-
-const mounted: Array<MountRecord> = [];
-
-const mockExpressApp: ExpressApplication = {
-  use: (paths: unknown, router: unknown): void => {
-    mounted.push({ paths, router });
-  },
-} as unknown as ExpressApplication;
-
-jest.mock("Common/Server/Utils/Express", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "Common/Server/Utils/Express",
-  ) as Record<string, unknown>;
-
-  const actualExpress: { getRouter: () => ExpressRouter } = actual[
-    "default"
-  ] as { getRouter: () => ExpressRouter };
-
-  return {
-    ...actual,
-    __esModule: true,
-    default: {
-      getRouter: (): ExpressRouter => {
-        return actualExpress.getRouter();
-      },
-      getExpressApp: (): ExpressApplication => {
-        return mockExpressApp;
-      },
-    },
-  };
-});
-
-// The core identity routers are not what this suite is about.
+// The other core identity routers are not what this suite is about.
 jest.mock("../../../FeatureSet/Identity/API/Authentication", () => {
   return { __esModule: true, default: { coreRouter: "authentication" } };
 });
@@ -105,29 +70,29 @@ jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
 
+type MountRecord = { paths: unknown; router: unknown };
+
+const mounted: Array<MountRecord> = [];
+
+// What the Enterprise Edition hands core for identity: its SCIM routers.
+const EE_SCIM_ROUTER: { eeRouter: string } = { eeRouter: "scim" };
+
 /*
- * What the Enterprise Edition's identity router looks like to core: the SAML/OIDC login routes
- * at the same paths customer identity providers are configured with.
+ * The SAML/OIDC login routes customer identity providers and sign-in pages use: the
+ * service-provider-initiated starts, the discovery the login pages call, and the callbacks.
  */
-const SSO_LOGIN_PATHS: Array<string> = [
+const SSO_LOGIN_ROUTES: Array<string> = [
   "/sso/:projectId/:projectSsoId",
+  "/idp-login/:projectId/:projectSsoId",
   "/oidc/:projectId/:projectOidcId",
+  "/oidc-callback/:projectId/:projectOidcId",
   "/service-provider-login",
+  "/service-provider-login-oidc",
   "/global-sso/:globalSsoId",
+  "/global-idp-login/:globalSsoId",
+  "/global-oidc/:globalOidcId",
+  "/global-oidc-callback/:globalOidcId",
 ];
-
-const buildEnterpriseIdentityRouter: () => ExpressRouter =
-  (): ExpressRouter => {
-    const router: ExpressRouter = Express.getRouter();
-
-    for (const path of SSO_LOGIN_PATHS) {
-      router.get(path, (_req: ExpressRequest, res: ExpressResponse): void => {
-        res.send("sso");
-      });
-    }
-
-    return router;
-  };
 
 const routePathsOf: (router: unknown) => Array<string> = (
   router: unknown,
@@ -156,71 +121,109 @@ const TENANT_PERMISSION: UserTenantAccessPermission = {
 
 const EDITION_STATES: Array<EditionStateCase> = createEditionStateCases();
 
-// Applies the state, with the fake Enterprise identity router when ee is loaded.
+// Applies the state, with the stand-in Enterprise identity router when ee is loaded.
 const applyState: (state: EditionStateCase) => void = (
   state: EditionStateCase,
 ): void => {
   const fake: FakeEnterpriseModule | null = state.apply();
 
   if (fake) {
-    fake.identityRouters = [buildEnterpriseIdentityRouter()];
+    fake.identityRouters = [EE_SCIM_ROUTER as unknown as ExpressRouter];
   }
 };
 
-// Mounts the Identity feature set and reports whether the SSO login routes are now served.
+// Mounts the Identity feature set and reports whether the SSO login routes are now mounted.
 const areSsoLoginRoutesMounted: () => Promise<boolean> =
   async (): Promise<boolean> => {
     mounted.length = 0;
 
     await IdentityFeatureSet.init();
 
-    return mounted.some((record: MountRecord) => {
-      const paths: Array<string> = routePathsOf(record.router);
-
-      return SSO_LOGIN_PATHS.every((path: string) => {
-        return paths.includes(path);
+    const mountedPaths: Array<string> = mounted
+      .filter((record: MountRecord): boolean => {
+        return (
+          JSON.stringify(record.paths) ===
+          JSON.stringify(["/api/identity", "/"])
+        );
+      })
+      .flatMap((record: MountRecord): Array<string> => {
+        return routePathsOf(record.router);
       });
+
+    return SSO_LOGIN_ROUTES.every((path: string): boolean => {
+      return mountedPaths.includes(path);
     });
   };
 
-// Asks the real middleware whether a project that requires SSO refuses a password session.
-const isProjectSsoEnforced: () => Promise<boolean> =
-  async (): Promise<boolean> => {
-    try {
-      await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
-        req: {} as ExpressRequest,
-        tenantId: PROJECT_ID,
-        userId: USER_ID,
-      });
+const buildRequest: (data?: {
+  isMasterAdmin?: boolean;
+}) => ExpressRequest = (data?: { isMasterAdmin?: boolean }): ExpressRequest => {
+  return {
+    userAuthorization: { isMasterAdmin: data?.isMasterAdmin === true },
+  } as unknown as OneUptimeRequest as ExpressRequest;
+};
 
-      return false;
-    } catch (err) {
-      if (err instanceof SsoAuthorizationException) {
-        return true;
-      }
+// Asks the real middleware whether the project refuses a password session.
+const isProjectSsoEnforced: (data?: {
+  isMasterAdmin?: boolean;
+}) => Promise<boolean> = async (data?: {
+  isMasterAdmin?: boolean;
+}): Promise<boolean> => {
+  try {
+    await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+      req: buildRequest(data),
+      tenantId: PROJECT_ID,
+      userId: USER_ID,
+    });
 
-      throw err;
+    return false;
+  } catch (err) {
+    if (err instanceof SsoAuthorizationException) {
+      return true;
     }
-  };
 
-// Same question for the instance-wide "Require SSO for Login".
-const isGlobalSsoEnforced: () => Promise<boolean> =
-  async (): Promise<boolean> => {
-    jest
-      .spyOn(ProjectService, "getRequireSsoForLogin")
-      .mockResolvedValue(false);
-    jest
-      .spyOn(GlobalConfigService, "getRequireSsoForLogin")
-      .mockResolvedValue(true);
+    throw err;
+  }
+};
 
-    return await isProjectSsoEnforced();
-  };
+/*
+ * The same question on the multi-project path (project lists, fan-out queries): an enforced
+ * project gets the default, permission-less entry instead of the user's real permissions.
+ */
+const isProjectSsoEnforcedInFanOut: (data?: {
+  isMasterAdmin?: boolean;
+}) => Promise<boolean> = async (data?: {
+  isMasterAdmin?: boolean;
+}): Promise<boolean> => {
+  const permissions: Dictionary<UserTenantAccessPermission> | null =
+    await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+      buildRequest(data),
+      USER_ID,
+      [PROJECT_ID],
+    );
 
-describe("SSO enforcement is on if and only if the SSO login routes are served", () => {
+  return permissions?.[PROJECT_ID.toString()] !== TENANT_PERMISSION;
+};
+
+// Only the instance-wide "Require SSO for Login" is set.
+const requireSsoInstanceWideOnly: () => void = (): void => {
+  jest.spyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(false);
+  jest
+    .spyOn(GlobalConfigService, "getRequireSsoForLogin")
+    .mockResolvedValue(true);
+};
+
+describe("SSO enforcement and the SSO login routes: on together, in every state", () => {
   beforeEach(() => {
     mounted.length = 0;
     setTestBillingEnabled(false);
     uninstallEnterpriseModule();
+
+    jest.spyOn(Express, "getExpressApp").mockReturnValue({
+      use: (paths: unknown, router: unknown): void => {
+        mounted.push({ paths, router });
+      },
+    } as unknown as ExpressApplication);
 
     // The project requires SSO, and the request carries no SSO token.
     jest.spyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(true);
@@ -244,12 +247,22 @@ describe("SSO enforcement is on if and only if the SSO login routes are served",
     jest.restoreAllMocks();
   });
 
-  it("the states include lapsed Enterprise licenses (mounted, but not answering)", () => {
+  it("the states include the Community Edition, lapsed Enterprise licenses and the Cloud", () => {
+    expect(
+      EDITION_STATES.filter((state: EditionStateCase): boolean => {
+        return !state.isLoaded;
+      }).length,
+    ).toBe(2);
     expect(
       EDITION_STATES.filter((state: EditionStateCase): boolean => {
         return state.isLoaded && !state.isActive;
       }).length,
     ).toBeGreaterThanOrEqual(4);
+    expect(
+      EDITION_STATES.some((state: EditionStateCase): boolean => {
+        return state.billing;
+      }),
+    ).toBe(true);
   });
 
   for (const state of EDITION_STATES) {
@@ -257,70 +270,76 @@ describe("SSO enforcement is on if and only if the SSO login routes are served",
       applyState(state);
 
       const mountedNow: boolean = await areSsoLoginRoutesMounted();
-      const answering: boolean = EditionEnforcement.areSsoRoutesServed();
       const projectEnforced: boolean = await isProjectSsoEnforced();
-      const globalEnforced: boolean = await isGlobalSsoEnforced();
+      const projectEnforcedInFanOut: boolean =
+        await isProjectSsoEnforcedInFanOut();
+
+      requireSsoInstanceWideOnly();
+
+      const globalEnforced: boolean = await isProjectSsoEnforced();
+      const globalEnforcedInFanOut: boolean =
+        await isProjectSsoEnforcedInFanOut();
 
       expect({
         mounted: mountedNow,
-        served: mountedNow && answering,
         projectEnforced,
+        projectEnforcedInFanOut,
         globalEnforced,
-        reportedEnforced: EditionEnforcement.isSsoEnforced(),
+        globalEnforcedInFanOut,
       }).toEqual({
-        mounted: state.isLoaded,
-        served: state.isActive,
-        projectEnforced: state.isActive,
-        globalEnforced: state.isActive,
-        reportedEnforced: state.isActive,
+        mounted: true,
+        projectEnforced: true,
+        projectEnforcedInFanOut: true,
+        globalEnforced: true,
+        globalEnforcedInFanOut: true,
       });
     });
   }
 
-  it("a lapse and a renewal move both halves together, without re-mounting anything", async () => {
+  it("a lapse and a renewal change neither half, and nothing is re-mounted", async () => {
     const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
       snapshot: createLicenseSnapshotWithStatus("valid"),
-      identityRouters: [buildEnterpriseIdentityRouter()],
+      identityRouters: [EE_SCIM_ROUTER as unknown as ExpressRouter],
     });
 
     expect(await areSsoLoginRoutesMounted()).toBe(true);
 
-    const halves: () => Promise<{
-      served: boolean;
-      enforced: boolean;
-    }> = async (): Promise<{ served: boolean; enforced: boolean }> => {
-      return {
-        served: EditionEnforcement.areSsoRoutesServed(),
-        enforced: await isProjectSsoEnforced(),
-      };
-    };
+    const mountedAtBoot: Array<MountRecord> = [...mounted];
 
-    expect(await halves()).toEqual({ served: true, enforced: true });
+    for (const status of ["expired", "missing", "invalid", "grace"] as const) {
+      fake.setSnapshot(createLicenseSnapshotWithStatus(status));
 
-    fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
-    expect(await halves()).toEqual({ served: false, enforced: false });
+      expect({ status, enforced: await isProjectSsoEnforced() }).toEqual({
+        status,
+        enforced: true,
+      });
+    }
 
-    fake.setSnapshot(createLicenseSnapshotWithStatus("grace"));
-    expect(await halves()).toEqual({ served: true, enforced: true });
+    fake.setSnapshot(null);
+    expect(await isProjectSsoEnforced()).toBe(true);
+
+    // Mounted once, at boot: the license never adds or removes a route.
+    expect(mounted).toEqual(mountedAtBoot);
   });
 
-  it("the enterprise identity routers are mounted at the same places the core ones are", async () => {
-    installFakeEnterpriseModule({
-      identityRouters: [buildEnterpriseIdentityRouter()],
-    });
-
+  it("the SSO routers are mounted at /api/identity and /, the places identity providers are configured with", async () => {
     await IdentityFeatureSet.init();
 
-    const enterpriseMount: MountRecord | undefined = mounted.find(
-      (record: MountRecord) => {
-        return routePathsOf(record.router).includes(SSO_LOGIN_PATHS[0]!);
-      },
-    );
+    for (const entry of SSO_ROUTERS) {
+      const record: MountRecord | undefined = mounted.find(
+        (candidate: MountRecord): boolean => {
+          return candidate.router === entry.router;
+        },
+      );
 
-    expect(enterpriseMount?.paths).toEqual(["/api/identity", "/"]);
+      expect({ router: entry.name, paths: record?.paths }).toEqual({
+        router: entry.name,
+        paths: ["/api/identity", "/"],
+      });
+    }
   });
 
-  it("the Community Edition mounts no enterprise identity router at all", async () => {
+  it("the Community Edition mounts the core routers, SSO included, and nothing from ee/", async () => {
     await IdentityFeatureSet.init();
 
     expect(
@@ -330,7 +349,75 @@ describe("SSO enforcement is on if and only if the SSO login routes are served",
     ).toEqual([
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
+      ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
+        return entry.router;
+      }),
       { coreRouter: "status-page" },
     ]);
+  });
+
+  it("the Enterprise Edition adds only its own routers, after the SSO routers", async () => {
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("expired"),
+      identityRouters: [EE_SCIM_ROUTER as unknown as ExpressRouter],
+    });
+
+    await IdentityFeatureSet.init();
+
+    expect(
+      mounted.map((record: MountRecord) => {
+        return record.router;
+      }),
+    ).toEqual([
+      { coreRouter: "authentication" },
+      { coreRouter: "reseller" },
+      ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
+        return entry.router;
+      }),
+      EE_SCIM_ROUTER,
+      { coreRouter: "status-page" },
+    ]);
+  });
+
+  describe("enforcement is the requirement itself, the same in every state", () => {
+    for (const state of EDITION_STATES) {
+      it(`${state.label}: a project without the requirement is not refused`, async () => {
+        applyState(state);
+        jest
+          .spyOn(ProjectService, "getRequireSsoForLogin")
+          .mockResolvedValue(false);
+
+        expect(await isProjectSsoEnforced()).toBe(false);
+        expect(await isProjectSsoEnforcedInFanOut()).toBe(false);
+      });
+
+      it(`${state.label}: a request that already signed in with SSO is let through`, async () => {
+        applyState(state);
+        jest
+          .spyOn(UserMiddleware, "isSsoSatisfiedForProject")
+          .mockResolvedValue(true);
+
+        expect(await isProjectSsoEnforced()).toBe(false);
+
+        requireSsoInstanceWideOnly();
+        expect(await isProjectSsoEnforced()).toBe(false);
+      });
+
+      it(`${state.label}: a master admin is exempt from the instance-wide requirement, not from the project's`, async () => {
+        applyState(state);
+
+        expect(await isProjectSsoEnforced({ isMasterAdmin: true })).toBe(true);
+        expect(
+          await isProjectSsoEnforcedInFanOut({ isMasterAdmin: true }),
+        ).toBe(true);
+
+        requireSsoInstanceWideOnly();
+
+        expect(await isProjectSsoEnforced({ isMasterAdmin: true })).toBe(false);
+        expect(
+          await isProjectSsoEnforcedInFanOut({ isMasterAdmin: true }),
+        ).toBe(false);
+      });
+    }
   });
 });

@@ -157,7 +157,7 @@ Les **Paramètres d'authentification** portent aussi une carte **Mot de passe ma
 
 ### SSO et OIDC
 
-Pour une page privée adossée à votre fournisseur d'identité, **Pages de statut → votre page → Sécurité → SSO** configure SAML (URL de connexion, émetteur, certificat x509, méthodes de signature et de condensat) et **Pages de statut → votre page → Sécurité → OIDC** configure OpenID Connect (URL de découverte, émetteur, ID et secret client, portées, noms de revendications). **SCIM** provisionne automatiquement les utilisateurs privés depuis l'IdP. Ces fonctions dépendent d'une option de forfait ; elles ne sont donc pas disponibles sur toutes les installations.
+Pour une page privée adossée à votre fournisseur d'identité, **Pages de statut → votre page → Sécurité → SSO** configure SAML (URL de connexion, émetteur, certificat x509, méthodes de signature et de condensat) et **Pages de statut → votre page → Sécurité → OIDC** configure OpenID Connect (URL de découverte, émetteur, ID et secret client, portées, noms de revendications). **SCIM** provisionne automatiquement les utilisateurs privés depuis l'IdP. Sur OneUptime Cloud, les trois nécessitent le forfait Scale ou supérieur. Sur une installation auto-hébergée, SSO et OIDC font partie de toutes les éditions, et SCIM nécessite l'[Enterprise Edition](/docs/self-hosted/enterprise).
 
 Une carte **Paramètres SSO** expose **Forcer le SSO pour la connexion** (`requireSsoForLogin`, désactivé par défaut). Testez votre configuration SSO avant de l'activer — si elle ne fonctionne pas, vous vous verrouillerez vous-même hors de la page de statut.
 

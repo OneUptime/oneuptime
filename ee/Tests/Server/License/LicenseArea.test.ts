@@ -11,7 +11,9 @@ import {
   EnterpriseServerModuleShape,
 } from "Common/Server/Enterprise/EnterpriseServerModule";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
-import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
+import EnterpriseFeature, {
+  ALL_ENTERPRISE_FEATURES,
+} from "Common/Server/Enterprise/EnterpriseFeature";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import logger from "Common/Server/Utils/Logger";
@@ -215,10 +217,11 @@ describe("License area - init(): the first run of the Enterprise Edition", () =>
 
   /*
    * An upgrade's first Enterprise boot (say, a pre-split Enterprise install
-   * that already requires SSO) whose first-run stamp cannot be written: no
-   * license, and no known trial start, so nobody can tell whether the trial
-   * is over. That is an unknown license state - SSO, SCIM and audit logging
-   * must keep running, not stop until the next read retries the stamp.
+   * whose identity provider already provisions users over SCIM) whose
+   * first-run stamp cannot be written: no license, and no known trial start,
+   * so nobody can tell whether the trial is over. That is an unknown license
+   * state - SCIM and audit logging must keep running, not stop until the
+   * next read retries the stamp.
    */
   describe("when the first-run stamp cannot be written", () => {
     const registerRealProvider: () => void = (): void => {
@@ -230,7 +233,6 @@ describe("License area - init(): the first run of the Enterprise Edition", () =>
     };
 
     const runtimeFeatures: Array<EnterpriseFeature> = [
-      EnterpriseFeature.SSO,
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
     ];
@@ -245,7 +247,7 @@ describe("License area - init(): the first run of the Enterprise Edition", () =>
       return failing;
     };
 
-    it("keeps SSO, SCIM and audit logging running, and configuration read-only", async () => {
+    it("keeps SCIM and audit logging running, and configuration read-only", async () => {
       failStampWrites();
       registerRealProvider();
 
@@ -274,11 +276,11 @@ describe("License area - init(): the first run of the Enterprise Edition", () =>
       expect(firstSeenWrites()).toHaveLength(1);
       expect(licensing.getCachedSnapshot()?.status).toBe("grace");
       expect(licensing.getCachedSnapshot()?.graceReason).toBe("unlicensed");
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         true,
       );
       expect(
-        EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+        EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
       ).toBe(true);
     });
 
@@ -346,7 +348,7 @@ describe("License area - init(): loading the license before routers mount", () =
 
   it("serves the facade once registered", async () => {
     store.row!["enterpriseLicenseToken"] = signLicense(SIGNING_KEY, {
-      features: ["sso"],
+      features: ["scim"],
     });
     const fake: FakeEnterpriseModule = new FakeEnterpriseModule();
     (fake as unknown as { licensing: EnterpriseLicensingProvider }).licensing =
@@ -355,12 +357,61 @@ describe("License area - init(): loading the license before routers mount", () =
 
     await LicenseArea.init!();
 
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      true,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(true);
     expect(
       EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.AuditLogs),
     ).toBe(false);
+  });
+
+  /*
+   * Single sign-on is part of the Community Edition. A signed license issued
+   * with the retired "sso" claim still loads, verified; the claim entitles
+   * nothing, and the rest of its list keeps its meaning.
+   */
+  describe('a signed license carrying the retired "sso" claim', () => {
+    const loadWithFeatures: (features: Array<string>) => Promise<void> = async (
+      features: Array<string>,
+    ): Promise<void> => {
+      store.row!["enterpriseLicenseToken"] = signLicense(SIGNING_KEY, {
+        features,
+      });
+      const fake: FakeEnterpriseModule = new FakeEnterpriseModule();
+      (
+        fake as unknown as { licensing: EnterpriseLicensingProvider }
+      ).licensing = licensing;
+      EnterpriseEdition.register(fake);
+
+      await LicenseArea.init!();
+    };
+
+    it('loads, verified, and ["sso"] entitles nothing', async () => {
+      await loadWithFeatures(["sso"]);
+
+      expect(licensing.getCachedSnapshot()?.status).toBe("valid");
+      expect(licensing.getCachedSnapshot()?.verification).toBe("verified");
+      expect(licensing.getCachedSnapshot()?.features).toEqual([]);
+
+      for (const feature of ALL_ENTERPRISE_FEATURES) {
+        expect(EnterpriseEdition.isFeatureAvailableSync(feature)).toBe(false);
+      }
+    });
+
+    it('["sso", "scim"] entitles SCIM only', async () => {
+      await loadWithFeatures(["sso", "scim"]);
+
+      expect(licensing.getCachedSnapshot()?.features).toEqual([
+        EnterpriseFeature.SCIM,
+      ]);
+
+      for (const feature of ALL_ENTERPRISE_FEATURES) {
+        expect({
+          feature,
+          available: EnterpriseEdition.isFeatureAvailableSync(feature),
+        }).toEqual({ feature, available: feature === EnterpriseFeature.SCIM });
+      }
+    });
   });
 });
 

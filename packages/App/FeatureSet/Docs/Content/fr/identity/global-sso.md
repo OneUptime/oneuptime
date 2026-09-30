@@ -2,7 +2,7 @@
 
 Global SSO permet à un **administrateur d'instance** OneUptime (master admin) de configurer un seul fournisseur d'identité SAML 2.0 ou OpenID Connect (OIDC) **une seule fois au niveau de l'instance** et de le connecter à n'importe quel projet du serveur. Il s'agit de l'équivalent à l'échelle de l'instance du SSO par projet : au lieu que chaque propriétaire de projet configure son propre fournisseur d'identité, un master admin en met un en place qui peut servir l'ensemble de l'instance.
 
-Global SSO est une fonctionnalité de **OneUptime Enterprise Edition** et n'est disponible que sur les instances exécutant la version Enterprise Edition. Consultez [Enterprise Edition](/docs/self-hosted/enterprise) pour savoir comment l'exécuter, comment fonctionnent les licences et ce que deviennent les exigences SSO dans la Community Edition. Sans licence valide (après l'essai de 14 jours, ou 30 jours après l'expiration d'une licence), la connexion SSO globale s'arrête et « Require SSO » à l'échelle de l'instance n'est plus appliqué jusqu'à l'activation d'une licence.
+Global SSO, y compris le bouton « Require SSO for Login » à l'échelle de l'instance, fait partie de toutes les éditions de OneUptime : toutes les instances auto-hébergées en disposent, y compris avec la Community Edition, sans licence. Comme il relève de l'administration de l'instance, il ne s'applique pas à OneUptime Cloud. Consultez [Enterprise Edition](/docs/self-hosted/enterprise) pour le contenu de chaque édition.
 
 ## Global SSO vs. SSO de projet
 
@@ -48,7 +48,7 @@ Si vous souhaitez empêcher toute création automatique de compte même lorsque 
 Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion par mot de passe fonctionne toujours. Pour exiger le SSO, utilisez les contrôles **Require SSO for Login** :
 
 - **Par projet :** un projet peut exiger le SSO, et éventuellement exiger un fournisseur _spécifique_ (de projet ou global).
-- **À l'échelle de l'instance :** **Admin** > **Paramètres** > **Authentification** dispose d'un commutateur **Require SSO for Login** qui force le SSO pour chaque utilisateur de l'instance. Les master admins restent exemptés afin de ne pas pouvoir être verrouillés à l'extérieur.
+- **À l'échelle de l'instance :** **Admin** > **Paramètres** > **Authentification** dispose d'un commutateur **Exiger le SSO pour la connexion** qui force le SSO pour chaque utilisateur de l'instance. Les master admins restent exemptés afin de ne pas pouvoir être verrouillés à l'extérieur.
 
 ## Connexes
 

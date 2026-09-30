@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * How the identity screens read the license: GET /api/global-config/license
- * -> Editable / Grace / ReadOnly / NotIncluded / Unknown. The server enforces
+ * How the SCIM and audit log screens read the license: GET
+ * /api/global-config/license -> Editable / Grace / ReadOnly / NotIncluded /
+ * Unknown. The server enforces
  * read-only on its own (402 on create and update); this only decides what the
  * screens show, so the rule that matters most is "never lock a screen on a
  * response we do not understand".
@@ -58,9 +59,10 @@ import {
   getEnterpriseLicenseUrl,
   isEnterpriseConfigurationReadOnly,
   isFeatureLeftOutOfLicense,
-} from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+} from "../../../Dashboard/Identity/License/EnterpriseLicenseMode";
 import EnterpriseFeature, {
   ENTERPRISE_FEATURE_WILDCARD,
+  RETIRED_ENTERPRISE_FEATURE_VALUES,
 } from "Common/Server/Enterprise/EnterpriseFeature";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
@@ -150,7 +152,6 @@ describe("getEnterpriseLicenseMode", () => {
 
 describe("the license features a screen is about", () => {
   test("LicensedFeature values are the server's EnterpriseFeature values (the license format)", () => {
-    expect(LicensedFeature.SSO).toBe(EnterpriseFeature.SSO);
     expect(LicensedFeature.SCIM).toBe(EnterpriseFeature.SCIM);
     expect(LicensedFeature.AuditLogs).toBe(EnterpriseFeature.AuditLogs);
     expect(LICENSED_FEATURES_WILDCARD).toBe(ENTERPRISE_FEATURE_WILDCARD);
@@ -162,52 +163,71 @@ describe("the license features a screen is about", () => {
     }
   });
 
+  /*
+   * Single sign-on needs no license, so no screen asks whether one includes
+   * it: "sso" is a retired claim value that names nothing.
+   */
+  test("no screen is about single sign-on, or any other retired claim value", () => {
+    expect(Object.values(LicensedFeature) as Array<string>).not.toContain(
+      "sso",
+    );
+
+    for (const value of Object.values(LicensedFeature)) {
+      expect(RETIRED_ENTERPRISE_FEATURE_VALUES).not.toContain(value);
+    }
+  });
+
   test.each([
-    ["a list without it", { features: ["scim", "audit-logs"] }, true],
+    ["a list without it", { features: ["audit-logs"] }, true],
     ["an empty list", { features: [] }, true],
-    ["a list with it", { features: ["sso"] }, false],
-    ["a list with the wildcard", { features: ["scim", "*"] }, false],
+    [
+      'a list with only the retired "sso" name besides others',
+      { features: ["sso", "audit-logs"] },
+      true,
+    ],
+    ["a list with it", { features: ["scim"] }, false],
+    ["a list with the wildcard", { features: ["audit-logs", "*"] }, false],
     ['"all"', { features: "all" }, false],
     ["no features field (an older server)", {}, false],
     ["null", { features: null }, false],
-    ["a list that is not all names", { features: ["scim", 3] }, false],
-    ["a string that is not all", { features: "sso" }, false],
+    ["a list that is not all names", { features: ["audit-logs", 3] }, false],
+    ["a string that is not all", { features: "scim" }, false],
   ])(
-    "SSO left out of %s: %s",
+    "SCIM left out of %s: %s",
     (_name: string, payload: JSONObject, leftOut: boolean) => {
-      expect(isFeatureLeftOutOfLicense(payload, LicensedFeature.SSO)).toBe(
+      expect(isFeatureLeftOutOfLicense(payload, LicensedFeature.SCIM)).toBe(
         leftOut,
       );
     },
   );
 
   test("no payload never leaves anything out", () => {
-    expect(isFeatureLeftOutOfLicense(null, LicensedFeature.SSO)).toBe(false);
-    expect(isFeatureLeftOutOfLicense(undefined, LicensedFeature.SCIM)).toBe(
-      false,
-    );
+    expect(isFeatureLeftOutOfLicense(null, LicensedFeature.SCIM)).toBe(false);
+    expect(
+      isFeatureLeftOutOfLicense(undefined, LicensedFeature.AuditLogs),
+    ).toBe(false);
   });
 
   test.each([
     [
       "valid",
-      { status: "valid", features: ["scim"] },
+      { status: "valid", features: ["audit-logs"] },
       EnterpriseLicenseMode.NotIncluded,
     ],
     [
       "in its grace period",
-      { status: "grace", features: ["scim"] },
+      { status: "grace", features: ["audit-logs"] },
       EnterpriseLicenseMode.NotIncluded,
     ],
     [
       "valid, by licenseValid alone",
-      { licenseValid: true, features: ["scim"] },
+      { licenseValid: true, features: ["audit-logs"] },
       EnterpriseLicenseMode.NotIncluded,
     ],
     // A lapse says more than "not included": everything stopped.
     [
       "expired",
-      { status: "expired", features: ["scim"] },
+      { status: "expired", features: ["audit-logs"] },
       EnterpriseLicenseMode.ReadOnly,
     ],
     [
@@ -218,28 +238,37 @@ describe("the license features a screen is about", () => {
     // Nothing is claimed on an answer this does not understand.
     [
       "unknown status",
-      { status: "suspended", features: ["scim"] },
+      { status: "suspended", features: ["audit-logs"] },
       EnterpriseLicenseMode.Unknown,
     ],
   ])(
-    "a license %s that leaves SSO out -> %s on an SSO screen",
+    "a license %s that leaves SCIM out -> %s on a SCIM screen",
     (_name: string, payload: JSONObject, mode: EnterpriseLicenseMode) => {
-      expect(getEnterpriseLicenseMode(payload, LicensedFeature.SSO)).toBe(mode);
+      expect(getEnterpriseLicenseMode(payload, LicensedFeature.SCIM)).toBe(
+        mode,
+      );
     },
   );
 
   test("only the screen's own feature matters", () => {
-    const payload: JSONObject = { status: "valid", features: ["scim"] };
+    const scimOnly: JSONObject = { status: "valid", features: ["scim"] };
+    const auditLogsOnly: JSONObject = {
+      status: "valid",
+      features: ["audit-logs"],
+    };
 
-    expect(getEnterpriseLicenseMode(payload, LicensedFeature.SSO)).toBe(
-      EnterpriseLicenseMode.NotIncluded,
-    );
-    expect(getEnterpriseLicenseMode(payload, LicensedFeature.SCIM)).toBe(
+    expect(getEnterpriseLicenseMode(scimOnly, LicensedFeature.SCIM)).toBe(
       EnterpriseLicenseMode.Editable,
     );
-    expect(getEnterpriseLicenseMode(payload, LicensedFeature.AuditLogs)).toBe(
+    expect(getEnterpriseLicenseMode(scimOnly, LicensedFeature.AuditLogs)).toBe(
       EnterpriseLicenseMode.NotIncluded,
     );
+    expect(getEnterpriseLicenseMode(auditLogsOnly, LicensedFeature.SCIM)).toBe(
+      EnterpriseLicenseMode.NotIncluded,
+    );
+    expect(
+      getEnterpriseLicenseMode(auditLogsOnly, LicensedFeature.AuditLogs),
+    ).toBe(EnterpriseLicenseMode.Editable);
   });
 
   test.each([
@@ -314,15 +343,15 @@ describe("fetchEnterpriseLicenseMode", () => {
 
   test("passes the screen's feature on: a license that leaves it out is NotIncluded", async () => {
     mockFetch.mockResolvedValue(
-      answer(true, { status: "valid", features: ["sso", "scim"] }),
+      answer(true, { status: "valid", features: ["scim"] }),
     );
 
     await expect(
       fetchEnterpriseLicenseMode(LicensedFeature.AuditLogs),
     ).resolves.toBe(EnterpriseLicenseMode.NotIncluded);
-    await expect(fetchEnterpriseLicenseMode(LicensedFeature.SSO)).resolves.toBe(
-      EnterpriseLicenseMode.Editable,
-    );
+    await expect(
+      fetchEnterpriseLicenseMode(LicensedFeature.SCIM),
+    ).resolves.toBe(EnterpriseLicenseMode.Editable);
     await expect(fetchEnterpriseLicenseMode()).resolves.toBe(
       EnterpriseLicenseMode.Editable,
     );
@@ -351,9 +380,9 @@ describe("fetchEnterpriseLicenseMode", () => {
     await expect(fetchEnterpriseLicenseMode()).resolves.toBe(
       EnterpriseLicenseMode.Editable,
     );
-    await expect(fetchEnterpriseLicenseMode(LicensedFeature.SSO)).resolves.toBe(
-      EnterpriseLicenseMode.Editable,
-    );
+    await expect(
+      fetchEnterpriseLicenseMode(LicensedFeature.SCIM),
+    ).resolves.toBe(EnterpriseLicenseMode.Editable);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });

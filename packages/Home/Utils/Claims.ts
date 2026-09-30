@@ -650,7 +650,7 @@ export const Claims: Array<Claim> = [
     statement:
       "The full platform runs on your own Kubernetes cluster via our Helm chart, or on a single host with Docker Compose.",
     qualifier:
-      "The Community Edition is the core platform under Apache 2.0; the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
+      "The Community Edition is the core platform under Apache 2.0, SAML and OIDC single sign-on included; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
     evidence: "The public Helm chart and its installation guide.",
     sourceUrl: "/enterprise/self-hosted",
   },
@@ -674,7 +674,7 @@ export const Claims: Array<Claim> = [
     status: "customer-configurable",
     scope: "self-hosted",
     statement:
-      "Enterprise Edition images add SSO, SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
+      "Enterprise Edition images add SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
     qualifier:
       "Production use requires a valid Enterprise license. The images are not separately hardened: both editions are built from the same source and run with the same chart security defaults.",
     evidence:
@@ -927,13 +927,38 @@ export interface RetiredClaim {
 }
 
 /*
+ * The parts of the single sign-on retired claim in RetiredEditionClaims.
+ * Single sign-on as copy names it: SSO, SAML, OIDC, OpenID Connect, single
+ * sign-on.
+ */
+const SINGLE_SIGN_ON: string =
+  "(?:SSO|SAML|OIDC|OpenID\\s+Connect|single\\s+sign[- ]on)";
+
+// The Enterprise Edition by name. A Cloud "Enterprise plan" is not it.
+const ENTERPRISE_EDITION: string = "(?:OneUptime\\s+)?Enterprise\\s+Edition";
+
+/*
+ * The rest of one clause (no full stop or semicolon), at most `length`
+ * characters, that does not turn the sentence around: "both editions",
+ * "every edition", "the Community Edition", "while", "but" or "not" in
+ * between means the sentence states the split the right way round.
+ */
+const sameClauseWithoutContrast: (length: number) => string = (
+  length: number,
+): string => {
+  return `(?:(?!\\b(?:Community|both|every|while|but|except|not|no|without)\\b)[^.;]){0,${length}}?`;
+};
+
+/*
  * Language the Community / Enterprise Edition split made false. OneUptime is
  * open-core: the Community Edition is Apache-2.0, and the Enterprise Edition
  * modules in the repository's ee/ directory are licensed under the OneUptime
  * Enterprise License. A sentence that says ALL of OneUptime is Apache-2.0,
  * open source, free to self-host, or feature-complete in the Community
- * Edition, or that calls the Enterprise images "hardened", is now wrong.
- * Plain "open source (Apache 2.0)" stays correct: the Community Edition is.
+ * Edition, that calls the Enterprise images "hardened", or that files single
+ * sign-on under the Enterprise Edition (SAML and OIDC single sign-on are part
+ * of the Community Edition) is wrong. Plain "open source (Apache 2.0)" stays
+ * correct: the Community Edition is.
  *
  * They are part of RetiredClaims, so every template is scanned for them.
  * Tests/ClaimsGovernance.test.ts also scans the Utils modules that feed pages
@@ -995,7 +1020,7 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
     reason:
       "Enterprise Edition images are the Community Edition image plus the ee/ modules, not a separately hardened base. Hardening comes from the Helm chart and applies to both editions.",
     replacement:
-      "Enterprise Edition images, which add SSO, SCIM, audit logs, team compliance, and instance health dashboards.",
+      "Enterprise Edition images, which add SCIM, audit logs, team compliance, and instance health dashboards.",
     claimId: "deployment-enterprise-edition",
   },
   {
@@ -1003,7 +1028,7 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
       /\bnot\s+feature[- ]limited\b|\bno\s+feature\s+gates\b|\bcommunity\s+edition\s+is\s+the\s+(?:full\s+feature\s+set|complete\s+product)/i,
     example: "the community edition is not feature-limited",
     reason:
-      "SSO, SCIM, audit logs, team compliance, and instance health dashboards are Enterprise Edition features.",
+      "SCIM, audit logs, team compliance, and instance health dashboards are Enterprise Edition features.",
     replacement:
       "The Community Edition includes the whole monitoring, incident, and observability platform.",
     claimId: "deployment-self-hosted",
@@ -1088,22 +1113,53 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
   },
   {
     /*
-     * An Enterprise Edition feature (SSO, SAML, SCIM, audit logs) followed by
-     * a claim that OneUptime stays open source ("while remaining open
-     * source") in the same sentence, or by a sentence that puts self-hosting
-     * under the Apache license right after the feature list. A competitor
-     * that ships SSO under its own Apache license ("Keycloak ... SSO ...,
-     * licensed under the Apache 2.0 license") is left alone.
+     * An Enterprise Edition feature (SCIM, audit logs) followed by a claim
+     * that OneUptime stays open source ("while remaining open source") in the
+     * same sentence, or by a sentence that puts self-hosting under the Apache
+     * license right after the feature list. Single sign-on is not a subject
+     * here: SAML and OIDC single sign-on are part of the Apache 2.0 Community
+     * Edition, so calling them open source is true. A competitor that ships
+     * a feature under its own Apache license ("Keycloak ... licensed under
+     * the Apache 2.0 license") is left alone.
      */
     pattern:
-      /\b(?:SSO|SAML|SCIM|audit\s+logs?)\b[^.]{0,200}\bremain(?:s|ing)?\s+open[- ]source\b|\b(?:SSO|SAML|SCIM|audit\s+logs?)\b[^.]{0,200}\.\s+Self-host(?:ing|ed)?\b[^.]{0,40}\bunder\s+the\s+Apache/i,
+      /\b(?:SCIM|audit\s+log(?:s|ging)?)\b[^.]{0,200}\bremain(?:s|ing)?\s+open[- ]source\b|\b(?:SCIM|audit\s+log(?:s|ging)?)\b[^.]{0,200}\.\s+Self-host(?:ing|ed)?\b[^.]{0,40}\bunder\s+the\s+Apache/i,
     example:
-      "supports SSO/SAML, RBAC, and audit logs while remaining open source",
+      "supports SCIM provisioning and audit logs while remaining open source",
     reason:
-      "SSO, SAML, SCIM, and audit logs are Enterprise Edition features in ee/, licensed under the OneUptime Enterprise License, not Apache 2.0.",
+      "SCIM and audit logs are Enterprise Edition features in ee/, licensed under the OneUptime Enterprise License, not Apache 2.0.",
     replacement:
-      "The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+      "The core platform, including SAML and OIDC single sign-on, is open source (Apache 2.0) and self-hostable; SCIM and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
     claimId: "deployment-open-source",
+  },
+  {
+    /*
+     * Single sign-on filed under the Enterprise Edition. SAML and OIDC single
+     * sign-on, global SSO, and "Require SSO for login" are part of the Apache
+     * 2.0 Community Edition and need no license; the Enterprise Edition adds
+     * SCIM, audit logs, team compliance, and the instance health dashboards.
+     *
+     * Two shapes are caught: the Enterprise Edition (its images, its modules)
+     * adding, including, or shipping with single sign-on; and single sign-on
+     * being an Enterprise Edition feature, part of it, in it, in ee/, or
+     * needing it or an Enterprise license. A OneUptime Cloud plan is not an
+     * edition ("SSO on the Scale plan" stays true), and neither is enterprise
+     * as an adjective ("Enterprise SSO with SAML/OIDC").
+     */
+    pattern: new RegExp(
+      [
+        `\\b(?:${ENTERPRISE_EDITION}(?:\\s+images?)?|enterprise\\s+modules?)(?:,\\s*which)?\\s*(?:\\(|:|\\b(?:adds?|includes?|with|contains?|ships?)\\b)${sameClauseWithoutContrast(80)}\\b${SINGLE_SIGN_ON}\\b`,
+        `\\b${SINGLE_SIGN_ON}\\b${sameClauseWithoutContrast(120)}\\b(?:${ENTERPRISE_EDITION}\\s+(?:only|features?)\\b|part\\s+of\\s+the\\s+${ENTERPRISE_EDITION}\\b|(?:needs?|requires?|requiring)\\s+(?:the\\s+|an?\\s+)?(?:OneUptime\\s+)?Enterprise\\s+(?:Edition|licen[cs]e)\\b|(?:in|on)\\s+the\\s+${ENTERPRISE_EDITION}\\b|in\\s+(?:a\\s+separately\\s+licensed\\s+|the\\s+)?ee/)`,
+      ].join("|"),
+      "i",
+    ),
+    example:
+      "the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards",
+    reason:
+      'SAML and OIDC single sign-on, global SSO, and "Require SSO for login" are part of the Apache 2.0 Community Edition and need no license. The Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards. On OneUptime Cloud, SSO is on the Scale plan: a plan, not an edition.',
+    replacement:
+      "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards.",
+    claimId: "deployment-enterprise-edition",
   },
 ];
 

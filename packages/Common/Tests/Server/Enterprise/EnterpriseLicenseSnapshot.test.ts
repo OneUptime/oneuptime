@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
   ENTERPRISE_FEATURE_WILDCARD,
+  RETIRED_ENTERPRISE_FEATURE_VALUES,
   parseEnterpriseFeature,
 } from "../../../Server/Enterprise/EnterpriseFeature";
 import {
@@ -22,7 +23,6 @@ describe("EnterpriseFeature", () => {
      * These strings are part of every issued license. Changing one silently
      * revokes that feature from licenses already in the field.
      */
-    expect(EnterpriseFeature.SSO).toBe("sso");
     expect(EnterpriseFeature.SCIM).toBe("scim");
     expect(EnterpriseFeature.TeamCompliance).toBe("team-compliance");
     expect(EnterpriseFeature.AuditLogs).toBe("audit-logs");
@@ -32,17 +32,34 @@ describe("EnterpriseFeature", () => {
 
   test("ALL_ENTERPRISE_FEATURES lists every feature exactly once", () => {
     expect([...ALL_ENTERPRISE_FEATURES].sort()).toEqual(
-      [
-        "audit-logs",
-        "instance-health",
-        "scim",
-        "sso",
-        "team-compliance",
-      ].sort(),
+      ["audit-logs", "instance-health", "scim", "team-compliance"].sort(),
     );
     expect(new Set(ALL_ENTERPRISE_FEATURES).size).toBe(
       ALL_ENTERPRISE_FEATURES.length,
     );
+  });
+
+  /*
+   * Single sign-on is part of the Community Edition. Its old claim value is
+   * retired, never reused: licenses issued before the move still carry it, so
+   * a new feature named "sso" would be granted to every one of them.
+   */
+  test('"sso" is a retired claim value, not a feature', () => {
+    expect(RETIRED_ENTERPRISE_FEATURE_VALUES).toEqual(["sso"]);
+    expect(Object.values(EnterpriseFeature) as Array<string>).not.toContain(
+      "sso",
+    );
+    expect(Object.keys(EnterpriseFeature)).not.toContain("SSO");
+    expect(parseEnterpriseFeature("sso")).toBeNull();
+  });
+
+  test("no feature ever reuses a retired claim value", () => {
+    for (const retired of RETIRED_ENTERPRISE_FEATURE_VALUES) {
+      expect(ALL_ENTERPRISE_FEATURES as ReadonlyArray<string>).not.toContain(
+        retired,
+      );
+      expect(parseEnterpriseFeature(retired)).toBeNull();
+    }
   });
 
   test.each(
@@ -55,16 +72,19 @@ describe("EnterpriseFeature", () => {
 
   test.each([
     "*",
+    "sso",
     "SSO",
     " sso",
     "sso ",
+    "SCIM",
+    " scim",
     "future-feature",
     "",
     null,
     undefined,
     7,
-    ["sso"],
-    { feature: "sso" },
+    ["scim"],
+    { feature: "scim" },
   ] as Array<unknown>)(
     "parseEnterpriseFeature rejects %p without throwing",
     (value: unknown) => {
@@ -121,11 +141,11 @@ describe("EnterpriseLicenseSnapshotUtil", () => {
     expect(
       EnterpriseLicenseSnapshotUtil.includesFeature(
         null,
-        EnterpriseFeature.SSO,
+        EnterpriseFeature.SCIM,
       ),
     ).toBe(false);
     expect(
-      EnterpriseLicenseSnapshotUtil.entitles(null, EnterpriseFeature.SSO),
+      EnterpriseLicenseSnapshotUtil.entitles(null, EnterpriseFeature.SCIM),
     ).toBe(false);
   });
 
@@ -143,13 +163,13 @@ describe("EnterpriseLicenseSnapshotUtil", () => {
 
   test("a subset license includes only its features", () => {
     const snapshot: EnterpriseLicenseSnapshot = createLicenseSnapshot({
-      features: [EnterpriseFeature.SSO, EnterpriseFeature.AuditLogs],
+      features: [EnterpriseFeature.TeamCompliance, EnterpriseFeature.AuditLogs],
     });
 
     expect(
       EnterpriseLicenseSnapshotUtil.includesFeature(
         snapshot,
-        EnterpriseFeature.SSO,
+        EnterpriseFeature.TeamCompliance,
       ),
     ).toBe(true);
     expect(
@@ -180,7 +200,7 @@ describe("EnterpriseLicenseSnapshotUtil", () => {
       expect(
         EnterpriseLicenseSnapshotUtil.includesFeature(
           snapshot,
-          EnterpriseFeature.SSO,
+          EnterpriseFeature.SCIM,
         ),
       ).toBe(false);
     }
@@ -204,7 +224,7 @@ describe("EnterpriseLicenseSnapshotUtil", () => {
     expect(
       EnterpriseLicenseSnapshotUtil.entitles(
         createLicenseSnapshotWithStatus("valid", {
-          features: [EnterpriseFeature.SSO],
+          features: [EnterpriseFeature.AuditLogs],
         }),
         EnterpriseFeature.SCIM,
       ),
