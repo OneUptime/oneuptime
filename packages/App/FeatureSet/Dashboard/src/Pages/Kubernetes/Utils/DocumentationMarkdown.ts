@@ -380,7 +380,9 @@ function getVerifyStep(platform: KubernetesPlatform): SetupGuideStep {
     description: "Check that the agent's pods are running.",
     markdown: `${codeBlock("bash", `kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}`)}
 
-${codeBlock("text", expected.listing)}
+You should see:
+
+${codeBlock("output", expected.listing)}
 
 ${expected.explanation} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
 
@@ -395,7 +397,7 @@ function getAdvancedTopics(
     {
       title: "Monitor only some namespaces",
       summary:
-        "Restrict pod logs and eBPF tracing to the namespaces you choose. `kube-system` is skipped by default.",
+        "Restrict pod logs and eBPF tracing to the namespaces you choose. kube-system is skipped by default.",
       markdown: `Namespace rules decide what the agent collects from each namespace. To collect pod logs and eBPF data only from \`default\`, \`production\` and \`staging\`:
 
 ${codeBlock(
@@ -420,33 +422,26 @@ ${codeBlock(
 - Node and cluster metrics have no namespace, so they are always kept.`,
     },
     {
-      title: "Only send important logs",
+      title: "Control pod log collection",
       summary:
-        "Drop pod log lines below a severity, such as WARN, before they leave the cluster.",
-      markdown: `${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set filters.logs.minSeverity=WARN"]))}
+        "Keep only important log lines, turn pod logs off, or change how they are read.",
+      markdown: `**Only send important lines.** Drop pod log lines below a severity before they leave the cluster:
 
-Accepts \`TRACE\`, \`DEBUG\`, \`INFO\`, \`WARN\`, \`ERROR\` and \`FATAL\`: \`WARN\` keeps warnings, errors and fatal lines. The severity is read from the log line itself (\`[ERROR]\`, \`level=warn\`, \`"level":"info"\`). Kubernetes events are never dropped by this.`,
-    },
-    {
-      title: "Turn off log collection",
-      summary: "Collect metrics and events only, without pod logs.",
-      markdown: `${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.enabled=false"]))}
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set filters.logs.minSeverity=WARN"]))}
 
-Metrics are not affected: the node collector keeps running for kubelet and cAdvisor metrics, it just stops reading pod logs.`,
-    },
-    {
-      title: "Choose how pod logs are collected",
-      summary:
-        "Override the preset: read log files on each node, or tail logs through the Kubernetes API.",
-      markdown: `The preset picks this for you. To override it, set \`logs.mode\`:
+Accepts \`TRACE\`, \`DEBUG\`, \`INFO\`, \`WARN\`, \`ERROR\` and \`FATAL\`: \`WARN\` keeps warnings, errors and fatal lines. The severity is read from the log line itself (\`[ERROR]\`, \`level=warn\`, \`"level":"info"\`). Kubernetes events are never dropped by this.
+
+**Turn pod logs off.** Metrics are not affected — the node collector keeps running for kubelet and cAdvisor metrics, it just stops reading pod logs:
+
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.enabled=false"]))}
+
+**Change how logs are read.** The preset picks this for you; an explicit \`logs.mode\` always wins over it:
 
 - \`logs.mode=daemonset\` — reads \`/var/log/pods\` on every node through hostPath (lowest overhead; needs hostPath).
 - \`logs.mode=api\` — a Deployment tails pod logs through the Kubernetes API (works on any cluster).
 - \`logs.mode=disabled\` — no pod logs.
 
-${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.mode=api"]))}
-
-An explicit \`logs.mode\` always wins over the preset. It only decides where pod logs come from — node metrics are collected either way.`,
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.mode=api"]))}`,
     },
   ];
 
@@ -484,24 +479,19 @@ Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).`,
 To get traces here, instrument your services with an [OpenTelemetry SDK](/docs/telemetry/open-telemetry) and send them to OneUptime directly.`,
     });
   } else {
-    topics.push(
-      {
-        title: "Application traces (eBPF)",
-        summary:
-          "Traces, request metrics and the service map from every pod, with no code changes. On by default.",
-        markdown: `The agent runs [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. It captures HTTP/HTTPS, gRPC and SQL/Redis traffic from Go, .NET, Java, Node.js, Python, Ruby and Rust services — no SDK and no sidecar — and ships traces, request (RED) metrics and service-graph data through the collector.
+    topics.push({
+      title: "Application traces (eBPF)",
+      summary:
+        "Traces, request metrics and the service map from every pod, with no code changes. On by default.",
+      markdown: `The agent runs [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. It captures HTTP/HTTPS, gRPC and SQL/Redis traffic from Go, .NET, Java, Node.js, Python, Ruby and Rust services — no SDK and no sidecar — and ships traces, request (RED) metrics and service-graph data through the collector.
 
 **Requirements:** Linux kernel **5.8+** with BTF (the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL 9+). The eBPF pods run **privileged**, which they need to load eBPF programs.
 
-Turn it off if your nodes run an older kernel, if privileged pods are not allowed, or if your services already send traces with OpenTelemetry SDKs and you don't want duplicates:
+**Turn it off** if your nodes run an older kernel, if privileged pods are not allowed, or if your services already send traces with OpenTelemetry SDKs and you don't want duplicates:
 
-${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"]))}`,
-      },
-      {
-        title: "Choose which eBPF signals to collect",
-        summary:
-          "Turn individual eBPF metric families on or off, and opt in to cross-service trace propagation.",
-        markdown: `Every family is controlled with \`--set ebpf.features.<name>=false\` (or \`=true\`):
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"]))}
+
+**Choose the signals.** Each family is switched with \`--set ebpf.features.<name>=false\` (or \`=true\`):
 
 | \`ebpf.features.*\` | Default | What it adds |
 |---|---|---|
@@ -514,8 +504,7 @@ ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"
 | \`tcpStats\` | on | Node-level TCP RTT, failed-connection and retransmit counters |
 
 **Cross-service trace propagation** — linking a request that crosses pod A → pod B into a single trace — is **off by default**. Turn it on with \`--set ebpf.contextPropagation=true\` only after reading this: it works by rewriting traffic that is already in flight (widening plaintext HTTP requests in the kernel, and appending a TCP option to TLS and raw TCP), and a mistake in that byte accounting desynchronizes the stream — the reported symptom is transfers through an L7 proxy such as nginx hanging once a response passes ~64KB. An OpenTelemetry SDK propagates \`traceparent\` in userspace without any of that, and is the safer option.`,
-      },
-    );
+    });
   }
 
   topics.push(
@@ -534,22 +523,19 @@ ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"
 Each \`oneuptime.labels.<key>=<value>\` becomes the label \`<key>:<value>\` on the cluster, and on the services and hosts it reports. Labels are matched case-insensitively, so an existing \`Production\` label is reused; labels added in the OneUptime UI are never removed by the agent.`,
     },
     {
-      title: "Upgrade the agent",
-      summary: "Move to the latest chart and keep your current settings.",
-      markdown: `${codeBlock(
-        "bash",
-        `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`,
-      )}
+      title: "Upgrade or uninstall the agent",
+      summary:
+        "Move to the latest chart and keep your settings, or remove the agent.",
+      markdown: `**Upgrade** to the latest chart. \`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); add any new \`--set\` flags on top of it:
 
-\`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); add any new \`--set\` flags on top of it.`,
-    },
-    {
-      title: "Uninstall the agent",
-      summary: "Remove the agent and its namespace from the cluster.",
-      markdown: `${codeBlock(
-        "bash",
-        `helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}\nkubectl delete namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
-      )}${
+${codeBlock("bash", `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`)}
+
+**Uninstall** the agent and its namespace:
+
+${codeBlock(
+  "bash",
+  `helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}\nkubectl delete namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+)}${
         platform === "eks-fargate"
           ? `
 
@@ -631,7 +617,17 @@ function getTroubleshootingTopics(
 
 ${codeBlock("bash", "eksctl get fargateprofile --cluster <cluster-name>")}
 
-If there is none, create it (step 3) — the pending pods start on their own once it is active.`,
+If there is none, create it. Fargate is chosen when a pod is created, so pods that were already pending stay pending — restart the agent's Deployments once the profile is active:
+
+${codeBlock(
+  "bash",
+  `eksctl create fargateprofile \\
+  --cluster <cluster-name> \\
+  --region <region> \\
+  --name ${namespace} \\
+  --namespace ${namespace}
+kubectl rollout restart deployment -n ${namespace}`,
+)}`,
     });
   }
 

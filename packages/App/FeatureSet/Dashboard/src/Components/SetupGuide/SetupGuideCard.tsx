@@ -15,6 +15,7 @@ import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SetupGuideContent,
+  SetupGuideKeyStep,
   SetupGuideLink,
   SetupGuideOption,
   SetupGuideStep,
@@ -157,14 +158,20 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   const keyTypeFilter: TelemetryIngestionKeyType | undefined =
     props.getKeyTypeFilter ? props.getKeyTypeFilter(option) : undefined;
 
+  const keyStep: SetupGuideKeyStep = content.keyStep || {};
+
   const steps: Array<SetupGuideStepView> = [
     {
       title: "Choose an ingestion key",
-      description: props.keyStepDescription || DEFAULT_KEY_STEP_DESCRIPTION,
+      description:
+        keyStep.description ||
+        props.keyStepDescription ||
+        DEFAULT_KEY_STEP_DESCRIPTION,
       content: (
         <IngestionKeySelector
-          endpointLabel="OneUptime URL"
-          endpointValue={oneuptimeUrl}
+          endpointLabel={keyStep.endpointLabel || "OneUptime URL"}
+          endpointValue={keyStep.endpointValue || oneuptimeUrl}
+          endpointHint={keyStep.endpointHint}
           keyTypeFilter={keyTypeFilter}
           onSelectedKeyChange={setSelectedKey}
         />

@@ -65,7 +65,21 @@ export interface SetupGuideLink {
   url: string;
 }
 
+/*
+ * What step 1 (the ingestion key) says for this guide. By default it shows
+ * the OneUptime URL next to the key, which is what agents that take a base
+ * URL need; a guide whose snippets point at an endpoint of their own (OTLP,
+ * MQTT) shows that one instead.
+ */
+export interface SetupGuideKeyStep {
+  description?: string | undefined;
+  endpointLabel?: string | undefined;
+  endpointValue?: string | undefined;
+  endpointHint?: string | undefined;
+}
+
 export interface SetupGuideContent {
+  keyStep?: SetupGuideKeyStep | undefined;
   // A short paragraph of markdown above the steps.
   intro?: string | undefined;
   // "Before you start" — one line of inline markdown each.
@@ -100,6 +114,20 @@ const FENCE: string = "```";
  */
 export function codeBlock(language: string, code: string): string {
   return `${FENCE}${language}\n${code.replace(/^\n+|\s+$/g, "")}\n${FENCE}`;
+}
+
+// Characters a POSIX shell leaves alone in an unquoted word.
+const SHELL_SAFE_WORD: RegExp = /^[A-Za-z0-9._:@%+,/=-]+$/;
+
+/**
+ * One shell word whose value reaches the command exactly as written: bare
+ * when made only of characters the shell leaves alone, otherwise
+ * single-quoted (a `'` inside closes the quote, escapes itself and reopens).
+ */
+export function shellQuote(value: string): string {
+  return SHELL_SAFE_WORD.test(value)
+    ? value
+    : `'${value.split("'").join("'\\''")}'`;
 }
 
 /**
