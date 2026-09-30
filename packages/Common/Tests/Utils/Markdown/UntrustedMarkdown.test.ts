@@ -3,6 +3,7 @@ import {
   neutralizeChatControlSequences,
   neutralizeMarkdownImagesAndDiagrams,
   neutralizeUntrustedMarkdown,
+  neutralizeUntrustedPlainText,
 } from "../../../Utils/Markdown/UntrustedMarkdown";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import {
@@ -91,6 +92,18 @@ function codeSpans(markdown: string): Array<string> {
 // What marked renders, as the owners' and on-call emails are rendered.
 function html(markdown: string): string {
   return marked.parse(markdown, { async: false }) as string;
+}
+
+// The sections the bot posts to Slack for the text.
+function slackText(markdown: string): string {
+  return JSON.stringify(
+    SlackUtil.getMarkdownBlocks({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: markdown,
+      },
+    }),
+  );
 }
 
 function withoutJoiners(text: string): string {
@@ -1165,6 +1178,87 @@ describe("neutralizeMarkdownImagesAndDiagrams - mermaid diagrams", () => {
     "gives %j the language text where it is a fence, and breaks it elsewhere",
     (text: string, expected: string) => {
       expect(neutralizeMarkdownImagesAndDiagrams(text)).toBe(expected);
+    },
+  );
+});
+
+describe("neutralizeUntrustedPlainText", () => {
+  test.each([
+    ["an image", "![](https://t.example/p.png) Checkout is down"],
+    ["a reference image", "![shot][r] Checkout is down"],
+    [
+      "an image in a link",
+      "[![x](https://t.example/p.png)](https://ci.example)",
+    ],
+    ["a mention", "<!channel> Checkout is down"],
+    ["a mermaid fence", "```mermaid Checkout is down"],
+    ["a mermaid fence spelled with a reference", "~~~&#109;ermaid down"],
+  ])(
+    "breaks %s, and it reads exactly as typed",
+    (_label: string, text: string) => {
+      const result: string = neutralizeUntrustedPlainText(text);
+
+      expect(result).not.toBe(text);
+      expect(withoutJoiners(result)).toBe(text);
+      expect(result).not.toMatch(/!\[|<[!@#]/);
+      expect(withReferencesDecoded(result).toLowerCase()).not.toMatch(
+        /(`{3,}|~{3,})[ \t]*mermaid/,
+      );
+    },
+  );
+
+  /*
+   * An incident's title is placed into Markdown as it is by much of
+   * OneUptime: an episode takes up to 50 characters of it as its title,
+   * episode feed items quote it, and a note template can hold it on a line
+   * of its own. None of those finds an image or a diagram in it.
+   */
+  test("leaves nothing that acts on its own wherever the title is placed", () => {
+    const title: string = neutralizeUntrustedPlainText(
+      "<!channel> ![](https://tracker.example/p.png) Checkout is down",
+    );
+    const fence: string = neutralizeUntrustedPlainText("```&#109;ermaid");
+
+    const placed: Array<string> = [
+      `#### Episode #1 Created\n\n**${title.substring(0, 50)}**`,
+      `**Incident INC-42** added to episode: ${title}`,
+      `Added to **Episode #1**: ${title.substring(0, 50)}`,
+      `${fence}\nflowchart TD\n  A@{ img: "https://tracker.example/q.png" }\n\`\`\``,
+    ];
+
+    for (const markdown of placed) {
+      expectInert(markdown);
+      expect(slackText(markdown)).not.toMatch(/<(![a-z]|@[A-Z0-9]|#C)/);
+    }
+
+    expectInertInDashboard(placed);
+  });
+
+  test.each([
+    ["Checkout is down"],
+    ["Site 03 - payments (EU)"],
+    ["Wow! [sic]"],
+    ["a ! [b]"],
+    ["Hi!"],
+    ["<!-- not a mention -->"],
+    ["We draw mermaid diagrams."],
+    [""],
+  ])("leaves %j exactly as it is", (text: string) => {
+    expect(neutralizeUntrustedPlainText(text)).toBe(text);
+  });
+
+  test("is idempotent", () => {
+    const once: string = neutralizeUntrustedPlainText(
+      "<!here> ![x](https://t.example/p.png) ```mermaid",
+    );
+
+    expect(neutralizeUntrustedPlainText(once)).toBe(once);
+  });
+
+  test.each([[null], [undefined]])(
+    "turns %p into an empty text",
+    (value: null | undefined) => {
+      expect(neutralizeUntrustedPlainText(value)).toBe("");
     },
   );
 });

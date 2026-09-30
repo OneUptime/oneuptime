@@ -97,6 +97,7 @@ import {
 } from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
 import { Token, Tokens, marked } from "marked";
 
 type MockedFn = ReturnType<typeof jest.fn>;
@@ -1232,6 +1233,61 @@ describe("IncidentFormService.submitPublicForm - nothing the reporter wrote acts
     expect(error?.message).toBe(INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE);
     expect(error?.message).toBe("Title cannot be more than 500 characters.");
     expect(incidentCreate).not.toHaveBeenCalled();
+  });
+
+  test("refuses a title that no longer fits once its image syntax is broken, declaring nothing", async () => {
+    const title: string = "![".repeat(250);
+
+    const error: Exception | undefined = await refusal(
+      submit({ answers: { ...VALID_ANSWERS, title: title } }),
+    );
+
+    expect(error?.message).toBe(INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE);
+    expect(incidentCreate).not.toHaveBeenCalled();
+    expect(reserveFormSubmission).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The title is plain text, but much of OneUptime places it into Markdown
+   * as it is: a grouping rule makes it (its first 50 characters) the title
+   * of a new episode, whose feed items quote it, and so does the incident's
+   * own "Added to episode" item. So image syntax in it is broken as its
+   * mentions are - invisibly, so it reads as typed everywhere.
+   */
+  test("an image in the title is stored broken, so no feed that quotes the title shows it", async () => {
+    const typed: string =
+      "<!channel> ![](https://tracker.example/p.png) Checkout is down";
+
+    await submit({ answers: { ...VALID_ANSWERS, title: typed } });
+
+    const title: string = createCall().data.title || "";
+
+    expect(title).not.toMatch(/!\[|<[!@#]/);
+    expect(withoutJoiners(title)).toBe(typed);
+
+    const quoted: Array<string> = [
+      `#### Episode #1 Created\n\n**${title.substring(0, 50)}**\n\n`,
+      `**Incident INC-42** added to episode: ${title}`,
+      `Added to **Episode #1**: ${title.substring(0, 50)}`,
+    ];
+
+    for (const markdown of quoted) {
+      expectNothingFetchedOrRun(markdown);
+      expect(slackText(markdown)).not.toMatch(LIVE_SLACK_SEQUENCE);
+    }
+
+    for (const html of renderAsDashboard(quoted)) {
+      expect(html).not.toContain("<img");
+    }
+
+    // Unbroken, the same shapes really do show the image.
+    expect(
+      lexedTokens(`**Incident INC-42** added to episode: ${typed}`).filter(
+        (token: Token): boolean => {
+          return token.type === "image";
+        },
+      ),
+    ).toHaveLength(1);
   });
 
   test("the submission record keeps the reporter's name as typed", async () => {

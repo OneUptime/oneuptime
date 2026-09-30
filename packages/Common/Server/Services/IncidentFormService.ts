@@ -65,6 +65,7 @@ import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import {
   neutralizeChatControlSequences,
   neutralizeUntrustedMarkdown,
+  neutralizeUntrustedPlainText,
 } from "../../Utils/Markdown/UntrustedMarkdown";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
@@ -260,15 +261,35 @@ export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
   };
 
 /*
- * Incident.title is a varchar(500), and breaking a chat sequence in the
- * title adds an invisible character (see neutralizeIncidentFormReport), so
- * a title of nearly 500 characters full of "<!" can outgrow it. Worded as
- * the validator's own length refusal.
+ * Incident.title is a varchar(500), and breaking a chat sequence or image
+ * syntax in the title adds an invisible character (see
+ * neutralizeIncidentFormTitle), so a title of nearly 500 characters full of
+ * "<!" or "![" can outgrow it. Worded as the validator's own length refusal.
  */
 export const INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE: string = `${INCIDENT_FORM_QUESTION_LABELS.title} cannot be more than ${INCIDENT_FORM_TITLE_MAX_LENGTH} characters.`;
 
 const KNOWN_CUSTOM_FIELD_TYPES: ReadonlyArray<string> =
   Object.values(CustomFieldType);
+
+type NeutralizeIncidentFormTitleFunction = (title: string) => string;
+
+/*
+ * A reporter's title as the incident stores it - one definition, for the
+ * length check before anything is declared and for the report itself. It
+ * is plain text, but much of OneUptime places an incident's title into
+ * Markdown as it is: an episode grouped from the incident takes it as its
+ * title, and episode feed items, chat messages, summaries and note
+ * templates carry it on, rendered without the viewer's safe mode. So its
+ * chat control sequences, its image syntax and any mermaid fence in it are
+ * broken with an invisible character (neutralizeUntrustedPlainText) -
+ * wherever the title lands, it mentions nobody and fetches nothing - and it
+ * still reads exactly as typed, in an email subject and a text message too.
+ */
+const neutralizeIncidentFormTitle: NeutralizeIncidentFormTitleFunction = (
+  title: string,
+): string => {
+  return neutralizeUntrustedPlainText(title);
+};
 
 export type NeutralizeIncidentFormReportFunction = (data: {
   answers: ValidatedIncidentFormSubmission;
@@ -286,11 +307,15 @@ export type NeutralizeIncidentFormReportFunction = (data: {
  * rendered for every responder and in owners' emails, and nobody reads it
  * over first.
  *
- * - The title and every Text or Long Text answer (and an answer to a field
- *   of a type this version does not know, which the form asks as text):
- *   chat control sequences such as <!channel> are broken, invisibly.
- * - The description and every Markdown answer: the same, and images become
- *   links and mermaid diagrams code, so nothing is fetched or run.
+ * - The title (see neutralizeIncidentFormTitle): chat control sequences
+ *   such as <!channel>, image syntax and mermaid fences are broken,
+ *   invisibly.
+ * - Every Text or Long Text answer (and an answer to a field of a type this
+ *   version does not know, which the form asks as text): chat control
+ *   sequences are broken, invisibly.
+ * - The description and every Markdown answer: chat control sequences are
+ *   broken, and images become links and mermaid diagrams code, so nothing
+ *   is fetched or run.
  * - Everything else - a dropdown option, a number, a date, a yes/no - was
  *   checked against its field and is left as it is.
  *
@@ -325,7 +350,7 @@ export const neutralizeIncidentFormReport: NeutralizeIncidentFormReportFunction 
 
     const report: ValidatedIncidentFormSubmission = {
       ...data.answers,
-      title: neutralizeChatControlSequences(data.answers.title),
+      title: neutralizeIncidentFormTitle(data.answers.title),
       customFields: customFields,
     };
 

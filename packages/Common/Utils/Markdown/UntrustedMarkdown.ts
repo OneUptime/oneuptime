@@ -255,6 +255,8 @@ const INDENTED_LINE_PATTERN: RegExp = /^(?: {4}|\t)/;
 
 const BACKTICK_RUN_PATTERN: RegExp = /`+/g;
 
+const IMAGE_OPENER_PATTERN: RegExp = /!(?=\[)/g;
+
 enum CandidateKind {
   Image = "image",
   Mermaid = "mermaid",
@@ -1459,5 +1461,42 @@ export const neutralizeUntrustedMarkdown: NeutralizeUntrustedMarkdownFunction =
   (markdown: string | undefined | null): string => {
     return neutralizeChatControlSequences(
       neutralizeMarkdownImagesAndDiagrams(markdown),
+    );
+  };
+
+export type NeutralizeUntrustedPlainTextFunction = (
+  value: string | undefined | null,
+) => string;
+
+/**
+ * Plain text an outsider wrote that other code places into Markdown as it
+ * is - an incident's title, which episode titles, feed items, chat
+ * messages and note templates take up raw. Its chat control sequences are
+ * broken as above, and so, with the same invisible word joiner, is every
+ * "![" and every "mermaid" after a fence run: wherever the text lands, no
+ * renderer finds a mention, an image or a diagram in it. It reads exactly
+ * as typed - in Markdown, and as plain text in an email subject or a text
+ * message. Idempotent.
+ */
+export const neutralizeUntrustedPlainText: NeutralizeUntrustedPlainTextFunction =
+  (value: string | undefined | null): string => {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    const text: string = neutralizeChatControlSequences(value).replace(
+      IMAGE_OPENER_PATTERN,
+      `!${WORD_JOINER}`,
+    );
+
+    return applyEdits(
+      text,
+      findDiagramInfoStrings(text, splitLines(text)).flatMap(
+        (info: DiagramInfoString): Array<Edit> => {
+          return info.mermaidWords.map((word: number): Edit => {
+            return { position: word, deleteCount: 0, insert: WORD_JOINER };
+          });
+        },
+      ),
     );
   };
