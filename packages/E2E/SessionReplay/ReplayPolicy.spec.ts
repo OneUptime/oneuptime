@@ -63,7 +63,16 @@ const state: (page: Page) => Promise<FixtureState> = async (
 
 /*
  * The policy card's reads: its select names the policy columns and _id. The
- * layout's name read selects neither, and the edit form's read has no _id.
+ * page reads the application in two other places, so the card is told apart
+ * by a column only it asks for, the sample percentage it shows as "100%":
+ *
+ *   - the layout's name read selects neither _id nor any policy column;
+ *   - the side menu's Recommendations badge reads the application through
+ *     RecommendationResourceRegistry.getSelect: _id and name, plus the
+ *     columns that decide its session replay storage budget alerts, which
+ *     include isSessionReplayEnabled. Keying on isSessionReplayEnabled
+ *     counted that read as a second card read;
+ *   - the edit form's read has no _id.
  */
 const policyFetchCount: (page: Page) => Promise<number> = async (
   page: Page,
@@ -72,7 +81,7 @@ const policyFetchCount: (page: Page) => Promise<number> = async (
     (request: GetItemRequest): boolean => {
       return (
         request.modelType === "RumApplication" &&
-        request.selectKeys.includes("isSessionReplayEnabled") &&
+        request.selectKeys.includes("sessionReplaySamplePercentage") &&
         request.selectKeys.includes("_id")
       );
     },

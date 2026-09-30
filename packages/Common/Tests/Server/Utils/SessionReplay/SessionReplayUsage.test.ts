@@ -32,7 +32,10 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 });
 
 import Redis from "../../../../Server/Infrastructure/Redis";
-import SessionReplayUsage from "../../../../Server/Utils/SessionReplay/SessionReplayUsage";
+import logger from "../../../../Server/Utils/Logger";
+import SessionReplayUsage, {
+  BYTE_COUNTER_MGET_CHUNK_SIZE,
+} from "../../../../Server/Utils/SessionReplay/SessionReplayUsage";
 
 const getClientMock: jest.Mock = Redis.getClient as unknown as jest.Mock;
 const isConnectedMock: jest.Mock = Redis.isConnected as unknown as jest.Mock;
@@ -199,6 +202,145 @@ describe("SessionReplayUsage", () => {
           projectId: PROJECT_ID,
           rumApplicationId: RUM_APP_ID,
         }),
+      ).resolves.toBeNull();
+    });
+  });
+
+  /*
+   * The batch read behind the budget-metrics sweep. Its contract is the
+   * single-key readers' contract applied per key, plus one rule of its own:
+   * all or nothing, because a sweep that published the half it could read
+   * would publish the other half as missing rather than as unknown.
+   */
+  describe("readByteCounters", () => {
+    function mockMget(mget: jest.Mock): void {
+      getClientMock.mockReturnValue({ mget });
+      isConnectedMock.mockReturnValue(true);
+    }
+
+    function keysFor(count: number): Array<string> {
+      return Array.from({ length: count }, (_: unknown, index: number) => {
+        return `replay:rate:bytes:project-${index}:2026-09-29`;
+      });
+    }
+
+    test("an empty key list answers [] without touching Redis", async () => {
+      await expect(SessionReplayUsage.readByteCounters([])).resolves.toEqual(
+        [],
+      );
+
+      expect(getClientMock).not.toHaveBeenCalled();
+    });
+
+    test("returns null (unknown) when there is no Redis client", async () => {
+      getClientMock.mockReturnValue(null);
+      isConnectedMock.mockReturnValue(false);
+
+      await expect(
+        SessionReplayUsage.readByteCounters(["replay:rate:bytes:a:2026-09-29"]),
+      ).resolves.toBeNull();
+    });
+
+    test("returns null (unknown) when Redis is not connected", async () => {
+      const mget: jest.Mock = jest.fn();
+      getClientMock.mockReturnValue({ mget });
+      isConnectedMock.mockReturnValue(false);
+
+      await expect(
+        SessionReplayUsage.readByteCounters(["replay:rate:bytes:a:2026-09-29"]),
+      ).resolves.toBeNull();
+      expect(mget).not.toHaveBeenCalled();
+    });
+
+    test("answers positionally, with the single-key parsing rules per key", async () => {
+      const mget: jest.Mock = jest
+        .fn()
+        .mockResolvedValue(["2048", null, "not-a-number", "0"]);
+      mockMget(mget);
+
+      const keys: Array<string> = [
+        SessionReplayUsage.getDailyProjectByteKey(PROJECT_ID),
+        SessionReplayUsage.getMonthlyApplicationByteKey({
+          projectId: PROJECT_ID,
+          rumApplicationId: RUM_APP_ID,
+        }),
+        "replay:rate:bytes:garbage:2026-09-29",
+        "replay:rate:bytes:zero:2026-09-29",
+      ];
+
+      await expect(SessionReplayUsage.readByteCounters(keys)).resolves.toEqual([
+        2048, 0, 0, 0,
+      ]);
+      expect(mget).toHaveBeenCalledTimes(1);
+      expect(mget).toHaveBeenCalledWith(keys);
+    });
+
+    test("does not clamp: a negative counter is returned as stored", async () => {
+      // A refund that straddles 00:00 UTC can leave the new day's key below 0.
+      mockMget(jest.fn().mockResolvedValue(["-4096"]));
+
+      await expect(
+        SessionReplayUsage.readByteCounters(["replay:rate:bytes:a:2026-09-29"]),
+      ).resolves.toEqual([-4096]);
+    });
+
+    test("chunks large reads and keeps the order across chunks", async () => {
+      const keys: Array<string> = keysFor(BYTE_COUNTER_MGET_CHUNK_SIZE * 2 + 3);
+
+      const mget: jest.Mock = jest
+        .fn()
+        .mockImplementation(async (chunk: Array<string>) => {
+          // Echo each key's index so the order is checkable end to end.
+          return chunk.map((key: string) => {
+            return key.split(":")[3]!.replace("project-", "");
+          });
+        });
+      mockMget(mget);
+
+      const values: Array<number> | null =
+        await SessionReplayUsage.readByteCounters(keys);
+
+      expect(mget).toHaveBeenCalledTimes(3);
+      expect((mget.mock.calls[0]![0] as Array<string>).length).toBe(
+        BYTE_COUNTER_MGET_CHUNK_SIZE,
+      );
+      expect((mget.mock.calls[1]![0] as Array<string>).length).toBe(
+        BYTE_COUNTER_MGET_CHUNK_SIZE,
+      );
+      expect((mget.mock.calls[2]![0] as Array<string>).length).toBe(3);
+      expect(values).toEqual(
+        keys.map((_: string, index: number) => {
+          return index;
+        }),
+      );
+    });
+
+    test("is all or nothing: one failing chunk makes the whole answer unknown", async () => {
+      const keys: Array<string> = keysFor(BYTE_COUNTER_MGET_CHUNK_SIZE + 1);
+      const mget: jest.Mock = jest
+        .fn()
+        .mockResolvedValueOnce(
+          keys.slice(0, BYTE_COUNTER_MGET_CHUNK_SIZE).map(() => {
+            return "1";
+          }),
+        )
+        .mockRejectedValueOnce(new Error("connection reset"));
+      mockMget(mget);
+
+      await expect(SessionReplayUsage.readByteCounters(keys)).resolves.toBe(
+        null,
+      );
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    test("an answer of the wrong length is unknown, never misaligned", async () => {
+      mockMget(jest.fn().mockResolvedValue(["1"]));
+
+      await expect(
+        SessionReplayUsage.readByteCounters([
+          "replay:rate:bytes:a:2026-09-29",
+          "replay:rate:bytes:b:2026-09-29",
+        ]),
       ).resolves.toBeNull();
     });
   });

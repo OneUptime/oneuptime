@@ -11,6 +11,7 @@ import ClusterAccessNotice, {
   FinishedRunKubectlUsage,
   getClusterAccessSignature,
   getClusterAiAgentPageRoute,
+  NO_KUBECTL_RUN_TEXT,
   parseClusterAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ClusterAccessNotice";
 import { KubectlActivitySummary } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
@@ -250,6 +251,75 @@ describe("describeFinishedRunKubectlUsage", () => {
     expect(usageText(activity({ notRun: 2, unknown: 0 }))).toBe(
       "OneUptime AI tried 2 read-only kubectl commands, but none ran on the cluster — the cluster's AI agent or Runner did not pick them up, or they were refused. This investigation used OneUptime data only; see Investigation activity for why.",
     );
+  });
+
+  /*
+   * Regression: an incident linked to a cluster and to a Docker host whose
+   * investigation ran docker commands through the host's AI agent, and no
+   * kubectl, was reported as having "used OneUptime data only".
+   */
+  describe("a run that ran commands on other infrastructure", () => {
+    function withInfrastructure(
+      overrides: Partial<KubectlActivitySummary> = {},
+      executed: number = 3,
+    ): KubectlActivitySummary {
+      return activity({
+        ...overrides,
+        infrastructure: {
+          executed,
+          succeeded: executed,
+          notRun: 0,
+          unknown: 0,
+        },
+      });
+    }
+
+    test("says only that no kubectl ran, never that the run used OneUptime data only", () => {
+      expect(describeFinishedRunKubectlUsage(withInfrastructure())).toEqual({
+        text: NO_KUBECTL_RUN_TEXT,
+        tone: "none",
+      });
+    });
+
+    test("ends a tried-kubectl sentence without the data-only claim", () => {
+      expect(usageText(withInfrastructure({ notRun: 2 }))).toBe(
+        "OneUptime AI tried 2 read-only kubectl commands, but none ran on the cluster — the cluster's AI agent or Runner did not pick them up, or they were refused. See Investigation activity for why.",
+      );
+      expect(usageText(withInfrastructure({ unknown: 1 }))).toBe(
+        "OneUptime AI tried 1 read-only kubectl command, but no result came back from the cluster — the cluster's AI agent or Runner took it but never reported back, so whether it ran is unknown. See Investigation activity for why.",
+      );
+    });
+
+    test("keeps the kubectl wording when no infrastructure command ran", () => {
+      const noneRan: KubectlActivitySummary = activity({
+        infrastructure: { executed: 0, succeeded: 0, notRun: 2, unknown: 1 },
+      });
+
+      expect(usageText(noneRan)).toBe(DATA_ONLY_RUN_TEXT);
+      expect(
+        usageText({
+          ...noneRan,
+          notRun: 2,
+        }),
+      ).toContain(
+        "This investigation used OneUptime data only; see Investigation activity for why.",
+      );
+      expect(usageText(withInfrastructure({}, 0))).toBe(DATA_ONLY_RUN_TEXT);
+    });
+
+    test("leaves the wording of runs whose kubectl ran unchanged", () => {
+      expect(
+        usageText(
+          withInfrastructure({
+            executed: 2,
+            succeeded: 2,
+            clusterToolCalls: 2,
+          }),
+        ),
+      ).toBe(
+        "OneUptime AI ran 2 read-only kubectl commands during this investigation.",
+      );
+    });
   });
 });
 
@@ -730,6 +800,29 @@ describe("ClusterAccessNotice", () => {
       expect(usage).toHaveAttribute("data-tone", "none");
       expect(usage.className).toContain("gray");
       expect(usage).toHaveTextContent(DATA_ONLY_RUN_TEXT);
+    });
+
+    test("never calls a run that ran commands on other infrastructure data-only", () => {
+      render(
+        <ClusterAccessNotice
+          clusterAccess={[makeStatus()]}
+          isRunFinished={true}
+          kubectlActivity={activity({
+            clusterToolCalls: 3,
+            infrastructure: {
+              executed: 3,
+              succeeded: 3,
+              notRun: 0,
+              unknown: 0,
+            },
+          })}
+        />,
+      );
+
+      const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
+      expect(usage).toHaveAttribute("data-tone", "none");
+      expect(usage).toHaveTextContent(NO_KUBECTL_RUN_TEXT);
+      expect(noticeText()).not.toContain("OneUptime data only");
     });
   });
 

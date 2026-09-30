@@ -24,6 +24,7 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
+import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 
 export default class MicrosoftTeamsIncidentEpisodeActions {
   @CaptureSpan()
@@ -402,12 +403,19 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           userId: oneUptimeUserId,
         });
 
-        await turnContext.sendActivity("Note added successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "Note added successfully.",
+        );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -484,12 +492,19 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
             UserNotificationEventType.IncidentEpisodeCreated,
         });
 
-        await turnContext.sendActivity("On-call policy executed successfully.");
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          "On-call policy executed successfully.",
+        );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }
@@ -562,14 +577,19 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           },
         });
 
-        await turnContext.sendActivity(
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
           "Incident episode state changed successfully.",
         );
 
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
+        /*
+         * The action is done: a refused reply or a failed delete of the
+         * form must not read as a failed action, which invites a repeat.
+         */
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          turnContext,
+          turnContext.activity.replyToId,
+        );
 
         return;
       }

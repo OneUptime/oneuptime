@@ -65,6 +65,20 @@ export const DATA_ONLY_RUN_TEXT: string =
   "This investigation used OneUptime data only — no kubectl commands were run.";
 
 /*
+ * The same fact for a run that ran no kubectl but did run commands on other
+ * infrastructure (a Docker host, a database server, … through its AI
+ * agent): "OneUptime data only" would be false there, so only the kubectl
+ * part is said.
+ */
+export const NO_KUBECTL_RUN_TEXT: string =
+  "No kubectl commands were run during this investigation.";
+
+// How the "tried kubectl, nothing came back" sentences end.
+const DATA_ONLY_SEE_ACTIVITY_TEXT: string =
+  " This investigation used OneUptime data only; see Investigation activity for why.";
+const SEE_ACTIVITY_TEXT: string = " See Investigation activity for why.";
+
+/*
  * How the sentence is presented:
  *  - "ran": at least one kubectl command completed on the cluster — the
  *    notice's "had access" styling;
@@ -153,8 +167,24 @@ export function describeFinishedRunKubectlUsage(
   const notRun: number = toCount(activity.notRun);
   const unknown: number = toCount(activity.unknown);
 
+  /*
+   * Commands that ran on other infrastructure (through the resources' AI
+   * agents) brought back data of their own, so a run without kubectl
+   * output did not use OneUptime data only.
+   */
+  const ranInfrastructureCommands: boolean =
+    toCount(activity.infrastructure?.executed) > 0;
+  const seeActivityText: string = ranInfrastructureCommands
+    ? SEE_ACTIVITY_TEXT
+    : DATA_ONLY_SEE_ACTIVITY_TEXT;
+
   if (executed === 0 && notRun === 0 && unknown === 0) {
-    return { text: DATA_ONLY_RUN_TEXT, tone: "none" };
+    return {
+      text: ranInfrastructureCommands
+        ? NO_KUBECTL_RUN_TEXT
+        : DATA_ONLY_RUN_TEXT,
+      tone: "none",
+    };
   }
 
   if (executed === 0 && unknown > 0) {
@@ -164,7 +194,7 @@ export function describeFinishedRunKubectlUsage(
       )}, but no result came back from the cluster — ${describeCommandsWithoutResult(
         notRun,
         unknown,
-      )}. This investigation used OneUptime data only; see Investigation activity for why.`,
+      )}.${seeActivityText}`,
       tone: "failed",
     };
   }
@@ -177,7 +207,7 @@ export function describeFinishedRunKubectlUsage(
         notRun === 1 ? "it" : "them"
       } up, or ${
         notRun === 1 ? "it was" : "they were"
-      } refused. This investigation used OneUptime data only; see Investigation activity for why.`,
+      } refused.${seeActivityText}`,
       tone: "failed",
     };
   }

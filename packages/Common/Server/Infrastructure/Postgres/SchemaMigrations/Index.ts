@@ -23,7 +23,8 @@ import { AddSubscriberNotificationClaimedAt1795900000000 } from "./1795900000000
 import { AddTeamComplianceRuleScope1796000000000 } from "./1796000000000-AddTeamComplianceRuleScope";
 import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "./1796100000000-AddKubernetesAiAgentAndAiDefaults";
 import { AddProxmoxResourceNativePushColumns1796200000000 } from "./1796200000000-AddProxmoxResourceNativePushColumns";
-import { AddIncidentForms1796300000000 } from "./1796300000000-AddIncidentForms";
+import { AddResourceAiAgents1796300000000 } from "./1796300000000-AddResourceAiAgents";
+import { AddIncidentForms1796400000000 } from "./1796400000000-AddIncidentForms";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1247,5 +1248,6 @@ export default [
   AddTeamComplianceRuleScope1796000000000,
   AddKubernetesAiAgentAndAiDefaults1796100000000,
   AddProxmoxResourceNativePushColumns1796200000000,
-  AddIncidentForms1796300000000,
+  AddResourceAiAgents1796300000000,
+  AddIncidentForms1796400000000,
 ];

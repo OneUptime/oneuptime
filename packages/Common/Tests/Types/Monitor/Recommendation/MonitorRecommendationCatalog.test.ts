@@ -19,7 +19,11 @@ import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTempl
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
-import { getAllRumAlertTemplates } from "../../../../Types/Monitor/RumAlertTemplates";
+import {
+  RumAlertTemplate,
+  getAllRumAlertTemplates,
+  getRumAlertTemplates,
+} from "../../../../Types/Monitor/RumAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
 import {
   getAllServiceAlertTemplates,
@@ -69,16 +73,18 @@ interface ModuleExpectation {
   resourceType: MonitorRecommendationResourceType;
   monitorTypes: Array<MonitorType>;
   /*
-   * Everything the module can ever produce. For nine of the ten this is also
-   * what the page shows; for Service it is the union across every runtime.
+   * Everything the module can ever produce. For the resource types whose set
+   * is a constant this is also what the page shows; for Service it is the
+   * union across every runtime, for Database across every engine, and for RUM
+   * it includes the session replay budget alerts.
    */
   templateCount: number;
   /*
    * What `getRecommendations(resourceType)` returns with NO context — what a
    * caller that knows nothing about the specific resource is offered. Equal to
    * `templateCount` for every resource type whose set is a constant, and
-   * smaller for Service, where knowing nothing means the language-agnostic
-   * subset.
+   * smaller for Service (the language-agnostic subset), Database (nothing)
+   * and RUM (everything but the budget alerts).
    */
   contextFreeTemplateCount: number;
   identifierFieldName:
@@ -163,7 +169,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
       MonitorType.Exceptions,
     ],
     templateCount: getAllRumAlertTemplates().length,
-    contextFreeTemplateCount: getAllRumAlertTemplates().length,
+    /*
+     * Everything but the session replay budget alerts, which wait until the
+     * application is known to record replays. `getRumAlertTemplates(undefined)`
+     * is the module's own answer to "what applies to an application we know
+     * nothing about".
+     */
+    contextFreeTemplateCount: getRumAlertTemplates(undefined).length,
     identifierFieldName: "rumApplicationId",
   },
   {
@@ -525,12 +537,13 @@ describe("MonitorRecommendationCatalog", () => {
   });
 
   /*
-   * Services are the only resource type whose recommendation set is not a
-   * constant. Everything below is about the seam between "what applies to this
-   * resource" and "what this catalog can ever produce" — the two are the same
-   * question for nine resource types and different for the tenth, and the
-   * failure mode of conflating them is a page that offers JVM heap monitors to
-   * a Go service.
+   * Services were the first resource type whose recommendation set is not a
+   * constant (databases and RUM applications have suites of their own below).
+   * Everything here is about the seam between "what applies to this resource"
+   * and "what this catalog can ever produce" — the same question for every
+   * resource type whose set is a constant, and a different one for these, and
+   * the failure mode of conflating them is a page that offers JVM heap
+   * monitors to a Go service.
    */
   describe("context-aware recommendations", () => {
     const AGNOSTIC_COUNT: number = getServiceAlertTemplates(null).length;
@@ -603,9 +616,16 @@ describe("MonitorRecommendationCatalog", () => {
       for (const resourceType of Object.values(
         MonitorRecommendationResourceType,
       )) {
+        /*
+         * The three resource types whose set is NOT a constant, each with a
+         * suite of its own below: a service by runtime, a database by engine,
+         * and a RUM application by whether it records session replays (its
+         * budget alerts).
+         */
         if (
           resourceType === MonitorRecommendationResourceType.Service ||
-          resourceType === MonitorRecommendationResourceType.DatabaseServer
+          resourceType === MonitorRecommendationResourceType.DatabaseServer ||
+          resourceType === MonitorRecommendationResourceType.RumApplication
         ) {
           continue;
         }
@@ -617,9 +637,19 @@ describe("MonitorRecommendationCatalog", () => {
             },
           );
 
+        /*
+         * Every fact any resource type reads, set to the value that moves its
+         * own list the most, so a constant set that started reading one of
+         * them would change here.
+         */
         const withContext: Array<string> =
           MonitorRecommendationCatalog.getRecommendations(resourceType, {
             serviceLanguage: "java",
+            databaseEngine: "postgresql",
+            databaseEngineMetricsReported: true,
+            sessionReplayEnabled: true,
+            sessionReplayHasRecorded: true,
+            sessionReplayMonthlyBudgetInGB: 10,
           }).map((recommendation: MonitorRecommendation) => {
             return recommendation.recommendationId;
           });
@@ -904,6 +934,240 @@ describe("MonitorRecommendationCatalog", () => {
       // Availability (Engine Metrics Stopped) always leads.
       expect(categories[0]).toBe("Availability");
       expect(new Set(categories).size).toBe(categories.length);
+    });
+  });
+
+  /*
+   * RUM applications: the third context-dependent resource type. Every
+   * application is offered the same web vital and error recommendations, but
+   * the session replay budget alerts only once the application records
+   * replays (and, for the monthly pair, has a monthly budget) - the sweep
+   * writes nothing for any other application, so each would be a monitor
+   * that can never fire. The page's side-menu badge counts from the same
+   * answer, so a wrong one inflates the badge on every RUM application.
+   */
+  describe("RUM application recommendations", () => {
+    const FULL_REPLAY_CONTEXT: MonitorRecommendationContext = {
+      sessionReplayEnabled: true,
+      sessionReplayHasRecorded: true,
+      sessionReplayMonthlyBudgetInGB: 10,
+    };
+
+    const BUDGET_TEMPLATE_IDS: Array<string> = [
+      "rum-session-replay-daily-budget-nearly-spent",
+      "rum-session-replay-daily-budget-spent",
+      "rum-session-replay-monthly-budget-nearly-spent",
+      "rum-session-replay-monthly-budget-spent",
+    ];
+
+    function rumRecommendationIds(
+      context?: MonitorRecommendationContext | undefined,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.RumApplication,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.recommendationId;
+      });
+    }
+
+    function idsOf(templates: Array<RumAlertTemplate>): Array<string> {
+      return templates.map((template: RumAlertTemplate) => {
+        return buildRecommendationId(
+          MonitorRecommendationResourceType.RumApplication,
+          template.id,
+        );
+      });
+    }
+
+    it("offers the original seven when nothing is known about the application", () => {
+      const contextFree: Array<string> = rumRecommendationIds();
+
+      expect(contextFree).toHaveLength(7);
+      expect(contextFree).toEqual(idsOf(getRumAlertTemplates(undefined)));
+      expect(rumRecommendationIds({})).toEqual(contextFree);
+
+      for (const templateId of BUDGET_TEMPLATE_IDS) {
+        expect(contextFree).not.toContain(
+          buildRecommendationId(
+            MonitorRecommendationResourceType.RumApplication,
+            templateId,
+          ),
+        );
+      }
+    });
+
+    it("offers all eleven, in the module's order, to an application that records and has a budget", () => {
+      const offered: Array<string> = rumRecommendationIds(FULL_REPLAY_CONTEXT);
+
+      expect(offered).toHaveLength(11);
+      expect(offered).toEqual(idsOf(getAllRumAlertTemplates()));
+    });
+
+    /*
+     * The adapter re-assembles the module's context field by field, so a
+     * field it forgot to forward would read as "not known" - withholding the
+     * alerts on every page while every other test stays green. One case per
+     * field: each moves the count, so each must have arrived.
+     */
+    it("forwards every replay fact to the module", () => {
+      expect(
+        rumRecommendationIds({
+          sessionReplayEnabled: true,
+          sessionReplayHasRecorded: true,
+        }),
+      ).toEqual(
+        idsOf(
+          getRumAlertTemplates({
+            sessionReplayEnabled: true,
+            sessionReplayHasRecorded: true,
+          }),
+        ),
+      );
+      expect(
+        rumRecommendationIds({
+          sessionReplayEnabled: true,
+          sessionReplayHasRecorded: true,
+        }),
+      ).toHaveLength(9);
+      expect(
+        rumRecommendationIds({
+          ...FULL_REPLAY_CONTEXT,
+          sessionReplayEnabled: false,
+        }),
+      ).toHaveLength(7);
+      expect(
+        rumRecommendationIds({
+          ...FULL_REPLAY_CONTEXT,
+          sessionReplayHasRecorded: false,
+        }),
+      ).toHaveLength(7);
+      expect(
+        rumRecommendationIds({
+          ...FULL_REPLAY_CONTEXT,
+          sessionReplayMonthlyBudgetInGB: 0,
+        }),
+      ).toHaveLength(9);
+    });
+
+    it("stays exhaustive, and resolves every budget recommendation by id with no context", () => {
+      /*
+       * The path a dismissal takes: the row stores a recommendation id and
+       * nothing about the application, so lookup has to work without one.
+       */
+      const all: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.RumApplication,
+        );
+
+      expect(all).toHaveLength(11);
+      expect(all.length).toBe(getAllRumAlertTemplates().length);
+
+      for (const templateId of BUDGET_TEMPLATE_IDS) {
+        const recommendation: MonitorRecommendation | undefined =
+          MonitorRecommendationCatalog.getRecommendationById(
+            buildRecommendationId(
+              MonitorRecommendationResourceType.RumApplication,
+              templateId,
+            ),
+          );
+
+        expect(recommendation).toBeDefined();
+        expect(recommendation?.templateId).toBe(templateId);
+        expect(recommendation?.resourceType).toBe(
+          MonitorRecommendationResourceType.RumApplication,
+        );
+        expect(recommendation?.monitorType).toBe(MonitorType.Metrics);
+        expect(recommendation?.category).toBe("Session Replay");
+      }
+    });
+
+    it("lists Session Replay last, and only once the budget alerts are offered", () => {
+      const contextFreeCategories: Array<string> =
+        MonitorRecommendationCatalog.getCategories(
+          MonitorRecommendationResourceType.RumApplication,
+        );
+      const fullCategories: Array<string> =
+        MonitorRecommendationCatalog.getCategories(
+          MonitorRecommendationResourceType.RumApplication,
+          FULL_REPLAY_CONTEXT,
+        );
+
+      expect(contextFreeCategories).toEqual(["Core Web Vitals", "Errors"]);
+      expect(fullCategories).toEqual([
+        ...contextFreeCategories,
+        "Session Replay",
+      ]);
+      expect(fullCategories[fullCategories.length - 1]).toBe("Session Replay");
+    });
+
+    it("scopes every budget recommendation's step to the application id", () => {
+      const rumApplicationId: string = ObjectID.generate().toString();
+
+      const budgetRecommendations: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.RumApplication,
+          FULL_REPLAY_CONTEXT,
+        ).filter((item: MonitorRecommendation) => {
+          return item.category === "Session Replay";
+        });
+
+      // Or the loop below would pass having checked nothing.
+      expect(
+        budgetRecommendations.map((recommendation: MonitorRecommendation) => {
+          return recommendation.templateId;
+        }),
+      ).toEqual(BUDGET_TEMPLATE_IDS);
+
+      for (const recommendation of budgetRecommendations) {
+        const step: MonitorStep = recommendation.getMonitorStep({
+          resourceIdentifier: rumApplicationId,
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "Storefront",
+        });
+
+        expect(
+          step.data?.metricMonitor?.telemetryServiceIds?.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ).toEqual([rumApplicationId]);
+      }
+    });
+
+    it("keeps the three context-dependent resource types independent", () => {
+      // Replay facts change nothing for a service or a database...
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.Service,
+          FULL_REPLAY_CONTEXT,
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.recommendationId;
+        }),
+      ).toEqual(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.Service,
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.recommendationId;
+        }),
+      );
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+          FULL_REPLAY_CONTEXT,
+        ),
+      ).toEqual([]);
+
+      // ...and a runtime or an engine changes nothing for a RUM application.
+      expect(
+        rumRecommendationIds({
+          serviceLanguage: "java",
+          databaseEngine: "postgresql",
+          databaseEngineMetricsReported: true,
+        }),
+      ).toEqual(rumRecommendationIds());
     });
   });
 });

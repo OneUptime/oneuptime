@@ -1254,6 +1254,61 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     expect(feed.feedInfoInMarkdown).toContain("restored from the archive");
   });
 
+  /*
+   * A lookup that saw no traffic (a resource AI agent registering) returns
+   * the owner as it is: an archived row stays archived, and neither the
+   * endpoint's last match nor the row's engine is touched.
+   */
+  test("isSighting: false returns the owner without sighting it", async () => {
+    const archived: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      isArchived: true,
+      autoArchivedAt: new Date("2026-09-01T00:00:00.000Z"),
+    });
+    const owner: any = { databaseServerId: archived.id };
+    findOwner.mockResolvedValue(owner);
+    findOneBy.mockResolvedValue(archived);
+    rawQuery.mockResolvedValue([{ _id: archived.id!.toString() }]);
+    const markMatched: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerEndpointService,
+      "markEndpointMatched",
+    ).mockResolvedValue(undefined);
+    const evidence: jest.SpyInstance = getJestSpyOn(
+      service,
+      "applyDatabaseSystemEvidence",
+    ).mockResolvedValue(undefined);
+
+    const result: DatabaseServer | null =
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: ORDERS_ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: true,
+        isSighting: false,
+      });
+
+    expect(result).toBe(archived);
+    expect(result!.isArchived).toBe(true);
+    expect(result!.autoArchivedAt).toBeDefined();
+    expect(rawQuery).not.toHaveBeenCalled();
+    expect(sideEffects.feed).not.toHaveBeenCalled();
+    expect(markMatched).not.toHaveBeenCalled();
+    expect(evidence).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+
+    // The same lookup as a sighting restores it.
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "postgresql",
+      endpoint: ORDERS_ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      allowCreate: true,
+    });
+    expect(markMatched).toHaveBeenCalledWith(owner);
+    expect(rawQuery).toHaveBeenCalledTimes(1);
+  });
+
   test("a restore that lost to someone else writes no second feed item", async () => {
     const archived: DatabaseServer = databaseRow({
       discoverySource: DatabaseServerDiscoverySource.Collector,

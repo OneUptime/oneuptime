@@ -25,10 +25,15 @@ import {
   MAX_PLAN_COMMANDS,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
+import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import {
+  fakeRunnerJobCountBy,
+  fakeRunnerJobRows,
+} from "../../TestingUtils/Services/FakeRunnerJobCount";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -504,7 +509,36 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     ).execute(bashArgs({ stepType: "Kubernetes" }));
 
     expect(outcome.success).toBe(false);
-    expect(outcome.textForLlm).toContain("stepType must be one of");
+    // Exactly the step types a rule round offers — never ResourceCommand.
+    expect(outcome.textForLlm).toBe(
+      "stepType must be one of: Bash, SSH, Kubectl.",
+    );
+  });
+
+  it("never runs a ResourceCommand step on a Runner", async () => {
+    /*
+     * ResourceCommand is an AI command step type, but it belongs to a
+     * resource's own AI agent: it must never fall through to the Bash/SSH
+     * path, which would enqueue it for a Runner.
+     */
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(
+      bashArgs({ stepType: "ResourceCommand", command: "docker restart web" }),
+    );
+
+    expect(outcome.success).toBe(false);
+    // This round never offered it: refused with the step types it offers.
+    expect(outcome.textForLlm).toBe(
+      "stepType must be one of: Bash, SSH, Kubectl.",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
   });
 
   it("rejects a missing command", async () => {
@@ -639,6 +673,65 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
       .mockResolvedValue(
         new PositiveNumber(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR),
       );
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("hourly AI-command limit");
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Resource commands have their own hourly brake, so a full hour of fixes
+   * on the project's Docker hosts or database servers must not refuse a
+   * Runner command here. Counted against an in-memory RunnerJob table.
+   */
+  it("does not count resource-command jobs toward the hourly AI-command cap", async () => {
+    jest.spyOn(RunnerJobService, "countBy").mockImplementation(
+      fakeRunnerJobCountBy(
+        fakeRunnerJobRows(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR, {
+          projectId: PROJECT_ID,
+          origin: RunnerJobOrigin.AiRemediation,
+          stepType: RunbookStepType.ResourceCommand,
+        }),
+      ) as never,
+    );
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it("negative control: a full hour of Runner and kubectl jobs still hits the cap", async () => {
+    jest.spyOn(RunnerJobService, "countBy").mockImplementation(
+      fakeRunnerJobCountBy([
+        ...fakeRunnerJobRows(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR - 1, {
+          projectId: PROJECT_ID,
+          origin: RunnerJobOrigin.AiRemediation,
+          stepType: RunbookStepType.Bash,
+        }),
+        ...fakeRunnerJobRows(1, {
+          projectId: PROJECT_ID,
+          origin: RunnerJobOrigin.AiRemediation,
+          stepType: RunbookStepType.Kubectl,
+        }),
+      ]) as never,
+    );
     const enqueue: jest.SpyInstance = jest.spyOn(
       RunnerJobService,
       "enqueueAiCommand",

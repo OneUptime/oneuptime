@@ -20,8 +20,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     exactly what it asked before.
  */
 
-export class AddIncidentForms1796300000000 implements MigrationInterface {
-  public name: string = "AddIncidentForms1796300000000";
+export class AddIncidentForms1796400000000 implements MigrationInterface {
+  public name: string = "AddIncidentForms1796400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -1,6 +1,8 @@
 import RunbookStepType, {
+  AI_AGENT_EXECUTED_STEP_TYPES,
   PAYLOAD_CARRYING_STEP_TYPES,
   RUNNER_EXECUTED_STEP_TYPES,
+  isAiAgentExecutedStepType,
   isPayloadCarryingStepType,
   isRunnerExecutedStepType,
 } from "../../../Types/Runbook/RunbookStepType";
@@ -9,11 +11,13 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * Contract under test — the one list that decides where a runbook step runs.
  *
- * Every step type is in exactly one of two lanes: it executes on a Runner
+ * Every step type is in exactly one of three lanes: it executes on a Runner
  * inside the customer's network (JavaScript, Bash, SSH, Kubernetes, Kubectl),
- * or it executes on the OneUptime Worker (Manual, HttpRequest, AI). The lane
- * is not a preference — a Runner has no implementation for an AI step, and
- * the Worker has no route to a customer's SSH host or cluster.
+ * on the OneUptime Worker (Manual, HttpRequest, AI), or on an infrastructure
+ * resource's AI agent (ResourceCommand). The lane is not a preference — a
+ * Runner has no implementation for an AI step, the Worker has no route to a
+ * customer's SSH host or cluster, and only a resource's own AI agent may run
+ * a command against that resource.
  *
  * Getting the lane wrong is not a graceful failure. Classifying a Worker type
  * as Runner work enqueues a RunnerJob a Runner will claim and cannot
@@ -50,6 +54,7 @@ describe("RunbookStepType enum", () => {
         "Kubernetes",
         "Kubectl",
         "Manual",
+        "ResourceCommand",
         "SSH",
       ]
         .slice()
@@ -71,6 +76,7 @@ describe("RunbookStepType enum", () => {
     expect(RunbookStepType.SSH).toBe("SSH");
     expect(RunbookStepType.Kubernetes).toBe("Kubernetes");
     expect(RunbookStepType.Kubectl).toBe("Kubectl");
+    expect(RunbookStepType.ResourceCommand).toBe("ResourceCommand");
   });
 
   test("Kubectl and Kubernetes are distinct members — one is not an alias of the other", () => {
@@ -196,10 +202,10 @@ describe("isRunnerExecutedStepType", () => {
     }
   });
 
-  test("the two lanes together cover every member exactly once", () => {
+  test("the three lanes together cover every member exactly once", () => {
     /*
      * Total and disjoint. A future step type that is added to the enum but to
-     * neither lane fails here rather than being discovered by whichever
+     * no lane fails here rather than being discovered by whichever
      * dispatcher happens to see it first.
      */
     const members: Array<RunbookStepType> = Object.values(RunbookStepType);
@@ -208,15 +214,30 @@ describe("isRunnerExecutedStepType", () => {
         return isRunnerExecutedStepType(type);
       },
     );
+    const aiAgent: Array<RunbookStepType> = members.filter(
+      (type: RunbookStepType) => {
+        return isAiAgentExecutedStepType(type);
+      },
+    );
     const worker: Array<RunbookStepType> = members.filter(
       (type: RunbookStepType) => {
-        return !isRunnerExecutedStepType(type);
+        return (
+          !isRunnerExecutedStepType(type) && !isAiAgentExecutedStepType(type)
+        );
       },
     );
 
-    expect(runner.length + worker.length).toBe(members.length);
+    expect(runner.length + aiAgent.length + worker.length).toBe(members.length);
+    expect(
+      runner.filter((type: RunbookStepType) => {
+        return aiAgent.includes(type);
+      }),
+    ).toEqual([]);
     expect(runner.slice().sort()).toEqual(
       RUNNER_EXECUTED_STEP_TYPES.slice().sort(),
+    );
+    expect(aiAgent.slice().sort()).toEqual(
+      AI_AGENT_EXECUTED_STEP_TYPES.slice().sort(),
     );
     expect(worker.slice().sort()).toEqual(
       WORKER_EXECUTED_STEP_TYPES.slice().sort(),
@@ -436,6 +457,124 @@ describe("isPayloadCarryingStepType", () => {
 
     for (const value of notPayloadTypes) {
       expect(isPayloadCarryingStepType(value as RunbookStepType)).toBe(false);
+    }
+  });
+});
+
+/*
+ * The third lane: a command for an infrastructure resource's AI agent. The
+ * job is targeted at a ResourceAiAgent row (targetResourceAiAgentId), never
+ * at a Runner, so the one thing that must never happen is a Runner or the
+ * Worker being handed it — RunnerJobService.enqueue asks
+ * isRunnerExecutedStepType, and a Runner claim may only name
+ * RUNNER_EXECUTED_STEP_TYPES.
+ */
+describe("AI_AGENT_EXECUTED_STEP_TYPES", () => {
+  test("contains exactly ResourceCommand", () => {
+    expect(AI_AGENT_EXECUTED_STEP_TYPES).toEqual([
+      RunbookStepType.ResourceCommand,
+    ]);
+  });
+
+  test("shares nothing with the Runner lane", () => {
+    for (const type of AI_AGENT_EXECUTED_STEP_TYPES) {
+      expect(RUNNER_EXECUTED_STEP_TYPES).not.toContain(type);
+      expect(isRunnerExecutedStepType(type)).toBe(false);
+    }
+  });
+
+  test("shares nothing with the Worker lane", () => {
+    for (const type of AI_AGENT_EXECUTED_STEP_TYPES) {
+      expect(WORKER_EXECUTED_STEP_TYPES).not.toContain(type);
+    }
+  });
+
+  test("is not payload-carrying — that list is the payload half of the Runner lane", () => {
+    /*
+     * PAYLOAD_CARRYING_STEP_TYPES is documented (and tested above) as a
+     * subset of the Runner lane. Listing ResourceCommand there would make
+     * RunnerJobService.enqueue's payload branch look like it applied to a
+     * type enqueue refuses outright.
+     */
+    expect(PAYLOAD_CARRYING_STEP_TYPES).not.toContain(
+      RunbookStepType.ResourceCommand,
+    );
+    expect(isPayloadCarryingStepType(RunbookStepType.ResourceCommand)).toBe(
+      false,
+    );
+  });
+
+  test("every entry is a real member of the enum", () => {
+    const members: Array<string> = Object.values(RunbookStepType);
+
+    for (const type of AI_AGENT_EXECUTED_STEP_TYPES) {
+      expect(members).toContain(type);
+    }
+  });
+});
+
+describe("isAiAgentExecutedStepType", () => {
+  test("ResourceCommand runs on a resource's AI agent", () => {
+    expect(isAiAgentExecutedStepType(RunbookStepType.ResourceCommand)).toBe(
+      true,
+    );
+  });
+
+  test.each([
+    RunbookStepType.Manual,
+    RunbookStepType.JavaScript,
+    RunbookStepType.HttpRequest,
+    RunbookStepType.Bash,
+    RunbookStepType.AI,
+    RunbookStepType.SSH,
+    RunbookStepType.Kubernetes,
+    RunbookStepType.Kubectl,
+  ])("%s does not run on a resource AI agent", (type: RunbookStepType) => {
+    /*
+     * Kubectl included: the Kubernetes AI agent claims Kubectl jobs through
+     * its own lane (targetKubernetesAiAgentId) and its own claim SQL, and
+     * Kubectl stays a Runner-executed type for the legacy in-cluster Runner.
+     */
+    expect(isAiAgentExecutedStepType(type)).toBe(false);
+  });
+
+  test("agrees with the exported list for every member of the enum", () => {
+    for (const type of Object.values(RunbookStepType)) {
+      const answer: boolean = isAiAgentExecutedStepType(type);
+
+      expect(typeof answer).toBe("boolean");
+      expect(answer).toBe(AI_AGENT_EXECUTED_STEP_TYPES.includes(type));
+    }
+  });
+
+  test("near misses, null and undefined are not AI agent work", () => {
+    const notAgentTypes: Array<unknown> = [
+      "",
+      " ",
+      "resourcecommand",
+      "RESOURCECOMMAND",
+      "ResourceCommand ",
+      " ResourceCommand",
+      "Resource",
+      "Command",
+      null,
+      undefined,
+    ];
+
+    for (const value of notAgentTypes) {
+      expect(isAiAgentExecutedStepType(value as RunbookStepType)).toBe(false);
+    }
+  });
+
+  test("a Runner is never handed ResourceCommand, in any spelling", () => {
+    const spellings: Array<string> = [
+      RunbookStepType.ResourceCommand,
+      "resourcecommand",
+      "RESOURCECOMMAND",
+    ];
+
+    for (const value of spellings) {
+      expect(isRunnerExecutedStepType(value as RunbookStepType)).toBe(false);
     }
   });
 });

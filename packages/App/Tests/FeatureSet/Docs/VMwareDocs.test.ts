@@ -56,6 +56,8 @@ const FENCE_LINE: RegExp = /^\s*```/;
 const METRIC_ROW: RegExp = /^\|\s*`(vcenter\.[a-z_.]+)`\s*\|/;
 /* Bare environment variable names in the compose file's environment block. */
 const COMPOSE_ENV_LINE: RegExp = /^\s*-\s*([A-Z][A-Z0-9_]+)=/;
+// A service of docker-compose.yml: a key two spaces in, under services:.
+const COMPOSE_SERVICE_LINE: RegExp = /^ {2}([a-z0-9][a-z0-9-]*):\s*$/;
 
 function pageFile(language: string, relative: string): string {
   return path.join(CONTENT_DIR, language, `${relative}.md`);
@@ -138,7 +140,11 @@ function codeBlocks(markdown: string): Array<string> {
   return blocks;
 }
 
-/* Environment variables the agent's docker-compose.yml passes to the collector. */
+/*
+ * Environment variables the agent's docker-compose.yml passes to the
+ * collector: its oneuptime-vmware-agent service only (the VMware AI agent
+ * beside it reads the same .env, and is documented in its own section).
+ */
 function composeEnvironmentVariables(): Array<string> {
   const compose: string = fs.readFileSync(
     path.join(AGENT_DIR, "docker-compose.yml"),
@@ -146,9 +152,19 @@ function composeEnvironmentVariables(): Array<string> {
   );
 
   const names: Array<string> = [];
+  let inCollector: boolean = false;
 
   for (const line of compose.split("\n")) {
-    const match: RegExpMatchArray | null = line.match(COMPOSE_ENV_LINE);
+    const service: RegExpMatchArray | null = line.match(COMPOSE_SERVICE_LINE);
+
+    if (service) {
+      inCollector = service[1] === "oneuptime-vmware-agent";
+      continue;
+    }
+
+    const match: RegExpMatchArray | null = inCollector
+      ? line.match(COMPOSE_ENV_LINE)
+      : null;
 
     if (match) {
       names.push(match[1] as string);

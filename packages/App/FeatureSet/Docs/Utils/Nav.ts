@@ -902,6 +902,10 @@ const DocsNav: NavGroup[] = [
     links: [
       { title: "Ask AI", url: "/docs/ai/ask-ai" },
       { title: "AI SRE", url: "/docs/ai/ai-sre" },
+      {
+        title: "Infrastructure AI Agents",
+        url: "/docs/ai/infrastructure-ai-agents",
+      },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
       { title: "GitHub App", url: "/docs/ai/github-app" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },

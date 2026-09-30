@@ -41,11 +41,20 @@ enum TelemetryIngestSurface {
    * with. Server keys only, for the same reason as the Runner above.
    */
   KubernetesAiAgent = "kubernetes-ai-agent",
+  /*
+   * A resource AI agent (Docker, Podman, Docker Swarm, Proxmox, VMware,
+   * Ceph, a database server or a host) registers itself with the same
+   * project ingestion key its collector uses, and receives an agent key
+   * that every command for its resource is claimed with. Server keys only,
+   * for the same reason as the two above.
+   */
+  ResourceAiAgent = "resource-ai-agent",
 }
 
 /*
- * Surfaces that mint an IDENTITY (a key that kubectl jobs for a cluster are
- * targeted at) rather than accept telemetry. The ingest middleware holds
+ * Surfaces that mint an IDENTITY (a key that kubectl jobs for a cluster, or
+ * commands for another infrastructure resource, are targeted at) rather
+ * than accept telemetry. The ingest middleware holds
  * every one of them to the same two extra rules, keyed on this set so a new
  * identity surface cannot quietly miss one:
  *
@@ -60,6 +69,7 @@ export const IDENTITY_REGISTRATION_SURFACES: ReadonlySet<TelemetryIngestSurface>
   new Set<TelemetryIngestSurface>([
     TelemetryIngestSurface.KubernetesAgentRunner,
     TelemetryIngestSurface.KubernetesAiAgent,
+    TelemetryIngestSurface.ResourceAiAgent,
   ]);
 
 /*
@@ -109,6 +119,8 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
     "Kubernetes agent Runner registration",
   [TelemetryIngestSurface.KubernetesAiAgent]:
     "Kubernetes AI agent registration",
+  [TelemetryIngestSurface.ResourceAiAgent]:
+    "infrastructure AI agent registration",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

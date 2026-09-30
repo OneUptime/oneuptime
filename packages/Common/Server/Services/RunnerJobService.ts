@@ -47,6 +47,29 @@ import KubernetesClusterAiAccessService, {
 import KubernetesClusterService from "./KubernetesClusterService";
 import RunbookCredentialService from "./RunbookCredentialService";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
+import ResourceAiAccessService, {
+  LoadedResourceAiAccessTarget,
+  ResourceAiAccessRow,
+  describeResourceNoun,
+  getResourceAiAgentInstallNextStep,
+  getResourceAiAgentPage,
+} from "./ResourceAiAccessService";
+import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  AiResourceTypeInfo,
+  isAiResourceType,
+} from "../../Types/ResourceAiAgent/AiResourceType";
+import {
+  ResourceAiAgentPosture,
+  ResourceAiRemediationMode,
+  ResourceCommandJobPayload,
+  ResourceCommandTier,
+  parseResourceAiAgentPosture,
+} from "../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import { redactResourceCommandOutput } from "../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 /*
@@ -80,6 +103,69 @@ export const MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
  * ceiling, because every call spends Runner time and LLM budget.
  */
 export const MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 240;
+
+/*
+ * The same two brakes for commands on infrastructure resources (Docker,
+ * Podman, Swarm, Proxmox, VMware, Ceph, database servers, hosts), counted
+ * on their own ResourceCommand rows so a busy hour on one kind of
+ * infrastructure never starves the cluster lane, or the other way round.
+ */
+export const MAX_AI_INVESTIGATION_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 240;
+export const MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
+
+/*
+ * Why enqueueAiResourceCommand refused a command, for callers that act on
+ * the reason (the remediation tools tell "the agent is read-only" from "the
+ * resource's fixes were turned off" from "this hour's budget is spent"):
+ *
+ * invalid_request:  the call itself is malformed (type, id, origin, run).
+ * policy_denied:    the resource command policy denies the command.
+ * not_read_only:    an investigation asked for a command that is not Read.
+ * hourly_limit:     the project's hourly brake for resource commands.
+ * resource_not_found: the resource is not this project's.
+ * agent_not_online: the resource has no online AI agent right now.
+ * agent_changed:    the agent the caller named is no longer the resource's.
+ * switch_off:       the resource's investigation or fixes switch is off.
+ * credential_refused: the command named a credential (agents never get one).
+ * agent_posture_mismatch: the agent has not reported serving this resource.
+ * write_scope:      the agent's own posture rules the write out.
+ */
+export type ResourceCommandEnqueueRefusalCode =
+  | "invalid_request"
+  | "policy_denied"
+  | "not_read_only"
+  | "hourly_limit"
+  | "resource_not_found"
+  | "agent_not_online"
+  | "agent_changed"
+  | "switch_off"
+  | "credential_refused"
+  | "agent_posture_mismatch"
+  | "write_scope";
+
+/*
+ * A refusal of the resource command chokepoint. A BadDataException, so
+ * every caller that already handles the kubectl chokepoint's refusals
+ * handles this one the same way; `refusalCode` says which rule refused it.
+ */
+export class ResourceCommandEnqueueRefusedException extends BadDataException {
+  public readonly refusalCode: ResourceCommandEnqueueRefusalCode;
+
+  public constructor(
+    refusalCode: ResourceCommandEnqueueRefusalCode,
+    message: string,
+  ) {
+    super(message);
+    this.refusalCode = refusalCode;
+  }
+}
+
+// The resource modes in which a remediation command may be enqueued at all.
+const ENABLED_RESOURCE_REMEDIATION_MODES: Array<ResourceAiRemediationMode> = [
+  ResourceAiRemediationMode.RequireApproval,
+  ResourceAiRemediationMode.Automatic,
+  ResourceAiRemediationMode.BypassApproval,
+];
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -200,7 +286,20 @@ export function describeRunnerJobTimeout(data: {
    * (targetKubernetesAiAgentId) rather than a Runner, so the text names it.
    */
   isForKubernetesAiAgent?: boolean | undefined;
+  /*
+   * For a ResourceCommand job: the type of the resource whose AI agent
+   * (targetResourceAiAgentId) the command was for, so the text names that
+   * agent ("the Docker AI agent").
+   */
+  resourceType?: AiResourceType | null | undefined;
 }): string {
+  if (
+    data.stepType === RunbookStepType.ResourceCommand &&
+    AI_COMMAND_JOB_ORIGINS.includes(data.origin || RunnerJobOrigin.Runbook)
+  ) {
+    return describeResourceCommandTimeout(data);
+  }
+
   const isAiKubectl: boolean =
     data.stepType === RunbookStepType.Kubectl &&
     AI_COMMAND_JOB_ORIGINS.includes(data.origin || RunnerJobOrigin.Runbook);
@@ -250,6 +349,51 @@ export function describeRunnerJobTimeout(data: {
 
 function describeSeconds(milliseconds: number): string {
   return `${Math.max(1, Math.round(milliseconds / 1000))}s`;
+}
+
+/*
+ * The same three reasons for a command on an infrastructure resource, run
+ * by that resource's AI agent: "nobody picked it up" (nothing ran) versus
+ * "it was picked up and then went silent" (what it did is unknown), naming
+ * the agent ("the Docker AI agent") and the resource ("the Docker host").
+ */
+function describeResourceCommandTimeout(data: {
+  kind: RunnerJobTimeoutKind;
+  wasClaimed?: boolean | undefined;
+  origin: RunnerJobOrigin | undefined;
+  claimTimeoutInMs: number;
+  executionTimeoutInMs: number;
+  resourceType?: AiResourceType | null | undefined;
+}): string {
+  const agentName: string = isAiResourceType(data.resourceType)
+    ? AI_RESOURCE_TYPE_INFO[data.resourceType].agentDisplayName
+    : "resource's AI agent";
+  const noun: string = isAiResourceType(data.resourceType)
+    ? describeResourceNoun(data.resourceType)
+    : "resource";
+
+  const checkFirst: string =
+    data.origin === RunnerJobOrigin.AiRemediation
+      ? ` Check the ${noun} before running a change again.`
+      : "";
+
+  const kind: RunnerJobTimeoutKind =
+    data.kind === "overall" && data.wasClaimed === false
+      ? "unclaimed"
+      : data.kind;
+
+  switch (kind) {
+    case "unclaimed":
+      return `The ${agentName} did not pick up the command in time (within ${describeSeconds(
+        data.claimTimeoutInMs,
+      )}) — it may be offline, restarting or busy with other work. Nothing was run on the ${noun}.`;
+    case "lease_expired":
+      return `The ${agentName} stopped responding while this command was running — it may have restarted or lost its connection. What the command did is unknown.${checkFirst}`;
+    default:
+      return `The ${agentName} did not report a result for this command in time — the command may have outlived its ${describeSeconds(
+        data.executionTimeoutInMs,
+      )} timeout. What the command did is unknown.${checkFirst}`;
+  }
 }
 
 // Where a Runner's write scope is set, as a refusal words it.
@@ -582,6 +726,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * A resource command runs on that resource's own AI agent, never on a
+     * Runner: this lane would target a Runner (targetAgentId), which must
+     * never be handed one.
+     */
+    if (data.stepType === RunbookStepType.ResourceCommand) {
+      throw new BadDataException(
+        "Resource commands run on the resource's AI agent, never on a Runner, and are enqueued through enqueueAiResourceCommand.",
+      );
+    }
+
     const command: string = (data.command || "").trim();
     if (!command) {
       throw new BadDataException("An AI command job needs a command.");
@@ -636,13 +791,16 @@ export class Service extends DatabaseService<Model> {
      * approved-plan and rollback paths — not just the FullAuto inline tool
      * that has its own pre-check for a friendlier message to the model.
      * Check-then-act, so a burst of concurrent runs can overshoot slightly;
-     * the cap is a storm brake, not a quota.
+     * the cap is a storm brake, not a quota. Resource commands share the
+     * table and the origin but have their own brake, so they never count
+     * here (see MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR).
      */
     const jobsInLastHour: number = (
       await this.countBy({
         query: {
           projectId: data.projectId,
           origin: RunnerJobOrigin.AiRemediation,
+          stepType: QueryHelper.notEquals(RunbookStepType.ResourceCommand),
           createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
         },
         props: { isRoot: true },
@@ -838,7 +996,9 @@ export class Service extends DatabaseService<Model> {
     /*
      * The access test is bounded by its own route limits instead, and an
      * investigation's brake counts only rows with an AI run, so tests never
-     * spend the budget real investigations share.
+     * spend the budget real investigations share. Resource commands have
+     * their own brake and never count here, so a busy hour on the project's
+     * other infrastructure never starves the cluster lane.
      */
     if (!isAccessTest) {
       const hourlyCap: number =
@@ -851,6 +1011,7 @@ export class Service extends DatabaseService<Model> {
           query: {
             projectId: data.projectId,
             origin: data.origin,
+            stepType: QueryHelper.notEquals(RunbookStepType.ResourceCommand),
             createdAt: QueryHelper.greaterThan(
               OneUptimeDate.getSomeHoursAgo(1),
             ),
@@ -1211,6 +1372,405 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Enqueue ONE command OneUptime AI composed for an infrastructure
+   * resource — a Docker or Podman host, a Docker Swarm, Proxmox, VMware or
+   * Ceph cluster, a database server or a host — for that resource's AI
+   * agent (a ResourceAiAgent row, never a Runner).
+   *
+   * The server-side chokepoint between an LLM's output and a resource, in
+   * the order enqueueAiKubectlCommand checks a cluster command:
+   *
+   *  1. the call itself: a resource type and id, an AI origin, the
+   *     suggestion a remediation job belongs to, the run an investigation
+   *     job belongs to (the access test alone has none, and is a read);
+   *  2. the resource command policy, re-run whatever the tool layer
+   *     checked: Denied never enqueues, and an investigation-origin job must
+   *     be Read tier — an investigation can never write;
+   *  3. the project's hourly brake for resource commands (investigations
+   *     and remediation counted apart, on ResourceCommand rows only);
+   *  4. the resource must be this project's;
+   *  5. the target is re-resolved NOW: the resource's online agent
+   *     (ResourceAiAgentService.findOnlineAgentForResource), and the agent
+   *     the caller named, if any, must still be it;
+   *  6. the switch the job needs must still be on: an investigation's reads
+   *     need the resource's investigation switch (a remediation run's reads
+   *     its fixes), and a remediation job needs its fixes (mode not
+   *     Disabled) — so an operator who turns AI off stops an in-flight run
+   *     at its next command;
+   *  7. no credential: the agent uses only its own environment's;
+   *  8. the agent's reported posture must be for this resource type and
+   *     name the identity it registered with (the payload carries it, and
+   *     the agent refuses a job for any other), and a write must fit it:
+   *     ONEUPTIME_AI_ALLOW_WRITES on, ONEUPTIME_AI_WRITE_TARGETS and the
+   *     agent's protected targets respected (ResourceCommandPolicy.
+   *     getWriteScopeRefusal, the rule the agent itself applies).
+   *
+   * The command travels as an argv (never a shell line) in a
+   * ResourceCommandJobPayload, and the row names the agent in
+   * targetResourceAiAgentId, so only that agent can claim it. Every
+   * refusal is a ResourceCommandEnqueueRefusedException saying which rule.
+   */
+  @CaptureSpan()
+  public async enqueueAiResourceCommand(data: {
+    projectId: ObjectID;
+    /*
+     * The AI run the command belongs to. Required for an investigation
+     * job; absent only for the resource AI page's access test.
+     */
+    aiRunId?: ObjectID | undefined;
+    origin: RunnerJobOrigin.AiInvestigation | RunnerJobOrigin.AiRemediation;
+    autoRemediationSuggestionId?: ObjectID | undefined;
+    resourceType: AiResourceType;
+    resourceId: ObjectID;
+    stepId: string;
+    /*
+     * The agent the caller expects to run the command (its status's
+     * agent.agentId). Refused when the resource's online agent is another
+     * one now. Absent: whichever agent is the resource's online one.
+     */
+    targetResourceAiAgentId?: ObjectID | undefined;
+    command: string;
+    timeoutInMs: number;
+    claimTimeoutInMs?: number | undefined;
+    /*
+     * Never honoured: a resource's agent is never given a credential. Taken
+     * only so a plan step that carries one is refused, never silently
+     * dropped.
+     */
+    credentialId?: string | undefined;
+    /*
+     * The resource AI page's "Test connection" check: a read with no AI run
+     * behind it, exempt from the investigation switch and the brake —
+     * never from the policy, the binding or the read-only rule.
+     */
+    isAccessTest?: boolean | undefined;
+  }): Promise<Model> {
+    // 1. The call itself.
+    if (!isAiResourceType(data.resourceType)) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        `A resource command needs a resource type; "${String(
+          data.resourceType,
+        )}" is not one.`,
+      );
+    }
+
+    const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
+    const noun: string = describeResourceNoun(data.resourceType);
+
+    if (!data.resourceId) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        `resourceId is required for a command on a ${noun}.`,
+      );
+    }
+
+    if (
+      data.origin !== RunnerJobOrigin.AiInvestigation &&
+      data.origin !== RunnerJobOrigin.AiRemediation
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        `A resource command job cannot have origin "${String(data.origin)}".`,
+      );
+    }
+
+    if (
+      data.origin === RunnerJobOrigin.AiRemediation &&
+      !data.autoRemediationSuggestionId
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        "A resource remediation job needs its auto-remediation suggestion.",
+      );
+    }
+
+    const isAccessTest: boolean = data.isAccessTest === true;
+
+    if (
+      isAccessTest &&
+      (data.origin !== RunnerJobOrigin.AiInvestigation || data.aiRunId)
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        "An access test is a read-only check with no AI run behind it.",
+      );
+    }
+
+    if (
+      data.origin === RunnerJobOrigin.AiInvestigation &&
+      !isAccessTest &&
+      !data.aiRunId
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        "An investigation resource command job needs the AI run it belongs to.",
+      );
+    }
+
+    // 2. The policy, whatever the tool layer decided.
+    const policy: ResourceCommandPolicyResult =
+      ResourceCommandPolicy.evaluateCommand({
+        resourceType: data.resourceType,
+        command: data.command,
+      });
+
+    if (policy.tier === ResourceCommandTier.Denied) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "policy_denied",
+        `Denied by the ${info.displayName} command policy: ${policy.reason}.`,
+      );
+    }
+
+    if (
+      data.origin === RunnerJobOrigin.AiInvestigation &&
+      policy.tier !== ResourceCommandTier.Read
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "not_read_only",
+        `An investigation may only run read-only commands; "${policy.displayCommand}" would change the ${noun} (${policy.tier}).`,
+      );
+    }
+
+    // 3. The hourly brake, on resource commands only.
+    if (!isAccessTest) {
+      const hourlyCap: number =
+        data.origin === RunnerJobOrigin.AiInvestigation
+          ? MAX_AI_INVESTIGATION_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR
+          : MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR;
+
+      const jobsInLastHour: number = (
+        await this.countBy({
+          query: {
+            projectId: data.projectId,
+            origin: data.origin,
+            stepType: RunbookStepType.ResourceCommand,
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
+            ...(data.origin === RunnerJobOrigin.AiInvestigation
+              ? { aiRunId: QueryHelper.notNull() }
+              : {}),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (jobsInLastHour >= hourlyCap) {
+        throw new ResourceCommandEnqueueRefusedException(
+          "hourly_limit",
+          data.origin === RunnerJobOrigin.AiInvestigation
+            ? `This project has run ${jobsInLastHour} AI investigation commands on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further infrastructure commands can run this hour.`
+            : `This project has run ${jobsInLastHour} AI remediation commands on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further AI commands can run on its infrastructure this hour.`,
+        );
+      }
+    }
+
+    // 4 + 5. The resource, and the agent it is reached through NOW.
+    const loaded: LoadedResourceAiAccessTarget =
+      await ResourceAiAccessService.loadAccessTarget({
+        projectId: data.projectId,
+        resourceType: data.resourceType,
+        resourceId: data.resourceId,
+      });
+
+    if (!loaded.resource) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "resource_not_found",
+        `${info.displayName} not found or it does not belong to this project.`,
+      );
+    }
+
+    const bindingRefusal: {
+      code: ResourceCommandEnqueueRefusalCode;
+      message: string;
+    } | null = Service.getResourceBindingRefusal({
+      resource: loaded.resource,
+      agent: loaded.agent,
+      targetResourceAiAgentId: data.targetResourceAiAgentId,
+      credentialId: data.credentialId,
+      // 6. The switch this job needs.
+      requiredSwitch: await this.getRequiredClusterSwitch({
+        projectId: data.projectId,
+        origin: data.origin,
+        aiRunId: data.aiRunId,
+        isAccessTest,
+      }),
+    });
+
+    if (bindingRefusal) {
+      throw new ResourceCommandEnqueueRefusedException(
+        bindingRefusal.code,
+        bindingRefusal.message,
+      );
+    }
+
+    const agent: ResourceAiAgent = loaded.agent!;
+    const resourceLabel: string = loaded.resource.name;
+
+    // 8. The agent's own posture: this resource, and room for the write.
+    const posture: ResourceAiAgentPosture | null = parseResourceAiAgentPosture(
+      agent.posture,
+    );
+    const resourceIdentifier: string = (
+      agent.resourceIdentifier ||
+      posture?.resourceIdentifier ||
+      ""
+    ).trim();
+
+    if (
+      !posture ||
+      posture.resourceType !== data.resourceType ||
+      !resourceIdentifier
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "agent_posture_mismatch",
+        `The ${info.agentDisplayName} has not reported that it serves ${noun} "${resourceLabel}", so this command was not enqueued. Wait for its next report (within a minute), or reset the agent on ${getResourceAiAgentPage(
+          data.resourceType,
+        )}.`,
+      );
+    }
+
+    if (policy.tier !== ResourceCommandTier.Read) {
+      const scopeRefusal: string | null =
+        ResourceCommandPolicy.getWriteScopeRefusal({
+          result: policy,
+          allowWrites: posture.allowWrites === true,
+          writeTargets: posture.writeTargets,
+          protectedTargets: posture.protectedTargets,
+          resourceType: data.resourceType,
+        });
+
+      if (scopeRefusal) {
+        throw new ResourceCommandEnqueueRefusedException(
+          "write_scope",
+          `${scopeRefusal} It was not enqueued.`,
+        );
+      }
+    }
+
+    const claimDeadlineAt: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      Math.ceil((data.claimTimeoutInMs ?? DEFAULT_CLAIM_TIMEOUT_MS) / 1000),
+    );
+
+    const payload: ResourceCommandJobPayload = {
+      resourceType: data.resourceType,
+      resourceId: loaded.resource.id.toString(),
+      resourceIdentifier,
+      program: policy.program,
+      args: policy.args,
+      displayCommand: policy.displayCommand,
+      tier: policy.tier,
+    };
+
+    const row: Model = new Model();
+    row.projectId = data.projectId;
+    row.origin = data.origin;
+    if (data.aiRunId) {
+      row.aiRunId = data.aiRunId;
+    }
+    if (data.autoRemediationSuggestionId) {
+      row.autoRemediationSuggestionId = data.autoRemediationSuggestionId;
+    }
+    row.stepId = data.stepId;
+    row.stepType = RunbookStepType.ResourceCommand;
+    /*
+     * The one target: the resource's agent row. targetAgentId (a Runner)
+     * and targetKubernetesAiAgentId stay empty, so no Runner and no
+     * Kubernetes AI agent can ever claim it.
+     */
+    row.targetResourceAiAgentId = agent.id!;
+    row.resourceType = data.resourceType;
+    row.resourceId = loaded.resource.id;
+    row.script = "";
+    row.payload = payload as unknown as JSONObject;
+    row.timeoutInMs = data.timeoutInMs;
+    row.status = RunnerJobStatus.Pending;
+    row.claimDeadlineAt = claimDeadlineAt;
+
+    return this.create({ data: row, props: { isRoot: true } });
+  }
+
+  /*
+   * Why a resource command may NOT be enqueued for this resource as it is
+   * configured right now, or null when it may. Pure, so the rule reads in
+   * one place: the resource must have an online agent (the one the caller
+   * named, when it named one) that is this resource's, the switch the job
+   * needs must still be on, and no credential may travel with it.
+   */
+  public static getResourceBindingRefusal(data: {
+    resource: ResourceAiAccessRow;
+    // The resource's ONLINE agent right now, or null.
+    agent: ResourceAiAgent | null;
+    targetResourceAiAgentId?: ObjectID | undefined;
+    credentialId?: string | undefined;
+    // The switch that must still be on; null for the access test.
+    requiredSwitch: "investigation" | "remediation" | null;
+  }): { code: ResourceCommandEnqueueRefusalCode; message: string } | null {
+    const { resource, agent } = data;
+    const info: AiResourceTypeInfo =
+      AI_RESOURCE_TYPE_INFO[resource.resourceType];
+    const noun: string = describeResourceNoun(resource.resourceType);
+    const label: string = resource.name;
+
+    if (!agent || !agent.id) {
+      return {
+        code: "agent_not_online",
+        message: `${noun.charAt(0).toUpperCase()}${noun.slice(1)} "${label}" has no online ${info.agentDisplayName}, so this command was not enqueued. ${getResourceAiAgentInstallNextStep(
+          {
+            resourceType: resource.resourceType,
+            resourceId: resource.id.toString(),
+            identifier: resource.identifier,
+          },
+        )} Already installed? Check that its container is running and can reach your OneUptime URL.`,
+      };
+    }
+
+    if (
+      agent.projectId?.toString() !== resource.projectId.toString() ||
+      agent.resourceType !== resource.resourceType ||
+      agent.resourceId?.toString() !== resource.id.toString() ||
+      (data.targetResourceAiAgentId &&
+        data.targetResourceAiAgentId.toString() !== agent.id.toString())
+    ) {
+      return {
+        code: "agent_changed",
+        message: `${noun.charAt(0).toUpperCase()}${noun.slice(1)} "${label}" is no longer reached through this ${info.agentDisplayName} (the agent was reset or replaced), so this command was not enqueued.`,
+      };
+    }
+
+    if (
+      data.requiredSwitch === "investigation" &&
+      resource.isAiInvestigationEnabled !== true
+    ) {
+      return {
+        code: "switch_off",
+        message: `AI investigation is turned off for ${noun} "${label}", so this investigation command was not enqueued.`,
+      };
+    }
+
+    if (
+      data.requiredSwitch === "remediation" &&
+      !ENABLED_RESOURCE_REMEDIATION_MODES.includes(resource.aiRemediationMode)
+    ) {
+      return {
+        code: "switch_off",
+        message: `AI fixes are turned off for ${noun} "${label}", so this command was not enqueued.`,
+      };
+    }
+
+    if (data.credentialId) {
+      return {
+        code: "credential_refused",
+        message: `${noun.charAt(0).toUpperCase()}${noun.slice(1)} "${label}" is reached through its ${info.agentDisplayName}, which uses only the credentials in its own environment and is never given one by OneUptime, so a command that names a credential was not enqueued.`,
+      };
+    }
+
+    return null;
+  }
+
+  /*
    * The job this (execution, step) pair already produced, if any.
    *
    * A runbook execution runs inside a single BullMQ job, so a Worker restart
@@ -1441,6 +2001,28 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A resource command's text through the resource command redactor (the
+   * program's own rules, then the generic ones), or the text unchanged
+   * when it is not one. Pure; redactAiJobText still runs after it.
+   */
+  public static redactResourceCommandText(
+    text: string,
+    resourceCommand?:
+      | { resourceType: AiResourceType; program: string }
+      | undefined,
+  ): string {
+    if (!resourceCommand) {
+      return text;
+    }
+
+    return redactResourceCommandOutput({
+      resourceType: resourceCommand.resourceType,
+      program: resourceCommand.program,
+      text,
+    });
+  }
+
+  /*
    * A Runner's text as a Postgres text column can hold it. A NUL byte is
    * ordinary in what a Runner reports — `kubectl logs` of a log that was
    * rotated with copytruncate, a ConfigMap value `describe` prints
@@ -1468,6 +2050,18 @@ export class Service extends DatabaseService<Model> {
     output?: string | undefined;
     exitCode?: number | undefined;
     errorMessage?: string | undefined;
+    /*
+     * Set by the resource AI agent's ingress for its ResourceCommand jobs:
+     * the job's resource type and program (payload.program). The output is
+     * then also run through the resource command redactor (docker inspect
+     * env values, Proxmox and govc secrets, database literals, Ceph keys)
+     * before the AI-job redaction, so a stored row never depends on the
+     * agent having redacted it first. Absent for every other job, whose
+     * text is stored exactly as before.
+     */
+    resourceCommand?:
+      | { resourceType: AiResourceType; program: string }
+      | undefined;
   }): Promise<boolean> {
     const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
       PostgresAppInstance.getDataSource();
@@ -1500,11 +2094,20 @@ export class Service extends DatabaseService<Model> {
      * redacted text for an AI-origin row and the verbatim text otherwise.
      */
     const redactedOutput: string | null =
-      rawOutput === null ? null : Service.redactAiJobText(rawOutput);
+      rawOutput === null
+        ? null
+        : Service.redactAiJobText(
+            Service.redactResourceCommandText(rawOutput, data.resourceCommand),
+          );
     const redactedErrorMessage: string | null =
       rawErrorMessage === null
         ? null
-        : Service.redactAiJobText(rawErrorMessage);
+        : Service.redactAiJobText(
+            Service.redactResourceCommandText(
+              rawErrorMessage,
+              data.resourceCommand,
+            ),
+          );
 
     /*
      * Only the agent that holds the lease is allowed to write the terminal
@@ -1594,6 +2197,9 @@ export class Service extends DatabaseService<Model> {
           origin: true,
           stepType: true,
           targetKubernetesAiAgentId: true,
+          // A resource command names its resource's AI agent.
+          targetResourceAiAgentId: true,
+          resourceType: true,
         },
         props: { isRoot: true },
       });
@@ -1641,6 +2247,7 @@ export class Service extends DatabaseService<Model> {
             claimTimeoutInMs: data.claimTimeoutInMs,
             executionTimeoutInMs: data.executionTimeoutInMs,
             isForKubernetesAiAgent: Boolean(job.targetKubernetesAiAgentId),
+            resourceType: job.resourceType,
           }),
         });
       }

@@ -1,4 +1,4 @@
-import { AddIncidentForms1796300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796300000000-AddIncidentForms";
+import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import IncidentForm from "../../../../Models/DatabaseModels/IncidentForm";
 import IncidentFormSubmission from "../../../../Models/DatabaseModels/IncidentFormSubmission";
@@ -32,8 +32,8 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  * is how the schema half was verified.
  */
 
-const OWN_CLASS_NAME: string = "AddIncidentForms1796300000000";
-const OWN_TIMESTAMP: number = 1796300000000;
+const OWN_CLASS_NAME: string = "AddIncidentForms1796400000000";
+const OWN_TIMESTAMP: number = 1796400000000;
 
 const FORM: string = "IncidentForm";
 const SUBMISSION: string = "IncidentFormSubmission";
@@ -49,7 +49,7 @@ const MIGRATION_PATH: string = path.join(
   "Infrastructure",
   "Postgres",
   "SchemaMigrations",
-  "1796300000000-AddIncidentForms.ts",
+  "1796400000000-AddIncidentForms.ts",
 );
 
 const namingStrategy: DefaultNamingStrategy = new DefaultNamingStrategy();
@@ -74,7 +74,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddIncidentForms1796300000000()[direction](queryRunner);
+  await new AddIncidentForms1796400000000()[direction](queryRunner);
 
   return statements;
 }
@@ -153,12 +153,12 @@ describe("AddIncidentForms migration - identity and registration", () => {
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
     expect(source).toContain(`public name: string = "${OWN_CLASS_NAME}";`);
-    expect(new AddIncidentForms1796300000000().name).toBe(OWN_CLASS_NAME);
+    expect(new AddIncidentForms1796400000000().name).toBe(OWN_CLASS_NAME);
     expect(timestampOfClassName(OWN_CLASS_NAME)).toBe(OWN_TIMESTAMP);
   });
 
   test("is registered exactly once", () => {
-    expect(SchemaMigrations).toContain(AddIncidentForms1796300000000);
+    expect(SchemaMigrations).toContain(AddIncidentForms1796400000000);
     expect(
       registeredNames.filter((name: string): boolean => {
         return name === OWN_CLASS_NAME;

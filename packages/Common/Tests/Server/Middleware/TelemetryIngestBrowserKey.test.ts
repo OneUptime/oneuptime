@@ -647,17 +647,21 @@ describe("TelemetryIngest browser ingestion key guard", () => {
 
     test("a browser key is refused 403 on every other surface, naming the surface and pointing at a server key", async () => {
       /*
-       * Ten infrastructure / build-time pipes plus the two identity
-       * registrations (the Kubernetes agent Runner and the Kubernetes AI
-       * agent), which mint cluster credentials and must never be reachable
-       * with a key scraped off a page.
+       * Ten infrastructure / build-time pipes plus the three identity
+       * registrations (the Kubernetes agent Runner, the Kubernetes AI agent
+       * and the resource AI agents), which mint cluster or infrastructure
+       * credentials and must never be reachable with a key scraped off a
+       * page.
        */
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(12);
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(13);
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.KubernetesAgentRunner,
       );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.KubernetesAiAgent,
+      );
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.ResourceAiAgent,
       );
 
       for (const surface of BROWSER_DISALLOWED_SURFACES) {
@@ -793,6 +797,60 @@ describe("TelemetryIngest browser ingestion key guard", () => {
       /*
        * The registration route records which ingestion key minted the
        * agent's key (KubernetesAiAgent.registeredWithIngestionKeyId) from
+       * exactly this.
+       */
+      expect((result.req as TelemetryRequest).ingestionKeyPolicy).toBe(policy);
+      expect(
+        (
+          result.req as TelemetryRequest
+        ).ingestionKeyPolicy.ingestionKeyId.toString(),
+      ).toBe(INGESTION_KEY_ID);
+    });
+  });
+
+  /*
+   * A resource AI agent (Docker, Podman, Docker Swarm, Proxmox, VMware,
+   * Ceph, a database server or a host) registers the same way and is handed
+   * the agent key every command for its resource is claimed with, so it is
+   * held to the same bar as the two Kubernetes registrations above.
+   */
+  describe("resource AI agent registration surface", () => {
+    test("a browser key is refused 403 even from an allowed origin", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [ALLOWED_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.ResourceAiAgent,
+        tokenHeaders({ origin: ALLOWED_ORIGIN }),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+
+      const error: Error = refusal();
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(
+        "A browser ingestion key cannot be used for infrastructure AI agent registration. Use a server ingestion key.",
+      );
+      expect((result.req as TelemetryRequest).projectId).toBeUndefined();
+    });
+
+    test("a server key is admitted and the resolved key policy (with its id) is put on the request", async () => {
+      const policy: TelemetryIngestionKeyPolicy = buildPolicy({});
+      resolveTo(policy);
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.ResourceAiAgent,
+        tokenHeaders(),
+      );
+
+      expect(Response.sendErrorResponse as MockFn).not.toHaveBeenCalled();
+      expect(result.next).toHaveBeenCalledTimes(1);
+      expect((result.req as TelemetryRequest).projectId.toString()).toBe(
+        PROJECT_ID,
+      );
+
+      /*
+       * The registration route records which ingestion key minted the
+       * agent's key (ResourceAiAgent.registeredWithIngestionKeyId) from
        * exactly this.
        */
       expect((result.req as TelemetryRequest).ingestionKeyPolicy).toBe(policy);

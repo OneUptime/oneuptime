@@ -22,10 +22,17 @@ import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import DatabaseConfig from "../DatabaseConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
   truncateLongText,
@@ -335,6 +342,15 @@ export interface FindOrCreateDatabaseServerByEndpointData {
    * its Created feed item says whether the Database Agent found it.
    */
   collector?: DatabaseServerCollectorReport | undefined;
+  /*
+   * False when the caller only looks the row up and saw no traffic or
+   * telemetry: a resource AI agent registering names its database's
+   * endpoint without being evidence the database is in use. The owner is
+   * then returned as it is: its endpoint's lastMatchedAt does not move, its
+   * engine is not weighed, and a row discovery archived stays archived.
+   * Defaults to true.
+   */
+  isSighting?: boolean | undefined;
 }
 
 export interface DatabaseServerCollectorReport {
@@ -488,6 +504,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * A create is held to the same AI access rules as an update, judged
+     * against the never-configured defaults a new database starts from: an
+     * unusable mode or allowlist is refused for every caller, root included,
+     * and the server-only aiAccess* columns for every caller but root (a
+     * master admin included, whom the create column ACLs never check). It
+     * looks nothing up, so it may run before the permission check.
+     */
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.DatabaseServer,
+      createBy,
+    });
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }
@@ -631,6 +660,60 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  /*
+   * Deleting a database server settles its in-flight AI remediation rounds and
+   * removes its resource AI agent — read before the delete, done after it for
+   * the database servers actually deleted (ResourceAiDeleteCleanup, shared by
+   * every resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.DatabaseServer,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.DatabaseServer,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this database — the rules every resource AI
+   * agent's resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.DatabaseServer,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -682,6 +765,34 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the database
+     * marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        databaseServerId: ObjectID,
+      ): Promise<string> => {
+        return this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await DatabaseServerFeedService.createDatabaseServerFeedItem({
+          databaseServerId: item.resourceId,
+          projectId: item.projectId,
+          databaseServerFeedEventType:
+            DatabaseServerFeedEventType.DatabaseServerUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
@@ -736,6 +847,10 @@ export class Service extends DatabaseService<Model> {
 
       if (ownerRow && this.isRetiredFor(ownerRow, data.discoverySource)) {
         return null;
+      }
+
+      if (data.isSighting === false) {
+        return ownerRow;
       }
 
       await DatabaseServerEndpointService.markEndpointMatched(owner);

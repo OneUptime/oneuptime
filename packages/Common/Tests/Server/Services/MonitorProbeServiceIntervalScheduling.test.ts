@@ -73,6 +73,7 @@ function minutesBetween(from: Date, to: Date): number {
 describe("claimMonitorProbesForProbing computes the schedule the customer asked for", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   describe("the production scenario", () => {
@@ -114,13 +115,51 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
       },
     );
 
-    test('a monitor storing "1 day" is scheduled for midnight, not a minute away', async () => {
-      const { nextPingAt, now } = await claimAndReadNextPingAt("1 day");
+    /*
+     * "1 day" means the next midnight, and on the real clock "more than a
+     * minute away" cannot tell that from the old one-minute fallback in the
+     * last minute of the day: at 23:59:14 the right answer IS under a minute
+     * away (this failed CI at exactly that time), and "+1 minute" lands on
+     * 00:00 too. So the clock is pinned - only Date, the harness's promises
+     * run as usual - once mid-day and once in that last minute, and the
+     * schedule must be the next midnight to the millisecond, which "+1
+     * minute" never is: it keeps the seconds.
+     */
+    test.each([
+      ["mid-day", new Date(2026, 8, 29, 10, 17, 42, 123)],
+      ["in the last minute of the day", new Date(2026, 8, 29, 23, 59, 14, 500)],
+    ])(
+      'a monitor storing "1 day" is scheduled for the next midnight, not a minute away (%s)',
+      async (_when: string, pinnedNow: Date) => {
+        jest.useFakeTimers({
+          now: pinnedNow,
+          doNotFake: [
+            "hrtime",
+            "nextTick",
+            "performance",
+            "queueMicrotask",
+            "requestAnimationFrame",
+            "cancelAnimationFrame",
+            "requestIdleCallback",
+            "cancelIdleCallback",
+            "setImmediate",
+            "clearImmediate",
+            "setInterval",
+            "clearInterval",
+            "setTimeout",
+            "clearTimeout",
+          ],
+        });
 
-      expect(nextPingAt.getHours()).toBe(0);
-      expect(nextPingAt.getMinutes()).toBe(0);
-      expect(minutesBetween(now, nextPingAt)).toBeGreaterThan(1);
-    });
+        const { nextPingAt, now } = await claimAndReadNextPingAt("1 day");
+
+        expect(now.getTime()).toBe(pinnedNow.getTime());
+        expect(nextPingAt.getTime()).toBe(
+          new Date(2026, 8, 30, 0, 0, 0, 0).getTime(),
+        );
+        expect(nextPingAt.getTime()).not.toBe(pinnedNow.getTime() + 60 * 1000);
+      },
+    );
   });
 
   describe("values that were always valid are unaffected", () => {

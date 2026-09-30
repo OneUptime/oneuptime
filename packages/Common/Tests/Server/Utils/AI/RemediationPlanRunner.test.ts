@@ -18,7 +18,9 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import ObjectID from "../../../../Types/ObjectID";
+import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -743,5 +745,120 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
     await RemediationPlanRunner.settleStrandedPlanningSuggestions();
 
     expect(feed).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A resource round (a Docker host's, a database server's, ...) is named
+   * by its resource on the feed, never as "Auto Remediation Rule ...";
+   * rule and cluster rounds read exactly as before.
+   */
+  describe("how the feed note names the stranded round", () => {
+    const RESOURCE_ID: ObjectID = new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    );
+
+    function resourceRound(
+      overrides: Partial<Record<string, unknown>> = {},
+    ): Partial<Record<string, unknown>> {
+      return {
+        autoRemediationRuleId: undefined,
+        ruleNameSnapshot: 'AI remediation for Docker host "web-1"',
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        resourceType: AiResourceType.DockerHost,
+        resourceId: RESOURCE_ID,
+        ...overrides,
+      };
+    }
+
+    async function settleAndReadFeed(): Promise<string> {
+      const feed: jest.SpyInstance = jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockResolvedValue(1 as never);
+
+      await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+      expect(feed).toHaveBeenCalledTimes(1);
+
+      return String(
+        (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+          .feedInfoInMarkdown,
+      );
+    }
+
+    it("reads the resource columns of the Planning rounds", async () => {
+      mockPlanningList();
+      mockRun({ status: AIRunStatus.Running });
+
+      await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+      const select: Record<string, unknown> = (
+        (AutoRemediationSuggestionService.findBy as unknown as jest.Mock).mock
+          .calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["resourceType"]).toBe(true);
+      expect(select["resourceId"]).toBe(true);
+    });
+
+    it("a resource round is named by its resource", async () => {
+      mockPlanningList(resourceRound());
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **AI remediation for Docker host "web-1": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
+
+    it("a resource round that had already run commands is named by its resource too", async () => {
+      mockPlanningList(
+        resourceRound({
+          commandPlan: {
+            commands: [
+              {
+                sequence: 1,
+                stepType: "ResourceCommand",
+                command: "docker restart web",
+                runnerId: RUN_ID.toString(),
+                resourceType: AiResourceType.DockerHost,
+                resourceId: RESOURCE_ID.toString(),
+                resourceNameSnapshot: "web-1",
+                policyVerdict: "AutoApproved",
+                rationale: "restart",
+                execution: { status: "Succeeded" },
+              },
+            ],
+          },
+        }),
+      );
+      mockRun({ status: AIRunStatus.Stale });
+
+      expect(await settleAndReadFeed()).toMatch(
+        /^⚡ \*\*AI remediation for Docker host "web-1": the AI command run was interrupted after executing 1 command\(s\)\.\*\*/,
+      );
+    });
+
+    it("negative control: a rule round keeps its rule label", async () => {
+      mockPlanningList();
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **Auto Remediation Rule "Restart API pods": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
+
+    it("negative control: a cluster round's note is unchanged", async () => {
+      mockPlanningList({
+        autoRemediationRuleId: undefined,
+        kubernetesClusterId: RULE_ID,
+        ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
+      });
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **Auto Remediation Rule "AI remediation for cluster "prod-us"": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+      );
+    });
   });
 });

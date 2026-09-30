@@ -162,6 +162,7 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
+import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
@@ -3857,6 +3858,15 @@ const BaseAPIFeatureSet: FeatureSet = {
      * CRUD router so these action routes win the match.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, KubernetesClusterAiAccessAPI);
+
+    /*
+     * Resource AI access — readiness checklist, "test connection", agent
+     * reset and insights for the AI pages of every resource a resource AI
+     * agent serves (Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph,
+     * database servers, hosts). Mounted before those resources' CRUD
+     * routers so these action routes win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ResourceAiAccessAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

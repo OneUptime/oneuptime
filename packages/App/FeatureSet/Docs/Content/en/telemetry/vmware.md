@@ -2,7 +2,7 @@
 
 ## Overview
 
-The OneUptime VMware Agent is a pre-configured OpenTelemetry Collector that monitors VMware vSphere — vCenter Server, ESXi hosts, virtual machines, datastores, clusters, resource pools, and vSAN. It is config-only: a stock `otel/opentelemetry-collector-contrib` container whose native [`vcenter` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) polls the vSphere SDK with a read-only user, stamps every metric with your vCenter identity, and forwards everything to OneUptime over OTLP. No exporter sidecar, no plugin on vCenter, no agent inside the VMs. One `.env` file, one `docker compose up`.
+The OneUptime VMware Agent is a pre-configured OpenTelemetry Collector that monitors VMware vSphere — vCenter Server, ESXi hosts, virtual machines, datastores, clusters, resource pools, and vSAN. It is config-only: a stock `otel/opentelemetry-collector-contrib` container whose native [`vcenter` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) polls the vSphere SDK with a read-only user, stamps every metric with your vCenter identity, and forwards everything to OneUptime over OTLP. No exporter sidecar, no plugin on vCenter, no agent inside the VMs. One `.env` file, one `docker compose up`. The same Compose file also runs the VMware AI agent beside the collector, for OneUptime AI — see [AI agent](#ai-agent).
 
 One agent monitors one vSphere endpoint — a **vCenter Server** (the normal case, covering every datacenter, cluster, and host it manages) or a **standalone ESXi host** that is not managed by a vCenter. Run one agent per vCenter.
 
@@ -53,7 +53,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VM
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion token, a stable vCenter name, the vCenter endpoint, and the read-only credentials (the password is read without echo), installs to `/opt/oneuptime-vmware-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, so a password containing `$`, `#`, spaces or quotes works exactly as typed, and re-running the script reuses everything in an existing `.env` instead of prompting again.
+The script prompts for your OneUptime URL, telemetry ingestion token, a stable vCenter name, the vCenter endpoint, and the read-only credentials (the password is read without echo), and whether the AI agent may apply fixes (if so, for a vSphere user of its own and the VMs it must never change), installs to `/opt/oneuptime-vmware-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, so a password containing `$`, `#`, spaces or quotes works exactly as typed, and re-running the script reuses everything in an existing `.env` instead of prompting again.
 
 ## Alternative — Docker Compose
 
@@ -230,7 +230,7 @@ cd /opt/oneuptime-vmware-agent
 docker compose down
 ```
 
-Then remove the `oneuptime` user's permission in vCenter if you no longer need it.
+Then remove the `oneuptime` user's permission in vCenter if you no longer need it, and the AI agent's own user if you created one.
 
 ## Self-hosted OneUptime
 
@@ -297,6 +297,17 @@ OneUptime auto-registers vCenters by `vmware.vcenter.name`, taken from the `VMWA
 ### Sending metrics without the agent
 
 There is no native OTLP push in vSphere — vCenter does not export OpenTelemetry on its own, so the agent (or any OpenTelemetry Collector with the `vcenter` receiver) is the way in. If you already run a collector fleet, you can add the `vcenter` receiver to it instead of running this agent: copy the `vcenter` receiver block and the `resource` processor from the shipped `otel-collector-config.yaml` into your own config. The `vmware.vcenter.name` resource attribute is what registers the vCenter in OneUptime, and the `service.name` / `service.instance.id` deletes keep the data from being routed to a phantom Service — keep both.
+
+## AI agent
+
+The agent's `docker-compose.yml` also runs the **VMware AI agent**, `oneuptime-vmware-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this vCenter it runs read-only `govc` commands through it — `govc vm.info web-01`, `govc events -n 50 /DC/vm/web-01`, `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average` — and, only if you allow it, applies fixes such as powering a VM back on. It registers as the vCenter named `VMWARE_VCENTER_NAME`, like the collector, and shows up on the vCenter's **AI → AI agent** page in OneUptime.
+
+- **The vSphere role is the hard limit.** Investigations log in as the collector's **Read-Only** user (`VCENTER_USERNAME` / `VCENTER_PASSWORD`), which can read and nothing else. Fixes need a user of the AI agent's own whose role may power VMs on, off and reset them (`VirtualMachine.Interact.PowerOn`, `PowerOff` and `Reset`), granted only on the folders AI may fix and set as `ONEUPTIME_AI_VCENTER_USERNAME` / `ONEUPTIME_AI_VCENTER_PASSWORD`.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (VM and host names or inventory paths) limits what a fix may touch. It never changes the VM named after the host in `VCENTER_ENDPOINT` — normally the vCenter appliance — and knows the appliance by that name only: when `VCENTER_ENDPOINT` is an IP address, or the appliance's VM has another name, put that VM in `ONEUPTIME_AI_PROTECTED_TARGETS`, with the VM the agent runs on. Then choose on the AI agent page whether each fix needs a person's approval.
+- To verify vCenter's certificate instead of skipping verification, mount its CA into the container and set `VCENTER_CA_FILE`; on a vCenter with several datacenters, set `GOVC_DATACENTER`.
+- It runs as UID 1000 with no capabilities, and never runs guest operations, snapshots, `esxcli` or anything that creates or destroys a VM. Delete the `oneuptime-vmware-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#vmware-vcenter). The agent's README has the exact commands for the fixes role.
 
 ## Next steps
 

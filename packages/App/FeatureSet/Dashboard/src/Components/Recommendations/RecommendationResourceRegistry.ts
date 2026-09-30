@@ -106,6 +106,28 @@ export interface RecommendationResourceDefinition {
 }
 
 /*
+ * A RUM application's monthly budget as the catalog reads it: a finite number
+ * above 0, or null for none. The column is numeric, but JSON off the wire is
+ * not type checked, so a numeric string counts too ("10" is a budget of 10);
+ * blank, 0, a negative, NaN and anything that is not a number are no budget.
+ */
+function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
+  let budgetInGB: number | null = null;
+
+  if (typeof value === "number") {
+    budgetInGB = value;
+  } else if (typeof value === "string" && value.trim().length > 0) {
+    budgetInGB = Number(value);
+  }
+
+  if (budgetInGB === null || !Number.isFinite(budgetInGB) || budgetInGB <= 0) {
+    return null;
+  }
+
+  return budgetInGB;
+}
+
+/*
  * Which column each resource type scopes its monitors by, and why they differ:
  *
  *   Kubernetes  clusterIdentifier  agent-reported, stable across renames
@@ -187,17 +209,106 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },
+  /*
+   * A RUM application is offered the same recommendations as every other
+   * one, except its session replay storage budget alerts: the budget sweep
+   * only writes the series they watch for an application that has session
+   * replay on and has recorded at least one replay, and the monthly series
+   * only while it has a monthly budget (see `getRumAlertTemplates`). These
+   * three columns are that, and each is readable by exactly the roles that
+   * can read `name` — a context column a viewer cannot read would fail
+   * `ModelAPI.getItem` for them, and the page would show an error instead
+   * of any recommendation.
+   *
+   * The project's own switch (`Project.isSessionReplayAllowed`), which the
+   * sweep also requires, is not read: context columns are this row's own. A
+   * project that turns replay off simply stops the series, which resolves
+   * any open budget alert.
+   */
   {
     resourceType: MonitorRecommendationResourceType.RumApplication,
     modelType: RumApplication,
     identifierFieldName: "_id",
     displayNameFieldName: "name",
+    contextFieldNames: [
+      "isSessionReplayEnabled",
+      "sessionReplayLastChunkReceivedAt",
+      "sessionReplayMonthlyBudgetInGB",
+    ],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const record: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      const isSessionReplayEnabled: unknown = record["isSessionReplayEnabled"];
+      const lastChunkReceivedAt: unknown =
+        record["sessionReplayLastChunkReceivedAt"];
+
+      return {
+        // Anything but a boolean is "not known", which withholds.
+        sessionReplayEnabled:
+          typeof isSessionReplayEnabled === "boolean"
+            ? isSessionReplayEnabled
+            : null,
+        /*
+         * The API hands a Date column back as a Date or as its JSON string,
+         * depending on the path; either means a replay was accepted.
+         * Anything else — null, undefined, an empty string — means never.
+         */
+        sessionReplayHasRecorded:
+          lastChunkReceivedAt instanceof Date ||
+          (typeof lastChunkReceivedAt === "string" &&
+            lastChunkReceivedAt.trim().length > 0),
+        sessionReplayMonthlyBudgetInGB: readSessionReplayMonthlyBudgetInGB(
+          record["sessionReplayMonthlyBudgetInGB"],
+        ),
+      };
+    },
+    /*
+     * Only the states where the application uses session replay and still
+     * misses some of the budget alerts get a note. An application that never
+     * used replay hears nothing about it, and one offered everything needs no
+     * explanation.
+     */
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      const isEnabled: boolean = context.sessionReplayEnabled === true;
+      const hasRecorded: boolean = context.sessionReplayHasRecorded === true;
+      const hasBudget: boolean =
+        readSessionReplayMonthlyBudgetInGB(
+          context.sessionReplayMonthlyBudgetInGB,
+        ) !== null;
+
+      if (isEnabled && hasRecorded && !hasBudget) {
+        return "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
+      }
+
+      if (context.sessionReplayEnabled === false && hasRecorded) {
+        return "Session replay is off for this application, so its storage budget alerts are not offered. Turn it back on under Replay Policy and they appear here.";
+      }
+
+      /*
+       * Switching replay on is not enough on its own here: the series only
+       * exists once the application has recorded.
+       */
+      if (context.sessionReplayEnabled === false && hasBudget) {
+        return "Session replay is off for this application, so its storage budget alerts are not offered. Turn it on under Replay Policy and they appear here once it records its first replay.";
+      }
+
+      if (isEnabled && !hasRecorded && hasBudget) {
+        return "The session replay budget alerts appear here once this application records its first replay.";
+      }
+
+      return undefined;
+    },
   },
   /*
-   * The only row with a context reader. A service's recommendations depend on
-   * the runtime it is written in, and these three columns are the only
-   * evidence of that OneUptime has — in descending order of trust, which is
-   * the order `detectServiceLanguage` consults them in.
+   * A service's recommendations depend on the runtime it is written in, and
+   * these three columns are the only evidence of that OneUptime has — in
+   * descending order of trust, which is the order `detectServiceLanguage`
+   * consults them in.
    *
    * `serviceLanguage` is deliberately NOT among them despite the name: it is
    * marked deprecated on the model, carries no `@ColumnAccessControl`

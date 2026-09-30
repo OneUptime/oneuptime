@@ -2,6 +2,7 @@ import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
 import KubernetesAiAgent from "./KubernetesAiAgent";
+import ResourceAiAgent from "./ResourceAiAgent";
 import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
@@ -914,6 +915,7 @@ const AllModelTypes: Array<{
 
   KubernetesCluster,
   KubernetesAiAgent,
+  ResourceAiAgent,
   KubernetesClusterOwnerTeam,
   KubernetesClusterOwnerUser,
   KubernetesResource,

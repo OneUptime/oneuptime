@@ -54,7 +54,25 @@ import RunnerService from "../Services/RunnerService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import CommandPlanExecutor from "../Utils/AutoRemediation/CommandPlanExecutor";
 import RemediationCommandToolkit from "../Utils/AI/Remediation/RemediationCommandTools";
-import { isClusterRemediationRound } from "../Utils/AI/Remediation/RemediationExecutionRunner";
+import {
+  isClusterRemediationRound,
+  isResourceRemediationRound,
+} from "../Utils/AI/Remediation/RemediationExecutionRunner";
+import ResourceAiAccessService, {
+  describeResourceNoun,
+  getResourceAiAgentPage,
+} from "../Services/ResourceAiAccessService";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  isAiResourceType,
+} from "../../Types/ResourceAiAgent/AiResourceType";
+import {
+  ResourceAiAccessGap,
+  ResourceAiAccessStatus,
+  ResourceCommandTier,
+} from "../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import logger from "../Utils/Logger";
 
 const router: ExpressRouter = Express.getRouter();
@@ -398,6 +416,329 @@ function assertNotHostStepOnKubernetesAgent(data: {
   }
 }
 
+/*
+ * ------------------------------------------------------------------
+ * Resource commands (a Docker or Podman host, a Docker Swarm, Proxmox,
+ * VMware or Ceph cluster, a database server or a host, reached through its
+ * resource AI agent)
+ * ------------------------------------------------------------------
+ */
+
+// One approval reads each resource's AI access status at most once.
+type ResourceStatusCache = Map<string, ResourceAiAccessStatus | null>;
+
+function getResourceStatusKey(
+  resourceType: AiResourceType,
+  resourceId: string,
+): string {
+  return `${resourceType}:${resourceId.toLowerCase()}`;
+}
+
+async function getResourceStatusOnce(data: {
+  resourceType: AiResourceType;
+  resourceId: string;
+  projectId: ObjectID;
+  statusByResourceKey: ResourceStatusCache;
+}): Promise<ResourceAiAccessStatus | null> {
+  const key: string = getResourceStatusKey(data.resourceType, data.resourceId);
+
+  if (data.statusByResourceKey.has(key)) {
+    return data.statusByResourceKey.get(key) || null;
+  }
+
+  const status: ResourceAiAccessStatus | null =
+    await ResourceAiAccessService.getStatusForResource({
+      projectId: data.projectId,
+      resourceType: data.resourceType,
+      resourceId: new ObjectID(data.resourceId),
+    });
+
+  data.statusByResourceKey.set(key, status);
+
+  return status;
+}
+
+// 'Docker host "web-1"' — a resource command's resource, from its snapshot.
+function describeCommandResource(command: AiRemediationCommand): string {
+  return `${
+    isAiResourceType(command.resourceType)
+      ? describeResourceNoun(command.resourceType)
+      : "resource"
+  } "${command.resourceNameSnapshot || command.resourceId || "(unknown)"}"`;
+}
+
+/*
+ * The resource AI agent's side of the Runner consent re-check — the
+ * resource sibling of assertAiAgentCanRunPlan. A ResourceCommand step names
+ * its resource's AI agent (a ResourceAiAgent row id) where a Runner id
+ * would be. The agent is not a Runner row, so there is no canRunAiCommands
+ * flag to re-read: its consent is ONEUPTIME_AI_ALLOW_WRITES on the agent
+ * and the resource's own Fixes mode. What can have changed is whether it is
+ * still the resource's agent and connected, and it only ever runs
+ * ResourceCommand steps for its one resource — so any other step aimed at
+ * it, or a step for another resource, fails the click.
+ */
+async function assertResourceAgentCanRunPlan(data: {
+  plan: AiRemediationCommandPlan;
+  runnerId: string;
+  projectId: ObjectID;
+  statusByResourceKey: ResourceStatusCache;
+}): Promise<void> {
+  const commands: Array<AiRemediationCommand> = data.plan.commands.filter(
+    (command: AiRemediationCommand): boolean => {
+      return command.runnerId === data.runnerId;
+    },
+  );
+
+  const first: AiRemediationCommand | undefined = commands.find(
+    (command: AiRemediationCommand): boolean => {
+      return command.stepType === RunbookStepType.ResourceCommand;
+    },
+  );
+
+  if (!first) {
+    return;
+  }
+
+  const agentName: string = isAiResourceType(first.resourceType)
+    ? AI_RESOURCE_TYPE_INFO[first.resourceType].agentDisplayName
+    : "resource's AI agent";
+
+  const otherStep: AiRemediationCommand | undefined = commands.find(
+    (command: AiRemediationCommand): boolean => {
+      return command.stepType !== RunbookStepType.ResourceCommand;
+    },
+  );
+
+  if (otherStep) {
+    throw new BadDataException(
+      `Command ${otherStep.sequence} is a ${otherStep.stepType} step on the ${agentName} of ${describeCommandResource(
+        first,
+      )}, which runs only ResourceCommand steps. The plan cannot be run — dismiss it and let a new suggestion be composed.`,
+    );
+  }
+
+  const otherResource: AiRemediationCommand | undefined = commands.find(
+    (command: AiRemediationCommand): boolean => {
+      return (
+        command.resourceType !== first.resourceType ||
+        (command.resourceId || "").toLowerCase() !==
+          (first.resourceId || "").toLowerCase()
+      );
+    },
+  );
+
+  if (otherResource) {
+    throw new BadDataException(
+      `Command ${otherResource.sequence} names a different resource than the ${agentName} it is sent to serves. The plan cannot be run — dismiss it and let a new suggestion be composed.`,
+    );
+  }
+
+  if (
+    !isAiResourceType(first.resourceType) ||
+    !first.resourceId ||
+    !ObjectID.isValidUUID(first.resourceId)
+  ) {
+    throw new BadDataException(
+      `Command ${first.sequence} is a resource command with no valid resource, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+    );
+  }
+
+  const status: ResourceAiAccessStatus | null = await getResourceStatusOnce({
+    resourceType: first.resourceType,
+    resourceId: first.resourceId,
+    projectId: data.projectId,
+    statusByResourceKey: data.statusByResourceKey,
+  });
+
+  if (!status) {
+    throw new BadDataException(
+      `${describeCommandResource(first)} (command ${first.sequence}) no longer exists in this project, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+    );
+  }
+
+  const label: string = `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
+
+  if (!status.agent || status.agent.agentId !== data.runnerId) {
+    throw new BadDataException(
+      `${label.charAt(0).toUpperCase()}${label.slice(1)} (command ${first.sequence}) is no longer reached through the ${agentName} this plan was composed for (the agent was reset or replaced). Dismiss the suggestion and let a new plan be composed for the current agent.`,
+    );
+  }
+
+  if (!status.agent.isOnline) {
+    throw new BadDataException(
+      `The ${agentName} of ${label} is offline, so this plan cannot be run. Check the agent on ${getResourceAiAgentPage(
+        status.resourceType,
+      )} and approve again, or dismiss the suggestion.`,
+    );
+  }
+}
+
+/*
+ * Approval-time re-check of every ResourceCommand step — the resource
+ * sibling of assertKubectlCommandsStillRunnable. The resource must still
+ * exist and be remediation-ready (fixes on, agent online and allowed to
+ * write, the project switches), be reached through the agent the plan was
+ * composed for, and every command and its rollback must still pass the
+ * resource command policy and the agent's reported write scope. The
+ * executor hard-stops on the same conditions right before each command
+ * runs — this makes the click fail up front, with the reason and the next
+ * step, instead of claiming the plan and stopping one command in.
+ */
+async function assertResourceCommandsStillRunnable(data: {
+  plan: AiRemediationCommandPlan;
+  projectId: ObjectID;
+  statusByResourceKey: ResourceStatusCache;
+}): Promise<void> {
+  for (const command of data.plan.commands) {
+    if (command.stepType !== RunbookStepType.ResourceCommand) {
+      continue;
+    }
+
+    if (
+      !isAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId)
+    ) {
+      throw new BadDataException(
+        `Command ${command.sequence} is a resource command with no valid resource, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+      );
+    }
+
+    const status: ResourceAiAccessStatus | null = await getResourceStatusOnce({
+      resourceType: command.resourceType,
+      resourceId: command.resourceId,
+      projectId: data.projectId,
+      statusByResourceKey: data.statusByResourceKey,
+    });
+
+    if (!status) {
+      throw new BadDataException(
+        `${describeCommandResource(command)} (command ${command.sequence}) no longer exists in this project, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+      );
+    }
+
+    const noun: string = describeResourceNoun(status.resourceType);
+    const label: string = `${noun} "${status.resourceName}"`;
+    const capitalizedLabel: string = `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+    const agentName: string =
+      AI_RESOURCE_TYPE_INFO[status.resourceType].agentDisplayName;
+
+    if (!status.isRemediationReady) {
+      const gap: ResourceAiAccessGap | undefined = status.gaps.find(
+        (candidate: ResourceAiAccessGap): boolean => {
+          return candidate.blocksRemediation;
+        },
+      );
+
+      throw new BadDataException(
+        `${capitalizedLabel} (command ${command.sequence}) no longer allows AI remediation${
+          gap ? `: ${gap.title} — ${gap.nextStep}` : ""
+        }. Fix that on ${getResourceAiAgentPage(
+          status.resourceType,
+        )} and approve again, or dismiss the suggestion.`,
+      );
+    }
+
+    if (!status.agent || status.agent.agentId !== command.runnerId) {
+      throw new BadDataException(
+        `${capitalizedLabel} (command ${command.sequence}) is no longer reached through the ${agentName} this plan was composed for (the agent was reset or replaced). Dismiss the suggestion and let a new plan be composed for the current agent.`,
+      );
+    }
+
+    /*
+     * The command and its rollback, re-checked live: the policy (a command
+     * the policy denies now never runs, whoever approves it) and the
+     * agent's write scope as it reports it now — a rollback it would refuse
+     * would otherwise only surface when verification fails and the change
+     * has to be undone.
+     */
+    const parts: Array<{ label: string; text: string | undefined }> = [
+      { label: "", text: command.command },
+      { label: "'s rollback", text: command.rollbackCommand },
+    ];
+
+    for (const part of parts) {
+      if (!part.text) {
+        continue;
+      }
+
+      const policy: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateCommand({
+          resourceType: status.resourceType,
+          command: part.text,
+        });
+
+      if (policy.tier === ResourceCommandTier.Denied) {
+        throw new BadDataException(
+          `Command ${command.sequence}${part.label} is denied by the ${
+            AI_RESOURCE_TYPE_INFO[status.resourceType].displayName
+          } command policy (${policy.reason}), so it can never run. Nothing ran. Dismiss the suggestion and let a new plan be composed.`,
+        );
+      }
+
+      const scopeRefusal: string | null =
+        RemediationCommandToolkit.getResourceWriteScopeRefusal({
+          resource: status,
+          command: part.text,
+        });
+
+      if (scopeRefusal) {
+        throw new BadDataException(
+          `Command ${command.sequence}${part.label} cannot run on ${label}: ${scopeRefusal} Nothing ran. ${RemediationCommandToolkit.getResourceScopeRefusalNextStep(
+            status.resourceType,
+          )}`,
+        );
+      }
+    }
+  }
+}
+
+/*
+ * Approving a resource command runs it on the resource as root, so the
+ * approver must be someone who may edit that resource — its update ACL,
+ * label-scoped blocks included — not merely someone who may start runbooks
+ * in the project. Each resource is checked once, however many commands
+ * target it. Called after assertResourceCommandsStillRunnable, which has
+ * already refused a command with no valid resource.
+ */
+async function assertApproverMayChangeResources(data: {
+  plan: AiRemediationCommandPlan;
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+}): Promise<void> {
+  const checked: Set<string> = new Set<string>();
+
+  for (const command of data.plan.commands) {
+    if (
+      command.stepType !== RunbookStepType.ResourceCommand ||
+      !isAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId)
+    ) {
+      continue;
+    }
+
+    const key: string = getResourceStatusKey(
+      command.resourceType,
+      command.resourceId,
+    );
+
+    if (checked.has(key)) {
+      continue;
+    }
+
+    checked.add(key);
+
+    await ResourceAiAccessService.assertCallerMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      resourceType: command.resourceType,
+      resourceId: new ObjectID(command.resourceId),
+    });
+  }
+}
+
 async function loadSuggestionAsRoot(
   suggestionId: ObjectID,
 ): Promise<AutoRemediationSuggestion> {
@@ -423,6 +764,9 @@ async function loadSuggestionAsRoot(
          */
         kubernetesClusterId: true,
         autoRemediationRuleId: true,
+        // A resource round (a resource, no rule) needs no opt-in either.
+        resourceType: true,
+        resourceId: true,
       },
       props: { isRoot: true },
     });
@@ -543,6 +887,7 @@ router.post(
 
         if (
           !isClusterRemediationRound(suggestion) &&
+          !isResourceRemediationRound(suggestion) &&
           project.enableAiCommandExecution !== true
         ) {
           throw new BadDataException(
@@ -578,6 +923,11 @@ router.post(
           KubernetesClusterAiAccessStatus | null
         >();
 
+        const statusByResourceKey: ResourceStatusCache = new Map<
+          string,
+          ResourceAiAccessStatus | null
+        >();
+
         for (const runnerId of runnerIds) {
           /*
            * A kubectl command composed for a cluster's Kubernetes AI agent
@@ -599,6 +949,29 @@ router.post(
               plan,
               runnerId,
               status: aiAgentStatus,
+            });
+            continue;
+          }
+
+          /*
+           * A ResourceCommand step names its resource's AI agent the same
+           * way; that agent is not a Runner row either, so it is recognised
+           * from the resource's status and must be its current, connected
+           * agent.
+           */
+          if (
+            plan.commands.some((command: AiRemediationCommand): boolean => {
+              return (
+                command.stepType === RunbookStepType.ResourceCommand &&
+                command.runnerId === runnerId
+              );
+            })
+          ) {
+            await assertResourceAgentCanRunPlan({
+              plan,
+              runnerId,
+              projectId: suggestion.projectId,
+              statusByResourceKey,
             });
             continue;
           }
@@ -636,6 +1009,24 @@ router.post(
           plan,
           projectId: suggestion.projectId,
           statusByClusterId,
+        });
+
+        // And for every resource command: its resource, as it is now.
+        await assertResourceCommandsStillRunnable({
+          plan,
+          projectId: suggestion.projectId,
+          statusByResourceKey,
+        });
+
+        /*
+         * And the approver may change every resource the plan changes: the
+         * plan runs as root on the resource, so this is where the
+         * resource's own edit ACL (with its label scope) applies.
+         */
+        await assertApproverMayChangeResources({
+          plan,
+          props,
+          projectId: suggestion.projectId,
         });
 
         const claimedPlan: number =

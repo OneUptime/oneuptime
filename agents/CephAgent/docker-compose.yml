@@ -24,3 +24,75 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The Ceph AI agent: runs the ceph commands OneUptime AI asks for while it
+  # investigates an incident or alert on this cluster (ceph status, health
+  # detail, osd tree, ...) — read-only unless you set
+  # ONEUPTIME_AI_ALLOW_WRITES=true in .env. It connects as its OWN Ceph client
+  # (client.oneuptime-ai) with the ceph.conf and keyring in ./ceph next to
+  # this file (OneUptime never sends it any credential), so that client's
+  # caps are the hard limit: with read caps (mon 'allow r' mgr 'allow r'
+  # osd 'allow r') nothing can change the cluster, whatever the agent's
+  # settings. It registers as the cluster named CEPH_CLUSTER_NAME, exactly
+  # like the collector above, and shows up on that cluster's AI -> AI agent
+  # page. See README.md ("OneUptime AI agent"). Remove this service if you do
+  # not use OneUptime AI.
+  oneuptime-ceph-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-ceph-ai-agent
+    # It only talks to the Ceph daemons and to OneUptime: no root, no
+    # capabilities, a read-only root filesystem, and its private
+    # per-command directories on a tmpfs.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # ./ceph holds the cluster's minimal ceph.conf (ceph config
+    # generate-minimal-conf) and client.oneuptime-ai's keyring,
+    # ceph.client.oneuptime-ai.keyring — owned by UID 1000 with mode 600,
+    # since the agent runs as UID 1000. Never put the admin keyring there.
+    volumes:
+      - ./ceph:/etc/ceph:ro
+    # The agent connects OUT to the monitors in ceph.conf's mon_host (TCP 3300
+    # and 6789) and to the mgr and OSD daemons (TCP 6800-7300), which Docker's
+    # default network reaches whenever this machine does. If mon_host names
+    # addresses only this host itself reaches (127.0.0.1 on a monitor host),
+    # uncomment to share the host's network — the agent's status port 3877 is
+    # then taken on the host's 127.0.0.1 (set PORT in environment to move it).
+    # network_mode: host
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=ceph
+      # Must match the collector's, so the agent serves the same cluster.
+      - CEPH_CLUSTER_NAME=${CEPH_CLUSTER_NAME:-ceph}
+      # The Ceph client the agent connects as, without "client.". Its keyring
+      # is ./ceph/ceph.client.<CEPH_CLIENT_ID>.keyring.
+      - CEPH_CLIENT_ID=${CEPH_CLIENT_ID:-oneuptime-ai}
+      # Read-only unless exactly "true". Then fixes may touch only the OSDs,
+      # pools, PGs and daemons ONEUPTIME_AI_WRITE_TARGETS matches (all when
+      # empty; "cluster" for cluster-wide flags such as noout), and never
+      # ONEUPTIME_AI_PROTECTED_TARGETS — and only what the client's caps allow.
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides CEPH_CLUSTER_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3877/status/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

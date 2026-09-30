@@ -596,6 +596,83 @@ describe("MonitorRecommendations scopes dismissals to the resource row", () => {
 });
 
 /*
+ * `?search=` seeds the search box and `?status=` the status filter, so
+ * another page can link straight to a slice of the list: the Replay Health
+ * page's "Set up alerts" opens a RUM application's Recommendations on
+ * `?search=budget&status=All`, its session replay storage budget alerts
+ * whether or not they exist yet. Unseeded, that link still lands on a page
+ * that works - the whole list under an empty box - so nothing else would
+ * fail.
+ */
+describe("MonitorRecommendations seeds its search and status from the URL", () => {
+  const PAGE_CODE: string = readCode(
+    "Components",
+    "Recommendations",
+    "MonitorRecommendations.tsx",
+  );
+
+  const initialFilterState: string = PAGE_CODE.split(
+    "useState<RecommendationFilterState>(",
+  )[1]!.split("const [onCallPolicyDropdownOptions")[0]!;
+
+  test("the page reads ?search= and ?status= through the house Navigation util", () => {
+    expect(PAGE_CODE).toContain(
+      'import Navigation from "Common/UI/Utils/Navigation";',
+    );
+    expect(initialFilterState).toContain(
+      squash('searchText: Navigation.getQueryStringByName("search") || "",'),
+    );
+    expect(initialFilterState).toContain(
+      squash(
+        'const statusFromUrl: string | null = Navigation.getQueryStringByName("status");',
+      ),
+    );
+  });
+
+  test("the URL is read lazily, for the first render only", () => {
+    // A lazy initializer: re-renders do not read the URL again.
+    expect(initialFilterState.trimStart()).toMatch(
+      /^\(\): RecommendationFilterState => \{/,
+    );
+    // Two reads - search and status - in the initial state and nowhere else.
+    expect(PAGE_CODE.split("Navigation.getQueryStringByName(").length - 1).toBe(
+      2,
+    );
+    expect(
+      initialFilterState.split("Navigation.getQueryStringByName(").length - 1,
+    ).toBe(2);
+  });
+
+  test("status takes only a filter the page knows, and otherwise opens where it always did", () => {
+    expect(initialFilterState).toContain(
+      squash(
+        "status: Object.values(RecommendationStatusFilter).includes( statusFromUrl as RecommendationStatusFilter, ) ? (statusFromUrl as RecommendationStatusFilter) : RecommendationStatusFilter.Available,",
+      ),
+    );
+    expect(initialFilterState).toContain(
+      "severity: RecommendationSeverityFilter.All,",
+    );
+  });
+
+  test("the seeded text is what the box shows and what the list is filtered by", () => {
+    const toolbar: string = readCode(
+      "Components",
+      "Recommendations",
+      "RecommendationToolbar.tsx",
+    );
+
+    // A box that did not show the seeded word would hide why cards are missing.
+    expect(toolbar).toContain("value={props.filterState.searchText}");
+    expect(PAGE_CODE).toContain("filterState={filterState}");
+    expect(PAGE_CODE).toContain(
+      squash(
+        "RecommendationFilterUtil.filter({ viewModels: viewModels, filterState: filterState, })",
+      ),
+    );
+  });
+});
+
+/*
  * Every shipped template sets both createIncidents and createAlerts, so an
  * untouched batch opens two records and two notification fan-outs for one
  * threshold breach. The create form exists to let the user say otherwise, and

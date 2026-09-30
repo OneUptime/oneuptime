@@ -157,6 +157,8 @@ export default class RemediationVerifier {
           ruleNameSnapshot: true,
           runbookNameSnapshot: true,
           kubernetesClusterId: true,
+          resourceType: true,
+          resourceId: true,
         },
         limit: 100,
         skip: 0,
@@ -292,7 +294,19 @@ export default class RemediationVerifier {
       }
     }
 
-    if (!suggestion.kubernetesClusterId || !suggestion.projectId) {
+    /*
+     * A resource round (its suggestion names a resource, never a cluster)
+     * gets the same follow-up on its resource, on the same terms.
+     */
+    const isResourceRound: boolean =
+      !suggestion.kubernetesClusterId &&
+      Boolean(suggestion.resourceType) &&
+      Boolean(suggestion.resourceId);
+
+    if (
+      (!suggestion.kubernetesClusterId && !isResourceRound) ||
+      !suggestion.projectId
+    ) {
       return;
     }
 
@@ -306,9 +320,24 @@ export default class RemediationVerifier {
     const rollbackIncomplete: boolean =
       rollback.rollbackStatus === AiRemediationRollbackStatus.Failed;
 
+    if (isResourceRound) {
+      await AutoRemediationRuleEngineService.startFollowUpResourceRemediation({
+        projectId: suggestion.projectId,
+        resourceType: suggestion.resourceType!,
+        resourceId: suggestion.resourceId!,
+        incidentId: suggestion.incidentId,
+        alertId: suggestion.alertId,
+        forceSuggest: rollbackIncomplete ? true : undefined,
+        forceSuggestReason: rollbackIncomplete
+          ? "the previous fix's rollback did not complete, so its change may still be applied"
+          : undefined,
+      });
+      return;
+    }
+
     await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
       projectId: suggestion.projectId,
-      kubernetesClusterId: suggestion.kubernetesClusterId,
+      kubernetesClusterId: suggestion.kubernetesClusterId!,
       incidentId: suggestion.incidentId,
       alertId: suggestion.alertId,
       forceSuggest: rollbackIncomplete ? true : undefined,
@@ -371,6 +400,8 @@ export default class RemediationVerifier {
           verificationNote: true,
           ruleNameSnapshot: true,
           kubernetesClusterId: true,
+          resourceType: true,
+          resourceId: true,
         },
         sort: { verificationCompletedAt: SortOrder.Ascending },
         limit: ROLLBACK_RESUME_BATCH_SIZE,
@@ -485,6 +516,8 @@ export default class RemediationVerifier {
             verificationNote: true,
             ruleNameSnapshot: true,
             kubernetesClusterId: true,
+            resourceType: true,
+            resourceId: true,
           },
           props: { isRoot: true },
         });
