@@ -677,6 +677,14 @@ html.dark :is(
   background-color: rgb(49 46 129 / 35%);
 }
 
+/*
+ * The same wash painted on a row's ::before, which reaches past the row's
+ * text without moving the row (the AI investigation's evidence rows).
+ */
+html.dark [class~="before:bg-indigo-50/70"]::before {
+  background-color: rgb(49 46 129 / 35%);
+}
+
 html.dark :is(.bg-violet-50, .bg-violet-100, [class~="bg-violet-50/40"]) {
   background-color: rgb(76 29 149 / 32%);
 }

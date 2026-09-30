@@ -213,6 +213,17 @@ const roleMode = ["alert-member", "loading"].includes(params.get("role"))
 const resourcesMode = ["many", "none"].includes(params.get("resources"))
   ? params.get("resources")
   : "default";
+/*
+ * Which Kubernetes clusters the investigation payload's clusterAccess lists
+ * (what OneUptime AI can reach with kubectl now): none (the default, and
+ * what a signal with no cluster gets), one it can reach, one it cannot, or
+ * both.
+ */
+const clustersMode = ["reachable", "unreachable", "mixed"].includes(
+  params.get("clusters"),
+)
+  ? params.get("clusters")
+  : "none";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -274,6 +285,7 @@ const ID = {
   host: (number) => uuid("84000000", number),
   kubernetesCluster: (number) => uuid("85000000", number),
   slo: (number) => uuid("86000000", number),
+  cluster: (number) => uuid("83000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -301,6 +313,7 @@ const fixture = {
     fail: Array.from(failures),
     role: roleMode,
     resources: resourcesMode,
+    clusters: clustersMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -2696,6 +2709,63 @@ function buildEvents(investigation, options) {
   return events;
 }
 
+/*
+ * The payload's clusterAccess rows, shaped like the server's
+ * KubernetesClusterAiAccessStatus as every reader of the signal receives
+ * it. The unreachable cluster's gaps use the server's own wording, with the
+ * AI agent's install command shortened to one line.
+ */
+function clusterAccessRows() {
+  const evaluatedAt = iso(NOW);
+  const reachable = {
+    clusterId: ID.cluster(1),
+    clusterName: "prod-eu-west-1",
+    isInvestigationReady: true,
+    isRemediationReady: true,
+    remediationMode: "RequireApproval",
+    gaps: [],
+    evaluatedAt,
+  };
+  const unreachable = {
+    clusterId: ID.cluster(2),
+    clusterName: "staging-us-east-1",
+    isInvestigationReady: false,
+    isRemediationReady: false,
+    remediationMode: "Disabled",
+    gaps: [
+      {
+        code: "ai_agent_not_connected",
+        title: "The Kubernetes AI agent is not connected",
+        description:
+          "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+        nextStep:
+          "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true.",
+        blocks: "both",
+      },
+      {
+        code: "remediation_disabled",
+        title: "AI fixes are turned off for this cluster",
+        description:
+          "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
+        nextStep:
+          'Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on the cluster\'s AI agent page.',
+        blocks: "remediation",
+      },
+    ],
+    evaluatedAt,
+  };
+
+  if (clustersMode === "reachable") {
+    return [reachable];
+  }
+
+  if (clustersMode === "unreachable") {
+    return [unreachable];
+  }
+
+  return clustersMode === "mixed" ? [reachable, unreachable] : [];
+}
+
 function investigationPayload(investigation) {
   if (aiMode === "none") {
     return {
@@ -2783,6 +2853,10 @@ function investigationPayload(investigation) {
     analysisTldr,
     isAnalysisPending,
   };
+
+  if (clustersMode !== "none") {
+    payload.clusterAccess = clusterAccessRows();
+  }
 
   // An API replica that predates structured evidence omits both keys.
   if (analysisMarkdown && aiMode !== "legacy") {
@@ -3366,6 +3440,8 @@ const STUB_PAGES = [
   [PageMap.ALERT_EPISODES, "Alert Episodes"],
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS, "Scheduled Maintenance"],
   [PageMap.HOME, "Home"],
+  // Where the AI Investigation card's cluster access notice links.
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, "Kubernetes AI Agent"],
 ].filter(([pageKey]) => {
   return Boolean(pageKey && RouteMap[pageKey]);
 });

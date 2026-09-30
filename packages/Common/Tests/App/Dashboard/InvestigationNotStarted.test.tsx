@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import fs from "fs";
 import path from "path";
@@ -289,7 +290,7 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
           "datetime",
           EVALUATED_AT,
         );
-        expect(screen.queryByText("Investigation complete")).toBeNull();
+        expect(screen.queryByText("Completed")).toBeNull();
 
         const request: {
           url: { toString: () => string };
@@ -339,7 +340,7 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
 
       await advance();
 
-      expect(screen.getByText("Queued — waiting for a worker…")).toBeVisible();
+      expect(screen.getByText("Queued")).toBeVisible();
       expect(screen.queryByText("Not investigated")).toBeNull();
       expect(
         screen.queryByText("No investigation decision was recorded"),
@@ -1093,5 +1094,209 @@ describe("the card knows every reason the server can send", () => {
         return example.code;
       }).sort(),
     ).toEqual([...codes].sort());
+  });
+});
+
+/*
+ * The not-started state used to be built differently from a run's panel: its
+ * own icon tile and header, a tinted body, a second "What you can do" column
+ * behind a rule and an amber retry box. It now uses the same card, header
+ * and status pill as a run, with plain sections inside.
+ */
+describe("the not-started card's layout", () => {
+  const PANEL_CLASS: RegExp =
+    /^(rounded-xl|rounded-2xl|shadow|shadow-(sm|md|lg)|bg-gradient-to-[a-z]+|bg-(indigo|amber|emerald|red|green|rose|violet)-50(\/\d+)?|bg-gray-50(\/\d+)?|lg:border-l|border-l)$/;
+
+  function panelsInsideTheCard(): Array<string> {
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+
+    return Array.from(region.querySelectorAll("*"))
+      .filter((element: Element): boolean => {
+        if (element.closest("button") || element.closest("a")) {
+          return false;
+        }
+
+        const tokens: Array<string> = (element.getAttribute("class") || "")
+          .split(/\s+/)
+          .filter(Boolean);
+        const isFramedBox: boolean =
+          tokens.includes("border") &&
+          tokens.some((token: string): boolean => {
+            return token.startsWith("rounded");
+          });
+
+        return (
+          isFramedBox ||
+          tokens.some((token: string): boolean => {
+            return PANEL_CLASS.test(token);
+          })
+        );
+      })
+      .map((element: Element): string => {
+        return `<${element.tagName.toLowerCase()} class="${element.getAttribute("class")}">`;
+      });
+  }
+
+  test("sits in the same card as a run, under the same title", async () => {
+    postMock.mockResolvedValue(noRunResponse());
+    renderPanel();
+    await flush();
+
+    const cards: Array<HTMLElement> = screen.getAllByTestId("card");
+    expect(cards).toHaveLength(1);
+    expect(
+      within(cards[0]!).getByRole("heading", {
+        level: 2,
+        name: "AI Investigation",
+      }),
+    ).toBeVisible();
+    expect(cards[0]).toContainElement(
+      screen.getByRole("region", { name: "AI Investigation" }),
+    );
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "OneUptime AI's root-cause investigation for this alert.",
+    );
+  });
+
+  test.each([
+    [
+      "while it checks",
+      "Checking",
+      "checking",
+      (): void => {
+        postMock.mockReturnValue(new Promise<never>(() => {}));
+      },
+    ],
+    [
+      "when nothing ran",
+      "Not investigated",
+      "idle",
+      (): void => {
+        postMock.mockResolvedValue(noRunResponse());
+      },
+    ],
+    [
+      "when the status cannot be loaded",
+      "Unable to check",
+      "attention",
+      (): void => {
+        postMock.mockRejectedValue(new Error("Offline"));
+      },
+    ],
+  ])(
+    "shows the run panel's neutral pill %s",
+    async (
+      _when: string,
+      text: string,
+      indicator: string,
+      arrange: () => void,
+    ) => {
+      arrange();
+      renderPanel();
+      await flush();
+
+      const badge: HTMLElement = screen.getByLabelText("Investigation status");
+      expect(badge).toHaveTextContent(text);
+      expect(badge).toHaveAttribute("data-indicator", indicator);
+      expect(badge).toHaveClass("bg-gray-50", "text-gray-700", "ring-gray-200");
+      expect(badge.className).not.toMatch(/amber|indigo/);
+    },
+  );
+
+  test("its pill is exactly the one a run's panel shows", async () => {
+    postMock.mockResolvedValue(noRunResponse());
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    const notStartedClass: string = screen.getByLabelText(
+      "Investigation status",
+    ).className;
+    view.unmount();
+
+    postMock.mockReset();
+    postMock.mockResolvedValue(runResponse(AIRunStatus.Running));
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Investigation status").className).toBe(
+      notStartedClass,
+    );
+  });
+
+  test("lays the reason and what to do out as plain sections, one after the other", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse(reasonFor("daily_budget_exhausted")),
+    );
+    renderPanel();
+    await flush();
+
+    const example: ReasonExample = REASONS.find(
+      (item: ReasonExample): boolean => {
+        return item.code === "daily_budget_exhausted";
+      },
+    )!;
+    const reasonHeading: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: example.title,
+    });
+    const nextStepHeading: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "What you can do",
+    });
+    expect(reasonHeading.className).toBe(nextStepHeading.className);
+    expect(
+      reasonHeading.compareDocumentPosition(nextStepHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(panelsInsideTheCard()).toEqual([]);
+  });
+
+  test("offers Retry on a hairline row, not in an amber box", async () => {
+    postMock.mockRejectedValue(new Error("Offline"));
+    renderPanel();
+    await flush();
+
+    const retry: HTMLElement = screen.getByRole("button", {
+      name: "Retry investigation status",
+    });
+    const row: HTMLElement = retry.parentElement!;
+    expect(row).toHaveClass("border-t", "border-gray-200");
+    expect(row.className).not.toMatch(/amber|rounded|(^|\s)border(\s|$)/);
+    expect(row).toHaveTextContent("Try again to check this investigation.");
+    expect(panelsInsideTheCard()).toEqual([]);
+  });
+
+  test("keeps a failed refresh's warning free of invalid nesting", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      console,
+      "error",
+    );
+    postMock
+      .mockResolvedValueOnce(noRunResponse())
+      .mockRejectedValueOnce(new Error("Offline"));
+    renderPanel();
+    await flush();
+    await advance();
+
+    expect(
+      screen.getByText(
+        "Could not refresh this status. Showing the last successful check.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen
+        .getByRole("region", { name: "AI Investigation" })
+        .querySelectorAll("p div"),
+    ).toHaveLength(0);
+    expect(
+      consoleError.mock.calls.some((args: Array<unknown>): boolean => {
+        return args.some((value: unknown): boolean => {
+          return (
+            typeof value === "string" && value.includes("validateDOMNesting")
+          );
+        });
+      }),
+    ).toBe(false);
   });
 });
