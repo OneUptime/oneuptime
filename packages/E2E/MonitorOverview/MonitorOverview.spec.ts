@@ -1844,6 +1844,208 @@ test.describe("refresh and polling", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Monitoring Logs
+ *
+ * The one monitor sub-page the fixture renders for real. The incoming email
+ * monitor's rows are shaped the way the server writes them: an email per
+ * row, plus the worker's scheduled check, which carries a copy of the last
+ * email.
+ * ---------------------------------------------------------------------------
+ */
+
+async function openLogs(page: Page, type: MonitorTypeKey): Promise<void> {
+  await page.clock.setFixedTime(NOW);
+  await page.goto(`${monitorPath(type)}/logs?type=${type}`);
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+  await expect(card(page, "Monitor Logs")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("row-actions").first()).toBeVisible({
+    timeout: 30000,
+  });
+}
+
+function logRows(page: Page): Locator {
+  return card(page, "Monitor Logs")
+    .locator("tbody tr")
+    .filter({ has: page.getByTestId("row-actions") });
+}
+
+async function columnTitles(page: Page): Promise<Array<string>> {
+  return (
+    await card(page, "Monitor Logs").getByRole("columnheader").allInnerTexts()
+  ).map((title: string): string => {
+    return title.trim();
+  });
+}
+
+// The n-th row's cell in the column headed `title`.
+async function logCell(
+  page: Page,
+  row: number,
+  title: string,
+): Promise<Locator> {
+  const column: number = (await columnTitles(page)).indexOf(title);
+  expect(column, `a "${title}" column`).toBeGreaterThanOrEqual(0);
+  return logRows(page).nth(row).locator("td").nth(column);
+}
+
+test.describe("monitoring logs", () => {
+  test("names each row's email, and calls a scheduled check one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, "incoming-email");
+
+    const titles: Array<string> = await columnTitles(page);
+    expect(titles.indexOf("Email")).toBeGreaterThan(
+      titles.indexOf("Monitored At"),
+    );
+    expect(titles.indexOf("Evaluation Outcome")).toBeGreaterThan(
+      titles.indexOf("Email"),
+    );
+    expect(titles).not.toContain("Probe");
+
+    await expect(logRows(page)).toHaveCount(3);
+    // Newest first: the check, then the email it copied, then the day before.
+    await expect(await logCell(page, 0, "Email")).toHaveText("Scheduled check");
+    const lastEmail: Locator = await logCell(page, 1, "Email");
+    await expect(lastEmail).toContainText("Payroll run 2026-09-21 completed");
+    await expect(lastEmail).toContainText(
+      "notifications@payroll-provider.example",
+    );
+    await expect(await logCell(page, 2, "Email")).toContainText(
+      "Payroll run 2026-09-20 completed",
+    );
+    await screenshot(page, "monitor-logs-email");
+  });
+
+  test("View Summary shows the email a row recorded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, "incoming-email");
+
+    await logRows(page).nth(2).getByText("View Summary").click();
+    const modal: Locator = page.getByRole("dialog");
+    await expect(modal.getByText("Monitoring Summary")).toBeVisible();
+    await expect(
+      modal.getByText(
+        "No summary available. Looks like no email has been received yet.",
+      ),
+    ).toHaveCount(0);
+    await expect(modal).toContainText("Payroll run 2026-09-20 completed");
+    await expect(modal).toContainText("notifications@payroll-provider.example");
+    await modal.getByText("Show More Details").click();
+    await expect(
+      modal.getByText(
+        "The payroll run for Acme Commerce completed at 09:41 UTC.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "monitor-logs-view-summary");
+    await modal.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // A scheduled check shows the email it measured, and when it ran.
+    await logRows(page).nth(0).getByText("View Summary").click();
+    await expect(page.getByRole("dialog")).toContainText(
+      "Payroll run 2026-09-21 completed",
+    );
+    await expect(page.getByRole("dialog")).toContainText(
+      "Monitor Status Check At",
+    );
+  });
+
+  /*
+   * The Email column and the criteria name beside it are both prose. They
+   * wrap rather than widen, so View Summary stays on the card on a laptop.
+   */
+  for (const width of [1280, 1440]) {
+    test(`keeps View Summary on the card at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openLogs(page, "incoming-email");
+
+      const table: Locator = card(page, "Monitor Logs");
+      const scroller: Locator = table.locator("div.overflow-x-auto").last();
+      const overflow: number = await scroller.evaluate(
+        (element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        },
+      );
+      expect(overflow, "the logs table scrolls sideways").toBeLessThanOrEqual(
+        1,
+      );
+
+      const tableBox: Box = await documentBox(table);
+      const rows: number = await logRows(page).count();
+      for (let row: number = 0; row < rows; row++) {
+        const button: Box = await documentBox(
+          logRows(page).nth(row).getByText("View Summary"),
+        );
+        expect(
+          button.x + button.width,
+          "View Summary on the card",
+        ).toBeLessThanOrEqual(tableBox.x + tableBox.width);
+      }
+      await screenshot(page, `monitor-logs-email-${width}`, {
+        fullPage: false,
+      });
+    });
+  }
+
+  test("does not scroll sideways at 390px", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openLogs(page, "incoming-email");
+
+    await expect(
+      page.getByText("Payroll run 2026-09-20 completed"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "monitor-logs-email-mobile");
+  });
+
+  test("names the probe behind each check of a probe monitor", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, "api");
+
+    const titles: Array<string> = await columnTitles(page);
+    expect(titles).toContain("Probe");
+    expect(titles).not.toContain("Email");
+
+    const probeNames: Array<string> = [];
+    const rows: number = await logRows(page).count();
+    for (let row: number = 0; row < rows; row++) {
+      probeNames.push(
+        ((await (await logCell(page, row, "Probe")).innerText()) || "").trim(),
+      );
+    }
+    expect(probeNames.length).toBeGreaterThan(0);
+    expect(probeNames).not.toContain("Unknown");
+    expect(new Set(probeNames)).toEqual(
+      new Set([
+        "Frankfurt (eu-central-1)",
+        "N. Virginia (us-east-1)",
+        "Singapore (ap-southeast-1)",
+      ]),
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Responsive and theme
  * ---------------------------------------------------------------------------
  */
