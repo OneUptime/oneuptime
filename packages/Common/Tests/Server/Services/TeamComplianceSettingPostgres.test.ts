@@ -11,7 +11,10 @@ import TeamComplianceSettingService, {
   DeletedSeverity,
   DUPLICATE_COMPLIANCE_RULE_MESSAGE,
   SEVERITIES_DELETED_ENABLE_MESSAGE,
+  StoredChannelColumns,
+  TeamComplianceSettingService as TeamComplianceSettingRules,
 } from "../../../Server/Services/TeamComplianceSettingService";
+import { AddTeamComplianceRuleNotificationChannels1796500000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1796500000000-AddTeamComplianceRuleNotificationChannels";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -22,18 +25,22 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import ComplianceNotificationChannel from "../../../Types/Team/ComplianceNotificationChannel";
-import { ComplianceSeverityKind } from "../../../Types/Team/ComplianceRule";
+import ComplianceRule, {
+  ComplianceSeverityKind,
+} from "../../../Types/Team/ComplianceRule";
 import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import UserType from "../../../Types/UserType";
-import { DataSource, Logger } from "typeorm";
+import { DataSource, Logger, QueryRunner } from "typeorm";
 
 /*
- * Team compliance rules scoped by severity and channel
- * (TeamComplianceSetting.notificationChannel / incidentSeverities /
+ * Team compliance rules scoped by severity and channels
+ * (TeamComplianceSetting.notificationChannels - with notificationChannel,
+ * the older single column kept in step with it - incidentSeverities and
  * alertSeverities) against a migrated Postgres.
  *
  * Opt in with RUN_POSTGRES_TEAM_COMPLIANCE_TESTS=true against a database the
- * registered migrations (1796000000000-AddTeamComplianceRuleScope included)
+ * registered migrations (1796000000000-AddTeamComplianceRuleScope and
+ * 1796500000000-AddTeamComplianceRuleNotificationChannels included)
  * have been applied to, e.g. from packages/Common:
  *
  *   RUN_POSTGRES_TEAM_COMPLIANCE_TESTS=true \
@@ -122,6 +129,12 @@ type SeverityList = Array<
 
 interface RuleInput {
   ruleType: ComplianceRuleType;
+  // What the Dashboard's rule form sends.
+  notificationChannels?:
+    | Array<ComplianceNotificationChannel>
+    | null
+    | undefined;
+  // What a client from before the list sends instead.
   notificationChannel?: ComplianceNotificationChannel | null | undefined;
   incidentSeverities?: SeverityList | undefined;
   alertSeverities?: SeverityList | undefined;
@@ -130,10 +143,14 @@ interface RuleInput {
   projectId?: ObjectID | undefined;
 }
 
-// A rule row as Postgres stores it, with its join rows.
+/*
+ * A rule row as Postgres stores it, with its join rows. `notificationChannels`
+ * is what the row checks, read off its two channel columns the way the
+ * service reads them (getStoredChannels).
+ */
 interface StoredRule {
   ruleType: string;
-  notificationChannel: string | null;
+  notificationChannels: Array<string>;
   enabled: boolean;
   incidentSeverityIds: Array<string>;
   alertSeverityIds: Array<string>;
@@ -485,6 +502,10 @@ describePostgres(
         unknown
       >;
 
+      if (input.notificationChannels !== undefined) {
+        raw["notificationChannels"] = input.notificationChannels;
+      }
+
       if (input.notificationChannel !== undefined) {
         raw["notificationChannel"] = input.notificationChannel;
       }
@@ -544,9 +565,27 @@ describePostgres(
       });
     }
 
+    // The two channel columns exactly as Postgres holds them.
+    async function storedChannelColumns(
+      settingId: ObjectID,
+    ): Promise<StoredChannelColumns> {
+      const rows: Array<SqlRow> = await database.query(
+        `SELECT "notificationChannels", "notificationChannel", jsonb_typeof("notificationChannels") AS "listType" FROM "${schema}"."TeamComplianceSetting" WHERE "_id" = $1`,
+        [settingId.toString()],
+      );
+
+      // A list is stored as a jsonb ARRAY - never a string holding one.
+      expect([null, "array"]).toContain(rows[0]?.["listType"] ?? null);
+
+      return {
+        notificationChannels: rows[0]?.["notificationChannels"] ?? null,
+        notificationChannel: rows[0]?.["notificationChannel"] ?? null,
+      };
+    }
+
     async function stored(settingId: ObjectID): Promise<StoredRule | null> {
       const rows: Array<SqlRow> = await database.query(
-        `SELECT "ruleType", "notificationChannel", "enabled" FROM "${schema}"."TeamComplianceSetting" WHERE "_id" = $1`,
+        `SELECT "ruleType", "enabled" FROM "${schema}"."TeamComplianceSetting" WHERE "_id" = $1`,
         [settingId.toString()],
       );
 
@@ -554,12 +593,29 @@ describePostgres(
         return null;
       }
 
+      /*
+       * Every row the service writes keeps its two channel columns in step:
+       * either neither was ever written, or the list is canonical and the
+       * single column holds its first channel - which an older build reading
+       * only that column relies on.
+       */
+      const columns: StoredChannelColumns =
+        await storedChannelColumns(settingId);
+
+      if (columns.notificationChannels === null) {
+        expect(columns.notificationChannel).toBeNull();
+      } else {
+        const list: Array<string> =
+          columns.notificationChannels as Array<string>;
+
+        expect(list).toEqual(ComplianceRule.normaliseChannels(list));
+        expect(columns.notificationChannel).toBe(list[0] ?? null);
+      }
+
       return {
         ruleType: String(rows[0]["ruleType"]),
-        notificationChannel:
-          rows[0]["notificationChannel"] === null
-            ? null
-            : String(rows[0]["notificationChannel"]),
+        notificationChannels:
+          TeamComplianceSettingRules.getStoredChannels(columns),
         enabled: rows[0]["enabled"] === true,
         incidentSeverityIds: await joinRows(INCIDENT_JOIN_TABLE, settingId),
         alertSeverityIds: await joinRows(ALERT_JOIN_TABLE, settingId),
@@ -676,6 +732,7 @@ describePostgres(
           _id: true,
           ruleType: true,
           enabled: true,
+          notificationChannels: true,
           notificationChannel: true,
           incidentSeverities: {
             _id: true,
@@ -792,13 +849,13 @@ describePostgres(
       test("severity ids sent as strings land as join rows, and read back with their name, colour and order", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([major, critical]),
         });
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical, major]),
           alertSeverityIds: [],
@@ -806,6 +863,10 @@ describePostgres(
 
         const rule: TeamComplianceSetting | null = await readRule(id);
 
+        // The list the edit form loads, and the column older clients read.
+        expect(rule?.notificationChannels).toEqual([
+          ComplianceNotificationChannel.Call,
+        ]);
         expect(rule?.notificationChannel).toBe(
           ComplianceNotificationChannel.Call,
         );
@@ -829,13 +890,13 @@ describePostgres(
       test("severity ids sent as {_id} JSON land as join rows", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           alertSeverities: asJson([criticalAlert]),
         });
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: ids([criticalAlert]),
@@ -858,7 +919,7 @@ describePostgres(
           BaseModel.fromJSON<TeamComplianceSetting>(
             {
               ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.SMS,
+              notificationChannels: [ComplianceNotificationChannel.SMS],
               enabled: true,
               incidentSeverities: asJson([critical, minor]),
             },
@@ -875,7 +936,7 @@ describePostgres(
 
         expect(await stored(created.id!)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.SMS,
+          notificationChannels: [ComplianceNotificationChannel.SMS],
           enabled: true,
           incidentSeverityIds: ids([critical, minor]),
           alertSeverityIds: [],
@@ -889,7 +950,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: null,
+          notificationChannels: [],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -898,20 +959,21 @@ describePostgres(
         const rule: TeamComplianceSetting | null = await readRule(id);
 
         expect(rule?.incidentSeverities || []).toEqual([]);
+        expect(rule?.notificationChannels ?? null).toBeNull();
         expect(rule?.notificationChannel ?? null).toBeNull();
       });
 
       test("options the rule type does not use are not stored", async () => {
         const methodRule: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           incidentSeverities: asStrings([critical]),
           alertSeverities: asJson([criticalAlert]),
         });
 
         expect(await stored(methodRule)).toEqual({
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
-          notificationChannel: null,
+          notificationChannels: [],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -919,14 +981,14 @@ describePostgres(
 
         const incidentRule: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
           alertSeverities: asJson([criticalAlert]),
         });
 
         expect(await stored(incidentRule)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical]),
           alertSeverityIds: [],
@@ -940,7 +1002,7 @@ describePostgres(
 
         expect(await stored(alertRule)).toEqual({
           ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-          notificationChannel: null,
+          notificationChannels: [],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: ids([warningAlert]),
@@ -950,7 +1012,7 @@ describePostgres(
       test("an exact duplicate is refused whatever the shape, order or case of its severity ids", async () => {
         await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical, major]),
         });
 
@@ -968,7 +1030,7 @@ describePostgres(
           await expect(
             createRule({
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: incidentSeverities,
             }),
           ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -985,7 +1047,7 @@ describePostgres(
       test("an upper-case id is stored as the lower-case uuid, and the lower-case spelling is then a duplicate", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+          notificationChannels: [ComplianceNotificationChannel.WhatsApp],
           incidentSeverities: [upper(minor)],
         });
 
@@ -994,7 +1056,7 @@ describePostgres(
         await expect(
           createRule({
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.WhatsApp,
+            notificationChannels: [ComplianceNotificationChannel.WhatsApp],
             incidentSeverities: asStrings([minor]),
           }),
         ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -1008,7 +1070,7 @@ describePostgres(
         await expect(
           createRule({
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: null,
+            notificationChannels: [],
             incidentSeverities: [],
           }),
         ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -1021,7 +1083,7 @@ describePostgres(
         await expect(
           createRule({
             ruleType: ComplianceRuleType.HasNotificationCallMethod,
-            notificationChannel: ComplianceNotificationChannel.SMS,
+            notificationChannels: [ComplianceNotificationChannel.SMS],
             incidentSeverities: asStrings([critical]),
           }),
         ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -1034,7 +1096,7 @@ describePostgres(
 
         await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings(scope),
         });
 
@@ -1042,7 +1104,7 @@ describePostgres(
           // Push for the same severities.
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Push,
+            notificationChannels: [ComplianceNotificationChannel.Push],
             incidentSeverities: asStrings(scope),
           },
           // Any channel for the same severities.
@@ -1053,30 +1115,30 @@ describePostgres(
           // Call for a subset.
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asStrings([critical]),
           },
           // Call for a superset.
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asStrings([critical, major, minor]),
           },
           // Call for every severity.
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
           },
           // The episode rule type.
           {
             ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asStrings(scope),
           },
           // The same rule on another team.
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asStrings(scope),
             teamId: otherTeamId,
           },
@@ -1094,7 +1156,7 @@ describePostgres(
           {
             input: {
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: asStrings([otherProjectCritical]),
             },
             message: FOREIGN_SEVERITY_MESSAGE,
@@ -1102,7 +1164,7 @@ describePostgres(
           {
             input: {
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: asJson([critical, otherProjectCritical]),
             },
             message: FOREIGN_SEVERITY_MESSAGE,
@@ -1157,7 +1219,7 @@ describePostgres(
       test("a repeated severity id (in any case, on create or update) is stored once", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [critical.toString(), upper(critical)],
         });
 
@@ -1198,7 +1260,7 @@ describePostgres(
       test("a severity list item is checked by the id the save writes: one read by its `id` cannot smuggle in another project's severity", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1220,7 +1282,7 @@ describePostgres(
           await expect(
             createRule({
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Push,
+              notificationChannels: [ComplianceNotificationChannel.Push],
               incidentSeverities: [item as unknown as JSONObject],
             }),
           ).rejects.toThrow(FOREIGN_SEVERITY_MESSAGE);
@@ -1238,7 +1300,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical]),
           alertSeverityIds: [],
@@ -1261,7 +1323,7 @@ describePostgres(
           await expect(
             createRule({
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: asStrings([ObjectID.generate()]),
             }),
           ).rejects.toThrow();
@@ -1284,7 +1346,7 @@ describePostgres(
       async function callForCriticalAndMajor(): Promise<ObjectID> {
         return await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical, major]),
         });
       }
@@ -1310,7 +1372,7 @@ describePostgres(
 
           expect(await stored(id)).toEqual({
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             enabled: false,
             incidentSeverityIds: ids([critical, major]),
             alertSeverityIds: [],
@@ -1345,7 +1407,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
-          notificationChannel: null,
+          notificationChannels: [],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -1354,6 +1416,7 @@ describePostgres(
         const rule: TeamComplianceSetting | null = await readRule(id);
 
         expect(rule?.incidentSeverities || []).toEqual([]);
+        expect(rule?.notificationChannels).toEqual([]);
         expect(rule?.notificationChannel ?? null).toBeNull();
       });
 
@@ -1367,7 +1430,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: ids([criticalAlert]),
@@ -1393,7 +1456,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -1404,20 +1467,24 @@ describePostgres(
         const id: ObjectID = await callForCriticalAndMajor();
 
         await updateRule(id, {
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
         });
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           enabled: true,
           incidentSeverityIds: ids([critical, major]),
           alertSeverityIds: [],
         });
 
-        await updateRule(id, { notificationChannel: null });
+        await updateRule(id, { notificationChannels: [] });
 
-        expect((await stored(id))?.notificationChannel).toBeNull();
+        expect((await stored(id))?.notificationChannels).toEqual([]);
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [],
+          notificationChannel: null,
+        });
         expect(await joinRows(INCIDENT_JOIN_TABLE, id)).toEqual(
           ids([critical, major]),
         );
@@ -1430,7 +1497,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical, major]),
           alertSeverityIds: [],
@@ -1441,7 +1508,7 @@ describePostgres(
         const id: ObjectID = await callForCriticalAndMajor();
 
         await updateRule(id, {
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asJson([major, critical]),
         });
 
@@ -1455,7 +1522,7 @@ describePostgres(
 
         await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1475,7 +1542,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical, major]),
           alertSeverityIds: [],
@@ -1483,11 +1550,754 @@ describePostgres(
       });
     });
 
+    describe("a rule on several channels", () => {
+      test("stores them as one jsonb list in catalog order, with the first in the older column, and reads them back as a list", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          // Picked out of order, and one twice.
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+
+        const rule: TeamComplianceSetting | null = await readRule(id);
+
+        expect(rule?.notificationChannels).toEqual([
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ]);
+        expect(rule?.notificationChannel).toBe(
+          ComplianceNotificationChannel.Call,
+        );
+      });
+
+      test("duplicates compare the channels, not the order they were picked in", async () => {
+        await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Call,
+              ComplianceNotificationChannel.Call,
+            ],
+            incidentSeverities: asStrings([critical]),
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+        // Fewer channels, more channels or other severities check other things.
+        for (const input of [
+          {
+            notificationChannels: [ComplianceNotificationChannel.Call],
+            incidentSeverities: asStrings([critical]),
+          },
+          {
+            notificationChannels: [
+              ComplianceNotificationChannel.SMS,
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Call,
+            ],
+            incidentSeverities: asStrings([critical]),
+          },
+          {
+            notificationChannels: [
+              ComplianceNotificationChannel.Call,
+              ComplianceNotificationChannel.Push,
+            ],
+            incidentSeverities: asStrings([major]),
+          },
+          {
+            notificationChannels: [],
+            incidentSeverities: asStrings([critical]),
+          },
+        ]) {
+          await createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            ...input,
+          });
+        }
+
+        expect(await countRules()).toBe(5);
+      });
+
+      test("an update adds, removes and clears channels, keeping both columns in step and the severities alone", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.SMS],
+          incidentSeverities: asStrings([critical, major]),
+        });
+
+        const steps: Array<[unknown, StoredChannelColumns]> = [
+          [
+            [
+              ComplianceNotificationChannel.SMS,
+              ComplianceNotificationChannel.Call,
+            ],
+            {
+              notificationChannels: [
+                ComplianceNotificationChannel.Call,
+                ComplianceNotificationChannel.SMS,
+              ],
+              notificationChannel: ComplianceNotificationChannel.Call,
+            },
+          ],
+          [
+            [ComplianceNotificationChannel.Telegram],
+            {
+              notificationChannels: [ComplianceNotificationChannel.Telegram],
+              notificationChannel: ComplianceNotificationChannel.Telegram,
+            },
+          ],
+          // Null is "any channel", as an empty list is.
+          [null, { notificationChannels: [], notificationChannel: null }],
+          [
+            [ComplianceNotificationChannel.Webhook],
+            {
+              notificationChannels: [ComplianceNotificationChannel.Webhook],
+              notificationChannel: ComplianceNotificationChannel.Webhook,
+            },
+          ],
+          [[], { notificationChannels: [], notificationChannel: null }],
+        ];
+
+        for (const [sent, expected] of steps) {
+          await updateRule(id, { notificationChannels: sent as JSONObject[] });
+
+          expect(await storedChannelColumns(id)).toEqual(expected);
+          expect(await joinRows(INCIDENT_JOIN_TABLE, id)).toEqual(
+            ids([critical, major]),
+          );
+        }
+      });
+
+      test("re-saving a rule's own channels is no duplicate; taking a sibling's is refused and changes nothing", async () => {
+        const callAndPush: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        const callOnly: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await updateRule(callAndPush, {
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+          ],
+          incidentSeverities: asJson([critical]),
+        });
+
+        await expect(
+          updateRule(callOnly, {
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Call,
+            ],
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+        expect(await storedChannelColumns(callOnly)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+      });
+
+      test("anything but a list of channels this build knows is refused, and nothing is written", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        const refused: Array<[unknown, string]> = [
+          [
+            ComplianceNotificationChannel.Push,
+            "The notification channels of a compliance rule must be a list of channels.",
+          ],
+          [
+            { channel: ComplianceNotificationChannel.Push },
+            "The notification channels of a compliance rule must be a list of channels.",
+          ],
+          [
+            [ComplianceNotificationChannel.Push, "Pager"],
+            '"Pager" is not a notification channel a compliance rule can require.',
+          ],
+          [
+            [ComplianceNotificationChannel.Push.toLowerCase()],
+            '"push" is not a notification channel a compliance rule can require.',
+          ],
+        ];
+
+        for (const [sent, message] of refused) {
+          await expect(
+            createRule({
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannels:
+                sent as Array<ComplianceNotificationChannel>,
+              incidentSeverities: asStrings([major]),
+            }),
+          ).rejects.toThrow(message);
+
+          await expect(
+            updateRule(id, { notificationChannels: sent as JSONObject }),
+          ).rejects.toThrow(message);
+        }
+
+        expect(await countRules()).toBe(1);
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+      });
+
+      test("a method rule stores no channels, whichever column they arrive in", async () => {
+        const fromList: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasNotificationSMSMethod,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        });
+        const fromSingle: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasNotificationPushMethod,
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+
+        for (const id of [fromList, fromSingle]) {
+          expect(await storedChannelColumns(id)).toEqual({
+            notificationChannels: [],
+            notificationChannel: null,
+          });
+        }
+      });
+
+      test("changing a multi-channel rule into a method rule clears both columns", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.SMS,
+          ],
+          alertSeverities: asStrings([criticalAlert]),
+        });
+
+        await updateRule(id, {
+          ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod,
+        });
+
+        expect(await stored(id)).toEqual({
+          ruleType: ComplianceRuleType.HasNotificationWhatsAppMethod,
+          notificationChannels: [],
+          enabled: true,
+          incidentSeverityIds: [],
+          alertSeverityIds: [],
+        });
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [],
+          notificationChannel: null,
+        });
+      });
+    });
+
+    /*
+     * API clients written before a rule could hold several channels, and a
+     * Dashboard bundle cached from before the upgrade, send the single
+     * `notificationChannel`. They must keep getting the rule they asked for -
+     * a channel dropped on the floor would turn "Call for Critical" into
+     * "any channel for Critical".
+     */
+    describe("a client that only knows notificationChannel", () => {
+      test("a create that sends the single column gets exactly that channel, as a one-item list", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.SMS,
+          incidentSeverities: asStrings([critical]),
+        });
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.SMS],
+          notificationChannel: ComplianceNotificationChannel.SMS,
+        });
+        expect((await readRule(id))?.notificationChannels).toEqual([
+          ComplianceNotificationChannel.SMS,
+        ]);
+
+        // It is the rule a list client would have made.
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [ComplianceNotificationChannel.SMS],
+            incidentSeverities: asStrings([critical]),
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+      });
+
+      test("an update that sends the single column replaces the whole list; null clears it", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await updateRule(id, {
+          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        });
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.WhatsApp],
+          notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        });
+
+        await updateRule(id, { notificationChannel: null });
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [],
+          notificationChannel: null,
+        });
+        expect(await joinRows(INCIDENT_JOIN_TABLE, id)).toEqual(
+          ids([critical]),
+        );
+      });
+
+      test("a client that sends both is taken at its list, whatever stale single channel rides along", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        // Read the rule, change the list, send both back.
+        await updateRule(id, {
+          notificationChannels: [ComplianceNotificationChannel.Email],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Email],
+          notificationChannel: ComplianceNotificationChannel.Email,
+        });
+      });
+
+      test("a single channel this build does not know is refused, even beside a valid list", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Call],
+        });
+
+        await expect(
+          updateRule(id, {
+            notificationChannels: [ComplianceNotificationChannel.Push],
+            notificationChannel: "Pager",
+          }),
+        ).rejects.toThrow(
+          '"Pager" is not a notification channel a compliance rule can require.',
+        );
+
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannel: "Pager" as ComplianceNotificationChannel,
+            incidentSeverities: asStrings([major]),
+          }),
+        ).rejects.toThrow(
+          '"Pager" is not a notification channel a compliance rule can require.',
+        );
+
+        expect(await countRules()).toBe(1);
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+      });
+    });
+
+    /*
+     * A replica of the previous build keeps serving while this one rolls
+     * out (and runs again after a downgrade). It reads and writes only
+     * notificationChannel and never touches the list - so a row it created
+     * has no list, and a row it re-channelled has a list its single column
+     * no longer agrees with. Either way the single column is what the admin
+     * last asked for, and the duplicate check must compare against that.
+     */
+    describe("a row an older build wrote", () => {
+      async function insertRawRule(data: {
+        notificationChannels: Array<string> | null;
+        notificationChannel: string | null;
+        severities: Array<ObjectID>;
+      }): Promise<ObjectID> {
+        const id: ObjectID = ObjectID.generate();
+
+        await insert("TeamComplianceSetting", {
+          _id: id.toString(),
+          projectId: projectId.toString(),
+          teamId: teamId.toString(),
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannel: data.notificationChannel,
+          // jsonb is bound as its JSON text.
+          notificationChannels:
+            data.notificationChannels === null
+              ? null
+              : JSON.stringify(data.notificationChannels),
+          version: 1,
+        });
+
+        for (const severity of data.severities) {
+          await insert(INCIDENT_JOIN_TABLE, {
+            teamComplianceSettingId: id.toString(),
+            incidentSeverityId: severity.toString(),
+          });
+        }
+
+        return id;
+      }
+
+      test("a rule it created, with no list, is compared by its single column", async () => {
+        const legacy: ObjectID = await insertRawRule({
+          notificationChannels: null,
+          notificationChannel: ComplianceNotificationChannel.Call,
+          severities: [critical],
+        });
+
+        expect(
+          TeamComplianceSettingRules.getStoredChannels(
+            await storedChannelColumns(legacy),
+          ),
+        ).toEqual([ComplianceNotificationChannel.Call]);
+
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [ComplianceNotificationChannel.Call],
+            incidentSeverities: asStrings([critical]),
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+        await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        expect(await countRules()).toBe(2);
+      });
+
+      test("a rule it re-channelled - its single column no longer agreeing with the list - checks the single column", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."TeamComplianceSetting" SET "notificationChannel" = 'SMS' WHERE "_id" = $1`,
+          [id.toString()],
+        );
+
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [ComplianceNotificationChannel.SMS],
+            incidentSeverities: asStrings([critical]),
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+        // The Call-and-Push rule it replaced is no longer on the team.
+        await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        // Saved again by this build, the pair is back in step.
+        await updateRule(id, {
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Email,
+          ],
+        });
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Email,
+          ],
+          notificationChannel: ComplianceNotificationChannel.SMS,
+        });
+      });
+
+      test("a rule it cleared to any channel no longer checks the list it had", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."TeamComplianceSetting" SET "notificationChannel" = NULL WHERE "_id" = $1`,
+          [id.toString()],
+        );
+
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [],
+            incidentSeverities: asStrings([critical]),
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+      });
+
+      test("a rule it re-saved without changing the channel keeps every channel of its list", async () => {
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        // What the older form shows - and saves back - is the first channel.
+        await database.query(
+          `UPDATE "${schema}"."TeamComplianceSetting" SET "notificationChannel" = 'Call' WHERE "_id" = $1`,
+          [id.toString()],
+        );
+
+        await expect(
+          createRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Call,
+            ],
+            incidentSeverities: asStrings([critical]),
+          }),
+        ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+      });
+    });
+
+    describe("the migration that added the list", () => {
+      // up()'s statements, in order, without running them.
+      async function migrationStatements(): Promise<Array<string>> {
+        const statements: Array<string> = [];
+
+        await new AddTeamComplianceRuleNotificationChannels1796500000000().up({
+          query: (statement: string): Promise<void> => {
+            statements.push(statement);
+            return Promise.resolve();
+          },
+        } as unknown as QueryRunner);
+
+        return statements;
+      }
+
+      test("added it to the migrated table as nullable jsonb with no default", async () => {
+        const columns: Array<SqlRow> = await database.query(
+          `SELECT data_type, is_nullable, column_default
+             FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'TeamComplianceSetting' AND column_name = 'notificationChannels'`,
+        );
+
+        expect(columns).toEqual([
+          { data_type: "jsonb", is_nullable: "YES", column_default: null },
+        ]);
+      });
+
+      test("its backfill gives every rule with a channel that channel as a list, and touches nothing else", async () => {
+        const statements: Array<string> = await migrationStatements();
+        const backfill: string = statements[1]!;
+
+        expect(backfill.startsWith('UPDATE "TeamComplianceSetting" SET')).toBe(
+          true,
+        );
+
+        /*
+         * Rows as the previous build left them, one written since - and
+         * rules of every kind. Run against this suite's own table, never
+         * the migrated one.
+         */
+        const rows: Array<[string, SqlRow]> = [
+          [
+            "call rule",
+            {
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: null,
+            },
+          ],
+          [
+            "telegram alert episode rule",
+            {
+              ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+              notificationChannel: ComplianceNotificationChannel.Telegram,
+              notificationChannels: null,
+            },
+          ],
+          [
+            "any-channel rule",
+            {
+              ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+              notificationChannel: null,
+              notificationChannels: null,
+            },
+          ],
+          [
+            "method rule",
+            {
+              ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+              notificationChannel: null,
+              notificationChannels: null,
+            },
+          ],
+          [
+            "rule already on a list",
+            {
+              ruleType: ComplianceRuleType.HasAlertOnCallRules,
+              notificationChannel: ComplianceNotificationChannel.Push,
+              notificationChannels: JSON.stringify([
+                ComplianceNotificationChannel.Push,
+                ComplianceNotificationChannel.SMS,
+              ]),
+            },
+          ],
+        ];
+
+        const idsByName: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+        for (const [name, row] of rows) {
+          const id: ObjectID = ObjectID.generate();
+          idsByName.set(name, id);
+
+          await insert("TeamComplianceSetting", {
+            _id: id.toString(),
+            projectId: projectId.toString(),
+            teamId: teamId.toString(),
+            enabled: true,
+            version: 1,
+            ...row,
+          });
+        }
+
+        await database.query(
+          backfill.replace(
+            'UPDATE "TeamComplianceSetting"',
+            `UPDATE "${schema}"."TeamComplianceSetting"`,
+          ),
+        );
+
+        const after: Record<string, StoredChannelColumns> = {};
+
+        for (const [name] of rows) {
+          after[name] = await storedChannelColumns(idsByName.get(name)!);
+        }
+
+        expect(after).toEqual({
+          "call rule": {
+            notificationChannels: [ComplianceNotificationChannel.Call],
+            notificationChannel: ComplianceNotificationChannel.Call,
+          },
+          "telegram alert episode rule": {
+            notificationChannels: [ComplianceNotificationChannel.Telegram],
+            notificationChannel: ComplianceNotificationChannel.Telegram,
+          },
+          "any-channel rule": {
+            notificationChannels: null,
+            notificationChannel: null,
+          },
+          "method rule": {
+            notificationChannels: null,
+            notificationChannel: null,
+          },
+          "rule already on a list": {
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.SMS,
+            ],
+            notificationChannel: ComplianceNotificationChannel.Push,
+          },
+        });
+
+        // Each checks what it checked before the migration.
+        for (const [name, channels] of [
+          ["call rule", [ComplianceNotificationChannel.Call]],
+          [
+            "telegram alert episode rule",
+            [ComplianceNotificationChannel.Telegram],
+          ],
+          ["any-channel rule", []],
+          ["method rule", []],
+        ] as Array<[string, Array<ComplianceNotificationChannel>]>) {
+          expect(
+            (await stored(idsByName.get(name)!))?.notificationChannels,
+          ).toEqual(channels);
+        }
+
+        // Running it again changes nothing.
+        await database.query(
+          backfill.replace(
+            'UPDATE "TeamComplianceSetting"',
+            `UPDATE "${schema}"."TeamComplianceSetting"`,
+          ),
+        );
+
+        expect(await storedChannelColumns(idsByName.get("call rule")!)).toEqual(
+          {
+            notificationChannels: [ComplianceNotificationChannel.Call],
+            notificationChannel: ComplianceNotificationChannel.Call,
+          },
+        );
+      });
+    });
+
     describe("deleting", () => {
       test("deleting a severity removes its join row and keeps the rule", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical, major]),
         });
 
@@ -1499,7 +2309,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([major]),
           alertSeverityIds: [],
@@ -1520,7 +2330,7 @@ describePostgres(
       test("deleting an alert severity removes its join row too", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           alertSeverities: asStrings([criticalAlert, warningAlert]),
         });
 
@@ -1543,22 +2353,22 @@ describePostgres(
       test("deleting a rule's only severity through the service pauses the rule; a rule with another severity left keeps it", async () => {
         const onlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
         const episodeOnlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.SMS,
+          notificationChannels: [ComplianceNotificationChannel.SMS],
           incidentSeverities: asStrings([critical]),
         });
         const criticalAndMajor: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           incidentSeverities: asStrings([critical, major]),
         });
         const everySeverity: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Email,
+          notificationChannels: [ComplianceNotificationChannel.Email],
         });
         const alertRule: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
@@ -1572,7 +2382,7 @@ describePostgres(
 
         expect(await stored(onlyCritical)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: false,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -1585,7 +2395,7 @@ describePostgres(
 
         expect(await stored(criticalAndMajor)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           enabled: true,
           incidentSeverityIds: ids([major]),
           alertSeverityIds: [],
@@ -1600,7 +2410,7 @@ describePostgres(
       test("deleting an alert rule's only severity through the service pauses it too", async () => {
         const onlyWarning: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           alertSeverities: asStrings([warningAlert]),
         });
         const incidentRule: ObjectID = await createRule({
@@ -1629,19 +2439,19 @@ describePostgres(
           const both: ObjectID = isAlert
             ? await createRule({
                 ruleType: ComplianceRuleType.HasAlertOnCallRules,
-                notificationChannel: ComplianceNotificationChannel.Call,
+                notificationChannels: [ComplianceNotificationChannel.Call],
                 alertSeverities: asStrings([criticalAlert, warningAlert]),
               })
             : await createRule({
                 ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-                notificationChannel: ComplianceNotificationChannel.Call,
+                notificationChannels: [ComplianceNotificationChannel.Call],
                 incidentSeverities: asStrings([critical, major]),
               });
 
           // A rule with a severity neither delete touches.
           const keepsMinor: ObjectID = await createRule({
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Push,
+            notificationChannels: [ComplianceNotificationChannel.Push],
             incidentSeverities: asStrings([critical, minor]),
           });
 
@@ -1683,7 +2493,7 @@ describePostgres(
       test("a rule an admin had paused is marked too, so switching it on later cannot widen it", async () => {
         const paused: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
           enabled: false,
         });
@@ -1710,11 +2520,11 @@ describePostgres(
       test("a rule a delete emptied duplicates nothing, cannot be switched on as it is, and is re-scoped from its edit form", async () => {
         const everySeverity: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         });
         const onlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1726,7 +2536,7 @@ describePostgres(
         // The every-severity rule's edit form sends its whole scope.
         await updateRule(everySeverity, {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [],
           alertSeverities: [],
           enabled: false,
@@ -1744,7 +2554,7 @@ describePostgres(
         // The emptied rule's edit form: new severities, switched back on.
         await updateRule(onlyCritical, {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asJson([major]),
           alertSeverities: [],
           enabled: true,
@@ -1752,7 +2562,7 @@ describePostgres(
 
         expect(await stored(onlyCritical)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([major]),
           alertSeverityIds: [],
@@ -1768,7 +2578,7 @@ describePostgres(
       test("re-scoping an emptied rule keeps every other option it carries", async () => {
         const onlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1797,7 +2607,7 @@ describePostgres(
       test("a delete the database refuses - the severity is still in use - pauses nothing", async () => {
         const onlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1829,7 +2639,7 @@ describePostgres(
 
         expect(await stored(onlyCritical)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical]),
           alertSeverityIds: [],
@@ -1839,13 +2649,13 @@ describePostgres(
       test("deleting a rule through the service removes its join rows and nobody else's", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical, major]),
         });
 
         const sibling: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1887,7 +2697,7 @@ describePostgres(
         const id: ObjectID = await createRule(
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asIncidentModels([critical]),
           },
           admin,
@@ -1895,7 +2705,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           enabled: true,
           incidentSeverityIds: ids([critical]),
           alertSeverityIds: [],
@@ -1926,7 +2736,7 @@ describePostgres(
           createRule(
             {
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: asJson([major, critical]),
             },
             admin,
@@ -1941,7 +2751,7 @@ describePostgres(
 
         const onlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1973,7 +2783,7 @@ describePostgres(
       test("a caller who may not change the project's rules learns nothing about its severities or rules", async () => {
         await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -1997,7 +2807,7 @@ describePostgres(
               createRule(
                 {
                   ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-                  notificationChannel: ComplianceNotificationChannel.Call,
+                  notificationChannels: [ComplianceNotificationChannel.Call],
                   incidentSeverities: asStrings([severity]),
                 },
                 props,
@@ -2007,6 +2817,88 @@ describePostgres(
         }
 
         expect(await countRules()).toBe(1);
+      });
+
+      /*
+       * The hooks write notificationChannel beside whatever list is sent,
+       * after the caller's column permissions were checked against the
+       * payload - so the column they add must pass the same check the
+       * update makes again once they return.
+       */
+      test("a team editor sets a rule's channels with the list alone, or with the older column alone", async () => {
+        const editor: DatabaseCommonInteractionProps = memberProps(projectId, [
+          Permission.ReadProjectTeam,
+          Permission.EditProjectTeam,
+        ]);
+
+        const id: ObjectID = await createRule(
+          {
+            ruleType: ComplianceRuleType.HasAlertOnCallRules,
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.SMS,
+            ],
+            alertSeverities: asStrings([criticalAlert]),
+          },
+          editor,
+        );
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Push,
+          ],
+          notificationChannel: ComplianceNotificationChannel.SMS,
+        });
+
+        await updateRule(
+          id,
+          { notificationChannels: [ComplianceNotificationChannel.Call] },
+          editor,
+        );
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
+
+        await updateRule(
+          id,
+          { notificationChannel: ComplianceNotificationChannel.Email },
+          editor,
+        );
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Email],
+          notificationChannel: ComplianceNotificationChannel.Email,
+        });
+      });
+
+      test("a member who may only read the project's teams changes neither channel column", async () => {
+        const reader: DatabaseCommonInteractionProps = memberProps(projectId, [
+          Permission.ProjectMember,
+          Permission.ReadProjectTeam,
+        ]);
+
+        const id: ObjectID = await createRule({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          incidentSeverities: asStrings([critical]),
+        });
+
+        for (const data of [
+          { notificationChannels: [ComplianceNotificationChannel.Webhook] },
+          { notificationChannel: ComplianceNotificationChannel.Webhook },
+        ]) {
+          await expect(updateRule(id, data, reader)).rejects.toThrow(
+            NotAuthorizedException,
+          );
+        }
+
+        expect(await storedChannelColumns(id)).toEqual({
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        });
       });
 
       test("a team editor creates and rescopes a rule; cleared options pass the permission check", async () => {
@@ -2019,7 +2911,7 @@ describePostgres(
         const method: ObjectID = await createRule(
           {
             ruleType: ComplianceRuleType.HasNotificationCallMethod,
-            notificationChannel: ComplianceNotificationChannel.SMS,
+            notificationChannels: [ComplianceNotificationChannel.SMS],
             incidentSeverities: asStrings([critical]),
           },
           editor,
@@ -2027,7 +2919,7 @@ describePostgres(
 
         expect(await stored(method)).toEqual({
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
-          notificationChannel: null,
+          notificationChannels: [],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -2036,7 +2928,7 @@ describePostgres(
         const id: ObjectID = await createRule(
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asIncidentModels([critical]),
             alertSeverities: asStrings([criticalAlert]),
           },
@@ -2061,7 +2953,7 @@ describePostgres(
 
         expect(await stored(id)).toEqual({
           ruleType: ComplianceRuleType.HasNotificationPushMethod,
-          notificationChannel: null,
+          notificationChannels: [],
           enabled: true,
           incidentSeverityIds: [],
           alertSeverityIds: [],
@@ -2129,7 +3021,7 @@ describePostgres(
 
         const onlyCritical: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -2170,7 +3062,7 @@ describePostgres(
       test("cannot rescope another project's rule", async () => {
         const id: ObjectID = await createRule({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: asStrings([critical]),
         });
 
@@ -2204,7 +3096,7 @@ describePostgres(
           createRule(
             {
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: asIncidentModels([otherProjectCritical]),
               projectId: otherProjectId,
             },
@@ -2218,7 +3110,7 @@ describePostgres(
         const id: ObjectID = await createRule(
           {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.Call,
+            notificationChannels: [ComplianceNotificationChannel.Call],
             incidentSeverities: asIncidentModels([critical]),
             projectId: otherProjectId,
           },
