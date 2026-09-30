@@ -480,8 +480,14 @@ export class Service extends DatabaseService<Model> {
       cloudAccountId: extra?.cloudAccountId ?? null,
     };
 
+    /*
+     * Change detection only, but the payload carries the cloud account id,
+     * so it is hashed with SHA-256 rather than SHA-1. The value lives in the
+     * heartbeat throttle's cache, so the switch costs each host one extra
+     * metadata write after a deploy, nothing more.
+     */
     return crypto
-      .createHash("sha1")
+      .createHash("sha256")
       .update(JSON.stringify(normalized))
       .digest("hex");
   }
