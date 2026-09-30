@@ -24,6 +24,8 @@ import DatabaseServerFeed from "../Pages/Database/View/Feed";
 import DatabaseServerOwners from "../Pages/Database/View/Owners";
 import DatabaseServerEndpoints from "../Pages/Database/View/Endpoints";
 import DatabaseServerRecommendations from "../Pages/Database/View/Recommendations";
+import DatabaseServerAiInsights from "../Pages/Database/View/AI/Insights";
+import DatabaseServerAiAgent from "../Pages/Database/View/AI/Agent";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
@@ -265,6 +267,37 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+
+        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <DatabaseServerAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <DatabaseServerAiAgent
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_AGENT] as Route
               }
             />
           }

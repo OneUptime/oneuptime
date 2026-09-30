@@ -149,6 +149,8 @@ const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
   [RunbookStepType.AI]: IconProp.Sparkles,
   // Composed by OneUptime AI only, never authored in a runbook; keeps the map total.
   [RunbookStepType.Kubectl]: IconProp.Cube,
+  // Same: one command for an infrastructure resource's AI agent.
+  [RunbookStepType.ResourceCommand]: IconProp.Server,
 };
 
 const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
@@ -160,6 +162,7 @@ const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
   [RunbookStepType.Kubernetes]: "Kubernetes",
   [RunbookStepType.AI]: "AI",
   [RunbookStepType.Kubectl]: "kubectl",
+  [RunbookStepType.ResourceCommand]: "AI agent command",
 };
 
 function isTerminal(status?: RunbookExecutionStatus): boolean {

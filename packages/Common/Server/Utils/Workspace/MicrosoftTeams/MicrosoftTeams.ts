@@ -88,6 +88,7 @@ import { ExpressRequest, ExpressResponse } from "../../Express";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction, {
+  MicrosoftTeamsAccountNotLinkedException,
   MicrosoftTeamsRequest,
 } from "./Actions/Auth";
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
@@ -102,6 +103,10 @@ import MicrosoftTeamsIncidentEpisodeActions from "./Actions/IncidentEpisode";
 import MicrosoftTeamsMonitorActions from "./Actions/Monitor";
 import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMaintenance";
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
+import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
+import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
+import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
+import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -235,6 +240,13 @@ const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
 
 // Maximum number of pages to fetch when paginating teams
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
+
+// Bot commands that open a form; text after them becomes the form's title.
+const CREATE_INCIDENT_COMMAND: string = "create incident";
+const CREATE_MAINTENANCE_COMMAND: string = "create maintenance";
+
+// How many affected monitors a "show ..." reply names for one item.
+const MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES: number = 10;
 
 /*
  * Hosts that may receive a Teams incoming webhook. Legacy Connector webhooks
@@ -3008,21 +3020,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       });
     }
 
-    // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
-    if (
-      (possibleActionValue["action"] as string) ||
-      (possibleActionValue["data"] as any)?.["action"]
-    ) {
-      logger.debug(
-        "Message activity contains action payload; routing to invoke handler",
-      );
-      await this.handleBotInvokeActivity({
-        activity: data.activity,
-        turnContext: data.turnContext,
-      });
-      return;
-    }
-
     // Check if the bot was mentioned
     const recipientId: string = (data.activity["recipient"] as JSONObject)?.[
       "id"
@@ -3037,44 +3034,44 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
     });
 
-    // Only respond if it's a direct message or the bot was mentioned
-    if (!isDirectMessage && !isMentioned) {
+    // An Adaptive Card submit arrives as a message whose value names the action.
+    const isCardSubmit: boolean = Boolean(
+      (possibleActionValue["action"] as string) ||
+        (possibleActionValue["data"] as any)?.["action"],
+    );
+
+    // Only respond to card submits, direct messages and @mentions.
+    if (!isCardSubmit && !isDirectMessage && !isMentioned) {
       logger.debug("Bot not mentioned in channel message, ignoring");
       return;
     }
 
-    // Extract tenant ID to get project ID
-    const tenantId: string = (channelData["tenant"] as JSONObject)?.[
-      "id"
-    ] as string;
-    if (!tenantId) {
-      logger.error("Tenant ID not found in channelData");
-      await data.turnContext.sendActivity(
-        "Sorry, I couldn't identify your organization. Please try again later.",
+    /*
+     * Teams delivers an activity again when the first delivery was slow or
+     * failed. Handling it twice sends every reply twice and creates a
+     * submitted incident twice, so only the first delivery is handled.
+     */
+    if (!(await MicrosoftTeamsActivityDeduplicator.claim(data.activity))) {
+      logger.debug(
+        "Microsoft Teams delivered this activity before; ignoring the repeat",
+        {
+          activityId: (data.activity["id"] as string) || "",
+        },
       );
       return;
     }
 
-    // Get project auth by tenant ID
-    const tenantResolution: MicrosoftTeamsTenantResolution =
-      await this.resolveProjectByTenantId({
-        tenantId: tenantId,
+    // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
+    if (isCardSubmit) {
+      logger.debug(
+        "Message activity contains action payload; routing to invoke handler",
+      );
+      await this.handleBotInvokeActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
       });
-
-    if (
-      !tenantResolution.projectAuth ||
-      !tenantResolution.projectAuth.projectId
-    ) {
-      await data.turnContext.sendActivity(
-        this.getTenantResolutionFailureMessage(tenantResolution),
-      );
       return;
     }
-
-    const projectId: ObjectID = tenantResolution.projectAuth.projectId;
-    logger.debug(
-      `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
-    );
 
     // Clean the message text by removing bot mentions
     const cleanText: string = messageText
@@ -3091,81 +3088,131 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       .replace(/<at[^>]*>.*?<\/at>/g, "")
       .trim();
 
+    const isCreateIncidentCommand: boolean =
+      cleanText === CREATE_INCIDENT_COMMAND ||
+      cleanText.startsWith(CREATE_INCIDENT_COMMAND + " ");
+
+    const isCreateMaintenanceCommand: boolean =
+      cleanText === CREATE_MAINTENANCE_COMMAND ||
+      cleanText.startsWith(CREATE_MAINTENANCE_COMMAND + " ");
+
+    /*
+     * Explicit commands are matched precisely so that natural-language
+     * questions (which may incidentally contain words like "help" or
+     * "alerts") fall through to the AI assistant instead of a canned command.
+     */
+    const isHelpCommand: boolean =
+      cleanText === "help" || cleanText === "" || cleanText === "?";
+
+    const isShowActiveIncidentsCommand: boolean =
+      cleanText === "show active incidents" || cleanText === "active incidents";
+
+    const isShowScheduledMaintenanceCommand: boolean =
+      cleanText === "show scheduled maintenance" ||
+      cleanText === "scheduled maintenance";
+
+    const isShowOngoingMaintenanceCommand: boolean =
+      cleanText === "show ongoing maintenance" ||
+      cleanText === "ongoing maintenance";
+
+    const isShowActiveAlertsCommand: boolean =
+      cleanText === "show active alerts" || cleanText === "active alerts";
+
+    /*
+     * "ask <question>" is an explicit prefix that always routes to the AI
+     * assistant. When present, strip the prefix and use the remainder as the
+     * question.
+     */
+    const isAskCommand: boolean =
+      cleanText === "ask" || cleanText.startsWith("ask ");
+
+    /*
+     * The command, named for log lines that must not quote the message: a
+     * free-form question can carry things that do not belong in a log.
+     */
+    const commandName: string | undefined = [
+      { matches: isHelpCommand, name: "help" },
+      { matches: isCreateIncidentCommand, name: CREATE_INCIDENT_COMMAND },
+      { matches: isCreateMaintenanceCommand, name: CREATE_MAINTENANCE_COMMAND },
+      { matches: isShowActiveIncidentsCommand, name: "show active incidents" },
+      {
+        matches: isShowScheduledMaintenanceCommand,
+        name: "show scheduled maintenance",
+      },
+      {
+        matches: isShowOngoingMaintenanceCommand,
+        name: "show ongoing maintenance",
+      },
+      { matches: isShowActiveAlertsCommand, name: "show active alerts" },
+      { matches: isAskCommand, name: "ask" },
+    ].find((command: { matches: boolean; name: string }) => {
+      return command.matches;
+    })?.name;
+
+    let projectId: ObjectID | undefined = undefined;
     let responseText: string = "";
 
     try {
-      const isCreateIncidentCommand: boolean =
-        cleanText === "create incident" ||
-        cleanText.startsWith("create incident ");
+      // Extract tenant ID to get project ID
+      const tenantId: string = (channelData["tenant"] as JSONObject)?.[
+        "id"
+      ] as string;
+      if (!tenantId) {
+        logger.error("Tenant ID not found in channelData");
+        await data.turnContext.sendActivity(
+          "Sorry, I couldn't identify your organization. Please try again later.",
+        );
+        return;
+      }
 
-      const isCreateMaintenanceCommand: boolean =
-        cleanText === "create maintenance" ||
-        cleanText.startsWith("create maintenance ");
+      // Get project auth by tenant ID
+      const tenantResolution: MicrosoftTeamsTenantResolution =
+        await this.resolveProjectByTenantId({
+          tenantId: tenantId,
+        });
 
-      /*
-       * Explicit commands are matched precisely so that natural-language
-       * questions (which may incidentally contain words like "help" or
-       * "alerts") fall through to the AI assistant instead of a canned command.
-       */
-      const isHelpCommand: boolean =
-        cleanText === "help" || cleanText === "" || cleanText === "?";
+      if (
+        !tenantResolution.projectAuth ||
+        !tenantResolution.projectAuth.projectId
+      ) {
+        await data.turnContext.sendActivity(
+          this.getTenantResolutionFailureMessage(tenantResolution),
+        );
+        return;
+      }
 
-      const isShowActiveIncidentsCommand: boolean =
-        cleanText === "show active incidents" ||
-        cleanText === "active incidents";
-
-      const isShowScheduledMaintenanceCommand: boolean =
-        cleanText === "show scheduled maintenance" ||
-        cleanText === "scheduled maintenance";
-
-      const isShowOngoingMaintenanceCommand: boolean =
-        cleanText === "show ongoing maintenance" ||
-        cleanText === "ongoing maintenance";
-
-      const isShowActiveAlertsCommand: boolean =
-        cleanText === "show active alerts" || cleanText === "active alerts";
-
-      /*
-       * "ask <question>" is an explicit prefix that always routes to the AI
-       * assistant. When present, strip the prefix and use the remainder as the
-       * question.
-       */
-      const isAskCommand: boolean =
-        cleanText === "ask" || cleanText.startsWith("ask ");
+      projectId = tenantResolution.projectAuth.projectId;
+      logger.debug(
+        `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
+      );
 
       if (isHelpCommand) {
         responseText = this.getHelpMessage();
       } else if (isCreateIncidentCommand) {
-        // Handle create incident command (legacy slash command supported)
+        // "create incident <title>" opens the form with the title filled in.
         logger.debug("Processing create incident command");
-        const card: JSONObject =
-          await MicrosoftTeamsIncidentActions.buildNewIncidentCard(projectId);
-        await data.turnContext.sendActivity({
-          attachments: [
-            {
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: card,
-            },
-          ],
+        await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          projectId: projectId,
+          initialTitle: originalQuestionText
+            .substring(CREATE_INCIDENT_COMMAND.length)
+            .trim(),
         });
-        logger.debug("New incident card sent successfully");
         return;
       } else if (isCreateMaintenanceCommand) {
-        // Handle create maintenance command (legacy slash command supported)
+        // "create maintenance <title>" opens the form with the title filled in.
         logger.debug("Processing create maintenance command");
-        const card: JSONObject =
-          await MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenanceCard(
-            projectId,
-          );
-        await data.turnContext.sendActivity({
-          attachments: [
-            {
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: card,
-            },
-          ],
-        });
-        logger.debug("New scheduled maintenance card sent successfully");
+        await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
+          {
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+            initialTitle: originalQuestionText
+              .substring(CREATE_MAINTENANCE_COMMAND.length)
+              .trim(),
+          },
+        );
         return;
       } else if (isShowActiveIncidentsCommand) {
         responseText = await this.getActiveIncidentsMessage(projectId);
@@ -3201,19 +3248,98 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
-      // Send response directly using TurnContext - this is the recommended Bot Framework pattern
-      await data.turnContext.sendActivity(responseText);
+      /*
+       * Send response directly using TurnContext - this is the recommended Bot
+       * Framework pattern. Lists grow with the project, so the text is kept
+       * within what Teams accepts.
+       */
+      await data.turnContext.sendActivity(
+        MicrosoftTeamsMessageSize.fitTextToBudget({ text: responseText }),
+      );
       logger.debug("Bot message sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
     } catch (error) {
-      logger.error("Error sending bot message via TurnContext: " + error, {
-        projectId: projectId.toString(),
-      });
-      await data.turnContext.sendActivity(
-        "Sorry, I encountered an error processing your request. Please try again later.",
+      /*
+       * One reply, and no rethrow. This used to reply and then rethrow: the
+       * adapter answered Teams with HTTP 500, Teams delivered the message
+       * again, and every failure showed up twice (issue #4111).
+       */
+      /*
+       * The command is named, not quoted: a free-form question can carry
+       * things that do not belong in an error log. The text is in the debug
+       * log above.
+       */
+      MicrosoftTeamsReplies.logFailure(
+        `Microsoft Teams message ${(data.activity["id"] as string) || ""} (${
+          commandName
+            ? `"${commandName}"`
+            : `a ${cleanText.length}-character question`
+        }) failed`,
+        error,
+        {
+          projectId: projectId?.toString(),
+        },
       );
-      throw error;
+      await MicrosoftTeamsReplies.sendBestEffort(
+        data.turnContext,
+        this.getUnexpectedErrorMessage(data.activity),
+      );
+    }
+  }
+
+  /*
+   * The reply to a message whose handling failed in a way nobody planned for.
+   * It names the activity id, which the server log line carries too, so an
+   * administrator can find what went wrong.
+   */
+  public static getUnexpectedErrorMessage(activity: JSONObject): string {
+    const reference: string = (activity["id"] as string | undefined) || "";
+
+    return `Sorry, something went wrong in OneUptime while handling that message. Please try again in a minute.${
+      reference
+        ? ` If it keeps happening, ask your OneUptime administrator to look for reference ${reference} in the server logs.`
+        : ""
+    }`;
+  }
+
+  /*
+   * The last line of defence for an inbound activity whose handler threw.
+   *
+   * The error is logged and the turn ends normally, so CloudAdapter answers
+   * Teams with 200. Letting the error through made CloudAdapter answer HTTP
+   * 500, Teams delivered the activity again, and every reply the turn had
+   * posted appeared twice (issue #4111). A message that got no reply yet gets
+   * one; an invoke gets the response it needs, or CloudAdapter answers 501.
+   *
+   * This is deliberately not adapter.onTurnError: the same adapter sends
+   * proactive notifications, and their callers need their errors thrown.
+   */
+  public static async recoverFromFailedTurn(data: {
+    turnContext: TurnContext;
+    error: unknown;
+  }): Promise<void> {
+    const { turnContext, error } = data;
+    const activity: Partial<Activity> = turnContext.activity || {};
+
+    MicrosoftTeamsReplies.logFailure(
+      `Microsoft Teams ${activity.type || "unknown"} activity ${activity.id || ""} failed`,
+      error,
+    );
+
+    if (activity.type === "message" && !turnContext.responded) {
+      await MicrosoftTeamsReplies.sendBestEffort(
+        turnContext,
+        this.getUnexpectedErrorMessage(activity as unknown as JSONObject),
+      );
+      return;
+    }
+
+    if (activity.type === "invoke") {
+      await MicrosoftTeamsReplies.sendBestEffort(turnContext, {
+        type: "invokeResponse",
+        value: { status: 200 },
+      });
     }
   }
 
@@ -3236,12 +3362,33 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * channel/chat message bodies are typically HTML (body.contentType "html").
    */
   private static toPlainTextFromTeamsMessageBody(rawContent: string): string {
-    return rawContent
-      .replace(/<at[^>]*>.*?<\/at>/g, "")
-      .replace(/<[^>]*>/g, "")
+    return this.stripHtmlTags(rawContent.replace(/<at[^>]*>.*?<\/at>/g, ""))
       .replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  /*
+   * Plain text out of a Teams message body, which Graph and the Bot Framework
+   * hand over as HTML. Removing complete tags is not enough on its own: an
+   * unclosed one ("<script" with no ">" after it) matches no tag pattern, so
+   * once no tag is left, any "<" still standing goes too, and the text holds
+   * no markup at all. The tag pass repeats until nothing changes - the shape
+   * code scanning recognises as complete, where a single pass is reported as
+   * incomplete multi-character sanitization. Teams sends a literal "<" in a
+   * message as "&lt;", which is left encoded: decoding it here would hand
+   * back what this removed.
+   */
+  public static stripHtmlTags(html: string): string {
+    let text: string = html;
+    let previous: string;
+
+    do {
+      previous = text;
+      text = text.replace(/<[^>]*>/g, "");
+    } while (text !== previous);
+
+    return text.replace(/</g, "");
   }
 
   /*
@@ -3507,6 +3654,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           projectId: projectId,
         });
     } catch (error) {
+      // A failed lookup is not a missing account; the caller answers it.
+      if (!(error instanceof MicrosoftTeamsAccountNotLinkedException)) {
+        throw error;
+      }
+
       logger.debug(
         "No OneUptime user linked to Teams user; prompting to connect account",
         {
@@ -3514,9 +3666,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           workspaceUserId: teamsUserId,
         },
       );
-      logger.debug(error);
       await turnContext.sendActivity(
-        "I couldn't find your OneUptime account. Please connect your Microsoft Teams account in OneUptime User Settings before asking me questions.",
+        await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
+          projectId: projectId,
+          purpose: "ask OneUptime questions from Microsoft Teams",
+        }),
       );
       return;
     }
@@ -3646,6 +3800,31 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
+  /*
+   * The monitors an incident or maintenance event affects, as one line: the
+   * first few names, then how many more. An event can cover hundreds of
+   * monitors, and listing them all made the reply too large for Teams.
+   */
+  public static formatAffectedMonitorNames(monitors: Array<Monitor>): string {
+    const names: Array<string> = monitors
+      .map((monitor: Monitor) => {
+        return monitor.name || "";
+      })
+      .filter((name: string) => {
+        return Boolean(name);
+      });
+
+    const shownNames: Array<string> = names.slice(
+      0,
+      MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES,
+    );
+    const notShownCount: number = names.length - shownNames.length;
+
+    return notShownCount > 0
+      ? `${shownNames.join(", ")} and ${notShownCount} more`
+      : shownNames.join(", ");
+  }
+
   // Helper methods for bot commands
   private static getHelpMessage(): string {
     return `Hello! I'm the OneUptime bot. I can help you with the following commands:
@@ -3653,8 +3832,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 **Available Commands:**
 - **help** - Show this help message
 - **ask <question>** - Ask OneUptime AI about your logs, traces, metrics, incidents and monitors
-- **create incident** - Create a new incident
-- **create maintenance** - Create a new scheduled maintenance event
+- **create incident [title]** - Create a new incident
+- **create maintenance [title]** - Create a new scheduled maintenance event
 - **show active incidents** - Display all currently active incidents
 - **show scheduled maintenance** - Show upcoming scheduled maintenance events
 - **show ongoing maintenance** - Display currently ongoing maintenance events
@@ -3759,11 +3938,9 @@ If you need to report an incident or check historical incidents, please visit th
 `;
 
         if (incident.monitors && incident.monitors.length > 0) {
-          message += `• **Affected Services:** ${incident.monitors
-            .map((m: Monitor) => {
-              return m.name;
-            })
-            .join(", ")}\n`;
+          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+            incident.monitors,
+          )}\n`;
         }
 
         if (incident.description) {
@@ -3866,11 +4043,9 @@ Check back later for upcoming maintenance windows.`;
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${event.monitors
-            .map((m: Monitor) => {
-              return m.name;
-            })
-            .join(", ")}\n`;
+          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+            event.monitors,
+          )}\n`;
         }
 
         if (event.description) {
@@ -3972,11 +4147,9 @@ All systems are currently operating normally.`;
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${event.monitors
-            .map((m: Monitor) => {
-              return m.name;
-            })
-            .join(", ")}\n`;
+          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+            event.monitors,
+          )}\n`;
         }
 
         if (event.description) {
@@ -4118,6 +4291,8 @@ All monitoring checks are passing normally.`;
     logger.debug(`Bot invoke activity - Action type: ${actionType}`);
     logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
 
+    let projectId: ObjectID | undefined = undefined;
+
     try {
       // Resolve project and user context from activity
       const channelData: JSONObject =
@@ -4148,7 +4323,7 @@ All monitoring checks are passing normally.`;
         return;
       }
 
-      const projectId: ObjectID = tenantResolution.projectAuth.projectId;
+      projectId = tenantResolution.projectAuth.projectId;
       const fromObj: JSONObject = ((data.activity["from"] as JSONObject) ||
         {}) as JSONObject;
       const teamsUserId: string | undefined =
@@ -4303,21 +4478,62 @@ All monitoring checks are passing normally.`;
         return;
       }
     } catch (error) {
+      /*
+       * Every reply below is sent best-effort: a reply that fails here must
+       * not escape, or the adapter answers Teams with HTTP 500 and Teams
+       * delivers the action again (issue #4111).
+       */
+
+      // The account is not connected: say where to connect it.
+      if (
+        error instanceof MicrosoftTeamsAccountNotLinkedException &&
+        projectId
+      ) {
+        logger.debug(
+          "Bot invoke activity from a Teams user with no linked account",
+          {
+            actionType: actionType,
+          },
+        );
+        await MicrosoftTeamsReplies.sendBestEffort(
+          data.turnContext,
+          await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
+            projectId: projectId,
+            purpose: "use OneUptime actions in Microsoft Teams",
+          }),
+        );
+        return;
+      }
+
       // Tell the user why they were refused; the message is written for them.
       if (error instanceof NotAuthorizedException) {
         logger.debug("Bot invoke activity refused: " + error.message, {
           actionType: actionType,
         });
-        await data.turnContext.sendActivity(error.message);
+        await MicrosoftTeamsReplies.sendBestEffort(
+          data.turnContext,
+          error.message,
+        );
         return;
       }
 
-      logger.error("Error handling bot invoke activity:", {
-        actionType: actionType,
-      });
-      logger.error(error);
-      await data.turnContext.sendActivity(
-        "Sorry, that action failed. Please try again later.",
+      MicrosoftTeamsReplies.logFailure(
+        "Error handling bot invoke activity",
+        error,
+        {
+          actionType: actionType,
+          projectId: projectId?.toString(),
+        },
+      );
+
+      const reason: string | null =
+        MicrosoftTeamsReplies.getUserFacingErrorMessage(error);
+
+      await MicrosoftTeamsReplies.sendBestEffort(
+        data.turnContext,
+        reason
+          ? `Sorry, that action failed: ${reason}`
+          : "Sorry, that action failed. Please try again later.",
       );
     }
   }
@@ -6132,8 +6348,16 @@ All monitoring checks are passing normally.`;
             }),
         );
 
-        // Run the activity through our activity handler
-        await activityHandler.run(context);
+        try {
+          // Run the activity through our activity handler
+          await activityHandler.run(context);
+        } catch (error) {
+          // Never answer Teams with a 500; see recoverFromFailedTurn.
+          await MicrosoftTeamsUtil.recoverFromFailedTurn({
+            turnContext: context,
+            error: error,
+          });
+        }
       });
 
       logger.debug("Bot Framework activity processed successfully");
@@ -6655,9 +6879,8 @@ All monitoring checks are passing normally.`;
           const body: JSONObject = msg["body"] as JSONObject;
           let text: string = (body?.["content"] as string) || "";
 
-          // Remove HTML tags if present (Teams uses HTML)
-          text = text.replace(/<[^>]*>/g, "");
-          text = text.trim();
+          // Teams message bodies are HTML.
+          text = this.stripHtmlTags(text).trim();
 
           // Skip empty messages
           if (!text) {

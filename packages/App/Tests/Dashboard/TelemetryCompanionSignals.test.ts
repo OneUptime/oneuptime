@@ -23,6 +23,10 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
+import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
+import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 
 /*
  * TelemetryCompanionSignals imports MetricsCrossSignalPivot (scope reuse),
@@ -52,12 +56,14 @@ jest.mock("Common/UI/Utils/Project", () => {
 import { SERVICE_NAME_ATTRIBUTE_KEY } from "../../FeatureSet/Dashboard/src/Utils/MetricsCrossSignalPivot";
 import {
   CompanionMetricChartPlan,
+  CompanionMetricsSpec,
   CompanionSignalQueries,
   MAX_COMPANION_METRIC_CHARTS,
   TELEMETRY_SNAPSHOT_TAB_ORDER,
   buildCompanionMetricChartPlan,
   buildCompanionMetricNameQuery,
   deriveCompanionSignalQueries,
+  excludeReservedCompanionMetricNames,
   getCompanionMetricScopeServiceNames,
   getTelemetrySnapshotTabOrder,
 } from "../../FeatureSet/Dashboard/src/Utils/TelemetryCompanionSignals";
@@ -842,6 +848,258 @@ describe("companion metric chart plan", () => {
 });
 
 /*
+ * The session replay budget sweep writes four `oneuptime.rum.session.replay.*`
+ * series every five minutes under the id of each RUM application that
+ * records. A RUM trace or exception incident scopes its companions to that
+ * same id, so the metrics tab's name lookup finds them - and they sort ahead
+ * of `web_vital.*`, so under the chart cap they would take every slot the web
+ * vitals should have.
+ */
+describe("companion metrics leave out the session replay budget series", () => {
+  const RUM_APPLICATION_ID: string = new ObjectID(
+    "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  ).toString();
+
+  const window: InBetween<Date> = new InBetween<Date>(
+    new Date("2026-08-10T11:00:00.000Z"),
+    new Date("2026-08-10T11:05:00.000Z"),
+  );
+
+  // What a RUM incident's metrics companion is scoped to: the app's id.
+  const rumSpec: CompanionMetricsSpec = {
+    serviceIds: [RUM_APPLICATION_ID],
+    entityKeys: [],
+    attributes: {},
+    window: window,
+    notCarried: [],
+  };
+
+  const BUDGET_METRIC_NAMES: Array<string> =
+    SessionReplayBudgetMetricTypeUtil.getAll();
+
+  // Already sorted, the order the plan charts them in.
+  const WEB_VITAL_NAMES: Array<string> = [
+    "web_vital.cls",
+    "web_vital.fcp",
+    "web_vital.inp",
+    "web_vital.lcp",
+    "web_vital.ttfb",
+  ];
+
+  function chartedNames(plan: CompanionMetricChartPlan): Array<string> {
+    return plan.queryConfigs.map((config: MetricQueryConfigData): string => {
+      return config.metricQueryData.filterData.metricName as string;
+    });
+  }
+
+  test("the names under test are the four the sweep writes, and they sort ahead of the web vitals", () => {
+    // Guards every test below against passing over an empty list.
+    expect(BUDGET_METRIC_NAMES).toHaveLength(4);
+    expect([...BUDGET_METRIC_NAMES].sort()).toEqual(
+      [...Object.values(SessionReplayBudgetMetricType)].sort(),
+    );
+
+    // The crowding itself: the plan's plain sort puts all four first.
+    for (const budgetName of BUDGET_METRIC_NAMES) {
+      for (const webVitalName of WEB_VITAL_NAMES) {
+        expect(budgetName < webVitalName).toBe(true);
+      }
+    }
+  });
+
+  test("excludeReservedCompanionMetricNames drops every budget series and keeps the rest in order", () => {
+    expect(
+      excludeReservedCompanionMetricNames([
+        "web_vital.lcp",
+        ...BUDGET_METRIC_NAMES,
+        "http.server.duration",
+        "web_vital.cls",
+      ]),
+    ).toEqual(["web_vital.lcp", "http.server.duration", "web_vital.cls"]);
+  });
+
+  test("any spelling under the reserved prefix is dropped, whatever its case or padding", () => {
+    /*
+     * Ingest lowercases names, so another casing lands on the same series,
+     * and the chart plan charts trimmed names. A name the sweep does not
+     * write yet goes too: the whole prefix is OneUptime's.
+     */
+    expect(
+      excludeReservedCompanionMetricNames([
+        "OneUptime.RUM.Session.Replay.Budget.Project.Daily.Used.Percent",
+        "ONEUPTIME.RUM.SESSION.REPLAY.BUDGET.PROJECT.DAILY.USED.BYTES",
+        "  oneuptime.rum.session.replay.budget.application.monthly.used.bytes  ",
+        "\toneuptime.rum.session.replay.budget.application.monthly.used.percent\n",
+        "oneuptime.rum.session.replay.some.future.series",
+      ]),
+    ).toEqual([]);
+  });
+
+  test("other OneUptime series and near misses stay: only the replay prefix is reserved", () => {
+    const kept: Array<string> = [
+      // OneUptime's own series under other prefixes, "budget" and all.
+      SloMetricType.ErrorBudgetRemainingPercent,
+      MonitorMetricType.ResponseTime,
+      // Near misses of `oneuptime.rum.session.replay.`.
+      "oneuptime.rum.session.replay",
+      "oneuptime.rum.session.replayed",
+      "oneuptime.rum.session",
+      "rum.session.replay.budget.project.daily.used.percent",
+      "session.replay.budget.used.percent",
+      "web_vital.lcp",
+    ];
+
+    expect(excludeReservedCompanionMetricNames(kept)).toEqual(kept);
+  });
+
+  test("the helper is pure: a new list back, the input left alone", () => {
+    const input: Array<string> = ["web_vital.lcp", ...BUDGET_METRIC_NAMES];
+    const before: Array<string> = [...input];
+
+    const result: Array<string> = excludeReservedCompanionMetricNames(input);
+
+    expect(result).not.toBe(input);
+    expect(result).toEqual(["web_vital.lcp"]);
+    expect(input).toEqual(before);
+    expect(excludeReservedCompanionMetricNames([])).toEqual([]);
+  });
+
+  test("budget series take no chart slot and are not counted as omitted", () => {
+    const plan: CompanionMetricChartPlan = buildCompanionMetricChartPlan({
+      metricNames: [...BUDGET_METRIC_NAMES, ...WEB_VITAL_NAMES],
+      serviceNames: [],
+      spec: rumSpec,
+    });
+
+    expect(chartedNames(plan)).toEqual(
+      WEB_VITAL_NAMES.slice(0, MAX_COMPANION_METRIC_CHARTS),
+    );
+
+    // Only the web vital past the cap is "not shown", never a budget series.
+    expect(plan.omittedMetricCount).toBe(
+      WEB_VITAL_NAMES.length - MAX_COMPANION_METRIC_CHARTS,
+    );
+
+    for (const chartedName of chartedNames(plan)) {
+      expect(
+        SessionReplayBudgetMetricTypeUtil.isReservedMetricName(chartedName),
+      ).toBe(false);
+    }
+  });
+
+  test("adding the budget series to a name list leaves the plan exactly as it was, at any cap", () => {
+    for (const maxCharts of [1, 2, MAX_COMPANION_METRIC_CHARTS, 10]) {
+      const withBudget: CompanionMetricChartPlan =
+        buildCompanionMetricChartPlan({
+          metricNames: [
+            ...BUDGET_METRIC_NAMES,
+            ...WEB_VITAL_NAMES,
+            "OneUptime.Rum.Session.Replay.Budget.Project.Daily.Used.Percent",
+            " oneuptime.rum.session.replay.budget.project.daily.used.bytes",
+          ],
+          serviceNames: [],
+          spec: rumSpec,
+          maxCharts: maxCharts,
+        });
+
+      const withoutBudget: CompanionMetricChartPlan =
+        buildCompanionMetricChartPlan({
+          metricNames: WEB_VITAL_NAMES,
+          serviceNames: [],
+          spec: rumSpec,
+          maxCharts: maxCharts,
+        });
+
+      expect({ maxCharts, plan: withBudget }).toEqual({
+        maxCharts,
+        plan: withoutBudget,
+      });
+    }
+  });
+
+  test("a window that held only budget series plans no chart, exactly like an empty one", () => {
+    const plan: CompanionMetricChartPlan = buildCompanionMetricChartPlan({
+      metricNames: [...BUDGET_METRIC_NAMES, ...BUDGET_METRIC_NAMES],
+      serviceNames: [],
+      spec: rumSpec,
+    });
+
+    expect(plan.queryConfigs).toEqual([]);
+    expect(plan.omittedMetricCount).toBe(0);
+    expect(plan).toEqual(
+      buildCompanionMetricChartPlan({
+        metricNames: [],
+        serviceNames: [],
+        spec: rumSpec,
+      }),
+    );
+  });
+
+  test("a RUM trace incident: its lookup finds the budget rows, and the list and charts drop them", () => {
+    /*
+     * The shape the RUM "Failed User Operations" template stores: a trace
+     * query scoped to the application's id (RumAlertTemplates).
+     */
+    const primary: RestoredPrimary = restorePrimary({
+      telemetryType: TelemetryType.Trace,
+      telemetryQuery: MonitorStepTraceMonitorUtil.toQuery({
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        telemetryServiceIds: [new ObjectID(RUM_APPLICATION_ID)],
+        spanStatuses: [SpanStatus.Error],
+        lastXSecondsOfSpans: 300,
+      }),
+      metricViewData: null,
+    });
+
+    const companions: CompanionSignalQueries = deriveCompanionSignalQueries({
+      telemetryQuery: primary.telemetryQuery,
+      snapshotWindow: primary.snapshotWindow,
+    });
+
+    // The name lookup asks for the very id the sweep writes its rows under...
+    const nameQuery: JSONObject = buildCompanionMetricNameQuery({
+      spec: companions.metrics!,
+      projectId: new ObjectID("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+    }) as unknown as JSONObject;
+
+    expect(includesValues(nameQuery["primaryEntityId"])).toEqual([
+      RUM_APPLICATION_ID,
+    ]);
+
+    // ...so GROUP BY name answers with them first, ahead of the web vitals.
+    const discovered: Array<string> = [
+      ...WEB_VITAL_NAMES,
+      ...BUDGET_METRIC_NAMES,
+    ].sort();
+
+    expect(discovered.slice(0, BUDGET_METRIC_NAMES.length).sort()).toEqual(
+      [...BUDGET_METRIC_NAMES].sort(),
+    );
+
+    // The list the tab keeps: what its empty state and "Showing X of Y" count.
+    const listed: Array<string> =
+      excludeReservedCompanionMetricNames(discovered);
+
+    expect(listed).toEqual(WEB_VITAL_NAMES);
+
+    const plan: CompanionMetricChartPlan = buildCompanionMetricChartPlan({
+      metricNames: listed,
+      serviceNames: [],
+      spec: companions.metrics!,
+    });
+
+    expect(chartedNames(plan)).toEqual(
+      WEB_VITAL_NAMES.slice(0, MAX_COMPANION_METRIC_CHARTS),
+    );
+
+    // "Showing 4 of 5": the two halves of that sentence add up.
+    expect(plan.queryConfigs.length + plan.omittedMetricCount).toBe(
+      listed.length,
+    );
+  });
+});
+
+/*
  * Page and card wiring, pinned by reading the sources — the App suite runs
  * in plain Node with no renderer (same constraint and technique as
  * TelemetryPreviewSnapshotWindow.test.ts). Comment-stripped and
@@ -927,6 +1185,35 @@ describe("page and card wiring", () => {
     expect(COMPANION_TABS).toContain("range: TimeRange.CUSTOM");
     expect(COMPANION_TABS).toContain("timeRange={timeRange}");
     expect(COMPANION_TABS).not.toContain("MetricsViewer");
+  });
+
+  test("the metrics tab counts only the names its charts can show", () => {
+    /*
+     * The tab's own name list decides its empty state and "Showing X of Y",
+     * so it drops the session replay budget series with the helper the
+     * chart plan uses. Filtered in the plan alone, a RUM incident whose
+     * window held only those series would draw an empty card, and one with
+     * the five web vitals would read "Showing 4 of 9 metrics".
+     */
+    const writes: Array<string> = COMPANION_TABS.split("setMetricNames(")
+      .slice(1)
+      .map((chunk: string): string => {
+        return chunk.split(";")[0]!;
+      });
+
+    // Two resets, and the one write of looked-up names goes through it.
+    expect(writes).toEqual([
+      "null)",
+      "[])",
+      "excludeReservedCompanionMetricNames(uniqueNames))",
+    ]);
+
+    // Both counts read that filtered state, and so does the chart plan.
+    expect(COMPANION_TABS).toContain("if (metricNames.length === 0) {");
+    expect(COMPANION_TABS).toContain(
+      "Showing ${chartPlan.queryConfigs.length} of ${metricNames.length} metrics.",
+    );
+    expect(COMPANION_TABS).toContain("metricNames: metricNames || [],");
   });
 
   test("companions render nothing extra when derivation yields no tabs", () => {

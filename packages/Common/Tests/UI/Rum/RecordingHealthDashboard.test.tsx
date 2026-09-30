@@ -8,9 +8,17 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Navigation from "../../../UI/Utils/Navigation";
 import { JSONObject } from "../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
@@ -25,9 +33,15 @@ import { diagnoseRecordingHealth } from "../../../Utils/Rum/SessionReplayHealth"
  * only when a ceiling exists; the policy and recorder panels never leak a
  * raw enum or a blank; the paste box sits in its own panel; and a counter the
  * server could not read says "unknown", never 0.
+ *
+ * The budget panel's "Set up alerts" link is followed through to the
+ * Recommendations page it opens, so the link and the cards it promises are
+ * checked against each other rather than each against a copy of the other.
  */
 
 const postMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -52,6 +66,28 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getCommonHeaders: (): Record<string, string> => {
         return {};
       },
+      /*
+       * Read only by the Recommendations page "Set up alerts" opens (see
+       * "the page Set up alerts opens"); the Health page itself never lists.
+       */
+      getItem: (...args: Array<unknown>) => {
+        return getItemMock(...args);
+      },
+      getList: (...args: Array<unknown>) => {
+        return getListMock(...args);
+      },
+    },
+  };
+});
+
+// The Recommendations page's owner picker; nobody to offer here.
+jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/ProjectUser", () => {
+  return {
+    __esModule: true,
+    default: {
+      fetchProjectUsersAsDropdownOptions: () => {
+        return Promise.resolve([]);
+      },
     },
   };
 });
@@ -65,6 +101,35 @@ import {
   SessionReplayHealthSnapshot,
   clearSessionReplayHealthStore,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
+import {
+  getBudgetAlertRecommendationsRoute,
+  getReplayPolicyPageRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/RecordingHealthCard";
+import RumApplicationRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Recommendations";
+import RecommendationFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationFilterUtil";
+import RecommendationResourceRegistry from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
+import {
+  RecommendationSeverityFilter,
+  RecommendationStatusFilter,
+  RecommendationViewModel,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationViewModel";
+import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import RumApplication from "../../../Models/DatabaseModels/RumApplication";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import MonitorRecommendationUtil from "../../../Types/Monitor/Recommendation/MonitorRecommendationUtil";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  MonitorRecommendation,
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const NOW: number = Date.parse("2026-09-05T10:00:00.000Z");
@@ -712,6 +777,709 @@ describe("RecordingHealthDashboardView storage panel", () => {
     ).toHaveAttribute(
       "href",
       expect.stringContaining(`/rum/${APP_ID}/session-replay-settings`),
+    );
+  });
+});
+
+/*
+ * "Set up alerts": the Storage budget panel's link to the session replay
+ * storage budget alerts on this application's Recommendations page. It is
+ * drawn on the fact that makes that page offer them - replay on for this
+ * application, and at least one replay recorded - so it never opens on a
+ * search that matches no card.
+ */
+describe("RecordingHealthDashboardView storage panel: Set up alerts", () => {
+  function budgetAlertsAnchor(): HTMLElement {
+    const anchor: HTMLElement | null = screen
+      .getByTestId("health-budget-alerts")
+      .closest("a");
+
+    expect(anchor).not.toBeNull();
+
+    return anchor as HTMLElement;
+  }
+
+  it("an application that records gets the link, to its Recommendations page opened on ?search=budget&status=All", () => {
+    renderView(makeSnapshot(makeStatus()));
+
+    expect(screen.getByTestId("health-budget-alerts")).toHaveTextContent(
+      "Set up alerts",
+    );
+
+    const href: string = budgetAlertsAnchor().getAttribute("href") ?? "";
+
+    expect(href.endsWith("/recommendations?search=budget&status=All")).toBe(
+      true,
+    );
+    expect(href).toContain(
+      `/rum/${APP_ID}/recommendations?search=budget&status=All`,
+    );
+
+    // A page of the product, opened in place like the link beside it.
+    expect(budgetAlertsAnchor()).not.toHaveAttribute("target");
+  });
+
+  it("sits in the Storage budget header, stacked under Change budget", () => {
+    renderView(makeSnapshot(makeStatus()));
+
+    const panel: HTMLElement = screen.getByTestId("health-bytes");
+    const changeBudget: HTMLElement = within(panel).getByTestId(
+      "health-change-budget",
+    );
+    const setUpAlerts: HTMLElement = within(panel).getByTestId(
+      "health-budget-alerts",
+    );
+    const stack: HTMLElement | null = changeBudget.closest("div.flex-col");
+
+    expect(stack).not.toBeNull();
+    expect(stack).toHaveClass("items-end", "gap-1");
+    expect(stack).toContainElement(setUpAlerts);
+    expect((stack as HTMLElement).closest("header")).not.toBeNull();
+
+    // Change budget first, Set up alerts under it.
+    expect(
+      changeBudget.compareDocumentPosition(setUpAlerts) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  /*
+   * The Recommendations page is tall; opened at the Health page's scroll
+   * position it lands past its search box and status tiles, which are what
+   * the link sets up. The side menu starts every page at the top the same way.
+   */
+  it("opens its page at the top, like a side menu link, not at the panel's scroll position", () => {
+    renderView(makeSnapshot(makeStatus()));
+
+    const scrollTo: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(window, "scrollTo")
+      .mockImplementation((): void => {});
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    try {
+      fireEvent.click(budgetAlertsAnchor());
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(String(navigate.mock.calls[0]![0])).toContain(
+        `/rum/${APP_ID}/recommendations?search=budget&status=All`,
+      );
+    } finally {
+      scrollTo.mockRestore();
+      navigate.mockRestore();
+    }
+  });
+
+  it("an application that has never recorded gets no link, and keeps Change budget", () => {
+    renderView(
+      makeSnapshot(
+        makeStatus({ lastChunkReceivedAt: null, monthlyBudgetInGB: 5 }),
+      ),
+    );
+
+    expect(screen.getByTestId("health-bytes")).toBeInTheDocument();
+    expect(screen.queryByTestId("health-budget-alerts")).toBeNull();
+    expect(screen.getByTestId("health-change-budget")).toBeInTheDocument();
+  });
+
+  it("an application with replay switched off gets no link, even with past recordings and a budget", () => {
+    renderView(
+      makeSnapshot({
+        ...withPolicy({ isApplicationEnabled: false }),
+        monthlyBudgetInGB: 5,
+      }),
+    );
+
+    expect(level()).toBe("disabled-app");
+    expect(screen.queryByTestId("health-budget-alerts")).toBeNull();
+    expect(screen.getByTestId("health-change-budget")).toBeInTheDocument();
+  });
+
+  it("the project switch does not decide it: like the Recommendations page, the link reads the application's own", () => {
+    renderView(makeSnapshot(withPolicy({ isProjectEnabled: false })));
+
+    expect(level()).toBe("disabled-project");
+    expect(screen.getByTestId("health-budget-alerts")).toBeInTheDocument();
+  });
+
+  it("no monthly budget keeps the link: the daily limit's alerts are offered on their own", () => {
+    renderView(
+      makeSnapshot(
+        makeStatus({
+          applicationBytesUsedThisMonth: 3 * MB,
+          monthlyBudgetInGB: null,
+        }),
+      ),
+    );
+
+    expect(screen.getByTestId("health-meter-app-month")).toHaveAttribute(
+      "data-kind",
+      "unlimited",
+    );
+    expect(screen.getByTestId("health-budget-alerts")).toBeInTheDocument();
+  });
+
+  it("a spent budget keeps the link: the moment someone most wants the alert next time", () => {
+    renderView(
+      makeSnapshot(
+        makeStatus({ projectBytesUsedToday: GB, dailyByteLimit: GB }),
+      ),
+    );
+
+    expect(level()).toBe("budget-paused");
+    expect(screen.getByTestId("health-budget-alerts")).toBeInTheDocument();
+  });
+
+  it("without a status there is no panel, so no link", () => {
+    const { unmount } = renderView(
+      makeSnapshot(null, { isLoading: true, fetchedAtUnixMs: null }),
+    );
+
+    expect(screen.queryByTestId("health-budget-alerts")).toBeNull();
+
+    unmount();
+    renderView(
+      makeSnapshot(null, {
+        error: { kind: "permission", message: "Forbidden" },
+        fetchedAtUnixMs: null,
+      }),
+    );
+
+    expect(screen.queryByTestId("health-bytes")).toBeNull();
+    expect(screen.queryByTestId("health-budget-alerts")).toBeNull();
+  });
+
+  it("building the link leaves the shared route table alone, however often it is built", () => {
+    const shared: string = (
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS] as Route
+    ).toString();
+
+    const first: string = getBudgetAlertRecommendationsRoute(APP_ID).toString();
+    const second: string = getBudgetAlertRecommendationsRoute(
+      new ObjectID(APP_ID),
+    ).toString();
+
+    // A string id and an ObjectID build the same single-query link.
+    expect(second).toBe(first);
+    expect(first.split("?")).toHaveLength(2);
+    expect(
+      first.endsWith(`/rum/${APP_ID}/recommendations?search=budget&status=All`),
+    ).toBe(true);
+
+    /*
+     * addQueryParams appends in place: chained on the shared entry instead
+     * of populateRouteParams' copy, every later link to the page - the side
+     * menu's included - would carry the search, once more per render.
+     */
+    expect(
+      (
+        RouteMap[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS] as Route
+      ).toString(),
+    ).toBe(shared);
+    expect(shared).not.toContain("?");
+    expect(getReplayPolicyPageRoute(APP_ID).toString()).not.toContain("?");
+  });
+});
+
+/*
+ * Where "Set up alerts" lands, worked out with the Recommendations page's own
+ * machinery: the RUM row of RecommendationResourceRegistry reads the context
+ * from the application's columns, the catalog answers with the RUM alert
+ * templates for that context, and RecommendationFilterUtil applies the search
+ * the link carries.
+ */
+describe("where Set up alerts lands", () => {
+  const DAILY_BUDGET_TEMPLATE_IDS: Array<string> = [
+    "rum-session-replay-daily-budget-nearly-spent",
+    "rum-session-replay-daily-budget-spent",
+  ];
+  const ALL_BUDGET_TEMPLATE_IDS: Array<string> = [
+    ...DAILY_BUDGET_TEMPLATE_IDS,
+    "rum-session-replay-monthly-budget-nearly-spent",
+    "rum-session-replay-monthly-budget-spent",
+  ];
+
+  // The search the link carries, read off the route the link is built from.
+  const LINK_SEARCH_TEXT: string =
+    new URLSearchParams(
+      getBudgetAlertRecommendationsRoute(APP_ID).toString().split("?")[1],
+    ).get("search") ?? "";
+
+  /*
+   * The RumApplication row behind a status: /ingest-status (TelemetryAPI)
+   * reads isApplicationEnabled, lastChunkReceivedAt and monthlyBudgetInGB
+   * off exactly these three columns.
+   */
+  function rumApplicationRow(status: RecordingHealthStatus): RumApplication {
+    const row: RumApplication = new RumApplication();
+
+    row._id = APP_ID;
+    row.name = status.appIdentifier;
+    row.isSessionReplayEnabled = status.policy.isApplicationEnabled;
+
+    if (status.lastChunkReceivedAt !== null) {
+      row.sessionReplayLastChunkReceivedAt = new Date(
+        status.lastChunkReceivedAt,
+      );
+    }
+
+    if (status.monthlyBudgetInGB !== null) {
+      row.sessionReplayMonthlyBudgetInGB = status.monthlyBudgetInGB;
+    }
+
+    return row;
+  }
+
+  function listedTemplateIds(
+    recommendations: Array<MonitorRecommendation>,
+    searchText: string,
+  ): Array<string> {
+    return RecommendationFilterUtil.filter({
+      viewModels: RecommendationFilterUtil.buildViewModels({
+        recommendations: recommendations,
+        coveredMonitorIds: new Map<string, ObjectID>(),
+        dismissals: [],
+      }),
+      filterState: {
+        searchText: searchText,
+        status: RecommendationStatusFilter.All,
+        severity: RecommendationSeverityFilter.All,
+      },
+    })
+      .map((viewModel: RecommendationViewModel): string => {
+        return viewModel.recommendation.templateId;
+      })
+      .sort();
+  }
+
+  it("the link's search is the one word that picks out the budget alerts", () => {
+    renderView(makeSnapshot(makeStatus()));
+
+    const href: string =
+      screen
+        .getByTestId("health-budget-alerts")
+        .closest("a")
+        ?.getAttribute("href") ?? "";
+
+    expect(LINK_SEARCH_TEXT).toBe("budget");
+    expect(new URLSearchParams(href.split("?")[1]).get("search")).toBe(
+      LINK_SEARCH_TEXT,
+    );
+  });
+
+  it("across everything the RUM catalog can offer, that search matches the four storage budget alerts and nothing else", () => {
+    expect(
+      listedTemplateIds(
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.RumApplication,
+        ),
+        LINK_SEARCH_TEXT,
+      ),
+    ).toEqual([...ALL_BUDGET_TEMPLATE_IDS].sort());
+  });
+
+  type LandingCase = [string, RecordingHealthStatus, Array<string>];
+
+  const LANDING_CASES: Array<LandingCase> = [
+    [
+      "recorded, no monthly budget: the link, over the daily pair",
+      makeStatus(),
+      DAILY_BUDGET_TEMPLATE_IDS,
+    ],
+    [
+      "recorded, with a monthly budget: the link, over all four",
+      makeStatus({ monthlyBudgetInGB: 5 }),
+      ALL_BUDGET_TEMPLATE_IDS,
+    ],
+    [
+      "recorded, a budget of 0 (no ceiling): the link, over the daily pair",
+      makeStatus({ monthlyBudgetInGB: 0 }),
+      DAILY_BUDGET_TEMPLATE_IDS,
+    ],
+    [
+      "never recorded, with a monthly budget: no link, and nothing to land on",
+      makeStatus({ lastChunkReceivedAt: null, monthlyBudgetInGB: 5 }),
+      [],
+    ],
+    [
+      "switched off after recording, with a budget: no link, and nothing to land on",
+      {
+        ...withPolicy({ isApplicationEnabled: false }),
+        monthlyBudgetInGB: 5,
+      },
+      [],
+    ],
+    [
+      "switched off and never recorded: no link, and nothing to land on",
+      {
+        ...withPolicy({ isApplicationEnabled: false }),
+        lastChunkReceivedAt: null,
+      },
+      [],
+    ],
+    [
+      "project switched off, application on and recorded: the link, over the daily pair",
+      withPolicy({ isProjectEnabled: false }),
+      DAILY_BUDGET_TEMPLATE_IDS,
+    ],
+  ];
+
+  it.each(LANDING_CASES)(
+    "%s",
+    (_name: string, status: RecordingHealthStatus, expected: Array<string>) => {
+      renderView(makeSnapshot(status));
+
+      const context: MonitorRecommendationContext =
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.RumApplication,
+          model: rumApplicationRow(status),
+        });
+
+      const landedOn: Array<string> = listedTemplateIds(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.RumApplication,
+          context,
+        ),
+        LINK_SEARCH_TEXT,
+      );
+
+      expect(landedOn).toEqual([...expected].sort());
+
+      // The link is drawn exactly when there is a card for it to land on.
+      expect(screen.queryByTestId("health-budget-alerts") !== null).toBe(
+        landedOn.length > 0,
+      );
+    },
+  );
+});
+
+/*
+ * The Recommendations page the link opens, rendered for real (the same
+ * scaffolding as Tests/App/Dashboard/RecommendationsLoadedContext.test.tsx):
+ * the search box starts on the link's word, only the storage budget alerts
+ * are listed, and the word is only a starting point.
+ */
+describe("the page Set up alerts opens", () => {
+  /*
+   * A UUID, because ProjectUtil ignores anything else and the link would keep
+   * its ":projectId" placeholder.
+   */
+  const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
+
+  // Everything MonitorRecommendations needs before it lists anything.
+  function projectList(modelType: unknown): { data: Array<unknown> } {
+    if (modelType === MonitorStatus) {
+      const online: MonitorStatus = new MonitorStatus();
+      online._id = ObjectID.generate().toString();
+      online.isOperationalState = true;
+
+      const offline: MonitorStatus = new MonitorStatus();
+      offline._id = ObjectID.generate().toString();
+      offline.isOfflineState = true;
+
+      return { data: [online, offline] };
+    }
+
+    if (modelType === IncidentSeverity || modelType === AlertSeverity) {
+      const severity: IncidentSeverity = new IncidentSeverity();
+      severity._id = ObjectID.generate().toString();
+      severity.name = "Critical";
+
+      return { data: [severity] };
+    }
+
+    // No monitors yet, no dismissals, no policies, teams or labels.
+    return { data: [] };
+  }
+
+  function rumApplicationRow(monthlyBudgetInGB: number | null): RumApplication {
+    const row: RumApplication = new RumApplication();
+
+    row._id = APP_ID;
+    row.name = "acme-web";
+    row.isSessionReplayEnabled = true;
+    row.sessionReplayLastChunkReceivedAt = new Date(NOW - 12 * 1000);
+
+    if (monthlyBudgetInGB !== null) {
+      row.sessionReplayMonthlyBudgetInGB = monthlyBudgetInGB;
+    }
+
+    return row;
+  }
+
+  // The cards on screen, by template id.
+  function listedTemplateIds(): Array<string> {
+    const templateIdByRecommendationId: Map<string, string> = new Map<
+      string,
+      string
+    >(
+      MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        MonitorRecommendationResourceType.RumApplication,
+      ).map((recommendation: MonitorRecommendation): [string, string] => {
+        return [recommendation.recommendationId, recommendation.templateId];
+      }),
+    );
+
+    return Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '[data-testid^="recommendation-card-"]',
+      ),
+    )
+      .map((card: HTMLElement): string => {
+        return (card.getAttribute("data-testid") ?? "").replace(
+          "recommendation-card-",
+          "",
+        );
+      })
+      .filter((recommendationId: string): boolean => {
+        // Drops the cards' own inner test ids ("select-…", …).
+        return templateIdByRecommendationId.has(recommendationId);
+      })
+      .map((recommendationId: string): string => {
+        return templateIdByRecommendationId.get(recommendationId) as string;
+      })
+      .sort();
+  }
+
+  // The Recommendations page, rendered at `href` for the application.
+  async function openRecommendations(
+    href: string,
+    monthlyBudgetInGB: number | null,
+  ): Promise<void> {
+    window.history.pushState({}, "", href);
+    getItemMock.mockResolvedValue(rumApplicationRow(monthlyBudgetInGB));
+
+    render(
+      <MemoryRouter>
+        <RumApplicationRecommendations
+          pageRoute={new Route(href.split("?")[0])}
+          currentProject={null}
+          hasPaymentMethod={true}
+        />
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("recommendation-search");
+  }
+
+  // Health page first, as the link is built there; then the link, followed.
+  async function followSetUpAlerts(
+    monthlyBudgetInGB: number | null,
+  ): Promise<void> {
+    window.history.pushState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/rum/${APP_ID}/session-replay-health`,
+    );
+
+    const { unmount } = renderView(
+      makeSnapshot(makeStatus({ monthlyBudgetInGB: monthlyBudgetInGB })),
+    );
+
+    const href: string =
+      screen
+        .getByTestId("health-budget-alerts")
+        .closest("a")
+        ?.getAttribute("href") ?? "";
+
+    unmount();
+
+    expect(href).toBe(
+      `/dashboard/${PROJECT_ID}/rum/${APP_ID}/recommendations?search=budget&status=All`,
+    );
+
+    await openRecommendations(href, monthlyBudgetInGB);
+  }
+
+  /*
+   * Monitors already made from the daily budget pair for this application,
+   * with the steps the page builds for them - which is what its coverage
+   * check fingerprints.
+   */
+  function createdDailyBudgetMonitors(): Array<Monitor> {
+    return MonitorRecommendationCatalog.getAllPossibleRecommendations(
+      MonitorRecommendationResourceType.RumApplication,
+    )
+      .filter((recommendation: MonitorRecommendation): boolean => {
+        return recommendation.templateId.startsWith(
+          "rum-session-replay-daily-budget-",
+        );
+      })
+      .map((recommendation: MonitorRecommendation): Monitor => {
+        const monitor: Monitor = new Monitor();
+        monitor._id = ObjectID.generate().toString();
+        monitor.name = `acme-web - ${recommendation.name}`;
+        monitor.monitorType = MonitorType.Metrics;
+        monitor.monitorSteps = MonitorRecommendationUtil.buildMonitorSteps({
+          recommendation: recommendation,
+          args: {
+            resourceIdentifier: APP_ID,
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+            monitorName: "acme-web",
+          },
+          defaultMonitorStatusId: ObjectID.generate(),
+        });
+
+        return monitor;
+      });
+  }
+
+  beforeEach(() => {
+    getItemMock.mockReset();
+    getListMock.mockReset();
+    getListMock.mockImplementation((args: unknown) => {
+      return Promise.resolve(
+        projectList((args as { modelType: unknown }).modelType),
+      );
+    });
+  });
+
+  afterEach(() => {
+    window.history.pushState({}, "", "/");
+  });
+
+  it("opens on 'budget' in the search box, listing all four budget alerts for an application with a monthly budget", async () => {
+    await followSetUpAlerts(5);
+
+    expect(screen.getByTestId("recommendation-search")).toHaveValue("budget");
+
+    await waitFor(() => {
+      expect(listedTemplateIds()).toEqual(
+        [
+          "rum-session-replay-daily-budget-nearly-spent",
+          "rum-session-replay-daily-budget-spent",
+          "rum-session-replay-monthly-budget-nearly-spent",
+          "rum-session-replay-monthly-budget-spent",
+        ].sort(),
+      );
+    });
+
+    expect(screen.queryByText("Poor Largest Contentful Paint")).toBeNull();
+
+    // The row it read is the application the Health page was showing.
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+    expect(
+      (getItemMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+    ).toBe(APP_ID);
+  });
+
+  it("an application without a monthly budget lands on the daily pair", async () => {
+    await followSetUpAlerts(null);
+
+    expect(screen.getByTestId("recommendation-search")).toHaveValue("budget");
+
+    await waitFor(() => {
+      expect(listedTemplateIds()).toEqual([
+        "rum-session-replay-daily-budget-nearly-spent",
+        "rum-session-replay-daily-budget-spent",
+      ]);
+    });
+  });
+
+  it("opens on every status, not only the alerts still to set up", async () => {
+    await followSetUpAlerts(null);
+
+    expect(screen.getByTestId("recommendation-stat-All")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("recommendation-stat-Available")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  /*
+   * The page opens on the alerts still to set up; the link opens it on all
+   * of them. Otherwise the second time someone follows it - the alerts
+   * already made - it would land on an empty list.
+   */
+  it("once the budget alerts exist, it lists them as created instead of an empty page", async () => {
+    const created: Array<Monitor> = createdDailyBudgetMonitors();
+
+    expect(created).toHaveLength(2);
+
+    getListMock.mockImplementation((args: unknown) => {
+      const request: {
+        modelType: unknown;
+        query?: { monitorType?: MonitorType } | undefined;
+      } = args as {
+        modelType: unknown;
+        query?: { monitorType?: MonitorType } | undefined;
+      };
+
+      if (request.modelType === Monitor) {
+        return Promise.resolve({
+          data:
+            request.query?.monitorType === MonitorType.Metrics ? created : [],
+        });
+      }
+
+      return Promise.resolve(projectList(request.modelType));
+    });
+
+    await followSetUpAlerts(null);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("recommendation-stat-Created"),
+      ).toHaveTextContent(/Already created\s*2/);
+    });
+
+    expect(listedTemplateIds()).toEqual([
+      "rum-session-replay-daily-budget-nearly-spent",
+      "rum-session-replay-daily-budget-spent",
+    ]);
+  });
+
+  it("a status the page does not know falls back to the alerts still to set up", async () => {
+    await openRecommendations(
+      `/dashboard/${PROJECT_ID}/rum/${APP_ID}/recommendations?search=budget&status=Everything`,
+      null,
+    );
+
+    expect(screen.getByTestId("recommendation-stat-Available")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("recommendation-search")).toHaveValue("budget");
+  });
+
+  it("without a status in the link the page opens where it always did", async () => {
+    await openRecommendations(
+      `/dashboard/${PROJECT_ID}/rum/${APP_ID}/recommendations`,
+      null,
+    );
+
+    expect(screen.getByTestId("recommendation-stat-Available")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("recommendation-search")).toHaveValue("");
+  });
+
+  it("the word is only a starting point: clearing the box lists the rest", async () => {
+    await followSetUpAlerts(null);
+
+    await waitFor(() => {
+      expect(listedTemplateIds()).toHaveLength(2);
+    });
+
+    fireEvent.change(screen.getByTestId("recommendation-search"), {
+      target: { value: "" },
+    });
+
+    await waitFor(() => {
+      expect(listedTemplateIds()).toContain("rum-poor-lcp");
+    });
+
+    expect(listedTemplateIds()).toContain(
+      "rum-session-replay-daily-budget-spent",
     );
   });
 });

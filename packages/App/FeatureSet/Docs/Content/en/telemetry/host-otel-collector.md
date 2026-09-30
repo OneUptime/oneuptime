@@ -1120,6 +1120,21 @@ The OpenTelemetry Collector respects the standard `HTTPS_PROXY` / `HTTP_PROXY` /
 - **The Systemd Units tab is empty even though the receiver is running** — check that `resourcedetection` is in the same metrics pipeline. The receiver attaches only `systemd.unit.name` to each unit's resource, so without `resourcedetection` there is no `host.name` and the samples never attach to a host.
 - **High volume / cost** — see [Reducing the Volume of Data Collected](#reducing-the-volume-of-data-collected): narrow the receivers (specific Windows channels, systemd units, log files), raise the metrics `collection_interval`, drop the per-process scraper, or add a `filter` processor to drop low-severity records before export.
 
+## AI agent
+
+The collector sends what a host reports; the **Host AI agent** lets OneUptime AI ask the host itself while it investigates an incident or alert there. It runs read-only commands — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — and, only if you allow it, applies fixes such as restarting a named systemd unit. It is a Linux container (image `oneuptime/resource-ai-agent:release`) with its own installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+sudo bash install.sh
+```
+
+- It registers under `HOST_NAME`; leave it empty to use the host's own hostname, which is what this collector reports as `host.name` unless you set another name. The two must match, so the agent serves the Host this collector created. It shows up on the host's **AI → AI agent** page in OneUptime.
+- It runs the **host's own** programs, entering the host's namespaces with `nsenter`, so it runs privileged, as root, with `pid: host` — it is root on the host. The agent's command policy is the limit: read-only commands unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`, never a shell, `sudo` or a program outside its list, and never itself, this collector's unit or anything in `ONEUPTIME_AI_PROTECTED_TARGETS`.
+- With `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (full unit names such as `nginx.service,app-*`) limits which units a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts).
+
 ## Next steps
 
 - Add **Logs Monitors** to alert on specific log patterns (for example, alert when more than 5 `winlog.event_id = 4625` failed logons occur in a 5-minute window).

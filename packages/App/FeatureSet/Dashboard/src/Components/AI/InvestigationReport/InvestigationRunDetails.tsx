@@ -1,8 +1,13 @@
 import ChatActivityFeed, {
   countActivitySteps,
+  InfrastructureActivitySummary,
   isClusterToolName,
   KubectlActivitySummary,
 } from "../../AIChat/ChatActivityFeed";
+import {
+  isInfrastructureToolName,
+  isLiveInfrastructureToolName,
+} from "../ClusterToolFormat";
 import InvestigationEvidenceList, {
   EvidenceFocusRequest,
 } from "./InvestigationEvidenceList";
@@ -121,6 +126,64 @@ export function describeKubectlUsage(
 }
 
 /*
+ * The usage line's item for commands on infrastructure resources (through
+ * their AI agents), or null when the run never tried one. Worded like the
+ * kubectl item: only commands that ran are counted as commands.
+ */
+export function describeInfrastructureUsage(
+  activity: InfrastructureActivitySummary | undefined,
+): string | null {
+  if (!activity) {
+    return null;
+  }
+
+  const executed: number = Math.max(0, activity.executed);
+  const failed: number = Math.max(
+    0,
+    executed - Math.min(executed, Math.max(0, activity.succeeded)),
+  );
+  const notRun: number = Math.max(0, activity.notRun);
+  const unknown: number = Math.max(0, activity.unknown);
+  const noun: (count: number) => string = (count: number): string => {
+    return `infrastructure ${count === 1 ? "command" : "commands"}`;
+  };
+
+  if (executed === 0 && notRun === 0 && unknown === 0) {
+    return null;
+  }
+
+  if (executed === 0 && unknown === 0) {
+    return `${notRun.toLocaleString()} ${noun(notRun)} did not run`;
+  }
+
+  if (executed === 0 && notRun === 0) {
+    return `${unknown.toLocaleString()} ${noun(unknown)} returned no result`;
+  }
+
+  if (executed === 0) {
+    return `${(notRun + unknown).toLocaleString()} infrastructure commands without a result (${notRun.toLocaleString()} did not run, ${unknown.toLocaleString()} returned no result)`;
+  }
+
+  const notes: Array<string> = [];
+
+  if (failed > 0) {
+    notes.push(`${failed.toLocaleString()} failed`);
+  }
+
+  if (notRun > 0) {
+    notes.push(`${notRun.toLocaleString()} did not run`);
+  }
+
+  if (unknown > 0) {
+    notes.push(`${unknown.toLocaleString()} returned no result`);
+  }
+
+  return `${executed.toLocaleString()} ${noun(executed)}${
+    notes.length > 0 ? ` (${notes.join(", ")})` : ""
+  }`;
+}
+
+/*
  * What a run did and cost, plus the read-only guarantee, as one wrapping
  * list. Responders ask "did this thing touch anything?" before they trust a
  * report, so the guarantee stays visible even while the details are
@@ -146,6 +209,9 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
   const kubectlUsage: string | null = describeKubectlUsage(
     props.kubectlActivity,
   );
+  const infrastructureUsage: string | null = describeInfrastructureUsage(
+    props.kubectlActivity?.infrastructure,
+  );
   const items: Array<ReactElement> = [];
 
   if (props.showCounts !== false && queryCount !== null) {
@@ -163,6 +229,15 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
       <li key="clusterCommands" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Terminal} className={USAGE_ICON_CLASS_NAME} />
         {kubectlUsage}
+      </li>,
+    );
+  }
+
+  if (props.showCounts !== false && infrastructureUsage) {
+    items.push(
+      <li key="infrastructureCommands" className={USAGE_ITEM_CLASS_NAME}>
+        <Icon icon={IconProp.Terminal} className={USAGE_ICON_CLASS_NAME} />
+        {infrastructureUsage}
       </li>,
     );
   }
@@ -310,12 +385,18 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   const telemetryQueryCount: number =
     props.evidence.length > 0
       ? props.evidence.filter((item: InvestigationEvidenceItem): boolean => {
-          return !isClusterToolName(item.toolName);
+          return !isLiveInfrastructureToolName(item.toolName);
         }).length
       : props.legacyEntries.length;
   const hasClusterEvidence: boolean = props.evidence.some(
     (item: InvestigationEvidenceItem): boolean => {
       return isClusterToolName(item.toolName);
+    },
+  );
+  // Commands on other infrastructure (through their AI agents) likewise.
+  const hasInfrastructureEvidence: boolean = props.evidence.some(
+    (item: InvestigationEvidenceItem): boolean => {
+      return isInfrastructureToolName(item.toolName);
     },
   );
   const stepCount: number = countActivitySteps(props.events);
@@ -441,9 +522,11 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             */}
             {props.evidence.length === 0
               ? "Every query OneUptime AI ran while investigating."
-              : hasClusterEvidence
-                ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
-                : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
+              : hasInfrastructureEvidence
+                ? "Every telemetry query and command OneUptime AI ran on your infrastructure. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                : hasClusterEvidence
+                  ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                  : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
           </p>
           <InvestigationEvidenceList
             items={props.evidence}

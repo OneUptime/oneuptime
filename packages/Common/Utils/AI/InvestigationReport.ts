@@ -47,7 +47,8 @@ export interface InvestigationEvidenceCheckedEntry {
   /*
    * What a cluster tool's line says in place of a row count, as written:
    * "succeeded", "kubectl returned an error", "2 cluster(s)". Absent for a
-   * telemetry query's "N row(s)".
+   * telemetry query's "N row(s)". An infrastructure tool's line reads the
+   * same way: "succeeded", "command returned an error", "3 resource(s)".
    */
   outcome?: string | undefined;
 }
@@ -64,6 +65,13 @@ export interface InvestigationReportFooter {
    * kubectl commands run"). Absent when the footer does not say.
    */
   kubectlCommandCount?: number | undefined;
+  /*
+   * "K infrastructure commands run on your infrastructure", which the
+   * footer of a run that used the infrastructure tools states (0 for "no
+   * telemetry queries or infrastructure commands run"). Absent when the
+   * footer does not say — every report before those tools existed.
+   */
+  infrastructureCommandCount?: number | undefined;
 }
 
 export interface ParsedInvestigationReport {
@@ -208,11 +216,13 @@ const LEADING_WHITESPACE_REGEX: RegExp = /^[ \t]/;
  * "- **[C1]** label — 7 row(s)", or a cluster tool's line, which says what
  * the call did instead of counting rows: "— succeeded", "— kubectl returned
  * an error", "— 2 cluster(s)" (and "— never ran" / "— result unknown" for a
- * kubectl command that gave no result). The label is greedy so a label
- * that itself contains " — " keeps everything up to the LAST " — <outcome>".
+ * kubectl command that gave no result). An infrastructure tool's line says
+ * "— succeeded", "— command returned an error" or "— 3 resource(s)". The
+ * label is greedy so a label that itself contains " — " keeps everything
+ * up to the LAST " — <outcome>".
  */
 const EVIDENCE_CHECKED_ENTRY_REGEX: RegExp =
-  /^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+(?:\*\*|__)?\[(C\d{1,3})\](?:\*\*|__)?(.+)[ \t][—–-][ \t]+(\d+[ \t]+(?:rows?|clusters?)(?:\(s\))?|succeeded|kubectl[ \t]+returned[ \t]+an[ \t]+error|never[ \t]+ran|did[ \t]+not[ \t]+run|(?:kubectl[ \t]+)?result[ \t]+unknown|unknown)[ \t]*$/i;
+  /^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+(?:\*\*|__)?\[(C\d{1,3})\](?:\*\*|__)?(.+)[ \t][—–-][ \t]+(\d+[ \t]+(?:rows?|clusters?|resources?)(?:\(s\))?|succeeded|kubectl[ \t]+returned[ \t]+an[ \t]+error|command[ \t]+returned[ \t]+an[ \t]+error|never[ \t]+ran|did[ \t]+not[ \t]+run|(?:kubectl[ \t]+)?result[ \t]+unknown|unknown)[ \t]*$/i;
 // The entry regex backtracks over the label; never feed it a runaway line.
 const MAX_EVIDENCE_CHECKED_LINE_LENGTH: number = 2000;
 
@@ -221,6 +231,10 @@ const EVIDENCE_ROWS_OUTCOME_REGEX: RegExp = /^(\d+)[ \t]+rows?(?:\(s\))?$/i;
 const EVIDENCE_CLUSTERS_OUTCOME_REGEX: RegExp =
   /^(\d+)[ \t]+clusters?(?:\(s\))?$/i;
 const EVIDENCE_KUBECTL_SUCCEEDED_REGEX: RegExp = /^succeeded$/i;
+const EVIDENCE_RESOURCES_OUTCOME_REGEX: RegExp =
+  /^(\d+)[ \t]+resources?(?:\(s\))?$/i;
+const EVIDENCE_INFRASTRUCTURE_ERROR_REGEX: RegExp =
+  /^command[ \t]+returned[ \t]+an[ \t]+error$/i;
 
 const FOOTER_EMPHASIS_REGEX: RegExp = /^(\*\*|__|\*|_)([\s\S]+)\1$/;
 const FOOTER_USING_REGEX: RegExp = /\busing[ \t]+/;
@@ -231,6 +245,17 @@ const FOOTER_KUBECTL_COMMANDS_RUN_REGEX: RegExp =
 // A run that used cluster tools but cited no query and no kubectl command.
 const FOOTER_NOTHING_RUN_REGEX: RegExp =
   /\bno[ \t]+telemetry[ \t]+queries[ \t]+or[ \t]+kubectl[ \t]+commands[ \t]+run\b/i;
+// "... and 3 infrastructure commands run on your infrastructure" -> 3.
+const FOOTER_INFRASTRUCTURE_COMMANDS_RUN_REGEX: RegExp =
+  /\b(\d{1,9})[ \t]+infrastructure[ \t]+commands?[ \t]+run\b/i;
+/*
+ * A run that used the infrastructure tools (and maybe the cluster ones) but
+ * cited no query and no command: "no telemetry queries or infrastructure
+ * commands run", "no telemetry queries, kubectl commands or infrastructure
+ * commands run".
+ */
+const FOOTER_NOTHING_RUN_WITH_INFRASTRUCTURE_REGEX: RegExp =
+  /\bno[ \t]+telemetry[ \t]+queries(,[ \t]+kubectl[ \t]+commands)?[ \t]+or[ \t]+infrastructure[ \t]+commands[ \t]+run\b/i;
 const DIGIT_REGEX: RegExp = /\d/;
 
 const EVENT_REFERENCE_PATTERN: string = "#(\\d{1,9})(?!\\w)";
@@ -874,24 +899,48 @@ function findFooter(
   }
 
   const nothingRun: boolean = FOOTER_NOTHING_RUN_REGEX.test(text);
+  const nothingRunWithInfrastructure: RegExpExecArray | null =
+    FOOTER_NOTHING_RUN_WITH_INFRASTRUCTURE_REGEX.exec(text);
 
-  const queryCount: number | undefined = nothingRun
-    ? 0
-    : readFooterQueryCount(text);
+  const queryCount: number | undefined =
+    nothingRun || nothingRunWithInfrastructure ? 0 : readFooterQueryCount(text);
 
   if (queryCount !== undefined) {
     footer.queryCount = queryCount;
   }
 
-  const kubectlCommandCount: number | undefined = nothingRun
-    ? 0
-    : readFooterKubectlCommandCount(text);
+  const kubectlCommandCount: number | undefined =
+    nothingRun || nothingRunWithInfrastructure?.[1]
+      ? 0
+      : readFooterKubectlCommandCount(text);
 
   if (kubectlCommandCount !== undefined) {
     footer.kubectlCommandCount = kubectlCommandCount;
   }
 
+  const infrastructureCommandCount: number | undefined =
+    nothingRunWithInfrastructure
+      ? 0
+      : readFooterInfrastructureCommandCount(text);
+
+  if (infrastructureCommandCount !== undefined) {
+    footer.infrastructureCommandCount = infrastructureCommandCount;
+  }
+
   return { breakIndex, footer };
+}
+
+/*
+ * "... and 3 infrastructure commands run on ..." / "1 infrastructure
+ * command run" -> 3 / 1.
+ */
+function readFooterInfrastructureCommandCount(
+  text: string,
+): number | undefined {
+  const commands: RegExpExecArray | null =
+    FOOTER_INFRASTRUCTURE_COMMANDS_RUN_REGEX.exec(text);
+
+  return commands ? parseInt(commands[1] || "0", 10) : undefined;
 }
 
 // "... and 2 kubectl commands run on ..." / "1 kubectl command run" -> 2 / 1.
@@ -1013,8 +1062,18 @@ function findEvidenceCheckedBlockEnd(
  * What kind of tool call an Evidence checked line is about, which decides
  * which count of the footer it must fit in: a telemetry query ("N row(s)"),
  * a kubectl command, or a cluster listing (which the footer never counts).
+ * "kubectl" is also every outcome the two command tools share ("succeeded",
+ * "never ran", ...): such a line fits the kubectl and infrastructure counts
+ * together. "infrastructure" is a line only an infrastructure command
+ * writes ("command returned an error"), and "resources" a resource listing
+ * (never counted, like a cluster listing).
  */
-type EvidenceCheckedEntryKind = "query" | "kubectl" | "clusters";
+type EvidenceCheckedEntryKind =
+  | "query"
+  | "kubectl"
+  | "clusters"
+  | "infrastructure"
+  | "resources";
 
 interface ParsedEvidenceCheckedEntry {
   entry: InvestigationEvidenceCheckedEntry;
@@ -1044,6 +1103,22 @@ function readEvidenceCheckedOutcome(outcomeText: string): {
       rowCount: parseInt(clusters[1] || "0", 10),
       outcome,
     };
+  }
+
+  const resources: RegExpExecArray | null =
+    EVIDENCE_RESOURCES_OUTCOME_REGEX.exec(outcome);
+
+  if (resources) {
+    return {
+      kind: "resources",
+      rowCount: parseInt(resources[1] || "0", 10),
+      outcome,
+    };
+  }
+
+  // An infrastructure command that ran and returned an error counts as 0.
+  if (EVIDENCE_INFRASTRUCTURE_ERROR_REGEX.test(outcome)) {
+    return { kind: "infrastructure", rowCount: 0, outcome };
   }
 
   /*
@@ -1117,6 +1192,12 @@ function parseEvidenceCheckedEntries(
  * the one run whose only citations are listings. A footer saying "0
  * queries run" never goes with a block. Without a readable count (no
  * footer, an older format) the block is trusted.
+ *
+ * Infrastructure commands follow the same rule against the footer's
+ * infrastructure count, and a resource listing like a cluster listing. A
+ * line the two command tools share ("succeeded") fits their counts
+ * together; a footer that says nothing about infrastructure reads as 0 of
+ * them, so every older report is judged exactly as it was.
  */
 function isServerEvidenceCheckedBlock(
   entries: Array<ParsedEvidenceCheckedEntry>,
@@ -1124,13 +1205,20 @@ function isServerEvidenceCheckedBlock(
 ): boolean {
   const queryCount: number | undefined = footer?.queryCount;
   const kubectlCommandCount: number | undefined = footer?.kubectlCommandCount;
+  const infrastructureCommandCount: number | undefined =
+    footer?.infrastructureCommandCount;
 
-  if (queryCount === undefined && kubectlCommandCount === undefined) {
+  if (
+    queryCount === undefined &&
+    kubectlCommandCount === undefined &&
+    infrastructureCommandCount === undefined
+  ) {
     return true;
   }
 
   let queryLines: number = 0;
   let kubectlLines: number = 0;
+  let infrastructureLines: number = 0;
   let clusterLines: number = 0;
 
   for (const parsed of entries) {
@@ -1138,6 +1226,8 @@ function isServerEvidenceCheckedBlock(
       queryLines++;
     } else if (parsed.kind === "kubectl") {
       kubectlLines++;
+    } else if (parsed.kind === "infrastructure") {
+      infrastructureLines++;
     } else {
       clusterLines++;
     }
@@ -1147,15 +1237,31 @@ function isServerEvidenceCheckedBlock(
     return false;
   }
 
-  if (kubectlLines > (kubectlCommandCount ?? 0)) {
+  if (infrastructureLines > (infrastructureCommandCount ?? 0)) {
     return false;
   }
 
-  if ((queryCount ?? 0) + (kubectlCommandCount ?? 0) > 0) {
+  if (
+    kubectlLines + infrastructureLines >
+    (kubectlCommandCount ?? 0) + (infrastructureCommandCount ?? 0)
+  ) {
+    return false;
+  }
+
+  if (
+    (queryCount ?? 0) +
+      (kubectlCommandCount ?? 0) +
+      (infrastructureCommandCount ?? 0) >
+    0
+  ) {
     return true;
   }
 
-  return kubectlCommandCount !== undefined && clusterLines > 0;
+  return (
+    (kubectlCommandCount !== undefined ||
+      infrastructureCommandCount !== undefined) &&
+    clusterLines > 0
+  );
 }
 
 function createEmptyReport(): ParsedInvestigationReport {

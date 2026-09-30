@@ -34,11 +34,11 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Ce
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and mgr endpoints, installs to `/opt/oneuptime-ceph-agent`, and starts the agent with Docker Compose.
+The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and mgr endpoints — and whether the [AI agent](#ai-agent) may apply fixes, offering to create the AI agent's own Ceph client with this machine's admin access — installs to `/opt/oneuptime-ceph-agent`, and starts the agent with Docker Compose.
 
 ## Alternative — Docker Compose
 
-Download the two files from the [CephAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) — `docker-compose.yml` and `otel-collector-config.yaml` — into a folder, then create a `.env` file next to them:
+Download the two files from the [CephAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) — `docker-compose.yml` and `otel-collector-config.yaml` — into a folder (the AI agent also reads a `ceph/` folder next to them: see [AI agent](#ai-agent)), then create a `.env` file next to them:
 
 ```bash
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -144,6 +144,8 @@ cd /opt/oneuptime-ceph-agent
 docker compose down
 ```
 
+If you created the AI agent's Ceph client, remove it on an admin node with `ceph auth del client.oneuptime-ai`.
+
 ## Self-hosted OneUptime
 
 If you are self-hosting OneUptime, set `ONEUPTIME_URL` to your own instance:
@@ -184,6 +186,27 @@ Expected if `mgr/prometheus/standby_behaviour` is set to `error` on your cluster
 ### Metrics land under the wrong cluster
 
 OneUptime auto-registers Ceph clusters by `ceph.cluster.name`, taken from the `CEPH_CLUSTER_NAME` environment variable. Changing it after the first telemetry batch creates a second cluster row rather than renaming the existing one.
+
+## AI agent
+
+The agent's `docker-compose.yml` also runs the **Ceph AI agent**, `oneuptime-ceph-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cluster it runs read-only `ceph` commands through it — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls` — and, only if you allow it, applies fixes such as marking an OSD back in or clearing `noout`. It registers as the cluster named `CEPH_CLUSTER_NAME`, like the collector, and shows up on the cluster's **AI → AI agent** page in OneUptime.
+
+It connects as **its own Ceph client**, `client.oneuptime-ai`, with the cluster's minimal `ceph.conf` and that client's keyring in a `ceph/` folder next to `docker-compose.yml` (mounted read-only at `/etc/ceph`). The client's caps are the hard limit: with read caps, nothing the agent runs can change the cluster. On a Ceph admin node, in the install directory:
+
+```bash
+mkdir -p ceph
+ceph config generate-minimal-conf > ceph/ceph.conf
+ceph auth get-or-create client.oneuptime-ai mon 'allow r' mgr 'allow r' osd 'allow r' -o ceph/ceph.client.oneuptime-ai.keyring
+sudo chown 1000:1000 ceph/ceph.client.oneuptime-ai.keyring
+sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
+docker compose up -d
+```
+
+- Never put the admin keyring there. `install.sh` offers to create the client for you.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true` and give the client the caps for the fixes (the agent's README lists them); `ONEUPTIME_AI_WRITE_TARGETS` (for example `osd.*,cluster`) limits what a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
+- It connects out to the monitors (TCP 3300 and 6789) and the mgr and OSD daemons (TCP 6800–7300), runs as UID 1000 with no capabilities, and never runs `auth`, `config-key`, `tell` or anything that deletes data. Delete the `oneuptime-ceph-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).
 
 ## Next steps
 

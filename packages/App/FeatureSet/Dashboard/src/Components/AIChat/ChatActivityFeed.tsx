@@ -2,12 +2,15 @@ import {
   describeClusterToolOutcome,
   ClusterToolOutcome,
   isClusterToolName,
+  isInfrastructureResultUnknownMessage,
+  isInfrastructureToolName,
   isKubectlResultUnknownMessage,
 } from "../AI/ClusterToolFormat";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -42,8 +45,32 @@ export interface KubectlActivitySummary {
   /*
    * Every cluster tool call started (run_kubectl and list_cluster_access),
    * which the run's toolCallCount includes and "telemetry queries" must not.
+   * The infrastructure tools' calls (run_infrastructure_command and
+   * list_infrastructure_access) are counted here too, for the same reason.
    */
   clusterToolCalls: number;
+  /*
+   * What the run's infrastructure commands did, counted the same way as
+   * its kubectl calls. Absent when the run made no infrastructure call.
+   */
+  infrastructure?: InfrastructureActivitySummary | undefined;
+}
+
+/*
+ * What an investigation's commands on infrastructure resources (through
+ * their AI agents) did, read from the run's events like its kubectl calls:
+ * ran (and whether the command succeeded), never ran, or taken by an agent
+ * that never reported back (result unknown).
+ */
+export interface InfrastructureActivitySummary {
+  // run_infrastructure_command calls that ran on a resource.
+  executed: number;
+  // Of those, the ones that completed without an error.
+  succeeded: number;
+  // run_infrastructure_command calls that did not run at all.
+  notRun: number;
+  // Calls an agent took but never reported back on: they may have run.
+  unknown: number;
 }
 
 /*
@@ -69,6 +96,14 @@ export function summarizeKubectlActivity(
     clusterToolCalls: 0,
   };
 
+  const infrastructure: InfrastructureActivitySummary = {
+    executed: 0,
+    succeeded: 0,
+    notRun: 0,
+    unknown: 0,
+  };
+  let hasInfrastructureActivity: boolean = false;
+
   events.forEach((event: AIRunEvent, index: number): void => {
     if (index < latestRunStartedIndex) {
       return;
@@ -79,6 +114,12 @@ export function summarizeKubectlActivity(
       isClusterToolName(event.toolName)
     ) {
       summary.clusterToolCalls++;
+      return;
+    }
+
+    if (isInfrastructureToolName(event.toolName)) {
+      hasInfrastructureActivity = true;
+      countInfrastructureEvent(event, summary, infrastructure);
       return;
     }
 
@@ -103,7 +144,48 @@ export function summarizeKubectlActivity(
     }
   });
 
+  if (hasInfrastructureActivity) {
+    summary.infrastructure = infrastructure;
+  }
+
   return summary;
+}
+
+/*
+ * One infrastructure tool event: a started call is a non-telemetry call;
+ * a command's completion or failure says whether it ran.
+ */
+function countInfrastructureEvent(
+  event: AIRunEvent,
+  summary: KubectlActivitySummary,
+  infrastructure: InfrastructureActivitySummary,
+): void {
+  if (event.eventType === AIRunEventType.ToolCallStarted) {
+    summary.clusterToolCalls++;
+    return;
+  }
+
+  if (event.toolName !== RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+    return;
+  }
+
+  if (event.eventType === AIRunEventType.ToolCallCompleted) {
+    infrastructure.executed++;
+    if ((event.resultSummary?.rowCount ?? 0) > 0) {
+      infrastructure.succeeded++;
+    }
+    return;
+  }
+
+  if (event.eventType === AIRunEventType.ToolCallFailed) {
+    if (
+      isInfrastructureResultUnknownMessage(event.resultSummary?.errorMessage)
+    ) {
+      infrastructure.unknown++;
+    } else {
+      infrastructure.notRun++;
+    }
+  }
 }
 
 export interface ComponentProps {
@@ -159,6 +241,8 @@ const friendlyToolNames: { [key: string]: string } = {
   resolve_alert: "Resolving alert",
   run_kubectl: "Running kubectl on the cluster",
   list_cluster_access: "Checking cluster access",
+  run_infrastructure_command: "Running a command on the infrastructure",
+  list_infrastructure_access: "Checking infrastructure access",
   list_command_targets: "Listing where commands may run",
   execute_remediation_command: "Applying a fix",
   propose_remediation_commands: "Proposing a fix for approval",
@@ -175,6 +259,15 @@ function friendlyToolName(toolName: string | undefined): string {
  * implying it ran and will be retried.
  */
 function describeFailedToolCall(event: AIRunEvent): string {
+  // The same three outcomes for a command on an infrastructure resource.
+  if (event.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+    return isInfrastructureResultUnknownMessage(
+      event.resultSummary?.errorMessage,
+    )
+      ? "no result came back — it may have run"
+      : "did not run on the infrastructure";
+  }
+
   if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
     return "did not succeed — retrying differently";
   }

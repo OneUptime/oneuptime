@@ -23,6 +23,8 @@ import CephClusterInsights from "../Pages/Ceph/View/Insights";
 import CephClusterClusterLog from "../Pages/Ceph/View/ClusterLog";
 import CephClusterMetrics from "../Pages/Ceph/View/Metrics";
 import CephClusterRecommendations from "../Pages/Ceph/View/Recommendations";
+import CephClusterAiInsights from "../Pages/Ceph/View/AI/Insights";
+import CephClusterAiAgent from "../Pages/Ceph/View/AI/Agent";
 import CephClusterLogs from "../Pages/Ceph/View/Logs";
 import CephClusterIncidents from "../Pages/Ceph/View/Incidents";
 import CephClusterAlerts from "../Pages/Ceph/View/Alerts";
@@ -227,6 +229,35 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS] as Route
               }
+            />
+          }
+        />
+
+        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <CephClusterAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <CephClusterAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_AGENT] as Route}
             />
           }
         />

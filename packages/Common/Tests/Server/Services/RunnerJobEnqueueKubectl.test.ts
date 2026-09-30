@@ -27,6 +27,10 @@ import { AI_COMMAND_STEP_TYPES } from "../../../Types/AutoRemediation/AiRemediat
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import {
+  fakeRunnerJobCountBy,
+  fakeRunnerJobRows,
+} from "../TestingUtils/Services/FakeRunnerJobCount";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -594,6 +598,107 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       countBySpy.mock.calls[1]![0] as { query: Record<string, unknown> }
     ).query;
     expect(remediationQuery["aiRunId"]).toBeUndefined();
+  });
+
+  /*
+   * Resource commands (Docker, Podman, Swarm, Proxmox, VMware, Ceph,
+   * database servers, hosts) land in the same RunnerJob table under the
+   * same two AI origins, and are braked on their own ResourceCommand rows.
+   * A busy hour on that infrastructure must never spend the cluster lane's
+   * budget: counted against an in-memory table, the kubectl brakes count
+   * only the rows they always counted.
+   */
+  describe("the hourly brakes never count resource-command rows", () => {
+    const resourceRow: Record<string, unknown> = {
+      projectId: PROJECT_ID,
+      stepType: RunbookStepType.ResourceCommand,
+      aiRunId: RUN_ID,
+    };
+
+    it("runs an investigation's kubectl after a full hour of resource investigation reads", async () => {
+      countBySpy.mockImplementation(
+        fakeRunnerJobCountBy(
+          fakeRunnerJobRows(
+            MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
+            { ...resourceRow, origin: RunnerJobOrigin.AiInvestigation },
+          ),
+        ) as never,
+      );
+
+      await RunnerJobService.enqueueAiKubectlCommand(args());
+
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("runs a kubectl fix after a full hour of resource fixes", async () => {
+      countBySpy.mockImplementation(
+        fakeRunnerJobCountBy(
+          fakeRunnerJobRows(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR, {
+            ...resourceRow,
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+          }),
+        ) as never,
+      );
+
+      await RunnerJobService.enqueueAiKubectlCommand(
+        args({
+          origin: RunnerJobOrigin.AiRemediation,
+          autoRemediationSuggestionId: SUGGESTION_ID,
+          command: "kubectl scale deployment/web --replicas=3 -n web",
+        }),
+      );
+
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("negative control: a full hour of kubectl reads still stops the next one", async () => {
+      countBySpy.mockImplementation(
+        fakeRunnerJobCountBy(
+          fakeRunnerJobRows(
+            MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
+            {
+              ...resourceRow,
+              stepType: RunbookStepType.Kubectl,
+              origin: RunnerJobOrigin.AiInvestigation,
+            },
+          ),
+        ) as never,
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(/AI investigation commands in the last hour/);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("negative control: kubectl fixes still share one budget with Bash and SSH fixes", async () => {
+      countBySpy.mockImplementation(
+        fakeRunnerJobCountBy([
+          ...fakeRunnerJobRows(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR - 1, {
+            ...resourceRow,
+            stepType: RunbookStepType.Bash,
+            origin: RunnerJobOrigin.AiRemediation,
+          }),
+          ...fakeRunnerJobRows(1, {
+            ...resourceRow,
+            stepType: RunbookStepType.SSH,
+            origin: RunnerJobOrigin.AiRemediation,
+          }),
+        ]) as never,
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+            command: "kubectl scale deployment/web --replicas=3 -n web",
+          }),
+        ),
+      ).rejects.toThrow(/AI remediation commands in the last hour/);
+      expect(createdRows).toHaveLength(0);
+    });
   });
 
   describe("the dashboard's access test", () => {

@@ -706,7 +706,7 @@ The **Health** page — _Real User Monitoring → your application → Session R
 | --- | --- | --- |
 | `disabled-project` | The project-wide master switch is off. | Turn it on under _RUM → Settings → Session Replay_. |
 | `disabled-app` | Session replay is off for this application. | Turn it on under _Replay Policy_. |
-| `budget-paused` | The application's monthly budget or the deployment's daily byte limit is spent; live recorders have been told to stop. | Raise the budget, or wait for the next day / month. |
+| `budget-paused` | The application's monthly budget or the deployment's daily byte limit is spent; live recorders have been told to stop. | Raise the budget, or wait for the next day / month. Set up [storage budget alerts](#storage-budget-alerts) to hear about it before it happens. |
 | `refusing` | Uploads are arriving and being refused — the diagnosis says the top reason and the count in the past 24 hours, for example `origin-not-allowed` (212 uploads from an origin that is not in your allowed origins) or `not-sampled`. | Follow the reason: edit the allowed origins, raise the sample percentage, and so on. |
 | `never-loaded` | No browser has ever fetched this application's policy. The script tag is not on the page, or the identifier does not match. | The setup guide on the sessions page walks through it. |
 | `loaded-never-uploaded` | The recorder fetched its policy recently but no chunk has ever arrived. The detail explains it from the policy: sampling is 0%, consent mode is _Require explicit_ and the page has not granted it, the trigger is _On error or frustration_ and nothing has fired — or, with a healthy policy, a CSP or ad blocker is refusing the ingest URL. | The action matches the cause. |
@@ -716,6 +716,65 @@ The **Health** page — _Real User Monitoring → your application → Session R
 | `unknown` | The status endpoint could not be read. | Retry; check the permission error the page shows. |
 
 Below the diagnosis, the page lays a recording out as four stages — **Recorder loaded**, **Recording allowed**, **Chunks received** and **Sessions in 24h** — each marked green, amber or red by what the server knows about it, so the first amber or red stage is where recordings stop. Under that it lists uploads refused at the gate and chunks dropped after acceptance by reason, bytes used today and this month against their limits, the policy as the recorder receives it, the published recorder artifact label and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. At the bottom, **Ask the browser** takes the output of `getDiagnostics()` and explains every code in it.
+
+### Storage budget alerts
+
+The two storage budgets — the project's daily upload limit and an application's optional **Monthly budget (GB)** — are enforced quietly: once one is spent, recorders are told to stop and recordings simply stop arriving. So that someone hears about it, ideally before it happens, OneUptime writes how much of each is used as metrics every 5 minutes, and ordinary [Metrics monitors](/docs/monitor/metrics-monitor) alert on them.
+
+**Setting them up.** Four ready-made alerts watch these budgets, on the application's **Recommendations** tab under **Session Replay**:
+
+| Recommendation | Severity | Alerts when |
+| --- | --- | --- |
+| **Session Replay Daily Budget Nearly Spent** | Warning | The project has used 80% of today's limit. |
+| **Session Replay Daily Budget Spent** | Critical | The project's daily limit is spent: every recorder in the project has been told to stop until 00:00 UTC. |
+| **Session Replay Monthly Budget Nearly Spent** | Warning | The application has used 80% of its monthly budget. |
+| **Session Replay Monthly Budget Spent** | Critical | The application's monthly budget is spent: its recorders have been told to stop until the 1st of next month (UTC) or until the budget is raised. |
+
+While Session Replay is on for the application, the daily pair is offered once it has recorded a replay, and the monthly pair once it also has a **Monthly budget (GB)** on its _Replay Policy_ page; if one is missing on an application you use Session Replay on, the tab says why. Once the daily pair is offered, **Set up alerts** in the **Storage budget** panel of the **Health** page opens the tab filtered to the budget alerts, the ones you have already created included. Each one you create is an ordinary Metrics monitor on the application, and the incident and alert it opens say what to do. To make a budget last, lower the **Sample percentage**, upload only _On error or frustration_ or narrow the **Allowed origins** on _Replay Policy_ — each stops an upload before it is counted — or raise the **Monthly budget (GB)**. The daily limit cannot be raised from the dashboard; on a self-hosted installation it is `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (see [Self-hosted notes](#self-hosted-notes)).
+
+**One daily monitor covers the project.** The daily limit belongs to the project, not to an application: all of its applications spend it together, and every application that records carries the project's figure, so the daily pair is offered on each of them, and a daily monitor on any one of them covers them all. Create the daily pair on one application, one that keeps Session Replay on (its monitor sees only the points written for that application), and dismiss the daily cards on the others; otherwise one spent day alerts once per application. The monthly pair is each application's own: create it wherever you set a budget.
+
+**The metrics.**
+
+| Metric | Unit | Aggregation | What it holds |
+| --- | --- | --- | --- |
+| `oneuptime.rum.session.replay.budget.project.daily.used.bytes` | `By` | Max | Session replay upload bytes counted against the project's daily limit since 00:00 UTC, all of its applications together, as the recorders sent them (usually compressed). |
+| `oneuptime.rum.session.replay.budget.project.daily.used.percent` | `%` | Max | The same, as a percent of the daily limit. At 100 or more, every recorder in the project is told to stop until 00:00 UTC. |
+| `oneuptime.rum.session.replay.budget.application.monthly.used.bytes` | `By` | Max | Session replay upload bytes counted against the application's monthly budget since the 1st of the month (UTC). |
+| `oneuptime.rum.session.replay.budget.application.monthly.used.percent` | `%` | Max | The same, as a percent of its **Monthly budget (GB)**. At 100 or more, its recorders are told to stop until the 1st of next month (UTC) or until the budget is raised. |
+
+The percentages are rounded down to 0.01, so 100 or more means exactly what the upload gate means by spent. They are not capped: the upload that crosses a limit is refused but stays counted, so a spent budget can read a little over 100, and a monthly budget lowered below what was already used reads well over it.
+
+Every point is filed under the RUM application it was written for, which is how a monitor created from a recommendation watches only its own application. The project's daily figure is therefore written once for every application that records, with the same value on each: aggregate it with Max, never add it up.
+
+| Attribute | On | Value |
+| --- | --- | --- |
+| `projectId` | All four | ID of the project. |
+| `rumApplicationId` | The monthly pair | ID of the application. Filter on this one: it never changes. |
+| `rumApplicationName` | The monthly pair | Name of the application when the point was written; left out when it is blank. |
+
+The daily pair carries only `projectId`: its figure is the project's, and nothing in a daily point says which application used it.
+
+**When no point is written.** A missing point is a gap in the chart, never a 0:
+
+- No upload has been counted yet today, or for the monthly pair this month — for example between 00:00 UTC and the day's first upload.
+- The usage counters cannot be read from Valkey. An unknown figure is never written as 0, just as the Health page reads **unknown** rather than 0. Open alerts resolve once their window holds no point, and open again, notifying again, when the counters can be read and the budget is still over the threshold.
+- Session Replay is off for the application (_Replay Policy_) or for the whole project (_RUM → Settings → Session Replay_).
+- The application has never recorded a replay.
+- The application has no monthly budget: nothing is counted against a budget that is not set, so there is no monthly pair at all. Removing the budget silences its monthly monitors, and the monthly figure counts only uploads made while a budget is set: one first set mid-month counts from that moment, not from the 1st, while one removed and set again in the same month picks up that month's earlier count.
+
+**Building your own monitor.** A [Metrics monitor](/docs/monitor/metrics-monitor) you build yourself needs the same settings the recommendations use:
+
+- Find the metrics in the project's metrics explorer (**Metrics** in the main navigation), and in a monitor's metric picker, once their first point has been written. They are not listed on the application's own **Metrics** tab.
+- Set the [rolling time window](/docs/monitor/metrics-monitor#rolling-time-window) to 15 minutes or more. A point arrives every 5 minutes, so a shorter window can hold one point or none, and an empty window resolves the alert: one late sweep would make it flap.
+- Set the query's aggregation to **Max** and the criterion's to **Maximum Value**. **Sum** adds readings up — the daily figure's copies, one per application that records, and, in the criterion, every reading in the window — and **Count** counts the readings instead of using their values.
+- Filter the monthly pair on `rumApplicationId` to watch one application, or [group by](/docs/monitor/metrics-monitor#per-series-alerting-group-by) it for one alert per application. The daily pair needs no filter: one monitor covers the project.
+- Leave **If No Data** (in the criterion's **Advanced** settings) on **Ignore**. Gaps are normal here — nothing is written before the day's or the month's first upload, or while the counters cannot be read — and **Trigger** would alert on every one of them.
+- Alert on the percent, not the bytes. The limits are counted in binary units — the Health page's "GB" is 1024³ bytes — while charts scale bytes in decimal ones, so a day that spends the default 1 GB limit charts as about 1.07 GB.
+
+**When alerts open and resolve.** A crossing is written at the next 5-minute sweep, so an alert opens within about 6 minutes of it. It resolves 10–15 minutes after the value falls back below the threshold, once the last reading at or over it has left the 15-minute window: the daily alerts on their own at about 00:10–00:15 UTC, the monthly ones at the same time on the 1st of the month, or 10–15 minutes after the budget is raised. A daily limit spent in the last few minutes before 00:00 UTC may not alert at all: the day ends before the next sweep can write it.
+
+**Retention and usage.** These series are kept as long as monitor metrics: **30 days** by default, set on a self-hosted installation by **Monitor Metric Retention (Days)** in the Admin Dashboard's **Data Retention** settings. They are not counted as telemetry usage. Metric names that start with `oneuptime.rum.session.replay.`, in any letter case, are reserved for them: metrics your own applications send under such a name, or rename to one with a metric pipeline rule, are dropped at ingest, and a recording rule cannot be saved with one as its output.
 
 ## Performance capture triggers
 
@@ -902,7 +961,7 @@ If recordings arrive and play but images, icons or styles are missing from them,
 ## Self-hosted notes
 
 - Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
-- Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today".
+- Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today". The app enforces the limit, and the background worker computes the percentages behind the [storage budget alerts](#storage-budget-alerts) from its own copy of the variable, so both need the same value. On Docker Compose, set it in `config.env`: one `app` container runs both. On Helm, set it in the chart-wide `extraEnv`, and also in `app.extraEnv` or `worker.extraEnv` if you set either, because a component that sets its own `extraEnv` replaces the chart-wide list instead of adding to it. The usage counters are kept in Valkey, which runs without persistence by default, so a Valkey restart resets them: the day's usage, and each application's month, start again from 0.
 - Recordings are stored in ClickHouse. No object storage is required.
 - A `Content-Security-Policy` header that a reverse proxy adds to the OneUptime dashboard also applies inside the replay, so its `img-src`, `style-src` and `font-src` must allow the sites your recorded pages load images, stylesheets and fonts from. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback).
 - `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on **every** page every recorder runs on, so turn it on, collect one reload, and turn it off.

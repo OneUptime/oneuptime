@@ -8,6 +8,14 @@ import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  INFRASTRUCTURE_RESULT_UNKNOWN_EVENT_PREFIX,
+  INFRASTRUCTURE_TOOL_NAMES,
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+  isInfrastructureResultUnknownMessage,
+  isInfrastructureToolName,
+} from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 
 /*
  * How the investigation panel words the AI tools that reach a Kubernetes
@@ -32,6 +40,30 @@ export function isClusterToolName(
   toolName: string | null | undefined,
 ): boolean {
   return CLUSTER_TOOL_NAMES.includes(toolName || "");
+}
+
+/*
+ * The tools that reach an infrastructure resource (a Docker or Podman
+ * host, a Swarm, Proxmox, VMware or Ceph cluster, a database server, a
+ * host) through its AI agent — defined next to the server's toolkit and
+ * re-exported for the panel's readers. Worded here like the cluster tools.
+ */
+export {
+  INFRASTRUCTURE_RESULT_UNKNOWN_EVENT_PREFIX,
+  INFRASTRUCTURE_TOOL_NAMES,
+  isInfrastructureResultUnknownMessage,
+  isInfrastructureToolName,
+};
+
+/*
+ * Every tool that runs something on live infrastructure — a cluster or any
+ * other resource — rather than querying the project's telemetry. Their
+ * calls are never "telemetry queries" and have no rows to load.
+ */
+export function isLiveInfrastructureToolName(
+  toolName: string | null | undefined,
+): boolean {
+  return isClusterToolName(toolName) || isInfrastructureToolName(toolName);
 }
 
 /*
@@ -98,6 +130,35 @@ export function describeClusterToolOutcome(
     return { label: text, detail: text, isError: false };
   }
 
+  /*
+   * A command on an infrastructure resource: 1 when it completed, 0 when
+   * it ran and the program returned an error; a resource listing's
+   * rowCount is the number of resources it listed.
+   */
+  if (toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+    return toCount(rowCount) > 0
+      ? { label: "Succeeded", detail: "succeeded", isError: false }
+      : {
+          label: "The command returned an error",
+          detail: "the command returned an error",
+          isError: true,
+        };
+  }
+
+  if (toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
+    const count: number = toCount(rowCount);
+
+    if (count === 0) {
+      return { label: "No resources", detail: "no resources", isError: false };
+    }
+
+    const text: string = `${count.toLocaleString()} ${
+      count === 1 ? "resource" : "resources"
+    }`;
+
+    return { label: text, detail: text, isError: false };
+  }
+
   return null;
 }
 
@@ -121,7 +182,9 @@ export function formatEvidenceOutcome(
 export function describeClusterEvidenceTool(
   toolName: string | null | undefined,
 ): EvidenceToolDescription | null {
-  return isClusterToolName(toolName) ? describeEvidenceTool(toolName) : null;
+  return isLiveInfrastructureToolName(toolName)
+    ? describeEvidenceTool(toolName)
+    : null;
 }
 
 /*
@@ -138,6 +201,14 @@ export function getClusterEvidenceNote(
 
   if (toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
     return "This listed the clusters OneUptime AI could inspect with kubectl during the investigation; it has no rows to load.";
+  }
+
+  if (toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+    return "Infrastructure commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the resource's AI Insights page (AI → Insights) lists every command OneUptime AI ran there.";
+  }
+
+  if (toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
+    return "This listed the infrastructure resources OneUptime AI could inspect through their AI agents during the investigation; it has no rows to load.";
   }
 
   return null;

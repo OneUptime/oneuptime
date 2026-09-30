@@ -4,10 +4,16 @@ set -e
 # HUSKY=0 skips the hook, as it did when husky installed it.
 [ "${HUSKY:-}" = "0" ] && exit 0
 
-# Keep every internal package.json's "version" field in sync with the VERSION
-# file. Vulnerability scanners read package.json from source and flag stale
-# "1.0.0" entries otherwise. Running on every commit (not just VERSION bumps)
-# also catches manual package.json edits and stale-branch commits.
+# Lockfiles that already have unstaged changes before the sync runs - an
+# `npm install` you have not chosen to commit. The sync may still rewrite
+# their version, but they are left for you to stage (see the end).
+lockfiles_dirty_before=$(git diff --name-only -- '*package-lock.json' ':(exclude)**/node_modules/**')
+
+# Keep every internal package.json's "version" field, and the package's own
+# version in the package-lock.json beside it, in sync with the VERSION file.
+# Vulnerability scanners read package.json from source and flag stale "1.0.0"
+# entries otherwise. Running on every commit (not just VERSION bumps) also
+# catches manual package.json edits and stale-branch commits.
 node ./Scripts/Install/SyncPackageVersions.js
 
 # Stage any package.json the sync just updated so the commit is internally
@@ -16,4 +22,17 @@ node ./Scripts/Install/SyncPackageVersions.js
 # suspenders alongside the sync script's own ignore list.
 git diff --name-only -- '*package.json' ':(exclude)**/node_modules/**' | while IFS= read -r changed; do
   [ -n "$changed" ] && git add -- "$changed"
+done
+
+# And every lockfile the sync rewrote, so the commit that bumps VERSION
+# carries them: `SyncPackageVersions.js --check` (a CI test and the release
+# gate) fails on a lockfile left behind. Only the ones the sync dirtied - a
+# lockfile holding unstaged changes of your own is never staged wholesale,
+# which would commit that churn with it.
+git diff --name-only -- '*package-lock.json' ':(exclude)**/node_modules/**' | while IFS= read -r changed; do
+  [ -n "$changed" ] || continue
+  if printf '%s\n' "$lockfiles_dirty_before" | grep -Fxq -- "$changed"; then
+    continue
+  fi
+  git add -- "$changed"
 done

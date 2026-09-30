@@ -19,6 +19,10 @@
  *    vulnerability scanners flag and that this script exists to prevent. So
  *    --check must be strict AND must not write.
  *
+ * Each package's package-lock.json records the package's own version as well,
+ * so the sync and --check cover it too - rewriting only those two fields, and
+ * never reformatting a file npm did not write.
+ *
  * The script derives its repo root from __dirname, so each test copies it into
  * a throwaway tree laid out the same way (<root>/Scripts/Install/...) and runs
  * it there. That exercises the real file rather than a reimplementation of it,
@@ -60,6 +64,47 @@ function writePackageJson(root, relativeDir, contents) {
     typeof contents === "string" ? contents : JSON.stringify(contents, null, 2),
   );
   return file;
+}
+
+/*
+ * A lockfile the way npm writes one: JSON.stringify with the file's
+ * indentation, then a newline. A string is written verbatim.
+ */
+function writeLockfile(root, relativeDir, contents, indent) {
+  const dir = path.join(root, relativeDir);
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, "package-lock.json");
+  fs.writeFileSync(
+    file,
+    typeof contents === "string"
+      ? contents
+      : `${JSON.stringify(contents, null, indent || 2)}\n`,
+  );
+  return file;
+}
+
+// A lockfileVersion 3 lockfile for `name` at `version`, with one dependency
+// whose own version is the same string, so a rewrite that reached past the
+// package's own entries would show.
+function lockfileFor(name, version) {
+  return {
+    name,
+    version,
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      "": {
+        name,
+        version,
+        dependencies: { "some-lib": version },
+      },
+      "node_modules/some-lib": {
+        version,
+        resolved: `https://registry.npmjs.org/some-lib/-/some-lib-${version}.tgz`,
+        integrity: "sha512-fixture",
+      },
+    },
+  };
 }
 
 function readJson(file) {
@@ -277,7 +322,226 @@ describe("files it skips rather than fails on", () => {
   });
 });
 
+/*
+ * A package's lockfile records the package's own version too (top-level and
+ * packages[""]), and an image's SBOM reads it from there. npm keeps it equal
+ * to package.json on every install; the sync keeps it equal on a bump, which
+ * is the one change that does not go through npm.
+ */
+describe("the package-lock.json beside a package", () => {
+  test("rewrites the package's own version in both places npm records it, and nothing else", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "12.0.9" });
+    const lockfile = writeLockfile(root, "App", lockfileFor("app", "12.0.9"));
+
+    const result = run(root);
+
+    const expected = lockfileFor("app", "12.0.9");
+    expected.version = "13.0.2";
+    expected.packages[""].version = "13.0.2";
+    expect(result.status).toBe(0);
+    // Byte-for-byte what npm itself would have written: only the two fields.
+    expect(fs.readFileSync(lockfile, "utf8")).toBe(
+      `${JSON.stringify(expected, null, 2)}\n`,
+    );
+    expect(readJson(lockfile).packages["node_modules/some-lib"].version).toBe(
+      "12.0.9",
+    );
+  });
+
+  test("syncs a lockfile that lags while its package.json is already at VERSION", () => {
+    // How lockfiles got stuck: the bump synced package.json and nothing else.
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "13.0.2" });
+    const lockfile = writeLockfile(root, "App", lockfileFor("app", "12.0.9"));
+
+    const result = run(root);
+
+    expect(result.status).toBe(0);
+    expect(readJson(lockfile).version).toBe("13.0.2");
+    expect(readJson(lockfile).packages[""].version).toBe("13.0.2");
+  });
+
+  test("keeps the lockfile's own indentation", () => {
+    // The repository root's and TestServer's lockfiles are indented by four.
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "TestServer", {
+      name: "test-server",
+      version: "12.0.9",
+    });
+    const lockfile = writeLockfile(
+      root,
+      "TestServer",
+      lockfileFor("test-server", "12.0.9"),
+      4,
+    );
+
+    run(root);
+
+    const expected = lockfileFor("test-server", "12.0.9");
+    expected.version = "13.0.2";
+    expected.packages[""].version = "13.0.2";
+    expect(fs.readFileSync(lockfile, "utf8")).toBe(
+      `${JSON.stringify(expected, null, 4)}\n`,
+    );
+  });
+
+  test("keeps CRLF line endings", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "12.0.9" });
+    const lockfile = writeLockfile(
+      root,
+      "App",
+      `${JSON.stringify(lockfileFor("app", "12.0.9"), null, 2)}\n`.replace(
+        /\n/g,
+        "\r\n",
+      ),
+    );
+
+    run(root);
+
+    const contents = fs.readFileSync(lockfile, "utf8");
+    expect(contents.replace(/\r\n/g, "")).not.toContain("\n");
+    expect(JSON.parse(contents).version).toBe("13.0.2");
+    expect(JSON.parse(contents).packages[""].version).toBe("13.0.2");
+  });
+
+  test("leaves a lockfile already at the version byte-for-byte alone", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "13.0.2" });
+    const lockfile = writeLockfile(root, "App", lockfileFor("app", "13.0.2"));
+    const before = fs.readFileSync(lockfile, "utf8");
+
+    const result = run(root);
+
+    expect(fs.readFileSync(lockfile, "utf8")).toBe(before);
+    expect(result.stdout).toContain(
+      "1 package.json file(s) and 1 package-lock.json file(s) already at 13.0.2",
+    );
+  });
+
+  test("syncs the top-level version of a lockfileVersion 1 file, which has no packages", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "Old", { name: "old", version: "12.0.9" });
+    const lockfile = writeLockfile(root, "Old", {
+      name: "old",
+      version: "12.0.9",
+      lockfileVersion: 1,
+      requires: true,
+      dependencies: { "some-lib": { version: "12.0.9" } },
+    });
+
+    run(root);
+
+    expect(readJson(lockfile)).toEqual({
+      name: "old",
+      version: "13.0.2",
+      lockfileVersion: 1,
+      requires: true,
+      dependencies: { "some-lib": { version: "12.0.9" } },
+    });
+  });
+
+  test("reports the lockfile it changed, with the version it came from", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "13.0.2" });
+    writeLockfile(root, "App", lockfileFor("app", "12.0.9"));
+
+    const result = run(root);
+
+    expect(result.stdout).toContain(
+      `sync: ${path.join("App", "package-lock.json")} (12.0.9 -> 13.0.2)`,
+    );
+  });
+
+  test("leaves alone the lockfile of a package it does not sync", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "NoVersion", { name: "no-version" });
+    const lockfile = writeLockfile(
+      root,
+      "NoVersion",
+      lockfileFor("no-version", "12.0.9"),
+    );
+    const before = fs.readFileSync(lockfile, "utf8");
+
+    const result = run(root, ["--check"]);
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(lockfile, "utf8")).toBe(before);
+  });
+
+  test("never reaches a lockfile under node_modules", () => {
+    const root = makeWorkspace("13.0.2");
+    const dir = path.join("Common", "node_modules", "lodash");
+    writePackageJson(root, dir, { name: "lodash", version: "4.17.21" });
+    const lockfile = writeLockfile(root, dir, lockfileFor("lodash", "4.17.21"));
+
+    run(root);
+
+    expect(readJson(lockfile).version).toBe("4.17.21");
+  });
+
+  test("does not reformat a lockfile npm did not write, says how to refresh it, and still counts it as drift", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "12.0.9" });
+    // Valid JSON, but on one line: rewriting it through JSON would reformat it.
+    const lockfile = writeLockfile(
+      root,
+      "App",
+      JSON.stringify(lockfileFor("app", "12.0.9")),
+    );
+    const before = fs.readFileSync(lockfile, "utf8");
+
+    const result = run(root);
+
+    // The pre-commit hook runs this on every commit, so it must not fail it.
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(lockfile, "utf8")).toBe(before);
+    expect(result.stderr).toContain(
+      `left alone: ${path.join("App", "package-lock.json")} (12.0.9)`,
+    );
+    expect(result.stderr).toContain("npm install --package-lock-only");
+
+    const check = run(root, ["--check"]);
+
+    expect(check.status).not.toBe(0);
+    expect(check.stdout).toContain(
+      `drift: ${path.join("App", "package-lock.json")} (12.0.9 -> 13.0.2)`,
+    );
+  });
+
+  test("a lockfile that is not valid JSON does not stop the run", () => {
+    const root = makeWorkspace("13.0.2");
+    const pkg = writePackageJson(root, "App", {
+      name: "app",
+      version: "12.0.9",
+    });
+    writeLockfile(root, "App", "{ not json");
+
+    const result = run(root);
+
+    expect(result.status).toBe(0);
+    expect(readJson(pkg).version).toBe("13.0.2");
+  });
+});
+
 describe("--check, the release gate", () => {
+  test("reports a lagging lockfile as drift, and does not write it", () => {
+    const root = makeWorkspace("13.0.2");
+    writePackageJson(root, "App", { name: "app", version: "13.0.2" });
+    const lockfile = writeLockfile(root, "App", lockfileFor("app", "12.0.9"));
+    const before = fs.readFileSync(lockfile, "utf8");
+
+    const result = run(root, ["--check"]);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toContain(
+      `drift: ${path.join("App", "package-lock.json")} (12.0.9 -> 13.0.2)`,
+    );
+    expect(result.stderr).toContain("out of sync with VERSION (13.0.2)");
+    expect(fs.readFileSync(lockfile, "utf8")).toBe(before);
+  });
+
   test("exits non-zero and names the drift", () => {
     const root = makeWorkspace("13.0.2");
     writePackageJson(root, "Common", { name: "common", version: "12.0.9" });
@@ -349,12 +613,108 @@ describe("an unusable VERSION file", () => {
   });
 });
 
+/*
+ * .github/hooks/pre-commit runs the sync and stages what it rewrote, so the
+ * commit that bumps VERSION carries every file --check will look at. Run here
+ * for real, in a throwaway repository.
+ */
+describe("the pre-commit hook", () => {
+  const REAL_HOOK_PATH = path.join(REPO_ROOT, ".github", "hooks", "pre-commit");
+
+  // No inherited GIT_* state (a hook or rebase running these tests), and node
+  // on PATH for the hook's own `node` call.
+  function cleanEnv() {
+    const env = { ...process.env, HUSKY: "" };
+    for (const key of Object.keys(env)) {
+      if (key.startsWith("GIT_")) {
+        delete env[key];
+      }
+    }
+    env.PATH = `${path.dirname(process.execPath)}${path.delimiter}${env.PATH || ""}`;
+    return env;
+  }
+
+  function git(cwd, args) {
+    return spawnSync(
+      "git",
+      [
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        ...args,
+      ],
+      { cwd, encoding: "utf8", env: cleanEnv() },
+    );
+  }
+
+  test("stages the lockfiles a bump rewrote, but not one holding unstaged changes of its own", () => {
+    const root = makeWorkspace("13.0.1");
+    fs.mkdirSync(path.join(root, ".github", "hooks"), { recursive: true });
+    fs.copyFileSync(
+      REAL_HOOK_PATH,
+      path.join(root, ".github", "hooks", "pre-commit"),
+    );
+    writePackageJson(root, "App", { name: "app", version: "13.0.1" });
+    writeLockfile(root, "App", lockfileFor("app", "13.0.1"));
+    writePackageJson(root, "Other", { name: "other", version: "13.0.1" });
+    const otherLockfile = writeLockfile(
+      root,
+      "Other",
+      lockfileFor("other", "13.0.1"),
+    );
+    expect(git(root, ["init", "-q"]).status).toBe(0);
+    expect(git(root, ["add", "-A"]).status).toBe(0);
+    expect(
+      git(root, ["commit", "-q", "--no-verify", "-m", "fixture"]).status,
+    ).toBe(0);
+
+    // The bump, staged as a developer would.
+    fs.writeFileSync(path.join(root, "VERSION"), "13.0.2\n");
+    expect(git(root, ["add", "VERSION"]).status).toBe(0);
+    // An npm install in Other that the developer has not chosen to commit.
+    const installed = lockfileFor("other", "13.0.1");
+    installed.packages["node_modules/unrelated"] = { version: "1.0.0" };
+    writeLockfile(root, "Other", installed);
+
+    const hook = spawnSync(
+      "sh",
+      [path.join(".github", "hooks", "pre-commit")],
+      {
+        cwd: root,
+        encoding: "utf8",
+        env: cleanEnv(),
+      },
+    );
+
+    expect({ status: hook.status, stderr: hook.stderr }).toEqual({
+      status: 0,
+      stderr: "",
+    });
+    expect(
+      git(root, ["diff", "--cached", "--name-only"]).stdout.trim().split("\n"),
+    ).toEqual([
+      "App/package-lock.json",
+      "App/package.json",
+      "Other/package.json",
+      "VERSION",
+    ]);
+    // Rewritten, with the developer's own change kept, and left to them.
+    expect(readJson(otherLockfile).version).toBe("13.0.2");
+    expect(readJson(otherLockfile).packages["node_modules/unrelated"]).toEqual({
+      version: "1.0.0",
+    });
+  });
+});
+
 describe("this repository", () => {
-  test("every internal package.json already matches VERSION", () => {
+  test("every internal package.json, and its lockfile, already matches VERSION", () => {
     /*
      * The same assertion release.yml makes, run on every PR rather than only
-     * at release time — a bump that missed a package.json should fail here,
-     * where it is cheap to fix, not on the release branch.
+     * at release time — a bump that missed a package.json or a lockfile
+     * should fail here, where it is cheap to fix, not on the release branch.
      */
     const result = spawnSync(process.execPath, [REAL_SCRIPT_PATH, "--check"], {
       encoding: "utf8",

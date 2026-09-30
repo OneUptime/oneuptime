@@ -246,9 +246,30 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     numberBg: "bg-cyan-600",
     borderL: "border-l-cyan-500",
   },
+  /*
+   * Same for a command OneUptime AI composed for an infrastructure
+   * resource's AI agent (Docker, Proxmox, VMware, Ceph, a database, a
+   * host): rendered when one exists, never offered by the step picker.
+   */
+  [RunbookStepType.ResourceCommand]: {
+    type: RunbookStepType.ResourceCommand,
+    label: "Resource command",
+    shortLabel: "AI agent",
+    description:
+      "A single command OneUptime AI composed for an infrastructure resource's AI agent. Not authored in runbooks.",
+    icon: IconProp.Server,
+    bg: "bg-teal-50",
+    ring: "ring-teal-100",
+    iconColor: "text-teal-600",
+    numberBg: "bg-teal-600",
+    borderL: "border-l-teal-500",
+  },
 };
 
-// The step types a runbook author may add. Kubectl is deliberately absent.
+/*
+ * The step types a runbook author may add. Kubectl and ResourceCommand are
+ * deliberately absent: only OneUptime AI composes them.
+ */
 const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.Manual,
   RunbookStepType.JavaScript,

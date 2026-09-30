@@ -293,6 +293,11 @@ import "./Jobs/Rum/CleanupStaleResources";
 import "./Jobs/Rum/MaterializePinnedSessions";
 // GDPR / CCPA erasure of recordings and their correlated telemetry.
 import "./Jobs/Rum/ProcessSessionErasureRequests";
+/*
+ * The storage budgets as oneuptime.rum.session.replay.budget.* metrics, so a
+ * budget about to run out can alert instead of recordings silently stopping.
+ */
+import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry

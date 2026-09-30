@@ -2,7 +2,7 @@
 
 ## نمای کلی
 
-عامل VMware در OneUptime جمع‌کننده‌ای از پیش پیکربندی‌شده از OpenTelemetry است که VMware vSphere را زیر نظر می‌گیرد — vCenter Server، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منبع و vSAN. فقط پیکربندی است: کانتینر خام `otel/opentelemetry-collector-contrib` که [گیرنده بومی `vcenter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) آن با کاربری فقط‌خواندنی از SDK ‏vSphere نظرسنجی می‌کند، هر سنجه‌ای را با هویت vCenter شما مهر می‌زند، و همه‌چیز را روی OTLP به OneUptime می‌فرستد. بدون صادرکننده کناری، بدون افزونه روی vCenter، بدون عامل درون ماشین‌های مجازی. یک فایل `.env`، یک `docker compose up`.
+عامل VMware در OneUptime جمع‌کننده‌ای از پیش پیکربندی‌شده از OpenTelemetry است که VMware vSphere را زیر نظر می‌گیرد — vCenter Server، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منبع و vSAN. فقط پیکربندی است: کانتینر خام `otel/opentelemetry-collector-contrib` که [گیرنده بومی `vcenter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) آن با کاربری فقط‌خواندنی از SDK ‏vSphere نظرسنجی می‌کند، هر سنجه‌ای را با هویت vCenter شما مهر می‌زند، و همه‌چیز را روی OTLP به OneUptime می‌فرستد. بدون صادرکننده کناری، بدون افزونه روی vCenter، بدون عامل درون ماشین‌های مجازی. یک فایل `.env`، یک `docker compose up`. همان فایل Compose، عامل هوش مصنوعی VMware را هم برای هوش مصنوعی OneUptime کنار جمع‌کننده اجرا می‌کند — بخش «عامل هوش مصنوعی» را در پایین ببینید.
 
 هر عامل یک نقطه پایانی vSphere را زیر نظر می‌گیرد — یک **vCenter Server** (حالت معمول، که هر دیتاسنتر، خوشه و میزبانی را که مدیریت می‌کند پوشش می‌دهد) یا یک **میزبان ESXi مستقل** که vCenter مدیریتش نمی‌کند. به ازای هر vCenter یک عامل اجرا کنید.
 
@@ -53,7 +53,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VM
 bash install.sh
 ```
 
-اسکریپت نشانی OneUptime، توکن دریافت تله‌متری، نامی پایدار برای vCenter، نقطه پایانی vCenter و اعتبارنامه فقط‌خواندنی شما را می‌پرسد (گذرواژه بدون بازتاب خوانده می‌شود)، در `/opt/oneuptime-vmware-agent` نصب می‌کند، با دسترسی `0600` فایل `.env` می‌نویسد، و عامل را با Docker Compose آغاز می‌کند. مقدارها هنگام نوشتن برای Docker Compose نقل‌قول‌گذاری می‌شوند، پس گذرواژه‌ای که `$`، `#`، فاصله یا نقل‌قول دارد دقیقاً همان‌طور که تایپ شده کار می‌کند، و اجرای دوباره اسکریپت به‌جای پرسیدن دوباره، همه‌چیز را از `.env` موجود بازاستفاده می‌کند.
+اسکریپت نشانی OneUptime، توکن دریافت تله‌متری، نامی پایدار برای vCenter، نقطه پایانی vCenter و اعتبارنامه فقط‌خواندنی شما را می‌پرسد (گذرواژه بدون بازتاب خوانده می‌شود)، و اینکه آیا عامل هوش مصنوعی مجاز به اعمال اصلاح‌ها باشد (و اگر آری، کاربر vSphere خودِ آن و ماشین‌های مجازی‌ای که هرگز نباید تغییر دهد)، در `/opt/oneuptime-vmware-agent` نصب می‌کند، با دسترسی `0600` فایل `.env` می‌نویسد، و عامل را با Docker Compose آغاز می‌کند. مقدارها هنگام نوشتن برای Docker Compose نقل‌قول‌گذاری می‌شوند، پس گذرواژه‌ای که `$`، `#`، فاصله یا نقل‌قول دارد دقیقاً همان‌طور که تایپ شده کار می‌کند، و اجرای دوباره اسکریپت به‌جای پرسیدن دوباره، همه‌چیز را از `.env` موجود بازاستفاده می‌کند.
 
 ## جایگزین — Docker Compose
 
@@ -230,7 +230,7 @@ cd /opt/oneuptime-vmware-agent
 docker compose down
 ```
 
-سپس اگر دیگر لازمش ندارید، دسترسی کاربر `oneuptime` را در vCenter حذف کنید.
+سپس اگر دیگر لازمش ندارید، دسترسی کاربر `oneuptime` را در vCenter حذف کنید، و اگر برای عامل هوش مصنوعی کاربری جداگانه ساخته‌اید، آن را هم.
 
 ## ‏OneUptime خودمیزبان
 
@@ -297,6 +297,17 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-v
 ### فرستادن سنجه‌ها بدون عامل
 
 در vSphere ارسال بومی OTLP وجود ندارد — vCenter خودش OpenTelemetry صادر نمی‌کند، پس عامل (یا هر جمع‌کننده OpenTelemetry با گیرنده `vcenter`) راه ورود است. اگر از پیش ناوگانی از جمع‌کننده‌ها اجرا می‌کنید، می‌توانید به‌جای اجرای این عامل گیرنده `vcenter` را به آن بیفزایید: بلوک گیرنده `vcenter` و پردازشگر `resource` را از `otel-collector-config.yaml` عرضه‌شده در پیکربندی خودتان کپی کنید. ویژگی منبع `vmware.vcenter.name` همان چیزی است که vCenter را در OneUptime ثبت می‌کند، و حذف‌های `service.name` / `service.instance.id` جلوی مسیریابی داده به سرویسی خیالی را می‌گیرند — هر دو را نگه دارید.
+
+## عامل هوش مصنوعی
+
+فایل `docker-compose.yml` عامل، **عامل هوش مصنوعی VMware** را هم اجرا می‌کند: `oneuptime-vmware-ai-agent` (ایمیج `oneuptime/resource-ai-agent:release`). وقتی هوش مصنوعی OneUptime حادثه یا هشداری را روی این vCenter بررسی می‌کند، فرمان‌های فقط‌خواندنی `govc` را از راه آن اجرا می‌کند — `govc vm.info web-01`، `govc events -n 50 /DC/vm/web-01`، `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average` — و فقط اگر اجازه دهید، اصلاح‌هایی مانند روشن کردن دوباره یک ماشین مجازی را اعمال می‌کند. مانند جمع‌کننده، با vCenter نام‌گذاری‌شده در `VMWARE_VCENTER_NAME` ثبت می‌شود و در صفحه **AI → AI agent** همان vCenter در OneUptime دیده می‌شود.
+
+- **نقش vSphere مرز سخت است.** بررسی‌ها با کاربر **Read-Only** جمع‌کننده (`VCENTER_USERNAME` / `VCENTER_PASSWORD`) وارد می‌شوند که فقط می‌تواند بخواند و هیچ چیز دیگر. اصلاح‌ها به کاربری از آنِ خود عامل هوش مصنوعی نیاز دارند که نقشش اجازه روشن و خاموش کردن و بازنشانی ماشین‌های مجازی را بدهد (`VirtualMachine.Interact.PowerOn`، `PowerOff` و `Reset`)، فقط روی پوشه‌هایی اعطا شود که هوش مصنوعی مجاز به اصلاحشان است، و به‌صورت `ONEUPTIME_AI_VCENTER_USERNAME` / `ONEUPTIME_AI_VCENTER_PASSWORD` تنظیم شود.
+- **فقط‌خواندنی** است مگر آنکه `ONEUPTIME_AI_ALLOW_WRITES=true` را تنظیم کنید؛ `ONEUPTIME_AI_WRITE_TARGETS` (نام‌ها یا مسیرهای موجودی ماشین‌های مجازی و میزبان‌ها) محدود می‌کند که یک اصلاح به چه چیزی دست بزند. هرگز ماشین مجازی‌ای را که هم‌نام میزبانِ `VCENTER_ENDPOINT` است — که معمولاً خودِ دستگاه vCenter است — تغییر نمی‌دهد و دستگاه را فقط با همین نام می‌شناسد: وقتی `VCENTER_ENDPOINT` یک نشانی IP است، یا ماشین مجازی دستگاه نام دیگری دارد، آن ماشین مجازی را همراه با ماشین مجازی‌ای که عامل روی آن اجرا می‌شود در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. سپس در صفحه عامل هوش مصنوعی انتخاب کنید که آیا هر اصلاح به تأیید یک نفر نیاز دارد.
+- برای تأیید گواهی vCenter به‌جای نادیده گرفتن آن، CA آن را در کانتینر سوار کنید و `VCENTER_CA_FILE` را تنظیم کنید؛ روی vCenter با چند دیتاسنتر، `GOVC_DATACENTER` را تنظیم کنید.
+- با UID 1000 و بدون هیچ قابلیتی اجرا می‌شود، و هرگز عملیات مهمان، اسنپ‌شات، `esxcli` یا هر چیزی که ماشین مجازی بسازد یا نابود کند اجرا نمی‌کند. اگر از هوش مصنوعی OneUptime استفاده نمی‌کنید، سرویس `oneuptime-vmware-ai-agent` را از `docker-compose.yml` حذف کنید.
+
+اینکه چه چیزی می‌تواند اجرا کند، اصلاح‌ها چگونه کار می‌کنند و چگونه اشکالش را رفع کنید: [عامل‌های هوش مصنوعی زیرساخت](/docs/ai/infrastructure-ai-agents#vmware-vcenter). README عامل فرمان‌های دقیق نقش اصلاح را دارد.
 
 ## گام‌های بعدی
 

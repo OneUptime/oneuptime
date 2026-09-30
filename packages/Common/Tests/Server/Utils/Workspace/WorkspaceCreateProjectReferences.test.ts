@@ -22,10 +22,12 @@ import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import {
   ExpressRequest,
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
+import logger from "../../../../Server/Utils/Logger";
 import Response from "../../../../Server/Utils/Response";
 import {
   MicrosoftTeamsIncidentActionType,
@@ -45,6 +47,7 @@ import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/Wor
 import WorkspaceProjectReferenceValidator from "../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -53,11 +56,18 @@ import ObjectID from "../../../../Types/ObjectID";
  * client, not by the form we rendered, so a user linked to one project could
  * send another project's monitors, labels, on-call policies or monitor status.
  * Teams then wrote currentMonitorStatusId onto every submitted monitor by id
- * alone, changing another project's monitors.
+ * alone, changing another project's monitors. Teams now hands the status to
+ * the incident or event (changeMonitorStatusToId), as Slack and the dashboard
+ * do, and the service applies it to the validated monitors.
  *
  * These tests run the real ProjectScopedReferenceValidator and only stub the
  * lookups it makes, so a foreign or unknown id has to be caught by the actual
  * check before anything is created or written.
+ *
+ * The refusal is a ProjectScopedReferenceException: still a BadDataException
+ * with the message it always had, which the API and Slack pass on as before.
+ * That message names the other project's records, so Teams answers with a
+ * fixed line instead and leaves the message to its error log.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -83,14 +93,28 @@ const CREATED_ID: ObjectID = new ObjectID(
   "a2eb67d4-bd2e-4186-9187-dad799c9316c",
 );
 
+// The other project's records, by the names a refusal gives them.
+const FOREIGN_MONITOR_NAME: string = "Acme Corp payroll API";
+const FOREIGN_LABEL_NAME: string = "acme-corp-payroll";
+const FOREIGN_POLICY_NAME: string = "Acme Corp executives on call";
+const FOREIGN_STATUS_NAME: string = "Acme Corp degraded";
+
+/*
+ * What Microsoft Teams answers a submit that references a record the project
+ * does not have. It names no record.
+ */
+const UNAVAILABLE_REFERENCE_REASON: string =
+  "One of the values you picked (a monitor, label, on-call policy, severity or status) is not available in this project any more. Please pick it again.";
+
 function withProject<T extends DatabaseBaseModel>(
   model: T,
   id: string,
   projectId: ObjectID,
+  name?: string | undefined,
 ): T {
   model._id = id;
   model.setValue("projectId", projectId);
-  model.setValue("name", `record ${id}`);
+  model.setValue("name", name || `record ${id}`);
   return model;
 }
 
@@ -105,14 +129,24 @@ function registerRecords(): void {
       records: [
         withProject(new Monitor(), OWN_MONITOR_ID, PROJECT_ID),
         withProject(new Monitor(), SECOND_OWN_MONITOR_ID, PROJECT_ID),
-        withProject(new Monitor(), FOREIGN_MONITOR_ID, OTHER_PROJECT_ID),
+        withProject(
+          new Monitor(),
+          FOREIGN_MONITOR_ID,
+          OTHER_PROJECT_ID,
+          FOREIGN_MONITOR_NAME,
+        ),
       ],
     },
     {
       service: LabelService,
       records: [
         withProject(new Label(), OWN_LABEL_ID, PROJECT_ID),
-        withProject(new Label(), FOREIGN_LABEL_ID, OTHER_PROJECT_ID),
+        withProject(
+          new Label(),
+          FOREIGN_LABEL_ID,
+          OTHER_PROJECT_ID,
+          FOREIGN_LABEL_NAME,
+        ),
       ],
     },
     {
@@ -123,6 +157,7 @@ function registerRecords(): void {
           new OnCallDutyPolicy(),
           FOREIGN_POLICY_ID,
           OTHER_PROJECT_ID,
+          FOREIGN_POLICY_NAME,
         ),
       ],
     },
@@ -130,7 +165,12 @@ function registerRecords(): void {
       service: MonitorStatusService,
       records: [
         withProject(new MonitorStatus(), OWN_STATUS_ID, PROJECT_ID),
-        withProject(new MonitorStatus(), FOREIGN_STATUS_ID, OTHER_PROJECT_ID),
+        withProject(
+          new MonitorStatus(),
+          FOREIGN_STATUS_ID,
+          OTHER_PROJECT_ID,
+          FOREIGN_STATUS_NAME,
+        ),
       ],
     },
   ];
@@ -183,24 +223,20 @@ function relationIds(
   });
 }
 
-function expectScopedStatusWrites(
-  updateOneBy: WriteSpies["updateOneBy"],
-  monitorIds: Array<string>,
+/*
+ * The chosen monitor status travels on the created incident or event, for
+ * IncidentService / ScheduledMaintenanceService to apply to its (validated)
+ * monitors with a status timeline entry. Nothing is written to a monitor
+ * directly any more.
+ */
+function expectStatusChangeHandedToService(
+  writes: WriteSpies,
+  created: Incident | ScheduledMaintenance,
   statusId: string,
 ): void {
-  expect(updateOneBy).toHaveBeenCalledTimes(monitorIds.length);
-
-  monitorIds.forEach((monitorId: string, index: number) => {
-    const args: Parameters<typeof MonitorService.updateOneBy>[0] =
-      updateOneBy.mock.calls[index]![0];
-
-    expect(args.query).toEqual({
-      _id: monitorId,
-      projectId: PROJECT_ID,
-    });
-    expect(String(args.data.currentMonitorStatusId)).toBe(statusId);
-    expect(args.props).toEqual({ isRoot: true });
-  });
+  expect(created.changeMonitorStatusToId?.toString()).toBe(statusId);
+  expect(writes.updateOneBy).not.toHaveBeenCalled();
+  expect(writes.updateOneById).not.toHaveBeenCalled();
 }
 
 function createTurnContext(): TurnContext {
@@ -219,12 +255,20 @@ function sentMessages(turnContext: TurnContext): Array<string> {
   );
 }
 
-type ForeignReferenceCase = {
-  name: string;
+// The ids a submitted card or view carries, as the client sends them.
+type ReferenceChoice = {
   monitors: string;
   monitorStatus: string;
   labels: string;
   onCallDutyPolicies: string;
+};
+
+type ForeignReferenceCase = ReferenceChoice & {
+  name: string;
+  // What the validator says of the bad reference, after "This <subject> ".
+  refusal: string;
+  // What identifies the bad record: its name and id. Never shown in chat.
+  identifying: Array<string>;
 };
 
 // One foreign (or unknown) id at a time; everything else stays valid.
@@ -235,6 +279,8 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: OWN_POLICY_ID,
+    refusal: `references records that belong to a different project: Monitor "${FOREIGN_MONITOR_NAME}". Please pick values from this project and try again.`,
+    identifying: [FOREIGN_MONITOR_NAME, FOREIGN_MONITOR_ID],
   },
   {
     name: "a monitor id that does not exist",
@@ -242,6 +288,8 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: OWN_POLICY_ID,
+    refusal: `references records that do not exist: Monitor "${UNKNOWN_ID}". Please pick values that exist in this project and try again.`,
+    identifying: [UNKNOWN_ID],
   },
   {
     name: "a monitor status from another project",
@@ -249,6 +297,8 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: FOREIGN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: OWN_POLICY_ID,
+    refusal: `references records that belong to a different project: Monitor Status "${FOREIGN_STATUS_NAME}". Please pick values from this project and try again.`,
+    identifying: [FOREIGN_STATUS_NAME, FOREIGN_STATUS_ID],
   },
   {
     name: "a label from another project",
@@ -256,6 +306,8 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: `${OWN_LABEL_ID},${FOREIGN_LABEL_ID}`,
     onCallDutyPolicies: OWN_POLICY_ID,
+    refusal: `references records that belong to a different project: Label "${FOREIGN_LABEL_NAME}". Please pick values from this project and try again.`,
+    identifying: [FOREIGN_LABEL_NAME, FOREIGN_LABEL_ID],
   },
   {
     name: "an on-call policy from another project",
@@ -263,6 +315,8 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: `${OWN_POLICY_ID},${FOREIGN_POLICY_ID}`,
+    refusal: `references records that belong to a different project: On-Call Policy "${FOREIGN_POLICY_NAME}". Please pick values from this project and try again.`,
+    identifying: [FOREIGN_POLICY_NAME, FOREIGN_POLICY_ID],
   },
 ];
 
@@ -339,11 +393,47 @@ describe("WorkspaceProjectReferenceValidator", (): void => {
       /This incident references records that belong to a different project: .*Monitor .*Label .*On-Call Policy .*Monitor Status/,
     );
   });
+
+  test.each(INCIDENT_BAD_REFERENCES)(
+    "refuses $name with a ProjectScopedReferenceException: still a BadDataException, with the message API callers always had",
+    async (reference: ForeignReferenceCase): Promise<void> => {
+      let refusal: unknown = undefined;
+
+      try {
+        await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject(
+          {
+            projectId: PROJECT_ID,
+            subject: "incident",
+            monitorIds:
+              WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(
+                reference.monitors,
+              ),
+            labelIds: WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(
+              reference.labels,
+            ),
+            onCallDutyPolicyIds:
+              WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(
+                reference.onCallDutyPolicies,
+              ),
+            monitorStatusId: new ObjectID(reference.monitorStatus),
+          },
+        );
+      } catch (error) {
+        refusal = error;
+      }
+
+      expect(refusal).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as BadDataException).message).toBe(
+        `This incident ${reference.refusal}`,
+      );
+    },
+  );
 });
 
 describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
   function submit(
-    reference: Omit<ForeignReferenceCase, "name">,
+    reference: ReferenceChoice,
     turnContext: TurnContext,
   ): Promise<void> {
     return MicrosoftTeamsIncidentActions.handleBotIncidentAction({
@@ -365,7 +455,13 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
     });
   }
 
-  test("creates the incident and writes monitor status only within the linked project", async (): Promise<void> => {
+  let errorLog: SpyInstance<typeof logger.error>;
+
+  beforeEach((): void => {
+    errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {});
+  });
+
+  test("creates the incident and hands the monitor status to IncidentService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof IncidentService.create> = jest
       .spyOn(IncidentService, "create")
@@ -395,12 +491,7 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
     expect(relationIds(incident.labels)).toEqual([OWN_LABEL_ID]);
     expect(relationIds(incident.onCallDutyPolicies)).toEqual([OWN_POLICY_ID]);
 
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID, SECOND_OWN_MONITOR_ID],
-      OWN_STATUS_ID,
-    );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
+    expectStatusChangeHandedToService(writes, incident, OWN_STATUS_ID);
     expect(sentMessages(turnContext)[0]).toContain(
       "Incident created successfully",
     );
@@ -420,17 +511,35 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
       expect(createSpy).not.toHaveBeenCalled();
       expect(writes.updateOneBy).not.toHaveBeenCalled();
       expect(writes.updateOneById).not.toHaveBeenCalled();
-      expect(sentMessages(turnContext)).toEqual([
-        "❌ Failed to create incident. Please try again.",
+
+      /*
+       * One reply, and it says what to do, but not which record: the
+       * validator's message names another project's.
+       */
+      const messages: Array<string> = sentMessages(turnContext);
+      expect(messages).toEqual([
+        `❌ Could not create the incident: ${UNAVAILABLE_REFERENCE_REASON}`,
       ]);
+      for (const identifying of reference.identifying) {
+        expect(messages[0]).not.toContain(identifying);
+      }
+
+      // Which record it was is for an operator, in the log.
+      expect(errorLog).toHaveBeenCalledTimes(2);
+      expect(errorLog).toHaveBeenNthCalledWith(
+        1,
+        `Could not create an incident from Microsoft Teams: ProjectScopedReferenceException: This incident ${reference.refusal}`,
+        { projectId: PROJECT_ID.toString() },
+      );
+      expect(errorLog.mock.calls[1]![0]).toBeInstanceOf(
+        ProjectScopedReferenceException,
+      );
     },
   );
 });
 
 describe("Microsoft Teams card: submitNewIncident", (): void => {
-  function submit(
-    reference: Omit<ForeignReferenceCase, "name">,
-  ): Promise<void> {
+  function submit(reference: ReferenceChoice): Promise<void> {
     const teamsRequest: MicrosoftTeamsRequest = {
       isAuthorized: true,
       projectId: PROJECT_ID,
@@ -467,7 +576,7 @@ describe("Microsoft Teams card: submitNewIncident", (): void => {
       .mockResolvedValue(USER_ID);
   });
 
-  test("writes monitor status only within the linked project", async (): Promise<void> => {
+  test("hands the monitor status to IncidentService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof IncidentService.create> = jest
       .spyOn(IncidentService, "create")
@@ -481,12 +590,11 @@ describe("Microsoft Teams card: submitNewIncident", (): void => {
     });
 
     expect(createSpy).toHaveBeenCalledTimes(1);
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID],
+    expectStatusChangeHandedToService(
+      writes,
+      createSpy.mock.calls[0]![0].data,
       OWN_STATUS_ID,
     );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
   });
 
   test.each(INCIDENT_BAD_REFERENCES)(
@@ -508,7 +616,7 @@ describe("Microsoft Teams card: submitNewIncident", (): void => {
 
 describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
   function submit(
-    reference: Omit<ForeignReferenceCase, "name">,
+    reference: ReferenceChoice,
     turnContext: TurnContext,
   ): Promise<void> {
     return MicrosoftTeamsScheduledMaintenanceActions.handleBotScheduledMaintenanceAction(
@@ -536,14 +644,17 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
     );
   }
 
+  let errorLog: SpyInstance<typeof logger.error>;
+
   beforeEach((): void => {
     // Create permission is covered by the workspace authorization tests.
     jest
       .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
       .mockResolvedValue();
+    errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {});
   });
 
-  test("creates the event and writes monitor status only within the linked project", async (): Promise<void> => {
+  test("creates the event and hands the monitor status to ScheduledMaintenanceService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
       jest
@@ -577,12 +688,11 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
     ]);
     expect(relationIds(scheduledMaintenance.labels)).toEqual([OWN_LABEL_ID]);
 
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID, SECOND_OWN_MONITOR_ID],
+    expectStatusChangeHandedToService(
+      writes,
+      scheduledMaintenance,
       OWN_STATUS_ID,
     );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
     expect(sentMessages(turnContext)[0]).toContain(
       "Scheduled maintenance created successfully",
     );
@@ -603,17 +713,35 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
       expect(createSpy).not.toHaveBeenCalled();
       expect(writes.updateOneBy).not.toHaveBeenCalled();
       expect(writes.updateOneById).not.toHaveBeenCalled();
-      expect(sentMessages(turnContext)).toEqual([
-        "❌ Failed to create scheduled maintenance. Please try again.",
+
+      /*
+       * One reply, and it says what to do, but not which record: the
+       * validator's message names another project's.
+       */
+      const messages: Array<string> = sentMessages(turnContext);
+      expect(messages).toEqual([
+        `❌ Could not create the scheduled maintenance event: ${UNAVAILABLE_REFERENCE_REASON}`,
       ]);
+      for (const identifying of reference.identifying) {
+        expect(messages[0]).not.toContain(identifying);
+      }
+
+      // Which record it was is for an operator, in the log.
+      expect(errorLog).toHaveBeenCalledTimes(2);
+      expect(errorLog).toHaveBeenNthCalledWith(
+        1,
+        `Could not create a scheduled maintenance event from Microsoft Teams: ProjectScopedReferenceException: This scheduled maintenance event ${reference.refusal}`,
+        { projectId: PROJECT_ID.toString() },
+      );
+      expect(errorLog.mock.calls[1]![0]).toBeInstanceOf(
+        ProjectScopedReferenceException,
+      );
     },
   );
 });
 
 describe("Microsoft Teams card: submitNewScheduledMaintenance", (): void => {
-  function submit(
-    reference: Omit<ForeignReferenceCase, "name">,
-  ): Promise<void> {
+  function submit(reference: ReferenceChoice): Promise<void> {
     return MicrosoftTeamsScheduledMaintenanceActions.submitNewScheduledMaintenance(
       {
         teamsRequest: {
@@ -651,7 +779,7 @@ describe("Microsoft Teams card: submitNewScheduledMaintenance", (): void => {
       .mockResolvedValue(USER_ID);
   });
 
-  test("writes monitor status only within the linked project", async (): Promise<void> => {
+  test("hands the monitor status to ScheduledMaintenanceService instead of writing monitors", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
     const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
       jest
@@ -666,12 +794,11 @@ describe("Microsoft Teams card: submitNewScheduledMaintenance", (): void => {
     });
 
     expect(createSpy).toHaveBeenCalledTimes(1);
-    expectScopedStatusWrites(
-      writes.updateOneBy,
-      [OWN_MONITOR_ID],
+    expectStatusChangeHandedToService(
+      writes,
+      createSpy.mock.calls[0]![0].data,
       OWN_STATUS_ID,
     );
-    expect(writes.updateOneById).not.toHaveBeenCalled();
   });
 
   test.each(SCHEDULED_MAINTENANCE_BAD_REFERENCES)(
@@ -714,9 +841,7 @@ describe("Slack: SubmitNewIncident", (): void => {
     });
   }
 
-  function viewValues(
-    reference: Omit<ForeignReferenceCase, "name">,
-  ): SlackRequest["viewValues"] {
+  function viewValues(reference: ReferenceChoice): SlackRequest["viewValues"] {
     return {
       incidentTitle: "Database down",
       incidentDescription: "Primary is not answering",
@@ -767,8 +892,9 @@ describe("Slack: SubmitNewIncident", (): void => {
         .spyOn(IncidentService, "create")
         .mockResolvedValue(createdIncident());
 
+      // The validator's own message, as Slack has always passed it on.
       await expect(submit(viewValues(reference))).rejects.toThrow(
-        "This incident references records that",
+        `This incident ${reference.refusal}`,
       );
 
       expect(createSpy).not.toHaveBeenCalled();
@@ -777,9 +903,7 @@ describe("Slack: SubmitNewIncident", (): void => {
 });
 
 describe("Slack: SubmitNewScheduledMaintenance", (): void => {
-  function submit(
-    reference: Omit<ForeignReferenceCase, "name">,
-  ): Promise<void> {
+  function submit(reference: ReferenceChoice): Promise<void> {
     return SlackScheduledMaintenanceActions.submitNewScheduledMaintenance({
       slackRequest: {
         isAuthorized: true,
@@ -851,8 +975,9 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
           .spyOn(ScheduledMaintenanceService, "create")
           .mockResolvedValue(createdScheduledMaintenance());
 
+      // The validator's own message, as Slack has always passed it on.
       await expect(submit(reference)).rejects.toThrow(
-        "This scheduled maintenance event references records that",
+        `This scheduled maintenance event ${reference.refusal}`,
       );
 
       expect(createSpy).not.toHaveBeenCalled();

@@ -30,6 +30,11 @@ export enum MonitorRecommendationResourceType {
   VMware = "VMware",
   Ceph = "Ceph",
   IoTDevice = "IoTDevice",
+  /*
+   * A RUM (browser) application. Its recommendation set gains the session
+   * replay storage budget alerts once it records replays — see
+   * `MonitorRecommendationContext`.
+   */
   RumApplication = "RumApplication",
   /*
    * An APM telemetry service — a backend process reporting OTel traces,
@@ -58,12 +63,14 @@ export enum MonitorRecommendationResourceType {
  * exist on a Go service, and recommending them there produces monitors that
  * silently never fire, which is worse than recommending nothing. Databases
  * are the same by engine: PostgreSQL's receiver and Redis's share no metric
- * name.
+ * name. And a RUM application is only offered its session replay budget
+ * alerts once it records replays, because only then are those metrics
+ * written for it.
  *
  * Optional everywhere, and every field inside it is optional too, so a caller
  * that knows nothing still gets the subset that is true of every resource of
- * the type — the language-agnostic recommendations for a service, and none
- * for a database — rather than a guess.
+ * the type — the language-agnostic recommendations for a service, none for a
+ * database, and no budget alerts for a RUM application — rather than a guess.
  */
 export interface MonitorRecommendationContext {
   /*
@@ -92,6 +99,31 @@ export interface MonitorRecommendationContext {
    * `null` / `undefined` mean "not known" and withhold nothing.
    */
   databaseEngineMetricsReported?: boolean | null | undefined;
+  /*
+   * A RUM application's `isSessionReplayEnabled`: the first of the three
+   * facts that decide whether it is offered its session replay storage budget
+   * alerts (see `getRumAlertTemplates`). The budget sweep only writes those
+   * metrics for an application that has session replay on AND has recorded,
+   * and the monthly ones only while it has a monthly budget; a monitor over a
+   * series nobody writes never fires.
+   *
+   * Unlike `databaseEngineMetricsReported`, `null` / `undefined` in all three
+   * mean "not known" and WITHHOLD: these alerts are an addition to a set that
+   * is complete without them, so a page that knows nothing shows exactly what
+   * it showed before they existed.
+   */
+  sessionReplayEnabled?: boolean | null | undefined;
+  /*
+   * Whether a replay was ever accepted for the application (its
+   * `sessionReplayLastChunkReceivedAt` is set). The switch alone says
+   * nothing: it is on by default, on every RUM application.
+   */
+  sessionReplayHasRecorded?: boolean | null | undefined;
+  /*
+   * Its `sessionReplayMonthlyBudgetInGB` (GiB, like every replay "GB"). Only
+   * a finite number above 0 is a budget; 0, blank and anything else is none.
+   */
+  sessionReplayMonthlyBudgetInGB?: number | null | undefined;
 }
 
 /*

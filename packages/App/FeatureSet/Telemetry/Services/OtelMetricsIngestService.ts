@@ -152,6 +152,9 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import SessionReplayBudgetMetricTypeUtil, {
+  SESSION_REPLAY_METRIC_NAME_PREFIX,
+} from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 type MetricTimestamp = {
   nano: string;
@@ -1438,6 +1441,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   const metricName: string = (metric["name"] || "")
                     .toString()
                     .toLowerCase();
+
+                  /*
+                   * Names under the session replay prefix belong to
+                   * OneUptime's budget sweep: its series open incidents
+                   * through the RUM alert templates and are left out of
+                   * telemetry billing by name. A browser batch is keyed to
+                   * its RUM application exactly like the sweep's rows, so a
+                   * point any page sent under one of these names could fire
+                   * the customer's budget alerts, and would be stored
+                   * unbilled. Refused before the catalog too, so a sent
+                   * unit or description cannot overwrite the registered
+                   * one. Nothing wider than this prefix is reserved.
+                   */
+                  if (
+                    SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+                      metricName,
+                    )
+                  ) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                    );
+                    continue;
+                  }
+
                   const metricDescription: string = metric[
                     "description"
                   ] as string;
@@ -1755,6 +1782,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           : evaluationRow;
 
                         if (transformed === null) {
+                          continue;
+                        }
+
+                        /*
+                         * The name was checked on arrival (above), but a
+                         * customer RenameMetric rule sets the row's name
+                         * after that, verbatim - not lowercased - so a
+                         * rename into the reserved prefix is dropped here,
+                         * like any other dropped row. Only a rule can
+                         * change the name, so an unchanged one costs a
+                         * single comparison per datapoint.
+                         */
+                        const finalMetricName: JSONValue | undefined =
+                          transformed["name"];
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+                            finalMetricName,
+                          )
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                          );
                           continue;
                         }
 

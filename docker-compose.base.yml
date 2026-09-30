@@ -355,6 +355,11 @@ services:
       # Network device polling throughput — see config.example.env for docs.
       # Empty falls back to the code default.
       NETWORK_DEVICE_POLL_FETCH_LIMIT: ${NETWORK_DEVICE_POLL_FETCH_LIMIT:-}
+      # The project's daily session replay upload limit — see
+      # config.example.env. This container enforces it and also measures the
+      # storage budget metrics against it, so the two always agree. Empty
+      # falls back to the code default (1 GiB).
+      SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: ${SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY:-}
       # Fan-in telemetry writer knobs — see config.example.env for docs.
       # Empty values fall back to the code defaults.
       TELEMETRY_FANIN_MAX_BATCH_ROWS: ${TELEMETRY_FANIN_MAX_BATCH_ROWS}

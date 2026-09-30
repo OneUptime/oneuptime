@@ -90,8 +90,9 @@ function keysIn(block: string): Array<string> {
 }
 
 describe("Runbook step-type maps", () => {
-  test("the enum has the kubectl member the maps must cover", () => {
+  test("the enum has the AI-only members the maps must cover", () => {
     expect(STEP_TYPES).toContain(RunbookStepType.Kubectl);
+    expect(STEP_TYPES).toContain(RunbookStepType.ResourceCommand);
   });
 
   for (const map of MAPS) {
@@ -129,23 +130,53 @@ describe("Runbook step-type maps", () => {
     expect(kubectlEntry).toMatch(/description:\s*\n?\s*"[^"]+"/);
   });
 
+  test("the resource command entries name it as an AI agent command", () => {
+    const executionView: string = readSource("ExecutionView.tsx");
+    const steps: string = readSource("Steps.tsx");
+
+    expect(
+      cutBlock(
+        executionView,
+        "const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {",
+      ),
+    ).toContain('[RunbookStepType.ResourceCommand]: "AI agent command"');
+
+    const meta: string = cutBlock(
+      steps,
+      "const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {",
+    );
+    const resourceEntry: string = meta.slice(
+      meta.indexOf("[RunbookStepType.ResourceCommand]"),
+    );
+
+    expect(resourceEntry).toContain('label: "Resource command"');
+    expect(resourceEntry).toContain('shortLabel: "AI agent"');
+    expect(resourceEntry).toContain("icon: IconProp.");
+    expect(resourceEntry).toMatch(/description:\s*\n?\s*"[^"]+"/);
+  });
+
   /*
-   * Kubectl steps are composed by OneUptime AI only (RunbookStepType says
-   * so): the editor must render one that exists but must not offer it as
-   * something to add. Every other type stays offered, so a new authored
-   * type cannot be forgotten by the picker.
+   * Kubectl and ResourceCommand steps are composed by OneUptime AI only
+   * (RunbookStepType says so): the editor must render one that exists but
+   * must not offer it as something to add. Every other type stays offered,
+   * so a new authored type cannot be forgotten by the picker.
    */
-  test("the step picker offers every step type except Kubectl", () => {
+  test("the step picker offers every step type except the AI-only ones", () => {
     const picker: string = cutBlock(
       readSource("Steps.tsx"),
       "const ALL_STEP_TYPES: RunbookStepType[] = [",
     );
     const offered: Array<string> = keysInList(picker);
+    const aiOnly: Array<RunbookStepType> = [
+      RunbookStepType.Kubectl,
+      RunbookStepType.ResourceCommand,
+    ];
 
     expect(offered).not.toContain(RunbookStepType.Kubectl);
+    expect(offered).not.toContain(RunbookStepType.ResourceCommand);
     expect([...offered].sort()).toEqual(
       STEP_TYPES.filter((type: RunbookStepType): boolean => {
-        return type !== RunbookStepType.Kubectl;
+        return !aiOnly.includes(type);
       }).sort(),
     );
   });

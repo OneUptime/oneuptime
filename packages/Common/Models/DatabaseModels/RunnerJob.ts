@@ -1,6 +1,7 @@
 import KubernetesAiAgent from "./KubernetesAiAgent";
 import KubernetesCluster from "./KubernetesCluster";
 import Project from "./Project";
+import ResourceAiAgent from "./ResourceAiAgent";
 import Runner from "./Runner";
 import RunbookExecution from "./RunbookExecution";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -17,6 +18,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import { JSONObject } from "../../Types/JSON";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
@@ -342,6 +344,72 @@ export default class RunnerJob extends BaseModel {
   })
   public kubernetesClusterId?: ObjectID = undefined;
 
+  /*
+   * The resource a ResourceCommand job ran against, so a resource's AI page
+   * can list every command OneUptime AI ran on it (what kubernetesClusterId
+   * is for a Kubectl job). Two columns, not a relation: resourceId points
+   * into the table resourceType names, so it can have no foreign key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Resource Type",
+    description:
+      "The kind of resource a ResourceCommand job ran against (DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer or Host). Set on ResourceCommand jobs only.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public resourceType?: AiResourceType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Resource ID",
+    description:
+      "ID of the resource a ResourceCommand job ran against, in the table its resource type names.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public resourceId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -534,6 +602,82 @@ export default class RunnerJob extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public targetKubernetesAiAgentId?: ObjectID = undefined;
+
+  /*
+   * The resource AI agent an AI resource command (step type ResourceCommand)
+   * is targeted at: the agent next to a Docker or Podman host, a Docker
+   * Swarm, Proxmox or Ceph cluster, a vCenter, a database server or a host.
+   * A job sets exactly one of targetAgentId (a Runner),
+   * targetKubernetesAiAgentId and this; only the named agent may claim it.
+   * As for the Kubernetes AI agent, the agent's id is also written to
+   * assignedAgentId on claim, so the job heartbeat and result paths are the
+   * Runner's own. Deleting the agent row nulls this, which leaves the job
+   * claimable by nobody.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "targetResourceAiAgentId",
+    type: TableColumnType.Entity,
+    modelType: ResourceAiAgent,
+    title: "Target Resource AI Agent",
+    description:
+      "The resource AI agent this AI resource command runs on (the agent installed next to the resource). Only this agent may claim the job.",
+  })
+  @ManyToOne(
+    () => {
+      return ResourceAiAgent;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "targetResourceAiAgentId" })
+  public targetResourceAiAgent?: ResourceAiAgent = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Target Resource AI Agent ID",
+    description:
+      "ID of the resource AI agent that should claim and execute this job.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public targetResourceAiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

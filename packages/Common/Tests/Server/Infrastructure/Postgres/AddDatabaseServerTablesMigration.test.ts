@@ -8,6 +8,8 @@ import DatabaseServerOwnerRule from "../../../../Models/DatabaseModels/DatabaseS
 import DatabaseServerOwnerTeam from "../../../../Models/DatabaseModels/DatabaseServerOwnerTeam";
 import DatabaseServerOwnerUser from "../../../../Models/DatabaseModels/DatabaseServerOwnerUser";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   DefaultNamingStrategy,
   QueryRunner,
@@ -70,6 +72,53 @@ function persistedColumns(modelType: unknown): Array<string> {
   }
 
   return names;
+}
+
+/*
+ * Columns a LATER migration adds to a table this migration creates (for
+ * example the Database AI agent's access columns on DatabaseServer). This
+ * migration has shipped, so a new column arrives in a new migration rather
+ * than in this CREATE TABLE; the invariant is "every model column is created
+ * here or added later", which still fails a column no migration mentions at
+ * all. The end-state schema itself is owned by the Schema Drift job.
+ */
+function columnsAddedByLaterMigrations(tableName: string): Set<string> {
+  const migrationsDirectory: string = path.join(
+    __dirname,
+    "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
+  );
+  const ownFileName: string = "1795000000000-AddDatabaseServerTables.ts";
+  const added: Set<string> = new Set<string>();
+
+  for (const fileName of fs.readdirSync(migrationsDirectory)) {
+    const stamp: RegExpMatchArray | null = fileName.match(/^(\d{13})-/);
+
+    if (
+      !fileName.endsWith(".ts") ||
+      fileName === ownFileName ||
+      !stamp ||
+      Number(stamp[1]) <= 1795000000000
+    ) {
+      continue;
+    }
+
+    const source: string = fs.readFileSync(
+      path.join(migrationsDirectory, fileName),
+      "utf8",
+    );
+    const addPattern: RegExp = new RegExp(
+      `ALTER TABLE "${tableName}" ADD "([^"]+)"`,
+      "g",
+    );
+    let match: RegExpExecArray | null = addPattern.exec(source);
+
+    while (match) {
+      added.add(match[1]!);
+      match = addPattern.exec(source);
+    }
+  }
+
+  return added;
 }
 
 function createTableStatement(
@@ -292,7 +341,18 @@ describe("AddDatabaseServerTables1795000000000", () => {
       const columns: Array<string> = persistedColumns(modelType);
       expect(columns.length).toBeGreaterThan(5);
 
+      const addedLater: Set<string> = columnsAddedByLaterMigrations(tableName);
+
       for (const column of columns) {
+        if (addedLater.has(column)) {
+          expect({
+            tableName,
+            column,
+            alsoCreatedHere: statement.includes(`"${column}"`),
+          }).toEqual({ tableName, column, alsoCreatedHere: false });
+          continue;
+        }
+
         expect({
           tableName,
           column,

@@ -3,7 +3,15 @@ import HostLabelRuleEngineService from "./HostLabelRuleEngineService";
 import HostOwnerRuleEngineService from "./HostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Host";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import HostFeedService from "./HostFeedService";
 import { HostFeedEventType } from "../../Models/DatabaseModels/HostFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -119,6 +127,13 @@ export class Service extends DatabaseService<Model> {
   public async findOrCreateByHostIdentifier(data: {
     projectId: ObjectID;
     hostIdentifier: string;
+    /*
+     * Skip the in-process memo and look the row up (the memo is then
+     * refreshed with what was found or created). For a caller that learned
+     * the memoed id names a host deleted since: the memo is never
+     * invalidated by a delete, so it keeps that id for up to its TTL.
+     */
+    bypassMemo?: boolean | undefined;
   }): Promise<Model> {
     /*
      * Canonicalize the identifier (trim + lowercase, matching
@@ -141,8 +156,9 @@ export class Service extends DatabaseService<Model> {
      * the resolving call performed within the last minute.
      */
     const memoKey: string = `${data.projectId.toString()}:${hostIdentifier}`;
-    const memoedResolution: HostResolution | undefined =
-      hostResolutionInProcessMemo.get(memoKey);
+    const memoedResolution: HostResolution | undefined = data.bypassMemo
+      ? undefined
+      : hostResolutionInProcessMemo.get(memoKey);
     if (memoedResolution) {
       const memoedHost: Model = new Model();
       memoedHost._id = memoedResolution.hostIdStr;
@@ -464,8 +480,14 @@ export class Service extends DatabaseService<Model> {
       cloudAccountId: extra?.cloudAccountId ?? null,
     };
 
+    /*
+     * Change detection only, but the payload carries the cloud account id,
+     * so it is hashed with SHA-256 rather than SHA-1. The value lives in the
+     * heartbeat throttle's cache, so the switch costs each host one extra
+     * metadata write after a deploy, nothing more.
+     */
     return crypto
-      .createHash("sha1")
+      .createHash("sha256")
       .update(JSON.stringify(normalized))
       .digest("hex");
   }
@@ -739,6 +761,79 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Deleting a host settles its in-flight AI remediation rounds and removes its
+   * resource AI agent — read before the delete, done after it for the hosts
+   * actually deleted (ResourceAiDeleteCleanup, shared by every resource AI
+   * agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.Host,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.Host,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
+  }
+
+  /*
+   * A create is held to the same AI access rules as an update, judged
+   * against the never-configured defaults a new host starts from: an
+   * unusable mode or allowlist is refused for every caller, and the
+   * server-only aiAccess* columns for every caller but root (a master admin
+   * included, whom the create column ACLs never check).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.Host,
+      createBy,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch, the
+   * remediation mode, the command allowlist) is validated and checked against
+   * who may make AI do more on this host — the rules every resource AI agent's
+   * resource shares (ResourceAiAccessSettings).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.Host,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -749,6 +844,33 @@ export class Service extends DatabaseService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the host marked
+     * AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        hostId: ObjectID,
+      ): Promise<string> => {
+        return this.getHostMarkdownLink(projectId, hostId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await HostFeedService.createHostFeedItem({
+          hostId: item.resourceId,
+          projectId: item.projectId,
+          hostFeedEventType: HostFeedEventType.HostUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }

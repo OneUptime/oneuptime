@@ -11,6 +11,9 @@ on:
     branches:
       - master
 
+# Every job checks out and runs `docker build`; none pushes or calls the API.
+permissions:
+  contents: read
 
 jobs:
 
@@ -274,6 +277,47 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: sudo docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
+
+  # The resource AI agent image (agents/ResourceAIAgent), which the Docker,
+  # Podman, Swarm, Proxmox, VMware, Ceph, database and host agents run as
+  # their "ai-agent" service. Built on every pull request so an Alpine
+  # package that is renamed or dropped (docker-cli, govc, ceph19-common,
+  # util-linux-misc), or an agent that does not compile inside the image,
+  # fails here rather than in the release. This builds the runner's
+  # architecture (amd64) only; test-release.yaml builds both on every push to
+  # master.
+  docker-build-resource-ai-agent:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # Seeds the base image into the local store first, from Docker Hub if
+      # public.ecr.aws will not serve it (its shared anonymous quota runs out
+      # in a busy CI window); see docker-build-kubernetes-ai-agent above.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./agents/ResourceAIAgent/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build --no-cache -f ./agents/ResourceAIAgent/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest

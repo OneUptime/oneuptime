@@ -1,0 +1,22 @@
+[Unit]
+Description=OneUptime Host AI Agent
+Documentation=https://oneuptime.com/docs/ai/infrastructure-ai-agents
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+# Where install.sh put docker-compose.yml and .env.
+WorkingDirectory=/opt/oneuptime-host-ai-agent
+# "-": a host that cannot reach the registry still starts the image it has.
+ExecStartPre=-/usr/bin/docker compose pull
+ExecStart=/usr/bin/docker compose up --remove-orphans
+ExecStop=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

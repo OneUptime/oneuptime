@@ -74,8 +74,9 @@ const UNNAMED_SURFACE_READABLE_NAME: string = "this ingest endpoint";
 
 /*
  * The ceiling a server key gets on an identity registration surface
- * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner and the
- * Kubernetes AI agent) when its policy names none. Registration is a handful
+ * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner, the
+ * Kubernetes AI agent and the resource AI agents) when its policy names
+ * none. Registration is a handful
  * of calls per pod lifetime (start-up, then heartbeats through the minted
  * identity's own key), so a leaked ingestion key hammering it is abuse, not
  * traffic - unlike OTLP ingest, where "no limit" is the historical contract
@@ -90,11 +91,19 @@ export const DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE: number =
 /*
  * The refusal a service-pinned key gets on an identity registration surface.
  * Worded for whichever identity the surface mints, and it never names the
- * key, its pinned service or anything else about it.
+ * key, its pinned service or anything else about it. The Kubernetes
+ * surfaces keep their wording exactly; a resource AI agent (Docker, Proxmox,
+ * a database, a host, ...) is told about infrastructure instead.
  */
 export const getPinnedKeyRegistrationRefusalMessage: (
   surface: TelemetryIngestSurface,
 ) => string = (surface: TelemetryIngestSurface): string => {
+  if (surface === TelemetryIngestSurface.ResourceAiAgent) {
+    return `This telemetry ingestion key is pinned to a single service, so it cannot be used for ${getIngestSurfaceReadableName(
+      surface,
+    )}: that grants access to your infrastructure, not to one service's telemetry. Use an unpinned server ingestion key for the AI agent.`;
+  }
+
   return `This telemetry ingestion key is pinned to a single service, so it cannot be used for ${getIngestSurfaceReadableName(
     surface,
   )}: that grants access to a Kubernetes cluster, not to one service's telemetry. Use an unpinned server ingestion key for the Kubernetes agent.`;
@@ -121,8 +130,9 @@ type GetEffectiveRequestsPerMinuteLimitFunction = (
  * did not configure a limit" cannot be allowed to mean "unlimited" there.
  *
  * The one surface-dependent case is identity registration
- * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner and the
- * Kubernetes AI agent): a server key with no configured limit is held to a
+ * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner, the
+ * Kubernetes AI agent and the resource AI agents): a server key with no
+ * configured limit is held to a
  * conservative default there (see
  * DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE), because those
  * endpoints mint identities rather than accepting telemetry. Every other
