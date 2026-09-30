@@ -250,7 +250,14 @@ describe("TelemetryAttributeService - security event attribute values query", ()
   test("caps the number of values returned", () => {
     const statement: Statement = buildValues();
 
-    expect(statement.query).toContain("ORDER BY attributeValue ASC");
     expect(statement.query).toContain("LIMIT ");
+    expect(statement.query).not.toContain("ORDER BY");
+  });
+
+  test("prunes with the security event table's attributeKeys index", () => {
+    const statement: Statement = buildValues();
+
+    expect(statement.query).toContain("indexHint(has(");
+    expect(Object.values(statement.query_params)).toContain("attributeKeys");
   });
 });
