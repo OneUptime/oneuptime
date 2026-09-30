@@ -1,10 +1,16 @@
 import {
+  LEXED_TEXT_MAX_LENGTH,
   neutralizeChatControlSequences,
   neutralizeMarkdownImagesAndDiagrams,
   neutralizeUntrustedMarkdown,
 } from "../../../Utils/Markdown/UntrustedMarkdown";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
-import { describe, expect, test } from "@jest/globals";
+import {
+  INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
+  INCIDENT_FORM_DESCRIPTION_MAX_LENGTH,
+} from "../../../Types/Incident/IncidentFormPublic";
+import { renderAsDashboard } from "./DashboardMarkdownRenderer";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { Lexer, Token, Tokens, marked } from "marked";
 
 /*
@@ -19,17 +25,23 @@ import { Lexer, Token, Tokens, marked } from "marked";
  * What is pinned, for every shape of each:
  *
  *   - nothing survives that acts on its own - checked with a real lexer
- *     (marked, as the emails are rendered) and a real Slack conversion, and
- *     on the characters themselves: no "![" is left that is not escaped
- *     and that anything could complete, and no info string starts with
- *     "mermaid". The characters matter because the dashboard reads the
- *     text with another parser (remark, with footnotes), which this suite
- *     cannot run - jest stubs it - and which does not read every text as
- *     marked does (see "whatever renderer reads it" below);
+ *     (marked, as the emails are rendered), a real Slack conversion, the
+ *     dashboard's own parser (micromark with its GitHub extensions, run in
+ *     a child process - jest stubs react-markdown and remark-gfm), and on
+ *     the characters themselves: no "![" is left that is not escaped and
+ *     that anything could complete, outside fenced code every renderer
+ *     reads as code, and no info string reads "mermaid", character
+ *     references decoded. The characters matter because the parsers do not
+ *     read every text alike (see "whatever renderer reads it" below);
  *   - everything else reads exactly as typed: text and links around a
- *     neutralised image are untouched, code with image syntax in it only
- *     gains an invisible word joiner, code without any is left byte for
- *     byte, and a mention looks the same once the joiner is ignored.
+ *     neutralised image are untouched, code with image syntax in it that
+ *     something could complete only gains an invisible word joiner - unless
+ *     it is fenced code every renderer reads as code, which is left byte for
+ *     byte, as is code without any - and a mention looks the same once the
+ *     joiner is ignored;
+ *   - it takes time in proportion to the text: marked, whose worst shapes
+ *     take seconds at the 20000 characters a description may hold, reads
+ *     only a text of at most LEXED_TEXT_MAX_LENGTH characters.
  */
 
 const WORD_JOINER: string = "\u2060";
@@ -86,6 +98,170 @@ function withoutJoiners(text: string): string {
 }
 
 /*
+ * The text with its numeric character references decoded, as CommonMark
+ * decodes them in an info string: ```&#109;ermaid is a mermaid fence.
+ */
+function withReferencesDecoded(text: string): string {
+  return text.replace(
+    /&#(?:[xX]([0-9a-fA-F]+)|([0-9]+));/g,
+    (_reference: string, hex?: string, decimal?: string): string => {
+      const codePoint: number = hex ? parseInt(hex, 16) : Number(decimal);
+
+      return codePoint > 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : "\uFFFD";
+    },
+  );
+}
+
+const HTML_IMAGE_PATTERN: RegExp = /<img/;
+const MERMAID_CLASS_PATTERN: RegExp = /language-mermaid/i;
+
+/*
+ * What the dashboard's parser makes of each text: no image, and no code
+ * block whose class holds "language-mermaid" - neither for a language that
+ * decodes to "mermaid" nor for one such as "-language-mermaid", which a
+ * viewer matching the class loosely would read as mermaid too.
+ */
+function expectInertInDashboard(texts: Array<string>): void {
+  const htmls: Array<string> = renderAsDashboard(texts);
+
+  texts.forEach((text: string, index: number): void => {
+    const html: string = htmls[index]!;
+
+    expect({
+      text: text,
+      image: HTML_IMAGE_PATTERN.test(html),
+      diagram: MERMAID_CLASS_PATTERN.test(html),
+    }).toEqual({ text: text, image: false, diagram: false });
+  });
+}
+
+// How long neutralising one text may take, however it is shaped.
+const TIME_BOUND_IN_MS: number = 1000;
+
+// The unit repeated, cut to exactly this length.
+function repeatTo(unit: string, length: number): string {
+  return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
+}
+
+/*
+ * The slowest shapes found for a text of a given length. On those marked
+ * takes seconds for: emphasis next to image syntax, a run of unclosed
+ * emphasis, brackets and emphasis - the markers tagging each place make
+ * some of them worse still. Each gives a text of exactly the length asked,
+ * in which something could complete every "![" - so none may be left open.
+ */
+const WORST_CASE_SHAPES: Array<[string, (length: number) => string]> = [
+  [
+    "back-to-back images",
+    (length: number): string => {
+      return repeatTo("![x](https://t.example/p.png)", length);
+    },
+  ],
+  [
+    "image openers, closed once at the end",
+    (length: number): string => {
+      return `${repeatTo("![", length - 4)}](u)`;
+    },
+  ],
+  [
+    "empty reference images before a definition",
+    (length: number): string => {
+      return `${repeatTo("![][a]", length - 8)}\n\n[a]: u`;
+    },
+  ],
+  [
+    "image openers before a definition",
+    (length: number): string => {
+      return `${repeatTo("![a]", length - 8)}\n\n[a]: u`;
+    },
+  ],
+  [
+    "images in strong emphasis",
+    (length: number): string => {
+      return repeatTo("**![](b)**", length);
+    },
+  ],
+  [
+    "images in underscore emphasis",
+    (length: number): string => {
+      return repeatTo("__![](b)__", length);
+    },
+  ],
+  [
+    "images with alt text in emphasis",
+    (length: number): string => {
+      return repeatTo("_![a](b)_", length);
+    },
+  ],
+  [
+    "text and images in emphasis",
+    (length: number): string => {
+      return repeatTo("**x![](b)**", length);
+    },
+  ],
+  [
+    "brackets in emphasis, then one image",
+    (length: number): string => {
+      return `${repeatTo("**a](b)**", length - 7)}![a](b)`;
+    },
+  ],
+  [
+    "emphasised image openers before a definition",
+    (length: number): string => {
+      return `${repeatTo("**![", length - 8)}\n\n[a]: b`;
+    },
+  ],
+  [
+    "one image, then unclosed emphasis",
+    (length: number): string => {
+      return `![a](b) ${repeatTo("*a ", length - 8)}`;
+    },
+  ],
+  [
+    "image openers in links",
+    (length: number): string => {
+      return `${repeatTo("[![a](", length - 4)}](u)`;
+    },
+  ],
+  [
+    "a run of backticks",
+    (length: number): string => {
+      return "`".repeat(length);
+    },
+  ],
+  [
+    "a run of tildes",
+    (length: number): string => {
+      return "~".repeat(length);
+    },
+  ],
+  [
+    "mermaid fences spelled with references",
+    (length: number): string => {
+      return repeatTo("```&#109;ermaid\n", length);
+    },
+  ],
+  [
+    "labels after text before a colon, then an image",
+    (length: number): string => {
+      return `${repeatTo("x[a]:", length - 9)}\n\n![a](u)`;
+    },
+  ],
+  [
+    "images in code spans",
+    (length: number): string => {
+      return repeatTo("`![](b)` ", length);
+    },
+  ],
+];
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+/*
  * Where each "![" whose "!" is not escaped starts - an image can only begin
  * at one of these, whichever parser reads the text.
  */
@@ -123,8 +299,13 @@ function expectInert(markdown: string): void {
       return (block.lang || "").trim().toLowerCase().startsWith("mermaid");
     }),
   ).toEqual([]);
-  // No fence of any renderer can open with "mermaid" as its language.
-  expect(markdown.toLowerCase()).not.toMatch(/(`{3,}|~{3,})[ \t]*mermaid/);
+  /*
+   * No fence of any renderer can open with "mermaid" as its language, as
+   * typed or spelled with character references.
+   */
+  expect(withReferencesDecoded(markdown).toLowerCase()).not.toMatch(
+    /(`{3,}|~{3,})[ \t]*mermaid/,
+  );
 }
 
 /*
@@ -179,8 +360,39 @@ describe("neutralizeChatControlSequences", () => {
     ["< !channel>"],
     ["!here @jane #general"],
     [""],
+    // Pasted HTML and PowerShell: none of it is a sequence Slack acts on.
+    ["<!DOCTYPE html>"],
+    ["<!doctype html>"],
+    ["<!-- upstream 502 -->"],
+    ["<![CDATA[a < b]]>"],
+    ['<!ENTITY copy "&#169;">'],
+    ["<# PowerShell block comment #>"],
+    ["<#\n.SYNOPSIS\n  Restarts the pool.\n#>"],
   ])("leaves %j exactly as it is", (text: string) => {
     expect(neutralizeChatControlSequences(text)).toBe(text);
+  });
+
+  /*
+   * A reporter pasting the page a proxy served into the description: a
+   * responder copies it out of the report to reproduce the problem, and a
+   * stored invisible character would turn "<!DOCTYPE" and "<!--" into text
+   * in the browser it is pasted into.
+   */
+  test("stores an HTML page pasted in a code block exactly as typed", () => {
+    const text: string =
+      "```html\n<!DOCTYPE html>\n<!-- upstream 502 -->\n<![CDATA[x]]>\n```";
+
+    expect(neutralizeUntrustedMarkdown(text)).toBe(text);
+  });
+
+  test("still breaks a mention right after a comment or a declaration", () => {
+    expect(
+      neutralizeChatControlSequences(
+        "<!-- note --><!here> <!DOCTYPE html><@U0123ABC>",
+      ),
+    ).toBe(
+      `<!-- note --><${WORD_JOINER}!here> <!DOCTYPE html><${WORD_JOINER}@U0123ABC>`,
+    );
   });
 
   test("is idempotent", () => {
@@ -289,6 +501,18 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
     [
       "a reference image defined before it",
       "[pic]: https://t.example/p.png\n\n![pic]",
+    ],
+    /*
+     * marked takes a task list item's box off before it reads the item, so
+     * a definition can follow the box on its line.
+     */
+    [
+      "a reference image defined in a task list item",
+      "- [ ] [pic]: https://t.example/p.png\n\n![pic]",
+    ],
+    [
+      "a reference image defined in a ticked task list item in a block quote",
+      "> 1. [x] [pic]: https://t.example/p.png\n\nSee ![pic] here",
     ],
     ["an image in a heading", "# Down ![x](https://t.example/p.png)"],
     ["an image in bold", "**![x](https://t.example/p.png)**"],
@@ -407,8 +631,94 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
       "brackets closed only after the paragraph ends",
       "![a\n\n](https://t.example/p.png)",
     ],
+    /*
+     * A "]:" that could not start a link reference definition: only one at
+     * the start of a line - after indentation, or block quote, list or
+     * footnote markers - could complete "![y]".
+     */
+    [
+      "code beside a Python slice elsewhere in the text",
+      "`x = ![y]`\n\nfor x in lines[1:]:\n    print(x)",
+    ],
+    [
+      "code beside a computed key and a log line",
+      "`list![0]` then `{ [key]: value }`, and sshd[1]: accepted",
+    ],
   ])("leaves %s exactly as written", (_label: string, text: string) => {
     expect(neutralizeMarkdownImagesAndDiagrams(text)).toBe(text);
+  });
+
+  /*
+   * A fence opened at the very start of a line after a blank line (or at the
+   * start of the text, or right after another such fence closes) is fenced
+   * code to every renderer here, so image syntax in it can never be an
+   * image: it is left byte for byte, and code copied out of a report is the
+   * code that was reported - Rust's vec! with indexing after it included,
+   * where "][" could otherwise complete the "![".
+   */
+  test("leaves image syntax in fenced code every renderer reads as code exactly as written", () => {
+    const texts: Array<string> = [
+      "```markdown\n![x](https://t.example/p.png)\n```",
+      "~~~\n![x](https://t.example/p.png)\n~~~",
+      "```rust\nlet grid = vec![vec![0; w]; h];\nlet v = grid[y][x];\n```",
+      "Steps:\n\n```ts\ninterface Map {\n  [key: string]: T;\n}\nconst v = map![key];\n```\n\n[a]: https://docs.example",
+      "```\n![a](https://t.example/1.png)\n```\n```\n![b](https://t.example/2.png)\n```",
+      "````\n```\n![x](https://t.example/p.png)\n```\n````",
+      "```\n<div>\n\n![x](https://t.example/p.png)\n```",
+    ];
+
+    for (const text of texts) {
+      expect(neutralizeMarkdownImagesAndDiagrams(text)).toBe(text);
+      expect(images(text)).toEqual([]);
+    }
+
+    expectInertInDashboard(texts);
+  });
+
+  /*
+   * Where the renderers could pair the fences differently - a fence that is
+   * indented, inside a container or after text, an HTML block, a closing
+   * fence only one of them accepts, a byte-order mark - no fence is trusted
+   * any more, and image syntax after it is broken as anywhere else.
+   */
+  test.each([
+    [
+      "a fence in a list item, ended by a line that is not",
+      "- item\n\n  ```\n  code\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "a fence right after raw HTML",
+      "<div>\n```\n\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "a fence inside an HTML comment",
+      "<!--\n\n```\n-->\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "a fence closed only as marked reads it",
+      "```\ncode\n```~\n\n```\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "a fence closed only as CommonMark reads it",
+      "```\ncode\n```\t\n\n```\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "a fence after a byte-order mark",
+      "\uFEFF```\n\n```\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "an indented fence",
+      "   ````\n\n```\n\n   ````\n\n![x](https://t.example/p.png)\n```",
+    ],
+    [
+      "a fence after a paragraph line",
+      "text\n```\n\n```\n![x](https://t.example/p.png)\n```",
+    ],
+  ])("breaks image syntax after %s", (_label: string, text: string) => {
+    const result: string = neutralizeMarkdownImagesAndDiagrams(text);
+
+    expectNoOpenImage(result);
+    expectInertInDashboard([result]);
   });
 
   test("keeps the line endings of a text it leaves alone", () => {
@@ -419,9 +729,9 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
 
   /*
    * Code shows its characters as they are, so a backslash there would show.
-   * Image syntax in code that something could complete gets an invisible
-   * word joiner between its "!" and "[" instead: the code reads exactly as
-   * typed, and no renderer that reads it as anything but code finds an
+   * Image syntax in other code that something could complete gets an
+   * invisible word joiner between its "!" and "[" instead: the code reads
+   * as typed, and no renderer that reads it as anything but code finds an
    * image in it either.
    */
   test.each([
@@ -430,8 +740,10 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
       "a code span of two backticks",
       "Use ``a ` ![x](https://t.example/p.png)`` here",
     ],
-    ["a fenced code block", "```markdown\n![x](https://t.example/p.png)\n```"],
-    ["a tilde fence", "~~~\n![x](https://t.example/p.png)\n~~~"],
+    [
+      "a fenced code block right after a line of text",
+      "Run:\n```markdown\n![x](https://t.example/p.png)\n```",
+    ],
     ["an indented code block", "Text:\n\n    ![x](https://t.example/p.png)"],
     [
       "a code block inside a list",
@@ -470,15 +782,16 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
 
     const result: string = neutralizeMarkdownImagesAndDiagrams(text);
 
-    expectNoOpenImage(result);
+    expectInert(result);
+    expectInertInDashboard([result]);
     expect(codeSpans(result).map(withoutJoiners)).toEqual(codeSpans(text));
     expect(
       codeBlocks(result).map((block: Tokens.Code): string => {
-        return withoutJoiners(block.text);
+        return block.text;
       }),
     ).toEqual(["![kept too](https://t.example/k2.png)"]);
     expect(result).toBe(
-      `\`!${WORD_JOINER}[kept](https://t.example/k.png)\` \\![gone](https://t.example/g.png)\n\n\`\`\`\n!${WORD_JOINER}[kept too](https://t.example/k2.png)\n\`\`\``,
+      `\`!${WORD_JOINER}[kept](https://t.example/k.png)\` \\![gone](https://t.example/g.png)\n\n\`\`\`\n![kept too](https://t.example/k2.png)\n\`\`\``,
     );
   });
 
@@ -527,6 +840,16 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
       "1. a\n\n   [^n]: ![x](https://t.example/p.png)\n\nsee[^n]",
       "1. a\n\n   [^n]: \\![x](https://t.example/p.png)\n\nsee[^n]",
     ],
+    [
+      "a reference image defined inside a footnote",
+      "See[^1]\n\n[^1]: [pic]: https://t.example/p.png\n\n![pic]",
+      "See[^1]\n\n[^1]: [pic]: https://t.example/p.png\n\n\\![pic]",
+    ],
+    [
+      "a reference image defined after a byte order mark",
+      "\uFEFF[pic]: https://t.example/p.png\n\n![pic]",
+      "\uFEFF[pic]: https://t.example/p.png\n\n\\![pic]",
+    ],
   ])(
     "leaves no image the dashboard would show in %s",
     (_label: string, text: string, expected: string) => {
@@ -571,26 +894,123 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
   );
 
   /*
-   * A description is capped at 20000 characters - all of it can be image
-   * syntax. Neutralising it must stay a matter of milliseconds and still
-   * leave nothing to fetch.
+   * A description is capped at 20000 characters and a Rich text answer at
+   * 10000 - all of it image syntax, emphasis around it, or whatever else a
+   * stranger with the form's link chooses - and neutralising it runs in the
+   * process that serves every tenant. marked takes seconds on some of these
+   * shapes (the emphasis ones, and brackets), so it only reads a text of at
+   * most LEXED_TEXT_MAX_LENGTH characters; at every one of these lengths,
+   * neutralising stays a matter of milliseconds - the bound here is
+   * generous - and leaves nothing to fetch. (marked is not asked whether
+   * the result is inert: it would take seconds on some of them itself.)
+   */
+  test.each(WORST_CASE_SHAPES)(
+    "neutralises a text made of %s quickly, at every length a form takes",
+    (_label: string, shape: (length: number) => string) => {
+      for (const length of [
+        INCIDENT_FORM_DESCRIPTION_MAX_LENGTH,
+        INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
+        LEXED_TEXT_MAX_LENGTH,
+      ]) {
+        const text: string = shape(length);
+
+        const started: number = Date.now();
+        const result: string = neutralizeMarkdownImagesAndDiagrams(text);
+        const elapsed: number = Date.now() - started;
+
+        expect({
+          length: text.length,
+          fast: elapsed < TIME_BOUND_IN_MS,
+        }).toEqual({ length: length, fast: true });
+        expect(openImageSyntax(result)).toEqual([]);
+        expect(withReferencesDecoded(result).toLowerCase()).not.toMatch(
+          /(`{3,}|~{3,})[ \t]*mermaid/,
+        );
+
+        if (length <= LEXED_TEXT_MAX_LENGTH) {
+          expectInert(result);
+        }
+      }
+    },
+  );
+
+  test("hands the lexer a text of at most LEXED_TEXT_MAX_LENGTH characters, and never a longer one", () => {
+    const lex: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      Lexer.prototype,
+      "lex",
+    );
+
+    neutralizeMarkdownImagesAndDiagrams(
+      repeatTo("See ![](https://t.example/p.png) ", LEXED_TEXT_MAX_LENGTH),
+    );
+
+    expect(lex).toHaveBeenCalledTimes(1);
+
+    lex.mockClear();
+
+    neutralizeMarkdownImagesAndDiagrams(
+      repeatTo("See ![](https://t.example/p.png) ", LEXED_TEXT_MAX_LENGTH + 1),
+    );
+
+    expect(lex).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Without the lexer, what each place is has to be told from its own line.
+   * For the shapes a real report has, that gives exactly what the lexer
+   * gives: an image in text becomes a link, with its address as its text
+   * when it had none; image syntax in a code span stays as typed, joined
+   * invisibly; a mermaid fence every renderer reads as one is renamed.
    */
   test.each([
-    ["back-to-back images", "![x](https://t.example/p.png)".repeat(700)],
-    ["bare image openers", "![".repeat(10000)],
-    ["nested image openers", `${"![a ".repeat(4000)}${"](u)".repeat(1000)}`],
-    ["empty reference images", "![]".repeat(6000)],
-    ["image openers before a definition", `${"![a]".repeat(4000)}\n\n[a]: u`],
+    ["an image without alt text", "See ![](https://t.example/p.png) here."],
+    ["an image with alt text", "![the error](https://t.example/p.png)"],
+    [
+      "an image with an address in angle brackets and a title",
+      '![](<https://t.example/a b.png> "The error")',
+    ],
+    ["an image with no address", "![]()"],
+    ["image syntax in a code span", "Use `![x](https://t.example/p.png)`."],
+    ["an indented code block", "Text:\n\n    ![x](https://t.example/p.png)"],
+    ["a mermaid fence", "```mermaid\ngraph TD\n```"],
+    [
+      "a mermaid fence spelled with a reference",
+      "```&#109;ermaid\ngraph TD\n```",
+    ],
+    ["image syntax in fenced code", "```\n![x](https://t.example/p.png)\n```"],
   ])(
-    "neutralises a description made of %s quickly",
+    "neutralises %s in a text too long for the lexer as in a short one",
     (_label: string, text: string) => {
-      const started: number = Date.now();
+      const opening: string = `${repeatTo("Every order fails at checkout. ", LEXED_TEXT_MAX_LENGTH)}\n\n`;
+
+      expect(neutralizeMarkdownImagesAndDiagrams(opening + text)).toBe(
+        opening + neutralizeMarkdownImagesAndDiagrams(text),
+      );
+    },
+  );
+
+  test.each([
+    [
+      "a mermaid fence in a block quote",
+      "> ```&#109;ermaid\n> graph TD\n> ```",
+      `> \`\`\`${WORD_JOINER}&#109;ermaid\n> graph TD\n> \`\`\``,
+    ],
+    [
+      "image syntax in a code span that goes on to another line",
+      "Use `a\n![x](https://t.example/p.png)` here",
+      "Use `a\n\\![x](https://t.example/p.png)` here",
+    ],
+  ])(
+    "breaks %s in a text too long for the lexer, if less tidily",
+    (_label: string, text: string, expected: string) => {
+      const opening: string = `${repeatTo("Every order fails at checkout. ", LEXED_TEXT_MAX_LENGTH)}\n\n`;
       const result: string = neutralizeMarkdownImagesAndDiagrams(
-        text.slice(0, 20000),
+        opening + text,
       );
 
-      expect(Date.now() - started).toBeLessThan(5000);
+      expect(result).toBe(opening + expected);
       expectInert(result);
+      expectInertInDashboard([result]);
     },
   );
 });
@@ -663,6 +1083,90 @@ describe("neutralizeMarkdownImagesAndDiagrams - mermaid diagrams", () => {
   ])("leaves %s exactly as written", (_label: string, text: string) => {
     expect(neutralizeMarkdownImagesAndDiagrams(text)).toBe(text);
   });
+
+  /*
+   * The dashboard reads a fence's info string as CommonMark does, character
+   * references decoded, so ```&#109;ermaid is a mermaid fence there - and a
+   * viewer matching "language-mermaid" anywhere in a class would take
+   * ```-language-mermaid for one too. So every "mermaid" in an info string,
+   * as the dashboard decodes it, is broken, wherever it stands.
+   */
+  const SPELLED_MERMAID_FENCES: Array<[string, string]> = [
+    ["a decimal reference", "```&#109;ermaid\ngraph TD\n```"],
+    ["a reference inside the word", "```mer&#109;aid\ngraph TD\n```"],
+    ["a hexadecimal reference", "```&#x6D;ermaid\ngraph TD\n```"],
+    ["an upper-case hexadecimal reference", "```&#X6d;ermaid\ngraph TD\n```"],
+    ["a reference with leading zeros", "```&#0000109;ermaid\ngraph TD\n```"],
+    [
+      "a reference for every letter",
+      "```&#109;&#101;&#114;&#109;&#97;&#105;&#100;\ngraph TD\n```",
+    ],
+    ["a reference in a tilde fence", "~~~&#109;ermaid\ngraph TD\n~~~"],
+    ["spaces before a reference", "```   &#109;ermaid\ngraph TD\n```"],
+    ["a reference in a block quote", "> ```&#109;ermaid\n> graph TD\n> ```"],
+    [
+      "a reference in a list item",
+      "- flow:\n\n  ```&#109;ermaid\n  graph TD\n  ```",
+    ],
+    [
+      "a language ending in -language-mermaid",
+      "```-language-mermaid\ngraph TD\n```",
+    ],
+    [
+      "a language ending in .language-mermaid",
+      "```.language-mermaid\ngraph TD\n```",
+    ],
+    [
+      "a language ending in +language-mermaid, in a list item",
+      "- ```+language-mermaid\n  graph TD\n  ```",
+    ],
+    ["capital letters", "```MERMAID\ngraph TD\n```"],
+  ];
+
+  test.each(SPELLED_MERMAID_FENCES)(
+    "breaks a mermaid fence spelled with %s",
+    (_label: string, text: string) => {
+      const result: string = neutralizeMarkdownImagesAndDiagrams(text);
+
+      expect(result).not.toBe(text);
+      expectInert(result);
+      expect(neutralizeMarkdownImagesAndDiagrams(result)).toBe(result);
+    },
+  );
+
+  test("leaves the dashboard no mermaid fence where it would have found one in each", () => {
+    const texts: Array<string> = SPELLED_MERMAID_FENCES.map(
+      (fence: [string, string]): string => {
+        return fence[1];
+      },
+    );
+
+    // Every one of them really is a mermaid fence to the dashboard.
+    for (const html of renderAsDashboard(texts)) {
+      expect(html).toMatch(/class="language-[^"]*mermaid/i);
+    }
+
+    expectInertInDashboard(texts.map(neutralizeMarkdownImagesAndDiagrams));
+  });
+
+  test.each([
+    ["```&#109;ermaid\ngraph TD\n```", "```text\ngraph TD\n```"],
+    ["```-language-mermaid\ngraph TD\n```", "```text\ngraph TD\n```"],
+    ["> ```mer&#x6D;aid\n> graph TD\n> ```", "> ```text\n> graph TD\n> ```"],
+    [
+      "```js mermaid\ngraph TD\n```",
+      `\`\`\`js ${WORD_JOINER}mermaid\ngraph TD\n\`\`\``,
+    ],
+    [
+      "Use ```&#109;ermaid``` fences",
+      `Use \`\`\`${WORD_JOINER}&#109;ermaid\`\`\` fences`,
+    ],
+  ])(
+    "gives %j the language text where it is a fence, and breaks it elsewhere",
+    (text: string, expected: string) => {
+      expect(neutralizeMarkdownImagesAndDiagrams(text)).toBe(expected);
+    },
+  );
 });
 
 describe("neutralizeUntrustedMarkdown", () => {
