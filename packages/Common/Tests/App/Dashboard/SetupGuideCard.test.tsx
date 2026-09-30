@@ -659,6 +659,61 @@ describe("SetupGuideCard", () => {
   });
 
   describe("the key type filter", () => {
+    test("switching to an option that needs another key type selects that type's first key", async () => {
+      const browserKey: TelemetryIngestionKey = makeKey(
+        "key-browser",
+        "Storefront Browser Key",
+        "secret-browser",
+      );
+      browserKey.keyType = TelemetryIngestionKeyType.Browser;
+      const serverKey: TelemetryIngestionKey = makeKey(
+        "key-server",
+        "Backend Server Key",
+        "secret-server",
+      );
+
+      jest.spyOn(ModelAPI, "getList").mockImplementation(((data: {
+        query: Record<string, unknown>;
+      }): Promise<unknown> => {
+        const keys: Array<TelemetryIngestionKey> =
+          data.query["keyType"] === TelemetryIngestionKeyType.Browser
+            ? [browserKey]
+            : [serverKey];
+        return Promise.resolve({
+          data: keys,
+          count: keys.length,
+          skip: 0,
+          limit: 50,
+        });
+      }) as never);
+
+      const { container } = renderCard({
+        getKeyTypeFilter: (option: string | undefined) => {
+          return option === "beta"
+            ? TelemetryIngestionKeyType.Browser
+            : undefined;
+        },
+      });
+
+      await waitFor(() => {
+        expect(container.textContent).toContain("--key secret-server");
+      });
+
+      fireEvent.click(radio("Beta"));
+      await waitFor(() => {
+        expect(container.textContent).toContain("--key secret-browser");
+      });
+
+      // Back again: the server key, not the placeholder.
+      fireEvent.click(radio("Alpha"));
+      await waitFor(() => {
+        expect(container.textContent).toContain("--key secret-server");
+      });
+      expect(container.textContent).not.toContain(
+        SETUP_GUIDE_API_KEY_PLACEHOLDER,
+      );
+    });
+
     test("asks only for the key type the picked option needs", async () => {
       const getList: jest.Mock<GetList> = mockKeys([]);
       renderCard({
