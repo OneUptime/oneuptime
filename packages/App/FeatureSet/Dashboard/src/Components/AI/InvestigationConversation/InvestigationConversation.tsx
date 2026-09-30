@@ -568,11 +568,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * Plain text and suggestion chips, not a tinted box: inline, this sits in
+   * the AI investigation card, which draws no panel inside itself.
+   */
   const emptyState: ReactElement = (
-    <div
-      className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-4"
-      data-testid="investigation-conversation-empty"
-    >
+    <div data-testid="investigation-conversation-empty">
       <p className="text-sm text-gray-600">
         Nobody has asked anything yet. Start with one of these, or type your
         own:
