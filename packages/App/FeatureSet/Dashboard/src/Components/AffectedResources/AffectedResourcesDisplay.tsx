@@ -14,7 +14,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
 import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
 import DockerHostElement from "../DockerHost/DockerHost";
@@ -73,26 +73,60 @@ export interface ComponentProps {
   hideServiceLevelObjectives?: boolean | undefined;
   emptyMessage?: string | undefined;
   /*
-   * How many category cards sit side by side. Left out, the grid follows the
-   * viewport: one column on phones, two from md up. That is right for a
+   * How many category sections sit side by side. Left out, the grid follows
+   * the viewport: one column on phones, two from md up. That is right for a
    * full-width card but not for one in a narrow column (an overview page's
-   * sidebar), where two cards share about 300px and every name is clipped,
-   * so those callers ask for 1.
+   * sidebar), where two sections share about 300px and every name is
+   * clipped, so those callers ask for 1.
    */
   columns?: 1 | 2 | undefined;
 }
 
-type GetGridClassNameFunction = (columns: 1 | 2 | undefined) => string;
+type GetColumnsClassNameFunction = (columns: 1 | 2 | undefined) => string;
 
-export const getAffectedResourcesGridClassName: GetGridClassNameFunction = (
+/*
+ * The categories are sections of the card this display sits in, not cards of
+ * their own. Each one used to be a bordered, shadowed tile with a coloured
+ * bar across its top, so the card read as a stack of cards nested inside a
+ * card. In one column the sections are split by hairlines, like the rows of
+ * the details card above this one in an overview page's sidebar. Side by side
+ * (md and up, in a full-width card) a hairline would also run across the top
+ * of the second section of the first row, so that layout separates the
+ * sections with whitespace instead.
+ */
+export const getAffectedResourcesGridClassName: GetColumnsClassNameFunction = (
   columns: 1 | 2 | undefined,
 ): string => {
   if (columns === 1) {
-    return "grid grid-cols-1 gap-3";
+    return "grid grid-cols-1 divide-y divide-gray-100";
   }
 
-  return "grid grid-cols-1 gap-3 md:grid-cols-2";
+  return "grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-2 md:gap-x-10 md:gap-y-6 md:divide-y-0";
 };
+
+export const getAffectedResourcesSectionClassName: GetColumnsClassNameFunction =
+  (columns: 1 | 2 | undefined): string => {
+    if (columns === 1) {
+      return "min-w-0 py-4 first:pt-0 last:pb-0";
+    }
+
+    return "min-w-0 py-4 first:pt-0 last:pb-0 md:py-0";
+  };
+
+/*
+ * The resource elements wrap their name in a flex span (or a flex row, for
+ * services), and text inside a flex container cannot be ellipsised from out
+ * here. Turning those spans into truncating blocks keeps a long name on one
+ * line with an ellipsis; the item's title shows it in full on hover.
+ *
+ * The rest stretches the element's link over its whole row (the row is
+ * positioned, the link's ::after fills it), so the row that lights up on
+ * hover is also the row that opens the resource, not just the name inside
+ * it. The link's own focus outline would be clipped by the truncation, so a
+ * keyboard focus ring is drawn around the row instead.
+ */
+export const AFFECTED_RESOURCE_ITEM_CLASS_NAME: string =
+  "min-w-0 truncate [&_span.flex]:block [&_span.flex]:truncate [&_a]:after:absolute [&_a]:after:inset-0 [&_a]:after:rounded-md [&_a:focus-visible]:outline-none [&_a:focus-visible]:after:ring-2 [&_a:focus-visible]:after:ring-indigo-500";
 
 interface NamedResource {
   name?: string | undefined;
@@ -104,26 +138,27 @@ const PREVIEW_COUNT: number = 4;
  * attached to thousands of resources would render every item in one go when
  * the user clicks "Show more" — enough to lock the tab. Past this cap we
  * still render the first MAX_RENDER_PER_CATEGORY rows and surface the
- * remaining count in a footer note so the user knows the data isn't lost.
+ * remaining count in a note under the list so the user knows the data isn't
+ * lost.
  */
 const MAX_RENDER_PER_CATEGORY: number = 100;
 
-interface CategoryCardProps<T extends NamedResource> {
+interface CategorySectionProps<T extends NamedResource> {
   icon: IconProp;
   label: string;
   iconBgClass: string;
   iconColorClass: string;
-  accentBarClass: string;
-  countTextClass: string;
-  countBgClass: string;
   items: Array<T>;
   renderItem: (item: T) => ReactElement;
+  className: string;
 }
 
-function CategoryCard<T extends NamedResource>(
-  props: CategoryCardProps<T>,
+function CategorySection<T extends NamedResource>(
+  props: CategorySectionProps<T>,
 ): ReactElement {
   const [showAll, setShowAll] = useState<boolean>(false);
+  const headingId: string = useId();
+  const listId: string = useId();
   const total: number = props.items.length;
   const expandedCap: number = Math.min(total, MAX_RENDER_PER_CATEGORY);
   const visibleItems: Array<T> = showAll
@@ -133,63 +168,71 @@ function CategoryCard<T extends NamedResource>(
   const truncatedCount: number = total - MAX_RENDER_PER_CATEGORY;
   const hasMore: boolean = collapsedRemaining > 0;
   const isTruncated: boolean = showAll && truncatedCount > 0;
+  const moreCount: number = Math.min(
+    collapsedRemaining,
+    MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
+  );
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-      <div className={`h-1 w-full ${props.accentBarClass}`} />
-      <div className="flex items-center justify-between gap-2 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${props.iconBgClass}`}
-          >
-            <Icon
-              icon={props.icon}
-              className={`h-[18px] w-[18px] ${props.iconColorClass}`}
-            />
-          </div>
-          <span className="truncate text-sm font-semibold text-gray-900">
-            {props.label}
-          </span>
-        </div>
-        <span
-          className={`inline-flex h-7 min-w-[1.75rem] flex-shrink-0 items-center justify-center rounded-full px-2.5 text-xs font-semibold ${props.countBgClass} ${props.countTextClass}`}
+    <div data-testid="affected-resource-category" className={props.className}>
+      <div className="flex min-w-0 items-center gap-2">
+        <div
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${props.iconBgClass}`}
         >
-          {total.toLocaleString()}
-        </span>
+          <Icon
+            icon={props.icon}
+            className={`h-3.5 w-3.5 ${props.iconColorClass}`}
+          />
+        </div>
+        {/*
+         * The count is part of the heading, which also names the list, so a
+         * screen reader hears "Monitors 7" before a list of the first four.
+         */}
+        <h3 id={headingId} className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="min-w-0 truncate text-sm font-medium text-gray-900">
+            {props.label}
+          </span>{" "}
+          <span
+            data-testid="affected-resource-category-count"
+            className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600"
+          >
+            {total.toLocaleString()}
+          </span>
+        </h3>
       </div>
-      <ul className="flex flex-col gap-0.5 border-t border-gray-100 px-2 py-2">
+      {/*
+       * Indented to line up with the label, past the icon (h-6 plus gap-2),
+       * so the icon column reads as the section's gutter.
+       */}
+      <ul
+        id={listId}
+        aria-labelledby={headingId}
+        className="mt-1.5 flex flex-col gap-0.5 pl-8"
+      >
         {visibleItems.map((item: T, i: number) => {
           const itemName: string = item.name?.toString() || "";
 
           return (
             <li
               key={i}
-              className="group/item flex items-center justify-between rounded-md px-2.5 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+              className="relative -ml-2 rounded-md px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
             >
-              {/*
-               * The resource elements wrap their name in a flex span (or a
-               * flex row, for services), and text inside a flex container
-               * cannot be ellipsised from out here. Turning those spans into
-               * truncating blocks keeps a long name on one line with an
-               * ellipsis, and the title shows it in full on hover.
-               */}
               <div
                 data-testid="affected-resource-item"
-                className="min-w-0 flex-1 truncate [&_span.flex]:block [&_span.flex]:truncate"
+                className={AFFECTED_RESOURCE_ITEM_CLASS_NAME}
                 title={itemName || undefined}
               >
                 {props.renderItem(item)}
               </div>
-              <Icon
-                icon={IconProp.ChevronRight}
-                className="ml-2 h-3.5 w-3.5 shrink-0 text-gray-300 transition-colors group-hover/item:text-gray-500"
-              />
             </li>
           );
         })}
       </ul>
       {isTruncated && (
-        <div className="flex items-start gap-2 border-t border-gray-100 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+        <div
+          data-testid="affected-resource-truncated-note"
+          className="ml-8 mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
+        >
           <Icon
             icon={IconProp.Alert}
             className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
@@ -204,35 +247,20 @@ function CategoryCard<T extends NamedResource>(
       {hasMore && (
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-1.5 border-t border-gray-100 bg-gray-50/50 px-4 py-2.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+          aria-expanded={showAll}
+          aria-controls={listId}
+          className="ml-6 mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
           onClick={() => {
             return setShowAll(!showAll);
           }}
         >
-          {showAll ? (
-            <>
-              <Icon icon={IconProp.ChevronUp} className="h-3 w-3" />
-              <span>Show less</span>
-            </>
-          ) : (
-            <>
-              <Icon icon={IconProp.ChevronDown} className="h-3 w-3" />
-              <span>
-                Show{" "}
-                {Math.min(
-                  collapsedRemaining,
-                  MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
-                ).toLocaleString()}{" "}
-                more{" "}
-                {Math.min(
-                  collapsedRemaining,
-                  MAX_RENDER_PER_CATEGORY - PREVIEW_COUNT,
-                ) === 1
-                  ? "item"
-                  : "items"}
-              </span>
-            </>
-          )}
+          <Icon
+            icon={showAll ? IconProp.ChevronUp : IconProp.ChevronDown}
+            className="h-3 w-3"
+          />
+          <span>
+            {showAll ? "Show less" : `Show ${moreCount.toLocaleString()} more`}
+          </span>
         </button>
       )}
     </div>
@@ -307,19 +335,37 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showServices &&
     !showSlos
   ) {
+    /*
+     * Only a caller that shows SLOs (the incident and alert pages) can have
+     * one linked by a burn rate rule; a scheduled maintenance event or a
+     * template never does, so the hint does not promise it there.
+     */
+    const showsSlos: boolean =
+      props.serviceLevelObjectives !== undefined &&
+      !props.hideServiceLevelObjectives;
+
+    /*
+     * Open, like the rest of the card's body: a dashed, tinted box here was
+     * another card inside the card.
+     */
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-10 text-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+      <div
+        data-testid="affected-resources-empty"
+        className="flex flex-col items-center px-4 py-6 text-center"
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
           <Icon icon={IconProp.Server} className="h-5 w-5 text-gray-400" />
         </div>
-        <span className="text-sm font-medium text-gray-700">
+        <p className="mt-3 text-sm font-medium text-gray-900">
           {props.emptyMessage || "No resources affected."}
-        </span>
-        <span className="max-w-sm text-xs text-gray-500">
+        </p>
+        <p className="mt-1 max-w-xs text-xs leading-5 text-gray-500">
           Attach monitors, hosts, clusters, or services to track which parts of
-          your infrastructure are impacted. SLOs are linked automatically when
-          their burn rate rules fire.
-        </span>
+          your infrastructure are impacted.
+          {showsSlos
+            ? " SLOs are linked automatically when their burn rate rules fire."
+            : ""}
+        </p>
       </div>
     );
   }
@@ -354,38 +400,39 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showNetworkSites ? 1 : 0) +
     (showServices ? 1 : 0) +
     (showSlos ? 1 : 0);
-  const resourceWord: string = totalCount === 1 ? "resource" : "resources";
-  const categoryWord: string = categoryCount === 1 ? "category" : "categories";
+  const sectionClassName: string = getAffectedResourcesSectionClassName(
+    props.columns,
+  );
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-          {totalCount.toLocaleString()} {resourceWord}
-        </span>
-        {/*
-         * In a single column the summary usually wraps, and the separator
-         * would be left dangling at the end of the first line.
-         */}
-        {props.columns !== 1 && <span className="text-gray-300">·</span>}
-        <span>
-          across {categoryCount.toLocaleString()} {categoryWord}
-        </span>
-      </div>
+      {/*
+       * One category already counts its own items in its heading, so the
+       * total only earns a line once there is more than one to add up (and
+       * then both numbers are at least two, so the words are always plural).
+       */}
+      {categoryCount > 1 && (
+        <p
+          data-testid="affected-resources-summary"
+          className="text-xs text-gray-500"
+        >
+          <span className="font-semibold text-gray-900">
+            {totalCount.toLocaleString()} resources
+          </span>{" "}
+          across {categoryCount.toLocaleString()} categories
+        </p>
+      )}
       <div
         data-testid="affected-resources-grid"
         className={getAffectedResourcesGridClassName(props.columns)}
       >
         {showMonitors && (
-          <CategoryCard<Monitor>
+          <CategorySection<Monitor>
+            className={sectionClassName}
             icon={IconProp.AltGlobe}
             label="Monitors"
             iconBgClass="bg-blue-50"
             iconColorClass="text-blue-600"
-            accentBarClass="bg-blue-500"
-            countBgClass="bg-blue-50"
-            countTextClass="text-blue-700"
             items={monitors}
             renderItem={(monitor: Monitor) => {
               return <MonitorElement monitor={monitor} />;
@@ -393,14 +440,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showHosts && (
-          <CategoryCard<Host>
+          <CategorySection<Host>
+            className={sectionClassName}
             icon={IconProp.Server}
             label="Hosts"
             iconBgClass="bg-emerald-50"
             iconColorClass="text-emerald-600"
-            accentBarClass="bg-emerald-500"
-            countBgClass="bg-emerald-50"
-            countTextClass="text-emerald-700"
             items={hosts}
             renderItem={(host: Host) => {
               return <HostElement host={host} />;
@@ -408,14 +453,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showClusters && (
-          <CategoryCard<KubernetesCluster>
+          <CategorySection<KubernetesCluster>
+            className={sectionClassName}
             icon={IconProp.Kubernetes}
             label="Kubernetes Clusters"
             iconBgClass="bg-indigo-50"
             iconColorClass="text-indigo-600"
-            accentBarClass="bg-indigo-500"
-            countBgClass="bg-indigo-50"
-            countTextClass="text-indigo-700"
             items={kubernetesClusters}
             renderItem={(cluster: KubernetesCluster) => {
               return <KubernetesClusterElement kubernetesCluster={cluster} />;
@@ -423,14 +466,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showDocker && (
-          <CategoryCard<DockerHost>
+          <CategorySection<DockerHost>
+            className={sectionClassName}
             icon={IconProp.Docker}
             label="Docker Hosts"
             iconBgClass="bg-sky-50"
             iconColorClass="text-sky-600"
-            accentBarClass="bg-sky-500"
-            countBgClass="bg-sky-50"
-            countTextClass="text-sky-700"
             items={dockerHosts}
             renderItem={(dockerHost: DockerHost) => {
               return <DockerHostElement dockerHost={dockerHost} />;
@@ -438,14 +479,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showPodman && (
-          <CategoryCard<PodmanHost>
+          <CategorySection<PodmanHost>
+            className={sectionClassName}
             icon={IconProp.Podman}
             label="Podman Hosts"
             iconBgClass="bg-violet-50"
             iconColorClass="text-violet-600"
-            accentBarClass="bg-violet-500"
-            countBgClass="bg-violet-50"
-            countTextClass="text-violet-700"
             items={podmanHosts}
             renderItem={(podmanHost: PodmanHost) => {
               return <PodmanHostElement podmanHost={podmanHost} />;
@@ -453,14 +492,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showProxmox && (
-          <CategoryCard<ProxmoxCluster>
+          <CategorySection<ProxmoxCluster>
+            className={sectionClassName}
             icon={IconProp.Proxmox}
             label="Proxmox Clusters"
             iconBgClass="bg-orange-50"
             iconColorClass="text-orange-600"
-            accentBarClass="bg-orange-500"
-            countBgClass="bg-orange-50"
-            countTextClass="text-orange-700"
             items={proxmoxClusters}
             renderItem={(cluster: ProxmoxCluster) => {
               return <ProxmoxClusterElement proxmoxCluster={cluster} />;
@@ -468,14 +505,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showVMware && (
-          <CategoryCard<VMwareVCenter>
+          <CategorySection<VMwareVCenter>
+            className={sectionClassName}
             icon={IconProp.VMware}
             label="vCenters"
             iconBgClass="bg-sky-50"
             iconColorClass="text-sky-600"
-            accentBarClass="bg-sky-500"
-            countBgClass="bg-sky-50"
-            countTextClass="text-sky-700"
             items={vmwareVCenters}
             renderItem={(vcenter: VMwareVCenter) => {
               return <VMwareVCenterElement vmwareVCenter={vcenter} />;
@@ -483,14 +518,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showCeph && (
-          <CategoryCard<CephCluster>
+          <CategorySection<CephCluster>
+            className={sectionClassName}
             icon={IconProp.Ceph}
             label="Ceph Clusters"
             iconBgClass="bg-rose-50"
             iconColorClass="text-rose-600"
-            accentBarClass="bg-rose-500"
-            countBgClass="bg-rose-50"
-            countTextClass="text-rose-700"
             items={cephClusters}
             renderItem={(cluster: CephCluster) => {
               return <CephClusterElement cephCluster={cluster} />;
@@ -498,14 +531,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showSwarm && (
-          <CategoryCard<DockerSwarmCluster>
+          <CategorySection<DockerSwarmCluster>
+            className={sectionClassName}
             icon={IconProp.DockerSwarm}
             label="Docker Swarm Clusters"
             iconBgClass="bg-cyan-50"
             iconColorClass="text-cyan-600"
-            accentBarClass="bg-cyan-500"
-            countBgClass="bg-cyan-50"
-            countTextClass="text-cyan-700"
             items={dockerSwarmClusters}
             renderItem={(cluster: DockerSwarmCluster) => {
               return <DockerSwarmClusterElement dockerSwarmCluster={cluster} />;
@@ -513,14 +544,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showIoTFleets && (
-          <CategoryCard<IoTFleet>
+          <CategorySection<IoTFleet>
+            className={sectionClassName}
             icon={IconProp.IoT}
             label="IoT Fleets"
             iconBgClass="bg-teal-50"
             iconColorClass="text-teal-600"
-            accentBarClass="bg-teal-500"
-            countBgClass="bg-teal-50"
-            countTextClass="text-teal-700"
             items={iotFleets}
             renderItem={(fleet: IoTFleet) => {
               return <IoTFleetElement iotFleet={fleet} />;
@@ -528,14 +557,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showDatabases && (
-          <CategoryCard<DatabaseServer>
+          <CategorySection<DatabaseServer>
+            className={sectionClassName}
             icon={IconProp.Database}
             label="Databases"
             iconBgClass="bg-purple-50"
             iconColorClass="text-purple-600"
-            accentBarClass="bg-purple-500"
-            countBgClass="bg-purple-50"
-            countTextClass="text-purple-700"
             items={databaseServers}
             renderItem={(databaseServer: DatabaseServer) => {
               return <DatabaseServerElement databaseServer={databaseServer} />;
@@ -543,14 +570,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showNetworkSites && (
-          <CategoryCard<NetworkSite>
+          <CategorySection<NetworkSite>
+            className={sectionClassName}
             icon={IconProp.BuildingOffice}
             label="Network Sites"
             iconBgClass="bg-indigo-50"
             iconColorClass="text-indigo-600"
-            accentBarClass="bg-indigo-500"
-            countBgClass="bg-indigo-50"
-            countTextClass="text-indigo-700"
             items={networkSites}
             renderItem={(networkSite: NetworkSite) => {
               return <NetworkSiteElement networkSite={networkSite} />;
@@ -558,14 +583,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           />
         )}
         {showServices && (
-          <CategoryCard<Service>
+          <CategorySection<Service>
+            className={sectionClassName}
             icon={IconProp.Cube}
             label="Services"
             iconBgClass="bg-amber-50"
             iconColorClass="text-amber-600"
-            accentBarClass="bg-amber-500"
-            countBgClass="bg-amber-50"
-            countTextClass="text-amber-700"
             items={services}
             renderItem={(service: Service) => {
               return (
@@ -581,17 +604,15 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
          * Last: an SLO is not a piece of infrastructure but the objective
          * measured over it, so it reads best after everything it covers.
          * Fuchsia is a hue no other category uses, and Theme.css remaps its
-         * 50 / 600 / 700 shades for dark mode.
+         * 50 and 600 shades for dark mode.
          */}
         {showSlos && (
-          <CategoryCard<ServiceLevelObjective>
+          <CategorySection<ServiceLevelObjective>
+            className={sectionClassName}
             icon={IconProp.Gauge}
             label="SLOs"
             iconBgClass="bg-fuchsia-50"
             iconColorClass="text-fuchsia-600"
-            accentBarClass="bg-fuchsia-500"
-            countBgClass="bg-fuchsia-50"
-            countTextClass="text-fuchsia-700"
             items={serviceLevelObjectives}
             renderItem={(serviceLevelObjective: ServiceLevelObjective) => {
               return (
