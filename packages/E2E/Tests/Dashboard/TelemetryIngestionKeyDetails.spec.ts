@@ -77,17 +77,11 @@ test.describe("Telemetry ingestion key details", () => {
   };
 
   /*
-   * The rendered editor, not Monaco's focusable control. That control is a
-   * hidden textarea Monaco parks at the caret and collapses to zero size
-   * whenever the editor is not focused, so Firefox reports it as hidden and
-   * every actionability check on it times out.
+   * The Allowed Origins code editor: a textarea named by the field's label
+   * ("Allowed Origins (Optional)" on this form).
    */
-  const originsEditor: () => Locator = (): Locator => {
-    return modal().locator(".monaco-editor").first();
-  };
-
-  const originsLines: () => Locator = (): Locator => {
-    return modal().locator(".monaco-editor .view-lines");
+  const originsInput: () => Locator = (): Locator => {
+    return modal().getByRole("textbox", { name: /^Allowed Origins/ });
   };
 
   const seedKey: (item: JSONish) => Promise<string> = async (
@@ -141,26 +135,16 @@ test.describe("Telemetry ingestion key details", () => {
   };
 
   /*
-   * Replaces the whole document in the Monaco editor.
-   *
-   * insertText does NOT escape Monaco's auto-closing brackets - it replays
-   * the string a character at a time through the same interceptors as
-   * typing - so anything Monaco closed for us is deleted afterwards. It
-   * always sits after the caret, on the caret's line; with nothing there the
-   * selection is empty and Delete at the end of the document does nothing.
+   * Replaces the whole document. fill() sets exactly this text - an
+   * unbalanced bracket stays unbalanced - and fires the input event the form
+   * listens to; focus then moves on, as a person's would.
    */
   const fillOrigins: (value: string) => Promise<void> = async (
     value: string,
   ): Promise<void> => {
-    await expect(originsEditor()).toBeVisible({ timeout: 30000 });
-    await originsLines().click();
-    await ctx.page.keyboard.press("ControlOrMeta+A");
-    await ctx.page.keyboard.press("Backspace");
-    await expect(originsLines()).toHaveText("");
-    await ctx.page.keyboard.insertText(value);
-    await ctx.page.keyboard.press("Shift+End");
-    await ctx.page.keyboard.press("Delete");
-    // Blur so Monaco flushes its onChange into the form.
+    await expect(originsInput()).toBeVisible({ timeout: 30000 });
+    await originsInput().fill(value);
+    await expect(originsInput()).toHaveValue(value);
     await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
   };
 
@@ -172,7 +156,7 @@ test.describe("Telemetry ingestion key details", () => {
       })
       .click();
     await expect(modal()).toBeVisible();
-    await expect(originsEditor()).toBeVisible({ timeout: 30000 });
+    await expect(originsInput()).toBeVisible({ timeout: 30000 });
   };
 
   const saveButton: () => Locator = (): Locator => {

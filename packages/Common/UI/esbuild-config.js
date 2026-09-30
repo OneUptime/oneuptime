@@ -182,26 +182,7 @@ function createFileLoaderPlugin() {
   };
 }
 
-// Copy Monaco's runtime next to the bundle so the editor loads from this
-// install instead of cdn.jsdelivr.net, which is unreachable when self-hosted
-// offline. Only min/vs is copied - the rest of the package is sources and
-// type definitions the browser never asks for.
-//
-// Every frontend gets a copy. Forms/Fields/FormField.tsx imports CodeEditor
-// directly, so every service that renders a form pulls the editor into its
-// bundle - there is no service to skip. Gating this on the built output only
-// looked selective; it matched all five services and risked a silent offline
-// 404 the moment a code field showed up somewhere unexpected.
-function copyMonacoAssets(outdir) {
-  const source = path.join(resolvePackageRoot("monaco-editor"), "min", "vs");
-  const destination = path.resolve(path.dirname(outdir), "assets/monaco/vs");
-
-  fs.rmSync(destination, { recursive: true, force: true });
-  fs.mkdirSync(path.dirname(destination), { recursive: true });
-  fs.cpSync(source, destination, { recursive: true });
-}
-
-// Tailwind's Play CDN build, copied out of Common the same way.
+// Tailwind's Play CDN build, copied out of Common next to the bundle.
 //
 // It used to be committed once per frontend - five byte-identical copies of a
 // 684 KB minified file, each one its own set of code-scanning alerts to
@@ -380,11 +361,6 @@ function createConfig(options) {
     splitting: true,
     publicPath,
     define: {
-      // Monaco resolves its runtime against this at load time. import.meta is
-      // empty at the es2017 target, so the path has to come from the build.
-      "process.env.MONACO_ASSET_PATH": JSON.stringify(
-        `${publicPath.replace(/dist\/$/, "")}assets/monaco/vs`,
-      ),
       "process.env.NODE_ENV": JSON.stringify(
         isDev ? "development" : "production",
       ),
@@ -456,9 +432,6 @@ async function build(config, serviceName) {
   try {
     const result = await esbuild.build(config);
 
-    copyMonacoAssets(config.outdir);
-    console.log(`📦 Copied Monaco assets for ${serviceName}`);
-
     copyTailwindAsset(config.outdir);
     console.log(`📦 Copied Tailwind for ${serviceName}`);
 
@@ -489,12 +462,9 @@ async function watch(config, serviceName) {
   try {
     const context = await esbuild.context(config);
 
-    // The copy no longer reads the built output, so it can run before the
+    // The copy does not read the built output, so it can run before the
     // first build instead of forcing an extra one just to have something to
     // inspect. context.watch() does the initial build on its own.
-    copyMonacoAssets(config.outdir);
-    console.log(`📦 Copied Monaco assets for ${serviceName}`);
-
     copyTailwindAsset(config.outdir);
     console.log(`📦 Copied Tailwind for ${serviceName}`);
 

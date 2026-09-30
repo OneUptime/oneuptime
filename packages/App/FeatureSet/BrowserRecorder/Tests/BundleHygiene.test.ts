@@ -182,7 +182,7 @@ describe("bundle hygiene", (): void => {
    * The reason the shared pure logic is COPIED in at build time rather than
    * imported: Common/UI/Config.ts reads window.process.env, which only exists
    * because the OneUptime Dashboard server injects /env.js, and
-   * Common/package.json pulls express, typeorm, stripe and monaco.
+   * Common/package.json pulls express, typeorm and stripe.
    */
   it("carries no server dependency and no process.env", (): void => {
     for (const bundle of [recorderBundle, loaderBundle]) {

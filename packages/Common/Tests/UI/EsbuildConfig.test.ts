@@ -70,7 +70,7 @@ interface ConfigSnapshot {
   external: Array<string>;
   loader: Record<string, string>;
   resolveExtensions: Array<string>;
-  monacoAssetPath: string;
+  defineKeys: Array<string>;
   definedNodeEnv: string;
   keys: Array<string>;
   pluginNames: Array<string>;
@@ -147,7 +147,7 @@ function readConfig(
       external: cfg.external,
       loader: cfg.loader,
       resolveExtensions: cfg.resolveExtensions,
-      monacoAssetPath: JSON.parse(cfg.define["process.env.MONACO_ASSET_PATH"]),
+      defineKeys: Object.keys(cfg.define),
       definedNodeEnv: JSON.parse(cfg.define["process.env.NODE_ENV"]),
       keys: Object.keys(cfg),
       pluginNames: cfg.plugins.map(function (p) { return p.name; }),
@@ -390,49 +390,125 @@ describe("the frontend build config's production output settings", () => {
     });
   });
 
-  describe("Monaco asset path (unchanged: one copy per frontend)", () => {
+  describe("the code editor needs no runtime of its own", () => {
     /*
-     * Each frontend still resolves Monaco under its own route prefix, because
-     * that is the only path the running server actually serves: in production
-     * a single App container mounts /usr/src/app/FeatureSet/<Service>/public
-     * at /<prefix> (App/FeatureSet/Frontend/Index.ts). There is no root-level
-     * /assets mount in production - App/Index.ts does not pass isFrontendApp,
-     * so StartServer.ts's ExpressStatic("/usr/src/app/public") never runs -
-     * and nginx has no /assets location either. Collapsing these five paths to
-     * one shared path would 404 the editor offline, which is the exact failure
-     * copyMonacoAssets exists to prevent.
+     * The code editor used to be Monaco: a runtime copied next to every
+     * bundle at build time and found at run time through a
+     * MONACO_ASSET_PATH the build defined. The editor is now ordinary code in
+     * the bundle, so neither the define nor the copy may come back.
      */
-    test("resolves under each service's own public path", () => {
-      const expected: Array<[string, string]> = [
-        ["Accounts", "/accounts/assets/monaco/vs"],
-        ["Dashboard", "/dashboard/assets/monaco/vs"],
-        ["AdminDashboard", "/admin/assets/monaco/vs"],
-        ["StatusPage", "/status-page/assets/monaco/vs"],
-        ["PublicDashboard", "/public-dashboard/assets/monaco/vs"],
-      ];
+    test("defines NODE_ENV and nothing else, for every frontend", () => {
+      for (const [serviceName, publicPath] of FRONTENDS) {
+        for (const nodeEnv of ["production", null]) {
+          const config: ConfigSnapshot = readConfig(
+            nodeEnv,
+            publicPath,
+            serviceName,
+          );
 
-      for (let index: number = 0; index < FRONTENDS.length; index++) {
-        const [serviceName, publicPath] = FRONTENDS[index] as [string, string];
-        const [, expectedPath] = expected[index] as [string, string];
-
-        const config: ConfigSnapshot = readConfig(
-          "production",
-          publicPath,
-          serviceName,
-        );
-
-        expect([serviceName, config.monacoAssetPath]).toEqual([
-          serviceName,
-          expectedPath,
-        ]);
+          expect([serviceName, nodeEnv, config.defineKeys]).toEqual([
+            serviceName,
+            nodeEnv,
+            ["process.env.NODE_ENV"],
+          ]);
+        }
       }
     });
 
-    test("does not change between development and production builds", () => {
-      expect(readConfig(null).monacoAssetPath).toBe(
-        readConfig("production").monacoAssetPath,
-      );
-    });
+    interface AssetRun {
+      ok: boolean;
+      error: string;
+      assets: Array<string>;
+    }
+
+    /*
+     * The module's own build() and watch(), not esbuild directly: they are
+     * what copied Monaco next to the bundle, and what still copies Tailwind.
+     */
+    function runAssetStep(step: "build" | "watch"): AssetRun {
+      const root: string = makeTempDir("oneuptime-esbuild-assets-");
+      const entry: string = path.join(root, "src", "Index.js");
+      const outdir: string = path.join(root, "public", "dist");
+      const assetsDirectory: string = path.join(root, "public", "assets");
+
+      fs.mkdirSync(path.dirname(entry), { recursive: true });
+      fs.writeFileSync(entry, "export const answer = 42;\n");
+
+      const script: string = `
+        const c = require(${JSON.stringify(ESBUILD_CONFIG)});
+        const fs = require("fs");
+        const path = require("path");
+
+        const cfg = c.createConfig({
+          serviceName: "Dashboard",
+          publicPath: "/dashboard/dist/",
+        });
+
+        cfg.entryPoints = [${JSON.stringify(entry)}];
+        cfg.outdir = ${JSON.stringify(outdir)};
+
+        function list(directory, prefix) {
+          if (!fs.existsSync(directory)) {
+            return [];
+          }
+
+          return fs.readdirSync(directory, { withFileTypes: true }).flatMap(
+            function (item) {
+              const relative = prefix + item.name;
+
+              return item.isDirectory()
+                ? [relative + "/"].concat(
+                    list(path.join(directory, item.name), relative + "/"),
+                  )
+                : [relative];
+            },
+          );
+        }
+
+        // build() and watch() log progress on stdout: mark the result line.
+        function report(ok, error) {
+          console.log("RESULT " + JSON.stringify({
+            ok: ok,
+            error: error,
+            assets: list(${JSON.stringify(assetsDirectory)}, ""),
+          }));
+          // watch() keeps esbuild watching; the result is all that is wanted.
+          process.exit(0);
+        }
+
+        c.${step}(cfg, "Dashboard").then(function () {
+          report(true, "");
+        }).catch(function (error) {
+          report(false, String((error && error.message) || error));
+        });
+      `;
+
+      const line: string | undefined = runNode(script, "production")
+        .split("\n")
+        .find((candidate: string): boolean => {
+          return candidate.startsWith("RESULT ");
+        });
+
+      return JSON.parse((line || "").slice("RESULT ".length)) as AssetRun;
+    }
+
+    test.each(["build", "watch"] as Array<"build" | "watch">)(
+      "a real %s copies Tailwind next to the bundle, and no Monaco runtime",
+      (step: "build" | "watch") => {
+        const run: AssetRun = runAssetStep(step);
+
+        expect([run.ok, run.error]).toEqual([true, ""]);
+
+        // The asset step ran, so the absence below is not vacuous.
+        expect(run.assets).toContain("js/tailwind-3.4.5.js");
+
+        expect(
+          run.assets.filter((asset: string): boolean => {
+            return asset.toLowerCase().includes("monaco");
+          }),
+        ).toEqual([]);
+      },
+    );
   });
 
   describe("esbuild actually honours the produced config", () => {

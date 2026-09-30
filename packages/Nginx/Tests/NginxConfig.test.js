@@ -1092,7 +1092,7 @@ test("the immutable regex matches content-hashed chunks only", () => {
     "/status-page/index.html",
     // Not under /dist/.
     "/dashboard/assets/js/tailwind-3.4.5.js",
-    "/dashboard/assets/monaco/vs/loader.js",
+    "/dashboard/assets/fonts/InterVariable.woff2",
     // Lowercase is not esbuild's hash alphabet, so a hand-written name with a
     // dash in it cannot be mistaken for a content hash.
     "/dashboard/dist/mermaid-wrapper.js",
