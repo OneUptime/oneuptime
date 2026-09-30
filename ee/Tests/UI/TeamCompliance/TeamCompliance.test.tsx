@@ -2755,9 +2755,9 @@ describe("from a rule to the members failing it", () => {
   });
 
   /*
-   * Everyone failing a rule needs attention, so "Compliant" plus a rule
-   * filter is always nobody - "0 of 3 members" under a count that promised 1.
-   * Choosing Compliant drops the rule filter, wherever it is chosen.
+   * The hero's counts are team-wide, so pressing one shows exactly the
+   * members it counted: the rule filter goes, or "1 compliant" would open
+   * onto nobody.
    */
   test("choosing Compliant in the hero drops the rule filter", async () => {
     await renderPage();
@@ -2787,23 +2787,187 @@ describe("from a rule to the members failing it", () => {
     ).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("so does the members section's Compliant segment", async () => {
+  test("so does choosing Need attention in the hero: it shows every one it counted", async () => {
     await renderPage();
 
     fireEvent.click(
       screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
     );
-    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    expect(
+      screen.queryByTestId(`compliance-member-${OMAR_ID}`),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Show the 2 members who need attention",
+      }),
+    );
 
     expect(
       screen.queryByTestId("compliance-members-rule-filter"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${OMAR_ID}`),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "2 of 3 members",
+    );
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  /*
+   * A hero count is drawn pressed only while the list shows exactly the
+   * members it counted - not while a rule filter narrows them further.
+   */
+  test("a hero count is not pressed while a rule filter narrows the list", async () => {
+    await renderPage();
+
+    const attention: HTMLElement = screen.getByRole("button", {
+      name: "Show the 2 members who need attention",
+    });
+
+    fireEvent.click(attention);
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+
+    expect(attention).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    // Pressing it now shows its members, rather than toggling back to All.
+    fireEvent.click(attention);
+
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+
+    // And clearing the chip instead would have pressed it again.
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+    expect(attention).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear the rule filter" }),
+    );
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+  });
+
+  /*
+   * The customer's report, step for step: under a rule filter, All and
+   * Needs attention kept it but Compliant silently reset it - so going back
+   * to All showed everyone. The section's segments now leave the rule filter
+   * alone, all three of them.
+   */
+  test("the members section's Compliant segment keeps the rule filter", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /All/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent("Call for incidents");
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
+      "needs attention, so none of them is compliant",
+    );
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "0 of 3 members",
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /All/ }));
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "2 of 3 members",
+    );
+    expect(
+      screen.queryByTestId(`compliance-member-${PRIYA_ID}`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${OMAR_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("the segment badges agree with the list under a rule filter", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All1",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent("Needs attention1");
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      /^Compliant$/,
+    );
     expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
       "1 of 3 members",
     );
+
+    // The hero keeps counting the whole team.
+    expect(screen.getByTestId("compliance-fact-attention")).toHaveTextContent(
+      "2",
+    );
+    expect(screen.getByTestId("compliance-fact-compliant")).toHaveTextContent(
+      "1",
+    );
+  });
+
+  test("Clear filters from Compliant under a rule filter resets the rules card too", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    fireEvent.click(screen.getByTestId("compliance-members-clear-filters"));
+
     expect(
-      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
-    ).toBeInTheDocument();
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "3 members, worst first",
+    );
   });
 
   test("Needs attention keeps the rule filter: it narrows the same people", async () => {

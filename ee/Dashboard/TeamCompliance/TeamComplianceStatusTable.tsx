@@ -4,7 +4,7 @@ import {
   MemberStatusFilter,
   SelfFix,
   areAllRulesPaused,
-  countMembersByStatus,
+  countFilteredMembersByStatus,
   filterMembers,
   getActiveRules,
   getMemberDisplayName,
@@ -484,7 +484,11 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const counts: MemberStatusCounts = countMembersByStatus(members);
+    const counts: MemberStatusCounts = countFilteredMembersByStatus({
+      members: members,
+      search: search,
+      failingSettingId: props.failingRuleId,
+    });
     const filtered: Array<TeamMemberComplianceJSON> = filterMembers({
       members: members,
       status: props.statusFilter,
@@ -615,7 +619,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             className="mt-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center"
           >
             <p className="text-sm text-gray-600">
-              No members match these filters.
+              {failingRule &&
+              props.statusFilter === MemberStatusFilter.Compliant
+                ? `Everyone failing ${getRuleLabel(failingRule)} needs attention, so none of them is compliant.`
+                : "No members match these filters."}
             </p>
             <button
               type="button"

@@ -4,11 +4,13 @@ import {
   ComplianceSummary,
   ComplianceVerdict,
   ComplianceVerdictKind,
+  MemberStatusCounts,
   MemberStatusFilter,
   NO_SEVERITIES_LEFT_WARNING,
   PROJECT_SWITCHED_CHANNELS,
   RuleWarningGroup,
   areAllRulesPaused,
+  countFilteredMembersByStatus,
   countMembersByStatus,
   countOf,
   filterMembers,
@@ -1032,6 +1034,141 @@ describe("members", () => {
       all: 0,
       needsAttention: 0,
       compliant: 0,
+    });
+  });
+
+  /*
+   * The members section's segment badges: counted within the rule filter and
+   * the search, so each says how many rows its segment would show.
+   */
+  describe("counts by status within the other filters", () => {
+    test("with nothing else narrowing the list, the team-wide counts", () => {
+      const members: Array<TeamMemberComplianceJSON> =
+        standardStatus().userComplianceStatuses;
+
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "",
+          failingSettingId: null,
+        }),
+      ).toEqual(countMembersByStatus(members));
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "   ",
+          failingSettingId: null,
+        }),
+      ).toEqual({ all: 3, needsAttention: 2, compliant: 1 });
+    });
+
+    test("a rule filter counts only who fails it, so Compliant is always nobody", () => {
+      const members: Array<TeamMemberComplianceJSON> =
+        standardStatus().userComplianceStatuses;
+
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "",
+          failingSettingId: CALL_RULE_ID,
+        }),
+      ).toEqual({ all: 2, needsAttention: 2, compliant: 0 });
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "",
+          failingSettingId: EMAIL_RULE_ID,
+        }),
+      ).toEqual({ all: 1, needsAttention: 1, compliant: 0 });
+    });
+
+    test("a rule filter for a rule nobody fails counts nobody", () => {
+      expect(
+        countFilteredMembersByStatus({
+          members: standardStatus().userComplianceStatuses,
+          search: "",
+          failingSettingId: "no-such-rule",
+        }),
+      ).toEqual({ all: 0, needsAttention: 0, compliant: 0 });
+    });
+
+    test("the search narrows the counts, alone and with a rule filter", () => {
+      const members: Array<TeamMemberComplianceJSON> =
+        standardStatus().userComplianceStatuses;
+
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "PRIYA",
+          failingSettingId: null,
+        }),
+      ).toEqual({ all: 1, needsAttention: 0, compliant: 1 });
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "@acme.com",
+          failingSettingId: CALL_RULE_ID,
+        }),
+      ).toEqual({ all: 2, needsAttention: 2, compliant: 0 });
+      expect(
+        countFilteredMembersByStatus({
+          members: members,
+          search: "omar",
+          failingSettingId: EMAIL_RULE_ID,
+        }),
+      ).toEqual({ all: 0, needsAttention: 0, compliant: 0 });
+    });
+
+    test("an empty team counts nobody", () => {
+      expect(
+        countFilteredMembersByStatus({
+          members: [],
+          search: "jane",
+          failingSettingId: CALL_RULE_ID,
+        }),
+      ).toEqual({ all: 0, needsAttention: 0, compliant: 0 });
+    });
+
+    /*
+     * The badge and the list are two readings of one filter: for every
+     * segment, rule filter and search, the badge is the length of the list.
+     */
+    test("every segment's count is the length of the list it would show", () => {
+      const members: Array<TeamMemberComplianceJSON> =
+        standardStatus().userComplianceStatuses;
+      const segments: Array<[MemberStatusFilter, keyof MemberStatusCounts]> = [
+        [MemberStatusFilter.All, "all"],
+        [MemberStatusFilter.NeedsAttention, "needsAttention"],
+        [MemberStatusFilter.Compliant, "compliant"],
+      ];
+
+      for (const failingSettingId of [
+        null,
+        EMAIL_RULE_ID,
+        CALL_RULE_ID,
+        "no-such-rule",
+      ]) {
+        for (const search of ["", "jane", "OMAR", "acme", "nobody"]) {
+          const counts: MemberStatusCounts = countFilteredMembersByStatus({
+            members: members,
+            search: search,
+            failingSettingId: failingSettingId,
+          });
+
+          for (const [status, key] of segments) {
+            expect(counts[key]).toBe(
+              filterMembers({
+                members: members,
+                status: status,
+                search: search,
+                failingSettingId: failingSettingId,
+              }).length,
+            );
+          }
+
+          expect(counts.all).toBe(counts.needsAttention + counts.compliant);
+        }
+      }
     });
   });
 
