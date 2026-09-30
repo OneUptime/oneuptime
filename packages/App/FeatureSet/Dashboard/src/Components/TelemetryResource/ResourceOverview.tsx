@@ -76,6 +76,12 @@ export interface ResourceOverviewProps {
   // What the pill means, as its hover text.
   statusDescription?: string | undefined;
   lastSeenAt: Date | undefined;
+  /*
+   * Drawn straight under the hero, beside the status pill it explains: the
+   * "how do I connect this?" card (ResourceConnectionGuideCard), which draws
+   * nothing once the resource is connected.
+   */
+  connectionGuide?: ReactElement | undefined;
   description?: string | undefined;
   chips: Array<ResourceOverviewChip>;
   // Domain-relevant golden metric tiles, computed by the page.
@@ -367,6 +373,8 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           )}
         </div>
       </div>
+
+      {props.connectionGuide ? props.connectionGuide : <></>}
 
       {/* Golden metric tiles */}
       {props.tilesLoading && props.tiles.length === 0 ? (

@@ -12,6 +12,8 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getVMwareVCenterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import React, {
@@ -2321,6 +2323,19 @@ const VMwareVCenterOverview: FunctionComponent<
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      <ResourceConnectionGuideCard
+        status={vcenter.otelCollectorStatus as string | undefined}
+        lastSeenAt={vcenter.lastSeenAt}
+        guide={getVMwareVCenterConnectionGuide(
+          (vcenter.name as string | undefined) || "",
+        )}
+        documentationRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION] as Route,
+          { modelId: modelId },
+        )}
+      />
 
       {/* Golden metrics — at-a-glance vCenter health */}
       {renderGoldenMetrics()}

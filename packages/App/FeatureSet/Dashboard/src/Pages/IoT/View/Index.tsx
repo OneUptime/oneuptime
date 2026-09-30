@@ -6,6 +6,8 @@ import IoTDeviceModel from "Common/Models/DatabaseModels/IoTDevice";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getIoTFleetConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import React, {
   Fragment,
@@ -834,6 +836,19 @@ const IoTFleetOverview: FunctionComponent<
   return (
     <Fragment>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      <ResourceConnectionGuideCard
+        status={fleet.otelCollectorStatus as string | undefined}
+        lastSeenAt={fleet.lastSeenAt}
+        guide={getIoTFleetConnectionGuide(
+          (fleet.name as string | undefined) || "",
+        )}
+        documentationRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.IOT_FLEET_VIEW_DOCUMENTATION] as Route,
+          { modelId: modelId },
+        )}
+      />
       {renderGoldenMetrics()}
       {renderAtRiskDevices()}
     </Fragment>
