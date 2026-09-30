@@ -1,42 +1,41 @@
 import {
   IDENTITY_PREFIXES,
-  IDENTITY_PROBES,
   PAGE_NOT_FOUND_MESSAGE_FRAGMENT,
-  SCIM_ERROR_SCHEMA_URN,
-  SSO_LOGIN_PAGE_PATH,
-  SSO_UNAVAILABLE_PAGE_ADVICE_FRAGMENT,
-  SSO_UNAVAILABLE_TITLE,
-  identityProbeUrl,
-} from "../Helpers/IdentityRoutes";
+  identityRouteUrl,
+} from "../../Tests/Helpers/SsoRoutes";
+import { SCIM_ERROR_SCHEMA_URN, SCIM_PROBES } from "../Helpers/IdentityRoutes";
 import { assertLapsedEnterpriseStack } from "../Helpers/StackGuard";
 import { APIRequestContext, APIResponse, expect, test } from "@playwright/test";
 
 /*
- * What a lapsed licence does to the enterprise identity surface on a real
- * stack: every route still EXISTS and every route REFUSES.
+ * What a lapsed licence does to the Enterprise Edition's identity surface on
+ * a real stack: every SCIM route still EXISTS, and every SCIM route REFUSES.
  *
  * What this proves that the jest suites cannot: ee/Tests/Server/Identity/
  * IdentityRoutesLicenseLapse.test.ts already pins the whole lapse-and-renew
  * matrix, and IdentityLicenseGates.test.ts pins the gate on every one of the
- * 44 routes - against a mounted Express app, with the licence state supplied
- * by the test. Here the refusals come from a published image that noticed its
- * own trial ending while it ran, and they are read through nginx, including
- * `location /identity` and its rewrite to /api/identity - the spelling that
- * lives in customers' identity-provider configuration.
+ * 26 SCIM routes - against a mounted Express app, with the licence state
+ * supplied by the test. Here the refusals come from a published image that
+ * noticed its own trial ending while it ran, and they are read through nginx,
+ * including `location /identity` and its rewrite to /api/identity - the
+ * spelling that lives in customers' identity-provider configuration.
  *
  * The assertion that carries this suite is the one about 404: a lapsed
- * ENTERPRISE stack and a COMMUNITY image both stop serving SSO and SCIM, and
+ * ENTERPRISE stack and a COMMUNITY image both turn SCIM requests away, and
  * only the status tells them apart. 404 means the routers were never mounted
- * (no enterprise module); 402 and 403 mean they are mounted and the licence
- * turned the request away. Reading the second as the first would hide a
- * mislabelled image behind "well, SSO is off either way" - and the enterprise
- * job exists to tell exactly those two apart.
+ * (no enterprise module); 403 means they are mounted and the licence turned
+ * the request away. Reading the second as the first would hide a mislabelled
+ * image behind "well, SCIM is off either way" - and the enterprise job exists
+ * to tell exactly those two apart.
+ *
+ * Single sign-on is not refused: it is core, and a lapse leaves it answering
+ * exactly as before (SsoUnaffectedByLapse.spec.ts beside this one).
  *
  * Each probe's expected answer lives beside its licensed and community ones in
  * Enterprise/Helpers/IdentityRoutes.ts, so the three suites cannot drift.
  */
 
-test.describe("Enterprise identity routes refused through nginx (lapsed stack)", () => {
+test.describe("SCIM routes refused through nginx (lapsed stack)", () => {
   test.beforeAll(async (): Promise<void> => {
     /*
      * Polls until the running app has noticed the lapse: its licence inputs
@@ -48,13 +47,13 @@ test.describe("Enterprise identity routes refused through nginx (lapsed stack)",
   });
 
   for (const prefix of IDENTITY_PREFIXES) {
-    for (const probe of IDENTITY_PROBES) {
+    for (const probe of SCIM_PROBES) {
       test(`GET ${prefix}${probe.path} - ${probe.label}`, async ({
         request,
       }: {
         request: APIRequestContext;
       }): Promise<void> => {
-        const url: string = identityProbeUrl({ prefix, path: probe.path });
+        const url: string = identityRouteUrl({ prefix, path: probe.path });
 
         // No redirects: a refusal must be the answer, not a hop to a sign-in page.
         const response: APIResponse = await request.get(url, {
@@ -67,7 +66,7 @@ test.describe("Enterprise identity routes refused through nginx (lapsed stack)",
         expect(
           status,
           `${url} answered 404, which is the COMMUNITY Edition's answer: the ` +
-            `identity routers are not mounted at all. A lapsed licence must leave ` +
+            `SCIM routers are not mounted at all. A lapsed licence must leave ` +
             `them mounted and refuse per request - if this is a 404 the image is ` +
             `not the enterprise one, its enterprise module failed to load, or (for ` +
             `the /identity prefix) nginx stopped rewriting. ${found}`,
@@ -135,60 +134,5 @@ test.describe("Enterprise identity routes refused through nginx (lapsed stack)",
         }
       });
     }
-  }
-
-  for (const prefix of IDENTITY_PREFIXES) {
-    test(`GET ${prefix}${SSO_LOGIN_PAGE_PATH} - a browser SSO login renders the message view`, async ({
-      request,
-    }: {
-      request: APIRequestContext;
-    }): Promise<void> => {
-      const url: string = identityProbeUrl({
-        prefix,
-        path: SSO_LOGIN_PAGE_PATH,
-      });
-
-      const response: APIResponse = await request.get(url, {
-        maxRedirects: 0,
-      });
-      const status: number = response.status();
-      const body: string = await response.text();
-      const found: string = `HTTP ${status} from ${url}: ${body.slice(0, 300)}`;
-
-      expect(
-        status,
-        `${url} answered 404: the browser SSO routes are not mounted, so this is ` +
-          `not an Enterprise image with a lapsed licence. ${found}`,
-      ).not.toBe(404);
-
-      // PaymentRequired, as the JSON discovery routes answer - but rendered.
-      expect(status, `${url} answered the wrong status. ${found}`).toBe(402);
-
-      /*
-       * A person started this request by clicking "Sign in with SSO", so the
-       * gate renders the Identity message view instead of answering JSON
-       * (LicensedFeatureGate.forSsoPage -> FeatureSet/Identity/Views/
-       * Message.ejs). The server-rendered HTML is the whole proof: its <title>
-       * and heading carry the title, and its paragraph tells the person what
-       * to do next instead of leaving them at a bare error.
-       */
-      expect(
-        body,
-        `${url} answered something that is not a rendered page. A browser SSO ` +
-          `route must not fall back to the JSON refusal: a person is looking at ` +
-          `this. ${found}`,
-      ).toContain("<html");
-
-      expect(
-        body,
-        `${url} must render the Identity message view. ${found}`,
-      ).toContain(SSO_UNAVAILABLE_TITLE);
-
-      expect(
-        body,
-        `${url} rendered a page that does not tell the person how to sign in ` +
-          `while the licence is lapsed. ${found}`,
-      ).toContain(SSO_UNAVAILABLE_PAGE_ADVICE_FRAGMENT);
-    });
   }
 });
