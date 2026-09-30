@@ -14,6 +14,7 @@ import TelemetrySearchBar, {
   TelemetrySearchBarRef,
 } from "./components/TelemetrySearchBar";
 import TelemetryFacetSidebar from "./components/TelemetryFacetSidebar";
+import { hasLockedTelemetryScope } from "./FacetVisibility";
 import TelemetryActiveFilterChips from "./components/TelemetryActiveFilterChips";
 import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
@@ -109,6 +110,13 @@ export interface TelemetryViewerProps<T> {
    * tooltips. Forwarded to the chip list.
    */
   lockedFilterSignal?: TelemetrySignal | undefined;
+  /*
+   * Whether the facet sidebar lists only values found in the viewer's scope
+   * (see getFacetValuesInScope). Defaults to "whenever a locked chip is
+   * showing": a page pinned to one database, service or trace wants its
+   * sidebar to describe that slice, not the project's catalog.
+   */
+  onlyShowFacetValuesInScope?: boolean | undefined;
 
   // -- Histogram --
   showHistogram?: boolean;
@@ -166,6 +174,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
     props.facetConfigs.length > 0;
 
   const showHistogram: boolean = props.showHistogram ?? true;
+
+  const onlyShowFacetValuesInScope: boolean =
+    props.onlyShowFacetValuesInScope ??
+    hasLockedTelemetryScope(props.activeFilters);
 
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
@@ -363,6 +375,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
               props.onFacetExclude?.(key, value);
             }}
             onFacetSearchChange={props.onFacetSearchChange}
+            onlyShowValuesInScope={onlyShowFacetValuesInScope}
           />
         )}
 
