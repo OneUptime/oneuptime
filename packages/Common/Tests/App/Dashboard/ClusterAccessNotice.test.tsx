@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import ClusterAccessNotice, {
@@ -85,6 +92,14 @@ function unreachable(
 
 function noticeText(): string {
   return screen.getByTestId("cluster-access-notice").textContent || "";
+}
+
+/*
+ * A row's tone is carried by its icon alone: the notice draws no green,
+ * amber or gray box of its own inside the investigation card.
+ */
+function toneIconClass(row: HTMLElement): string {
+  return row.querySelector("svg")?.getAttribute("class") || "";
 }
 
 function activity(
@@ -731,8 +746,8 @@ describe("ClusterAccessNotice", () => {
 
       const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
       expect(usage).toHaveAttribute("data-tone", "failed");
-      expect(usage.className).not.toContain("emerald");
-      expect(usage.className).toContain("amber");
+      expect(toneIconClass(usage)).not.toContain("emerald");
+      expect(toneIconClass(usage)).toContain("amber");
       expect(usage).not.toHaveTextContent("ran 3");
       expect(usage).toHaveTextContent("none ran on the cluster");
       expect(noticeText()).not.toContain("had read-only kubectl access");
@@ -765,7 +780,8 @@ describe("ClusterAccessNotice", () => {
 
       const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
       expect(usage).toHaveAttribute("data-tone", "failed");
-      expect(usage.className).not.toContain("emerald");
+      expect(toneIconClass(usage)).not.toContain("emerald");
+      expect(toneIconClass(usage)).toContain("amber");
       expect(usage).toHaveTextContent("none succeeded");
       expect(usage).not.toHaveTextContent("ran 3 read-only");
     });
@@ -781,7 +797,7 @@ describe("ClusterAccessNotice", () => {
 
       const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
       expect(usage).toHaveAttribute("data-tone", "ran");
-      expect(usage.className).toContain("emerald");
+      expect(toneIconClass(usage)).toContain("emerald");
       expect(usage).toHaveTextContent(
         "OneUptime AI ran 1 read-only kubectl command during this investigation (2 more could not run — see Investigation activity).",
       );
@@ -798,7 +814,8 @@ describe("ClusterAccessNotice", () => {
 
       const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
       expect(usage).toHaveAttribute("data-tone", "none");
-      expect(usage.className).toContain("gray");
+      expect(toneIconClass(usage)).toContain("gray");
+      expect(toneIconClass(usage)).not.toMatch(/emerald|amber/);
       expect(usage).toHaveTextContent(DATA_ONLY_RUN_TEXT);
     });
 
@@ -954,6 +971,150 @@ describe("ClusterAccessNotice", () => {
         />,
       );
       expect(noticeText()).toContain(`(${expected})`);
+    }
+  });
+});
+
+/*
+ * The notice used to add a green, amber or gray box per fact to a card that
+ * already nested several. Each fact is now one line under a small icon, in
+ * the card's own type, and only the icon carries the tone.
+ */
+describe("ClusterAccessNotice layout", () => {
+  const BOX_CLASS: RegExp =
+    /^(border|border-[a-z]+-\d+|ring-\d|ring-[a-z]+-\d+|shadow(-[a-z]+)?|rounded(-[a-z0-9]+)?|bg-[a-z0-9/-]+)$/;
+
+  function boxClasses(element: Element): Array<string> {
+    return (element.getAttribute("class") || "")
+      .split(/\s+/)
+      .filter((className: string): boolean => {
+        return BOX_CLASS.test(className);
+      });
+  }
+
+  function allRows(): Array<HTMLElement> {
+    return [
+      ...screen.queryAllByTestId("cluster-access-run-usage"),
+      ...screen.queryAllByTestId("cluster-access-reachable"),
+      ...screen.queryAllByTestId("cluster-access-unreachable"),
+    ];
+  }
+
+  function renderEveryRow(isRunFinished: boolean): void {
+    render(
+      <ClusterAccessNotice
+        clusterAccess={[
+          makeStatus(),
+          unreachable({
+            clusterId: OTHER_CLUSTER_ID,
+            clusterName: "staging-west",
+          }),
+        ]}
+        isRunFinished={isRunFinished}
+        kubectlActivity={
+          isRunFinished ? activity({ executed: 1, succeeded: 1 }) : undefined
+        }
+      />,
+    );
+  }
+
+  test.each([
+    ["a finished run", true],
+    ["a live run", false],
+  ])(
+    "draws every fact of %s as an icon and a sentence, with no box",
+    (_label: string, isRunFinished: boolean) => {
+      renderEveryRow(isRunFinished);
+
+      const rows: Array<HTMLElement> = allRows();
+      // The run's own usage line only exists once the run has finished.
+      expect(rows).toHaveLength(isRunFinished ? 3 : 2);
+
+      const notice: HTMLElement = screen.getByTestId("cluster-access-notice");
+      expect(boxClasses(notice)).toEqual([]);
+
+      for (const row of rows) {
+        expect(boxClasses(row)).toEqual([]);
+        // Every row opens with its icon, and nothing inside draws a box.
+        expect(row.querySelector("svg")).not.toBeNull();
+        for (const inner of Array.from(row.querySelectorAll("*"))) {
+          if (inner.closest("a")) {
+            continue;
+          }
+          expect(boxClasses(inner)).toEqual([]);
+        }
+      }
+    },
+  );
+
+  test("keeps the text neutral and puts the tone on the icon alone", () => {
+    renderEveryRow(true);
+
+    const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
+    const reachableRow: HTMLElement = screen.getByTestId(
+      "cluster-access-reachable",
+    );
+    const unreachableRow: HTMLElement = screen.getByTestId(
+      "cluster-access-unreachable",
+    );
+
+    expect(toneIconClass(usage)).toContain("emerald");
+    expect(toneIconClass(reachableRow)).toContain("emerald");
+    expect(toneIconClass(unreachableRow)).toContain("amber");
+
+    for (const row of [usage, reachableRow, unreachableRow]) {
+      for (const paragraph of Array.from(row.querySelectorAll("p"))) {
+        const classes: string = paragraph.getAttribute("class") || "";
+        expect(classes).toMatch(/text-gray-(600|900)/);
+        expect(classes).not.toMatch(/emerald|amber/);
+      }
+    }
+  });
+
+  test("an unreachable cluster still says why, what to do and where to fix it", () => {
+    renderEveryRow(true);
+
+    const row: HTMLElement = screen.getByTestId("cluster-access-unreachable");
+    expect(row).toHaveTextContent(
+      'OneUptime AI cannot currently reach cluster "staging-west" with kubectl',
+    );
+    expect(row).toHaveTextContent(
+      "Why: Investigation is off. AI may not run kubectl on this cluster.",
+    );
+    expect(row).toHaveTextContent(
+      "What to do: Turn on 'Investigate with kubectl' on the cluster's AI agent page (AI → Agent).",
+    );
+    expect(
+      within(row).getByRole("link", { name: CLUSTER_AI_AGENT_PAGE_LINK_TEXT }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/kubernetes/${OTHER_CLUSTER_ID}/ai/agent`,
+    );
+  });
+
+  test("never nests a block inside a paragraph", () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      console,
+      "error",
+    );
+
+    try {
+      renderEveryRow(true);
+
+      expect(
+        screen.getByTestId("cluster-access-notice").querySelectorAll("p div"),
+      ).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.some((args: Array<unknown>): boolean => {
+          return args.some((value: unknown): boolean => {
+            return (
+              typeof value === "string" && value.includes("validateDOMNesting")
+            );
+          });
+        }),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
     }
   });
 });

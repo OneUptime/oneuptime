@@ -39,30 +39,27 @@ export interface ComponentProps {
   onCitationActivate: (citationId: string) => void;
 }
 
-interface SectionAppearance {
-  icon: IconProp;
-  isCallout: boolean;
-}
+/*
+ * Every section of the report, the summary included, shares one heading and
+ * one body style, so a reader scans it as a single document: the root cause
+ * is found by its title, not by a coloured box around it.
+ */
+export const REPORT_SECTION_HEADING_CLASS_NAME: string =
+  "text-sm font-semibold text-gray-900";
+export const REPORT_SECTION_BODY_CLASS_NAME: string =
+  "mt-1 text-sm leading-6 text-gray-700";
 
-function getSectionAppearance(
-  kind: InvestigationReportSectionKind,
-): SectionAppearance {
-  switch (kind) {
-    case InvestigationReportSectionKind.RootCause:
-      return { icon: IconProp.LightBulb, isCallout: true };
-    case InvestigationReportSectionKind.Evidence:
-      return { icon: IconProp.MagnifyingGlass, isCallout: false };
-    case InvestigationReportSectionKind.NextSteps:
-      return { icon: IconProp.ClipboardDocumentList, isCallout: false };
-    default:
-      return { icon: IconProp.DocumentText, isCallout: false };
-  }
-}
+export const REPORT_CAVEAT_TEXT: string =
+  "AI-generated first pass — verify before acting.";
 
 /*
- * A completed AI investigation, laid out for a responder: the summary first,
- * then the report section by section. The queries its citations point at are
- * the host's to show (see InvestigationRunDetails).
+ * A completed AI investigation, laid out for a responder as one plain
+ * document: the summary first, then the report section by section, and a
+ * closing line with the verify-first caveat and Copy report. None of it draws
+ * a frame of its own. The panel's card is the only box, so the report reads
+ * top to bottom instead of as panels nested inside panels, and no section is
+ * set apart by colour. The queries its citations point at are the host's to
+ * show (see InvestigationRunDetails).
  *
  * The report is untrusted model output. Every piece of it renders through
  * MarkdownViewer in safeMode; the only interactive elements inside the prose
@@ -184,9 +181,6 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
     .filter((entry: { index: number }): boolean => {
       return entry.index !== firstSummaryIndex;
     });
-  const hasReportBody: boolean = report.isStructured
-    ? Boolean(report.preamble) || reportSections.length > 0
-    : Boolean(report.bodyMarkdown);
 
   const renderMarkdown: (text: string) => ReactElement = (
     text: string,
@@ -200,34 +194,25 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const hasSummary: boolean = Boolean(tldr || summaryMarkdown);
+
   return (
     <>
-      {tldr || summaryMarkdown ? (
+      {hasSummary ? (
         <section
           aria-label="Investigation summary"
-          className="overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white px-5 py-4 shadow-sm"
+          data-section-kind={InvestigationReportSectionKind.Summary}
         >
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
-              <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
-            </span>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-              Summary
-            </h3>
-          </div>
+          <h3 className={REPORT_SECTION_HEADING_CLASS_NAME}>Summary</h3>
           {/*
             The TL;DR is AI-written prose about the report below it: always
-            plain text, never markdown, and simply absent for older runs.
+            plain text, never markdown, and simply absent for older runs. It
+            is the one line set larger, because it is the answer.
           */}
           {tldr ? (
-            <div className="mt-3">
-              <span className="inline-flex items-center rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-indigo-700">
-                TL;DR
-              </span>
-              <p className="mt-1.5 break-words text-base font-semibold leading-7 text-gray-900">
-                {tldr}
-              </p>
-            </div>
+            <p className="mt-1 break-words text-base font-semibold leading-7 text-gray-900">
+              {tldr}
+            </p>
           ) : (
             <></>
           )}
@@ -235,8 +220,8 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
             <div
               className={
                 tldr
-                  ? "mt-3 border-t border-indigo-100 pt-2 text-sm leading-6 text-gray-700"
-                  : "mt-1 text-sm leading-6 text-gray-800"
+                  ? "mt-2 text-sm leading-6 text-gray-700"
+                  : REPORT_SECTION_BODY_CLASS_NAME
               }
             >
               {renderMarkdown(summaryMarkdown)}
@@ -249,37 +234,79 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <section
-        aria-label="Investigation report"
-        className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-      >
-        {/*
-          Wraps rather than squeezing the title: on a phone Copy report drops
-          under the title instead of drawing over it.
-        */}
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-200 bg-gray-50/80 px-5 py-3.5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-              <Icon icon={IconProp.DocumentText} className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-gray-900">
-                Investigation report
-              </h3>
-              <div className="mt-0.5 flex items-start gap-1 text-xs leading-5 text-gray-500">
-                <Icon
-                  icon={IconProp.Sparkles}
-                  className="mt-1 h-3 w-3 flex-shrink-0 text-gray-400"
-                />
-                <span>AI-generated first pass — verify before acting.</span>
+      <section aria-label="Investigation report" className="space-y-6">
+        {report.isStructured ? (
+          <>
+            {report.preamble ? (
+              <div className="text-sm leading-6 text-gray-700">
+                {renderMarkdown(report.preamble)}
               </div>
-            </div>
+            ) : (
+              <></>
+            )}
+            {reportSections.map(
+              (entry: {
+                section: InvestigationReportSection;
+                index: number;
+              }): ReactElement => {
+                const headingId: string = `${idPrefix}-report-section-${entry.index}`;
+
+                return (
+                  <section
+                    key={headingId}
+                    aria-labelledby={headingId}
+                    data-section-kind={entry.section.kind}
+                  >
+                    <h3
+                      id={headingId}
+                      className={REPORT_SECTION_HEADING_CLASS_NAME}
+                    >
+                      {entry.section.title}
+                    </h3>
+                    <div className={REPORT_SECTION_BODY_CLASS_NAME}>
+                      {renderMarkdown(entry.section.markdown)}
+                    </div>
+                  </section>
+                );
+              },
+            )}
+          </>
+        ) : report.bodyMarkdown ? (
+          <div className="text-sm leading-6 text-gray-700">
+            {renderMarkdown(report.bodyMarkdown)}
           </div>
-          {/*
-            Responders paste the RCA into a channel or a postmortem long
-            before they act on it, so copy the report exactly as published
-            rather than the sections rendered below.
-          */}
+        ) : hasSummary ? (
+          <></>
+        ) : (
+          /*
+           * Only the report's chrome was published (brand heading, evidence
+           * list, footer): without this line the card would jump straight
+           * from its title to the caveat.
+           */
+          <p className="text-sm text-gray-500">
+            The report has no further details.
+          </p>
+        )}
+
+        {/*
+          The caveat closes the report it qualifies, and Copy report sits
+          where a reader finishes it. Responders paste the RCA into a channel
+          or a postmortem long before they act on it, so it copies the report
+          exactly as published rather than the sections rendered above. On a
+          phone the button wraps under the caveat instead of squeezing it.
+        */}
+        <div
+          data-testid="investigation-report-footer"
+          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+        >
+          {/* A div, not a p: Icon renders its own div around the svg. */}
+          <div className="flex min-w-0 items-start gap-1.5 text-xs leading-5 text-gray-500">
+            <Icon
+              icon={IconProp.Sparkles}
+              className="mt-1 h-3 w-3 flex-shrink-0 text-gray-400"
+            />
+            <span>{REPORT_CAVEAT_TEXT}</span>
+          </div>
           <CopyTextButton
             className="flex-shrink-0 whitespace-nowrap"
             textToBeCopied={props.analysisMarkdown}
@@ -288,88 +315,6 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
             label="Copy report"
             copiedLabel="Report copied"
           />
-        </div>
-        <div className="space-y-5 px-5 py-5 text-sm leading-6 text-gray-700">
-          {!hasReportBody ? (
-            <p className="text-sm text-gray-500">
-              {report.isStructured
-                ? "The report's findings are in the summary above."
-                : "The report has no further details."}
-            </p>
-          ) : report.isStructured ? (
-            <>
-              {report.preamble ? (
-                <div>{renderMarkdown(report.preamble)}</div>
-              ) : (
-                <></>
-              )}
-              {reportSections.map(
-                (entry: {
-                  section: InvestigationReportSection;
-                  index: number;
-                }): ReactElement => {
-                  const headingId: string = `${idPrefix}-report-section-${entry.index}`;
-                  const appearance: SectionAppearance = getSectionAppearance(
-                    entry.section.kind,
-                  );
-
-                  if (appearance.isCallout) {
-                    return (
-                      <section
-                        key={headingId}
-                        aria-labelledby={headingId}
-                        data-section-kind={entry.section.kind}
-                        className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3.5"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700">
-                            <Icon
-                              icon={appearance.icon}
-                              className="h-3.5 w-3.5"
-                            />
-                          </span>
-                          <h4
-                            id={headingId}
-                            className="text-xs font-semibold uppercase tracking-wider text-amber-700"
-                          >
-                            {entry.section.title}
-                          </h4>
-                        </div>
-                        <div className="mt-1 text-sm leading-6 text-gray-800">
-                          {renderMarkdown(entry.section.markdown)}
-                        </div>
-                      </section>
-                    );
-                  }
-
-                  return (
-                    <section
-                      key={headingId}
-                      aria-labelledby={headingId}
-                      data-section-kind={entry.section.kind}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                          <Icon icon={appearance.icon} className="h-4 w-4" />
-                        </span>
-                        <h4
-                          id={headingId}
-                          className="text-sm font-semibold text-gray-900"
-                        >
-                          {entry.section.title}
-                        </h4>
-                      </div>
-                      <div className="mt-1 text-sm leading-6 text-gray-700">
-                        {renderMarkdown(entry.section.markdown)}
-                      </div>
-                    </section>
-                  );
-                },
-              )}
-            </>
-          ) : (
-            renderMarkdown(report.bodyMarkdown)
-          )}
         </div>
       </section>
     </>

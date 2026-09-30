@@ -11,8 +11,9 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The completed investigation, laid out for a responder: a Summary section
- * and the report split into its own sections. The queries behind the report
+ * The completed investigation, laid out for a responder as one plain
+ * document: a Summary section and the report split into its own sections,
+ * every one under the same kind of heading and none of them in a box. The queries behind the report
  * ("Evidence checked") are the host's to show (InvestigationRunDetails), so a
  * citation chip here only hands its id to the host through
  * onCitationActivate. The report is untrusted model output, so beyond layout
@@ -91,6 +92,9 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import InvestigationReportView, {
   ComponentProps as ReportViewProps,
+  REPORT_CAVEAT_TEXT,
+  REPORT_SECTION_BODY_CLASS_NAME,
+  REPORT_SECTION_HEADING_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportView";
 import {
   MAX_EVIDENCE_ITEMS,
@@ -232,7 +236,7 @@ function lastRenderers(): MarkdownInlineReferenceRenderers {
 function reportSectionHeadings(): Array<string> {
   const report: HTMLElement = screen.getByLabelText("Investigation report");
   return within(report)
-    .queryAllByRole("heading", { level: 4 })
+    .queryAllByRole("heading", { level: 3 })
     .map((heading: HTMLElement): string => {
       return heading.textContent || "";
     });
@@ -269,9 +273,13 @@ describe("InvestigationReportView summary section", () => {
       name: "Investigation summary",
     });
     expect(
-      within(summary).getByRole("heading", { name: "Summary" }),
+      within(summary).getByRole("heading", { level: 3, name: "Summary" }),
     ).toBeInTheDocument();
-    expect(within(summary).getByText("TL;DR")).toBeInTheDocument();
+    /*
+     * The TL;DR is the section's lead line, set larger than the prose under
+     * it. It used to wear a "TL;DR" chip inside a tinted box.
+     */
+    expect(summary).not.toHaveTextContent("TL;DR");
 
     const tldr: HTMLElement = within(summary).getByText(TLDR);
     expect(tldr.tagName).toBe("P");
@@ -399,7 +407,7 @@ describe("InvestigationReportView report section", () => {
       const headingId: string = subSection.getAttribute("aria-labelledby")!;
       const heading: HTMLElement | null = document.getElementById(headingId);
       expect(heading).not.toBeNull();
-      expect(heading!.tagName).toBe("H4");
+      expect(heading!.tagName).toBe("H3");
       expect(subSection).toContainElement(heading);
     }
 
@@ -408,27 +416,43 @@ describe("InvestigationReportView report section", () => {
     ).toHaveTextContent("Roll back the deploy");
   });
 
-  test("calls out the most likely root cause", () => {
+  /*
+   * The root cause used to be an amber callout box with an uppercase amber
+   * title, inside the report's own box. It is now found by its title, like
+   * every other section: same heading, same body, no frame, no colour.
+   */
+  test("gives the most likely root cause the same plain section as the rest", () => {
     renderView();
 
     const rootCause: HTMLElement = screen.getByRole("region", {
       name: "Most likely root cause",
     });
-    expect(rootCause).toHaveClass("border-amber-200", "bg-amber-50/60");
-    expect(
-      within(rootCause).getByRole("heading", {
-        name: "Most likely root cause",
-      }),
-    ).toHaveClass("uppercase", "text-amber-700");
+    expect(rootCause).toHaveAttribute(
+      "data-section-kind",
+      InvestigationReportSectionKind.RootCause,
+    );
+    expect(rootCause.getAttribute("class") || "").toBe("");
     expect(rootCause).toHaveTextContent("the deploy halved the pool size");
+
+    const rootCauseHeading: HTMLElement = within(rootCause).getByRole(
+      "heading",
+      { level: 3, name: "Most likely root cause" },
+    );
+    const nextStepsHeading: HTMLElement = within(
+      screen.getByRole("region", { name: "Suggested next steps" }),
+    ).getByRole("heading", { level: 3, name: "Suggested next steps" });
+    expect(rootCauseHeading.className).toBe(REPORT_SECTION_HEADING_CLASS_NAME);
+    expect(nextStepsHeading.className).toBe(rootCauseHeading.className);
+    expect(rootCauseHeading).not.toHaveClass("uppercase");
+    expect(rootCauseHeading.className).not.toMatch(/amber/);
   });
 
   /*
    * Models often open the root cause with its own sub-heading. That heading
-   * belongs to the root cause, so the callout (and its title) must survive
+   * belongs to the root cause, so the section (and its title) must survive
    * rather than the body turning into an unrelated section.
    */
-  test("keeps a root cause that opens with a sub-heading inside its callout", () => {
+  test("keeps a root cause that opens with a sub-heading inside its section", () => {
     const markdown: string = [
       "## Summary",
       "Pool exhausted.",
@@ -449,17 +473,16 @@ describe("InvestigationReportView report section", () => {
       "data-section-kind",
       InvestigationReportSectionKind.RootCause,
     );
-    expect(rootCause).toHaveClass("border-amber-200", "bg-amber-50/60");
     expect(rootCause).toHaveTextContent("Connection pool exhaustion");
     expect(rootCause).toHaveTextContent("The pool hit 100% after the deploy");
-    // Its citation still becomes a chip inside the callout.
+    // Its citation still becomes a chip inside the section.
     expect(
       within(rootCause).getByRole("button", {
         name: "Citation C1: Active incidents (7 total)",
       }),
     ).toBeInTheDocument();
 
-    // The sub-heading is part of the callout, not a section of its own.
+    // The sub-heading is part of the root cause, not a section of its own.
     expect(reportSectionHeadings()).toEqual([
       "Most likely root cause",
       "Evidence",
@@ -476,7 +499,7 @@ describe("InvestigationReportView report section", () => {
     ).toBeNull();
   });
 
-  test("keeps a root cause that is only a sub-heading inside its callout", () => {
+  test("keeps a root cause that is only a sub-heading inside its section", () => {
     const markdown: string = [
       "## Summary",
       "Pool exhausted.",
@@ -492,7 +515,10 @@ describe("InvestigationReportView report section", () => {
     const rootCause: HTMLElement = screen.getByRole("region", {
       name: "Most likely root cause",
     });
-    expect(rootCause).toHaveClass("border-amber-200");
+    expect(rootCause).toHaveAttribute(
+      "data-section-kind",
+      InvestigationReportSectionKind.RootCause,
+    );
     expect(rootCause).toHaveTextContent("Inconclusive");
     expect(reportSectionHeadings()).toEqual([
       "Most likely root cause",
@@ -618,40 +644,100 @@ describe("InvestigationReportView report section", () => {
     expect(viewerTexts()).toEqual(["Nothing conclusive was found."]);
   });
 
-  test("says so when a structured report has nothing beyond its summary", () => {
+  /*
+   * The report used to be its own box, which drew empty here and needed a
+   * sentence to explain the gap. Without a box there is no gap: the summary
+   * is followed directly by the report's closing line.
+   */
+  test("adds no filler when a structured report has nothing beyond its summary", () => {
     renderView({ analysisMarkdown: "**Summary** — Pool exhausted." });
 
+    const report: HTMLElement = screen.getByLabelText("Investigation report");
+    expect(report).not.toHaveTextContent("summary above");
+    expect(report).not.toHaveTextContent("no further details");
+    expect(Array.from(report.children)).toEqual([
+      screen.getByTestId("investigation-report-footer"),
+    ]);
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      "Pool exhausted.",
+    );
+  });
+
+  test("says so when a report is nothing but its chrome", () => {
+    renderView({
+      analysisMarkdown: [
+        "## \u{1F9E0} AI — Automated Root Cause Analysis",
+        "",
+        "---",
+        "*Investigated automatically by OneUptime AI — read-only, 0 queries run across your own telemetry.*",
+      ].join("\n"),
+      evidence: [],
+    });
+
+    expect(
+      screen.queryByRole("region", { name: "Investigation summary" }),
+    ).toBeNull();
     expect(screen.getByLabelText("Investigation report")).toHaveTextContent(
-      "The report's findings are in the summary above.",
+      "The report has no further details.",
+    );
+  });
+
+  test("a report with only a TL;DR adds no filler under it", () => {
+    renderView({
+      analysisMarkdown: [
+        "## \u{1F9E0} AI — Automated Root Cause Analysis",
+        "",
+        "---",
+        "*Investigated automatically by OneUptime AI — read-only, 0 queries run across your own telemetry.*",
+      ].join("\n"),
+      analysisTldr: TLDR,
+      evidence: [],
+    });
+
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      TLDR,
+    );
+    expect(screen.getByLabelText("Investigation report")).not.toHaveTextContent(
+      "no further details",
     );
   });
 
   /*
-   * The header's one line under the title is the caveat a responder needs
-   * before acting on model output; the separate "AI generated" pill said the
-   * same thing twice and is gone. Copy report still copies the report as
-   * published, not the sections rendered below it.
+   * The caveat a responder needs before acting on model output closes the
+   * report it qualifies, with Copy report beside it. The report used to
+   * carry its own header bar (an icon, an "Investigation report" title, the
+   * caveat and the button) as a box inside the card. Copy report still
+   * copies the report as published, not the sections rendered above it.
    */
-  test("flags the report as an AI first pass and Copy report copies the original markdown", async () => {
+  test("closes the report with the verify-first caveat and Copy report, which copies the original markdown", async () => {
     renderView();
 
     const report: HTMLElement = screen.getByRole("region", {
       name: "Investigation report",
     });
-    const heading: HTMLElement = within(report).getByRole("heading", {
-      name: "Investigation report",
-    });
-    const caveat: HTMLElement = within(report).getByText(
+    // No second title: the card's own title already names the report.
+    expect(
+      within(report).queryByRole("heading", { name: "Investigation report" }),
+    ).toBeNull();
+
+    const footer: HTMLElement = within(report).getByTestId(
+      "investigation-report-footer",
+    );
+    expect(report.lastElementChild).toBe(footer);
+    const caveat: HTMLElement = within(footer).getByText(REPORT_CAVEAT_TEXT);
+    expect(REPORT_CAVEAT_TEXT).toBe(
       "AI-generated first pass — verify before acting.",
     );
-    expect(heading.parentElement).toContainElement(caveat);
-    expect(
-      heading.compareDocumentPosition(caveat) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
     expect(report).not.toHaveTextContent("AI generated");
+    // Every section comes before the caveat that qualifies it.
+    for (const heading of within(report).getAllByRole("heading")) {
+      expect(
+        heading.compareDocumentPosition(caveat) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
 
-    const copyButton: HTMLElement = within(report).getByRole("button", {
+    const copyButton: HTMLElement = within(footer).getByRole("button", {
       name: "Copy report",
     });
     expect(copyButton).toHaveAttribute("type", "button");
@@ -663,6 +749,157 @@ describe("InvestigationReportView report section", () => {
     expect(
       await within(copyButton).findByText("Report copied"),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The card used to nest a tinted summary box, a report box with its own
+ * header bar and an amber root-cause callout inside it. These pin the flat
+ * layout that replaced it: one heading style, one body style, no frame.
+ */
+describe("InvestigationReportView layout", () => {
+  /*
+   * Classes that give an element a frame or a tint of its own. Controls
+   * (Copy report, citation chips, reference links) and the markdown the
+   * viewer draws are not layout, so they are left out.
+   */
+  const FRAME_CLASS: RegExp =
+    /^(border|border-[a-z]+-\d+|ring-\d|ring-[a-z]+-\d+|shadow(-[a-z]+)?|rounded(-[a-z0-9]+)?|bg-(?!transparent)[a-z0-9/-]+)$/;
+
+  function framedElements(root: HTMLElement): Array<Element> {
+    return Array.from(root.querySelectorAll("*")).filter(
+      (element: Element): boolean => {
+        if (
+          element.closest("[data-testid='report-markdown']") ||
+          element.closest("button") ||
+          element.closest("a")
+        ) {
+          return false;
+        }
+
+        return (element.getAttribute("class") || "")
+          .split(/\s+/)
+          .some((className: string): boolean => {
+            return FRAME_CLASS.test(className);
+          });
+      },
+    );
+  }
+
+  test("gives every section, the summary included, one heading style and one body style", () => {
+    renderView({ analysisTldr: TLDR });
+
+    const headings: Array<HTMLElement> = screen.getAllByRole("heading");
+    expect(
+      headings.map((heading: HTMLElement): string => {
+        return heading.textContent || "";
+      }),
+    ).toEqual([
+      "Summary",
+      "Most likely root cause",
+      "Evidence",
+      "Suggested next steps",
+    ]);
+
+    for (const heading of headings) {
+      expect(heading.tagName).toBe("H3");
+      expect(heading.className).toBe(REPORT_SECTION_HEADING_CLASS_NAME);
+    }
+
+    for (const name of [
+      "Most likely root cause",
+      "Evidence",
+      "Suggested next steps",
+    ]) {
+      const section: HTMLElement = screen.getByRole("region", { name });
+      const body: HTMLElement =
+        within(section).getByTestId("report-markdown").parentElement!;
+      expect(body.className).toBe(REPORT_SECTION_BODY_CLASS_NAME);
+    }
+  });
+
+  test("draws no frame or tint of its own around any section", () => {
+    const { container } = renderView({ analysisTldr: TLDR });
+
+    expect(framedElements(container)).toEqual([]);
+    expect(container.querySelectorAll("section")).toHaveLength(5);
+  });
+
+  test("draws no frame for a report without a TL;DR, an unstructured one or a legacy one", () => {
+    for (const overrides of [
+      {},
+      {
+        analysisMarkdown:
+          "## Alert root cause\n\nThe upstream dependency rejected requests.",
+      },
+      { evidence: [] },
+    ] as Array<Partial<ReportViewProps>>) {
+      const { container, unmount } = renderView(overrides);
+
+      expect(framedElements(container)).toEqual([]);
+      unmount();
+    }
+  });
+
+  test("reads top to bottom: summary, the report's sections, then the caveat line", () => {
+    renderView({ analysisTldr: TLDR });
+
+    const order: Array<HTMLElement> = [
+      screen.getByRole("region", { name: "Investigation summary" }),
+      screen.getByRole("region", { name: "Most likely root cause" }),
+      screen.getByRole("region", { name: "Evidence" }),
+      screen.getByRole("region", { name: "Suggested next steps" }),
+      screen.getByTestId("investigation-report-footer"),
+    ];
+
+    for (let index: number = 1; index < order.length; index++) {
+      expect(
+        order[index - 1]!.compareDocumentPosition(order[index]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
+  test("keeps the summary and report regions named for assistive technology", () => {
+    renderView({ analysisTldr: TLDR });
+
+    // Both still exist as landmarks even though neither draws a box.
+    expect(
+      screen.getByRole("region", { name: "Investigation summary" }),
+    ).toHaveAttribute(
+      "data-section-kind",
+      InvestigationReportSectionKind.Summary,
+    );
+    expect(
+      screen.getByRole("region", { name: "Investigation report" }).tagName,
+    ).toBe("SECTION");
+  });
+
+  test("never nests a p inside the caveat line, since the icon renders a div", () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      console,
+      "error",
+    );
+
+    try {
+      renderView({ analysisTldr: TLDR });
+
+      const footer: HTMLElement = screen.getByTestId(
+        "investigation-report-footer",
+      );
+      expect(footer.querySelectorAll("p div")).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.some((args: Array<unknown>): boolean => {
+          return args.some((value: unknown): boolean => {
+            return (
+              typeof value === "string" && value.includes("validateDOMNesting")
+            );
+          });
+        }),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
 
