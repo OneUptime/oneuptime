@@ -39,6 +39,7 @@ import IncidentStateTimeline from "../../../../../Models/DatabaseModels/Incident
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -411,7 +412,8 @@ export default class MicrosoftTeamsIncidentActions {
 
       const declaredAt: Date | undefined =
         incident.declaredAt || incident.createdAt || undefined;
-      const message: string = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
+      // The title is plain text, escaped as MarkdownEscape says a title must be.
+      const message: string = `**Incident Details**\n\n**Title:** ${escapeMarkdownValue(incident.title)}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;

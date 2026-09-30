@@ -7,6 +7,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TenantPermission from "../Types/Database/Permissions/TenantPermission";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
@@ -4218,7 +4219,13 @@ export class Service extends DatabaseService<Model> {
     const lines: Array<string> = [
       `🚨 **${data.headline}**`,
       "",
-      `📋 **${data.identifier}**`,
+      /*
+       * The identifier ends with a title - plain text, which anyone holding
+       * an incident form's link may have typed - escaped as MarkdownEscape
+       * says a title must be, so it cannot become an image or a link that
+       * hides where it goes.
+       */
+      `📋 **${escapeMarkdownValue(data.identifier)}**`,
       "",
       "👤 You're getting this because you're on call.",
     ];

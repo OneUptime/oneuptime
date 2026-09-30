@@ -4170,8 +4170,10 @@ ${incident.remediationNotes || "No remediation notes provided."}
         if (
           Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
         ) {
-          const title: string =
-            (updatedIncidentData.title as string) || "No title provided.";
+          // Plain text, escaped as in the "Incident Created" item.
+          const title: string = escapeMarkdownValue(
+            (updatedIncidentData.title as string) || "No title provided.",
+          );
           feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
           shouldAddIncidentFeed = true;
         }

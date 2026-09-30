@@ -812,8 +812,16 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .toString();
         const td: TimelineData | undefined = tlMap.get(id);
 
-        // Title line with link
-        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${inc.title || "Untitled"}`))}`;
+        /*
+         * Title line with link. The title - plain text, which anyone
+         * holding an incident form's link may have typed - sits inside the
+         * link's text, so it is escaped like the names in these summaries:
+         * a "]" cannot end that text early and point the rest somewhere
+         * else, and "![...](...)" is no image. (Escaping brackets alone is
+         * not enough inside a link's text: marked, for one, undoes "\[" and
+         * "\]" there before reading it.)
+         */
+        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${escapeMarkdownInline(inc.title || "Untitled")}`))}`;
 
         // Meta line
         const meta: Array<string> = [];
@@ -998,7 +1006,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .addRoute(`/${projectId.toString()}/incidents/episodes/${id}`)
           .toString();
 
-        let text: string = `${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
+        // The title inside the link's text, escaped as an incident's is.
+        let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
         const meta: Array<string> = [];
         if (ep.incidentSeverity?.name) {
           meta.push(`Severity: ${Service.bold(ep.incidentSeverity.name)}`);

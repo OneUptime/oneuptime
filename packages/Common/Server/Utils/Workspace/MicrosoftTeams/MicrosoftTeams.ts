@@ -114,6 +114,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import AIService, { AI_DISABLED_MESSAGE } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
+import { escapeMarkdownInline } from "../../../../Utils/Markdown/MarkdownEscape";
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
@@ -3752,7 +3753,15 @@ If you need to report an incident or check historical incidents, please visit th
             incident.id!,
           );
 
-        message += `${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
+        /*
+         * The title - plain text, which anyone holding an incident form's
+         * link may have typed - sits inside the link's text, so every
+         * Markdown character in it is escaped: a "]" cannot end that text
+         * early and point the rest somewhere else, and "![...](...)" is no
+         * image. Escaping brackets alone is not enough there: marked, for
+         * one, undoes "\[" and "\]" in a link's text before reading it.
+         */
+        message += `${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${escapeMarkdownInline(incident.title)}](${incidentUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
 • **Declared:** ${declaredAtText}
