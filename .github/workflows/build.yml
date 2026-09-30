@@ -11,6 +11,9 @@ on:
     branches:
       - master
 
+# Every job checks out and runs `docker build`; none pushes or calls the API.
+permissions:
+  contents: read
 
 jobs:
 
