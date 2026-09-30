@@ -712,7 +712,9 @@ const isLeftEmpty: (node: Node) => boolean = (node: Node): boolean => {
  * empty bullet ("- ") when "al|pha".."de|ep" was pasted over in
  * "alpha, beta > deep, gamma". Nothing that holds the caret goes: after
  * Ctrl+A, the line the selection started in is empty too, and the paste
- * goes into it. A table's cells and rows go only with the whole table.
+ * goes into it. A list goes only once it has no items left -- an empty item
+ * of its own is still a bullet someone left there -- and a table's cells and
+ * rows go only with the whole table.
  */
 const removeEmptiedLine: (
   line: Node,
@@ -724,16 +726,23 @@ const removeEmptiedLine: (
     node &&
     node !== editable &&
     node.parentNode &&
-    !node.contains(caret) &&
-    isLeftEmpty(node)
+    !node.contains(caret)
   ) {
-    if (TABLE_PART_TAGS.has(tagOf(node))) {
+    const tag: string = tagOf(node);
+    if (TABLE_PART_TAGS.has(tag)) {
       const table: Element | null = (node as Element).closest("table");
-      if (!table || table === node) {
+      if (!isLeftEmpty(node) || !table || table === node) {
         return;
       }
       node = table;
       continue;
+    }
+    const emptied: boolean =
+      tag === "ul" || tag === "ol"
+        ? (node as Element).children.length === 0
+        : isLeftEmpty(node);
+    if (!emptied) {
+      return;
     }
     const parent: Node = node.parentNode;
     parent.removeChild(node);

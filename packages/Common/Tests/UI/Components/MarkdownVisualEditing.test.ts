@@ -827,6 +827,17 @@ describe("deleteSelectionForInsert", () => {
     expect(htmlToMarkdown(root.innerHTML)).toBe("- alep\n- gamma");
   });
 
+  // An empty item the selection did not reach is still a bullet someone left.
+  it("keeps a list that still has an item, even an empty one", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<p>para start</p><ul><li>beta</li><li><br></li></ul>",
+    );
+
+    deleteSelectionForInsert(root, rangeBetween(root, "para", 2, "beta", 2));
+
+    expect(root.innerHTML).toBe("<p>pata</p><ul><li><br></li></ul>");
+  });
+
   it("removes the quote a selection into its first line emptied", () => {
     const root: HTMLDivElement = mountMarkdown(
       "intro\n\n> quoted text\n\nafter",
