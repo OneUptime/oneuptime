@@ -2,6 +2,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolArgs } from "../Toolbox/ToolTypes";
 import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
+import { TOOL_OUTPUT_PAGE_CHARS } from "../../../../Types/AI/AIAgentRunLimits";
 
 /*
  * Long command output, read a page at a time instead of cut off.
@@ -22,7 +23,7 @@ import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
 export const READ_TOOL_OUTPUT_TOOL_NAME: string = "read_tool_output";
 
 // What the model sees of one output at once (roughly 10k tokens).
-export const TOOL_OUTPUT_PAGE_CHARS: number = 40_000;
+export { TOOL_OUTPUT_PAGE_CHARS };
 
 // The most one read_tool_output call may return.
 export const MAX_TOOL_OUTPUT_READ_CHARS: number = 60_000;

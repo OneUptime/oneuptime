@@ -16,6 +16,13 @@ export const AI_AGENT_RUNAWAY_MAX_LLM_CALLS: number = 100;
 // Tool calls one run may make before it is asked to answer.
 export const AI_AGENT_RUNAWAY_MAX_TOOL_CALLS: number = 300;
 
+/*
+ * Long command output is never cut before the model: it is shown a page at a
+ * time (the server's ToolOutputPager). This is one page — roughly 10k
+ * tokens, enough for a `kubectl describe node` of a busy node in one go.
+ */
+export const TOOL_OUTPUT_PAGE_CHARS: number = 40_000;
+
 // Bounds for a project's optional investigation time limit.
 export const MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES: number = 1;
 export const MAX_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES: number = 24 * 60;

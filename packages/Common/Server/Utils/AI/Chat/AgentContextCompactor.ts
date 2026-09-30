@@ -18,8 +18,11 @@ import { LLMMessage } from "../../LLM/LLMService";
 // Roughly 75–90k tokens of transcript before older results are elided.
 export const DEFAULT_MAX_CONTEXT_CHARS: number = 300_000;
 
-// The newest tool results are never elided.
-export const DEFAULT_KEEP_RECENT_TOOL_RESULTS: number = 6;
+/*
+ * Results are elided oldest first, so the newest stay whole for as long as
+ * the transcript fits with them; the very newest few are never elided.
+ */
+export const MIN_KEEP_RECENT_TOOL_RESULTS: number = 2;
 
 export const ELIDED_TOOL_RESULT_PREFIX: string = "[Earlier tool result elided";
 
@@ -71,20 +74,20 @@ export interface CompactionResult {
 
 /*
  * Elide the oldest tool results, in place, until the transcript fits
- * `maxChars` or only the newest `keepRecentToolResults` remain. System and
- * user messages and assistant turns are never touched.
+ * `maxChars` — never the newest `minKeepRecentToolResults`. System and user
+ * messages and assistant turns are never touched.
  */
 export function compactAgentContext(
   messages: Array<LLMMessage>,
   options?: {
     maxChars?: number | undefined;
-    keepRecentToolResults?: number | undefined;
+    minKeepRecentToolResults?: number | undefined;
   },
 ): CompactionResult {
   const maxChars: number = options?.maxChars ?? DEFAULT_MAX_CONTEXT_CHARS;
-  const keepRecent: number = Math.max(
+  const minKeep: number = Math.max(
     0,
-    options?.keepRecentToolResults ?? DEFAULT_KEEP_RECENT_TOOL_RESULTS,
+    options?.minKeepRecentToolResults ?? MIN_KEEP_RECENT_TOOL_RESULTS,
   );
 
   const charsBefore: number = measureContextChars(messages);
@@ -101,9 +104,10 @@ export function compactAgentContext(
     }
   });
 
+  // Oldest first, so the newest stay whole as long as they fit.
   const elidable: Array<number> = toolIndexes.slice(
     0,
-    Math.max(0, toolIndexes.length - keepRecent),
+    Math.max(0, toolIndexes.length - minKeep),
   );
 
   let elidedCount: number = 0;

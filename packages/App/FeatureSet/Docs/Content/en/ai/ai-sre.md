@@ -17,6 +17,17 @@ For incidents, the analysis is posted to the incident feed **and** as an inciden
 
 While the investigation runs, the incident or alert page shows a live **AI Investigation** panel that narrates each step — which tools ran, what they found, and how long they took — so you can watch it think. If an investigation fails, the panel shows the failure reason rather than a silent gap.
 
+An investigation runs until it is done: it has **no time limit** and no small query budget, so it can run every query and kubectl or infrastructure command it needs. A long command output (a `kubectl describe node` of a busy node, a pod's logs) is never cut off — OneUptime AI reads it a page at a time. If you want a hard stop, set an **investigation time limit** per signal type (see **Cost controls** below).
+
+## Talk to OneUptime AI about the incident
+
+Under the report, the **AI Investigation** box has a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It works the same when no automatic investigation ran.
+
+- **Ask follow-up questions** — "which pods use the most memory?", "what changed right before this started?", "is anything else affected?". OneUptime AI builds on its report, queries fresh data (and runs read-only kubectl or infrastructure commands where it has access), and cites every claim.
+- **Ask it to act** — "acknowledge this incident", "post a status update saying we're investigating", "page the database on-call", "raise the severity". It uses the same actions as Ask AI and always acts **with your own permissions**, so it can never do more than you could.
+- **Choose how it acts** with the switch under the message box: _Auto-run_ (the default — it acts on a clear request right away), _Ask to act_ (it shows an approval card first, which anyone on the incident can approve or deny), or _Read-only_.
+- **One shared thread.** Every question shows who asked it, everyone sees the same conversation live, and anyone can stop an answer in progress. Charts and tables in an answer are shown to the person who asked; everyone else sees the cited answer.
+
 ## Enabling AI investigations
 
 Autonomous investigations are **on by default for new projects**. A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
@@ -94,7 +105,7 @@ Turning fixes on — any move from **Off** to another mode — and loosening the
 
 ### What an investigation may run
 
-With access, an investigation runs **read-only** kubectl through the AI agent — `get`, `describe`, `logs`, `events`, `top`, `rollout status/history`, `auth can-i` — and cites each command like any other evidence. Three independent checks keep it read-only: the policy that tiers every command, the server that refuses to enqueue anything else for an investigation, and the AI agent, which re-checks the same policy before spawning kubectl. "Read-only — nothing in your systems was changed" stays literally true.
+With access, an investigation runs **read-only** kubectl through the AI agent — `get`, `describe`, `logs`, `events`, `top`, `rollout status/history`, `auth can-i` — as many commands as it needs, and cites each command like any other evidence. Output is never cut off: the agent keeps up to a megabyte of it, and OneUptime AI reads a long output a page at a time. Three independent checks keep it read-only: the policy that tiers every command, the server that refuses to enqueue anything else for an investigation, and the AI agent, which re-checks the same policy before spawning kubectl. "Read-only — nothing in your systems was changed" stays literally true.
 
 ### How fixes work
 
@@ -171,7 +182,7 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 | Severity floor (alerts)            | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**.                                                                                                                                                                                                                                                      | Alerts > AI > Investigation              |
 | Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable.                                                                                                                                                                                                               | Alerts > AI > Investigation              |
 | Concurrency cap                    | How many investigations of this signal type run at once. Incidents and alerts have separate pools. Default **3** per pool (1–25); queued investigations wait for a free slot and expire after 30 minutes.                                                                                                                                                            | Incidents or Alerts > AI > Investigation |
-| Per-run budget                     | Each investigation is capped at 8 LLM calls, 12 tool calls, 150 seconds, and 2,000 output tokens. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit.                                                                                                   | Built in                                 |
+| Investigation time limit           | Optional. Stop an investigation after this many minutes and report what it found. Unset (the default) means **no time limit** — the investigation runs until it is done, with only a runaway guard of 100 LLM calls and 300 tool calls. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit. | Incidents or Alerts > AI > Investigation |
 | Daily token limit                  | Optional maximum tokens per UTC day for autonomous AI work linked to this signal type, including investigations, remediation, and follow-up fix tasks. Incident and alert usage is counted separately. When one limit is reached, only that signal type's AI work is paused until the next day — interactive AI chat is never blocked. Set **0** to pause that lane. | Incidents or Alerts > AI > Investigation |
 | Daily fix-task limit               | Maximum incident- or alert-linked fix tasks created per UTC day. Each signal type has its own limit. Default **25**; set 0 to pause that lane's fix tasks.                                                                                                                                                                                                           | Incidents or Alerts > AI > Investigation |
 
