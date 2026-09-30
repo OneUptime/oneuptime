@@ -322,6 +322,42 @@ describe("ResourceConnectionGuideCard for a resource that stopped reporting", ()
   });
 });
 
+describe("ResourceConnectionGuideCard on a page with more than one", () => {
+  test("each card is named by its own heading", () => {
+    render(
+      <div>
+        <ResourceConnectionGuideCard
+          status="disconnected"
+          lastSeenAt={null}
+          guide={GUIDE}
+          documentationRoute={DOCS}
+        />
+        <ResourceConnectionGuideCard
+          status="disconnected"
+          lastSeenAt={NOW}
+          guide={GUIDE}
+          documentationRoute={DOCS}
+        />
+      </div>,
+    );
+
+    const cards: Array<HTMLElement> = screen.getAllByTestId(
+      "resource-connection-guide",
+    );
+    const labelIds: Array<string> = cards.map((section: HTMLElement) => {
+      return section.getAttribute("aria-labelledby") || "";
+    });
+
+    expect(new Set(labelIds).size).toBe(2);
+    expect(screen.getByRole("region", { name: "Connect this widget" })).toBe(
+      cards[0],
+    );
+    expect(
+      screen.getByRole("region", { name: "This widget stopped sending data" }),
+    ).toBe(cards[1]);
+  });
+});
+
 describe("ResourceConnectionGuideCard updates with the resource", () => {
   test("disappears once the resource connects, and comes back if it drops", () => {
     const { rerender } = render(

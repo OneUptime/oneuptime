@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -44,7 +44,6 @@ interface StateCopy {
   title: string;
   description: string;
   steps: Array<ResourceConnectionGuideStep>;
-  linkLabel: string;
   accent: {
     border: string;
     gradient: string;
@@ -73,7 +72,6 @@ const getStateCopy: (
       title: `This ${guide.resourceNoun} stopped sending data`,
       description: `OneUptime last heard from this ${guide.resourceNoun} ${lastHeard}. The ${guide.agentName} is no longer reporting — check on it with the steps below.`,
       steps: guide.troubleshootingSteps,
-      linkLabel: "Open the setup guide",
       accent: {
         border: "border-amber-200",
         gradient: "from-amber-50",
@@ -89,7 +87,6 @@ const getStateCopy: (
     title: `Connect this ${guide.resourceNoun}`,
     description: `No data has arrived from this ${guide.resourceNoun} yet, which is why it shows as Disconnected. Set up the ${guide.agentName} — it takes a few minutes.`,
     steps: guide.setupSteps,
-    linkLabel: "Open the setup guide",
     accent: {
       border: "border-indigo-200",
       gradient: "from-indigo-50",
@@ -103,6 +100,9 @@ const getStateCopy: (
 const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Before the early return: hooks run on every render.
+  const titleId: string = useId();
+
   const state: ResourceConnectionState = getResourceConnectionState({
     status: props.status,
     lastSeenAt: props.lastSeenAt,
@@ -117,8 +117,6 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
     props.guide,
     getResourceLastSeenDate(props.lastSeenAt),
   );
-
-  const titleId: string = `resource-connection-guide-title-${state}`;
 
   return (
     <section
@@ -151,7 +149,7 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
           className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
           <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
-          <span>{copy.linkLabel}</span>
+          <span>Open the setup guide</span>
         </Link>
       </div>
 
