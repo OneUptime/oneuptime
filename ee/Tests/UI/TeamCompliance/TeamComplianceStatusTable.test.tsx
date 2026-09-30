@@ -477,11 +477,15 @@ describe("filters and search", () => {
     render(
       <Harness
         status={standardStatus()}
-        initialFilter={MemberStatusFilter.Compliant}
+        initialFilter={MemberStatusFilter.NeedsAttention}
         initialFailingRuleId={CALL_RULE_ID}
         onClearFailingRule={onClearFailingRule}
       />,
     );
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "priya" },
+    });
 
     expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
       "No members match these filters.",
@@ -495,6 +499,181 @@ describe("filters and search", () => {
     expect(onClearFailingRule).toHaveBeenCalledTimes(1);
     expect(listedNames()).toEqual(["Jane Doe", "Omar Haddad", "Priya Patel"]);
     expect(screen.getByRole("searchbox")).toHaveValue("");
+  });
+
+  /*
+   * Compliant under a rule filter is always nobody - everyone failing a rule
+   * needs attention - so the empty list says why instead of a generic "no
+   * match", and Clear filters still resets all of it.
+   */
+  test("Compliant under a rule filter explains why nobody is listed", () => {
+    const onClearFailingRule: jest.Mock = jest.fn();
+
+    render(
+      <Harness
+        status={standardStatus()}
+        initialFilter={MemberStatusFilter.Compliant}
+        initialFailingRuleId={CALL_RULE_ID}
+        onClearFailingRule={onClearFailingRule}
+      />,
+    );
+
+    expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
+      "Everyone failing Call for incidents (Critical Incident and Major Incident) needs attention, so none of them is compliant.",
+    );
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "0 of 3 members",
+    );
+
+    fireEvent.click(screen.getByTestId("compliance-members-clear-filters"));
+
+    expect(onClearFailingRule).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(listedNames()).toEqual(["Jane Doe", "Omar Haddad", "Priya Patel"]);
+  });
+
+  test("Compliant with no rule filter keeps the generic message", () => {
+    render(
+      <Harness
+        status={standardStatus()}
+        initialFilter={MemberStatusFilter.Compliant}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "jane" },
+    });
+
+    expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
+      "No members match these filters.",
+    );
+  });
+
+  /*
+   * The customer's report: under a rule filter, All and Needs attention kept
+   * the rule but Compliant quietly dropped it. The segments narrow what the
+   * list shows; none of them may clear the rule filter.
+   */
+  test("switching segments never clears the rule filter", () => {
+    const onClearFailingRule: jest.Mock = jest.fn();
+
+    render(
+      <Harness
+        status={standardStatus()}
+        initialFailingRuleId={EMAIL_RULE_ID}
+        onClearFailingRule={onClearFailingRule}
+      />,
+    );
+
+    const chip: () => HTMLElement | null = (): HTMLElement | null => {
+      return screen.queryByTestId("compliance-members-rule-filter");
+    };
+
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(
+      screen.getByTestId("compliance-members-no-match"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: /All/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    expect(onClearFailingRule).not.toHaveBeenCalled();
+  });
+
+  test("the segment badges count within the rule filter", () => {
+    render(
+      <Harness status={standardStatus()} initialFailingRuleId={CALL_RULE_ID} />,
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All2",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent("Needs attention2");
+    // Nobody failing a rule is compliant: no badge, not a stale team-wide 1.
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      /^Compliant$/,
+    );
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "2 of 3 members",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear the rule filter" }),
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All3",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent("Needs attention2");
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      "Compliant1",
+    );
+  });
+
+  test("the segment badges count within the search", () => {
+    render(<Harness status={standardStatus()} />);
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "priya" },
+    });
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All1",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent(/^Needs attention$/);
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      "Compliant1",
+    );
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "" },
+    });
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All3",
+    );
+  });
+
+  test("the selected segment's badge matches the members listed", () => {
+    render(
+      <Harness status={standardStatus()} initialFailingRuleId={CALL_RULE_ID} />,
+    );
+
+    for (const name of [/All/, /Needs attention/]) {
+      const segment: HTMLElement = screen.getByRole("radio", { name: name });
+
+      fireEvent.click(segment);
+
+      expect(segment).toHaveTextContent(String(listedNames().length));
+      expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+        `${listedNames().length} of 3 members`,
+      );
+    }
   });
 
   test("a rule filter from the rules card narrows to who fails it", () => {

@@ -836,6 +836,32 @@ export const countMembersByStatus: (
 };
 
 /*
+ * The members section's status segments, counted within whatever else
+ * narrows the list - the rule filter and the search. Each badge then says
+ * exactly how many rows its segment would show, so "Needs attention 4" never
+ * sits over "3 of 4 members", and a segment that would show nobody under a
+ * rule filter (Compliant, always) carries no count at all.
+ */
+export const countFilteredMembersByStatus: (data: {
+  members: Array<TeamMemberComplianceJSON>;
+  search: string;
+  failingSettingId: string | null;
+}) => MemberStatusCounts = (data: {
+  members: Array<TeamMemberComplianceJSON>;
+  search: string;
+  failingSettingId: string | null;
+}): MemberStatusCounts => {
+  return countMembersByStatus(
+    filterMembers({
+      members: data.members,
+      status: MemberStatusFilter.All,
+      search: data.search,
+      failingSettingId: data.failingSettingId,
+    }),
+  );
+};
+
+/*
  * Where the signed-in member goes to fix a rule they fail, and what the
  * button says. A method rule is fixed on the notification methods page; an
  * on-call rule on the on-call rules page for its own rule type - sending
