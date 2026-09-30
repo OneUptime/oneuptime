@@ -400,8 +400,6 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showNetworkSites ? 1 : 0) +
     (showServices ? 1 : 0) +
     (showSlos ? 1 : 0);
-  const resourceWord: string = totalCount === 1 ? "resource" : "resources";
-  const categoryWord: string = categoryCount === 1 ? "category" : "categories";
   const sectionClassName: string = getAffectedResourcesSectionClassName(
     props.columns,
   );
@@ -410,7 +408,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     <div className="flex flex-col gap-4">
       {/*
        * One category already counts its own items in its heading, so the
-       * total only earns a line once there is more than one to add up.
+       * total only earns a line once there is more than one to add up (and
+       * then both numbers are at least two, so the words are always plural).
        */}
       {categoryCount > 1 && (
         <p
@@ -418,9 +417,9 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           className="text-xs text-gray-500"
         >
           <span className="font-semibold text-gray-900">
-            {totalCount.toLocaleString()} {resourceWord}
+            {totalCount.toLocaleString()} resources
           </span>{" "}
-          across {categoryCount.toLocaleString()} {categoryWord}
+          across {categoryCount.toLocaleString()} categories
         </p>
       )}
       <div
