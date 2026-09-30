@@ -461,11 +461,20 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 
   /*
    * Typing, a paste the browser makes, an execCommand: each is newer
-   * history in the browser's own undo stack, which the editor's records
-   * would otherwise jump ahead of.
+   * history in the browser's own undo stack. The editor's own records wait
+   * behind it -- each applies again once the browser's undo has put the
+   * editor back as that edit left it -- but what they would redo is gone,
+   * as the browser's own redo is. The browser's undo and redo themselves
+   * leave both be.
    */
-  const handleEditableInput: () => void = (): void => {
-    history.clear();
+  const handleEditableInput: (
+    event: React.FormEvent<HTMLDivElement>,
+  ) => void = (event: React.FormEvent<HTMLDivElement>): void => {
+    const inputType: string =
+      (event.nativeEvent as InputEvent | undefined)?.inputType || "";
+    if (inputType !== "historyUndo" && inputType !== "historyRedo") {
+      history.clearRedo();
+    }
     syncFromEditable();
   };
 

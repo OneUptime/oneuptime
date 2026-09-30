@@ -1670,6 +1670,75 @@ describe("MarkdownEditor blocks inserted into a line of text", () => {
     );
   });
 
+  /*
+   * The Code Block button selects its placeholder, so what is typed next
+   * replaces it -- the browser's own edit, which its Ctrl+Z takes back
+   * first. After that the block is as the button left it, and the next
+   * Ctrl+Z takes the block back. The editor forgot the block at the first
+   * keystroke, and that Ctrl+Z went to the browser's next entry: the typing
+   * before the block, "Run:" deleted, the block kept.
+   */
+  test("Ctrl+Z takes back a code block once the browser has taken back the code typed in it", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="Run:" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("Run:", 4);
+    fireEvent.click(screen.getByTitle("Code Block"));
+    const code: Text = textNodeWith("code block");
+
+    // Typed over the placeholder...
+    code.data = "npm ci";
+    fireEvent.input(editableOf(), { inputType: "insertText", data: "npm ci" });
+    expect(lastChange(onChange)).toBe("Run:\n\n```\nnpm ci\n```");
+    // ...which Ctrl+Z leaves to the browser, whose undo puts it back.
+    expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+      true,
+    );
+    code.data = "code block";
+    fireEvent.input(editableOf(), { inputType: "historyUndo" });
+    expect(lastChange(onChange)).toBe("Run:\n\n```\ncode block\n```");
+
+    expect(fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true })).toBe(
+      false,
+    );
+    expect(lastChange(onChange)).toBe("Run:");
+
+    // Ctrl+Shift+Z makes the block again, and Ctrl+Z takes it back again.
+    expect(
+      fireEvent.keyDown(editableOf(), {
+        key: "z",
+        ctrlKey: true,
+        shiftKey: true,
+      }),
+    ).toBe(false);
+    expect(lastChange(onChange)).toBe("Run:\n\n```\ncode block\n```");
+    fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+    expect(lastChange(onChange)).toBe("Run:");
+  });
+
+  // Typed after an undo, new text leaves nothing of the editor's to redo.
+  test("leaves Ctrl+Shift+Z to the browser once something is typed after an undo", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="Run:" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("Run:", 4);
+    fireEvent.click(screen.getByTitle("Code Block"));
+    fireEvent.keyDown(editableOf(), { key: "z", ctrlKey: true });
+    expect(lastChange(onChange)).toBe("Run:");
+
+    textNodeWith("Run:").data = "Run: now";
+    fireEvent.input(editableOf(), { inputType: "insertText", data: " now" });
+
+    expect(
+      fireEvent.keyDown(editableOf(), {
+        key: "z",
+        ctrlKey: true,
+        shiftKey: true,
+      }),
+    ).toBe(true);
+    expect(lastChange(onChange)).toBe("Run: now");
+  });
+
   // Put in by hand, the block is not on the browser's undo stack.
   test("Ctrl+Z takes back a code block put into a line", () => {
     const onChange: jest.Mock = jest.fn();

@@ -17,10 +17,16 @@
  * once one Ctrl+Z has undone an indent, the next undoes the typing before
  * it, as in any editor.
  *
- * A record only holds while the editor is exactly as the edit left it,
+ * A record is only applied while the editor is exactly as the edit left it,
  * which is checked against its HTML. Anything else that changes the editor
  * -- typing, a paste the browser makes, an execCommand -- is newer history
- * in the browser's own stack, and the editor clears these records then.
+ * in the browser's own stack, so Ctrl+Z is the browser's until its undo has
+ * taken all of that back. Then the editor is as the edit left it again, and
+ * the next Ctrl+Z takes the edit back: typing "npm ci" into the code block
+ * the Code Block button inserted after "Run:", Ctrl+Z undoes the typing,
+ * then the block, then "Run:". The records used to be dropped at the first
+ * keystroke, and the second Ctrl+Z went to the browser's next entry -- the
+ * typing before the block, "Run:" -- with the block left in.
  */
 
 interface SavedSelection {
@@ -207,11 +213,21 @@ export default class MarkdownEditorHistory {
   }
 
   /*
-   * Forgets every record. Called whenever the editor changes some other way:
-   * the browser's own history is newer from then on.
+   * Forgets every record: the editor's content was replaced -- a new
+   * editable, markdown set from outside -- and the nodes they move are gone.
    */
   public clear(): void {
     this.undoEntries = [];
+    this.redoEntries = [];
+  }
+
+  /*
+   * Forgets what could be redone. Called when the editor is edited some
+   * other way -- typing, a paste the browser makes -- as the browser's own
+   * redo goes then. What can be undone stays, for when the browser's undo
+   * has taken that newer edit back.
+   */
+  public clearRedo(): void {
     this.redoEntries = [];
   }
 
@@ -221,11 +237,11 @@ export default class MarkdownEditorHistory {
     to: Array<HistoryEntry>,
   ): boolean {
     const entry: HistoryEntry | undefined = from[from.length - 1];
-    if (!entry) {
-      return false;
-    }
-    if (root.innerHTML !== entry.html) {
-      this.clear();
+    /*
+     * Not as the edit left it: newer edits are the browser's to take back
+     * first. The record stays, and applies once they are.
+     */
+    if (!entry || root.innerHTML !== entry.html) {
       return false;
     }
     from.pop();

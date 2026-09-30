@@ -132,10 +132,13 @@ describe("MarkdownEditorHistory", () => {
   });
 
   /*
-   * Typing after the edit is newer history in the browser's own stack; the
-   * record no longer fits the editor, and undo is left to the browser.
+   * Typing after the edit is newer history in the browser's own stack: while
+   * it is there, undo is left to the browser. Once the browser's undo has
+   * taken it back, the editor is as the edit left it, and the next undo takes
+   * the edit back -- dropped at the first keystroke, it never was, and the
+   * browser's next entry, older typing, went instead.
    */
-  it("does nothing, and forgets its records, once the editor has changed", () => {
+  it("waits for the browser to take newer edits back, then takes its edit back", () => {
     const element: HTMLDivElement = mount("<ul><li>a</li><li>b</li></ul>");
     const history: MarkdownEditorHistory = new MarkdownEditorHistory();
     history.record(element, () => {
@@ -147,9 +150,34 @@ describe("MarkdownEditorHistory", () => {
     expect(history.undo(element)).toBe(false);
     expect(element.innerHTML).toBe("<ul><li>a<ul><li>bx</li></ul></li></ul>");
 
-    // Back as the edit left it, the record is still gone.
+    // What the browser's undo of the typing does.
     text.data = "b";
-    expect(history.undo(element)).toBe(false);
+    expect(history.undo(element)).toBe(true);
+    expect(element.innerHTML).toBe("<ul><li>a</li><li>b</li></ul>");
+  });
+
+  /*
+   * A new edit of the browser's own drops what could be redone, as it drops
+   * the browser's redo -- but not what can be undone.
+   */
+  it("forgets only what could be redone when the redo is cleared", () => {
+    const element: HTMLDivElement = mount("<p>x</p>");
+    const history: MarkdownEditorHistory = new MarkdownEditorHistory();
+    history.record(element, () => {
+      element.appendChild(document.createElement("hr"));
+      return true;
+    });
+    history.record(element, () => {
+      element.appendChild(document.createElement("br"));
+      return true;
+    });
+    history.undo(element);
+
+    history.clearRedo();
+
+    expect(history.redo(element)).toBe(false);
+    expect(history.undo(element)).toBe(true);
+    expect(element.innerHTML).toBe("<p>x</p>");
   });
 
   it("leaves the editor as it is when its nodes are no longer the recorded ones", () => {
