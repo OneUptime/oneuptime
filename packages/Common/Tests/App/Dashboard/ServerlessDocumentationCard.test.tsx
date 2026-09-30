@@ -226,4 +226,29 @@ describe("ServerlessDocumentationCard", () => {
     );
     expect(container.textContent).not.toContain("faas.name=checkout-handler");
   });
+
+  /*
+   * A Function App registered from its service.name — here with the Node.js
+   * detector's dotted cloud.platform — opens on Azure Functions and is named
+   * with OTEL_SERVICE_NAME, never faas.name: ingest writes the service.name
+   * onto its telemetry as faas.name, and the docs say to leave faas.name out
+   * of a Function App's settings.
+   */
+  test("names an Azure function app with OTEL_SERVICE_NAME, not faas.name", async () => {
+    mockKeys();
+    const container: HTMLElement = renderCard({
+      functionName: "orders-func-app",
+      cloudPlatform: "azure.functions",
+    });
+    await waitForKey(container);
+
+    expect(radio("Azure Functions")).toHaveAttribute("aria-checked", "true");
+    expect(container.textContent).toContain(
+      "OTEL_SERVICE_NAME=orders-func-app",
+    );
+    expect(container.textContent).toContain(
+      "OTEL_RESOURCE_ATTRIBUTES=cloud.provider=azure,cloud.platform=azure_functions",
+    );
+    expect(container.textContent).not.toContain("faas.name=");
+  });
 });

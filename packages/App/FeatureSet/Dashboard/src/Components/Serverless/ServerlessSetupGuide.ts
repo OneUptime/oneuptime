@@ -21,9 +21,20 @@ import {
  *
  * OneUptime lists a function under Serverless Functions when its telemetry
  * carries faas.name, or a serverless cloud.platform with service.name as the
- * name (OtelIngestBaseService.autoDiscoverServerless), and every tab of a
- * function filters on resource.faas.name. So the guide always sets
- * faas.name, except on Lambda, where the OpenTelemetry layer sets it.
+ * name (OtelIngestBaseService.resolveServerlessFunctionIdentity), and every
+ * tab of a function filters on resource.faas.name — which ingest writes from
+ * service.name onto a function named that way
+ * (stampServerlessFunctionNameAttribute). So the guide names the function
+ * with faas.name, except:
+ *
+ *   - on Lambda, where the OpenTelemetry layer sets faas.name;
+ *   - on Azure Functions, where it sets OTEL_SERVICE_NAME to the function
+ *     app's name and leaves faas.name out. The Functions host and Azure's
+ *     resource detectors describe the app by its service.name and never set
+ *     faas.name, and app settings reach every function in the app, so a
+ *     faas.name there would name them all — and ingest never replaces a
+ *     faas.name it is given. The docs page's Azure Functions section says
+ *     the same.
  *
  * The settings are NAME=value lines to type into a console rather than CLI
  * one-liners: `gcloud --set-env-vars` splits OTEL_RESOURCE_ATTRIBUTES on its
@@ -168,14 +179,33 @@ interface ServerlessGuideData {
   isFunctionNameKnown: boolean;
 }
 
+/*
+ * Whether the guide names the function by service.name (OTEL_SERVICE_NAME)
+ * rather than faas.name: on Azure Functions, for the reasons at the top.
+ */
+function isNamedByServiceName(platform: ServerlessPlatform): boolean {
+  return platform === "azure-functions";
+}
+
 export function getServerlessResourceAttributes(data: {
   platform: ServerlessPlatform;
   functionName: string;
 }): string {
-  const attributes: Array<string> = [
-    `faas.name=${resourceAttributeValue(data.functionName)}`,
-    `faas.version=${SERVERLESS_EXAMPLE_FUNCTION_VERSION}`,
-  ];
+  const attributes: Array<string> = [];
+
+  if (isNamedByServiceName(data.platform)) {
+    /*
+     * OTEL_SERVICE_NAME names the function instead. The provider fills in
+     * the overview for a worker without an Azure resource detector — these
+     * are the settings the docs' Azure Functions section gives it.
+     */
+    attributes.push("cloud.provider=azure");
+  } else {
+    attributes.push(
+      `faas.name=${resourceAttributeValue(data.functionName)}`,
+      `faas.version=${SERVERLESS_EXAMPLE_FUNCTION_VERSION}`,
+    );
+  }
 
   const cloudPlatform: string | undefined = getServerlessCloudPlatform(
     data.platform,
@@ -191,7 +221,10 @@ export function getServerlessResourceAttributes(data: {
 /*
  * The variables a function needs, in the order the guide lists them. On
  * Lambda the layer sets the function's resource attributes itself, and
- * AWS_LAMBDA_EXEC_WRAPPER is what starts the layer.
+ * AWS_LAMBDA_EXEC_WRAPPER is what starts the layer. On Azure Functions
+ * OTEL_SERVICE_NAME names the function app, and with it the function, for
+ * every process of the app. It is a plain string, not percent-decoded like
+ * OTEL_RESOURCE_ATTRIBUTES, so the name goes in as written.
  */
 export function getServerlessEnvironmentVariables(data: {
   oneuptimeUrl: string;
@@ -224,6 +257,13 @@ export function getServerlessEnvironmentVariables(data: {
   );
 
   if (data.platform !== "aws-lambda") {
+    if (isNamedByServiceName(data.platform)) {
+      variables.push({
+        name: "OTEL_SERVICE_NAME",
+        value: data.functionName,
+      });
+    }
+
     variables.push({
       name: "OTEL_RESOURCE_ATTRIBUTES",
       value: getServerlessResourceAttributes({
@@ -270,7 +310,26 @@ const NAME_BEFORE_EQUALS: string = "the name is the part before the first `=`";
 
 const SECRET_NOTE: string = `> **This token is a secret.** Use a **Server** ingestion key here and set it as a function environment variable. A key that reaches a browser can be read by anyone who views the page source; for anything running in a browser, create a **Browser** ingestion key instead.`;
 
+/*
+ * Azure Functions: the function app's service.name names the function, and
+ * OTEL_SERVICE_NAME sets it for every process of the app.
+ */
+function getServiceNameNote(data: ServerlessGuideData): string {
+  const leaveOutFaasName: string =
+    "Leave `faas.name` out of `OTEL_RESOURCE_ATTRIBUTES`: OneUptime writes this name onto the telemetry as `faas.name` itself, while a `faas.name` in the app settings would reach every function in the app, and one that is sent is never replaced.";
+
+  if (data.isFunctionNameKnown) {
+    return `\`OTEL_SERVICE_NAME\` is **\`${data.functionName}\`**, this function's identifier — keep it as it is, or the data registers as a new function. ${leaveOutFaasName}`;
+  }
+
+  return `Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\` with your function app's name — the \`service.name\` the Functions host and Azure's resource detectors report on their own — so every process of the app reports as the one function. The name is how the function appears in OneUptime, so keep it stable: a new name registers a new function. ${leaveOutFaasName}`;
+}
+
 function getFunctionNameNote(data: ServerlessGuideData): string {
+  if (isNamedByServiceName(data.platform)) {
+    return getServiceNameNote(data);
+  }
+
   if (data.isFunctionNameKnown) {
     const encoding: string =
       resourceAttributeValue(data.functionName) === data.functionName
@@ -459,8 +518,11 @@ function getEnvironmentVariablesTopic(
     OTEL_EXPORTER_OTLP_HEADERS: "Sends your ingestion key with every export.",
     OTEL_EXPORTER_OTLP_PROTOCOL:
       "OTLP over HTTP, which is what the `/otlp` endpoint accepts.",
-    OTEL_RESOURCE_ATTRIBUTES:
-      "The function's name, version and platform — see **Resource attributes OneUptime reads**.",
+    OTEL_SERVICE_NAME:
+      "Names the function app, and with it the function, for every process of the app. OneUptime writes it onto the telemetry as `faas.name`.",
+    OTEL_RESOURCE_ATTRIBUTES: isNamedByServiceName(data.platform)
+      ? "The function's cloud provider and platform — see **Resource attributes OneUptime reads**."
+      : "The function's name, version and platform — see **Resource attributes OneUptime reads**.",
   };
 
   const rows: Array<string> = getServerlessEnvironmentVariables(data).map(
@@ -494,7 +556,7 @@ function getPlatformAttributeNote(data: ServerlessGuideData): string {
     case "google-cloud-functions":
       return `This guide sets \`cloud.platform=${cloudPlatform}\`.`;
     case "azure-functions":
-      return `This guide sets \`cloud.platform=${cloudPlatform}\`; the Node.js and .NET Azure resource detectors spell it \`azure.functions\`, which OneUptime reads as the same value. App settings apply to the whole function app, so every function in the app reports under the one \`faas.name\`.`;
+      return `This guide sets \`cloud.platform=${cloudPlatform}\`; the Node.js and .NET Azure resource detectors spell it \`azure.functions\`, which OneUptime reads as the same value. It leaves \`faas.name\` unset, as the Functions host and Azure's resource detectors do: app settings apply to the whole function app, so the app is one function, named after its \`service.name\` — see [Azure Functions](${SERVERLESS_DOCS_URL}#azure-functions).`;
     default:
       return "`cloud.platform` is optional here: set it only if your platform is one of the values above.";
   }
@@ -512,21 +574,22 @@ function getResourceAttributesTopic(
   return {
     title: "Resource attributes OneUptime reads",
     summary:
-      "faas.name names the function; the other attributes fill in its overview.",
-    markdown: `OneUptime keys each function on the \`faas.name\` resource attribute:
+      "faas.name, or service.name on a serverless platform, names the function; the other attributes fill in its overview.",
+    markdown: `OneUptime keys each function on the \`faas.name\` resource attribute. Without one, a serverless \`cloud.platform\` and the \`service.name\` name the function instead, and OneUptime writes that name onto the telemetry as \`faas.name\`:
 
 | Attribute | Required | Purpose |
 |---|---|---|
-| \`faas.name\` | **yes** | Function identity (e.g. \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\`). Every tab of the function filters on it. |
+| \`faas.name\` | **yes**, unless the next two are set | Function identity (e.g. \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\`). Every tab of the function filters on it. |
+| \`cloud.platform\` | with \`service.name\`, when there is no \`faas.name\` | ${faasPlatforms} |
+| \`service.name\` | on a serverless \`cloud.platform\` without \`faas.name\` | Function identity, written onto the telemetry as \`faas.name\` |
 | \`faas.version\` | no | Shown on the overview |
 | \`faas.instance\` | no | Tracked per instance under the **Instances** tab |
-| \`cloud.platform\` | no | ${faasPlatforms} |
 | \`cloud.provider\` / \`cloud.region\` / \`cloud.account.id\` | no | Shown on the overview |
 | \`process.runtime.name\` / \`process.runtime.version\` | no | Shown as the runtime on the overview |
 
 ${getPlatformAttributeNote(data)}
 
-A function that also sets \`service.name\` still appears under **Services** too. The **Serverless Functions** view is the FaaS-focused lens, scoped by \`faas.name\`.`,
+A \`faas.name\` that is sent is never replaced. A function that also sets \`service.name\` still appears under **Services** too. The **Serverless Functions** view is the FaaS-focused lens, scoped by \`faas.name\`.`,
   };
 }
 
@@ -599,7 +662,9 @@ function getNotShowingUpTopic(data: ServerlessGuideData): SetupGuideTopic {
   } else {
     checks.push(
       "The function's code loads the OpenTelemetry SDK or auto-instrumentation — the variables alone send nothing.",
-      "`OTEL_RESOURCE_ATTRIBUTES` carries `faas.name`. Without it, and without a serverless `cloud.platform`, the telemetry is filed under **Services** instead of as a function.",
+      isNamedByServiceName(data.platform)
+        ? `\`OTEL_RESOURCE_ATTRIBUTES\` carries \`cloud.platform=${getServerlessCloudPlatform(data.platform)}\`. Without a serverless \`cloud.platform\`, or a \`faas.name\`, the telemetry is filed under **Services** instead of as a function.`
+        : "`OTEL_RESOURCE_ATTRIBUTES` carries `faas.name`. Without it, and without a serverless `cloud.platform`, the telemetry is filed under **Services** instead of as a function.",
     );
   }
 
@@ -623,7 +688,7 @@ function getEmptyTabsTopic(data: ServerlessGuideData): SetupGuideTopic {
   const fix: string =
     data.platform === "aws-lambda"
       ? "The layer reports the Lambda function's name, so a function created here by hand needs that name as its identifier."
-      : "A function registered from a serverless `cloud.platform` and `service.name` alone has no `faas.name` on its telemetry — add `faas.name`, set to the identifier, to `OTEL_RESOURCE_ATTRIBUTES`.";
+      : "A function named by a serverless `cloud.platform` and its `service.name` needs no `faas.name` of its own: OneUptime writes the `service.name` onto the telemetry as `faas.name` as it arrives. Telemetry stored before OneUptime began filling in `faas.name` is not updated and stays out of the tabs — invoke the function to send new telemetry.";
 
   return {
     title: "The function is listed, but its tabs are empty",
