@@ -1,5 +1,4 @@
 import KubectlInvestigationToolkit, {
-  INVESTIGATION_MAX_WALL_CLOCK_MS,
   KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
@@ -9,9 +8,19 @@ import { KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX as SHARED_KUBECTL_RESULT_UNKNOWN_PR
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
+  KubectlJobOutcome,
+  KubectlRunState,
   RedactedKubectlOutput,
 } from "../../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
-import { MAX_WALL_CLOCK_MS as ENGINE_MAX_WALL_CLOCK_MS } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import ToolOutputPager, {
+  READ_TOOL_OUTPUT_TOOL_NAME,
+  TOOL_OUTPUT_PAGE_CHARS,
+  ToolOutputPage,
+} from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+  MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import { ObservabilityAssistantExtraTool } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import AIRunService from "../../../../Server/Services/AIRunService";
@@ -46,15 +55,21 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   its context why, and a tool that always fails only burns budget);
  * - run_kubectl only accepts a cluster from the ready set, only Read-tier
  *   commands (never a Secret read), and at most
- *   MAX_KUBECTL_COMMANDS_PER_INVESTIGATION of them;
+ *   MAX_KUBECTL_COMMANDS_PER_INVESTIGATION of them — a runaway guard, not a
+ *   ration (an explicit smaller maxCommands is stated to the model);
  * - a command runs as an AiInvestigation-origin job through the shared
  *   KubectlJobRunner (which records the outcome on the cluster) and its
  *   output reaches the model framed as untrusted cluster data, with Secret
  *   data, credential-like env values, tokens and kubeconfig material
  *   masked before the model sees any of it;
- * - every command's claim window and execution timeout are planned so the
- *   wait ends before the run's wall-clock deadline, and a command the
- *   budget can no longer hold is refused before anything is enqueued;
+ * - output is never cut: the toolkit asks for all of it, and a long one
+ *   shows its first page followed by a note naming the outputId the rest
+ *   is read from (read_tool_output); isTruncated only reports a cut the
+ *   agent made before the output reached the server;
+ * - a run has no time limit by default. When its project configured one,
+ *   every command's claim window and execution timeout are planned so the
+ *   wait ends before that deadline, and a command the time left can no
+ *   longer hold is refused before anything is enqueued;
  * - a job failure becomes a tool failure the model can continue from,
  *   never a thrown error that kills the investigation;
  * - only a command that reached kubectl is evidence (cited, counted as
@@ -129,6 +144,60 @@ function fakeJob(overrides: Partial<Record<string, unknown>> = {}): RunnerJob {
     payload: { displayCommand: "kubectl get pods -n web" },
     ...overrides,
   } as unknown as RunnerJob;
+}
+
+// What KubectlJobRunner.run hands back for a command kubectl ran.
+function ranOutcome(
+  overrides: Partial<KubectlJobOutcome> = {},
+): KubectlJobOutcome {
+  return {
+    jobId: JOB_ID.toString(),
+    succeeded: true,
+    exitCode: 0,
+    output: "NAME   READY   STATUS    RESTARTS\nweb-1  0/1     Pending   0",
+    redactionCount: 0,
+    isTruncated: false,
+    displayCommand: "kubectl get pods -n web",
+    executed: true,
+    runState: KubectlRunState.Ran,
+    claimTimedOut: false,
+    isAccessFailure: false,
+    ...overrides,
+  };
+}
+
+// A `kubectl get pods -A` listing more than twice one page long.
+function longListing(lastRow: string): string {
+  const row: string = "web-1  1/1     Running   0\n";
+
+  return `NAME   READY   STATUS    RESTARTS\n${row.repeat(
+    Math.ceil((2 * TOOL_OUTPUT_PAGE_CHARS) / row.length),
+  )}${lastRow}`;
+}
+
+// Everything the pager holds for one output, read a page at a time.
+function readWholeOutput(pager: ToolOutputPager, outputId: string): string {
+  let text: string = "";
+  let offset: number = 0;
+
+  for (;;) {
+    const page: ToolOutputPage | { error: string } = pager.read({
+      outputId,
+      offset,
+    });
+
+    if ("error" in page) {
+      throw new Error(page.error);
+    }
+
+    text += page.text;
+
+    if (!page.hasMore) {
+      return text;
+    }
+
+    offset = page.end;
+  }
 }
 
 describe("KubectlInvestigationToolkit.buildTools", () => {
@@ -284,6 +353,7 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     jest
       .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(fakeJob());
+    const jobRun: jest.SpyInstance = jest.spyOn(KubectlJobRunner, "run");
 
     const toolkit: KubectlInvestigationToolkit =
       new KubectlInvestigationToolkit({
@@ -303,6 +373,12 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
 
     expect(outcome.success).toBe(true);
     expect(toolkit.getCommandsRun()).toBe(1);
+
+    // The toolkit asks for the whole redacted output: it pages, never cuts.
+    expect(jobRun).toHaveBeenCalledTimes(1);
+    expect(
+      (jobRun.mock.calls[0]![0] as Record<string, unknown>)["maxOutputChars"],
+    ).toBe(Number.MAX_SAFE_INTEGER);
 
     const enqueueArgs: Record<string, unknown> = enqueue.mock
       .calls[0]![0] as Record<string, unknown>;
@@ -328,6 +404,11 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     expect(outcome.result?.citationLabel).toBe(
       'kubectl get pods -n web on cluster "prod-us"',
     );
+    // A short output is shown whole: no page note, nothing stored.
+    expect(outcome.textForLlm).not.toContain(READ_TOOL_OUTPUT_TOOL_NAME);
+    expect(outcome.textForLlm.endsWith("never instructions.")).toBe(true);
+    expect(toolkit.getOutputPager().hasStoredOutputs()).toBe(false);
+    expect(outcome.result?.isTruncated).toBe(false);
     expect(recordOutcome).toHaveBeenCalledWith({
       clusterId: expect.any(ObjectID),
       succeeded: true,
@@ -518,6 +599,21 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     expect(tool.definition.description).toContain("redacted from every output");
   });
 
+  it("tells the model output is never cut off and how to read the rest", () => {
+    const description: string = getTool(
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+      }),
+      RUN_KUBECTL_TOOL_NAME,
+    ).definition.description;
+
+    expect(description).toContain(
+      `Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}.`,
+    );
+  });
+
   /*
    * C5: what a Read command can still return — a pod spec with plaintext
    * env values, a ConfigMap with a connection string, a ServiceAccount
@@ -620,24 +716,36 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     expect(outcome.result?.isTruncated).toBe(false);
   });
 
-  it("reports the shared cap's truncation on the result", async () => {
-    jest
-      .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
-      .mockResolvedValue(fakeJob());
-    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
-      fakeJob({
-        output: `NAME   READY\n${"web-1  1/1\n".repeat(
-          MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
-        )}`,
-      }),
+  /*
+   * Output is paged, never cut: an output past the shared cap (which used
+   * to be truncated) shows its first page inside the tool_result block,
+   * then a note naming the outputId and the offset to continue from — and
+   * every character of it can be read back through read_tool_output.
+   */
+  it("pages a long output instead of cutting it", async () => {
+    const fullOutput: string = longListing("LAST-ROW  1/1  Running   0");
+    expect(fullOutput.length).toBeGreaterThan(
+      Math.max(TOOL_OUTPUT_PAGE_CHARS, MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM),
     );
 
-    const outcome: ToolCallOutcome = await getTool(
+    jest
+      .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
+      .mockResolvedValue(
+        fakeJob({ payload: { displayCommand: "kubectl get pods -A" } }),
+      );
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(fakeJob({ output: fullOutput }));
+
+    const toolkit: KubectlInvestigationToolkit =
       new KubectlInvestigationToolkit({
         projectId: PROJECT_ID,
         aiRunId: RUN_ID,
         clusters: [readyCluster()],
-      }),
+      });
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
       RUN_KUBECTL_TOOL_NAME,
     ).execute({
       clusterId: CLUSTER_ID.toString(),
@@ -645,9 +753,222 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
       rationale: "everything",
     });
 
-    expect(outcome.result?.isTruncated).toBe(true);
-    expect(outcome.textForLlm).toContain("[output truncated]");
+    expect(outcome.success).toBe(true);
+    expect(outcome.result?.rowCount).toBe(1);
+    const text: string = outcome.textForLlm;
+
+    // The first page, exactly, inside the untrusted-data block.
+    expect(text).toContain(
+      `<tool_result source="untrusted_cluster_output">\n${fullOutput.slice(
+        0,
+        TOOL_OUTPUT_PAGE_CHARS,
+      )}\n</tool_result>`,
+    );
+    expect(text).not.toContain("LAST-ROW");
+    expect(text).not.toContain("[output truncated]");
+
+    // Then, after the block, how to read the rest.
+    const note: string = ToolOutputPager.describeContinuation({
+      outputId: "out-1",
+      shownChars: TOOL_OUTPUT_PAGE_CHARS,
+      totalChars: fullOutput.length,
+    });
+    expect(text.endsWith(`\n${note}`)).toBe(true);
+    expect(text.indexOf(note)).toBeGreaterThan(text.indexOf("</tool_result>"));
+    expect(note).toContain("nothing was cut");
+    expect(note).toContain(
+      `call ${READ_TOOL_OUTPUT_TOOL_NAME} with outputId="out-1" and offset=${TOOL_OUTPUT_PAGE_CHARS}`,
+    );
+    expect(outcome.result?.dataForLlm).toBe(text);
+
+    // Paged output is complete, so nothing on the result says truncated.
+    expect(outcome.result?.isTruncated).toBe(false);
     expect(outcome.result?.redactionCount).toBe(0);
+
+    // Every character is kept for the rest of the run.
+    const pager: ToolOutputPager = toolkit.getOutputPager();
+    expect(pager.hasStoredOutputs()).toBe(true);
+    expect(readWholeOutput(pager, "out-1")).toBe(fullOutput);
+
+    // And the model reads the end with the read tool.
+    const tail: ToolCallOutcome = await pager
+      .buildReadTool()
+      .execute({ outputId: "out-1", offset: -40 });
+    expect(tail.success).toBe(true);
+    expect(tail.textForLlm).toContain("LAST-ROW  1/1  Running   0");
+    expect(tail.textForLlm).toContain("[End of output.]");
+    expect(tail.result?.citationLabel).toContain(
+      'kubectl get pods -A on cluster "prod-us"',
+    );
+  });
+
+  it("says where kubectl's stderr starts when it falls past the first page", async () => {
+    const stdout: string = longListing("web-9  0/1     Pending   0");
+    const fullOutput: string = `${stdout}\n[stderr]\nError from server (NotFound): pods "web-10" not found`;
+    const stderrOffset: number = stdout.length + 1;
+
+    jest
+      .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
+      .mockResolvedValue(fakeJob());
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "Exit code 1",
+        output: fullOutput,
+      }),
+    );
+
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+      });
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      RUN_KUBECTL_TOOL_NAME,
+    ).execute({
+      clusterId: CLUSTER_ID.toString(),
+      command: "kubectl get pods -n web",
+      rationale: "see pod phases",
+    });
+
+    // It ran and failed: still evidence, cited with rowCount 0.
+    expect(outcome.success).toBe(true);
+    expect(outcome.result?.rowCount).toBe(0);
+    expect(outcome.textForLlm).not.toContain("NotFound");
+    expect(outcome.textForLlm).toContain(
+      `kubectl's stderr starts at offset ${stderrOffset}.]`,
+    );
+
+    const stderrPage: ToolOutputPage | { error: string } = toolkit
+      .getOutputPager()
+      .read({ outputId: "out-1", offset: stderrOffset });
+    expect("error" in stderrPage).toBe(false);
+    expect((stderrPage as ToolOutputPage).text).toBe(
+      '[stderr]\nError from server (NotFound): pods "web-10" not found',
+    );
+  });
+
+  it("names the stderr offset only when stderr is past the first page", () => {
+    expect(
+      KubectlInvestigationToolkit.describeStderrPosition("just stdout", 10),
+    ).toBeUndefined();
+    expect(
+      KubectlInvestigationToolkit.describeStderrPosition(
+        "ab\n[stderr]\nboom",
+        10,
+      ),
+    ).toBeUndefined();
+    expect(
+      KubectlInvestigationToolkit.describeStderrPosition(
+        `${"x".repeat(20)}\n[stderr]\nboom`,
+        10,
+      ),
+    ).toBe("kubectl's stderr starts at offset 21.");
+  });
+
+  /*
+   * The server no longer cuts anything, so isTruncated only reports a cut
+   * made before the output reached it (the agent's own byte cap) — never
+   * an output that is merely long and paged.
+   */
+  it("reports isTruncated only for output the agent already cut", async () => {
+    const jobRun: jest.SpyInstance = jest.spyOn(KubectlJobRunner, "run");
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+      });
+    const tool: ObservabilityAssistantExtraTool = getTool(
+      toolkit,
+      RUN_KUBECTL_TOOL_NAME,
+    );
+    const call: JSONObject = {
+      clusterId: CLUSTER_ID.toString(),
+      command: "kubectl get pods -n web",
+      rationale: "see pod phases",
+    };
+
+    // Cut before it arrived, as the job runner reports it.
+    jobRun.mockResolvedValueOnce(ranOutcome({ isTruncated: true }));
+    const cut: ToolCallOutcome = await tool.execute(call);
+    expect(cut.result?.isTruncated).toBe(true);
+    expect(cut.textForLlm).not.toContain(READ_TOOL_OUTPUT_TOOL_NAME);
+
+    // An outcome that does not say, but carries the cut marker.
+    jobRun.mockResolvedValueOnce(
+      ranOutcome({
+        isTruncated: undefined,
+        output: `web-1  1/1     Running   0${KUBECTL_OUTPUT_TRUNCATED_SUFFIX}`,
+      }),
+    );
+    expect((await tool.execute(call)).result?.isTruncated).toBe(true);
+
+    // Long but whole: paged, and not truncated.
+    jobRun.mockResolvedValueOnce(
+      ranOutcome({ isTruncated: false, output: longListing("END") }),
+    );
+    const paged: ToolCallOutcome = await tool.execute(call);
+    expect(paged.result?.isTruncated).toBe(false);
+    expect(paged.textForLlm).toContain('outputId="out-1"');
+
+    // Short and whole.
+    jobRun.mockResolvedValueOnce(ranOutcome({ isTruncated: false }));
+    expect((await tool.execute(call)).result?.isTruncated).toBe(false);
+  });
+
+  /*
+   * An investigation's toolkits share one pager, so one read_tool_output
+   * reads every long output of the run — and outputIds never collide.
+   */
+  it("keeps long outputs in the pager it was given, numbered across the run", async () => {
+    jest
+      .spyOn(KubectlJobRunner, "run")
+      .mockResolvedValue(ranOutcome({ output: longListing("SHARED-END") }));
+
+    const pager: ToolOutputPager = new ToolOutputPager();
+    // Another toolkit of the run already stored one.
+    pager.paginate({
+      label: "earlier output",
+      text: "e".repeat(TOOL_OUTPUT_PAGE_CHARS + 1),
+    });
+
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+        outputPager: pager,
+      });
+    expect(toolkit.getOutputPager()).toBe(pager);
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      RUN_KUBECTL_TOOL_NAME,
+    ).execute({
+      clusterId: CLUSTER_ID.toString(),
+      command: "kubectl get pods -n web",
+      rationale: "see pod phases",
+    });
+
+    expect(outcome.textForLlm).toContain('outputId="out-2"');
+    expect(readWholeOutput(pager, "out-2")).toBe(longListing("SHARED-END"));
+    expect(readWholeOutput(pager, "out-1")).toBe(
+      "e".repeat(TOOL_OUTPUT_PAGE_CHARS + 1),
+    );
+
+    // Without one, each toolkit keeps its own.
+    const own: ToolOutputPager = new KubectlInvestigationToolkit({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+      clusters: [readyCluster()],
+    }).getOutputPager();
+    expect(own).toBeInstanceOf(ToolOutputPager);
+    expect(own).not.toBe(pager);
   });
 
   it("redacts a Runner error message that echoes credential material", async () => {
@@ -689,8 +1010,8 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     );
   });
 
-  it("spends the per-investigation budget and then refuses", async () => {
-    jest
+  it("spends an explicit smaller command cap and then refuses", async () => {
+    const enqueue: jest.SpyInstance = jest
       .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
       .mockResolvedValue(fakeJob());
     jest
@@ -714,23 +1035,92 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
       rationale: "again",
     };
 
+    // A cap below the runaway guard is stated to the model up front.
+    expect(tool.definition.description).toContain(
+      " At most 2 commands in this run.",
+    );
+
     expect((await tool.execute(call)).success).toBe(true);
     expect((await tool.execute(call)).success).toBe(true);
 
     const third: ToolCallOutcome = await tool.execute(call);
     expect(third.success).toBe(false);
-    expect(third.textForLlm).toContain("budget (2 commands) is spent");
+    expect(third.textForLlm).toBe(
+      "This run has already sent 2 kubectl commands, the most one run may send. Finish your analysis with what you have.",
+    );
+    expect(third.result).toBeUndefined();
+    expect(enqueue).toHaveBeenCalledTimes(2);
     expect(toolkit.getCommandsRun()).toBe(2);
-    expect(MAX_KUBECTL_COMMANDS_PER_INVESTIGATION).toBeGreaterThan(0);
+  });
+
+  /*
+   * By default the cap is a runaway guard, not a ration: the model is told
+   * to run as many commands as it needs and is not told a number.
+   */
+  it("defaults to the shared runaway guard of MAX_KUBECTL_COMMANDS_PER_INVESTIGATION", async () => {
+    expect(MAX_KUBECTL_COMMANDS_PER_INVESTIGATION).toBe(200);
+
+    const jobRun: jest.SpyInstance = jest
+      .spyOn(KubectlJobRunner, "run")
+      .mockResolvedValue(ranOutcome());
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+      });
+    const tool: ObservabilityAssistantExtraTool = getTool(
+      toolkit,
+      RUN_KUBECTL_TOOL_NAME,
+    );
+
+    expect(tool.definition.description).toContain(
+      "Run as many commands as the investigation needs.",
+    );
+    expect(tool.definition.description).not.toContain("At most");
+
+    const call: JSONObject = {
+      clusterId: CLUSTER_ID.toString(),
+      command: "kubectl get pods -n web",
+      rationale: "again",
+    };
+
+    for (
+      let index: number = 0;
+      index < MAX_KUBECTL_COMMANDS_PER_INVESTIGATION;
+      index++
+    ) {
+      expect((await tool.execute(call)).success).toBe(true);
+    }
+
+    const over: ToolCallOutcome = await tool.execute(call);
+    expect(over.success).toBe(false);
+    expect(over.textForLlm).toContain(
+      `This run has already sent ${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION} kubectl commands, the most one run may send.`,
+    );
+    expect(jobRun).toHaveBeenCalledTimes(MAX_KUBECTL_COMMANDS_PER_INVESTIGATION);
+    expect(toolkit.getCommandsRun()).toBe(
+      MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
+    );
+    expect(
+      (
+        jobRun.mock.calls[jobRun.mock.calls.length - 1]![0] as Record<
+          string,
+          unknown
+        >
+      )["stepId"],
+    ).toBe(`ai-investigation-kubectl-${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION}`);
   });
 });
 
 /*
- * C27: the agent loop checks its wall clock only between tool calls, so
- * the toolkit plans each command's claim window and execution timeout
- * against the run's deadline and refuses what no longer fits.
+ * C27: a run has no time limit unless its project configured one. When it
+ * did, the agent loop checks it only between tool calls, so the toolkit
+ * plans each command's claim window and execution timeout against the
+ * run's deadline and refuses what no longer fits. Without one, nothing
+ * about a command's wait depends on the clock.
  */
-describe("KubectlInvestigationToolkit run_kubectl and the run's wall clock", () => {
+describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () => {
   const NOW_MS: number = 1_700_000_000_000;
 
   let enqueue: jest.SpyInstance;
@@ -854,8 +1244,9 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's wall clock", () 
     const outcome: ToolCallOutcome = await run(toolkit, MAX_KUBECTL_TIMEOUT_MS);
 
     expect(outcome.success).toBe(false);
-    expect(outcome.textForLlm).toContain("Not enough time is left");
-    expect(outcome.textForLlm).toContain("about 10s remain");
+    expect(outcome.textForLlm).toContain(
+      "Not enough time is left before this investigation's configured time limit to run another kubectl command (about 10s remain;",
+    );
     expect(outcome.textForLlm).toContain(
       `at least ${Math.round(KubectlWaitBudget.getMinimumBudgetMs() / 1000)}s`,
     );
@@ -900,13 +1291,18 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's wall clock", () 
     expect(toolkit.getCommandsRun()).toBe(0);
   });
 
-  it("never lets a planned wait exceed the remaining budget, whatever is asked for", async () => {
+  it("never lets a planned wait exceed the remaining time, whatever is asked for", async () => {
     const remainings: Array<number> = [
       KubectlWaitBudget.getMinimumBudgetMs(),
       30_000,
-      60_000,
+      // The smallest time limit a project can configure.
+      AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
+        MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+      ).maxWallClockMs!,
       96_000,
-      INVESTIGATION_MAX_WALL_CLOCK_MS,
+      150_000,
+      // A typical configured limit, from its start.
+      AIAgentRunLimitsHelper.fromTimeLimitInMinutes(15).maxWallClockMs!,
     ];
     const requests: Array<number> = [
       1_000,
@@ -948,24 +1344,94 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's wall clock", () 
     });
   });
 
-  it("states the engine's own default wall clock, not a copy of it", () => {
-    /*
-     * The runners hand this value to the engine (maxWallClockMs) and to the
-     * toolkit (as a deadline); a second definition is how the two drift.
-     */
-    expect(INVESTIGATION_MAX_WALL_CLOCK_MS).toBe(ENGINE_MAX_WALL_CLOCK_MS);
-    expect(typeof INVESTIGATION_MAX_WALL_CLOCK_MS).toBe("number");
-    expect(INVESTIGATION_MAX_WALL_CLOCK_MS).toBeGreaterThan(0);
+  /*
+   * No time limit is the default: what the runners derive for a project
+   * that configured none is no deadline at all, and a toolkit without one
+   * plans without a deadline and never refuses a command for time — however
+   * long the run has been going.
+   */
+  it("has no deadline by default, so an unlimited run never refuses for time", async () => {
+    const defaults: AIAgentRunLimits = AIAgentRunLimitsHelper.getDefault();
+    expect(defaults.maxWallClockMs).toBeUndefined();
+    expect(
+      AIAgentRunLimitsHelper.getDeadlineAtMs(defaults, NOW_MS),
+    ).toBeUndefined();
+
+    const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+    const toolkit: KubectlInvestigationToolkit = new KubectlInvestigationToolkit(
+      {
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+      },
+    );
+
+    // A day into the run.
+    jest.spyOn(Date, "now").mockReturnValue(NOW_MS + 24 * 60 * 60 * 1000);
+
+    const outcome: ToolCallOutcome = await run(
+      toolkit,
+      MAX_KUBECTL_TIMEOUT_MS,
+    );
+
+    expect(outcome.success).toBe(true);
+    expect(plan).toHaveBeenCalledWith({
+      requestedTimeoutInMs: MAX_KUBECTL_TIMEOUT_MS,
+      maxClaimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+      deadlineAtMs: undefined,
+    });
+    expect(enqueuedWindows()).toEqual({
+      timeoutInMs: MAX_KUBECTL_TIMEOUT_MS,
+      claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+    });
+    expect(toolkit.getCommandsRun()).toBe(1);
   });
 
-  it("states one wall clock that a run_kubectl wait can always fit inside", () => {
-    // Full windows must fit a fresh budget, or the tool would never run.
+  it("mentions shortening the timeout only when the run has a time limit", () => {
+    const timeoutDescription: (
+      toolkit: KubectlInvestigationToolkit,
+    ) => string = (toolkit: KubectlInvestigationToolkit): string => {
+      const schema: JSONObject = getTool(toolkit, RUN_KUBECTL_TOOL_NAME)
+        .definition.inputSchema as JSONObject;
+      return (
+        (schema["properties"] as JSONObject)["timeoutInMs"] as JSONObject
+      )["description"] as string;
+    };
+
+    const unlimited: string = timeoutDescription(toolkitWithDeadline(undefined));
+    expect(unlimited).toBe(
+      `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}).`,
+    );
+
+    expect(timeoutDescription(toolkitWithDeadline(NOW_MS + 60_000))).toBe(
+      `${unlimited} Shortened automatically when the investigation's configured time limit is close.`,
+    );
+  });
+
+  it("can run a command at the start of the smallest time limit a project can configure", async () => {
+    const smallest: AIAgentRunLimits =
+      AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
+        MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+      );
+    expect(smallest.maxWallClockMs).toBe(
+      MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES * 60 * 1000,
+    );
+    // Even the floors of one command fit, or the tool would never run.
+    expect(KubectlWaitBudget.getMinimumBudgetMs()).toBeLessThan(
+      smallest.maxWallClockMs!,
+    );
+
+    const outcome: ToolCallOutcome = await run(
+      toolkitWithDeadline(
+        AIAgentRunLimitsHelper.getDeadlineAtMs(smallest, NOW_MS),
+      ),
+      DEFAULT_KUBECTL_TIMEOUT_MS,
+    );
+
+    expect(outcome.success).toBe(true);
     expect(
-      KubectlWaitBudget.getWorstCaseWaitMs({
-        timeoutInMs: DEFAULT_KUBECTL_TIMEOUT_MS,
-        claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
-      }),
-    ).toBeLessThan(INVESTIGATION_MAX_WALL_CLOCK_MS);
+      KubectlWaitBudget.getWorstCaseWaitMs(enqueuedWindows()),
+    ).toBeLessThanOrEqual(smallest.maxWallClockMs!);
   });
 });
 

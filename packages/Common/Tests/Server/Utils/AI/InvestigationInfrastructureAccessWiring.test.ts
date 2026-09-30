@@ -12,29 +12,48 @@ import AlertAIContextBuilder, {
 } from "../../../../Server/Utils/AI/AlertAIContextBuilder";
 import AIMemory from "../../../../Server/Utils/AI/SRE/AIMemory";
 import { ObservabilityAssistantExtraTool } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import {
+  READ_TOOL_OUTPUT_TOOL_NAME,
+  TOOL_OUTPUT_PAGE_CHARS,
+} from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
 import ClusterAccessContext from "../../../../Server/Utils/AI/ClusterAccess/ClusterAccessContext";
 import {
-  INVESTIGATION_MAX_WALL_CLOCK_MS,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Server/Utils/AI/ClusterAccess/KubectlInvestigationToolkit";
+import KubectlJobRunner, {
+  KubectlJobOutcome,
+  KubectlRunState,
+} from "../../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
 import ResourceAccessContext from "../../../../Server/Utils/AI/ResourceAccess/ResourceAccessContext";
 import {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
 } from "../../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import ResourceCommandJobRunner, {
+  ResourceCommandJobOutcome,
+  ResourceCommandRunState,
+} from "../../../../Server/Utils/AI/ResourceAccess/ResourceCommandJobRunner";
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import ResourceAiAccessService from "../../../../Server/Services/ResourceAiAccessService";
-import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Project from "../../../../Models/DatabaseModels/Project";
+import {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+} from "../../../../Types/AI/AIAgentRunLimits";
+import { JSONObject } from "../../../../Types/JSON";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../../Types/ObjectID";
+import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
+import KubectlWaitBudget from "../../../../Utils/AiRemediation/KubectlWaitBudget";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessStatus,
@@ -46,12 +65,14 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * Infrastructure access (Docker, Podman, Swarm, Proxmox, VMware, Ceph,
  * databases, hosts) reaches an investigation through the same four wires
  * cluster access does — the tools, the persona addendum, the context block
- * and the shared wall clock — BESIDE the cluster wiring, never instead of
- * it:
+ * and the shared deadline (none unless the project configured a time
+ * limit) — BESIDE the cluster wiring, never instead of it:
  *
  * - with no linked resource, every request is exactly what it was (the
  *   cluster addendum alone, the kubectl tools alone);
  * - the cluster rules come first, the infrastructure rules after;
+ * - both toolkits page long output into ONE pager, whose read_tool_output
+ *   comes after every command tool — and only when there is one;
  * - a failed resource lookup never fails the run and never takes the
  *   cluster access away (and the other way round).
  */
@@ -145,6 +166,81 @@ function toolNames(request: InvestigationRequest): Array<string> {
   );
 }
 
+function findTool(
+  request: InvestigationRequest,
+  name: string,
+): ObservabilityAssistantExtraTool {
+  const tool: ObservabilityAssistantExtraTool | undefined = (
+    request.extraTools || []
+  ).find((candidate: ObservabilityAssistantExtraTool) => {
+    return candidate.definition.name === name;
+  });
+
+  if (!tool) {
+    throw new Error(`Tool ${name} not offered.`);
+  }
+
+  return tool;
+}
+
+// The project row the runners read the lane's time limit from.
+function projectWithTimeLimits(limits: {
+  incidentMinutes?: number | undefined;
+  alertMinutes?: number | undefined;
+}): Project {
+  const project: Project = new Project(projectId);
+  project.incidentAiInvestigationTimeLimitInMinutes = limits.incidentMinutes;
+  project.alertAiInvestigationTimeLimitInMinutes = limits.alertMinutes;
+  return project;
+}
+
+// What ResourceCommandJobRunner.run hands back for a command that ran.
+function resourceOutcome(output: string): ResourceCommandJobOutcome {
+  return {
+    jobId: ObjectID.generate().toString(),
+    succeeded: true,
+    exitCode: 0,
+    output,
+    redactionCount: 0,
+    isTruncated: false,
+    displayCommand: "docker ps -a",
+    executed: true,
+    runState: ResourceCommandRunState.Ran,
+    claimTimedOut: false,
+    isAccessFailure: false,
+  };
+}
+
+// What KubectlJobRunner.run hands back for a command kubectl ran.
+function kubectlOutcome(output: string): KubectlJobOutcome {
+  return {
+    jobId: ObjectID.generate().toString(),
+    succeeded: true,
+    exitCode: 0,
+    output,
+    redactionCount: 0,
+    isTruncated: false,
+    displayCommand: "kubectl get pods -A",
+    executed: true,
+    runState: KubectlRunState.Ran,
+    claimTimedOut: false,
+    isAccessFailure: false,
+  };
+}
+
+// An output more than one page long that ends in `lastLine`.
+function longOutput(row: string, lastLine: string): string {
+  return `${row.repeat(
+    Math.ceil((TOOL_OUTPUT_PAGE_CHARS + 1000) / row.length),
+  )}${lastLine}`;
+}
+
+const RUN_COMMAND_ARGS: JSONObject = {
+  resourceId: DOCKER_ID,
+  command: "docker ps -a",
+  rationale: "see the containers",
+};
+
 async function investigate(kind: SubjectKind): Promise<void> {
   if (kind === "incident") {
     const incident: Incident = new Incident(incidentId);
@@ -192,11 +288,16 @@ describe("Investigation runners wire infrastructure access beside cluster access
   let clusterStatuses: jest.SpyInstance;
   let resourceStatuses: jest.SpyInstance;
   let failOrRequeue: jest.SpyInstance;
+  let findProject: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    // A project that configured no investigation time limit (the default).
+    findProject = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithTimeLimits({}));
     executeRun = jest
       .spyOn(AIInvestigationEngine, "executeRun")
       .mockResolvedValue(undefined);
@@ -216,7 +317,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
   });
 
   test.each(SUBJECT_KINDS)(
-    "a %s investigation gets the infrastructure tools, addendum, context block and the shared wall clock",
+    "a %s investigation gets the infrastructure tools, the output reader, addendum, context block and no time limit",
     async (kind: SubjectKind) => {
       await investigate(kind);
 
@@ -231,6 +332,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
       expect(toolNames(request)).toEqual([
         LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
       ]);
       expect(request.additionalInstructions).toBe(
         ResourceAccessContext.buildPersonaAddendum([resourceStatus()]),
@@ -240,7 +342,9 @@ describe("Investigation runners wire infrastructure access beside cluster access
         `- Docker host "web-1" (resourceId: ${DOCKER_ID}): READ access via run_infrastructure_command`,
       );
       expect(request.contextSummary).not.toContain("# Cluster access");
-      expect(request.maxWallClockMs).toBe(INVESTIGATION_MAX_WALL_CLOCK_MS);
+      expect(request.maxWallClockMs).toBeUndefined();
+      expect(request.maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
+      expect(request.maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
       expect(failOrRequeue).not.toHaveBeenCalled();
     },
   );
@@ -254,11 +358,13 @@ describe("Investigation runners wire infrastructure access beside cluster access
 
       const request: InvestigationRequest = sentRequest(executeRun);
 
+      // One reader for both toolkits' outputs, after every command tool.
       expect(toolNames(request)).toEqual([
         LIST_CLUSTER_ACCESS_TOOL_NAME,
         RUN_KUBECTL_TOOL_NAME,
         LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
       ]);
       expect(request.additionalInstructions).toBe(
         `${ClusterAccessContext.buildPersonaAddendum([
@@ -289,6 +395,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
       expect(toolNames(request)).toEqual([
         LIST_CLUSTER_ACCESS_TOOL_NAME,
         RUN_KUBECTL_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
       ]);
       // Byte for byte the cluster addendum alone — nothing appended.
       expect(request.additionalInstructions).toBe(
@@ -347,6 +454,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
       expect(toolNames(request)).toEqual([
         LIST_CLUSTER_ACCESS_TOOL_NAME,
         RUN_KUBECTL_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
       ]);
       expect(request.additionalInstructions).toBe(
         ClusterAccessContext.buildPersonaAddendum([clusterStatus()]),
@@ -367,6 +475,7 @@ describe("Investigation runners wire infrastructure access beside cluster access
       expect(toolNames(request)).toEqual([
         LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
       ]);
       expect(failOrRequeue).not.toHaveBeenCalled();
     },
