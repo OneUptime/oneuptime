@@ -390,13 +390,7 @@ describe("the liveness text follows discovery", () => {
   const JOB: string = fs.readFileSync(
     path.join(
       __dirname,
-      "..",
-      "..",
-      "FeatureSet",
-      "Workers",
-      "Jobs",
-      "TelemetryEntity",
-      "ComputeServiceDependencies.ts",
+      "../../FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
     ),
     "utf8",
   );
