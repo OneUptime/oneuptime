@@ -19,7 +19,7 @@ import React, {
  * The Dashboard's Enterprise plugin door and the component every enterprise
  * shell renders.
  *
- * A shell (Settings > SSO, the audit log table, ...) stays at its original
+ * A shell (Settings > SCIM, the audit log table, ...) stays at its original
  * path in core and renders <EnterprisePluginPage>: the ee plugin when the
  * project may use the feature AND this bundle includes it, the upsell card
  * otherwise. The plugins come from getDashboardPlugins(), which in every
@@ -117,7 +117,7 @@ const pinDeployment: (deployment: Deployment) => void = (
 };
 
 const PAGE_PROPS: PageComponentProps = {
-  pageRoute: new Route("/dashboard/project-id/settings/sso"),
+  pageRoute: new Route("/dashboard/project-id/settings/scim"),
   currentProject: null,
   hasPaymentMethod: true,
 };
@@ -128,23 +128,23 @@ const UPSELL: {
   featureName: string;
   benefits: Array<{ icon: IconProp; title: string; subtitle: string }>;
 } = {
-  title: "Single Sign On (SSO)",
-  description: "Configure SAML SSO for your project.",
-  featureName: "SAML Single Sign On",
+  title: "SCIM",
+  description: "Automate user provisioning via SCIM.",
+  featureName: "SCIM User Provisioning",
   benefits: [
     {
-      icon: IconProp.Lock,
-      title: "Centralized auth",
-      subtitle: "Revoke access from one place.",
+      icon: IconProp.User,
+      title: "Automatic provisioning",
+      subtitle: "Users created in your IdP are added without manual invites.",
     },
   ],
 };
 
-const FakeSSOPage: FunctionComponent<PageComponentProps> = (
+const FakeSCIMPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
-    <div data-testid="fake-sso-plugin">
+    <div data-testid="fake-scim-plugin">
       {props.pageRoute.toString()}|{String(props.hasPaymentMethod)}
     </div>
   );
@@ -173,7 +173,7 @@ const makeLazyPlugin: (
         });
       }
 
-      return { default: FakeSSOPage };
+      return { default: FakeSCIMPage };
     },
   );
 };
@@ -214,17 +214,19 @@ describe("EnterprisePluginPage", () => {
 
     render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={IDENTITY_REQUIRED_PLAN}
         upsell={UPSELL}
       />,
     );
 
-    expect(screen.getByTestId("fake-sso-plugin")).toHaveTextContent(
-      "/dashboard/project-id/settings/sso|true",
+    expect(screen.getByTestId("fake-scim-plugin")).toHaveTextContent(
+      "/dashboard/project-id/settings/scim|true",
     );
-    expect(screen.queryByText("SAML Single Sign On")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("SCIM User Provisioning"),
+    ).not.toBeInTheDocument();
   });
 
   test("shows the plan upsell, and never downloads the plugin, below the tier", () => {
@@ -241,8 +243,8 @@ describe("EnterprisePluginPage", () => {
     );
 
     expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
-    expect(screen.getByText("SAML Single Sign On")).toBeInTheDocument();
-    expect(screen.queryByTestId("fake-sso-plugin")).not.toBeInTheDocument();
+    expect(screen.getByText("SCIM User Provisioning")).toBeInTheDocument();
+    expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
     expect(lazyLoads).toBe(0);
   });
 
@@ -252,7 +254,7 @@ describe("EnterprisePluginPage", () => {
 
     render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={AUDIT_LOGS_REQUIRED_PLAN}
         upsell={UPSELL}
@@ -260,7 +262,7 @@ describe("EnterprisePluginPage", () => {
     );
 
     expect(screen.getAllByText("Upgrade to Enterprise")).toHaveLength(2);
-    expect(screen.queryByTestId("fake-sso-plugin")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
   });
 
   test("an eligible Cloud project on a Community bundle is pointed at the edition, never told to upgrade", () => {
@@ -287,14 +289,14 @@ describe("EnterprisePluginPage", () => {
 
     render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={AUDIT_LOGS_REQUIRED_PLAN}
         upsell={UPSELL}
       />,
     );
 
-    expect(screen.getByTestId("fake-sso-plugin")).toBeInTheDocument();
+    expect(screen.getByTestId("fake-scim-plugin")).toBeInTheDocument();
   });
 
   test("self-hosted Community Edition shows the edition upsell, plugin or not", () => {
@@ -302,7 +304,7 @@ describe("EnterprisePluginPage", () => {
 
     render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={IDENTITY_REQUIRED_PLAN}
         upsell={UPSELL}
@@ -312,7 +314,7 @@ describe("EnterprisePluginPage", () => {
     expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
       2,
     );
-    expect(screen.queryByTestId("fake-sso-plugin")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
   });
 
   test("self-hosted Enterprise Edition on a Community bundle shows the edition upsell", () => {
@@ -345,13 +347,13 @@ describe("EnterprisePluginPage", () => {
     );
 
     expect(await screen.findByTestId("component-loader")).toBeInTheDocument();
-    expect(screen.queryByTestId("fake-sso-plugin")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
 
     await act(async () => {
       releaseLazyPlugin?.();
     });
 
-    expect(await screen.findByTestId("fake-sso-plugin")).toBeInTheDocument();
+    expect(await screen.findByTestId("fake-scim-plugin")).toBeInTheDocument();
     expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
     expect(lazyLoads).toBe(1);
   });
@@ -376,7 +378,7 @@ describe("EnterprisePluginPage", () => {
       releaseLazyPlugin?.();
     });
 
-    expect(await screen.findByTestId("fake-sso-plugin")).toBeInTheDocument();
+    expect(await screen.findByTestId("fake-scim-plugin")).toBeInTheDocument();
   });
 
   test("isEligible overrides the plan and edition check, both ways", () => {
@@ -385,28 +387,28 @@ describe("EnterprisePluginPage", () => {
 
     const { unmount } = render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={IDENTITY_REQUIRED_PLAN}
         upsell={UPSELL}
         isEligible={true}
       />,
     );
-    expect(screen.getByTestId("fake-sso-plugin")).toBeInTheDocument();
+    expect(screen.getByTestId("fake-scim-plugin")).toBeInTheDocument();
     unmount();
 
     pinDeployment("self-hosted-enterprise");
     render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={IDENTITY_REQUIRED_PLAN}
         upsell={UPSELL}
         isEligible={false}
       />,
     );
-    expect(screen.queryByTestId("fake-sso-plugin")).not.toBeInTheDocument();
-    expect(screen.getByText("SAML Single Sign On")).toBeInTheDocument();
+    expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
+    expect(screen.getByText("SCIM User Provisioning")).toBeInTheDocument();
   });
 
   test("renderUpsell replaces the card and is told why it is showing", () => {
@@ -430,7 +432,7 @@ describe("EnterprisePluginPage", () => {
     currentPlanForTest = PlanType.Scale;
     const { unmount } = render(
       <EnterprisePluginPage
-        plugin={FakeSSOPage}
+        plugin={FakeSCIMPage}
         pluginProps={PAGE_PROPS}
         requiredPlan={AUDIT_LOGS_REQUIRED_PLAN}
         renderUpsell={renderAuditUpsell}
@@ -572,12 +574,8 @@ describe("the Community plugin door (what this jest config resolves)", () => {
       [
         "AuditLogsTable",
         "SettingsAuditLogsSettings",
-        "SettingsOIDC",
         "SettingsSCIM",
-        "SettingsSSO",
-        "StatusPageOIDC",
         "StatusPageSCIM",
-        "StatusPageSSO",
         "TeamCompliance",
         "LicenseManager",
       ].sort(),
@@ -591,13 +589,26 @@ describe("the Community plugin door (what this jest config resolves)", () => {
     );
   });
 
+  test("has no key for the single sign-on screens: they are core in every edition", () => {
+    for (const retiredKey of [
+      "SettingsSSO",
+      "SettingsOIDC",
+      "StatusPageSSO",
+      "StatusPageOIDC",
+    ]) {
+      expect(
+        DASHBOARD_ENTERPRISE_PLUGIN_KEYS as ReadonlyArray<string>,
+      ).not.toContain(retiredKey);
+    }
+  });
+
   test("a shell reading the real door on a Community build shows the upsell even when eligible", () => {
     pinDeployment("cloud");
     currentPlanForTest = PlanType.Enterprise;
 
     render(
       <EnterprisePluginPage
-        plugin={getDashboardPlugins().SettingsSSO}
+        plugin={getDashboardPlugins().SettingsSCIM}
         pluginProps={PAGE_PROPS}
         requiredPlan={IDENTITY_REQUIRED_PLAN}
         upsell={UPSELL}
@@ -627,7 +638,7 @@ describe("the plugin door with other plugin modules", () => {
   test("hands back the Enterprise plugin object as is", async () => {
     const enterprisePlugins: DashboardEnterprisePlugins = {
       buildMarker: "ONEUPTIME_EE_DASHBOARD_PLUGIN_v1",
-      SettingsSSO: FakeSSOPage,
+      SettingsSCIM: FakeSCIMPage,
     };
 
     jest.doMock("@oneuptime/ee-dashboard", () => {
@@ -640,7 +651,7 @@ describe("the plugin door with other plugin modules", () => {
       );
 
     expect(door.getDashboardPlugins()).toBe(enterprisePlugins);
-    expect(door.getDashboardPlugins().SettingsSSO).toBe(FakeSSOPage);
+    expect(door.getDashboardPlugins().SettingsSCIM).toBe(FakeSCIMPage);
   });
 
   test("fails loudly, naming the rule, when read before the plugin module finished loading", async () => {

@@ -1,7 +1,7 @@
-import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
-import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
-import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
-import DashboardSideMenu from "@oneuptime/admin-dashboard/Pages/Settings/SideMenu";
+import AdminModelAPI from "../../../Utils/ModelAPI";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -25,33 +25,9 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ProjectScopedTeamsPicker, {
   resolveProjectIdFromFormValue,
   selectedTeamIdsFromFormValue,
-} from "@oneuptime/admin-dashboard/Components/GlobalProvider/ProjectScopedTeamsPicker";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+} from "../../../Components/GlobalProvider/ProjectScopedTeamsPicker";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-/*
- * The license state helpers are shared with the Dashboard's identity
- * screens; they import Common/... only, so either frontend can bundle them.
- */
-import EnterpriseLicenseBanner from "../../../../Dashboard/SSO/License/EnterpriseLicenseBanner";
-import {
-  EnterpriseLicenseMode,
-  LicensedFeature,
-  isEnterpriseConfigurationReadOnly,
-} from "../../../../Dashboard/SSO/License/EnterpriseLicenseMode";
-import useEnterpriseLicenseMode from "../../../../Dashboard/SSO/License/UseEnterpriseLicenseMode";
-import ReadOnlyActionsNotice, {
-  ReadOnlyActionsKind,
-} from "../../../../Dashboard/SSO/TightenOnly/ReadOnlyActionsNotice";
-import DisableProviderCard from "../../../../Dashboard/SSO/TightenOnly/DisableProviderCard";
-import useDisableProviderAction, {
-  DISABLE_PROJECT_ATTACHMENT_CONFIRMATION,
-  DisableProviderAction,
-} from "../../../../Dashboard/SSO/TightenOnly/UseDisableProviderAction";
 
 const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -70,57 +46,6 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const testLoginURL: URL = URL.fromURL(IDENTITY_URL).addRoute(
     new Route(`/global-oidc/${modelId.toString()}`),
   );
-
-  /*
-   * Without a valid Enterprise license (after the trial or the grace period)
-   * the server refuses to create or change this configuration, master
-   * admins included, and sign-in through these providers is off until a
-   * license is activated; the banner says both up front, and the page hides
-   * what would fail. Reads and deletes keep working.
-   */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
-    LicensedFeature.SSO,
-  );
-  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
-
-  /*
-   * The one change the server still accepts then: switching the provider,
-   * or one of its project attachments, off ({ isEnabled: false } and
-   * nothing else), so a compromised identity provider can be shut out
-   * without waiting for a license. Whether the provider is on comes from
-   * the configuration card below, which reloads once it has been switched
-   * off.
-   */
-  const [isProviderEnabled, setIsProviderEnabled] = useState<boolean>(false);
-  const [providerRefresher, setProviderRefresher] = useState<boolean>(false);
-  const [attachmentsRefreshToggle, setAttachmentsRefreshToggle] =
-    useState<number>(0);
-
-  const providerDisableAction: DisableProviderAction<GlobalOIDC> =
-    useDisableProviderAction<GlobalOIDC>({
-      modelType: GlobalOIDC,
-      modelAPI: AdminModelAPI,
-      isReadOnly: isReadOnly,
-      onDisabled: () => {
-        setIsProviderEnabled(false);
-        setProviderRefresher((refresher: boolean) => {
-          return !refresher;
-        });
-      },
-    });
-
-  const attachmentDisableAction: DisableProviderAction<GlobalOIDCProject> =
-    useDisableProviderAction<GlobalOIDCProject>({
-      modelType: GlobalOIDCProject,
-      modelAPI: AdminModelAPI,
-      isReadOnly: isReadOnly,
-      confirmation: DISABLE_PROJECT_ATTACHMENT_CONFIRMATION,
-      onDisabled: () => {
-        setAttachmentsRefreshToggle((toggle: number) => {
-          return toggle + 1;
-        });
-      },
-    });
 
   return (
     <ModelPage
@@ -157,25 +82,6 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
       sideMenu={<DashboardSideMenu />}
     >
       <Fragment>
-        <EnterpriseLicenseBanner
-          mode={licenseMode}
-          feature={LicensedFeature.SSO}
-        />
-        <ReadOnlyActionsNotice
-          mode={licenseMode}
-          kind={ReadOnlyActionsKind.Provider}
-        />
-
-        {isReadOnly && isProviderEnabled ? (
-          <DisableProviderCard
-            onDisable={() => {
-              providerDisableAction.requestDisable(modelId);
-            }}
-          />
-        ) : (
-          <></>
-        )}
-
         <CardModelDetail<GlobalOIDC>
           name="Global OIDC Configuration"
           modelAPI={AdminModelAPI}
@@ -183,8 +89,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             title: "OIDC SSO Configuration",
             description: "Configuration for this instance-wide OIDC provider.",
           }}
-          isEditable={!isReadOnly}
-          refresher={providerRefresher}
+          isEditable={true}
           editButtonText={"Edit Configuration"}
           formFields={[
             {
@@ -382,9 +287,6 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               },
             ],
             modelId: modelId,
-            onItemLoaded: (item: GlobalOIDC) => {
-              setIsProviderEnabled(item.isEnabled === true);
-            },
           }}
         />
 
@@ -440,7 +342,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           name="Settings > Global OIDC > Attached Projects"
           isDeleteable={true}
           isEditable={false}
-          isCreateable={!isReadOnly}
+          isCreateable={true}
           modelAPI={AdminModelAPI}
           cardProps={{
             title: "Attached Projects",
@@ -449,8 +351,6 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           }}
           noItemsMessage={"No projects attached to this provider."}
           showRefreshButton={true}
-          refreshToggle={attachmentsRefreshToggle.toString()}
-          actionButtons={[attachmentDisableAction.actionButton]}
           filters={[]}
           formSteps={
             [
@@ -562,9 +462,6 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             );
           }}
         />
-
-        {providerDisableAction.modal}
-        {attachmentDisableAction.modal}
       </Fragment>
     </ModelPage>
   );

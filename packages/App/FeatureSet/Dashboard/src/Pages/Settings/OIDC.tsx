@@ -1,7 +1,10 @@
-import TeamsElement from "@oneuptime/dashboard/Components/Team/TeamsElement";
+import TeamsElement from "../../Components/Team/TeamsElement";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import PageComponentProps from "../PageComponentProps";
+import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
+import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
+import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -17,19 +20,6 @@ import {
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import Team from "Common/Models/DatabaseModels/Team";
-import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
-import {
-  EnterpriseLicenseMode,
-  LicensedFeature,
-  isEnterpriseConfigurationReadOnly,
-} from "../../License/EnterpriseLicenseMode";
-import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
-import ReadOnlyActionsNotice, {
-  ReadOnlyActionsKind,
-} from "../../TightenOnly/ReadOnlyActionsNotice";
-import useDisableProviderAction, {
-  DisableProviderAction,
-} from "../../TightenOnly/UseDisableProviderAction";
 import React, {
   Fragment,
   FunctionComponent,
@@ -38,51 +28,17 @@ import React, {
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
 
-const OIDCPage: FunctionComponent<PageComponentProps> = (
+/*
+ * Settings > OIDC: the project's OpenID Connect sign-on providers and the
+ * link to test them.
+ */
+const OIDCSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [showOidcConfigId, setShowOidcConfigId] = useState<string>("");
 
-  /*
-   * Without a valid Enterprise license (after the trial or the grace period)
-   * the server refuses to create or change this configuration, and sign-in
-   * through these providers is off until a license is activated; the banner
-   * says both up front, and the page hides what would fail. Reads and
-   * deletes keep working.
-   */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
-    LicensedFeature.SSO,
-  );
-  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
-
-  /*
-   * The one change the server still accepts then: switching an enabled
-   * provider off ({ isEnabled: false } and nothing else), so a compromised
-   * identity provider can be shut out without waiting for a license.
-   */
-  const [tableRefreshToggle, setTableRefreshToggle] = useState<number>(0);
-
-  const disableAction: DisableProviderAction<ProjectOIDC> =
-    useDisableProviderAction<ProjectOIDC>({
-      modelType: ProjectOIDC,
-      isReadOnly: isReadOnly,
-      onDisabled: () => {
-        setTableRefreshToggle((toggle: number) => {
-          return toggle + 1;
-        });
-      },
-    });
-
   return (
     <Fragment>
-      <EnterpriseLicenseBanner
-        mode={licenseMode}
-        feature={LicensedFeature.SSO}
-      />
-      <ReadOnlyActionsNotice
-        mode={licenseMode}
-        kind={ReadOnlyActionsKind.Provider}
-      />
       <>
         <ModelTable<ProjectOIDC>
           modelType={ProjectOIDC}
@@ -96,8 +52,8 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             tableId: "settings-project-oidc-table",
           }}
           isDeleteable={true}
-          isEditable={!isReadOnly}
-          isCreateable={!isReadOnly}
+          isEditable={true}
+          isCreateable={true}
           cardProps={{
             title: "OpenID Connect (OIDC)",
             description:
@@ -232,7 +188,6 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             },
           ]}
           showRefreshButton={true}
-          refreshToggle={tableRefreshToggle.toString()}
           actionButtons={[
             {
               title: "View OIDC Config",
@@ -245,7 +200,6 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
                 onCompleteAction();
               },
             },
-            disableAction.actionButton,
           ]}
           filters={[
             {
@@ -350,10 +304,57 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             submitButtonType={ButtonStyleType.NORMAL}
           />
         )}
-
-        {disableAction.modal}
       </>
     </Fragment>
+  );
+};
+
+/*
+ * Every edition includes single sign-on. OneUptime Cloud sells it on the
+ * Scale plan, so there a project below Scale sees the plan upsell instead.
+ */
+const OIDCPage: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  return (
+    <PlanGatedPage
+      requiredPlan={SSO_REQUIRED_PLAN}
+      upsell={{
+        title: "OpenID Connect (OIDC)",
+        description: "Configure OIDC sign-on for your project.",
+        featureName: "OIDC Single Sign On",
+        featureDescription:
+          "Authenticate team members through any OIDC provider — Google Workspace, Auth0, Keycloak, Microsoft Entra ID and more.",
+        benefits: [
+          {
+            icon: IconProp.Lock,
+            title: "Modern OAuth2 flow",
+            subtitle:
+              "Use any OIDC-compliant identity provider to manage who can sign in.",
+          },
+          {
+            icon: IconProp.ShieldCheck,
+            title: "Enforce SSO",
+            subtitle:
+              "Require OIDC login for everyone in the project — no shared passwords.",
+          },
+          {
+            icon: IconProp.User,
+            title: "Auto team assignment",
+            subtitle:
+              "Map signed-in users into the right teams the moment they log in.",
+          },
+          {
+            icon: IconProp.ClipboardDocumentList,
+            title: "Audit trail",
+            subtitle:
+              "Every OIDC sign-in is recorded alongside the rest of your audit events.",
+          },
+        ],
+      }}
+    >
+      <OIDCSettings {...props} />
+    </PlanGatedPage>
   );
 };
 

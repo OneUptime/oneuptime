@@ -31,9 +31,7 @@ import {
   isEnterpriseConfigurationReadOnly,
 } from "../../License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
-import ReadOnlyActionsNotice, {
-  ReadOnlyActionsKind,
-} from "../../TightenOnly/ReadOnlyActionsNotice";
+import ReadOnlyActionsNotice from "../../TightenOnly/ReadOnlyActionsNotice";
 import {
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
@@ -103,10 +101,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         mode={licenseMode}
         feature={LicensedFeature.SCIM}
       />
-      <ReadOnlyActionsNotice
-        mode={licenseMode}
-        kind={ReadOnlyActionsKind.Scim}
-      />
+      <ReadOnlyActionsNotice mode={licenseMode} />
       <Tabs
         tabs={[
           {

@@ -1,6 +1,6 @@
 import AuditLogsPlugins from "./AuditLogs/Plugins";
+import IdentityPlugins from "./Identity/Plugins";
 import LicensePlugins from "./License/Plugins";
-import SSOPlugins from "./SSO/Plugins";
 import TeamCompliancePlugins from "./TeamCompliance/Plugins";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 
@@ -27,7 +27,7 @@ export const ONEUPTIME_EE_DASHBOARD_PLUGIN_SENTINEL: string =
   "ONEUPTIME_EE_DASHBOARD_PLUGIN_v1";
 
 export default {
-  ...SSOPlugins,
+  ...IdentityPlugins,
   ...AuditLogsPlugins,
   ...TeamCompliancePlugins,
   ...LicensePlugins,

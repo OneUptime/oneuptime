@@ -835,13 +835,12 @@
   "Valkey memory": "Valkey 메모리",
   "Spot job backlogs and failures before they cause incidents.": "작업 백로그와 실패가 인시던트를 유발하기 전에 발견합니다.",
   "Track database disk and memory utilization before you run out.": "리소스가 부족해지기 전에 데이터베이스 디스크 및 메모리 사용률을 추적합니다.",
-  "You can still disable a provider.": "공급자는 계속 비활성화할 수 있습니다.",
-  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "유효한 Enterprise 라이선스가 없으면 이 구성은 읽기 전용이고 이 공급자들을 통한 로그인은 꺼져 있지만, 공급자 비활성화는 보안을 강화하기만 하므로 항상 허용됩니다. 라이선스가 활성화되면 활성화된 모든 공급자를 통한 로그인이 즉시 재개되므로, ID 공급자가 손상된 경우 지금 \"비활성화\"를 사용하여 꺼진 상태로 유지하세요. 공급자를 다시 활성화하려면 유효한 라이선스가 필요합니다.",
-  "Disable Provider": "공급자 비활성화",
-  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "다시 활성화할 때까지 아무도 이 공급자로 로그인할 수 없으며, 다시 활성화하려면 유효한 Enterprise 라이선스가 필요합니다.",
-  "Disable": "비활성화",
-  "Disable Project Attachment": "프로젝트 연결 비활성화",
-  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "이 공급자는 더 이상 이 프로젝트에 사용자를 프로비저닝하지 않으며, 연결된 프로젝트로 제한된 경우 이 프로젝트에 대한 액세스도 허용하지 않습니다. 연결을 다시 활성화하려면 유효한 Enterprise 라이선스가 필요합니다.",
-  "Disable this provider": "이 공급자 비활성화",
-  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Enterprise 라이선스가 없거나 만료된 동안에는 이 공급자를 통한 로그인이 꺼져 있으며, 라이선스가 활성화되면 즉시 재개됩니다. 꺼진 상태로 유지하려면 공급자를 비활성화하세요. 구성은 그대로 유지되며, Enterprise 라이선스가 다시 유효해지면 다시 활성화할 수 있습니다."
+  "Single Sign-On (SSO)": "싱글 사인온(SSO)",
+  "Control whether users must sign in with SSO across this server.": "이 서버 전체에서 사용자가 SSO로 로그인해야 하는지 제어합니다.",
+  "Edit SSO Settings": "SSO 설정 편집",
+  "Require SSO for Login": "로그인에 SSO 필수",
+  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "활성화하면 모든 사용자가 이 서버의 프로젝트에 액세스하려면 SSO로 로그인해야 합니다. 마스터 관리자는 잘못 구성된 SSO를 언제든지 복구할 수 있도록 예외입니다. 프로젝트 자체의 SSO 설정도 여기에 더해 계속 적용됩니다.",
+  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.": "활성화하면 모든 사용자가 이 서버의 프로젝트에 액세스하려면 SSO로 로그인해야 합니다. 마스터 관리자는 예외입니다.",
+  "Enterprise license required.": "Enterprise 라이선스가 필요합니다.",
+  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "OneUptime의 실시간 Health 대시보드와 Query Console에는 인스턴스 상태가 포함된 Enterprise 라이선스가 필요하지만, 이 설치의 라이선스가 없거나 만료되었거나 이를 포함하지 않습니다. 관리자 대시보드 상단의 Enterprise Edition 배지에서 라이선스를 활성화하거나 갱신하세요. 라이선스가 없거나 만료된 동안에는 SCIM 프로비저닝과 감사 로그 기록도 꺼져 있으며, 라이선스가 활성화되는 즉시 이 화면들과 함께 다시 켜집니다. ClickHouse 용량, 인스턴스 로그, 글로벌 프로브, 마이그레이션, 지원 번들은 라이선스 없이도 동작합니다. 왼쪽 메뉴에서 찾을 수 있습니다."
 }

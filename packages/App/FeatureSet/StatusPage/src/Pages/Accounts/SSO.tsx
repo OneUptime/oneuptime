@@ -30,9 +30,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   /*
    * How many providers each list loaded (null until it has). When both are
-   * empty there is nothing to sign in with - no provider is enabled, or this
-   * is a Community Edition server, where status page SSO is not available and
-   * the server lists none - so the page says so and links back to sign-in.
+   * empty there is nothing to sign in with - no SAML or OIDC provider is
+   * enabled for this status page - so the page says so and links back to
+   * sign-in.
    *
    * That notice is the ONLY message then: neither list shows an empty state of
    * its own (hideEmptyState), and both stay mounted but hidden, so they keep

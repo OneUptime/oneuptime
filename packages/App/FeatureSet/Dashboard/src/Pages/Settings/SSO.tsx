@@ -1,9 +1,12 @@
-import TeamsElement from "@oneuptime/dashboard/Components/Team/TeamsElement";
+import TeamsElement from "../../Components/Team/TeamsElement";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import PageComponentProps from "../PageComponentProps";
+import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
+import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
+import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -22,20 +25,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import Team from "Common/Models/DatabaseModels/Team";
-import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
-import {
-  EnterpriseLicenseMode,
-  LicensedFeature,
-  isEnterpriseConfigurationReadOnly,
-} from "../../License/EnterpriseLicenseMode";
-import { getForceSsoDescription } from "../../License/ForceSsoSetting";
-import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
-import ReadOnlyActionsNotice, {
-  ReadOnlyActionsKind,
-} from "../../TightenOnly/ReadOnlyActionsNotice";
-import useDisableProviderAction, {
-  DisableProviderAction,
-} from "../../TightenOnly/UseDisableProviderAction";
 import React, {
   Fragment,
   FunctionComponent,
@@ -44,57 +33,18 @@ import React, {
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
 
-const SSOPage: FunctionComponent<PageComponentProps> = (
+/*
+ * Settings > SSO: the project's SAML single sign-on providers, the link to
+ * test them, and "Force SSO for Login".
+ */
+const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
     useState<string>("");
 
-  /*
-   * Without a valid Enterprise license (after the trial or the grace period)
-   * the server refuses to create or change this configuration, and sign-in
-   * through these providers is off until a license is activated; the banner
-   * says both up front, and the page hides what would fail. Reads and
-   * deletes keep working. A license that does not include single sign-on
-   * stops it the same way (NotIncluded).
-   *
-   * "Force SSO for Login" is not enforced then, and the server reports it as
-   * No whatever is saved, so its card is not editable either: saving the
-   * reported No would overwrite the saved requirement (ForceSsoSetting.ts).
-   */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
-    LicensedFeature.SSO,
-  );
-  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
-
-  /*
-   * The one change the server still accepts then: switching an enabled
-   * provider off ({ isEnabled: false } and nothing else), so a compromised
-   * identity provider can be shut out without waiting for a license.
-   */
-  const [tableRefreshToggle, setTableRefreshToggle] = useState<number>(0);
-
-  const disableAction: DisableProviderAction<ProjectSSO> =
-    useDisableProviderAction<ProjectSSO>({
-      modelType: ProjectSSO,
-      isReadOnly: isReadOnly,
-      onDisabled: () => {
-        setTableRefreshToggle((toggle: number) => {
-          return toggle + 1;
-        });
-      },
-    });
-
   return (
     <Fragment>
-      <EnterpriseLicenseBanner
-        mode={licenseMode}
-        feature={LicensedFeature.SSO}
-      />
-      <ReadOnlyActionsNotice
-        mode={licenseMode}
-        kind={ReadOnlyActionsKind.Provider}
-      />
       <>
         <ModelTable<ProjectSSO>
           modelType={ProjectSSO}
@@ -108,8 +58,8 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             tableId: "settings-project-sso-table",
           }}
           isDeleteable={true}
-          isEditable={!isReadOnly}
-          isCreateable={!isReadOnly}
+          isEditable={true}
+          isCreateable={true}
           cardProps={{
             title: "Single Sign On (SSO)",
             description:
@@ -258,7 +208,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             },
           ]}
           showRefreshButton={true}
-          refreshToggle={tableRefreshToggle.toString()}
           actionButtons={[
             {
               title: "View SSO Config",
@@ -271,7 +220,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                 onCompleteAction();
               },
             },
-            disableAction.actionButton,
           ]}
           filters={[
             {
@@ -361,17 +309,15 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             title: "SSO Settings",
             description: "Configure settings for SSO.",
           }}
-          isEditable={!isReadOnly}
+          isEditable={true}
           formFields={[
             {
               field: {
                 requireSsoForLogin: true,
               },
               title: "Force SSO for Login",
-              description: getForceSsoDescription(
-                licenseMode,
+              description:
                 "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-              ),
               fieldType: FormFieldSchemaType.Toggle,
             },
           ]}
@@ -385,10 +331,8 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                 },
                 fieldType: FieldType.Boolean,
                 title: "Force SSO for Login",
-                description: getForceSsoDescription(
-                  licenseMode,
+                description:
                   "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-                ),
               },
             ],
             modelId: ProjectUtil.getCurrentProjectId()!,
@@ -426,10 +370,57 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             submitButtonType={ButtonStyleType.NORMAL}
           />
         )}
-
-        {disableAction.modal}
       </>
     </Fragment>
+  );
+};
+
+/*
+ * Every edition includes single sign-on. OneUptime Cloud sells it on the
+ * Scale plan, so there a project below Scale sees the plan upsell instead.
+ */
+const SSOPage: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  return (
+    <PlanGatedPage
+      requiredPlan={SSO_REQUIRED_PLAN}
+      upsell={{
+        title: "Single Sign On (SSO)",
+        description: "Configure SAML SSO for your project.",
+        featureName: "SAML Single Sign On",
+        featureDescription:
+          "Let team members authenticate into this project using your SAML identity provider (Okta, Azure AD, OneLogin, JumpCloud and more).",
+        benefits: [
+          {
+            icon: IconProp.Lock,
+            title: "Centralized auth",
+            subtitle:
+              "Federate sign-in to your IdP and revoke access from one place.",
+          },
+          {
+            icon: IconProp.ShieldCheck,
+            title: "Enforce SSO",
+            subtitle:
+              "Require SSO for everyone in the project — no shared passwords.",
+          },
+          {
+            icon: IconProp.User,
+            title: "Auto team assignment",
+            subtitle:
+              "Map signed-in users into the right teams the moment they log in.",
+          },
+          {
+            icon: IconProp.ClipboardDocumentList,
+            title: "Audit trail",
+            subtitle:
+              "Every SSO sign-in is recorded alongside the rest of your audit events.",
+          },
+        ],
+      }}
+    >
+      <SSOSettings {...props} />
+    </PlanGatedPage>
   );
 };
 

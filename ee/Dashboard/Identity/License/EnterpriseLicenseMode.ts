@@ -9,24 +9,24 @@ import API from "Common/UI/Utils/API/API";
 
 /*
  * Whether this installation's Enterprise license lets people change the
- * enterprise identity configuration (SAML / OIDC providers, SCIM settings),
- * and whether the feature a screen is about is running.
+ * enterprise configuration (SCIM settings, the audit log settings), and
+ * whether the feature a screen is about is running.
  *
  * The server is the authority: without a valid license (after the trial or
  * the grace period) it answers 402 to every create or update of these models,
- * and it also stops SSO sign-in, refuses SCIM requests and stops recording
- * audit logs until a license is activated. A license whose features leave one
- * of those out stops that one the same way. This only lets the screens say so
- * up front, and hide the buttons that would fail, instead of letting someone
- * fill in a whole form first.
+ * and it also refuses SCIM requests and stops recording audit logs until a
+ * license is activated. A license whose features leave one of those out stops
+ * that one the same way. This only lets the screens say so up front, and hide
+ * the buttons that would fail, instead of letting someone fill in a whole
+ * form first.
  *
- * It never gates reading or deleting configuration, or the two tighten-only
- * changes the server accepts without a license (TightenOnlyUpdates.ts).
+ * It never gates reading or deleting configuration, or the tighten-only
+ * change the server accepts without a license (TightenOnlyUpdates.ts).
  * Unknown - not loaded yet, or unreadable - never hides anything and never
- * claims that sign-in, SCIM or audit logging has stopped.
+ * claims that SCIM or audit logging has stopped.
  *
- * Used by the Dashboard and the Admin Dashboard screens. It imports only
- * Common/..., so both frontends can bundle it.
+ * Used by the Dashboard's SCIM and audit log screens. It imports only
+ * Common/..., so any frontend can bundle it.
  */
 export enum EnterpriseLicenseMode {
   // A valid license, or OneUptime Cloud (plans gate these features there).
@@ -53,7 +53,6 @@ export enum EnterpriseLicenseMode {
  * equal. Only the ones a screen asks about are listed.
  */
 export enum LicensedFeature {
-  SSO = "sso",
   SCIM = "scim",
   AuditLogs = "audit-logs",
 }

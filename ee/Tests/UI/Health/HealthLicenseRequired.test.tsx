@@ -292,21 +292,41 @@ describe("HealthLicenseRequired", () => {
   });
 
   /*
-   * A missing or expired license stops more than these screens: single
-   * sign-on, SCIM and audit logging stop with it. The admin looking at this
+   * A missing or expired license stops more than these screens: SCIM
+   * provisioning and audit logging stop with it. The admin looking at this
    * notice is the one who can fix that, so it says so - and "keep working"
    * above is only about the screens that need no license.
    */
-  test("says that single sign-on, SCIM and audit logging are off too, and come back with a license", () => {
+  test("says that SCIM provisioning and audit logging are off too, and come back with a license", () => {
     expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).toContain(
-      "While the license is missing or expired, single sign-on, SCIM provisioning and audit logging are off too",
+      "While the license is missing or expired, SCIM provisioning and audit logging are off too",
     );
     expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).toContain(
       "as soon as a license is activated",
     );
     expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).not.toMatch(
-      /(?:SSO|single sign-on|SCIM|audit logging)[^.]*keeps? working/i,
+      /(?:SCIM|audit logging)[^.]*keeps? working/i,
     );
+  });
+
+  /*
+   * Single sign-on is part of every edition and does not depend on the
+   * license, so the notice does not list it among what the license switches
+   * off - the sentence it used to have.
+   */
+  test("does not name single sign-on", () => {
+    const retiredDescription: string =
+      HEALTH_LICENSE_REQUIRED_DESCRIPTION.replace(
+        "SCIM provisioning and audit logging are off too",
+        "single sign-on, SCIM provisioning and audit logging are off too",
+      );
+    const singleSignOn: RegExp = /single sign-on|\bSSO\b|\bSAML\b|\bOIDC\b/i;
+
+    expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).not.toMatch(singleSignOn);
+    expect(HEALTH_LICENSE_REQUIRED_TITLE).not.toMatch(singleSignOn);
+    // The check catches the sentence the notice used to have.
+    expect(retiredDescription).not.toBe(HEALTH_LICENSE_REQUIRED_DESCRIPTION);
+    expect(retiredDescription).toMatch(singleSignOn);
   });
 
   // The server's message is about enterprise configuration; this one is not.

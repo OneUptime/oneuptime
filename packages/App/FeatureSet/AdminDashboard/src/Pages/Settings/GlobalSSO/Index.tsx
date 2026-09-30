@@ -1,7 +1,7 @@
-import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
-import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
-import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
-import DashboardSideMenu from "@oneuptime/admin-dashboard/Pages/Settings/SideMenu";
+import AdminModelAPI from "../../../Utils/ModelAPI";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -13,25 +13,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
 import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-/*
- * The license state helpers are shared with the Dashboard's identity
- * screens; they import Common/... only, so either frontend can bundle them.
- */
-import EnterpriseLicenseBanner from "../../../../Dashboard/SSO/License/EnterpriseLicenseBanner";
-import {
-  EnterpriseLicenseMode,
-  LicensedFeature,
-  isEnterpriseConfigurationReadOnly,
-} from "../../../../Dashboard/SSO/License/EnterpriseLicenseMode";
-import useEnterpriseLicenseMode from "../../../../Dashboard/SSO/License/UseEnterpriseLicenseMode";
-import ReadOnlyActionsNotice, {
-  ReadOnlyActionsKind,
-} from "../../../../Dashboard/SSO/TightenOnly/ReadOnlyActionsNotice";
-import useDisableProviderAction, {
-  DisableProviderAction,
-} from "../../../../Dashboard/SSO/TightenOnly/UseDisableProviderAction";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -53,52 +36,12 @@ const Settings: FunctionComponent = (): ReactElement => {
     },
   ];
 
-  /*
-   * Without a valid Enterprise license (after the trial or the grace period)
-   * the server refuses to create or change this configuration, master
-   * admins included, and sign-in through these providers is off until a
-   * license is activated; the banner says both up front, and the page hides
-   * what would fail. Reads and deletes keep working.
-   */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
-    LicensedFeature.SSO,
-  );
-  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
-
-  /*
-   * The one change the server still accepts then: switching an enabled
-   * provider off ({ isEnabled: false } and nothing else), so a compromised
-   * identity provider can be shut out without waiting for a license.
-   */
-  const [tableRefreshToggle, setTableRefreshToggle] = useState<number>(0);
-
-  const disableAction: DisableProviderAction<GlobalSSO> =
-    useDisableProviderAction<GlobalSSO>({
-      modelType: GlobalSSO,
-      modelAPI: AdminModelAPI,
-      isReadOnly: isReadOnly,
-      onDisabled: () => {
-        setTableRefreshToggle((toggle: number) => {
-          return toggle + 1;
-        });
-      },
-    });
-
   return (
     <Page
       title={t("pages.settings.title")}
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<DashboardSideMenu />}
     >
-      <EnterpriseLicenseBanner
-        mode={licenseMode}
-        feature={LicensedFeature.SSO}
-      />
-      <ReadOnlyActionsNotice
-        mode={licenseMode}
-        kind={ReadOnlyActionsKind.Provider}
-      />
-
       <Banner
         openInNewTab={true}
         title="Instance-wide SAML SSO"
@@ -115,7 +58,7 @@ const Settings: FunctionComponent = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isViewable={true}
-        isCreateable={!isReadOnly}
+        isCreateable={true}
         cardProps={{
           title: "Global SAML SSO",
           description:
@@ -124,8 +67,6 @@ const Settings: FunctionComponent = (): ReactElement => {
         modelAPI={AdminModelAPI}
         noItemsMessage={"No Global SSO providers found."}
         showRefreshButton={true}
-        refreshToggle={tableRefreshToggle.toString()}
-        actionButtons={[disableAction.actionButton]}
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           {
@@ -310,8 +251,6 @@ const Settings: FunctionComponent = (): ReactElement => {
           },
         ]}
       />
-
-      {disableAction.modal}
     </Page>
   );
 };

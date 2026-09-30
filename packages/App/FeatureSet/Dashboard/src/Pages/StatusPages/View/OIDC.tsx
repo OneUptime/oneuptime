@@ -1,7 +1,10 @@
-import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
+import PlanGatedPage from "../../../Components/Billing/PlanGatedPage";
+import { SSO_REQUIRED_PLAN } from "../../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { VoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -17,19 +20,6 @@ import {
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
-import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
-import {
-  EnterpriseLicenseMode,
-  LicensedFeature,
-  isEnterpriseConfigurationReadOnly,
-} from "../../License/EnterpriseLicenseMode";
-import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
-import ReadOnlyActionsNotice, {
-  ReadOnlyActionsKind,
-} from "../../TightenOnly/ReadOnlyActionsNotice";
-import useDisableProviderAction, {
-  DisableProviderAction,
-} from "../../TightenOnly/UseDisableProviderAction";
 import React, {
   Fragment,
   FunctionComponent,
@@ -39,53 +29,19 @@ import React, {
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const OIDCPage: FunctionComponent<PageComponentProps> = (
+/*
+ * Status page > OIDC: OpenID Connect sign-on for private status page users,
+ * and the link to test it.
+ */
+const OIDCSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [showOidcConfigId, setShowOidcConfigId] = useState<string>("");
 
-  /*
-   * Without a valid Enterprise license (after the trial or the grace period)
-   * the server refuses to create or change this configuration, and sign-in
-   * through these providers is off until a license is activated; the banner
-   * says both up front, and the page hides what would fail. Reads and
-   * deletes keep working.
-   */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
-    LicensedFeature.SSO,
-  );
-  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
-
-  /*
-   * The one change the server still accepts then: switching an enabled
-   * provider off ({ isEnabled: false } and nothing else), so a compromised
-   * identity provider can be shut out without waiting for a license.
-   */
-  const [tableRefreshToggle, setTableRefreshToggle] = useState<number>(0);
-
-  const disableAction: DisableProviderAction<StatusPageOIDC> =
-    useDisableProviderAction<StatusPageOIDC>({
-      modelType: StatusPageOIDC,
-      isReadOnly: isReadOnly,
-      onDisabled: () => {
-        setTableRefreshToggle((toggle: number) => {
-          return toggle + 1;
-        });
-      },
-    });
-
   return (
     <Fragment>
-      <EnterpriseLicenseBanner
-        mode={licenseMode}
-        feature={LicensedFeature.SSO}
-      />
-      <ReadOnlyActionsNotice
-        mode={licenseMode}
-        kind={ReadOnlyActionsKind.Provider}
-      />
       <>
         <ModelTable<StatusPageOIDC>
           modelType={StatusPageOIDC}
@@ -110,8 +66,8 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             tableId: "status-page-oidc-table",
           }}
           isDeleteable={true}
-          isEditable={!isReadOnly}
-          isCreateable={!isReadOnly}
+          isEditable={true}
+          isCreateable={true}
           cardProps={{
             title: "OpenID Connect (OIDC)",
             description:
@@ -232,7 +188,6 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             },
           ]}
           showRefreshButton={true}
-          refreshToggle={tableRefreshToggle.toString()}
           actionButtons={[
             {
               title: "View OIDC Config",
@@ -245,7 +200,6 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
                 onCompleteAction();
               },
             },
-            disableAction.actionButton,
           ]}
           filters={[
             {
@@ -338,10 +292,56 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             submitButtonType={ButtonStyleType.NORMAL}
           />
         )}
-
-        {disableAction.modal}
       </>
     </Fragment>
+  );
+};
+
+/*
+ * Every edition includes single sign-on. OneUptime Cloud sells it on the
+ * Scale plan, so there a project below Scale sees the plan upsell instead.
+ */
+const OIDCPage: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  return (
+    <PlanGatedPage
+      requiredPlan={SSO_REQUIRED_PLAN}
+      upsell={{
+        title: "Status Page OIDC",
+        description: "Configure OIDC sign-on for this private status page.",
+        featureName: "Status Page OIDC SSO",
+        featureDescription:
+          "Restrict access to this status page using any OIDC provider — Google Workspace, Auth0, Keycloak and more.",
+        benefits: [
+          {
+            icon: IconProp.Lock,
+            title: "Private status pages",
+            subtitle:
+              "Only OIDC-authenticated users can view this status page.",
+          },
+          {
+            icon: IconProp.ShieldCheck,
+            title: "Centralized control",
+            subtitle:
+              "Revoke a user in your IdP and they lose access immediately.",
+          },
+          {
+            icon: IconProp.User,
+            title: "Per-status-page identity",
+            subtitle:
+              "Run distinct IdPs for different audiences (internal vs partner).",
+          },
+          {
+            icon: IconProp.ClipboardDocumentList,
+            title: "Audit trail",
+            subtitle: "See who signed in to your status page and when.",
+          },
+        ],
+      }}
+    >
+      <OIDCSettings {...props} />
+    </PlanGatedPage>
   );
 };
 

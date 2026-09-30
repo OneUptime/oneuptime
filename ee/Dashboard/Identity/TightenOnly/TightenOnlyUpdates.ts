@@ -2,25 +2,23 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
- * The two updates the identity screens may send while the Enterprise license
- * makes configuration read-only (EnterpriseLicenseMode.ReadOnly, or
- * NotIncluded for a license that leaves the feature out).
+ * The update the SCIM screens may send while the Enterprise license makes
+ * configuration read-only (EnterpriseLicenseMode.ReadOnly, or NotIncluded
+ * for a license that leaves SCIM out).
  *
- * The server lets exactly these through without a license, because they can
+ * The server lets exactly this through without a license, because it can
  * only tighten security (TIGHTEN_ONLY_UPDATES in
  * packages/Common/Server/Types/Database/Permissions/EditionPermission.ts):
  *
- *   { isEnabled: false }   switch an SSO / OIDC provider off, or a global
- *                          provider's attachment to a project;
  *   { bearerToken: "..." } replace a SCIM bearer token with a new one of at
  *                          least MIN_SCIM_BEARER_TOKEN_LENGTH characters.
  *
  * One more column in the same update makes it an ordinary update, which the
- * server refuses with 402 - so the payloads are built here, in one place, and
+ * server refuses with 402 - so the payload is built here, in one place, and
  * never by a form. ee/Tests/Server/Identity/TightenOnlyUiContract.test.ts
- * checks them against the server's rules, so the two cannot drift.
+ * checks it against the server's rules, so the two cannot drift.
  *
- * Imports Common/Types only: both frontends bundle it, and the server-side
+ * Imports Common/Types only: the Dashboard bundles it, and the server-side
  * contract test imports it too.
  */
 
@@ -45,11 +43,6 @@ export const SCIM_BEARER_TOKEN_UNAVAILABLE_MESSAGE: string =
 export interface RandomValuesSource {
   getRandomValues: (array: Uint8Array) => Uint8Array;
 }
-
-// The update that switches an identity provider (or an attachment) off.
-export const buildDisableProviderUpdate: () => JSONObject = (): JSONObject => {
-  return { isEnabled: false };
-};
 
 /*
  * A new SCIM bearer token from the browser's cryptographically secure random
