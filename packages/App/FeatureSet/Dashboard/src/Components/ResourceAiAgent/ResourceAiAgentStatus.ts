@@ -622,14 +622,18 @@ export function getResourceAiAttentionStepText(
       return "Turn on AI investigation.";
     case "remediation_write_access_missing":
       return `Give the ${agentName} write access with the steps below.`;
+    /*
+     * auto_remediation_disabled_for_project is retired: Enable AI covers
+     * it, so an older server that still sends it mid-rollout gets the same
+     * step.
+     */
     case "ai_disabled_for_project":
+    case "auto_remediation_disabled_for_project":
       return "Turn on AI for this project.";
     case "llm_provider_missing":
       return "Add an AI provider for this project, or use OneUptime AI credits.";
     case "ai_balance_insufficient":
       return "Add AI credits to this project, or turn on auto-recharge.";
-    case "auto_remediation_disabled_for_project":
-      return "Turn on auto-remediation for this project.";
     default:
       return gap.nextStep || gap.title;
   }
