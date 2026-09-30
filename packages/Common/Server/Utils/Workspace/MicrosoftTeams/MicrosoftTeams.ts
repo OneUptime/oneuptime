@@ -3362,12 +3362,33 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * channel/chat message bodies are typically HTML (body.contentType "html").
    */
   private static toPlainTextFromTeamsMessageBody(rawContent: string): string {
-    return rawContent
-      .replace(/<at[^>]*>.*?<\/at>/g, "")
-      .replace(/<[^>]*>/g, "")
+    return this.stripHtmlTags(rawContent.replace(/<at[^>]*>.*?<\/at>/g, ""))
       .replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  /*
+   * Plain text out of a Teams message body, which Graph and the Bot Framework
+   * hand over as HTML. Removing complete tags is not enough on its own: an
+   * unclosed one ("<script" with no ">" after it) matches no tag pattern, so
+   * once no tag is left, any "<" still standing goes too, and the text holds
+   * no markup at all. The tag pass repeats until nothing changes - the shape
+   * code scanning recognises as complete, where a single pass is reported as
+   * incomplete multi-character sanitization. Teams sends a literal "<" in a
+   * message as "&lt;", which is left encoded: decoding it here would hand
+   * back what this removed.
+   */
+  public static stripHtmlTags(html: string): string {
+    let text: string = html;
+    let previous: string;
+
+    do {
+      previous = text;
+      text = text.replace(/<[^>]*>/g, "");
+    } while (text !== previous);
+
+    return text.replace(/</g, "");
   }
 
   /*
@@ -6858,9 +6879,8 @@ All monitoring checks are passing normally.`;
           const body: JSONObject = msg["body"] as JSONObject;
           let text: string = (body?.["content"] as string) || "";
 
-          // Remove HTML tags if present (Teams uses HTML)
-          text = text.replace(/<[^>]*>/g, "");
-          text = text.trim();
+          // Teams message bodies are HTML.
+          text = this.stripHtmlTags(text).trim();
 
           // Skip empty messages
           if (!text) {
