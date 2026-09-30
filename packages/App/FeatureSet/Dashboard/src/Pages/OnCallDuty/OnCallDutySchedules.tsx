@@ -29,8 +29,19 @@ const OnCallDutyPage: FunctionComponent<
     <Fragment>
       <ModelTable<OnCallDutySchedule>
         modelType={OnCallDutySchedule}
-        id="on-call-duty-table"
-        userPreferencesKey="on-call-duty-table"
+        /*
+         * Its own id and preferences key: sharing the policies table's
+         * meant a column layout saved on one page was applied to the other.
+         */
+        id="on-call-schedules-table"
+        userPreferencesKey="on-call-schedules-table"
+        /*
+         * The model is named for its table (On-Call Duty Policy Schedule),
+         * which made the create button "Create On-Call Policy Schedule"
+         * on a page every menu calls On-Call Schedules.
+         */
+        singularName="On-Call Schedule"
+        pluralName="On-Call Schedules"
         saveFilterProps={{
           tableId: "on-call-schedules-table",
         }}
@@ -46,7 +57,7 @@ const OnCallDutyPage: FunctionComponent<
         cardProps={{
           title: "On-Call Duty Schedules",
           description:
-            "Here is a list of on-call-duty schedules for this project.",
+            "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
           buttons: [
             {
               title: "Timeline View",
@@ -62,7 +73,6 @@ const OnCallDutyPage: FunctionComponent<
             },
           ],
         }}
-        noItemsMessage={"No on-call schedule found."}
         formFields={[
           {
             field: {

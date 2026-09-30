@@ -180,14 +180,14 @@ podman run -d ... -e DOCKER_API_VERSION= ...
 ### Agent Shows as Disconnected
 
 1. Check that the agent is running: `podman ps --filter name=oneuptime-podman-agent`
-2. Check the agent logs: `podman logs oneuptime-podman-agent | grep -i error`
+2. Check the agent logs: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`
 3. Verify your OneUptime URL and service token are correct
 4. Ensure your Podman host can reach the OneUptime instance over the network
 
 ### No Metrics Appearing
 
-1. Verify the Podman socket is accessible inside the agent: `podman exec oneuptime-podman-agent ls -la /run/podman/podman.sock`
-2. Check the collector logs for export errors: `podman logs oneuptime-podman-agent | tail -100`
+1. Verify the Podman socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts: `podman run --rm --volumes-from oneuptime-podman-agent alpine:3.19 ls -la /run/podman/podman.sock`
+2. Check the collector logs for export errors: `podman logs oneuptime-podman-agent 2>&1 | tail -100`
 3. Ensure your service token is valid and not expired
 
 ### Host Name Shows as a Container ID

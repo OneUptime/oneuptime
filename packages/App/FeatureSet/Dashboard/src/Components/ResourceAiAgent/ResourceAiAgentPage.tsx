@@ -17,16 +17,17 @@ import {
   ResourceAiAgentCardCommand,
   ResourceAiAgentGapAction,
   ResourceAiAgentStatusPill,
+  ResourceAiAttention,
+  ResourceAiAttentionStep,
   getResourceAiAccessRequestBody,
   getResourceAiAgentCardCommand,
   getResourceAiAgentCardState,
-  getResourceAiAgentGapAction,
   getResourceAiAgentMetaParts,
   getResourceAiAgentPageSubtitle,
   getResourceAiAgentReadyText,
   getResourceAiAgentStateSentence,
   getResourceAiAgentStatusPill,
-  getResourceAiAttentionGaps,
+  getResourceAiAttention,
   getResourceAiRefusedRegistrationWarning,
   parseResourceAccessTestResult,
   parseResourceAiAccessStatus,
@@ -89,7 +90,6 @@ import Color from "Common/Types/Color";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import Select from "Common/Types/BaseDatabase/Select";
 import {
-  ResourceAiAccessGap,
   ResourceAiAccessStatus,
   ResourceAiAgentSummary,
   ResourceAiRemediationMode,
@@ -141,8 +141,10 @@ import { useParams } from "react-router-dom";
  *  A. "<Resource> AI agent": the connection, with the install instructions
  *     or the logs command where they are the next step, a connection test,
  *     and the admin action (reset the agent).
- *  B. "Needs attention": the server's gaps, only when there are any. The
- *     page never builds a readiness checklist of its own.
+ *  B. "Needs attention": the server's gaps as ONE item, only when there
+ *     are any — a headline saying what AI cannot do here, then one short
+ *     step per gap with its action. The page never builds a readiness
+ *     checklist of its own.
  *  C. "What AI may do": investigation and fixes, and the write switch when
  *     fixes need it.
  *
@@ -988,8 +990,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     agent,
     descriptor,
   );
-  const attentionGaps: Array<ResourceAiAccessGap> =
-    getResourceAiAttentionGaps(status);
+  const attention: ResourceAiAttention | null = getResourceAiAttention(
+    status,
+    descriptor,
+  );
   const hasAgent: boolean = agent !== null;
   const remediationMode: ResourceAiRemediationMode =
     readResourceRemediationMode(status.aiRemediationMode);
@@ -1028,14 +1032,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderGapAction: (gap: ResourceAiAccessGap) => ReactElement = (
-    gap: ResourceAiAccessGap,
+  const renderStepAction: (
+    action: ResourceAiAgentGapAction | null,
+  ) => ReactElement = (
+    action: ResourceAiAgentGapAction | null,
   ): ReactElement => {
-    const action: ResourceAiAgentGapAction | null = getResourceAiAgentGapAction(
-      gap,
-      status,
-    );
-
     switch (action) {
       case "turn_on_investigation":
         return settingsGate.isAllowed ? (
@@ -1084,6 +1085,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             buttonSize={ButtonSize.Small}
             isLoading={isTesting}
             disabled={isTesting}
+            dataTestId="ai-agent-gap-test-connection"
             onClick={() => {
               runTest().catch(() => {
                 // handled inside runTest
@@ -1388,40 +1390,58 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         </div>
       </Card>
 
-      {attentionGaps.length > 0 ? (
-        <Card
-          title="Needs attention"
-          description={`Each item stops OneUptime AI from doing part of its job on this ${descriptor.noun}.`}
-        >
-          <ul className="space-y-2" data-testid="ai-agent-gaps">
-            {attentionGaps.map((gap: ResourceAiAccessGap): ReactElement => {
-              return (
-                <li
-                  key={gap.code}
-                  data-testid={`ai-agent-gap-${gap.code}`}
-                  className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <Icon
-                      icon={IconProp.Alert}
-                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {gap.title}
-                      </p>
-                      <p className="mt-0.5 text-xs leading-5 text-gray-700">
-                        {gap.nextStep}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 sm:pl-4">
-                    {renderGapAction(gap)}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+      {attention ? (
+        <Card title="Needs attention">
+          <div
+            className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3"
+            data-testid="ai-agent-attention"
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+            />
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-sm font-medium text-gray-900"
+                data-testid="ai-agent-attention-title"
+              >
+                {attention.title}
+              </p>
+              <ol className="mt-2 space-y-2" data-testid="ai-agent-gaps">
+                {attention.steps.map(
+                  (
+                    step: ResourceAiAttentionStep,
+                    index: number,
+                  ): ReactElement => {
+                    return (
+                      <li
+                        key={`${index}:${step.gap.code}`}
+                        data-testid={`ai-agent-gap-${step.gap.code}`}
+                        className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <p className="flex min-w-0 gap-2 text-sm text-gray-700">
+                          {attention.steps.length > 1 ? (
+                            <span
+                              className="flex-shrink-0 tabular-nums text-gray-500"
+                              data-testid="ai-agent-gap-number"
+                            >
+                              {index + 1}.
+                            </span>
+                          ) : (
+                            <></>
+                          )}
+                          <span className="min-w-0">{step.text}</span>
+                        </p>
+                        <div className="flex-shrink-0 sm:pl-4">
+                          {renderStepAction(step.action)}
+                        </div>
+                      </li>
+                    );
+                  },
+                )}
+              </ol>
+            </div>
+          </div>
         </Card>
       ) : (
         <></>

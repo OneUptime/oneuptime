@@ -231,7 +231,7 @@ else
   else
     fail "Exporter answered but returned ZERO pve_* series — it cannot read the Proxmox VE API."
     detail "Response head: $(printf '%s' "$SCRAPE_OUT" | head -c 200)"
-    add_finding "The exporter reaches no PVE data: the API token is wrong or under-privileged. Check PVE_API_TOKEN_ID (user@realm!tokenname) / PVE_API_TOKEN_SECRET, and that the token has the PVEAuditor role on path / (privilege separation disabled or permissions granted to the token itself)."
+    add_finding "The exporter reaches no PVE data: the API token is wrong or under-privileged. Check PVE_API_TOKEN_ID (user@realm!tokenname) / PVE_API_TOKEN_SECRET, and that the PVEAuditor role is granted on path / to the token and to its user (a privilege-separated token only gets the permissions its user also has)."
     if [ "$EXPORTER_BUNDLED" = 1 ]; then
       AUTHERR=$(docker logs --tail 50 "$EXPORTER_CONTAINER" 2>&1 | grep -iE '401|595|auth|permission|denied' | tail -3)
       if [ -n "$AUTHERR" ]; then

@@ -14,9 +14,9 @@ const NotOperationalMonitors: FunctionComponent<
           isOperationalState: false,
         },
       }}
-      noItemsMessage="All monitors in operational state."
-      title="Inoperational Monitors"
-      description="Here is a list of all the monitors which are not in operational state."
+      noItemsMessage="No monitors are reporting a problem."
+      title="Not Operational Monitors"
+      description="Monitors whose current status is not operational, such as Degraded or Offline. View a monitor to see what changed."
     />
   );
 };

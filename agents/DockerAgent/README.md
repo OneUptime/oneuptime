@@ -257,6 +257,7 @@ docker ps --filter name=oneuptime-docker-agent
 # View agent logs
 docker logs -f oneuptime-docker-agent
 
-# Verify Docker socket access
-docker exec oneuptime-docker-agent ls -la /var/run/docker.sock
+# Verify Docker socket access — the agent image has no shell, so look from a
+# throwaway container that shares its mounts
+docker run --rm --volumes-from oneuptime-docker-agent alpine:3.19 ls -la /var/run/docker.sock
 ```

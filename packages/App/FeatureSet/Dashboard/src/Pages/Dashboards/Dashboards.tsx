@@ -151,10 +151,10 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showCreateForm={showCreateForm}
         cardProps={{
           title: "Dashboards",
-          description: "Here is a list of dashboards for this project.",
+          description:
+            "Your own views of metrics, logs, traces, monitors and incidents, arranged the way your team wants them. Start from a template or an empty dashboard.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No dashboards found."}
         formFields={[
           {
             field: {

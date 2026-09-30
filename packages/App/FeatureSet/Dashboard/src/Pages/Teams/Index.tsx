@@ -100,9 +100,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
         onFacetStateRestored={restoreFacetState}
         cardProps={{
           title: "Teams",
-          description: "Here is a list of all the teams in this project.",
+          description:
+            "Teams decide what their members can do in this project. Every project starts with Owners, Admin and Members; create your own teams for finer-grained permissions.",
         }}
-        noItemsMessage={"No teams found."}
         query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
         } as Query<Team>)}

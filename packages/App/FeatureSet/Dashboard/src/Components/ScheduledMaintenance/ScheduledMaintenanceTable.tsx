@@ -516,9 +516,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.",
           buttons: cardbuttons,
         }}
-        noItemsMessage={
-          props.noItemsMessage || "No Scheduled Maintenance Event found."
-        }
+        noItemsMessage={props.noItemsMessage}
         showViewIdButton={true}
         viewButtonText="View Event"
         showRefreshButton={true}

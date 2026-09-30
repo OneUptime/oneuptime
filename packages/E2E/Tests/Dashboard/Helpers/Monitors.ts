@@ -159,7 +159,7 @@ const monitorViewUrlRegex: MonitorViewUrlRegexFunction = (
  * form is gone, so there is nothing to click and the URL check returns), and
  * if it did not, no monitor exists yet so the retry creates exactly one.
  */
-const clickCreateUntilMonitorView: (data: {
+export const clickCreateUntilMonitorView: (data: {
   page: Page;
   projectId: string;
 }) => Promise<void> = async (data: {
@@ -233,7 +233,7 @@ const selectMonitoringInterval: (data: {
  * the combobox even when no labels are requested makes every create recipe
  * prove that the unconditional final step is reachable.
  */
-const selectMonitorLabels: (data: {
+export const selectMonitorLabels: (data: {
   page: Page;
   labelNames?: Array<string> | undefined;
 }) => Promise<void> = async (data: {
@@ -286,7 +286,7 @@ const selectMonitorLabels: (data: {
  * unambiguous ready signal — unlike the async loader, which briefly is absent
  * on the very first render before the fetch flips it on.
  */
-const waitForCriteriaStepReady: (data: {
+export const waitForCriteriaStepReady: (data: {
   page: Page;
 }) => Promise<void> = async (data: { page: Page }): Promise<void> => {
   await data.page
