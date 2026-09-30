@@ -1010,6 +1010,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
 
           /*
            * A PVE native push describes one node's node, guest or storage
