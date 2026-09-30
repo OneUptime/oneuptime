@@ -182,6 +182,36 @@ describe("CodeEditor — the value it shows", () => {
     expect(seen).toEqual([script, script + "\n"]);
   });
 
+  test("given both props, the very first commit already shows value", () => {
+    /*
+     * The prop-sync effect would repair a wrong seed a commit later, which is
+     * why only a first-commit read can see it - and that commit is painted,
+     * so a wrong seed shows `initialValue` for a frame.
+     */
+    const seen: Array<string> = [];
+
+    const Probe: () => null = (): null => {
+      useLayoutEffect(() => {
+        seen.push(getInput().value, layerText());
+      }, []);
+
+      return null;
+    };
+
+    render(
+      <>
+        <CodeEditor
+          type={CodeType.JSON}
+          initialValue={'{ "stale": true }'}
+          value={'{ "current": true }'}
+        />
+        <Probe />
+      </>,
+    );
+
+    expect(seen).toEqual(['{ "current": true }', '{ "current": true }\n']);
+  });
+
   test("renders the initialValue prop when no value is given", () => {
     const json: string = '{ "Authorization": "Bearer token" }';
 
