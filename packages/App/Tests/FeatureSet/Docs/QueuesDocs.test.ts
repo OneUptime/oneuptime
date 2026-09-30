@@ -37,6 +37,10 @@ import {
   MESSAGING_CLIENT_METRIC_NAMES,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import { keyForMessageQueue } from "Common/Utils/Telemetry/EntityKey";
+import {
+  DEFAULT_MESSAGE_QUEUE_MIN_SPANS,
+  MESSAGE_QUEUE_MIN_SPANS_ENV,
+} from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -3332,14 +3336,21 @@ describe("Queues docs", (): void => {
      * The discovery defaults the page states: the minimum spans a
      * destination needs to become a queue, the auto-create budget and the
      * days before an untouched queue is archived. The last two are read
-     * from MessageQueueService below; the minimum spans belongs to the
-     * discovery step of the job and is the design's default.
+     * from MessageQueueService below; the minimum spans (its variable and
+     * default) from the discovery step the job runs, MessageQueueDiscovery.
      */
     const TUNING: Readonly<Record<string, string>> = {
-      MESSAGE_QUEUE_MIN_SPANS: "3",
+      [MESSAGE_QUEUE_MIN_SPANS_ENV]: String(DEFAULT_MESSAGE_QUEUE_MIN_SPANS),
       MESSAGE_QUEUE_AUTO_CREATE_BUDGET: "500",
       MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS: "7",
     };
+
+    it("reads the minimum spans under the name the page gives it", (): void => {
+      expect(MESSAGE_QUEUE_MIN_SPANS_ENV).toBe("MESSAGE_QUEUE_MIN_SPANS");
+      expect(TUNING["MESSAGE_QUEUE_MIN_SPANS"]).toBe(
+        String(DEFAULT_MESSAGE_QUEUE_MIN_SPANS),
+      );
+    });
 
     const SERVICE: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "Common/Server/Services/MessageQueueService.ts"),

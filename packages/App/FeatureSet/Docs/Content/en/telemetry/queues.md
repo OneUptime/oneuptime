@@ -50,7 +50,7 @@ Each queue records whether traces, broker metrics or a person created it. Everyt
 
 ### From application traces
 
-Every 10 minutes OneUptime summarises the spans your applications sent in the last 15 minutes that carry any of `messaging.system`, `messaging.destination.name`, `messaging.destination`, `message_bus.destination`, `az.namespace`, `azure.resource_provider.namespace`, `aws.sqs.queue.url`, `aws.queue_url` or `aws.sns.topic.arn`. PRODUCER, CONSUMER, CLIENT and INTERNAL spans count; a SERVER span never names a queue.
+Every 10 minutes OneUptime summarises the spans your applications sent in the last 15 minutes that carry any of `messaging.system`, `messaging.destination.name`, `messaging.destination`, `message_bus.destination`, `az.namespace`, `azure.resource_provider.namespace`, `aws.sqs.queue.url`, `aws.queue_url` or `aws.sns.topic.arn`. Every span but a SERVER span counts: PRODUCER, CONSUMER, CLIENT and INTERNAL spans, and spans a trace pipeline's **Span Kind Remapper** gave another kind (such as Unspecified) or none; a SERVER span never names a queue.
 
 Every messaging attribute in OpenTelemetry is still marked as in development, so applications in one project report the same things under up to five generations of names. OneUptime reads them all, newest first, and never parses span names, whose format changed in semantic conventions 1.27 and which vendors choose freely:
 
@@ -124,7 +124,7 @@ Traces and broker metrics create queues on their own only while the project hold
 
 ### Lifecycle and archiving
 
-- **Last seen** is when discovery last saw the queue, in traces or in broker metrics.
+- **Last seen** is when discovery last saw the queue, in traces, messaging client metrics or broker metrics.
 - **Archive to dismiss.** Deleting a discovered queue removes it only until it is seen again: its next sighting brings it back as a new queue. To dismiss one for good, **archive** it. An archived queue keeps its identity, so whatever names it stays attached to the archived queue instead of creating a new one.
 - **Automatic archiving.** A discovered queue that has not been seen for 7 days (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`) is archived automatically, unless a person has renamed it, described it, labelled it or given it owners. Labels and owners that label or owner rules attached on their own do not count.
 - **Restoring.** A queue archived automatically is restored automatically when it is seen again. Queues you created by hand, and queues a person archived, are never archived or restored by discovery. A queue a person restores stays restored for 30 days (or the archive window, if that is longer) even while nothing sees it; from its next sighting the 7-day rule applies again.
