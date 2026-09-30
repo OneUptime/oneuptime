@@ -1,74 +1,75 @@
-export function getCephInstallationMarkdown(data: {
-  oneuptimeUrl: string;
-  apiKey: string;
-}): string {
-  return `
-## Prerequisites
+import {
+  SETUP_GUIDE_API_KEY_PLACEHOLDER,
+  SETUP_GUIDE_URL_PLACEHOLDER,
+  SetupGuideContent,
+  SetupGuideOption,
+  SetupGuideStep,
+  SetupGuideTopic,
+  codeBlock,
+  resolveSetupGuideOption,
+  shellQuote,
+} from "../../../Components/SetupGuide/SetupGuide";
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Ceph mgr daemons (port 9283)
-- The Ceph mgr \`prometheus\` module enabled
-- A OneUptime Telemetry Ingestion Key (selected above)
+/*
+ * The in-app install guide for the OneUptime Ceph agent (agents/CephAgent):
+ * a stock OpenTelemetry collector that scrapes the mgr prometheus module on
+ * every mgr daemon, plus the OneUptime AI agent next to it. The guide asks
+ * how to install it and shows only that path; everything else is folded
+ * under Advanced and Troubleshooting.
+ */
 
-### Enable the mgr prometheus module
+export type CephInstallMethod = "install-script" | "docker-compose";
 
-\`\`\`bash
-ceph mgr module enable prometheus
-\`\`\`
+export const CEPH_INSTALL_METHODS: Array<SetupGuideOption<CephInstallMethod>> =
+  [
+    {
+      key: "install-script",
+      label: "Install script",
+      description:
+        "One command downloads the agent, asks for your cluster's details and starts it.",
+      badge: "Recommended",
+    },
+    {
+      key: "docker-compose",
+      label: "Docker Compose",
+      description:
+        "Download two files, write a .env file and start the agent yourself.",
+    },
+  ];
 
-Every mgr daemon then serves metrics on port \`9283\` at \`/metrics\`. Only the **active** mgr returns metrics — standby mgrs answer with an empty response. The agent therefore scrapes **all** mgr endpoints, so metrics keep flowing when the active mgr fails over.
+export const DEFAULT_CEPH_INSTALL_METHOD: CephInstallMethod = "install-script";
 
-To list your mgr daemons:
+export function resolveCephInstallMethod(
+  method: string | null | undefined,
+): CephInstallMethod {
+  return (
+    resolveSetupGuideOption(CEPH_INSTALL_METHODS, method) ||
+    DEFAULT_CEPH_INSTALL_METHOD
+  );
+}
 
-\`\`\`bash
-ceph mgr stat                    # active mgr
-ceph orch ps --daemon-type mgr   # all mgrs (cephadm clusters)
-\`\`\`
+// Where the agent's files are published, and where install.sh puts them.
+export const CEPH_AGENT_RAW_URL: string =
+  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent";
+export const CEPH_AGENT_SOURCE_URL: string =
+  "https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent";
+export const CEPH_AGENT_INSTALL_DIR: string = "/opt/oneuptime-ceph-agent";
 
-## Quick Start (Install Script)
+// The containers docker-compose.yml runs (their container_name).
+export const CEPH_AGENT_CONTAINER: string = "oneuptime-ceph-agent";
+export const CEPH_AI_AGENT_CONTAINER: string = "oneuptime-ceph-ai-agent";
 
-\`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
-bash install.sh
-\`\`\`
+// The name the guide suggests when it is not installing for a known cluster.
+export const CEPH_EXAMPLE_CLUSTER_NAME: string = "my-ceph-cluster";
+export const CEPH_EXAMPLE_MGR_ENDPOINTS: string =
+  "[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]";
 
-The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and mgr endpoints, installs to \`/opt/oneuptime-ceph-agent\`, and starts the agent with Docker Compose.
-
-## Alternative: Docker Compose
-
-Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [CephAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) into a folder, then create a \`.env\` file next to them:
-
-\`\`\`bash
-ONEUPTIME_URL=${data.oneuptimeUrl}
-ONEUPTIME_TELEMETRY_INGESTION_KEY=${data.apiKey}
-CEPH_CLUSTER_NAME=my-ceph-cluster
-CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
-\`\`\`
-
-Replace \`my-ceph-cluster\` with a friendly name for this cluster — it is how the cluster will appear in OneUptime. Keep it stable: changing it registers a new cluster.
-
-Then start the agent:
-
-\`\`\`bash
-docker compose up -d
-\`\`\`
-
-That's it. Once the agent connects, your cluster will appear automatically in the Ceph section.
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| \`ONEUPTIME_URL\` | Yes | Your OneUptime instance URL (e.g. \`${data.oneuptimeUrl}\`) |
-| \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
-| \`CEPH_CLUSTER_NAME\` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the \`ceph.cluster.name\` resource attribute |
-| \`CEPH_MGR_ENDPOINTS\` | Yes | Comma-separated \`host:port\` list of **all** mgr daemons, wrapped in square brackets, e.g. \`[ceph-mon-1:9283,ceph-mon-2:9283]\`. The install script adds the brackets for you |
-
-## The Collector Config
-
-This is the full \`otel-collector-config.yaml\` the agent runs (the \`.env\` file above supplies the \`\${env:...}\` values). The commented-out \`filelog\` receiver and \`logs\` pipeline optionally ship \`/var/log/ceph/ceph.log\`, which powers the **Cluster Log** page:
-
-\`\`\`yaml
-receivers:
+/*
+ * agents/CephAgent/otel-collector-config.yaml, verbatim — the guide shows
+ * the reader the exact file the agent runs. CephSetupGuide.test.ts fails
+ * when the shipped file changes and this copy does not.
+ */
+export const CEPH_AGENT_COLLECTOR_CONFIG: string = `receivers:
   # Scrape the Ceph mgr prometheus module (\`ceph mgr module enable
   # prometheus\`, default port 9283) on EVERY mgr — active and standbys.
   # Only the active mgr returns metrics; standbys answer with an empty
@@ -168,88 +169,496 @@ service:
     #   receivers: [filelog]
     #   processors: [memory_limiter, resource, batch]
     #   exporters: [otlphttp]
-\`\`\`
+`;
 
-## Verify the Installation
+export interface CephSetupGuideOptions {
+  oneuptimeUrl: string;
+  apiKey: string;
+  // False while no key is picked and `apiKey` is the placeholder.
+  hasApiKey: boolean;
+  method: CephInstallMethod;
+  /*
+   * The cluster the guide installs for (a cluster's own Documentation tab).
+   * Omitted on the product pages, where the guide suggests a name instead.
+   */
+  clusterName?: string | undefined;
+}
 
-Check that the agent is running:
+interface GuideContext {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey: boolean;
+  method: CephInstallMethod;
+  clusterName: string;
+  isClusterNameKnown: boolean;
+}
 
-\`\`\`bash
-docker ps --filter name=oneuptime-ceph-agent
-\`\`\`
+/*
+ * install.sh prompts only for the values its environment does not already
+ * hold, so the command can carry the reader's URL and key. Only a real key
+ * goes there: the script writes whatever it is given into .env, and a
+ * placeholder would become the key the agent sends.
+ */
+export function getCephInstallScriptCommand(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey: boolean;
+}): string {
+  const environment: Array<string> = [];
 
-Check the agent logs:
+  if (data.hasApiKey && data.apiKey !== SETUP_GUIDE_API_KEY_PLACEHOLDER) {
+    if (data.oneuptimeUrl !== SETUP_GUIDE_URL_PLACEHOLDER) {
+      environment.push(`ONEUPTIME_URL=${shellQuote(data.oneuptimeUrl)}`);
+    }
+    environment.push(
+      `ONEUPTIME_TELEMETRY_INGESTION_KEY=${shellQuote(data.apiKey)}`,
+    );
+  }
 
-\`\`\`bash
-docker logs -f oneuptime-ceph-agent
-\`\`\`
+  return [
+    `curl -sSL ${CEPH_AGENT_RAW_URL}/install.sh -o install.sh`,
+    [...environment, "bash install.sh"].join(" "),
+  ].join("\n");
+}
 
-Look for: \`"Everything is ready. Begin running and processing data."\`
+function isPrefilled(context: GuideContext): boolean {
+  return (
+    context.hasApiKey && context.apiKey !== SETUP_GUIDE_API_KEY_PLACEHOLDER
+  );
+}
 
-## What Gets Collected
+/*
+ * Commands that run in the agent's folder: install.sh installs into
+ * /opt/oneuptime-ceph-agent by default, a Compose install lives wherever
+ * the reader put it.
+ */
+function inAgentFolder(
+  method: CephInstallMethod,
+  commands: Array<string>,
+): string {
+  if (method === "install-script") {
+    return [`cd ${CEPH_AGENT_INSTALL_DIR}`, ...commands].join("\n");
+  }
+  return commands.join("\n");
+}
+
+function agentFolder(method: CephInstallMethod): string {
+  return method === "install-script"
+    ? `\`${CEPH_AGENT_INSTALL_DIR}\``
+    : "the folder with `docker-compose.yml`";
+}
+
+function getPrerequisites(): Array<string> {
+  return [
+    "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach your Ceph mgr daemons on port 9283",
+    "A shell on a Ceph admin node, where the `ceph` CLI works with admin rights",
+  ];
+}
+
+function getEnableModuleStep(): SetupGuideStep {
+  return {
+    title: "Enable the mgr prometheus module",
+    description:
+      "Every mgr daemon then serves metrics on port 9283. Run these on a Ceph admin node.",
+    markdown: `${codeBlock("bash", "ceph mgr module enable prometheus")}
+
+Then list your mgr daemons — the agent needs **all** of them, active and standbys:
+
+${codeBlock(
+  "bash",
+  `ceph mgr stat                    # active mgr
+ceph orch ps --daemon-type mgr   # all mgrs (cephadm clusters)`,
+)}
+
+Only the **active** mgr returns metrics — standbys answer with an empty response — so scraping every mgr keeps metrics flowing when the active one fails over.`,
+  };
+}
+
+function getClusterNameNote(context: GuideContext): string {
+  if (context.isClusterNameKnown) {
+    return `This installs the agent for **\`${context.clusterName}\`** — keep \`CEPH_CLUSTER_NAME\` exactly as it is, or the data registers as a new cluster.`;
+  }
+  return `Replace \`${context.clusterName}\` with a name for this cluster, such as \`ceph-prod\`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.`;
+}
+
+function getInstallScriptStep(context: GuideContext): SetupGuideStep {
+  const prefilled: boolean = isPrefilled(context);
+
+  const clusterNamePrompt: string = context.isClusterNameKnown
+    ? `**Cluster name** — enter **\`${context.clusterName}\`** exactly; a different name registers a new cluster.`
+    : "**Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.";
+
+  return {
+    title: "Install the agent",
+    description:
+      "Download the install script and run it on the machine that will host the agent.",
+    markdown: `${codeBlock(
+      "bash",
+      getCephInstallScriptCommand({
+        oneuptimeUrl: context.oneuptimeUrl,
+        apiKey: context.apiKey,
+        hasApiKey: context.hasApiKey,
+      }),
+    )}
+
+${
+  prefilled
+    ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
+    : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
+}
+
+- ${clusterNamePrompt}
+- **Mgr endpoints** — every mgr from the previous step as comma-separated \`host:port\`, e.g. \`ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283\`. The script adds the square brackets.
+- **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only. Where \`ceph\` works with admin rights, the script also offers to create the AI agent's own Ceph client.
+
+It installs to \`${CEPH_AGENT_INSTALL_DIR}\` and starts the agent with Docker Compose.`,
+  };
+}
+
+function getDockerComposeStep(context: GuideContext): SetupGuideStep {
+  const notes: Array<string> = [
+    getClusterNameNote(context),
+    "List **every** mgr daemon in `CEPH_MGR_ENDPOINTS`, comma-separated and wrapped in square brackets — without the brackets the collector reads the whole list as one invalid target.",
+  ];
+
+  return {
+    title: "Install the agent",
+    description:
+      "Download the agent's files, write its settings to a .env file and start it with Docker Compose.",
+    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [CephAgent directory](${CEPH_AGENT_SOURCE_URL}) into a new folder:
+
+${codeBlock(
+  "bash",
+  `mkdir oneuptime-ceph-agent && cd oneuptime-ceph-agent
+curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml
+curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+)}
+
+Create a \`.env\` file next to them:
+
+${codeBlock(
+  "bash",
+  `ONEUPTIME_URL=${context.oneuptimeUrl}
+ONEUPTIME_TELEMETRY_INGESTION_KEY=${context.apiKey}
+CEPH_CLUSTER_NAME=${shellQuote(context.clusterName)}
+CEPH_MGR_ENDPOINTS=${CEPH_EXAMPLE_MGR_ENDPOINTS}`,
+)}
+
+${notes
+  .map((note: string): string => {
+    return `- ${note}`;
+  })
+  .join("\n")}
+
+Start the agent:
+
+${codeBlock("bash", "docker compose up -d")}${
+      context.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER
+        ? `
+
+Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`
+        : ""
+    }`,
+  };
+}
+
+function getVerifyStep(context: GuideContext): SetupGuideStep {
+  const aiAgent: string =
+    context.method === "install-script"
+      ? `Docker Compose also runs **\`${CEPH_AI_AGENT_CONTAINER}\`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.`
+      : `Docker Compose also starts **\`${CEPH_AI_AGENT_CONTAINER}\`**, the OneUptime AI agent. It waits for a Ceph client of its own — see **OneUptime AI agent** under Advanced, or delete its service from \`docker-compose.yml\` if you do not use OneUptime AI.`;
+
+  return {
+    title: "Verify the installation",
+    description: "Check that the collector is running and ready.",
+    markdown: `${codeBlock(
+      "bash",
+      `docker ps --filter name=${CEPH_AGENT_CONTAINER}
+docker logs -f ${CEPH_AGENT_CONTAINER}`,
+    )}
+
+Look for \`Everything is ready. Begin running and processing data.\` in the logs. The cluster then appears automatically in the **Ceph** section, usually within a minute or so.
+
+${aiAgent}`,
+  };
+}
+
+function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
+  const where: string =
+    context.method === "install-script"
+      ? `The install script writes these to \`${CEPH_AGENT_INSTALL_DIR}/.env\`.`
+      : "The agent reads these from the `.env` file next to `docker-compose.yml`.";
+
+  const bracketsNote: string =
+    context.method === "install-script"
+      ? ". The install script adds the brackets for you"
+      : "";
+
+  return {
+    title: "Environment variables",
+    summary: "Every setting the collector reads from its .env file.",
+    markdown: `${where} After changing one, apply it with \`docker compose up -d\` in ${agentFolder(context.method)}.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| \`ONEUPTIME_URL\` | Yes | Your OneUptime instance URL (e.g. \`${context.oneuptimeUrl}\`) |
+| \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | Telemetry ingestion key — the one picked in step 1 |
+| \`CEPH_CLUSTER_NAME\` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the \`ceph.cluster.name\` resource attribute. Keep it stable — changing it registers a new cluster (default: \`ceph\`) |
+| \`CEPH_MGR_ENDPOINTS\` | Yes | Comma-separated \`host:port\` list of **all** mgr daemons, wrapped in square brackets, e.g. \`[ceph-mon-1:9283,ceph-mon-2:9283]\`${bracketsNote} |
+
+The OneUptime AI agent's own settings are under **OneUptime AI agent**.`,
+  };
+}
+
+function getCollectorConfigTopic(): SetupGuideTopic {
+  return {
+    title: "How the agent scrapes, and its collector config",
+    summary:
+      "Every mgr every 30 seconds with the labels Ceph exports, and the full otel-collector-config.yaml.",
+    markdown: `- **All mgrs are scraped** (active and standbys), so metrics survive an active-mgr failover.
+- **Every 30 seconds.** The mgr prometheus module caches a scrape for \`mgr/prometheus/scrape_interval\` (15 seconds by default) — never scrape more often than that, you would only re-read the cache.
+- **\`honor_labels: true\`** keeps the labels Ceph exports (\`ceph_daemon\`, \`pool_id\`) as they are, so series stay continuous across mgr failovers.
+
+This is the full \`otel-collector-config.yaml\` the agent runs; the \`.env\` file supplies the \`\${env:...}\` values:
+
+${codeBlock("yaml", CEPH_AGENT_COLLECTOR_CONFIG)}`,
+  };
+}
+
+function getClusterLogTopic(context: GuideContext): SetupGuideTopic {
+  return {
+    title: "Ship the Ceph cluster log",
+    summary:
+      "Tail /var/log/ceph/ceph.log on a mon host to fill the Cluster Log page.",
+    markdown: `The agent can tail \`/var/log/ceph/ceph.log\` and ship it to OneUptime, which fills the **Cluster Log** page. It is off by default because the agent must run on a host that has the cluster log — a mon host by default.
+
+1. In \`otel-collector-config.yaml\`, uncomment the \`filelog\` receiver and the \`logs\` pipeline.
+2. In \`docker-compose.yml\`, uncomment the \`/var/log/ceph:/var/log/ceph:ro\` volume.
+3. Apply both:
+
+${codeBlock("bash", inAgentFolder(context.method, ["docker compose up -d"]))}
+
+Lines ship verbatim; OneUptime parses the ceph.log format (timestamp, daemon, INF/WRN/ERR level, message) when it reads them, and the \`resource\` processor stamps \`ceph.cluster.name\` so the log lands on this cluster.`,
+  };
+}
+
+function getLabelsTopic(context: GuideContext): SetupGuideTopic {
+  return {
+    title: "Tag the cluster with project labels",
+    summary:
+      "Attach labels such as team or environment to the cluster from the collector config.",
+    markdown: `Any resource attribute prefixed with \`oneuptime.label.\` becomes a project label on the cluster: \`oneuptime.label.<dimension>=<value>\` is the label \`<dimension>:<value>\`. Add them to the \`resource\` processor in \`otel-collector-config.yaml\`, next to \`ceph.cluster.name\`:
+
+${codeBlock(
+  "yaml",
+  `processors:
+  resource:
+    attributes:
+      # ...existing attributes...
+      - key: oneuptime.label.team
+        value: storage
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert`,
+)}
+
+Then restart the collector so it reads the new config:
+
+${codeBlock(
+  "bash",
+  inAgentFolder(context.method, [
+    `docker compose restart ${CEPH_AGENT_CONTAINER}`,
+  ]),
+)}
+
+The cluster shows up tagged \`team:storage\` and \`env:production\`. Labels are matched case-insensitively, so an existing \`Production\` label is reused; labels added in the OneUptime UI are never removed by the agent.`,
+  };
+}
+
+function getCollectedDataTopic(): SetupGuideTopic {
+  return {
+    title: "What the agent collects",
+    summary: "Cluster health, OSDs, pools and placement groups.",
+    markdown: `The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:
 
 | Category | Data |
 |----------|------|
 | **Cluster Health** | \`ceph_health_status\` (0 = OK, 1 = WARN, 2 = ERR), monitor quorum, total and used raw capacity |
 | **OSD** | Up / in state for every OSD (per \`ceph_daemon\` label, e.g. \`osd.3\`) |
 | **Pool** | Stored bytes, max available, object counts, read/write operations and throughput per pool |
-| **Placement Groups** | Active, degraded, and undersized PG counts |
+| **Placement Groups** | Active, degraded, and undersized PG counts |`,
+  };
+}
 
-## Scrape Behavior
+function getAiAgentTopic(context: GuideContext): SetupGuideTopic {
+  const setupIntro: string =
+    context.method === "install-script"
+      ? "The install script offers to create them when `ceph` works with admin rights on the machine you run it on. Otherwise, on a Ceph admin node:"
+      : "On a Ceph admin node, in the agent's folder:";
 
-- **All mgrs are scraped** (active + standbys) so metrics survive active-mgr failover.
-- **30-second scrape interval.** The mgr prometheus module caches scrapes for 15 seconds by default — never scrape below 15 seconds.
-- **\`honor_labels: true\`** keeps the labels Ceph exports (\`ceph_daemon\`, \`pool_id\`) as-is so series stay continuous across mgr failovers.
+  return {
+    title: "OneUptime AI agent",
+    summary:
+      "The container that lets OneUptime AI run read-only ceph commands while it investigates an incident.",
+    markdown: `\`docker-compose.yml\` also runs **\`${CEPH_AI_AGENT_CONTAINER}\`**. While OneUptime AI investigates an incident or alert on this cluster, it runs \`ceph\` commands through it — \`ceph health detail\`, \`ceph osd tree\`, \`ceph pg dump_stuck\`, \`ceph crash ls\`. It registers as the cluster named \`CEPH_CLUSTER_NAME\` and appears on the cluster's **AI → AI agent** page.
 
-## Upgrading the Agent
+It connects as its own Ceph client, \`client.oneuptime-ai\`, with the cluster's minimal \`ceph.conf\` and that client's keyring in a \`ceph/\` folder next to \`docker-compose.yml\`. ${setupIntro}
 
-\`\`\`bash
-cd /opt/oneuptime-ceph-agent
-docker compose pull
-docker compose up -d
-\`\`\`
+${codeBlock(
+  "bash",
+  inAgentFolder(context.method, [
+    "mkdir -p ceph",
+    "ceph config generate-minimal-conf > ceph/ceph.conf",
+    "ceph auth get-or-create client.oneuptime-ai mon 'allow r' mgr 'allow r' osd 'allow r' -o ceph/ceph.client.oneuptime-ai.keyring",
+    "sudo chown 1000:1000 ceph/ceph.client.oneuptime-ai.keyring",
+    "sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring",
+    "docker compose up -d",
+  ]),
+)}
 
-## Uninstalling the Agent
+If the agent runs on another machine, copy the two files into its \`ceph/\` folder the same way. **Never put the admin keyring there.**
 
-\`\`\`bash
-cd /opt/oneuptime-ceph-agent
-docker compose down
-\`\`\`
+- **The client's caps are the hard limit.** With these read caps nothing it runs can change the cluster. Fixes — marking an OSD back in, clearing \`noout\` — also need \`ONEUPTIME_AI_ALLOW_WRITES=true\` in \`.env\` and the fixes caps from the agent's README.
+- Check it: \`docker exec ${CEPH_AI_AGENT_CONTAINER} wget -qO- http://127.0.0.1:3877/status\`
+- Not using OneUptime AI? Delete the \`${CEPH_AI_AGENT_CONTAINER}\` service from \`docker-compose.yml\`.
 
-## Optional — Ship the Ceph Cluster Log
+What it may run and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).`,
+  };
+}
 
-The agent can tail \`/var/log/ceph/ceph.log\` and ship it to OneUptime, which powers the **Cluster Log** page of this dashboard. It is off by default because it requires the agent to run on a host that has the cluster log (a mon host by default). To enable it:
+function getUpgradeTopic(context: GuideContext): SetupGuideTopic {
+  const where: string =
+    context.method === "install-script"
+      ? ""
+      : "Run these in the agent's folder, the one with `docker-compose.yml`.\n\n";
 
-1. Uncomment the \`filelog\` receiver and the \`logs\` pipeline in \`otel-collector-config.yaml\` (see the config above).
-2. Uncomment the \`/var/log/ceph\` volume mount in \`docker-compose.yml\`.
-3. Restart: \`docker compose up -d\`
+  return {
+    title: "Upgrade or uninstall the agent",
+    summary: "Pull the latest images, or stop and remove the agent.",
+    markdown: `${where}**Upgrade** to the latest images:
 
-## Troubleshooting
+${codeBlock(
+  "bash",
+  inAgentFolder(context.method, [
+    "docker compose pull",
+    "docker compose up -d",
+  ]),
+)}
 
-### Run the Diagnostic Script First
+**Uninstall** the agent:
 
-\`troubleshoot.sh\` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints refuse a bad ingestion key with \`401\` or \`422\`, which the collector logs as a single \`Exporting failed\` line per batch that is easy to miss; the script asks \`GET /otlp/v1/validate\` for a direct 200/401 verdict):
+${codeBlock("bash", inAgentFolder(context.method, ["docker compose down"]))}
 
-\`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/troubleshoot.sh -o troubleshoot.sh
-bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-ceph-agent
-\`\`\`
+If you created the AI agent's Ceph client, remove it on an admin node: \`ceph auth del client.oneuptime-ai\`.`,
+  };
+}
 
-### No cluster appears in OneUptime
+function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
+  return [
+    getEnvironmentVariablesTopic(context),
+    getCollectorConfigTopic(),
+    getClusterLogTopic(context),
+    getLabelsTopic(context),
+    getCollectedDataTopic(),
+    getAiAgentTopic(context),
+    getUpgradeTopic(context),
+  ];
+}
 
-1. Check the collector logs: \`docker logs oneuptime-ceph-agent\` — look for export errors (\`401\` means a bad ingestion key, connection refused means a wrong \`ONEUPTIME_URL\`).
+function getTroubleshootingTopics(
+  context: GuideContext,
+): Array<SetupGuideTopic> {
+  const runScript: string =
+    context.method === "install-script"
+      ? "bash troubleshoot.sh"
+      : 'bash troubleshoot.sh -d "$PWD"    # in the folder with docker-compose.yml';
+
+  const knownName: string = context.isClusterNameKnown
+    ? ` This cluster is **\`${context.clusterName}\`**.`
+    : "";
+
+  return [
+    {
+      title: "Run the diagnostic script first",
+      markdown: `\`troubleshoot.sh\` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with \`401\` or \`422\`, which the collector logs as a single \`Exporting failed\` line per batch that is easy to miss, so the script asks \`GET /otlp/v1/validate\` for a direct 200/401 verdict.
+
+${codeBlock(
+  "bash",
+  `curl -sSL ${CEPH_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+${runScript}`,
+)}
+
+It ends with a verdict naming the most likely cause.`,
+    },
+    {
+      title: "No cluster appears in OneUptime",
+      markdown: `1. Check the collector logs: \`docker logs ${CEPH_AGENT_CONTAINER}\` — look for export errors (\`401\` means a bad ingestion key, connection refused means a wrong \`ONEUPTIME_URL\`).
 2. Verify a mgr endpoint serves metrics: \`curl http://<active-mgr>:9283/metrics | head\` — you should see \`ceph_*\` metric lines. If not, enable the module: \`ceph mgr module enable prometheus\`.
-3. Make sure \`CEPH_MGR_ENDPOINTS\` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.
+3. Make sure \`CEPH_MGR_ENDPOINTS\` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.`,
+    },
+    {
+      title: 'Cluster shows as "Disconnected"',
+      markdown: `1. Check that the agent is running: \`docker ps --filter name=${CEPH_AGENT_CONTAINER}\`
+2. Check the agent logs for errors: \`docker logs ${CEPH_AGENT_CONTAINER} 2>&1 | grep -i error\`
+3. Verify your OneUptime URL and ingestion key are correct.
+4. Ensure the agent machine can reach the OneUptime instance over the network.`,
+    },
+    {
+      title: "Metrics stop after a mgr failover",
+      markdown:
+        "You are probably scraping only the (previously) active mgr. List **every** mgr daemon in `CEPH_MGR_ENDPOINTS` — scrapes of standby mgrs are cheap and return empty responses.",
+    },
+    {
+      title: "Scrape errors for standby mgrs in the collector logs",
+      markdown:
+        "Expected if `mgr/prometheus/standby_behaviour` is set to `error` on your cluster — standbys then answer with HTTP 500. The active mgr's scrape still succeeds, so the errors are noise; switch the behaviour back to `default` to silence them.",
+    },
+    {
+      title: "Cluster appears under the wrong name",
+      markdown: `The cluster's identity comes from \`CEPH_CLUSTER_NAME\`, stamped on every metric as \`ceph.cluster.name\`.${knownName} Fix it in \`.env\` and apply it with \`docker compose up -d\` in ${agentFolder(context.method)} — note that a new name registers a new cluster.`,
+    },
+  ];
+}
 
-### Metrics stop after a mgr failover
+/**
+ * The Ceph agent install guide for one install method, filled in with the
+ * reader's OneUptime URL and ingestion key.
+ */
+export function getCephSetupGuide(
+  options: CephSetupGuideOptions,
+): SetupGuideContent {
+  const knownClusterName: string = (options.clusterName || "").trim();
 
-You are probably scraping only the (previously) active mgr. List **every** mgr daemon in \`CEPH_MGR_ENDPOINTS\` — scrapes of standby mgrs are cheap and return empty responses.
+  const context: GuideContext = {
+    oneuptimeUrl: options.oneuptimeUrl,
+    apiKey: options.apiKey,
+    hasApiKey: options.hasApiKey,
+    method: options.method,
+    clusterName: knownClusterName || CEPH_EXAMPLE_CLUSTER_NAME,
+    isClusterNameKnown: Boolean(knownClusterName),
+  };
 
-### Cluster shows as Disconnected
-
-1. Check that the agent is running: \`docker ps --filter name=oneuptime-ceph-agent\`
-2. Check the agent logs: \`docker logs oneuptime-ceph-agent | grep -i error\`
-3. Verify your OneUptime URL and ingestion key are correct
-4. Ensure the agent machine can reach the OneUptime instance over the network
-`;
+  return {
+    prerequisites: getPrerequisites(),
+    steps: [
+      getEnableModuleStep(),
+      context.method === "install-script"
+        ? getInstallScriptStep(context)
+        : getDockerComposeStep(context),
+      getVerifyStep(context),
+    ],
+    advanced: getAdvancedTopics(context),
+    troubleshooting: getTroubleshootingTopics(context),
+    links: [
+      {
+        title: "Ceph agent documentation",
+        url: "/docs/telemetry/ceph",
+      },
+      {
+        title: "Ceph monitors and alerts",
+        url: "/docs/monitor/ceph-monitor",
+      },
+    ],
+  };
 }

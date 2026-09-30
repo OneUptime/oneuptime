@@ -8,8 +8,8 @@ const DockerSwarmDocumentation: FunctionComponent<
   return (
     <Fragment>
       <DockerSwarmDocumentationCard
-        title="Agent Installation Guide"
-        description="Install the OneUptime Docker Swarm Agent to connect your Docker Swarm cluster. Once installed, the cluster will appear automatically."
+        title="Connect a Docker Swarm Cluster"
+        description="Run the OneUptime Docker Swarm agent on a manager node. Pick how you install it, then follow the steps — the cluster appears automatically once the agent connects."
       />
     </Fragment>
   );

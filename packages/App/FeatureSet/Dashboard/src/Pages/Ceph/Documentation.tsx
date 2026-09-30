@@ -8,8 +8,8 @@ const CephDocumentation: FunctionComponent<
   return (
     <Fragment>
       <CephDocumentationCard
-        title="Agent Installation Guide"
-        description="Install the OneUptime Ceph Agent to connect your Ceph cluster. Once installed, the cluster will appear automatically."
+        title="Connect a Ceph Cluster"
+        description="Install the OneUptime Ceph agent next to your cluster. Pick how to install it, then follow the steps — the cluster appears automatically once the agent connects."
       />
     </Fragment>
   );

@@ -1,4 +1,13 @@
-import { getKubernetesInstallationMarkdown } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  KUBERNETES_PLATFORMS,
+  KubernetesPlatform,
+  getKubernetesSetupGuide,
+} from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  SetupGuideOption,
+  getSetupGuideMarkdown,
+} from "../../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+
 import {
   AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,
   AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
@@ -48,6 +57,24 @@ import {
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import path from "path";
+
+/*
+ * The dashboard's install guide for every platform the reader can pick,
+ * Advanced and Troubleshooting included, as one document.
+ */
+function getKubernetesInstallationMarkdown(data: {
+  clusterName: string;
+  oneuptimeUrl: string;
+  apiKey: string;
+}): string {
+  return KUBERNETES_PLATFORMS.map(
+    (option: SetupGuideOption<KubernetesPlatform>): string => {
+      return getSetupGuideMarkdown(
+        getKubernetesSetupGuide({ ...data, platform: option.key }),
+      );
+    },
+  ).join("\n");
+}
 
 /*
  * The Kubernetes AI agent docs against the chart and the product.

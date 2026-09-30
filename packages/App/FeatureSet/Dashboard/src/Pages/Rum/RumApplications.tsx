@@ -24,8 +24,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ResourceDocumentationCard from "../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getRumDocMarkdown } from "../../Components/TelemetryResource/documentationMarkdown";
+import RumDocumentationCard from "../../Components/Rum/RumDocumentationCard";
 
 const RumApplications: FunctionComponent<
   PageComponentProps
@@ -274,10 +273,9 @@ const RumApplications: FunctionComponent<
         }}
       />
       {count === 0 && (
-        <ResourceDocumentationCard
+        <RumDocumentationCard
           title="Getting Started with Real User Monitoring"
           description="No RUM applications connected yet. Instrument your browser or mobile app with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
-          buildMarkdown={getRumDocMarkdown}
         />
       )}
     </Fragment>

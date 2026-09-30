@@ -8,8 +8,8 @@ const VMwareDocumentation: FunctionComponent<
   return (
     <Fragment>
       <VMwareDocumentationCard
-        title="Agent Installation Guide"
-        description="Install the OneUptime VMware Agent to connect a vCenter Server (or a standalone ESXi host). Once installed, the vCenter will appear automatically."
+        title="Connect a vCenter"
+        description="Install the OneUptime VMware agent to connect a vCenter Server (or a standalone ESXi host). Pick how to install it, then follow the steps — the vCenter appears automatically after its first collection."
       />
     </Fragment>
   );
