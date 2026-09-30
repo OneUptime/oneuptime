@@ -2,6 +2,7 @@ import AuditLogsPlugins from "./AuditLogs/Plugins";
 import IdentityPlugins from "./Identity/Plugins";
 import LicensePlugins from "./License/Plugins";
 import TeamCompliancePlugins from "./TeamCompliance/Plugins";
+import TelemetryRetentionPlugins from "./TelemetryRetention/Plugins";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 
 /*
@@ -30,6 +31,7 @@ export default {
   ...IdentityPlugins,
   ...AuditLogsPlugins,
   ...TeamCompliancePlugins,
+  ...TelemetryRetentionPlugins,
   ...LicensePlugins,
   buildMarker: ONEUPTIME_EE_DASHBOARD_PLUGIN_SENTINEL,
 } satisfies DashboardEnterprisePlugins;

@@ -1,3 +1,5 @@
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import CephCluster from "./CephCluster";
 import Label from "./Label";
 import Project from "./Project";
@@ -1047,6 +1049,11 @@ export default class ProxmoxCluster extends BaseModel {
     nullable: true,
     unique: false,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public retainTelemetryDataForDays?: number = undefined;
 
   @ColumnAccessControl({
@@ -1087,6 +1094,11 @@ export default class ProxmoxCluster extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 

@@ -37,6 +37,7 @@ Edition, how licensing works, and what happens when you switch editions.
 | [SCIM provisioning](/docs/identity/scim) for projects and status pages | No | Yes | Scale plan and above |
 | Team compliance settings | No | Yes | Scale plan and above |
 | Audit logs | No | Yes | Enterprise plan |
+| Retention overrides: retention by telemetry type (logs, traces, metrics, profiles, with rules by log severity and trace status), and per-service and per-resource retention | No | Yes | Scale plan and above |
 | Admin **Health** dashboards: instance overview, background queues, instance logs, PostgreSQL, Valkey, ClickHouse cluster, diagnostic logs and telemetry ingestion | No | Yes | Not applicable |
 | Admin **Query Console** | No | Yes | Not available |
 | PostgreSQL and Valkey (Redis) health alerts | No | Yes | Not applicable |
@@ -46,6 +47,10 @@ Edition, how licensing works, and what happens when you switch editions.
 
 Single sign-on includes "Require SSO for login" for projects, private status
 pages and the whole instance, in both editions.
+
+Every edition has the project's default telemetry retention (**Settings >
+Telemetry > Telemetry Data Retention**). Retention overrides are what the
+Enterprise Edition adds on top of it.
 
 "Not applicable" rows are instance-administration features. On OneUptime
 Cloud, OneUptime operates the instance for you.
@@ -127,8 +132,8 @@ A new Enterprise Edition install runs as a **14-day trial**, counted from the
 first time the install starts the Enterprise Edition. The trial is for
 evaluation: production use of the Enterprise Edition needs a subscription under
 the OneUptime Enterprise License. Activate a license before the trial ends:
-after it, SCIM and audit logging stop and enterprise configuration becomes
-read-only (see
+after it, SCIM, audit logging and retention overrides stop and enterprise
+configuration becomes read-only (see
 [When a license expires or is missing](#when-a-license-expires-or-is-missing)).
 To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
@@ -206,7 +211,8 @@ an install activated offline.
 
 Every enterprise feature keeps working during the 14-day trial, and for 30
 days after a license expires (the grace period). The edition label warns
-before either one ends. After that, **SCIM and audit logging stop** until a
+before either one ends. After that, **SCIM, audit logging and retention
+overrides stop** until a
 license is activated, the same as on the Community Edition, and enterprise
 configuration becomes read-only. Single sign-on is not an enterprise feature:
 SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in
@@ -216,7 +222,7 @@ every license state.
 | --- | --- |
 | **Valid license** | Every enterprise feature works. New users cannot be added beyond the licensed number of seats. Existing users are never removed. |
 | **Trial or grace period** (the first 14 days of an unlicensed install, or 30 days after a license expires), or an install that holds a license whose expiry was never recorded | Every enterprise feature works, and the edition label shows a warning. During the grace period after an expiry, the seat limit still applies. An install holding a license with no recorded expiry runs the same 14-day trial as an unlicensed install, and the seat limit is not enforced, because the license record it holds is already incomplete. |
-| **After the trial or grace period** (expired, missing or invalid license, or a license that does not include the feature) | SCIM provisioning and audit logging **stop** (see below). Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. One change always works, so you can respond to an incident: replacing a SCIM bearer token. The SCIM settings pages offer it while everything else is read-only: **Reset Bearer Token** on a SCIM configuration, which shows the new token once. Through the API, send `bearerToken` on its own (at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
+| **After the trial or grace period** (expired, missing or invalid license, or a license that does not include the feature) | SCIM provisioning, audit logging and retention overrides **stop** (see below). Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. One change always works, so you can respond to an incident: replacing a SCIM bearer token. The SCIM settings pages offer it while everything else is read-only: **Reset Bearer Token** on a SCIM configuration, which shows the new token once. Through the API, send `bearerToken` on its own (at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
 
 What stops when a license lapses:
 
@@ -224,6 +230,10 @@ What stops when a license lapses:
   refused, including deprovisioning, and SCIM team locks are lifted, so teams
   managed by SCIM push groups can be edited by hand.
 - **Audit logging stops recording.** Audit logs recorded so far are kept.
+- **Retention overrides stop applying.** New telemetry is kept for the
+  project's default retention. Telemetry already stored keeps the retention it
+  was written with. You can still clear an override through the API, but not
+  set one.
 
 What does **not** stop:
 
@@ -234,13 +244,15 @@ What does **not** stop:
 - **Core monitoring is never affected**: monitors, alerts, incidents, on-call,
   status pages and telemetry all keep working.
 - **Master admins can always sign in with their password.**
-- **Nothing is deleted.** SCIM configuration and audit logs stay as they are.
+- **Nothing is deleted.** SCIM configuration, audit logs and retention
+  overrides stay as they are.
 
 **Everything resumes as soon as a license is activated**, without a restart:
-SCIM provisioning and audit logging come back with the configuration you have.
-OneUptime only switches them off when it knows the license has lapsed. While
-it cannot read the license state, for example for a moment while the server
-starts, SCIM and audit logging stay on.
+SCIM provisioning, audit logging and retention overrides come back with the
+configuration you have. OneUptime only switches them off when it knows the
+license has lapsed. While it cannot read the license state, for example for a
+moment while the server starts, SCIM, audit logging and retention overrides
+stay on.
 
 > **If your identity provider deprovisions users through SCIM, activate a
 > license before the trial or grace period ends.** After that, SCIM no longer
@@ -265,6 +277,11 @@ same on both images. On the Community image:
   SCIM team locks lifted.
 - **Audit logging stops.** Audit logs recorded so far are kept, but the audit
   log pages show an upgrade prompt.
+- **Retention overrides stop applying.** New telemetry is kept for the
+  project's default retention, and the retention cards on Settings >
+  Telemetry and on every service and resource Settings page show an upgrade
+  prompt. The overrides stay in the database and apply again when you switch
+  back.
 - **Enterprise settings pages show an upgrade prompt.** Through the API you can
   still read and delete enterprise configuration and reset a SCIM bearer token,
   but not create or change anything else. Audit logging cannot be turned on.

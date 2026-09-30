@@ -32,7 +32,13 @@ describe("EnterpriseFeature", () => {
 
   test("ALL_ENTERPRISE_FEATURES lists every feature exactly once", () => {
     expect([...ALL_ENTERPRISE_FEATURES].sort()).toEqual(
-      ["audit-logs", "instance-health", "scim", "team-compliance"].sort(),
+      [
+        "audit-logs",
+        "instance-health",
+        "scim",
+        "team-compliance",
+        "telemetry-retention",
+      ].sort(),
     );
     expect(new Set(ALL_ENTERPRISE_FEATURES).size).toBe(
       ALL_ENTERPRISE_FEATURES.length,

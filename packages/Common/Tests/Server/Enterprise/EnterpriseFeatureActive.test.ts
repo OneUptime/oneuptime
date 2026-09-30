@@ -434,7 +434,7 @@ describe("state changes are logged once per change", () => {
       "The OneUptime Enterprise license has lapsed (status: expired)",
     );
     expect(message).toContain(
-      "SCIM provisioning and audit logging have stopped until a license is activated",
+      "SCIM provisioning, audit logging and retention overrides have stopped until a license is activated",
     );
     // Single sign-on is Community Edition: a lapse never touches it.
     expect(message).not.toMatch(/\bSSO\b/);
@@ -474,7 +474,7 @@ describe("state changes are logged once per change", () => {
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
     expect(infos()).toEqual([
-      "The OneUptime Enterprise license covers SCIM provisioning and audit logging again: they have resumed.",
+      "The OneUptime Enterprise license covers SCIM provisioning, audit logging and retention overrides again: they have resumed.",
     ]);
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("invalid"));
@@ -485,12 +485,39 @@ describe("state changes are logged once per change", () => {
     expect(infos()).toHaveLength(1);
   });
 
+  test("a license without retention overrides names only them, as not included", () => {
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshot({
+        features: [
+          EnterpriseFeature.SCIM,
+          EnterpriseFeature.AuditLogs,
+          EnterpriseFeature.TeamCompliance,
+        ],
+      }),
+    });
+
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
+      true,
+    );
+    expect(lapseWarnings()).toHaveLength(0);
+
+    expect(
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.TelemetryRetention),
+    ).toBe(false);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.TelemetryRetention);
+
+    expect(lapseWarnings()).toEqual([
+      "The OneUptime Enterprise license does not include retention overrides: it has stopped until a license that includes it is activated. A master admin can activate or renew the license from the edition label in the Admin Dashboard header.",
+    ]);
+  });
+
   test("a license without one feature names only that feature, as not included", () => {
     installFakeEnterpriseModule({
       snapshot: createLicenseSnapshot({
         features: [
           EnterpriseFeature.AuditLogs,
           EnterpriseFeature.TeamCompliance,
+          EnterpriseFeature.TelemetryRetention,
         ],
       }),
     });
@@ -562,7 +589,11 @@ describe("onFeatureStateChange", () => {
 
     expect(changes).toEqual([
       {
-        stopped: [EnterpriseFeature.SCIM, EnterpriseFeature.AuditLogs],
+        stopped: [
+          EnterpriseFeature.SCIM,
+          EnterpriseFeature.AuditLogs,
+          EnterpriseFeature.TelemetryRetention,
+        ],
         resumed: [],
         snapshot: lapsed,
       },
@@ -576,6 +607,7 @@ describe("onFeatureStateChange", () => {
     expect(changes[1]!.resumed).toEqual([
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
+      EnterpriseFeature.TelemetryRetention,
     ]);
   });
 

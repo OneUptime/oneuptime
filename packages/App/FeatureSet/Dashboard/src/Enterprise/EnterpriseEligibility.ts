@@ -52,6 +52,14 @@ export const IDENTITY_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
  */
 export const SSO_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
 
+/*
+ * Retention overrides (retention by telemetry type, and per-service and
+ * per-resource retention): @ColumnBillingAccessControl on those columns says
+ * Scale.
+ */
+export const TELEMETRY_RETENTION_REQUIRED_PLAN: EnterpriseRequiredPlan =
+  PlanType.Scale;
+
 // Audit logs are recorded for Enterprise-plan projects only.
 export const AUDIT_LOGS_REQUIRED_PLAN: EnterpriseRequiredPlan =
   PlanType.Enterprise;

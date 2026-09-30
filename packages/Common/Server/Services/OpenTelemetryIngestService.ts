@@ -44,6 +44,8 @@ import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
 import IoTFleetService from "./IoTFleetService";
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import InProcessMemo from "../Utils/InProcessMemo";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -472,6 +474,37 @@ export default class OTelIngestService {
     return context;
   }
 
+  /*
+   * Retention overrides - retention by telemetry type (project-wide and per
+   * service or resource) and per-service or per-resource retention - are an
+   * Enterprise feature (EnterpriseFeature.TelemetryRetention). While it is
+   * not active (the Community Edition, or a self-hosted license that lapsed
+   * or leaves it out) every row gets the project's default retention, and the
+   * configured overrides are kept, unused, until it is active again.
+   *
+   * Asked each time metadata is built, not when the caches above are warmed,
+   * so a license change takes effect on the next row without waiting for a
+   * cache to expire. Every signal resolves its retention from this metadata
+   * (resolveTelemetryRetentionInDays), so this is the one place to decide.
+   */
+  public static applyRetentionOverrideEdition(
+    metadata: TelemetryServiceMetadata,
+  ): TelemetryServiceMetadata {
+    if (
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.TelemetryRetention)
+    ) {
+      return metadata;
+    }
+
+    return {
+      ...metadata,
+      dataRententionInDays: metadata.projectRetentionInDays,
+      serviceRetentionConfig: null,
+      serviceRetentionInDays: null,
+      projectRetentionConfig: null,
+    };
+  }
+
   @CaptureSpan()
   public static async telemetryServiceFromName(data: {
     serviceName: string;
@@ -746,7 +779,7 @@ export default class OTelIngestService {
     ): TelemetryServiceMetadata => {
       const serviceLevelRetention: number | null =
         resolved.retainTelemetryDataForDays ?? null;
-      return {
+      return this.applyRetentionOverrideEdition({
         serviceName: data.serviceName,
         primaryEntityId: new ObjectID(resolved.serviceId),
         primaryEntityType: ServiceType.OpenTelemetry,
@@ -766,7 +799,7 @@ export default class OTelIngestService {
         serviceRetentionInDays: serviceLevelRetention,
         projectRetentionConfig: projectContext.projectRetentionConfig,
         projectRetentionInDays: projectContext.projectRetentionInDays,
-      };
+      });
     };
 
     if (!resolution) {
@@ -863,7 +896,7 @@ export default class OTelIngestService {
     const resourceRetention: ResourceRetention =
       await this.getResourceRetention(data.resourceId, data.primaryEntityType);
 
-    return {
+    return this.applyRetentionOverrideEdition({
       serviceName: data.serviceName,
       primaryEntityId: data.resourceId,
       primaryEntityType: data.primaryEntityType,
@@ -874,7 +907,7 @@ export default class OTelIngestService {
       serviceRetentionInDays: resourceRetention.retainTelemetryDataForDays,
       projectRetentionConfig: projectContext.projectRetentionConfig,
       projectRetentionInDays: projectContext.projectRetentionInDays,
-    };
+    });
   }
 
   /*

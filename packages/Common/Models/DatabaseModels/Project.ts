@@ -3214,6 +3214,11 @@ export default class Project extends TenantModel {
     type: ColumnType.JSON,
     nullable: true,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 
   @ColumnAccessControl({

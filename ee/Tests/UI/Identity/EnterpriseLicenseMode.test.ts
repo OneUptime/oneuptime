@@ -154,6 +154,9 @@ describe("the license features a screen is about", () => {
   test("LicensedFeature values are the server's EnterpriseFeature values (the license format)", () => {
     expect(LicensedFeature.SCIM).toBe(EnterpriseFeature.SCIM);
     expect(LicensedFeature.AuditLogs).toBe(EnterpriseFeature.AuditLogs);
+    expect(LicensedFeature.TelemetryRetention).toBe(
+      EnterpriseFeature.TelemetryRetention,
+    );
     expect(LICENSED_FEATURES_WILDCARD).toBe(ENTERPRISE_FEATURE_WILDCARD);
 
     const serverValues: Array<string> = Object.values(EnterpriseFeature);

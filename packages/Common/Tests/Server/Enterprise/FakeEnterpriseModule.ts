@@ -320,7 +320,10 @@ export interface LicenseStateCase {
   isUnknown: boolean;
 }
 
-// A license that entitles everything except the runtime features (SCIM, audit logs).
+/*
+ * A license that entitles everything except the runtime features (SCIM, audit
+ * logs, retention overrides).
+ */
 export const FEATURES_WITHOUT_RUNTIME_FEATURES: Array<EnterpriseFeature> = [
   EnterpriseFeature.TeamCompliance,
   EnterpriseFeature.InstanceHealth,
