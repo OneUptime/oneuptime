@@ -467,6 +467,48 @@ function readFirstText(
   return null;
 }
 
+/*
+ * The Azure SDKs stamp their resource provider namespace on EVERY client
+ * span — Storage, Cosmos DB and Key Vault as much as Service Bus — so those
+ * two trigger keys admit a span only when they name a messaging provider
+ * (AZURE_PROVIDER_SYSTEMS). Otherwise every Azure SDK span paid a full
+ * resolve for a guaranteed "no queue": about 1 µs a row against 0.07 µs for
+ * plain HTTP in the ingest benchmark. The comparison is resolveSystem's own
+ * (stored text, trimmed, lowercased), so the gate never refuses a span the
+ * resolver would place, and the discovery SQL applies the same condition.
+ */
+const AZURE_RESOURCE_PROVIDER_TRIGGERS: ReadonlySet<string> = new Set<string>(
+  AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
+);
+
+// Longer than any provider namespace in AZURE_PROVIDER_SYSTEMS.
+const AZURE_PROVIDER_TRIGGER_MAX_LENGTH: number = 32;
+
+function isTriggerValue(key: string, value: unknown): boolean {
+  if (!AZURE_RESOURCE_PROVIDER_TRIGGERS.has(key)) {
+    return isNonBlankValue(value);
+  }
+  const text: string | null = storedText(value);
+  if (text === null) {
+    return false;
+  }
+  const trimmed: string = text.trim();
+  return (
+    trimmed.length <= AZURE_PROVIDER_TRIGGER_MAX_LENGTH &&
+    AZURE_PROVIDER_SYSTEMS.has(trimmed.toLowerCase())
+  );
+}
+
+/*
+ * Cached once: under Jest's vm context every lookup of the global `Object`
+ * goes through the sandbox's interceptors, which made this gate ~20× slower
+ * there than in plain Node.
+ */
+const HAS_OWN_PROPERTY: (
+  this: Record<string, unknown>,
+  key: PropertyKey,
+) => boolean = Object.prototype.hasOwnProperty;
+
 function hasTrigger(getAttribute: AttributeGetter): boolean {
   for (
     let index: number = 0;
@@ -474,7 +516,7 @@ function hasTrigger(getAttribute: AttributeGetter): boolean {
     index++
   ) {
     const key: string | undefined = MESSAGING_TRIGGER_ATTRIBUTES[index];
-    if (key !== undefined && isNonBlankValue(getAttribute(key))) {
+    if (key !== undefined && isTriggerValue(key, getAttribute(key))) {
       return true;
     }
   }
@@ -483,9 +525,11 @@ function hasTrigger(getAttribute: AttributeGetter): boolean {
 
 /**
  * Whether a row's flattened attributes carry any messaging trigger
- * (MESSAGING_TRIGGER_ATTRIBUTES) with a non-blank value — the cheap gate
- * ingest runs on every span before anything else. Own keys only; it never
- * enumerates the map or allocates, so it is safe on every row.
+ * (MESSAGING_TRIGGER_ATTRIBUTES) with a non-blank value — the Azure resource
+ * provider keys only when they name Service Bus or Event Hubs — the cheap
+ * gate ingest runs on every span before anything else. Own keys only; it
+ * never enumerates the map, and allocates only to compare an Azure provider
+ * value, so it is safe on every row.
  */
 export function hasMessagingTrigger(
   attributes: Record<string, unknown> | null | undefined,
@@ -501,8 +545,8 @@ export function hasMessagingTrigger(
     const key: string | undefined = MESSAGING_TRIGGER_ATTRIBUTES[index];
     if (
       key !== undefined &&
-      Object.prototype.hasOwnProperty.call(attributes, key) &&
-      isNonBlankValue(attributes[key])
+      HAS_OWN_PROPERTY.call(attributes, key) &&
+      isTriggerValue(key, attributes[key])
     ) {
       return true;
     }
@@ -757,7 +801,7 @@ const UUID_SUBSTRING_PATTERN: RegExp =
 /*
  * The Java agent's generated-RabbitMQ-queue heuristic: server-named
  * `amq.gen-…`, Spring AMQP's `spring.gen-…`, and Spring Cloud Stream's
- * anonymous group queues `<group>.anonymous.<22 base64url characters>`
+ * anonymous queues `<destination>.anonymous.<22 base64url characters>`
  * (plus the bare UUID, checked for every system). Direct reply-to uses the
  * `amq.rabbitmq.reply-to` pseudo-queue and `amq.rabbitmq.reply-to.<suffix>`.
  */

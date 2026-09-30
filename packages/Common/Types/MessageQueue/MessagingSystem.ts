@@ -137,7 +137,7 @@ export const MESSAGING_SYSTEMS: ReadonlyArray<MessagingSystemDescriptor> = [
     brokerMetrics: {
       kind: "receiver",
       receiver: "rabbitmq",
-      note: "The collector's `rabbitmq` receiver reads each queue's depth, consumers and message rates from the management plugin's HTTP API, as a user tagged `monitoring`.",
+      note: "The collector's `rabbitmq` receiver reads each queue's depth, consumers and message rates from the management plugin's HTTP API, as a user tagged `monitoring` with access to each virtual host.",
     },
     docsAnchor: "rabbitmq",
   },
@@ -268,7 +268,7 @@ export const MESSAGING_SYSTEMS: ReadonlyArray<MessagingSystemDescriptor> = [
       kind: "cloud-monitoring",
       receiver: AZURE_MONITOR_RECEIVER,
       alternativeReceivers: [],
-      note: "Read the topics' metrics from Azure Monitor with the collector's `azure_monitor` receiver.",
+      note: "Azure Monitor has the topics' delivery and dead-letter metrics, which the collector's `azure_monitor` receiver reads; they are not yet charted on a queue page, so explore them under Metrics.",
     },
     docsAnchor: "azure-event-grid",
   },

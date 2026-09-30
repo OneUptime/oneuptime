@@ -2069,12 +2069,78 @@ describe("consumer group precedence (display only)", () => {
 });
 
 describe("hasMessagingTrigger", () => {
+  const AZURE_PROVIDER_KEYS: ReadonlyArray<string> = [
+    "az.namespace",
+    "azure.resource_provider.namespace",
+  ];
+
   test.each(
-    MESSAGING_TRIGGER_ATTRIBUTES.map((key: string): [string] => {
-      return [key];
+    MESSAGING_TRIGGER_ATTRIBUTES.map((key: string): [string, string] => {
+      return [
+        key,
+        AZURE_PROVIDER_KEYS.includes(key) ? "Microsoft.ServiceBus" : "x",
+      ];
     }),
-  )("%s alone makes a candidate", (key: string) => {
-    expect(hasMessagingTrigger({ [key]: "x" })).toBe(true);
+  )("%s alone (%j) makes a candidate", (key: string, value: string) => {
+    expect(hasMessagingTrigger({ [key]: value })).toBe(true);
+  });
+
+  test.each(
+    AZURE_PROVIDER_KEYS.flatMap(
+      (key: string): Array<[string, unknown, boolean]> => {
+        return [
+          [key, "Microsoft.ServiceBus", true],
+          [key, "Microsoft.EventHub", true],
+          [key, " microsoft.eventhub ", true],
+          [key, "MICROSOFT.SERVICEBUS", true],
+          [
+            key,
+            `${" ".repeat(200)}Microsoft.ServiceBus${"\t".repeat(50)}`,
+            true,
+          ],
+          // Every other Azure SDK client stamps its own provider: no candidate.
+          [key, "Microsoft.Storage", false],
+          [key, "Microsoft.DocumentDB", false],
+          [key, "Microsoft.KeyVault", false],
+          [key, "Microsoft.EventGrid", false],
+          [key, "Microsoft.ServiceBus.Extra", false],
+          [key, "x", false],
+          [key, "", false],
+          [key, 42, false],
+          [key, true, false],
+          [key, ["Microsoft.ServiceBus"], false],
+          [key, "m".repeat(100_000), false],
+        ];
+      },
+    ),
+  )(
+    "the Azure provider key %s with %j is a trigger: %s",
+    (key: string, value: unknown, expected: boolean) => {
+      expect(hasMessagingTrigger({ [key]: value })).toBe(expected);
+    },
+  );
+
+  test("an Azure SDK span of a non-messaging client never resolves, and the gate refuses it", () => {
+    for (const provider of [
+      "Microsoft.Storage",
+      "Microsoft.DocumentDB",
+      "Microsoft.KeyVault",
+    ]) {
+      const attributes: Record<string, unknown> = {
+        "az.namespace": provider,
+        "azure.resource_provider.namespace": provider,
+        "server.address": "account.blob.core.windows.net",
+        "http.request.method": "PUT",
+      };
+      expect({ provider, trigger: hasMessagingTrigger(attributes) }).toEqual({
+        provider,
+        trigger: false,
+      });
+      expect({
+        provider,
+        resolved: resolveSpan(attributes, "SPAN_KIND_CLIENT"),
+      }).toEqual({ provider, resolved: null });
+    }
   });
 
   test("no trigger key, no candidate", () => {
