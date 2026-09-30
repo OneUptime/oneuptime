@@ -7,8 +7,6 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import { SetupGuideTopic } from "./SetupGuide";
-import SetupGuideMarkdown from "./SetupGuideMarkdown";
 
 /*
  * A folded section at the bottom of a guide — "Advanced" or
@@ -18,11 +16,18 @@ import SetupGuideMarkdown from "./SetupGuideMarkdown";
  * every other option.
  */
 
+// A topic as rendered: SetupGuideCard renders markdown topics into these.
+export interface SetupGuideTopicView {
+  title: string;
+  summary?: string | undefined;
+  content: ReactElement;
+}
+
 export interface ComponentProps {
   title: string;
   description: string;
   icon: IconProp;
-  topics: Array<SetupGuideTopic>;
+  topics: Array<SetupGuideTopicView>;
   testId: string;
 }
 
@@ -34,7 +39,7 @@ const SetupGuideTopics: FunctionComponent<ComponentProps> = (
   const [openTopics, setOpenTopics] = useState<Array<string>>([]);
 
   const topicTitles: string = props.topics
-    .map((topic: SetupGuideTopic): string => {
+    .map((topic: SetupGuideTopicView): string => {
       return topic.title;
     })
     .join("\n");
@@ -104,7 +109,7 @@ const SetupGuideTopics: FunctionComponent<ComponentProps> = (
           id={`${baseId}-body`}
           className="divide-y divide-gray-100 border-t border-gray-200"
         >
-          {props.topics.map((topic: SetupGuideTopic, index: number) => {
+          {props.topics.map((topic: SetupGuideTopicView, index: number) => {
             const isTopicOpen: boolean = openTopics.includes(topic.title);
             const topicBodyId: string = `${baseId}-topic-${index}`;
 
@@ -138,7 +143,7 @@ const SetupGuideTopics: FunctionComponent<ComponentProps> = (
                 </button>
                 {isTopicOpen && (
                   <div id={topicBodyId} className="px-4 pb-4 sm:pl-11">
-                    <SetupGuideMarkdown text={topic.markdown} />
+                    {topic.content}
                   </div>
                 )}
               </div>

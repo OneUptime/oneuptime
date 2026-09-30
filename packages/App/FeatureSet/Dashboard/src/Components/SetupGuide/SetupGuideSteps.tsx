@@ -6,8 +6,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { SetupGuideStepVariant } from "./SetupGuide";
-import SetupGuideMarkdown from "./SetupGuideMarkdown";
 
 /*
  * The numbered steps of a guide, joined by a line down the left — the same
@@ -72,10 +70,17 @@ export default SetupGuideSteps;
 
 /*
  * Alternative ways of doing one step — install script or Docker Compose —
- * as tabs, so only one set of commands is on screen at a time.
+ * as tabs, so only one set of commands is on screen at a time. Each variant
+ * arrives rendered: SetupGuideCard renders markdown variants into these, and
+ * the telemetry guides pass their own code blocks.
  */
+export interface SetupGuideStepVariantView {
+  label: string;
+  content: ReactElement;
+}
+
 export interface SetupGuideStepVariantsProps {
-  variants: Array<SetupGuideStepVariant>;
+  variants: Array<SetupGuideStepVariantView>;
 }
 
 export const SetupGuideStepVariants: FunctionComponent<
@@ -87,7 +92,7 @@ export const SetupGuideStepVariants: FunctionComponent<
     useRef<Array<HTMLButtonElement | null>>([]);
 
   const labels: string = props.variants
-    .map((variant: SetupGuideStepVariant): string => {
+    .map((variant: SetupGuideStepVariantView): string => {
       return variant.label;
     })
     .join("\n");
@@ -103,10 +108,10 @@ export const SetupGuideStepVariants: FunctionComponent<
 
   const safeIndex: number =
     selectedIndex < props.variants.length ? selectedIndex : 0;
-  const selected: SetupGuideStepVariant = props.variants[safeIndex]!;
+  const selected: SetupGuideStepVariantView = props.variants[safeIndex]!;
 
   if (props.variants.length === 1) {
-    return <SetupGuideMarkdown text={selected.markdown} />;
+    return selected.content;
   }
 
   const onKeyDown: (
@@ -144,44 +149,46 @@ export const SetupGuideStepVariants: FunctionComponent<
         role="tablist"
         className="mb-3 inline-flex max-w-full flex-wrap gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
       >
-        {props.variants.map((variant: SetupGuideStepVariant, index: number) => {
-          const isSelected: boolean = index === safeIndex;
-          return (
-            <button
-              key={variant.label}
-              ref={(element: HTMLButtonElement | null) => {
-                tabRefs.current[index] = element;
-              }}
-              type="button"
-              role="tab"
-              id={`${baseId}-tab-${index}`}
-              aria-selected={isSelected}
-              aria-controls={`${baseId}-panel`}
-              tabIndex={isSelected ? 0 : -1}
-              onClick={() => {
-                setSelectedIndex(index);
-              }}
-              onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
-                onKeyDown(event, index);
-              }}
-              data-testid="setup-guide-step-variant"
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                isSelected
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {variant.label}
-            </button>
-          );
-        })}
+        {props.variants.map(
+          (variant: SetupGuideStepVariantView, index: number) => {
+            const isSelected: boolean = index === safeIndex;
+            return (
+              <button
+                key={variant.label}
+                ref={(element: HTMLButtonElement | null) => {
+                  tabRefs.current[index] = element;
+                }}
+                type="button"
+                role="tab"
+                id={`${baseId}-tab-${index}`}
+                aria-selected={isSelected}
+                aria-controls={`${baseId}-panel`}
+                tabIndex={isSelected ? 0 : -1}
+                onClick={() => {
+                  setSelectedIndex(index);
+                }}
+                onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
+                  onKeyDown(event, index);
+                }}
+                data-testid="setup-guide-step-variant"
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  isSelected
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {variant.label}
+              </button>
+            );
+          },
+        )}
       </div>
       <div
         role="tabpanel"
         id={`${baseId}-panel`}
         aria-labelledby={`${baseId}-tab-${safeIndex}`}
       >
-        <SetupGuideMarkdown text={selected.markdown} />
+        {selected.content}
       </div>
     </div>
   );

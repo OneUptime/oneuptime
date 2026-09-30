@@ -19,6 +19,7 @@ import {
   SetupGuideLink,
   SetupGuideOption,
   SetupGuideStep,
+  SetupGuideStepVariant,
   SetupGuideTopic,
   SetupGuideVariables,
   getSetupGuideOneUptimeUrl,
@@ -28,10 +29,11 @@ import SetupGuideOptionPicker, {
   SetupGuideOptionLayout,
 } from "./SetupGuideOptionPicker";
 import SetupGuideSteps, {
+  SetupGuideStepVariantView,
   SetupGuideStepVariants,
   SetupGuideStepView,
 } from "./SetupGuideSteps";
-import SetupGuideTopics from "./SetupGuideTopics";
+import SetupGuideTopics, { SetupGuideTopicView } from "./SetupGuideTopics";
 import SetupGuideMarkdown from "./SetupGuideMarkdown";
 
 /*
@@ -90,10 +92,10 @@ export interface ComponentProps {
 const DEFAULT_KEY_STEP_DESCRIPTION: string =
   "The agent sends data to your project with this key. Pick an existing key or create a new one — the commands below update to use it.";
 
-const summarizeTopics: (topics: Array<SetupGuideTopic>) => string = (
-  topics: Array<SetupGuideTopic>,
+const summarizeTopics: (topics: Array<{ title: string }>) => string = (
+  topics: Array<{ title: string }>,
 ): string => {
-  const titles: Array<string> = topics.map((topic: SetupGuideTopic) => {
+  const titles: Array<string> = topics.map((topic: { title: string }) => {
     return topic.title;
   });
   const shown: Array<string> = titles.slice(0, 3);
@@ -185,7 +187,18 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
           <div className="space-y-3">
             {step.markdown && <SetupGuideMarkdown text={step.markdown} />}
             {step.variants && step.variants.length > 0 && (
-              <SetupGuideStepVariants variants={step.variants} />
+              <SetupGuideStepVariants
+                variants={step.variants.map(
+                  (
+                    variant: SetupGuideStepVariant,
+                  ): SetupGuideStepVariantView => {
+                    return {
+                      label: variant.label,
+                      content: <SetupGuideMarkdown text={variant.markdown} />,
+                    };
+                  },
+                )}
+              />
             )}
           </div>
         ),
@@ -193,8 +206,22 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
     }),
   ];
 
-  const advanced: Array<SetupGuideTopic> = content.advanced || [];
-  const troubleshooting: Array<SetupGuideTopic> = content.troubleshooting || [];
+  const toTopicView: (topic: SetupGuideTopic) => SetupGuideTopicView = (
+    topic: SetupGuideTopic,
+  ): SetupGuideTopicView => {
+    return {
+      title: topic.title,
+      summary: topic.summary,
+      content: <SetupGuideMarkdown text={topic.markdown} />,
+    };
+  };
+
+  const advanced: Array<SetupGuideTopicView> = (content.advanced || []).map(
+    toTopicView,
+  );
+  const troubleshooting: Array<SetupGuideTopicView> = (
+    content.troubleshooting || []
+  ).map(toTopicView);
   const links: Array<SetupGuideLink> = content.links || [];
   const prerequisites: Array<string> = content.prerequisites || [];
 
