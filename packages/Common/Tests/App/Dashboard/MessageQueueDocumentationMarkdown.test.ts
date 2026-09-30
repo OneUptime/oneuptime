@@ -21,6 +21,7 @@ import {
   markdownInlineCode,
   parseMessageQueueBrokerAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { getMessageQueueSystemLabel } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueuePresentation";
 import {
   MESSAGING_SYSTEMS,
   MessagingBrokerMetricsSource,
@@ -831,6 +832,41 @@ describe("a queue's own guide", () => {
     // No empty code span (two backticks that are not part of a fence).
     expect(markdown).not.toMatch(/(^|[^`])``([^`]|$)/m);
   });
+
+  /*
+   * The guide names a queue's system as every other Queues page does
+   * (getMessageQueueSystemLabel): the list's System cell, the Overview and
+   * the Documentation tab's own title all read "—" for a queue without one,
+   * so its guide does too rather than a wording of its own.
+   */
+  test.each([null, undefined, "", "   "])(
+    "a queue whose system is %p is named as the list names it",
+    (system: string | null | undefined) => {
+      const label: string = getMessageQueueSystemLabel(system);
+      expect(label).toBe("—");
+
+      const markdown: string = queueGuide({ system: system, destination: "x" });
+      expect(markdown).toContain(`This is the ${label} queue \`x\`.`);
+      expect(markdown).toContain(
+        `OneUptime charts no broker metrics for ${label} under **Broker health**.`,
+      );
+      expect(markdown).not.toContain("the this messaging system");
+      expect(markdown).not.toContain("for this messaging system under");
+    },
+  );
+
+  test.each([
+    ["kafka", "Apache Kafka"],
+    ["azure_servicebus", "Azure Service Bus"],
+    ["IBMMQ", "ibmmq"],
+  ])(
+    "a queue of %p is named %p, as the list names it",
+    (system: string, label: string) => {
+      expect(
+        queueGuide({ system: system, destination: "x", brokerScope: "shop" }),
+      ).toContain(`This is the ${label} queue \`x\``);
+    },
+  );
 });
 
 /*

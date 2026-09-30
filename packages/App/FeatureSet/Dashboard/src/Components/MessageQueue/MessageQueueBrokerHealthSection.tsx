@@ -25,6 +25,11 @@ import {
   buildMessageQueueMetricMonitorLink,
   getMessageQueueMetricMonitorHint,
 } from "./MessageQueueMetricMonitorLink";
+/*
+ * Generic and pure, so shared with the Databases product rather than
+ * copied: whether a catalog unit word counts whole things, and the y-axis
+ * that follows from it. Neither knows a database engine or catalog.
+ */
 import {
   DatabaseChartYAxis,
   getDatabaseChartYAxis,
@@ -431,16 +436,6 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                       </button>
                     )}
                   </div>
-                  {link && link.criteriaNote ? (
-                    <p
-                      data-testid="message-queue-create-monitor-criteria-note"
-                      className="mt-1 text-xs text-gray-500"
-                    >
-                      {link.criteriaNote}
-                    </p>
-                  ) : (
-                    <></>
-                  )}
                   {link && link.note ? (
                     <p
                       data-testid="message-queue-create-monitor-note"

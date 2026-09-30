@@ -5,16 +5,17 @@ import {
   getDatabaseMetricAxisUnitLabel,
   getDatabaseUnitSingular,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
-import { getMessageQueueSystemLabel } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
+import {
+  MessageQueueBrokerMetricsTarget,
+  canBrokerMetricsReachMessageQueue,
+  getMessageQueueSystemLabel,
+} from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
 import { MESSAGE_QUEUE_DOCS_PATH } from "../../Pages/MessageQueue/Utils/DocumentationMarkdown";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { getMessageQueueDiscoverySourceLabel } from "Common/Models/DatabaseModels/MessageQueue";
-import {
-  MessageQueueMetricDescriptor,
-  getMessageQueueMetricsForSystem,
-} from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import { MessageQueueMetricDescriptor } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import {
   MessagingBrokerMetricsSource,
   MessagingSystemDescriptor,
@@ -28,15 +29,20 @@ import {
  * arrived, and how a curated broker metric reads on a tile, a chart and a
  * Metrics row. Pure (no React, no API) so the wording and the arithmetic are
  * unit-tested without a renderer. What every Queues page shares — the "not
- * found" guard, the system and broker labels — lives in
+ * found" guard, the system and broker labels, and whether a system's broker
+ * metrics can reach a queue (canBrokerMetricsReachMessageQueue, which the
+ * Documentation tab's guide follows too) — lives in
  * Pages/MessageQueue/Utils/MessageQueuePresentation, and the docs path in
- * Pages/MessageQueue/Utils/DocumentationMarkdown.
+ * Pages/MessageQueue/Utils/DocumentationMarkdown; this module imports them
+ * rather than keeping copies.
  *
- * The number formatting is the Databases product's (DatabaseServerPresentation):
- * a queue's catalog units are the same kind of words ("messages",
- * "requests", "consumers", "s", "ms") and a counter is a rate the same way,
- * so a queue's "1.2k messages" and a database's "1.2k connections" read
- * alike.
+ * The number formatting is the Databases product's (DatabaseServerPresentation),
+ * imported rather than copied because it is generic and pure: it formats a
+ * value by its unit word and kind and nothing else, with no database
+ * catalog, engine or wording behind it. A queue's catalog units are the same
+ * kind of words ("messages", "requests", "consumers", "s", "ms") and a
+ * counter is a rate the same way, so a queue's "1.2k messages" and a
+ * database's "1.2k connections" read alike.
  */
 
 // ---- liveness ------------------------------------------------------------
@@ -186,49 +192,6 @@ export interface MessageQueueBrokerMetricsGuidance {
   reachesQueue: boolean;
 }
 
-/*
- * The queue a guidance is for, as its identity names it: a namespace-scoped
- * system's broker metrics reach only a queue with a namespace.
- */
-export interface MessageQueueBrokerMetricsTarget {
-  brokerScope?: string | null | undefined;
-}
-
-/**
- * Whether a system's broker metrics can ever name this queue — the test the
- * queue's Documentation tab applies too (DocumentationMarkdown's
- * brokerMetricsReachQueues). Only a system with curated metrics
- * (MessageQueueMetricCatalog) has broker metrics that name a queue: a
- * collector can read NATS's and Azure Event Grid's brokers, but NATS
- * reports JetStream streams and consumers rather than subjects, and Event
- * Grid its topics and event subscriptions, so those metrics stay in the
- * Metrics explorer. And a system whose metrics name the namespace they come
- * from (the catalog's scopeAttributes: Azure Monitor's `name`) reaches only
- * a queue with a namespace: one whose spans came from the emulator or
- * through a custom domain has none, and the metrics key on the same
- * destination's queue in the namespace instead. Without a queue, only the
- * system decides.
- */
-export function canBrokerMetricsReachMessageQueue(
-  system: string | null | undefined,
-  queue?: MessageQueueBrokerMetricsTarget | null | undefined,
-): boolean {
-  const metrics: ReadonlyArray<MessageQueueMetricDescriptor> =
-    getMessageQueueMetricsForSystem(system);
-  if (metrics.length === 0) {
-    return false;
-  }
-  if (!queue) {
-    return true;
-  }
-  const namesNamespace: boolean = metrics.some(
-    (descriptor: MessageQueueMetricDescriptor): boolean => {
-      return (descriptor.scopeAttributes || []).length > 0;
-    },
-  );
-  return !namesNamespace || Boolean((queue.brokerScope || "").trim());
-}
-
 function sourceLabelOf(source: MessagingBrokerMetricsSource): string {
   switch (source.kind) {
     case "receiver":
@@ -265,14 +228,15 @@ function sourceSentencesOf(source: MessagingBrokerMetricsSource): string {
 /**
  * The guidance for a queue of `system` (the row's SPECIFIC system: a "jms"
  * queue reads the JMS guidance until ActiveMQ metrics refine it) that has
- * no broker metric to chart. A queue its system's broker metrics can reach
- * (canBrokerMetricsReachMessageQueue) has simply not been sent any yet. A
- * system without curated metrics (JMS, NATS, BullMQ, Azure Event Grid, one
+ * no broker metric to chart, by canBrokerMetricsReachMessageQueue — the
+ * rule the Documentation tab's guide follows too. A queue its system's
+ * broker metrics can reach has simply not been sent any yet. A Service Bus
+ * or Event Hubs queue without a namespace (the system's metrics reach
+ * queues, but not this one) is told where its metrics go. A system whose
+ * metrics reach no queue at all (JMS, NATS, BullMQ, Azure Event Grid, one
  * OneUptime does not know) never charts any, and its catalog note or reason
- * says why and where its metrics can be seen instead. A Service Bus or
- * Event Hubs queue without a namespace is told where its metrics go. Catalog
- * notes spell component names in backticks, which the section renders as
- * code.
+ * says why and where its metrics can be seen instead. Catalog notes spell
+ * component names in backticks, which the section renders as code.
  */
 export function getMessageQueueBrokerMetricsGuidance(
   system: string | null | undefined,
@@ -282,8 +246,6 @@ export function getMessageQueueBrokerMetricsGuidance(
     getMessagingBrokerMetricsSource(system);
   const label: string = getMessageQueueSystemLabel(system);
   const known: boolean = getMessagingSystemDescriptor(system) !== null;
-  const hasCuratedMetrics: boolean =
-    getMessageQueueMetricsForSystem(system).length > 0;
   const reachesQueue: boolean = canBrokerMetricsReachMessageQueue(
     system,
     queue,
@@ -294,7 +256,7 @@ export function getMessageQueueBrokerMetricsGuidance(
     description = `No ${label} broker metric has arrived for this queue yet. ${sourceSentencesOf(
       source,
     )}`;
-  } else if (hasCuratedMetrics) {
+  } else if (canBrokerMetricsReachMessageQueue(system)) {
     description = `${label} broker metrics name the namespace they come from, and this queue has none (its clients connect through the emulator or a custom domain, or it was added without one), so they attach to the same destination's queue in their namespace, not to this one.`;
   } else {
     description = sourceSentencesOf(source);

@@ -382,11 +382,6 @@ describe("Create monitor on every broker health gauge", () => {
 
       const template: MessageQueueAlertTemplate | undefined =
         getMessageQueueAlertTemplateForMetric(descriptor);
-      const onFormula: boolean = formulas.some(
-        (formula: MetricFormulaConfigData): boolean => {
-          return formula.metricAliasData.metricVariable === link!.criteriaAlias;
-        },
-      );
       if (template) {
         // The template's threshold as Monitor Create's "above" reads it.
         const seeded: number = getMessageQueueMonitorCreateThreshold(template);
@@ -400,28 +395,22 @@ describe("Create monitor on every broker health gauge", () => {
           expect(criteriaOwner.warningThreshold).toBe(seeded);
           expect(criteriaOwner.criticalThreshold).toBeUndefined();
         }
-        if (onFormula) {
-          // Monitor Create reads no formula's threshold: nothing is promised.
-          expect(link!.criteria).toBeNull();
-          expect(link!.criteriaNote).toContain(
-            `add a ${template.severity} criteria for when ${link!.criteriaAlias}`,
-          );
-        } else {
-          expect(link!.criteria).toEqual({
-            severity: template.severity,
-            alias: link!.criteriaAlias,
-            filterType: FilterType.GreaterThan,
-            evaluation: EvaluateOverTimeType.AnyValue,
-            value: seeded,
-            valueLabel: link!.thresholdLabel,
-          });
-          expect(link!.criteriaNote).toBeNull();
-        }
+        /*
+         * Monitor Create reads the threshold on the query or on a series
+         * total's formula alike, so a criteria is always promised.
+         */
+        expect(link!.criteria).toEqual({
+          severity: template.severity,
+          alias: link!.criteriaAlias,
+          filterType: FilterType.GreaterThan,
+          evaluation: EvaluateOverTimeType.AnyValue,
+          value: seeded,
+          valueLabel: link!.thresholdLabel,
+        });
       } else {
         expect(link!.threshold).toBeNull();
         expect(link!.thresholdLabel).toBeNull();
         expect(link!.criteria).toBeNull();
-        expect(link!.criteriaNote).toBeNull();
         expect(criteriaOwner.warningThreshold).toBeUndefined();
         expect(criteriaOwner.criticalThreshold).toBeUndefined();
       }
@@ -720,15 +709,19 @@ describe("what the monitor starts with", () => {
     );
     expect(link!.criteriaAlias).toBe("a");
     /*
-     * Monitor Create builds no criteria from a formula's threshold, so the
-     * hint promises none and the note says what to add.
+     * Monitor Create turns the formula's threshold into a criteria on its
+     * alias, so the hint promises the Warning the page builds.
      */
-    expect(link!.criteria).toBeNull();
+    expect(link!.criteria).toEqual({
+      severity: "Warning",
+      alias: "a",
+      filterType: FilterType.GreaterThan,
+      evaluation: EvaluateOverTimeType.AnyValue,
+      value: 1000,
+      valueLabel: link!.thresholdLabel,
+    });
     expect(getMessageQueueMetricMonitorHint(link!)).toBe(
-      "No starting threshold · 10-minute window",
-    );
-    expect(link!.criteriaNote).toBe(
-      "Monitor Create takes no threshold from a formula, so this monitor starts without one: add a Warning criteria for when a, the formula adding up this metric's series, is above 1,000 messages.",
+      "Warning when any point in the last 10 minutes is above 1,000 messages",
     );
   });
 

@@ -94,7 +94,6 @@ import MessageQueueBrokerHealthSection, {
   getMessageQueueBrokerMonitorLinks,
   renderMessageQueueInlineCode,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerHealthSection";
-import { getMessageQueueDocumentationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
 import {
   MessageQueueBrokerMetricResult,
   MessageQueueMetricListValue,
@@ -111,7 +110,6 @@ import {
   MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR,
   MESSAGE_QUEUE_BROKER_METRICS_DOCS_ANCHOR,
   MessageQueueBrokerMetricsGuidance,
-  canBrokerMetricsReachMessageQueue,
   getMessageQueueBrokerMetricCaption,
   getMessageQueueBrokerMetricChartTitle,
   getMessageQueueBrokerMetricsGuidance,
@@ -870,51 +868,13 @@ describe("Broker health with nothing to chart: where the metrics come from", () 
     },
   );
 
-  test.each(
-    SYSTEM_CASES.flatMap(
-      ([system]: [string, MessagingSystemDescriptor]): Array<
-        [string, string, string]
-      > => {
-        return [
-          [system, "with a namespace", "orders-prod"],
-          [system, "without one", ""],
-        ];
-      },
-    ),
-  )(
-    "%s queue %s: offered broker metrics exactly when its Documentation tab says they reach it",
-    (system: string, _case: string, brokerScope: string) => {
-      const documentation: string = getMessageQueueDocumentationMarkdown(
-        { oneuptimeUrl: "https://oneuptime.example.com", apiKey: "key" },
-        { system: system, destination: "orders", brokerScope: brokerScope },
-      );
-      const reaches: boolean = canBrokerMetricsReachMessageQueue(system, {
-        brokerScope: brokerScope,
-      });
-
-      expect(documentation.includes("and from the broker's own metrics")).toBe(
-        reaches,
-      );
-      expect(
-        getMessageQueueBrokerMetricsGuidance(system, {
-          brokerScope: brokerScope,
-        }).reachesQueue,
-      ).toBe(reaches);
-    },
-  );
-
-  test("without a queue, only the system decides", () => {
-    expect(canBrokerMetricsReachMessageQueue("servicebus")).toBe(true);
-    expect(canBrokerMetricsReachMessageQueue("servicebus", null)).toBe(true);
-    expect(
-      canBrokerMetricsReachMessageQueue("servicebus", { brokerScope: "  " }),
-    ).toBe(false);
-    expect(
-      canBrokerMetricsReachMessageQueue("kafka", { brokerScope: "" }),
-    ).toBe(true);
-    expect(canBrokerMetricsReachMessageQueue("nats")).toBe(false);
-    expect(canBrokerMetricsReachMessageQueue(null)).toBe(false);
-  });
+  /*
+   * Whether a queue is offered a setup at all is
+   * canBrokerMetricsReachMessageQueue's call, the one rule the Documentation
+   * tab's guide follows too: MessageQueueBrokerMetricsReach.test pins that
+   * both follow it, and MessageQueuePresentation.test the rule itself for
+   * every catalog system.
+   */
 
   test("a system with curated metrics says none has arrived; one without only says why", () => {
     expect(getMessageQueueBrokerMetricsGuidance("kafka").description).toMatch(
@@ -1242,12 +1202,9 @@ describe("Broker health with data", () => {
     ).toHaveTextContent(
       "Warning when any point in the last 10 minutes is above 1,000 messages",
     );
-    expect(
-      screen.queryByTestId("message-queue-create-monitor-criteria-note"),
-    ).toBeNull();
   });
 
-  test("RabbitMQ's queue depth: no criteria is promised, since Monitor Create reads no formula's threshold, and what to add is said", () => {
+  test("RabbitMQ's queue depth: the Warning criteria Monitor Create builds on the formula adding the states up is promised", () => {
     renderSection({ messagingSystem: "rabbitmq", results: rabbitResults() });
 
     const chart: HTMLElement = screen
@@ -1260,11 +1217,8 @@ describe("Broker health with data", () => {
       })!;
     expect(
       within(chart).getByTestId("message-queue-create-monitor-hint"),
-    ).toHaveTextContent("No starting threshold · 10-minute window");
-    expect(
-      within(chart).getByTestId("message-queue-create-monitor-criteria-note"),
     ).toHaveTextContent(
-      "Monitor Create takes no threshold from a formula, so this monitor starts without one: add a Warning criteria for when a, the formula adding up this metric's series, is above 1,000 messages.",
+      "Warning when any point in the last 10 minutes is above 1,000 messages",
     );
   });
 });

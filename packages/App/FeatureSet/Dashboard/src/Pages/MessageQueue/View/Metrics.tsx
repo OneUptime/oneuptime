@@ -41,6 +41,14 @@ import {
   getMessageQueueMetricListCaption,
 } from "../../../Components/MessageQueue/MessageQueuePresentation";
 import { MESSAGE_QUEUE_NOT_FOUND_MESSAGE } from "../Utils/MessageQueuePresentation";
+/*
+ * Generic and pure, so shared with the Databases product's Metrics tab
+ * rather than copied: it reads the range out of the URL the way the shared
+ * MetricsViewer writes it (`range`, plus `start` / `end` for a custom
+ * range; anything unreadable is the viewer's default, the past hour), so a
+ * clicked metric's chart opens on the range the list shows. Nothing in it
+ * is about databases.
+ */
 import { getDatabaseMetricsRangeFromSearch } from "../../Database/Utils/DatabaseServerTelemetryQueries";
 
 /** The curated list values as the metric list's row overrides. */

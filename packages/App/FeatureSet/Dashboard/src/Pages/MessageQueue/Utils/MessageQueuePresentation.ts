@@ -13,6 +13,10 @@ import {
   normalizeMessagingSystem,
 } from "Common/Types/MessageQueue/MessagingSystem";
 import {
+  MessageQueueMetricDescriptor,
+  getMessageQueueMetricsForSystem,
+} from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import {
   MessageQueueIdentity,
   buildMessageQueueIdentifier,
   canonicalizeMessageQueueBrokerScope,
@@ -27,9 +31,13 @@ import {
 /*
  * How the Queues pages describe a MessageQueue row: the options of the
  * list's facets and create form, the System / Broker / Last seen cells, the
- * create form's checks and hints, and the "not found" guard of the view
- * layout. Pure (no React, no API) so the wording is unit-tested without a
- * renderer, and the list, Archived and view pages cannot drift.
+ * create form's checks and hints, the "not found" guard of the view layout,
+ * and whether the row's broker metrics can ever reach it. Pure (no React,
+ * no API) so the wording is unit-tested without a renderer, and the list,
+ * Archived and view pages cannot drift. This is the ONE home of what several
+ * Queues pages share: the Overview and its tabs (Components/MessageQueue)
+ * and the Documentation tab's guide (DocumentationMarkdown) import these
+ * rather than keep copies of their own.
  *
  * Everything about messaging systems comes from the one catalog
  * (Common/Types/MessageQueue/MessagingSystem): the pages never spell a
@@ -65,7 +73,11 @@ export function getMessagingSystemOptions(): Array<MessageQueueOption> {
 
 /**
  * "Apache Kafka" for a known system (aliases accepted), the stored value
- * for a long-tail one ("ibmmq"), and "—" when the row has none.
+ * for a long-tail one ("ibmmq"), and "—" when the row has none. The list and
+ * Archived System cells, the Overview, Broker health and the Documentation
+ * tab (its title and its guide) all name a queue's system with it, so a
+ * queue without one reads "—" on each. (The telemetry tabs' locked chip
+ * leaves an unknown system out instead: "orders", not "orders (—)".)
  */
 export function getMessageQueueSystemLabel(
   system: string | null | undefined,
@@ -129,6 +141,55 @@ export function getMessageQueueBrokerLabel(
     return { text: address, title: `Broker address ${address}` };
   }
   return { text: "", title: "" };
+}
+
+// ---- broker metrics ---------------------------------------------------------
+
+/*
+ * The queue a broker-metrics question is about, as its identity names it:
+ * the row, or parseMessageQueueIdentifier of its queueIdentifier. A
+ * namespace-scoped system's broker metrics reach only a queue with a
+ * namespace.
+ */
+export interface MessageQueueBrokerMetricsTarget {
+  brokerScope?: string | null | undefined;
+}
+
+/**
+ * Whether a system's broker metrics can ever name this queue: THE rule both
+ * the Overview's Broker health section (whether it offers a setup) and the
+ * queue's Documentation tab (whether its guide promises the broker's own
+ * metrics) follow, so the two never disagree. Only a system with curated
+ * metrics (MessageQueueMetricCatalog) has broker metrics that name a queue:
+ * a collector can read NATS's and Azure Event Grid's brokers, but NATS
+ * reports JetStream streams and consumers rather than subjects, and Event
+ * Grid its topics and event subscriptions, so those metrics stay in the
+ * Metrics explorer. And a system whose metrics name the namespace they come
+ * from (the catalog's scopeAttributes: Azure Monitor's `name`) reaches only
+ * a queue with a namespace: one whose spans came from the emulator or
+ * through a custom domain has none, and the metrics key on the same
+ * destination's queue in the namespace instead. Without a queue, only the
+ * system decides — so "reaches queues, but not this one" is the rule asked
+ * with and without the queue.
+ */
+export function canBrokerMetricsReachMessageQueue(
+  system: string | null | undefined,
+  queue?: MessageQueueBrokerMetricsTarget | null | undefined,
+): boolean {
+  const metrics: ReadonlyArray<MessageQueueMetricDescriptor> =
+    getMessageQueueMetricsForSystem(system);
+  if (metrics.length === 0) {
+    return false;
+  }
+  if (!queue) {
+    return true;
+  }
+  const namesNamespace: boolean = metrics.some(
+    (descriptor: MessageQueueMetricDescriptor): boolean => {
+      return (descriptor.scopeAttributes || []).length > 0;
+    },
+  );
+  return !namesNamespace || Boolean((queue.brokerScope || "").trim());
 }
 
 // ---- last seen ------------------------------------------------------------

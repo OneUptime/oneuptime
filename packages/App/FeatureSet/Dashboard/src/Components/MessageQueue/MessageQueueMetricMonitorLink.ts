@@ -59,10 +59,9 @@ import MetricExplorerUrl from "Common/Utils/Metrics/MetricExplorerUrl";
  *     untemplated on purpose) gets none: there is no sensible fixed level to
  *     start from. What Monitor Create makes of it is narrower than the
  *     template (MessageQueueMonitorCreateCriteria): "above" rather than "at
- *     or above", on any point rather than held for the window, and nothing
- *     at all from a formula's threshold — so the link seeds the template's
- *     "any" (1) as "above 0", and its hint states the criteria Monitor
- *     Create builds, never the template's;
+ *     or above", and on any point rather than held for the window — so the
+ *     link seeds the template's "any" (1) as "above 0", and its hint states
+ *     the criteria Monitor Create builds, never the template's;
  *   - the window starts at the template's (or the link's default) and is
  *     widened to the metric's source floor
  *     (getMessageQueueMetricMonitorRollingTime: 30 minutes for CloudWatch,
@@ -129,9 +128,9 @@ export function getMessageQueueRollingTimeAdjective(
 /*
  * What Monitor Create makes of a link's threshold
  * (preSeedFromMetricExplorerLink in Pages/Monitor/Create.tsx): the
- * warningThreshold / criticalThreshold of a QUERY becomes a Warning /
- * Critical criteria on that query's alias that fires when ANY point in the
- * window is ABOVE it. A formula's threshold is not read at all.
+ * warningThreshold / criticalThreshold of a query or a formula becomes a
+ * Warning / Critical criteria on that config's alias — a series total's
+ * formula included — that fires when ANY point in the window is ABOVE it.
  * MessageQueueMonitorLinkMonitorCreate.test opens every gauge's link in the
  * real page and holds these to what it builds.
  */
@@ -191,15 +190,10 @@ export interface MessageQueueMetricMonitorLink {
   // Which criteria the threshold seeds, or null without one.
   thresholdSeverity: MessageQueueAlertTemplateSeverity | null;
   /*
-   * The criteria Monitor Create builds from the link, or null: no template,
-   * or a threshold on a formula (a series total), which it does not read.
+   * The criteria Monitor Create builds from the link — on the query, or on
+   * a series total's formula — or null without a template.
    */
   criteria: MessageQueueMonitorCreateCriteria | null;
-  /*
-   * One sentence when the link suggests a threshold that Monitor Create
-   * does not turn into a criteria, saying what to add; else null.
-   */
-  criteriaNote: string | null;
   rollingTime: RollingTime;
   /*
    * The source floor that set the window (a CloudWatch or Cloud Monitoring
@@ -348,17 +342,9 @@ export function buildMessageQueueMetricMonitorLink(data: {
     threshold === null
       ? null
       : formatMessageQueueThreshold(threshold, descriptor.unit);
-  // Monitor Create reads a query's threshold only (see MONITOR_CREATE_LINK_*).
-  const thresholdOnFormula: boolean = view.metricViewConfig.formulaConfigs.some(
-    (formula: MetricFormulaConfigData): boolean => {
-      return formula.metricAliasData.metricVariable === view.criteriaAlias;
-    },
-  );
+  // What Monitor Create builds from the threshold (MONITOR_CREATE_LINK_*).
   const criteria: MessageQueueMonitorCreateCriteria | null =
-    threshold !== null &&
-    severity !== null &&
-    thresholdLabel !== null &&
-    !thresholdOnFormula
+    threshold !== null && severity !== null && thresholdLabel !== null
       ? {
           severity: severity,
           alias: view.criteriaAlias,
@@ -367,10 +353,6 @@ export function buildMessageQueueMetricMonitorLink(data: {
           value: threshold,
           valueLabel: thresholdLabel,
         }
-      : null;
-  const criteriaNote: string | null =
-    thresholdLabel !== null && severity !== null && thresholdOnFormula
-      ? `Monitor Create takes no threshold from a formula, so this monitor starts without one: add a ${severity} criteria for when ${view.criteriaAlias}, the formula adding up this metric's series, is above ${thresholdLabel}.`
       : null;
 
   const rollingTime: RollingTime = getMessageQueueMetricMonitorRollingTime(
@@ -411,7 +393,6 @@ export function buildMessageQueueMetricMonitorLink(data: {
     thresholdLabel: thresholdLabel,
     thresholdSeverity: severity,
     criteria: criteria,
-    criteriaNote: criteriaNote,
     rollingTime: rollingTime,
     windowFloor:
       floor && floor.minimumRollingTime === rollingTime ? floor : null,

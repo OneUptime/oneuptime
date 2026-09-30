@@ -23,11 +23,12 @@ import { getJestSpyOn } from "../../Spy";
  * What must arrive: a Metrics monitor named after the queue's metric, the
  * exact queue filters and fold, the formula of a series total, a criteria
  * on the link's starting threshold (warning, or critical for a Critical
- * template), and the rolling time the link's window stands for — thirty
- * minutes for a CloudWatch metric, fifteen for Cloud Monitoring. And for
- * every catalog gauge, the hint beside the link states exactly the criteria
- * the page built from it — none for a threshold on a formula, which the
- * page does not read — and a dead-letter queue holding one message fires it.
+ * template) — on the formula's alias when the threshold sits on a series
+ * total's formula, which the page once dropped — and the rolling time the
+ * link's window stands for: thirty minutes for a CloudWatch metric, fifteen
+ * for Cloud Monitoring. And for every catalog gauge, the hint beside the
+ * link states exactly the criteria the page built from it, and a
+ * dead-letter queue holding one message fires it.
  */
 
 type CapturedFormProps = {
@@ -126,8 +127,11 @@ import {
   getMessageQueueRollingTimeWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueMetricMonitorLink";
 import CompareCriteria from "../../../Server/Utils/Monitor/Criteria/CompareCriteria";
+import MetricMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
+import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import {
   MessageQueueIdentity,
@@ -146,6 +150,7 @@ import {
 } from "../../../Types/MessageQueue/MessagingTelemetryResolver";
 import {
   CriteriaFilter,
+  EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import {
@@ -162,6 +167,7 @@ import {
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -172,6 +178,7 @@ import RollingTime from "../../../Types/RollingTime/RollingTime";
 import UiAnalytics from "../../../UI/Utils/Analytics";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -391,6 +398,48 @@ const DEAD_LETTER_CASES: Array<[string, MessageQueueMetricDescriptor]> =
     },
   );
 
+// Every gauge with a template, whose link carries a starting threshold.
+const TEMPLATED_GAUGE_CASES: Array<[string, MessageQueueMetricDescriptor]> =
+  GAUGE_CASES.filter(
+    ([, descriptor]: [string, MessageQueueMetricDescriptor]): boolean => {
+      return getMessageQueueAlertTemplateForMetric(descriptor) !== undefined;
+    },
+  );
+
+// A config of the pre-seeded view that carries a threshold.
+interface ThresholdOwner {
+  alias: string;
+  warningThreshold: number | undefined;
+  criticalThreshold: number | undefined;
+}
+
+// The queries and formulas of the view that carry a threshold, in that order.
+function thresholdOwners(step: MonitorStep): Array<ThresholdOwner> {
+  return [
+    ...queriesOf(step).map((query: MetricQueryConfigData): ThresholdOwner => {
+      return {
+        alias: query.metricAliasData?.metricVariable || "",
+        warningThreshold: query.warningThreshold,
+        criticalThreshold: query.criticalThreshold,
+      };
+    }),
+    ...formulasOf(step).map(
+      (formula: MetricFormulaConfigData): ThresholdOwner => {
+        return {
+          alias: formula.metricAliasData.metricVariable || "",
+          warningThreshold: formula.warningThreshold,
+          criticalThreshold: formula.criticalThreshold,
+        };
+      },
+    ),
+  ].filter((owner: ThresholdOwner): boolean => {
+    return (
+      owner.warningThreshold !== undefined ||
+      owner.criticalThreshold !== undefined
+    );
+  });
+}
+
 describe("Monitor Create opened from a queue's Create monitor link", () => {
   beforeEach(() => {
     capturedForm = null;
@@ -541,6 +590,10 @@ describe("Monitor Create opened from a queue's Create monitor link", () => {
       }),
     );
 
+    // Named after the formula — the queue's depth — not its first part.
+    expect(initialValues["name"]).toBe("orders: Queue depth Monitor");
+    expect(initialValues["description"]).toBe("Created from queue orders.");
+
     const step: MonitorStep = stepOf(initialValues);
     expect(
       queriesOf(step).map((query: MetricQueryConfigData): unknown => {
@@ -584,7 +637,7 @@ describe("Monitor Create opened from a queue's Create monitor link", () => {
     );
   });
 
-  test("RabbitMQ queue depth: the page builds no criteria from the formula's threshold, and the link promises none", async () => {
+  test("RabbitMQ queue depth: a Warning criteria on the formula, which the worker compares with both states added up", async () => {
     const link: MessageQueueMetricMonitorLink = linkOf({
       system: "rabbitmq",
       metricName: "rabbitmq.message.current",
@@ -593,15 +646,116 @@ describe("Monitor Create opened from a queue's Create monitor link", () => {
     });
 
     const step: MonitorStep = stepOf(await openLink(link));
+    const formula: MetricFormulaConfigData = formulasOf(step)[0]!;
 
-    expect(thresholdCriteria(step)).toEqual([]);
-    expect(link.criteria).toBeNull();
-    expect(getMessageQueueMetricMonitorHint(link)).toBe(
-      "No starting threshold · 10-minute window",
+    // On the formula's alias — the link's criteria alias — not on a part.
+    expect(formula.metricAliasData.metricVariable).toBe(link.criteriaAlias);
+    expect(thresholdCriteria(step)).toEqual([
+      {
+        name: "Warning",
+        value: 1000,
+        alias: link.criteriaAlias,
+        type: FilterType.GreaterThan,
+      },
+    ]);
+    const filter: CriteriaFilter = thresholdFilters(step)[0]!.filter;
+    expect(filter.metricMonitorOptions?.metricAggregationType).toBe(
+      EvaluateOverTimeType.AnyValue,
     );
-    // What to add instead is said.
-    expect(link.criteriaNote).toContain("above 1,000 messages");
+
+    /*
+     * The monitor worker's own evaluation of that criteria: each query's
+     * result in query order, then the formula's, computed by the evaluator
+     * the worker runs.
+     */
+    const fires: (
+      ready: number,
+      unacknowledged: number,
+    ) => Promise<boolean> = async (
+      ready: number,
+      unacknowledged: number,
+    ): Promise<boolean> => {
+      const at: Date = new Date("2026-09-30T12:00:00.000Z");
+      const depthByAlias: Record<string, number> = {
+        a_ready: ready,
+        a_unacknowledged: unacknowledged,
+      };
+      const results: Array<AggregatedResult> = queriesOf(step).map(
+        (query: MetricQueryConfigData): AggregatedResult => {
+          return {
+            data: [
+              {
+                timestamp: at,
+                value: depthByAlias[query.metricAliasData!.metricVariable!]!,
+              } as AggregateModel,
+            ],
+          };
+        },
+      );
+      const total: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: formula.metricFormulaData.metricFormula,
+        queryConfigs: queriesOf(step),
+        formulaConfigs: [],
+        results: results,
+      });
+      const dataToProcess: MetricMonitorResponse = {
+        projectId: PROJECT_ID,
+        metricResult: [...results, total],
+        metricViewConfig: step.data!.metricMonitor!.metricViewConfig,
+        monitorId: ObjectID.generate(),
+      };
+
+      return (
+        (await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: dataToProcess,
+          criteriaFilter: { ...filter },
+          monitorStep: step,
+        })) !== null
+      );
+    };
+
+    // Above 1,000 in all (1,100, then 1,200), though neither state alone is.
+    expect(await fires(600, 500)).toBe(true);
+    expect(await fires(900, 300)).toBe(true);
+    // 900 in all.
+    expect(await fires(600, 300)).toBe(false);
   });
+
+  /*
+   * Whichever config carries the link's threshold — the query, or a series
+   * total's formula — the monitor opens with the template's severity on its
+   * alias, the value the link seeds, and nothing else.
+   */
+  test.each(TEMPLATED_GAUGE_CASES)(
+    "%s: opens with a criteria on the alias the link's threshold sits on",
+    async (_id: string, descriptor: MessageQueueMetricDescriptor) => {
+      const template: MessageQueueAlertTemplate =
+        getMessageQueueAlertTemplateForMetric(descriptor)!;
+      const link: MessageQueueMetricMonitorLink = fixtureLinkOf(descriptor);
+      expect(link.threshold).not.toBeNull();
+
+      const step: MonitorStep = stepOf(await openLink(link));
+
+      const owners: Array<ThresholdOwner> = thresholdOwners(step);
+      expect(owners).toEqual([
+        {
+          alias: link.criteriaAlias,
+          warningThreshold:
+            template.severity === "Warning" ? link.threshold : undefined,
+          criticalThreshold:
+            template.severity === "Critical" ? link.threshold : undefined,
+        },
+      ]);
+      expect(thresholdCriteria(step)).toEqual([
+        {
+          name: template.severity,
+          value: link.threshold,
+          alias: link.criteriaAlias,
+          type: FilterType.GreaterThan,
+        },
+      ]);
+    },
+  );
 
   test.each(GAUGE_CASES)(
     "%s: the hint states exactly the criteria the page builds from the link",

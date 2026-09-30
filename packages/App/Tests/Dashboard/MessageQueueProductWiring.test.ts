@@ -1053,3 +1053,280 @@ describe("no other product's concepts leaked into the Queues scaffold", () => {
     }
   });
 });
+
+// ---- the whole Queues dashboard, pages and components --------------------
+
+/*
+ * Every source file of the Queues dashboard (the product's pages and the
+ * components its Overview and tabs are built from), relative to the
+ * dashboard's src, comments stripped. Read once.
+ */
+const QUEUES_SOURCE_ROOTS: ReadonlyArray<Array<string>> = [
+  ["Pages", "MessageQueue"],
+  ["Components", "MessageQueue"],
+  ["Components", "MetricDescriptions", "MessageQueueMetricDescriptions.ts"],
+];
+
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+
+const queuesSources: Map<string, string> = ((): Map<string, string> => {
+  const sources: Map<string, string> = new Map<string, string>();
+  const add: (absolute: string) => void = (absolute: string): void => {
+    if (fs.statSync(absolute).isDirectory()) {
+      for (const entry of fs.readdirSync(absolute).sort()) {
+        add(path.join(absolute, entry));
+      }
+      return;
+    }
+    if (TYPESCRIPT_FILE.test(absolute)) {
+      sources.set(
+        path.relative(DASHBOARD_SRC, absolute).split(path.sep).join("/"),
+        stripComments(fs.readFileSync(absolute, "utf8")),
+      );
+    }
+  };
+  for (const segments of QUEUES_SOURCE_ROOTS) {
+    add(path.join(DASHBOARD_SRC, ...segments));
+  }
+  return sources;
+})();
+
+interface QueuesImport {
+  file: string;
+  // The module, relative to the dashboard's src for a relative specifier.
+  module: string;
+  // "default" for a default import, "*" for a namespace import.
+  name: string;
+}
+
+const IMPORT_PATTERN: RegExp =
+  /\bimport\s+(?:type\s+)?(?:(\*\s+as\s+\w+|\w+)\s*,?\s*)?(?:\{([^}]*)\})?\s*from\s*"([^"]+)"/g;
+
+const queuesImports: ReadonlyArray<QueuesImport> = ((): Array<QueuesImport> => {
+  const imports: Array<QueuesImport> = [];
+  for (const [file, code] of queuesSources) {
+    for (const match of code.matchAll(IMPORT_PATTERN)) {
+      const specifier: string = match[3]!;
+      const module: string = specifier.startsWith(".")
+        ? path
+            .relative(
+              DASHBOARD_SRC,
+              path.resolve(
+                path.dirname(path.join(DASHBOARD_SRC, file)),
+                specifier,
+              ),
+            )
+            .split(path.sep)
+            .join("/")
+        : specifier;
+      const names: Array<string> = [];
+      if (match[1]) {
+        names.push(match[1].startsWith("*") ? "*" : "default");
+      }
+      for (const part of (match[2] || "").split(",")) {
+        const name: string = part
+          .trim()
+          .replace(/^type\s+/, "")
+          .split(/\s+as\s+/)[0]!
+          .trim();
+        if (name) {
+          names.push(name);
+        }
+      }
+      for (const name of names) {
+        imports.push({ file: file, module: module, name: name });
+      }
+    }
+  }
+  return imports;
+})();
+
+describe("the Queues sources the guards below scan", () => {
+  test("are all there, imports included", () => {
+    expect(queuesSources.has("Pages/MessageQueue/View/Metrics.tsx")).toBe(true);
+    expect(
+      queuesSources.has(
+        "Components/MessageQueue/MessageQueueMetricChartModal.tsx",
+      ),
+    ).toBe(true);
+    expect(queuesSources.size).toBeGreaterThan(25);
+    expect(queuesImports).toContainEqual({
+      file: "Pages/MessageQueue/View/Metrics.tsx",
+      module: "Pages/MessageQueue/Utils/MessageQueuePresentation",
+      name: "MESSAGE_QUEUE_NOT_FOUND_MESSAGE",
+    });
+    expect(queuesImports).toContainEqual({
+      file: "Components/MessageQueue/MessageQueueTelemetryQueries.ts",
+      module: "Common/Types/BaseDatabase/AggregatedResult",
+      name: "default",
+    });
+  });
+});
+
+/*
+ * What several Queues pages share — the view's "not found" guard, the
+ * system and broker labels, the namespace rule, whether a system's broker
+ * metrics can reach a queue, the docs path — has ONE home each, and every
+ * page imports it from there. A second copy drifts: the Documentation tab's
+ * guide once kept its own broker-metrics rule and its own name for a queue
+ * without a system, held to Broker health's only by a cross-check.
+ */
+describe("what several Queues pages share has one home", () => {
+  const PRESENTATION: string =
+    "Pages/MessageQueue/Utils/MessageQueuePresentation.ts";
+  const GUIDE: string = "Pages/MessageQueue/Utils/DocumentationMarkdown.ts";
+
+  const HOMES: ReadonlyArray<[string, string]> = [
+    ["isMessageQueueFound", PRESENTATION],
+    ["MESSAGE_QUEUE_NOT_FOUND_MESSAGE", PRESENTATION],
+    ["getMessageQueueSystemLabel", PRESENTATION],
+    ["getMessageQueueBrokerLabel", PRESENTATION],
+    ["isNamespaceScopedMessagingSystem", PRESENTATION],
+    ["canBrokerMetricsReachMessageQueue", PRESENTATION],
+    ["MessageQueueBrokerMetricsTarget", PRESENTATION],
+    ["MESSAGE_QUEUE_DOCS_PATH", GUIDE],
+  ];
+
+  function definitionsOf(name: string): Array<string> {
+    const definition: RegExp = new RegExp(
+      `\\b(?:function|const|let|var|interface|type|class|enum)\\s+${name}\\b`,
+    );
+    return [...queuesSources.keys()].filter((file: string): boolean => {
+      return definition.test(queuesSources.get(file)!);
+    });
+  }
+
+  test.each(HOMES)("%s is defined only in %s", (name: string, home: string) => {
+    expect(definitionsOf(name)).toEqual([home]);
+  });
+
+  test.each(HOMES)(
+    "every other source that uses %s imports it from its home",
+    (name: string, home: string) => {
+      const homeModule: string = home.replace(/\.tsx?$/, "");
+      const users: Array<string> = [...queuesSources.keys()].filter(
+        (file: string): boolean => {
+          return (
+            file !== home &&
+            new RegExp(`\\b${name}\\b`).test(queuesSources.get(file)!)
+          );
+        },
+      );
+      for (const file of users) {
+        expect(
+          queuesImports.filter((entry: QueuesImport): boolean => {
+            return entry.file === file && entry.name === name;
+          }),
+        ).toEqual([{ file: file, module: homeModule, name: name }]);
+      }
+    },
+  );
+
+  test("the shared strings are spelled only at home", () => {
+    const LITERALS: ReadonlyArray<[string, string]> = [
+      ['"/docs/telemetry/queues', GUIDE],
+      ["Queue not found.", PRESENTATION],
+    ];
+    for (const [literal, home] of LITERALS) {
+      expect(
+        [...queuesSources.keys()].filter((file: string): boolean => {
+          return queuesSources.get(file)!.includes(literal);
+        }),
+      ).toEqual([home]);
+    }
+  });
+});
+
+/*
+ * The Queues pages take from the Databases product only what is generic
+ * and pure — arithmetic over an aggregate result, value and axis
+ * formatting by unit, the range the shared metric list writes in the URL —
+ * shared rather than copied so the two products read alike. Nothing that
+ * reads the Databases engine catalog, corrects an engine's units, builds
+ * the Databases product's queries or names a database: the chart of a
+ * clicked metric outside the Queues catalog is the Queues product's own
+ * (getMessageQueueMetricChartSpec), because the Databases one consults its
+ * engine catalog and engine unit corrections. Adding a name below is a
+ * decision: the import says why it is generic and pure.
+ */
+describe("the Queues pages take only generic, pure helpers from the Databases product", () => {
+  const ALLOWED: Readonly<Record<string, ReadonlyArray<string>>> = {
+    "Pages/Database/Utils/DatabaseServerTelemetryQueries": [
+      "DatabaseCallingService",
+      "DatabaseCallingServices",
+      "DatabaseTimePoint",
+      "aggregatedResultToTimePoints",
+      "combineCallingServiceResults",
+      "combineGaugeSeries",
+      "counterResultToRatePerSecond",
+      "getAttributeSeriesKey",
+      "getCompleteBucketSeries",
+      "getDatabaseMetricsRangeFromSearch",
+      "latestOfSeries",
+      "meanOfSeries",
+    ],
+    "Pages/Database/Utils/DatabaseServerPresentation": [
+      "DatabaseChartYAxis",
+      "formatDatabaseCount",
+      "formatDatabaseMetricAxisValue",
+      "formatDatabaseMetricUnitAxisValue",
+      "formatDatabaseMetricValue",
+      "getDatabaseChartYAxis",
+      "getDatabaseMetricAxisUnitLabel",
+      "getDatabaseUnitSingular",
+      "isDatabaseMetricUnitWholeNumber",
+      "isDatabaseMetricWholeNumberUnit",
+    ],
+  };
+
+  const DATABASE_MODULE: RegExp =
+    /(^|\/)(Pages\/Database|Components\/DatabaseServer|Types\/DatabaseServer)(\/|$)/;
+
+  const databaseImports: ReadonlyArray<QueuesImport> = queuesImports.filter(
+    (entry: QueuesImport): boolean => {
+      return DATABASE_MODULE.test(entry.module);
+    },
+  );
+
+  test("every one is on the list", () => {
+    expect(
+      databaseImports.filter((entry: QueuesImport): boolean => {
+        return !(ALLOWED[entry.module] || []).includes(entry.name);
+      }),
+    ).toEqual([]);
+  });
+
+  test("and everything on the list is still used, so the list stays the truth", () => {
+    for (const [module, names] of Object.entries(ALLOWED)) {
+      for (const name of names) {
+        expect([
+          module,
+          name,
+          databaseImports.some((entry: QueuesImport): boolean => {
+            return entry.module === module && entry.name === name;
+          }),
+        ]).toEqual([module, name, true]);
+      }
+    }
+  });
+
+  test("a clicked metric outside the catalog is charted by the Queues product's own rules", () => {
+    const modal: string = queuesSources.get(
+      "Components/MessageQueue/MessageQueueMetricChartModal.tsx",
+    )!;
+    for (const databaseHelper of [
+      "getDatabaseMetricChartSpec",
+      "fetchDatabaseMetricChartSeries",
+      "fetchDatabaseMetricShape",
+      "DatabaseMetricChartSpec",
+      "DatabaseMetricShape",
+    ]) {
+      expect(modal).not.toContain(databaseHelper);
+    }
+    expect(squash(modal)).toContain(
+      "getMessageQueueMetricChartSpec(props.metricName, shape)",
+    );
+    expect(modal).toContain("fetchMessageQueueMetricShape(");
+    expect(modal).toContain("fetchMessageQueueMetricChartSeries(");
+  });
+});

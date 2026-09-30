@@ -1,11 +1,18 @@
 import ChartCard from "../TelemetryResource/ChartCard";
 import AppLink from "../AppLink/AppLink";
 import {
+  MESSAGE_QUEUE_METRIC_CHART_COUNTER_NOTE,
+  MessageQueueMetricChartSpec,
+  MessageQueueMetricShape,
   MessageQueueObservedSeries,
   MessageQueueTimePoint,
+  UNKNOWN_MESSAGE_QUEUE_METRIC_SHAPE,
   fetchMessageQueueCatalogMetricSeries,
+  fetchMessageQueueMetricChartSeries,
+  fetchMessageQueueMetricShape,
   fetchMessageQueueObservedSeries,
   findMessageQueueCatalogMetric,
+  getMessageQueueMetricChartSpec,
   getMessageQueueMetricReadPlan,
 } from "./MessageQueueTelemetryQueries";
 import {
@@ -17,13 +24,12 @@ import {
   buildMessageQueueMetricMonitorLink,
   getMessageQueueMetricMonitorHint,
 } from "./MessageQueueMetricMonitorLink";
-import {
-  DatabaseMetricChartSpec,
-  DatabaseMetricShape,
-  fetchDatabaseMetricChartSeries,
-  fetchDatabaseMetricShape,
-  getDatabaseMetricChartSpec,
-} from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
+/*
+ * Generic and pure, so shared with the Databases product rather than
+ * copied: how a value reads on an axis by its unit (UCUM or a unit word),
+ * whether a unit counts whole things, and the y-axis that follows. None of
+ * it knows a database engine or catalog.
+ */
 import {
   DatabaseChartYAxis,
   formatDatabaseMetricUnitAxisValue,
@@ -67,8 +73,10 @@ import React, {
  * the chart's window. Any other metric (a messaging client metric, an
  * application's own gauge) is charted by what its newest point says it is —
  * a histogram by percentile, a cumulative counter as a rate, a delta counter
- * by its Sum — through the Databases product's entity-key chart helpers,
- * which read any metric under a key set that way.
+ * by its Sum (getMessageQueueMetricChartSpec, read under the queue's key by
+ * fetchMessageQueueMetricChartSeries). That path is this product's own: the
+ * Databases product's equivalent consults its engine catalog and engine unit
+ * corrections, which have nothing to say about a queue's metrics.
  */
 
 export interface ComponentProps {
@@ -91,10 +99,6 @@ export interface ComponentProps {
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
-
-// What the chart of a curated cumulative counter shows.
-export const MESSAGE_QUEUE_METRIC_CHART_COUNTER_NOTE: string =
-  "A cumulative counter, charted as a per-second rate: each series' rate, added up.";
 
 /*
  * What the chart of a curated per-period count shows
@@ -132,7 +136,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
     props.initialTimeRange || DEFAULT_RANGE,
   );
   // Any other metric's shape, read from its newest point; null while read.
-  const [shape, setShape] = useState<DatabaseMetricShape | null>(null);
+  const [shape, setShape] = useState<MessageQueueMetricShape | null>(null);
   const [pickedAggregation, setPickedAggregation] =
     useState<AggregationType | null>(null);
   const [series, setSeries] = useState<Array<MessageQueueTimePoint>>([]);
@@ -156,7 +160,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
     setShape(null);
-    fetchDatabaseMetricShape({
+    fetchMessageQueueMetricShape({
       projectId: props.projectId,
       keys: props.keys,
       start: range.startValue,
@@ -164,19 +168,14 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
       metricName: props.metricName,
       unit: unit,
     })
-      .then((result: DatabaseMetricShape): void => {
+      .then((result: MessageQueueMetricShape): void => {
         if (!ignore) {
           setShape(result);
         }
       })
       .catch((): void => {
         if (!ignore) {
-          setShape({
-            unit: unit,
-            pointType: null,
-            isMonotonic: null,
-            aggregationTemporality: null,
-          });
+          setShape({ ...UNKNOWN_MESSAGE_QUEUE_METRIC_SHAPE, unit: unit });
         }
       });
 
@@ -187,11 +186,11 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
   }, [descriptor, props.metricName, unit, props.keys, props.projectId]);
 
   // How a metric outside the catalog is charted; unused for a curated one.
-  const spec: DatabaseMetricChartSpec | null = useMemo(() => {
+  const spec: MessageQueueMetricChartSpec | null = useMemo(() => {
     if (descriptor || !shape) {
       return null;
     }
-    return getDatabaseMetricChartSpec(props.metricName, null, shape);
+    return getMessageQueueMetricChartSpec(props.metricName, shape);
   }, [descriptor, shape, props.metricName]);
 
   const aggregation: AggregationType | null = spec
@@ -232,7 +231,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
             : Promise.resolve([]),
         ])
       : Promise.all([
-          fetchDatabaseMetricChartSeries({
+          fetchMessageQueueMetricChartSeries({
             ...queryWindow,
             spec: spec!,
             aggregationType: aggregation || spec!.defaultAggregation,
@@ -407,7 +406,6 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
               data-testid="message-queue-metric-chart-monitor-hint"
             >
               {`${getMessageQueueMetricMonitorHint(monitorLink)}.`}
-              {monitorLink.criteriaNote ? ` ${monitorLink.criteriaNote}` : ""}
               {monitorLink.note ? ` ${monitorLink.note}` : ""}
             </p>
           ) : (

@@ -12,7 +12,10 @@ import {
   latestOfSeries,
   meanOfSeries,
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
-import Metric from "Common/Models/AnalyticsModels/Metric";
+import Metric, {
+  AggregationTemporality,
+  MetricPointType,
+} from "Common/Models/AnalyticsModels/Metric";
 import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -37,7 +40,9 @@ import {
 } from "Common/Types/Monitor/MessageQueueAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI, {
+  ListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 
 /*
  * The Queue pages' own aggregate queries: the Overview's tiles, charts,
@@ -71,6 +76,16 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
  * getCompleteBucketSeries), shared rather than copied so the two products
  * cannot drift. A per-period count (aggregation Sum) is not a level: it is
  * never carried forward, and only its whole intervals are kept.
+ *
+ * What is taken from DatabaseServerTelemetryQueries is only what is generic
+ * and pure: the time-point and calling-service shapes, and arithmetic over
+ * an aggregate result (rows to points, series keys, the carry-forward and
+ * rate math, whole intervals, a newest or mean value, services by
+ * primaryEntityId). None of it reads a database catalog or engine, or
+ * builds or sends a query. Everything that does — the queries, and how a
+ * clicked metric outside the catalog is charted
+ * (getMessageQueueMetricChartSpec: the Databases one consults its engine
+ * catalog and engine unit corrections) — is this product's own, below.
  *
  * No React here; the pure builders are unit-tested and the fetchers are
  * tested with the API mocked.
@@ -1318,4 +1333,281 @@ export async function fetchMessageQueueMetricListValues(
     }
   }
   return values;
+}
+
+// ---- a clicked metric outside the catalog ---------------------------------
+
+/*
+ * What a clicked metric the catalog does not know IS — a messaging client
+ * metric, an application's own gauge — read from its newest stored point
+ * under the queue's key: a histogram (charted by percentile: its stored
+ * `value` is the bucket sum), a cumulative monotonic counter (charted as a
+ * rate), a delta counter, or a gauge. The unit comes from the metric list
+ * (MetricType.unit). Unknown fields are null, and the metric is then
+ * charted as a gauge.
+ */
+export interface MessageQueueMetricShape {
+  unit: string;
+  pointType: MetricPointType | null;
+  isMonotonic: boolean | null;
+  aggregationTemporality: AggregationTemporality | null;
+}
+
+export const UNKNOWN_MESSAGE_QUEUE_METRIC_SHAPE: MessageQueueMetricShape = {
+  unit: "",
+  pointType: null,
+  isMonotonic: null,
+  aggregationTemporality: null,
+};
+
+const DISTRIBUTION_POINT_TYPES: ReadonlyArray<MetricPointType> = [
+  MetricPointType.Histogram,
+  MetricPointType.ExponentialHistogram,
+];
+
+/**
+ * Reads the point type, monotonicity and temporality of a metric from its
+ * newest point under the queue's key in the window. Resolves to the unknown
+ * shape (no API call) when unscoped, and on failure or no data.
+ */
+export async function fetchMessageQueueMetricShape(
+  window: MessageQueueQueryWindow & {
+    metricName: string;
+    unit?: string | null | undefined;
+  },
+): Promise<MessageQueueMetricShape> {
+  const unit: string = (window.unit || "").trim();
+  const unknown: MessageQueueMetricShape = {
+    ...UNKNOWN_MESSAGE_QUEUE_METRIC_SHAPE,
+    unit: unit,
+  };
+  const query: Record<string, unknown> | null =
+    buildMessageQueueMetricQuery(window);
+  if (!query) {
+    return unknown;
+  }
+
+  try {
+    const result: ListResult<Metric> = await AnalyticsModelAPI.getList<Metric>({
+      modelType: Metric,
+      query: query,
+      select: {
+        metricPointType: true,
+        isMonotonic: true,
+        aggregationTemporality: true,
+      },
+      sort: { time: SortOrder.Descending },
+      skip: 0,
+      limit: 1,
+    });
+    const row: Metric | undefined = result.data?.[0];
+    if (!row) {
+      return unknown;
+    }
+    const pointType: unknown = row.metricPointType;
+    const temporality: unknown = row.aggregationTemporality;
+    return {
+      unit: unit,
+      pointType: Object.values(MetricPointType).includes(
+        pointType as MetricPointType,
+      )
+        ? (pointType as MetricPointType)
+        : null,
+      isMonotonic:
+        typeof row.isMonotonic === "boolean" ? row.isMonotonic : null,
+      aggregationTemporality: Object.values(AggregationTemporality).includes(
+        temporality as AggregationTemporality,
+      )
+        ? (temporality as AggregationTemporality)
+        : null,
+    };
+  } catch {
+    return unknown;
+  }
+}
+
+export const MESSAGE_QUEUE_METRIC_GAUGE_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [
+    AggregationType.Avg,
+    AggregationType.Max,
+    AggregationType.Min,
+    AggregationType.Sum,
+  ];
+
+/*
+ * A distribution's percentiles come from its buckets (MetricService); Avg
+ * is the count-weighted mean, Max / Min the observed extremes.
+ */
+export const MESSAGE_QUEUE_METRIC_DISTRIBUTION_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [
+    AggregationType.P50,
+    AggregationType.P90,
+    AggregationType.P95,
+    AggregationType.P99,
+    AggregationType.Avg,
+    AggregationType.Max,
+    AggregationType.Min,
+  ];
+
+// A delta counter's points are increments: Sum per interval is the total.
+export const MESSAGE_QUEUE_METRIC_DELTA_COUNTER_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [
+    AggregationType.Sum,
+    AggregationType.Avg,
+    AggregationType.Max,
+    AggregationType.Min,
+  ];
+
+// What the chart of a cumulative counter says, curated or not.
+export const MESSAGE_QUEUE_METRIC_CHART_COUNTER_NOTE: string =
+  "A cumulative counter, charted as a per-second rate: each series' rate, added up.";
+
+/*
+ * "rate": a cumulative counter as a per-second rate, per series then
+ * summed. "aggregate": every series pooled with the picked aggregation.
+ */
+export type MessageQueueMetricChartMode = "rate" | "aggregate";
+
+/** How a clicked metric outside the catalog is charted. */
+export interface MessageQueueMetricChartSpec {
+  metricName: string;
+  // The metric name, "(per second)" added for a rate.
+  title: string;
+  mode: MessageQueueMetricChartMode;
+  // What the picker offers; empty when there is nothing to pick.
+  aggregations: ReadonlyArray<AggregationType>;
+  defaultAggregation: AggregationType;
+  // Charted as a per-second rate (a cumulative counter).
+  isRate: boolean;
+  // A histogram: percentiles from its buckets.
+  isDistribution: boolean;
+  // The metric's own unit (UCUM, from the metric list) for formatting.
+  unit: string;
+  // One line under the picker saying how the metric is charted.
+  note: string;
+}
+
+/**
+ * How a clicked metric of the queue that the catalog does not know is
+ * charted — by what it is and nothing else: a histogram by percentile (P95
+ * by default: its stored value is the sum of its observations, not a
+ * latency), a cumulative monotonic counter as a per-second rate, a delta
+ * counter by its Sum per interval, and any other metric averaged per
+ * interval, as the metric explorer does. A curated broker metric never
+ * comes here: the chart reads it as Broker health does
+ * (fetchMessageQueueCatalogMetricSeries).
+ */
+export function getMessageQueueMetricChartSpec(
+  metricName: string,
+  shape?: Partial<MessageQueueMetricShape> | null | undefined,
+): MessageQueueMetricChartSpec {
+  const name: string = (metricName || "").trim();
+  const unit: string = (shape?.unit || "").trim();
+
+  if (shape?.pointType && DISTRIBUTION_POINT_TYPES.includes(shape.pointType)) {
+    return {
+      metricName: name,
+      title: name,
+      mode: "aggregate",
+      aggregations: MESSAGE_QUEUE_METRIC_DISTRIBUTION_AGGREGATIONS,
+      defaultAggregation: AggregationType.P95,
+      isRate: false,
+      isDistribution: true,
+      unit: unit,
+      note: "A distribution: percentiles are computed from its buckets, Average is the mean of every observation.",
+    };
+  }
+
+  if (shape?.isMonotonic === true) {
+    if (shape.aggregationTemporality === AggregationTemporality.Delta) {
+      return {
+        metricName: name,
+        title: name,
+        mode: "aggregate",
+        aggregations: MESSAGE_QUEUE_METRIC_DELTA_COUNTER_AGGREGATIONS,
+        defaultAggregation: AggregationType.Sum,
+        isRate: false,
+        isDistribution: false,
+        unit: unit,
+        note: "A delta counter: Sum is the total counted in each interval.",
+      };
+    }
+    if (
+      shape.aggregationTemporality === AggregationTemporality.Cumulative ||
+      shape.pointType === MetricPointType.Sum
+    ) {
+      return {
+        metricName: name,
+        title: `${name} (per second)`,
+        mode: "rate",
+        aggregations: [],
+        defaultAggregation: AggregationType.Max,
+        isRate: true,
+        isDistribution: false,
+        unit: unit,
+        note: MESSAGE_QUEUE_METRIC_CHART_COUNTER_NOTE,
+      };
+    }
+  }
+
+  return {
+    metricName: name,
+    title: name,
+    mode: "aggregate",
+    aggregations: MESSAGE_QUEUE_METRIC_GAUGE_AGGREGATIONS,
+    defaultAggregation: AggregationType.Avg,
+    isRate: false,
+    isDistribution: false,
+    unit: unit,
+    note: "",
+  };
+}
+
+/**
+ * The series of the in-place chart of a metric outside the catalog, over
+ * the queue's key, read the way the spec says: a cumulative counter as the
+ * Max of every distinct series per interval (`groupBy: { attributes: true
+ * }`), a rate per series, the rates summed; anything else every series
+ * pooled with `aggregationType`, the picker's choice (ignored for a rate).
+ * Empty (no API call) when unscoped, and on failure.
+ */
+export async function fetchMessageQueueMetricChartSeries(
+  window: MessageQueueQueryWindow & {
+    spec: MessageQueueMetricChartSpec;
+    aggregationType: AggregationType;
+  },
+): Promise<Array<MessageQueueTimePoint>> {
+  const query: Record<string, unknown> | null = buildMessageQueueMetricQuery({
+    projectId: window.projectId,
+    keys: window.keys,
+    start: window.start,
+    end: window.end,
+    metricName: window.spec.metricName,
+  });
+  if (!query) {
+    return [];
+  }
+
+  try {
+    if (window.spec.mode === "rate") {
+      return counterResultToRatePerSecond(
+        await aggregateMetric({
+          window: window,
+          query: query,
+          // The latest cumulative value of each series in the interval.
+          aggregationType: AggregationType.Max,
+          groupBy: { attributes: true },
+        }),
+      );
+    }
+    return aggregatedResultToTimePoints(
+      await aggregateMetric({
+        window: window,
+        query: query,
+        aggregationType: window.aggregationType,
+      }),
+    );
+  } catch {
+    return [];
+  }
 }

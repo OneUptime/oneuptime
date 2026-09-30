@@ -26,6 +26,7 @@ import {
   MessageQueueManualInput,
   MessageQueueManualPreview,
   MessageQueueOption,
+  canBrokerMetricsReachMessageQueue,
   getMessageQueueBrokerLabel,
   getMessageQueueDestinationHint,
   getMessageQueueDiscoverySourceOptions,
@@ -52,6 +53,7 @@ import {
   MESSAGING_SYSTEMS,
   MessagingSystemDescriptor,
 } from "../../../Types/MessageQueue/MessagingSystem";
+import { parseMessageQueueIdentifier } from "../../../Types/MessageQueue/MessageQueueIdentity";
 import OneUptimeDate from "../../../Types/Date";
 
 /*
@@ -203,6 +205,138 @@ describe("the Broker cell", () => {
       text: "",
       title: "",
     });
+  });
+});
+
+/*
+ * Whether a system's broker metrics can ever name a queue: the ONE rule the
+ * Overview's Broker health section and the Documentation tab's guide both
+ * follow (MessageQueueBrokerMetricsReach.test pins that they ask it). It is
+ * spelled out per catalog system here rather than recomputed from the
+ * catalog, so a catalog change that moves a system in or out of Broker
+ * health fails this table and gets a look.
+ */
+describe("whether a system's broker metrics can reach a queue", () => {
+  /*
+   * [a queue with a namespace, a queue without one, no queue]. Curated
+   * metrics that name no namespace reach every queue of their system.
+   * Azure Monitor names the namespace of every metric, so Service Bus and
+   * Event Hubs metrics reach only a queue with one. JMS names no broker,
+   * NATS reports JetStream streams rather than subjects, Event Grid its
+   * topics and event subscriptions, and BullMQ's jobs live in Redis: none
+   * of their metrics names a queue.
+   */
+  const EXPECTED: Record<string, [boolean, boolean, boolean]> = {
+    kafka: [true, true, true],
+    rabbitmq: [true, true, true],
+    activemq: [true, true, true],
+    jms: [false, false, false],
+    aws_sqs: [true, true, true],
+    "aws.sns": [true, true, true],
+    gcp_pubsub: [true, true, true],
+    servicebus: [true, false, true],
+    eventhubs: [true, false, true],
+    eventgrid: [false, false, false],
+    pulsar: [true, true, true],
+    rocketmq: [true, true, true],
+    nats: [false, false, false],
+    bullmq: [false, false, false],
+  };
+
+  function reach(system: string): [boolean, boolean, boolean] {
+    return [
+      canBrokerMetricsReachMessageQueue(system, { brokerScope: "orders-prod" }),
+      canBrokerMetricsReachMessageQueue(system, { brokerScope: "" }),
+      canBrokerMetricsReachMessageQueue(system),
+    ];
+  }
+
+  test("the table covers the whole catalog", () => {
+    expect(Object.keys(EXPECTED).sort()).toEqual(
+      MESSAGING_SYSTEMS.map((descriptor: MessagingSystemDescriptor): string => {
+        return descriptor.system;
+      }).sort(),
+    );
+  });
+
+  test.each(
+    MESSAGING_SYSTEMS.map(
+      (
+        descriptor: MessagingSystemDescriptor,
+      ): [string, MessagingSystemDescriptor] => {
+        return [descriptor.system, descriptor];
+      },
+    ),
+  )(
+    "%s, and each of its aliases",
+    (system: string, descriptor: MessagingSystemDescriptor) => {
+      expect(reach(system)).toEqual(EXPECTED[system]);
+      for (const alias of descriptor.aliases) {
+        expect([alias, ...reach(alias)]).toEqual([alias, ...EXPECTED[system]!]);
+      }
+    },
+  );
+
+  test("a queue without a namespace: an empty, blank or missing brokerScope", () => {
+    for (const queue of [
+      {},
+      { brokerScope: null },
+      { brokerScope: undefined },
+      { brokerScope: "" },
+      { brokerScope: "   " },
+    ]) {
+      expect(canBrokerMetricsReachMessageQueue("servicebus", queue)).toBe(
+        false,
+      );
+      expect(canBrokerMetricsReachMessageQueue("kafka", queue)).toBe(true);
+    }
+    expect(
+      canBrokerMetricsReachMessageQueue("servicebus", {
+        brokerScope: " orders-prod ",
+      }),
+    ).toBe(true);
+  });
+
+  test("no queue at all, null or undefined: only the system decides", () => {
+    expect(canBrokerMetricsReachMessageQueue("servicebus", null)).toBe(true);
+    expect(canBrokerMetricsReachMessageQueue("servicebus", undefined)).toBe(
+      true,
+    );
+    expect(canBrokerMetricsReachMessageQueue("nats", null)).toBe(false);
+  });
+
+  test.each([null, undefined, "", "   ", "ibmmq", "spring_integration"])(
+    "%p reaches no queue",
+    (system: string | null | undefined) => {
+      expect(canBrokerMetricsReachMessageQueue(system)).toBe(false);
+      expect(
+        canBrokerMetricsReachMessageQueue(system, {
+          brokerScope: "orders-prod",
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test("Broker health asks with the queue's identity: its namespace decides", () => {
+    // The section passes parseMessageQueueIdentifier(row.queueIdentifier).
+    expect(
+      canBrokerMetricsReachMessageQueue(
+        "servicebus",
+        parseMessageQueueIdentifier("servicebus|orders-prod|orders"),
+      ),
+    ).toBe(true);
+    expect(
+      canBrokerMetricsReachMessageQueue(
+        "eventhubs",
+        parseMessageQueueIdentifier("eventhubs||telemetry"),
+      ),
+    ).toBe(false);
+    expect(
+      canBrokerMetricsReachMessageQueue(
+        "activemq",
+        parseMessageQueueIdentifier("jms||orders"),
+      ),
+    ).toBe(true);
   });
 });
 

@@ -1,3 +1,8 @@
+import {
+  canBrokerMetricsReachMessageQueue,
+  getMessageQueueSystemLabel,
+  isNamespaceScopedMessagingSystem,
+} from "./MessageQueuePresentation";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import {
   MESSAGING_SYSTEMS,
@@ -7,7 +12,6 @@ import {
   getMessagingBrokerMetricsSource,
   getMessagingIdentitySystem,
   getMessagingSystemDescriptor,
-  getMessagingSystemDisplayName,
   normalizeMessagingSystem,
 } from "Common/Types/MessageQueue/MessagingSystem";
 import {
@@ -43,6 +47,13 @@ import { DocVars } from "../../../Components/TelemetryResource/documentationMark
  * fills in what the queue's own telemetry already told OneUptime: a Kafka
  * bootstrap broker, the RabbitMQ or ActiveMQ host, the AWS region of an SQS
  * or SNS endpoint, the BullMQ queue name.
+ *
+ * What the guide shares with the other Queues pages is theirs, not copied
+ * here (MessageQueuePresentation): the system's name as the list shows it
+ * (getMessageQueueSystemLabel), and whether the broker's own metrics can
+ * reach the queues it is about (canBrokerMetricsReachMessageQueue) — the
+ * rule the Overview's Broker health section follows, so the guide never
+ * promises metrics that section says cannot arrive.
  *
  * Pure: plain values in, markdown out. No React, no API.
  */
@@ -189,6 +200,11 @@ interface GuideContext {
   // The canonical system, or the raw value of one the catalog does not know.
   system: string;
   descriptor: MessagingSystemDescriptor | null;
+  /*
+   * The system as the queue list's System cell names it
+   * (getMessageQueueSystemLabel): "—" for a queue without one, as the
+   * Documentation tab's own title says.
+   */
   displayName: string;
   source: MessagingBrokerMetricsSource;
   queue: QueueContext | null;
@@ -207,8 +223,7 @@ function buildContext(
     vars,
     system,
     descriptor,
-    displayName:
-      getMessagingSystemDisplayName(system) || "this messaging system",
+    displayName: getMessageQueueSystemLabel(system),
     source: getMessagingBrokerMetricsSource(system),
     queue,
   };
@@ -996,43 +1011,39 @@ function getIdentitySpellings(context: GuideContext): Array<string> {
 }
 
 /*
- * Whether the guide's queue is one the broker's metrics can never reach: a
- * Service Bus / Event Hubs queue without a namespace (its spans came from
- * the emulator or through a custom domain). Azure Monitor names the
- * namespace of every metric it reports (the catalog's scopeAttributes), so
- * its metrics key on the namespaced queue of the same destination instead.
+ * Whether the guide's queue is one its system's broker metrics reach
+ * queues of, but never this one — canBrokerMetricsReachMessageQueue asked
+ * with and without the queue disagrees: a Service Bus / Event Hubs queue
+ * without a namespace (its spans came from the emulator or through a custom
+ * domain). Azure Monitor names the namespace of every metric it reports, so
+ * its metrics key on the namespaced queue of the same destination instead,
+ * and the guide says so rather than that the system has no broker metrics.
  */
 function isOutsideBrokerMetricsScope(context: GuideContext): boolean {
   return (
     context.queue !== null &&
-    !context.queue.brokerScope &&
-    getScopeAttributeKeys(context.system).length > 0
+    canBrokerMetricsReachMessageQueue(context.system) &&
+    !canBrokerMetricsReachMessageQueue(context.system, context.queue)
   );
 }
 
 /*
- * Whether the broker's own metrics reach the guide's queues: create them
- * and fill in their Broker health. Only a system with curated metrics
- * (MessageQueueMetricCatalog) has broker metrics that name a queue, the
- * same test the Overview's Broker health section applies. A collector can
- * read NATS's and Azure Event Grid's brokers, but NATS reports JetStream
- * streams and consumers rather than subjects, and Event Grid its resources
- * and event subscriptions, so those metrics stay in the Metrics explorer.
- * JMS, BullMQ and a long-tail broker have no broker path at all. Queues of
- * all of them still fill in from metrics that carry the queue's
- * `messaging.system` and destination, which attach to a queue but never
- * create one.
+ * The intro promises the broker's own metrics — they create the guide's
+ * queues and fill in their Broker health — only where they reach them (the
+ * product guide: any queue of the system; a queue's guide: that queue), by
+ * the rule the Overview's Broker health section follows
+ * (canBrokerMetricsReachMessageQueue), so the guide never promises metrics
+ * that section says cannot arrive. Queues the broker's metrics cannot reach
+ * still fill in from metrics that carry the queue's `messaging.system` and
+ * destination, which attach to a queue but never create one.
  */
-function brokerMetricsReachQueues(context: GuideContext): boolean {
-  return (
-    getMessageQueueMetricsForSystem(context.system).length > 0 &&
-    !isOutsideBrokerMetricsScope(context)
-  );
-}
-
 function introSection(context: GuideContext): Array<string> {
   const lines: Array<string> = [];
   const descriptor: MessagingSystemDescriptor | null = context.descriptor;
+  const brokerMetricsReach: boolean = canBrokerMetricsReachMessageQueue(
+    context.system,
+    context.queue,
+  );
 
   if (context.queue) {
     lines.push(
@@ -1045,7 +1056,7 @@ function introSection(context: GuideContext): Array<string> {
           ? ` in the ${markdownInlineCode(context.queue.brokerScope)} namespace`
           : ""
       }. It fills in from the messaging spans of the applications that publish to and consume from it, and from ${
-        brokerMetricsReachQueues(context)
+        brokerMetricsReach
           ? "the broker's own metrics"
           : "metrics that carry its `messaging.system` and `messaging.destination.name`"
       }. Everything below is prefilled for this queue.`,
@@ -1057,7 +1068,7 @@ function introSection(context: GuideContext): Array<string> {
     `## Connect ${context.displayName}`,
     "",
     `${context.displayName} queues appear in OneUptime on their own, from ${
-      brokerMetricsReachQueues(context)
+      brokerMetricsReach
         ? "two sources: the messaging spans of the applications that publish to and consume from them, and the broker's own metrics"
         : "the messaging spans of the applications that publish to and consume from them"
     }. You can also add one by hand: **Queues → Create Queue**.`,
@@ -1117,7 +1128,7 @@ function identitySection(context: GuideContext): Array<string> {
     )})`;
   }
   spans += ` and the destination ${destination} — in \`messaging.destination.name\`, or an older key such as \`messaging.destination\``;
-  if (context.descriptor?.brokerScope === "azure-namespace") {
+  if (isNamespaceScopedMessagingSystem(context.system)) {
     spans += queue.brokerScope
       ? `, from an SDK connected to ${markdownInlineCode(
           `${queue.brokerScope}.servicebus.windows.net`,
@@ -1357,7 +1368,7 @@ function brokerMetricsSection(context: GuideContext): Array<string> {
          * Grid's resources are topics, system topics and domains, not
          * namespaces, and its metrics never make or fill a queue.
          */
-        if (context.descriptor?.brokerScope === "azure-namespace") {
+        if (isNamespaceScopedMessagingSystem(context.system)) {
           lines.push(
             "",
             "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.",
@@ -1436,7 +1447,8 @@ function chartedMetricsSection(context: GuideContext): Array<string> {
   if (rows.length === 0) {
     /*
      * NATS and Azure Event Grid have a collector config above, but none of
-     * its metrics names one of the queues (see brokerMetricsReachQueues).
+     * its metrics names one of the queues: canBrokerMetricsReachMessageQueue
+     * is false for every queue of a system without curated metrics.
      */
     lines.push(
       context.source.kind === "none"
