@@ -201,3 +201,53 @@ describe("the VMware product page entry", () => {
     );
   });
 });
+
+describe("the Databases product page entry", () => {
+  /*
+   * /product/databases is the marketing surface for the Databases product.
+   * Its template hard-codes the same <title> and description, and this entry
+   * is what feeds the canonical tag, OG tags, breadcrumb JSON-LD, llms.txt
+   * and products.json.
+   */
+  const seo: PageSEOData | undefined = PageSEOConfig["/product/databases"];
+
+  test("is registered as a product page", () => {
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/databases");
+    expect(seo!.pageType).toBe("product");
+    expect(seo!.twitterCard).toBe("summary_large_image");
+  });
+
+  test("walks Home → Products → Databases", () => {
+    expect(seo!.breadcrumbs).toEqual([
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Databases", url: "/product/databases" },
+    ]);
+  });
+
+  test("names the engines people search for, and where the data comes from", () => {
+    expect(seo!.title).toMatch(/^Database Monitoring \|/);
+    expect(seo!.title).toMatch(/\| OneUptime$/);
+    for (const engine of ["PostgreSQL", "MySQL", "Redis", "MongoDB"]) {
+      expect(seo!.title).toContain(engine);
+    }
+    for (const source of ["traces", "Kubernetes", "OpenTelemetry"]) {
+      expect(seo!.description).toContain(source);
+    }
+  });
+
+  test("carries a SoftwareApplication schema with the product's features", () => {
+    expect(seo!.softwareApplication).toBeDefined();
+    expect(seo!.softwareApplication!.name).toBe(
+      "OneUptime Database Monitoring",
+    );
+    expect(seo!.softwareApplication!.features.length).toBeGreaterThanOrEqual(8);
+
+    const features: string = seo!.softwareApplication!.features.join(" | ");
+    expect(features).toMatch(/Auto-discovery from traces, Kubernetes/);
+    expect(features).toMatch(/Database Health monitor/);
+    expect(features).toContain("OpenTelemetry native");
+    expect(features).toContain("Open source");
+  });
+});

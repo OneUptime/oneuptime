@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>Database Monitoring | PostgreSQL, MySQL, Redis, MongoDB & More | OneUptime</title>
+  <meta name="description"
+    content="Every database your applications query, discovered from traces, Kubernetes and Docker: query latency and errors, the services calling it, engine metrics from a config-only OpenTelemetry agent, and ready-made alerts. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <%
+    // "A", "A and B", "A, B and C" — for the forks a monitor group is also offered to.
+    const listNames = (names) => {
+      if (names.length <= 1) {
+        return names.join('');
+      }
+      return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    };
+  %>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="databases-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - emerald color -->
+      <div id="databases-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-emerald-600 mb-4">OpenTelemetry Native Database Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Every database you run, found and monitored
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              OneUptime finds your databases in the queries your applications trace, on your Kubernetes clusters, and on your Docker and Podman hosts. Each one gets its own page: query latency and errors, the services calling it, where it runs, and the engine's own health metrics.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Auto-discovered</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Query latency & errors</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Engine metrics</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span><%= databases.engineCount %> engines known by name</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Databases list mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Databases Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/databases', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Databases</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="max-sm:hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        23 databases
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3 lg:grid-cols-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Databases</div>
+                          <div class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
+                            <%- include('./Partials/icons/databases', {iconClass: 'w-3.5 h-3.5'}) %>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">23</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                          <span class="text-[10px] text-emerald-600 font-medium">4 found this week</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Queries</div>
+                          <div class="w-6 h-6 rounded-md bg-sky-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">1.24M</div>
+                        <div class="text-[10px] text-gray-400 mt-1">from 31 services</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Error rate</div>
+                          <div class="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">0.4%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-rose-400 h-1.5 rounded-full" style="width: 4%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">p95 latency</div>
+                          <div class="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">18 ms</div>
+                        <div class="text-[10px] text-gray-400 mt-1">as the applications measure it</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Engine metrics</div>
+                          <div class="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">19<span class="text-sm font-medium text-gray-400"> / 23</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-violet-400 h-1.5 rounded-full" style="width: 83%"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-1 gap-3 mb-5 md:grid-cols-3">
+                      <!-- Queries chart -->
+                      <div class="md:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Queries from applications</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Database client spans, all databases</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span class="text-[10px] text-gray-500">Queries</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                              <span class="text-[10px] text-gray-500">Errors</span>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- SVG Chart -->
+                        <!-- Drawn at the card's own aspect ratio, so the lines span its full width -->
+                        <svg viewBox="0 0 640 100" class="w-full h-auto">
+                          <defs>
+                            <linearGradient id="dbQueriesGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <!-- Grid lines -->
+                          <line x1="0" y1="25" x2="640" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="640" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="640" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <!-- Queries fill -->
+                          <path d="M0,52 L40,48 L80,50 L120,44 L160,41 L200,45 L240,38 L280,35 L320,39 L360,33 L400,30 L440,34 L480,29 L520,26 L560,31 L600,27 L640,24 L640,100 L0,100 Z" fill="url(#dbQueriesGrad)"/>
+                          <!-- Queries line -->
+                          <path d="M0,52 L40,48 L80,50 L120,44 L160,41 L200,45 L240,38 L280,35 L320,39 L360,33 L400,30 L440,34 L480,29 L520,26 L560,31 L600,27 L640,24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Errors line -->
+                          <path d="M0,92 L40,93 L80,92 L120,93 L160,91 L200,92 L240,92 L280,86 L320,80 L360,88 L400,92 L440,93 L480,92 L520,93 L560,92 L600,93 L640,92" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Y-axis labels -->
+                          <text x="2" y="23" fill="#9ca3af" font-size="8">30k/min</text>
+                          <text x="2" y="48" fill="#9ca3af" font-size="8">20k/min</text>
+                          <text x="2" y="73" fill="#9ca3af" font-size="8">10k/min</text>
+                        </svg>
+                      </div>
+
+                      <!-- Discovery source breakdown -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">Discovered from</div>
+                        <div class="text-[10px] text-gray-400 mb-4">What found each database</div>
+                        <div class="flex items-center gap-4">
+                          <div class="relative flex-shrink-0">
+                            <svg viewBox="0 0 80 80" class="w-20 h-20">
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="73.76 188.5" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#0ea5e9" stroke-width="8" stroke-dasharray="57.37 188.5" stroke-dashoffset="-73.76" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#6366f1" stroke-width="8" stroke-dasharray="32.78 188.5" stroke-dashoffset="-131.13" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="16.39 188.5" stroke-dashoffset="-163.91" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#9ca3af" stroke-width="8" stroke-dasharray="8.2 188.5" stroke-dashoffset="-180.3" transform="rotate(-90 40 40)"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                              <span class="text-lg font-bold text-gray-900">23</span>
+                            </div>
+                          </div>
+                          <div class="flex-1 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-[11px] text-gray-600">Application traces</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">9</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-500"></span><span class="text-[11px] text-gray-600">Kubernetes</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">7</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-500"></span><span class="text-[11px] text-gray-600">Docker &amp; Podman</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">4</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="text-[11px] text-gray-600">OpenTelemetry Collector</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">2</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-400"></span><span class="text-[11px] text-gray-600">Added manually</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">1</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Database list -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="grid grid-cols-12 gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                        <div class="col-span-7 md:col-span-4">Name</div>
+                        <div class="max-md:hidden md:block md:col-span-2">Engine</div>
+                        <div class="max-md:hidden md:block md:col-span-2">Runs on</div>
+                        <div class="max-md:hidden md:block md:col-span-2">Discovered from</div>
+                        <div class="col-span-5 md:col-span-2">Engine metrics</div>
+                      </div>
+                      <div class="divide-y divide-gray-100">
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-4 min-w-0">
+                            <div class="text-xs font-medium text-gray-900 truncate">PostgreSQL payments/orders-pg</div>
+                            <div class="text-[10px] font-mono text-gray-500 truncate">orders-pg.payments.svc.cluster.local:5432</div>
+                          </div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-700">PostgreSQL <span class="font-mono text-[10px] text-gray-500">16.4</span></div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs font-medium text-emerald-600 truncate">prod-us-east</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Kubernetes</div>
+                          <div class="col-span-5 md:col-span-2"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Connected</span></div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-4 min-w-0">
+                            <div class="text-xs font-medium text-gray-900 truncate">MySQL billing-db.example.com:3306</div>
+                            <div class="text-[10px] font-mono text-gray-500 truncate">billing-db.example.com:3306</div>
+                          </div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-700">MySQL <span class="font-mono text-[10px] text-gray-500">8.4.2</span></div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-400">—</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Application traces</div>
+                          <div class="col-span-5 md:col-span-2"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Connected</span></div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-4 min-w-0">
+                            <div class="text-xs font-medium text-gray-900 truncate">Valkey shop-cache</div>
+                            <div class="text-[10px] font-mono text-gray-500 truncate">Compose service/shop-cache</div>
+                          </div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-700">Valkey <span class="font-mono text-[10px] text-gray-500">8.1</span></div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs font-medium text-emerald-600 truncate">docker-prod-02</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Docker</div>
+                          <div class="col-span-5 md:col-span-2"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 text-[10px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Not connected</span></div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-4 min-w-0">
+                            <div class="text-xs font-medium text-gray-900 truncate">MongoDB catalog-mongo.example.com:27017</div>
+                            <div class="text-[10px] font-mono text-gray-500 truncate">catalog-mongo.example.com:27017</div>
+                          </div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-700">MongoDB <span class="font-mono text-[10px] text-gray-500">7.0</span></div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-400">—</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Application traces</div>
+                          <div class="col-span-5 md:col-span-2"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Disconnected</span></div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-4 min-w-0">
+                            <div class="text-xs font-medium text-gray-900 truncate">SQL Server sql1.corp.example.com:1433</div>
+                            <div class="text-[10px] font-mono text-gray-500 truncate">sql1.corp.example.com:1433</div>
+                          </div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-700">SQL Server</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-400">—</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">OpenTelemetry Collector</div>
+                          <div class="col-span-5 md:col-span-2"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Connected</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- What You Get Section -->
+    <div class="relative bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">What You Get</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Four sources, one page per database
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Each source adds a different part of the picture. A later source joins the database an earlier one created, instead of making another, as long as both name the same endpoint.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <!-- Application traces -->
+          <div class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200">
+              <%- include('./Partials/icons/traces', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Application traces</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Queries from applications: call rate, errors, p95 latency, and the services calling it.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> applications instrumented with OpenTelemetry.</p>
+          </div>
+
+          <!-- Kubernetes -->
+          <div class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200">
+              <%- include('./Partials/icons/kubernetes', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Kubernetes</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Where it runs: the workload and its pods, their CPU and memory, and the pods' logs.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> the OneUptime Kubernetes agent.</p>
+          </div>
+
+          <!-- Docker & Podman -->
+          <div class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+              <%- include('./Partials/icons/docker', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Docker &amp; Podman</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Where it runs: the containers, Compose or Swarm service, their CPU and memory, and their logs.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> the OneUptime Docker or Podman agent.</p>
+          </div>
+
+          <!-- Database Agent -->
+          <div class="flex flex-col rounded-2xl border border-emerald-200 bg-emerald-50/40 p-6 transition-all duration-300 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white ring-1 ring-emerald-200">
+              <%- include('./Partials/icons/databases', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Database Agent</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Engine metrics: connections, throughput, cache hit ratio, locks, replication lag and memory, plus optional query samples, top queries and the engine's log file.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> a monitoring login, and the agent somewhere that can reach the database.</p>
+          </div>
+        </div>
+
+        <p class="mt-10 text-center text-sm text-gray-600">
+          Not found on its own? Add it by hand with its engine, address and port, and its queries fill in from the spans already stored.
+        </p>
+      </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            From the telemetry you already send to a monitored database
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Discovery needs no database credentials. Engine metrics come from the OneUptime Database Agent: a stock OpenTelemetry Collector with the native receiver for your engine. Nothing is installed on the database server.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="max-lg:hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-emerald-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Send what you already have</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">OpenTelemetry traces from your applications, or the Kubernetes, Docker or Podman agent watching where your databases run.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Databases appear on their own</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Traces are read every 10 minutes and workloads every 5. A database appears once it is really serving: 10 queries in 15 minutes, or a pod or container that has stayed up for about 10 minutes.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Connect engine metrics</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Install the Database Agent from the database's Documentation tab, prefilled with its id. It logs in with a monitoring user that can read the engine's statistics and nothing else.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Turn on recommended monitors</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Pick the monitors the Recommendations tab offers for the engine, create them together, and route them to on-call, status pages and incidents.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mb-6">
+            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-emerald-700">Why OneUptime for Databases</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Database monitoring that starts where your services do
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Engine counters alone cannot tell you which service is hurting, and traces alone cannot tell you the server is out of connections. OneUptime starts with the queries your applications send, adds the pods and containers the database runs in and the engine's own counters, and puts all of it, with the alert that pages you, on one page.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Queries from applications -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Queries From Applications</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">See each database the way your services do</h3>
+              <p class="mt-4 text-lg text-gray-600">Your applications' client spans already describe every query they send. OneUptime turns them into call rate, error rate and p95 latency per database, and lists the services calling it, busiest first. The first question in an incident, "is it the database or the app?", gets its answer on one screen.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Queries, errors and p95 latency for every database
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Calling services with their own rate, errors and p95
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Every trace to it, including calls made before it was discovered
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Queries Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">PostgreSQL payments/orders-pg</span>
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="rounded-lg border border-gray-200 p-2.5">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">Queries</div>
+                          <div class="text-lg font-bold text-gray-900">482k</div>
+                          <div class="text-[9px] text-gray-400">from applications, last hour</div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-2.5">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">Error rate</div>
+                          <div class="text-lg font-bold text-gray-900">0.3%</div>
+                          <div class="text-[9px] text-gray-400">1,446 failed queries</div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-2.5">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">p95 query latency</div>
+                          <div class="text-lg font-bold text-gray-900">14 ms</div>
+                          <div class="text-[9px] text-gray-400">as the applications measure it</div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-2.5">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">Calling services</div>
+                          <div class="text-lg font-bold text-gray-900">4</div>
+                          <div class="text-[9px] text-gray-400">services that queried it</div>
+                        </div>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="grid grid-cols-12 gap-2 px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+                          <div class="col-span-6">Calling service</div>
+                          <div class="col-span-2 text-right">Queries</div>
+                          <div class="col-span-2 text-right">Errors</div>
+                          <div class="col-span-2 text-right">p95</div>
+                        </div>
+                        <div class="divide-y divide-gray-100 text-[11px]">
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2"><div class="col-span-6 font-medium text-gray-800 truncate">checkout-api</div><div class="col-span-2 text-right text-gray-600">212k</div><div class="col-span-2 text-right text-gray-600">0.1%</div><div class="col-span-2 text-right text-gray-600">9 ms</div></div>
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2 bg-amber-50/60"><div class="col-span-6 font-medium text-gray-800 truncate">payments-worker</div><div class="col-span-2 text-right text-gray-600">143k</div><div class="col-span-2 text-right font-semibold text-amber-600">0.8%</div><div class="col-span-2 text-right font-semibold text-amber-600">31 ms</div></div>
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2"><div class="col-span-6 font-medium text-gray-800 truncate">inventory-sync</div><div class="col-span-2 text-right text-gray-600">71k</div><div class="col-span-2 text-right text-gray-600">0.0%</div><div class="col-span-2 text-right text-gray-600">6 ms</div></div>
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2"><div class="col-span-6 font-medium text-gray-800 truncate">reporting</div><div class="col-span-2 text-right text-gray-600">56k</div><div class="col-span-2 text-right text-gray-600">0.2%</div><div class="col-span-2 text-right text-gray-600">88 ms</div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Engine metrics -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Engine Metrics Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Engine metrics</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">PostgreSQL 16.4</div>
+                        <div class="text-xs text-gray-500">from the Database Agent, every 30 s</div>
+                      </div>
+                      <span class="flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded text-xs text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Connected
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Connections</span><span class="text-[10px] font-semibold text-amber-600">182 of 200</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,18 L12,17 L25,16 L37,15 L50,12 L62,10 L75,8 L87,5 L100,4" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Commits</span><span class="text-[10px] font-semibold text-gray-700">1.9k/s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,14 L12,12 L25,13 L37,10 L50,11 L62,9 L75,10 L87,8 L100,9" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Rollbacks</span><span class="text-[10px] font-semibold text-gray-700">3/s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,20 L12,20 L25,19 L37,20 L50,18 L62,20 L75,19 L87,20 L100,19" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Database size</span><span class="text-[10px] font-semibold text-gray-700">412 GB</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,16 L12,15.5 L25,15 L37,14.5 L50,14 L62,13.5 L75,13 L87,12.5 L100,12" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Replication lag</span><span class="text-[10px] font-semibold text-gray-700">0.4 s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,19 L12,18 L25,19 L37,17 L50,19 L62,18 L75,19 L87,18 L100,19" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">WAL age</span><span class="text-[10px] font-semibold text-gray-700">38 s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,17 L12,15 L25,18 L37,14 L50,16 L62,13 L75,17 L87,15 L100,16" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <span class="text-xs text-gray-600">Top queries on the Logs tab</span>
+                      <span class="text-[10px] font-mono text-gray-500">db.server.top_query</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Engine Metrics</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">The engine's own health, not just the client's view</h3>
+              <p class="mt-4 text-lg text-gray-600">Traces tell you a database is slow. They cannot tell you it is out of connections. The Database Agent reads the engine's own statistics, including connections against their limit, throughput, cache and buffer use, locks, replication lag and memory, as far as the engine has them. The Overview charts a curated set for each Database Agent engine, and the Metrics tab has every metric that arrives.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Curated engine charts, counters shown as per-second rates
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Optional query samples, top queries and the engine's log file
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  A status that says whether engine metrics are still arriving
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Where it runs -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Where It Runs</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">From a slow query to the pod it runs in</h3>
+              <p class="mt-4 text-lg text-gray-600">A database found on Kubernetes, Docker or Podman keeps its workload with it: the cluster or host, the StatefulSet, Deployment or Compose service, the running instances, and their CPU, memory and logs. It works the other way round too: the workload, its pods and containers, and a database node on the service map all offer Open database.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Operators and charts recognised: CloudNativePG, Zalando, Crunchy, Percona, Bitnami and more
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  One database per StatefulSet, Deployment or operator cluster, not one per pod
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  In Kubernetes, client and debug runs, backup tools and poolers are left out
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Runtime Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Runtime — Kubernetes</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-3 text-[10px]">
+                      <div>
+                        <div class="font-medium uppercase tracking-wider text-gray-400">Runs on</div>
+                        <div class="mt-0.5 text-xs text-emerald-600 font-medium">prod-us-east</div>
+                      </div>
+                      <div>
+                        <div class="font-medium uppercase tracking-wider text-gray-400">Instances</div>
+                        <div class="mt-0.5 text-xs text-gray-900 font-medium">3</div>
+                      </div>
+                      <div class="col-span-2">
+                        <div class="font-medium uppercase tracking-wider text-gray-400">Workload</div>
+                        <div class="mt-0.5 text-xs font-mono text-emerald-600">StatefulSet payments/orders-pg</div>
+                      </div>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200 divide-y divide-gray-100">
+                      <div class="px-3 py-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span class="text-xs font-mono text-gray-700">orders-pg-0</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-gray-400">CPU</span>
+                          <div class="w-12 bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:58%"></div></div>
+                          <span class="text-[10px] text-gray-400">MEM</span>
+                          <div class="w-12 bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:71%"></div></div>
+                        </div>
+                      </div>
+                      <div class="px-3 py-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span class="text-xs font-mono text-gray-700">orders-pg-1</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-gray-400">CPU</span>
+                          <div class="w-12 bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:22%"></div></div>
+                          <span class="text-[10px] text-gray-400">MEM</span>
+                          <div class="w-12 bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:64%"></div></div>
+                        </div>
+                      </div>
+                      <div class="px-3 py-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span class="text-xs font-mono text-gray-700">orders-pg-2</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-gray-400">CPU</span>
+                          <div class="w-12 bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:19%"></div></div>
+                          <span class="text-[10px] text-gray-400">MEM</span>
+                          <div class="w-12 bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:63%"></div></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="rounded-lg bg-gray-900 p-3 font-mono text-[10px] leading-relaxed">
+                      <div class="text-gray-500">orders-pg-0 <span class="text-amber-400">LOG</span> <span class="text-white/80">checkpoint complete: wrote 1824 buffers</span></div>
+                      <div class="text-gray-500">orders-pg-0 <span class="text-amber-400">LOG</span> <span class="text-white/80">duration: 1204.332 ms  statement: SELECT …</span></div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                      <span class="text-xs text-gray-600">StatefulSet page &middot; pods &middot; service map</span>
+                      <span class="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
+                        Open database
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Engine-aware alerting -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Alert Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Active Alerts</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-red-100 rounded text-[10px] font-bold text-red-600">CRITICAL</span>
+                        <span class="text-xs text-gray-500">2 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Connections Nearly Exhausted</div>
+                      <div class="text-xs text-gray-500 mt-1">PostgreSQL payments/orders-pg &middot; 191 of 200 connections</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">14 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Replica Lag</div>
+                      <div class="text-xs text-gray-500 mt-1">MySQL billing-db.example.com:3306 &middot; replica 42 s behind</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">38 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Memory Near maxmemory</div>
+                      <div class="text-xs text-gray-500 mt-1">Valkey shop-cache &middot; 92% of maxmemory</div>
+                    </div>
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-red-100 rounded text-[10px] font-bold text-red-600">CRITICAL</span>
+                        <span class="text-xs text-gray-500">1 hr ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Engine Metrics Stopped</div>
+                      <div class="text-xs text-gray-500 mt-1">SQL Server sql1.corp.example.com:1433 &middot; no engine metrics for 10 min</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Engine-Aware Alerting</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Alerts written for each engine, wired to on-call</h3>
+              <p class="mt-4 text-lg text-gray-600">Each database's Recommendations tab offers the monitors that fit its engine: connections near their limit, replication lag, memory pressure, blocked sessions, full tablespaces and cluster health, plus an <strong class="font-medium text-gray-800">Engine Metrics Stopped</strong> check that fires when the metrics go quiet. For anything else, open an engine chart and press Create monitor.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Only monitors the engine's metrics can actually fire
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Alerts and incidents on the database's own tabs
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Scheduled maintenance on a database silences its monitors
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Multi-channel notifications (Slack, Teams, SMS, call)
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Supported Engines Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32" id="databases-engines">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">Supported Engines</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            <%= databases.engineCount %> engines, known by name
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            OneUptime recognises each engine below by name in your traces, and by its container images and Helm charts where it has them, and knows where its engine metrics come from. Managed services that speak an engine's protocol, such as Amazon RDS and Aurora, Azure Database, Cloud SQL, ElastiCache and MongoDB Atlas, count as that engine.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <% for (const group of databases.engineGroups) { %>
+          <div class="rounded-2xl border <%= group.key === 'database-agent' ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-gray-200' %> bg-white p-6" data-engine-group="<%= group.key %>">
+            <div class="flex items-baseline justify-between gap-3">
+              <h3 class="text-base font-semibold text-gray-900"><%= group.title %></h3>
+              <span class="flex-shrink-0 text-xs font-medium text-gray-500"><%= group.engines.length %> <%= group.engines.length === 1 ? 'engine' : 'engines' %></span>
+            </div>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed"><%= group.description %></p>
+            <ul class="mt-4 flex flex-wrap gap-1.5">
+              <% for (const engine of group.engines) { %>
+              <li class="inline-flex items-center rounded-md <%= group.key === 'database-agent' ? 'bg-emerald-50 text-emerald-800 ring-emerald-200' : 'bg-gray-50 text-gray-700 ring-gray-200' %> px-2 py-1 text-xs ring-1 ring-inset" data-engine="<%= engine.system %>"><%= engine.displayName %></li>
+              <% } %>
+            </ul>
+          </div>
+          <% } %>
+        </div>
+
+        <p class="mt-10 text-center text-xs text-gray-500 max-w-3xl mx-auto">
+          An engine that is not listed still works wherever a database is keyed by its address: it shows under the name your spans report. Engine and service names are trademarks of their owners; OneUptime is not affiliated with or endorsed by them.
+        </p>
+        <div class="mt-6 text-center">
+          <a href="/docs/telemetry/databases" class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">See every engine's default port and metrics path in the docs <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended Monitors Section -->
+    <div class="relative bg-white py-24 sm:py-32" id="databases-monitors">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">Recommended Monitors</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            <%= databases.alertTemplateCount %> ready-made monitors for <%= databases.enginesWithAlertTemplatesCount %> engines
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Every one is a real OneUptime monitor over the metrics the engine's collector receiver reports, scoped to the one database. A database's Recommendations tab offers them once its engine metrics have arrived.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <% for (const group of databases.alertTemplateGroups) { %>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6" data-alert-template-group="<%= group.receiver %>">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-emerald-50 ring-1 ring-emerald-200">
+                <%- include('./Partials/icons/databases', {iconClass: 'h-4 w-4'}) %>
+              </span>
+              <h3 class="text-base font-semibold text-gray-900"><%= group.title %></h3>
+            </div>
+            <% if (group.alsoOfferedTo.length > 0) { %>
+            <p class="mt-2 text-xs text-gray-500">Also offered to <%= listNames(group.alsoOfferedTo) %></p>
+            <% } %>
+            <ul class="mt-4 space-y-2 text-sm text-gray-600">
+              <% for (const template of group.templates) { %>
+              <li class="flex items-center justify-between gap-3"><span><%= template.name %></span><span class="flex-shrink-0 text-[10px] font-semibold uppercase <%= template.severity === 'Critical' ? 'text-red-600' : 'text-amber-600' %>"><%= template.severity %></span></li>
+              <% } %>
+            </ul>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Build your own -->
+        <div class="mt-8 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/40 p-6 lg:flex lg:items-center lg:justify-between lg:gap-10">
+          <div class="flex items-start gap-3">
+            <span class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white ring-1 ring-emerald-200">
+              <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </span>
+            <div>
+              <h3 class="text-base font-semibold text-gray-900">Or build your own</h3>
+              <p class="mt-1 text-sm text-gray-600 leading-relaxed">Open an engine chart on the Metrics tab and press Create monitor: it opens a Metrics monitor with the chart's aggregation, filters and time range, already scoped to the database. A Database Health or SQL Query monitor, or a Traces monitor on a database's address, lands its alerts on the same page.</p>
+            </div>
+          </div>
+          <a href="/docs/telemetry/databases#alerts-on-a-database" class="mt-4 lg:mt-0 inline-flex flex-shrink-0 items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">Read about database alerts <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mb-6">
+            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-emerald-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Built for the way databases actually run
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Clusters, forks, managed services and short-lived containers: the list stays one row per real database server.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: Endpoints -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">One Database, Many Names</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">An endpoint is a host and port a database answers on, and everything that names one lands on the same database: spans, receiver data and probe monitors. A cluster's hosts in any order, a Kubernetes Service and its short names, and CockroachDB reached with a PostgreSQL driver all meet on one page.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Forks -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Forks Recognised as Themselves</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Client libraries cannot tell MariaDB from MySQL or Valkey from Redis, so the spans say mysql or redis. A container image, a Helm chart or the Database Agent names the fork, and the database shows it, while its traces still land on the same page.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Lifecycle -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">A List That Cleans Up</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">A discovered database that no source has seen for 7 days is archived on its own, unless somebody gave it an owner, a label, an endpoint or an incident. Archive one yourself to dismiss it for good: it keeps its endpoints, so it does not come back.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Owners & labels -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Owners, Labels &amp; Retention</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Give every database owning teams and users, label it, and let label and owner rules pick databases up by name: a pattern of <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">^PostgreSQL</code> matches every PostgreSQL database. Retention is set per database, for the telemetry collected from the database itself.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: AI -->
+            <div class="group relative">
+              <a href="/product/ai-agent" class="block relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <%- include('./Partials/icons/ai-agent', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">AI That Can Look Inside</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">While OneUptime AI investigates an incident, the Database AI agent beside the collector answers with sessions, long-running queries, locks and replication state for PostgreSQL, MySQL, Redis and MongoDB. It is read-only unless you allow a fix, such as cancelling one query, and you choose whether each fix waits for a person's approval.</p>
+              </a>
+            </div>
+
+            <!-- Card 6: Probe checks -->
+            <div class="group relative">
+              <a href="/product/monitoring" class="block relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Probe Checks, No Agent</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">The Database Health monitor logs in to PostgreSQL, MySQL or SQL Server from a probe and reports connection headroom, blocked sessions, replication lag and more. Only named numbers leave your network, never query text or rows, and its alerts land on the matching database.</p>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Database alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get notified in Slack and Microsoft Teams when a database runs out of connections, a replica falls behind, or its engine metrics stop. Acknowledge and resolve without leaving your chat app.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive database alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Engine & workload context
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Rich formatting
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <!-- Decorative gradient background -->
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#database-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]" id="databases-slack-messages">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime</span>
+                      <span class="text-xs text-white/40">4:08 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-red-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 ring-1 ring-red-500/30">CRITICAL</span>
+                          <span class="text-white/40 text-xs">Connections Nearly Exhausted</span>
+                        </div>
+                        <p class="text-white font-semibold">orders-pg is at 191 of 200 connections</p>
+                        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            PostgreSQL &middot; payments/orders-pg
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                            </svg>
+                            Busiest caller: checkout-api
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge Alert
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                            View Alert
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve Alert
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🚨</span>
+                        <span class="text-white/60">1</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Thread Replies Container -->
+                <div id="databases-thread-container" class="ml-12 space-y-3 hidden">
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #database-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing & Self-Hosting Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">Pricing & Self-Hosting</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Pay for data, or run it yourself
+          </h2>
+        </div>
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <h3 class="text-xl font-semibold text-gray-900">OneUptime Cloud</h3>
+            <p class="mt-3 text-gray-600 leading-relaxed">Usage-based: $0.10 per GB of telemetry ingested, with retention you can set per database. There is no fee per database, instance or replica, so adding a read replica costs what its metrics weigh.</p>
+            <ul class="mt-6 space-y-2 text-sm text-gray-600">
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>No per-database or per-host licence</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Query samples and top queries only when you switch them on</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>On-call, status pages, and incidents included</li>
+            </ul>
+            <a href="/pricing" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">See pricing <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <h3 class="text-xl font-semibold text-gray-900">Self-Hosted</h3>
+            <p class="mt-3 text-gray-600 leading-relaxed">Databases is part of the open source Community Edition (Apache 2.0). Run it on your own Kubernetes cluster or Docker host, keep every query and metric inside your network, and point the Database Agent at your own instance instead of ours. Everything else is identical.</p>
+            <ul class="mt-6 space-y-2 text-sm text-gray-600">
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Air-gapped and data-residency deployments supported</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Discovery thresholds and the auto-create budget are tunable</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Same agent, same pages, same recommended monitors</li>
+            </ul>
+            <a href="/enterprise/self-hosted" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">Self-hosting guide <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="relative bg-white py-24 sm:py-32" id="databases-faq">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">FAQ</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Questions database teams ask
+          </h2>
+        </div>
+
+        <dl class="divide-y divide-gray-200">
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Do I have to install anything on the database server?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No. Discovery reads the traces, pods and containers OneUptime already receives. For engine metrics, the Database Agent is a stock <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">otel/opentelemetry-collector-contrib</code> container with a config for your engine. It runs on any Docker host, or as a small Deployment in Kubernetes, that can reach the database's port. One agent watches one database server.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">What permissions does the Database Agent need?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">A login of its own that can read the engine's statistics and nothing else, never an administrator or an application's login. That is <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">pg_monitor</code> on PostgreSQL, <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">VIEW SERVER STATE</code> on SQL Server, <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">SELECT_CATALOG_ROLE</code> on Oracle, <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">clusterMonitor</code> on MongoDB, and an ACL user limited to <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">INFO</code> and <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">PING</code> on Redis. None of them grant access to your data. The credentials stay beside the agent, in an owner-only <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">.env</code> file or a Kubernetes Secret.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Does it work with managed databases?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Yes. A managed service that speaks an engine's protocol is that engine: its queries show up from your traces, and the Database Agent connects to it like any other server. Services reached through their provider's own API, such as DynamoDB, Cosmos DB, BigQuery and Spanner, are added by hand, and an OpenTelemetry Collector reads their metrics from the provider.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Will every test container and IP address become a database?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No. Traces create a database only for an address that names one server across the project, and only after 10 queries in 15 minutes. Pods and containers have to stay up for about 10 minutes first. Connection poolers, backup tools, Testcontainers runs and one-off jobs are never databases, and in Kubernetes neither are client or debug runs of a database image. Automatic creation stops at 500 live discovered databases per project, and an untouched discovered database nobody has seen for 7 days is archived on its own.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Does the Database Agent send query text?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Only if you turn it on. Engine metrics are numbers. Query samples and top queries carry query text, and they stay off until you set <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">DATABASE_QUERY_EVENTS=true</code>. The Database Health monitor sends only named numbers, and when the Database AI agent returns query text to an investigation, every literal in it is replaced with <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">?</code>. Query text in your applications' own spans is up to your instrumentation.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">How does this relate to the Database Health and SQL Query monitors?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">They work together. Databases is the inventory: one page per server with everything known about it. A <a href="/docs/monitor/database-health-monitor" class="text-emerald-600 hover:text-emerald-700 font-medium">Database Health monitor</a> checks a server's health from a probe with no agent at all, and a <a href="/docs/monitor/sql-monitor" class="text-emerald-600 hover:text-emerald-700 font-medium">SQL Query monitor</a> alerts on your own query's result. When the host and port a monitor connects to is one of a database's endpoints, its alerts and incidents show on that database's page.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Our database runs on Kubernetes. How do its engine metrics join the page?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Run the Database Agent as a small Deployment in the database's namespace. The database's Documentation tab renders the manifest for you, prefilled with its namespace, engine, address and id. The id links the metrics straight to the detected database, even when the project has several clusters. Discovery on the cluster itself comes from the <a href="/product/kubernetes" class="text-emerald-600 hover:text-emerald-700 font-medium">Kubernetes agent</a> you already run.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Where do I start?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Create a project and send traces, or connect a Kubernetes cluster or a Docker or Podman host. Then open <strong class="font-medium text-gray-800">Resources → Databases</strong>. Each database's Documentation tab has its own install command and collector config. The <a href="/docs/telemetry/databases" class="text-emerald-600 hover:text-emerald-700 font-medium">Databases docs</a> cover discovery, the Database Agent, endpoints, alerting and troubleshooting.</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('databases-hero-section');
+      const gridGlow = document.getElementById('databases-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>
