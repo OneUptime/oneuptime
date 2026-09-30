@@ -27,6 +27,10 @@ import { SQL, Statement, escapeIlikePattern } from "./Statement";
  * makes the same choice for its user-typed operators (see the comment above
  * its map branch).
  *
+ * A skip index cannot see inside that lambda, so positive equality and
+ * membership matches are preceded by a `has()`/`hasAny()` pre-filter on the
+ * values — see appendAttributeValuesPrefilter.
+ *
  * The map column is `attributes` on every model routed through here.
  */
 
@@ -58,6 +62,77 @@ type HasNonEmptyValueFunction = () => Statement;
 export type AppendAttributeOperatorFilterFunction = (
   options: AppendAttributeOperatorFilterOptions,
 ) => void;
+
+export interface AppendAttributeValuesPrefilterOptions {
+  /** The statement being built. The pre-filter is appended, prefixed with `AND`. */
+  statement: Statement;
+  /**
+   * The exact values the match that follows compares `v` against. Anything
+   * other than non-empty strings makes this a no-op — see below.
+   */
+  values: Array<unknown>;
+}
+
+export type AppendAttributeValuesPrefilterFunction = (
+  options: AppendAttributeValuesPrefilterOptions,
+) => void;
+
+/**
+ * Append `AND has(mapValues(attributes), v)` — `hasAny(...)` for several
+ * values — ahead of a positive equality or membership match on an attribute.
+ *
+ * The match itself has to be the arrayExists lambda (keys are matched
+ * case-insensitively, see the header), and a skip index cannot see inside a
+ * lambda. On its own, then, every attribute filter reads the `attributes`
+ * column — the widest in the table — for every row in the time range, which
+ * is what made attribute-filtered log searches over a few hours time out.
+ *
+ * The pre-filter is implied by the match it guards (a row with a pair whose
+ * value is `v` has `v` among its values), so it never changes a result. What
+ * it adds is a form a bloom_filter skip index on `mapValues(attributes)` can
+ * use to skip granules — Log declares one, idx_attribute_values. Without the
+ * index it is still a cheap pre-check: ClickHouse short-circuits AND, so the
+ * lambda only runs on rows that carry the value at all. It has to come first
+ * for that.
+ *
+ * Blank values and non-strings skip the pre-filter instead: nearly every
+ * granule holds an empty value somewhere, so '' cannot prune, and a
+ * non-string may not bind the way the match it guards does.
+ */
+export const appendAttributeValuesPrefilter: AppendAttributeValuesPrefilterFunction =
+  (options: AppendAttributeValuesPrefilterOptions): void => {
+    const { statement, values } = options;
+    const exactValues: Array<string> = [];
+
+    for (const value of values) {
+      if (typeof value !== "string" || value.length === 0) {
+        return;
+      }
+
+      exactValues.push(value);
+    }
+
+    if (exactValues.length === 0) {
+      return;
+    }
+
+    if (exactValues.length === 1) {
+      statement.append(
+        SQL` AND has(mapValues(attributes), ${{
+          type: TableColumnType.Text,
+          value: exactValues[0]!,
+        }})`,
+      );
+      return;
+    }
+
+    statement.append(
+      SQL` AND hasAny(mapValues(attributes), ${{
+        type: TableColumnType.ArrayText,
+        value: exactValues,
+      }})`,
+    );
+  };
 
 /**
  * Compile one serialized attribute operator into a predicate and append it.
@@ -229,6 +304,8 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
           return;
         }
 
+        appendAttributeValuesPrefilter({ statement, values: [textValue()] });
+
         statement.append(
           SQL` AND `.append(
             matches(
@@ -389,6 +466,14 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
          */
         if (values.length === 0) {
           return;
+        }
+
+        /*
+         * Only the positive form: a row that lacks every value is exactly
+         * what IncludesNone is looking for.
+         */
+        if (operatorType === ObjectType.Includes) {
+          appendAttributeValuesPrefilter({ statement, values });
         }
 
         const membership: Statement = matches(

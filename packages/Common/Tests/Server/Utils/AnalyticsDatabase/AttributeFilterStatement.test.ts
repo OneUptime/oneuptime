@@ -2,7 +2,9 @@ import {
   SQL,
   Statement,
 } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
-import appendAttributeOperatorFilter from "../../../../Server/Utils/AnalyticsDatabase/AttributeFilterStatement";
+import appendAttributeOperatorFilter, {
+  appendAttributeValuesPrefilter,
+} from "../../../../Server/Utils/AnalyticsDatabase/AttributeFilterStatement";
 import "../../TestingUtils/Init";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { ObjectType } from "../../../../Types/JSON";
@@ -45,15 +47,16 @@ describe("appendAttributeOperatorFilter", () => {
 
       /*
        * The key is compared with lowerUTF8 on both sides so requestId and
-       * requestid are the same filter.
+       * requestid are the same filter. p0 belongs to the value pre-filter
+       * that precedes the match (see the pre-filter tests below).
        */
       expect(statement.query).toContain(
-        "lowerUTF8(k) = lowerUTF8({p0:String})",
+        "lowerUTF8(k) = lowerUTF8({p1:String})",
       );
       expect(statement.query).toContain("mapKeys(attributes)");
       expect(statement.query).toContain("mapValues(attributes)");
       // The key itself is a bound parameter, never inlined.
-      expect(statement.query_params["p0"]).toBe(ATTR);
+      expect(statement.query_params["p1"]).toBe(ATTR);
       expect(statement.query).not.toContain(ATTR);
     });
   });
@@ -66,8 +69,8 @@ describe("appendAttributeOperatorFilter", () => {
       });
 
       expect(statement.query).toContain("arrayExists");
-      expect(statement.query).toContain("v = {p1:String}");
-      expect(statement.query_params["p1"]).toBe("GET");
+      expect(statement.query).toContain("v = {p2:String}");
+      expect(statement.query_params["p2"]).toBe("GET");
       // The raw value must not appear as SQL text (injection guard).
       expect(statement.query).not.toContain("GET");
     });
@@ -215,8 +218,8 @@ describe("appendAttributeOperatorFilter", () => {
         value: ["GET", "POST"],
       });
 
-      expect(statement.query).toContain("v IN ({p1:Array(String)})");
-      expect(statement.query_params["p1"]).toEqual(["GET", "POST"]);
+      expect(statement.query).toContain("v IN ({p2:Array(String)})");
+      expect(statement.query_params["p2"]).toEqual(["GET", "POST"]);
     });
 
     test("IncludesNone negates the membership test", () => {
@@ -334,5 +337,171 @@ describe("appendAttributeOperatorFilter", () => {
       expect(statement.query.startsWith("WHERE project_id = 'p1'")).toBe(true);
       expect(statement.query).toContain(" AND ");
     });
+  });
+
+  describe("positive equality and membership carry a value pre-filter", () => {
+    /*
+     * A skip index cannot see inside the arrayExists lambda, so without this
+     * every attribute filter read the whole `attributes` column for the time
+     * range. The pre-filter is implied by the match after it, so it never
+     * changes a result; it is only there so a bloom_filter index on
+     * mapValues(attributes) — the log table's idx_attribute_values — can
+     * skip granules, and so AND can short-circuit the lambda.
+     */
+    test("EqualTo is preceded by has() on the same value", () => {
+      const statement: Statement = run({
+        _type: ObjectType.EqualTo,
+        value: "GET",
+      });
+
+      // First, so ClickHouse evaluates the lambda only on rows that pass it.
+      expect(statement.query).toBe(
+        "WHERE true AND has(mapValues(attributes), {p0:String}) AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8({p1:String}) AND v = {p2:String}, mapKeys(attributes), mapValues(attributes))",
+      );
+      expect(statement.query_params["p0"]).toBe("GET");
+      expect(statement.query_params["p2"]).toBe("GET");
+    });
+
+    test("a non-string EqualTo value pre-filters on the text the match binds", () => {
+      const statement: Statement = run({
+        _type: ObjectType.EqualTo,
+        value: 200,
+      });
+
+      expect(statement.query).toContain(
+        "has(mapValues(attributes), {p0:String})",
+      );
+      expect(statement.query_params["p0"]).toBe("200");
+      expect(statement.query_params["p2"]).toBe("200");
+    });
+
+    test("Includes is preceded by hasAny() on the same list", () => {
+      const statement: Statement = run({
+        _type: ObjectType.Includes,
+        value: ["GET", "POST"],
+      });
+
+      expect(statement.query).toBe(
+        "WHERE true AND hasAny(mapValues(attributes), {p0:Array(String)}) AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8({p1:String}) AND v IN ({p2:Array(String)}), mapKeys(attributes), mapValues(attributes))",
+      );
+      expect(statement.query_params["p0"]).toEqual(["GET", "POST"]);
+    });
+
+    test("stringified members pre-filter on the same strings the match binds", () => {
+      const statement: Statement = run({
+        _type: ObjectType.Includes,
+        value: [1, 2],
+      });
+
+      expect(statement.query_params["p0"]).toEqual(["1", "2"]);
+      expect(statement.query_params["p2"]).toEqual(["1", "2"]);
+    });
+
+    test("a one-member list pre-filters with has()", () => {
+      const statement: Statement = run({
+        _type: ObjectType.Includes,
+        value: ["GET"],
+      });
+
+      expect(statement.query).toContain(
+        "has(mapValues(attributes), {p0:String})",
+      );
+      expect(statement.query_params["p0"]).toBe("GET");
+    });
+
+    test("a blank member drops the pre-filter, never the member", () => {
+      /*
+       * Keeping '' would be correct but could not prune — nearly every
+       * granule holds an empty value somewhere. Dropping just the blank
+       * would make the pre-filter reject rows the match accepts.
+       */
+      const statement: Statement = run({
+        _type: ObjectType.Includes,
+        value: ["GET", ""],
+      });
+
+      expect(statement.query).not.toContain("has(");
+      expect(statement.query).not.toContain("hasAny(");
+      expect(statement.query).toContain("v IN ({p1:Array(String)})");
+      expect(statement.query_params["p1"]).toEqual(["GET", ""]);
+    });
+
+    test.each([
+      ["NotEqual", { _type: ObjectType.NotEqual, value: "GET" }],
+      ["a blank NotEqual", { _type: ObjectType.NotEqual, value: "" }],
+      ["a blank EqualTo", { _type: ObjectType.EqualTo, value: "" }],
+      ["IncludesNone", { _type: ObjectType.IncludesNone, value: ["GET"] }],
+      ["Search", { _type: ObjectType.Search, value: "GET" }],
+      ["NotContains", { _type: ObjectType.NotContains, value: "GET" }],
+      ["StartsWith", { _type: ObjectType.StartsWith, value: "GET" }],
+      ["EndsWith", { _type: ObjectType.EndsWith, value: "GET" }],
+      ["Wildcard", { _type: ObjectType.Wildcard, value: ["GET*"] }],
+      ["NotWildcard", { _type: ObjectType.NotWildcard, value: ["GET*"] }],
+      ["GreaterThan", { _type: ObjectType.GreaterThan, value: 5 }],
+      ["IsNull", { _type: ObjectType.IsNull }],
+      ["NotNull", { _type: ObjectType.NotNull }],
+    ])(
+      "%s gets no pre-filter",
+      (_label: string, operator: Record<string, unknown>) => {
+        /*
+         * A negated match keeps rows that lack the value, a pattern or a
+         * numeric comparison is not an exact value, and blank cannot prune.
+         */
+        const statement: Statement = run(operator);
+
+        expect(statement.query).not.toMatch(/\bhas(Any)?\(/);
+      },
+    );
+  });
+});
+
+describe("appendAttributeValuesPrefilter", () => {
+  function prefilter(values: Array<unknown>): Statement {
+    const statement: Statement = SQL`WHERE true`;
+    appendAttributeValuesPrefilter({ statement, values });
+    return statement;
+  }
+
+  test("one value appends has() with the value bound", () => {
+    const statement: Statement = prefilter(["GET"]);
+
+    expect(statement.query).toBe(
+      "WHERE true AND has(mapValues(attributes), {p0:String})",
+    );
+    expect(statement.query_params["p0"]).toBe("GET");
+  });
+
+  test("several values append hasAny() bound as one String array", () => {
+    const statement: Statement = prefilter(["GET", "POST"]);
+
+    expect(statement.query).toBe(
+      "WHERE true AND hasAny(mapValues(attributes), {p0:Array(String)})",
+    );
+    expect(statement.query_params["p0"]).toEqual(["GET", "POST"]);
+  });
+
+  test.each([
+    ["no values", []],
+    ["a blank value", [""]],
+    ["a blank among real values", ["GET", ""]],
+    ["a number", [5]],
+    ["a number among strings", ["GET", 5]],
+    ["null", [null]],
+    ["undefined", [undefined]],
+    ["an object", [{ toString: 1 }]],
+  ])("%s appends nothing", (_label: string, values: Array<unknown>) => {
+    /*
+     * The pre-filter is only safe when it is implied by the match it
+     * guards. The bare-value branches bind whatever arrived, so anything
+     * but a plain non-empty string leaves the match to decide alone.
+     */
+    expect(prefilter(values).query).toBe("WHERE true");
+  });
+
+  test("values are bound as parameters, never inlined", () => {
+    const statement: Statement = prefilter(["x') OR 1=1 --"]);
+
+    expect(statement.query).not.toContain("OR 1=1");
+    expect(statement.query_params["p0"]).toBe("x') OR 1=1 --");
   });
 });
