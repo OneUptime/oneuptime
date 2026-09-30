@@ -207,7 +207,7 @@ Indsæt copy-paste, **OpenTelemetry-baserede** agenter til at holde øje med alt
 | **Bedst til** | Selv-hostere og små teams | Regulerede teams med behov for premium-support |
 | **Pris** | Gratis og open source | [Kontakt salg](mailto:sales@oneuptime.com) |
 | **Licens** | Apache 2.0 | Apache 2.0 samt [OneUptime Enterprise License](/ee/LICENSE) for mappen `ee/` |
-| **Funktioner** | Alt i pakken ovenfor — overvågning, statussider, hændelser, vagter, logs, traces, metrikker, fejlsporing, workflows og AI | Alt i Community + SAML- og OIDC-single sign-on, SCIM-provisionering, auditlogs, team-compliance og dashboards for instansens sundhed, med prioriteret support, brugerdefinerede funktioner og dataophold |
+| **Funktioner** | Alt i pakken ovenfor — overvågning, statussider, hændelser, vagter, logs, traces, metrikker, fejlsporing, workflows og AI — samt SAML- og OIDC-single sign-on | Alt i Community + SCIM-provisionering, auditlogs, team-compliance og dashboards for instansens sundhed, med prioriteret support, brugerdefinerede funktioner og dataophold |
 
 Enterprise-funktionerne ligger i mappen [`ee/`](/ee) og leveres kun i Enterprise-imaget. Se [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for den fulde sammenligning.
 

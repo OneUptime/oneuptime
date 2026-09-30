@@ -157,7 +157,7 @@ Añade a quienes puedan iniciar sesión en **Páginas de Estado → tu página �
 
 ### SSO y OIDC
 
-Para una página privada atada a tu proveedor de identidad, **Páginas de Estado → tu página → Seguridad → SSO** configura SAML (URL de inicio de sesión, emisor, certificado x509, métodos de firma y de resumen) y **Páginas de Estado → tu página → Seguridad → OIDC** configura OpenID Connect (URL de descubrimiento, emisor, ID y secreto de cliente, ámbitos, nombres de claims). **SCIM** aprovisiona usuarios privados desde el IdP automáticamente. Todo esto depende de una funcionalidad de plan, así que puede no estar disponible en toda instalación.
+Para una página privada atada a tu proveedor de identidad, **Páginas de Estado → tu página → Seguridad → SSO** configura SAML (URL de inicio de sesión, emisor, certificado x509, métodos de firma y de resumen) y **Páginas de Estado → tu página → Seguridad → OIDC** configura OpenID Connect (URL de descubrimiento, emisor, ID y secreto de cliente, ámbitos, nombres de claims). **SCIM** aprovisiona usuarios privados desde el IdP automáticamente. En OneUptime Cloud, las tres requieren el plan Scale o superior. En una instalación autoalojada, SSO y OIDC forman parte de todas las ediciones, y SCIM requiere la [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Una tarjeta **Ajustes de SSO** expone **Forzar SSO para el inicio de sesión** (`requireSsoForLogin`, desactivado de forma predeterminada). Prueba tu configuración de SSO antes de activarlo: si no funciona, te dejarás fuera de tu propia página de estado.
 

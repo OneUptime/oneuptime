@@ -6,7 +6,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 /*
  * ConfirmProjectSsoSignIn.hbs - sent on the hosted service the first time a
  * project's own identity provider tries to sign an address in to OneUptime
- * (ee/Server/Identity/Utils/ProjectSsoSignInConfirmation.ts, whose tests pin
+ * (FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts, whose tests pin
  * the variable names against the code that sets them).
  *
  * The recipient may never have tried to sign in: the identity provider belongs

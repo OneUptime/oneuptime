@@ -487,11 +487,11 @@ export const AirGapSteps: Array<AirGapStep> = [
  * the Community Edition image plus the enterprise modules in the repository's
  * ee/ directory, not a separately hardened base, so nothing here may call it
  * "hardened". Hardening comes from the chart (SecurityHardeningFeatures) and
- * applies to both editions.
+ * applies to both editions. Single sign-on is not on this list: SAML and
+ * OpenID Connect single sign-on are part of the Community Edition.
  */
 export const EnterpriseEditionFeatures: Array<string> = [
   "Selected with `image.type: enterprise-edition` in the Helm chart, or `APP_TAG=enterprise-release` with Docker Compose",
-  "SAML and OpenID Connect single sign-on for projects, private status pages, and the whole instance",
   "SCIM provisioning and deprovisioning for projects and status pages",
   "Audit logs and team compliance settings",
   "Instance health dashboards, PostgreSQL and Valkey health alerts, and a query console for administrators",
@@ -576,7 +576,7 @@ export const SharedResponsibilities: Array<ResponsibilityRow> = [
   {
     area: "Access control",
     oneuptime:
-      "We ship RBAC and API-key scoping in both editions, and SSO/SAML, SCIM, and audit logs in the Enterprise Edition.",
+      "We ship RBAC, API-key scoping, and SAML and OIDC single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition.",
     customer: "You configure your identity provider and review access.",
   },
   {
@@ -598,13 +598,14 @@ export const SupportBoundaries: Array<SupportTierRow> = [
       "GitHub issues and discussions",
       "Public documentation, Helm chart docs, and upgrade notes",
       "Monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows — the whole core product",
+      "SAML and OpenID Connect single sign-on for projects, private status pages, and the whole instance",
       "Security fixes shipped in public releases",
     ],
     excluded: [
       "No response-time commitment",
       "No private support channel or named contact",
       "No architecture review or migration assistance",
-      "No SSO, SCIM, audit logs, team compliance, or instance health dashboards — those are Enterprise Edition features",
+      "No SCIM, audit logs, team compliance, or instance health dashboards — those are Enterprise Edition features",
     ],
   },
   {
@@ -613,7 +614,7 @@ export const SupportBoundaries: Array<SupportTierRow> = [
     description:
       "The Community Edition plus the enterprise modules, under a commercial agreement, for teams that need accountability alongside the source code.",
     included: [
-      "The Enterprise Edition image: SSO (SAML and OIDC), SCIM, audit logs, team compliance, and instance health dashboards",
+      "The Enterprise Edition image: SCIM, audit logs, team compliance, and instance health dashboards",
       "A private support channel with agreed severity levels and response targets",
       "A named engineering contact and architecture reviews",
       "Migration and upgrade assistance, plus custom data residency and retention",
@@ -632,7 +633,7 @@ export const SelfHostedFaqs: Array<SelfHostedFaq> = [
   {
     question: "Is the self-hosted edition feature-limited?",
     answer:
-      "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows. The Enterprise Edition adds identity and governance features — SAML and OIDC single sign-on, SCIM provisioning, audit logs, team compliance, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
+      "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows, with SAML and OIDC single sign-on. The Enterprise Edition adds identity and governance features — SCIM provisioning, audit logs, team compliance, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
   },
   {
     question: "Does a self-hosted install phone home?",

@@ -157,7 +157,7 @@ Lägg till dem som får logga in på **Statussidor → din sida → Säkerhet �
 
 ### SSO och OIDC
 
-För en privat sida knuten till er identitetsleverantör konfigurerar **Statussidor → din sida → Säkerhet → SSO** SAML (inloggnings-URL, utfärdare, x509-certifikat, signatur- och sammandragsmetoder) och **Statussidor → din sida → Säkerhet → OIDC** konfigurerar OpenID Connect (upptäckts-URL, utfärdare, klient-ID och hemlighet, scopes, claim-namn). **SCIM** provisionerar privata användare från identitetsleverantören automatiskt. De här ligger bakom en planfunktion, så de finns kanske inte i varje installation.
+För en privat sida knuten till er identitetsleverantör konfigurerar **Statussidor → din sida → Säkerhet → SSO** SAML (inloggnings-URL, utfärdare, x509-certifikat, signatur- och sammandragsmetoder) och **Statussidor → din sida → Säkerhet → OIDC** konfigurerar OpenID Connect (upptäckts-URL, utfärdare, klient-ID och hemlighet, scopes, claim-namn). **SCIM** provisionerar privata användare från identitetsleverantören automatiskt. På OneUptime Cloud kräver alla tre Scale-planen eller högre. I en självhostad installation ingår SSO och OIDC i alla utgåvor, medan SCIM kräver [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Ett kort **SSO-inställningar** exponerar **Tvinga SSO för inloggning** (`requireSsoForLogin`, av som standard). Testa er SSO-konfiguration innan ni slår på den — fungerar den inte låser ni ut er själva från statussidan.
 

@@ -2,7 +2,7 @@
 
 Global SSO 讓 OneUptime 的**執行個體管理員**（master admin）能夠**在執行個體層級設定一次**單一的 SAML 2.0 或 OpenID Connect（OIDC）身分提供者，並將其連接至伺服器上的任何專案。它是各專案 SSO 的執行個體層級對應方案：與其讓每位專案擁有者各自設定自己的身分提供者，master admin 只需設定一個即可服務整個執行個體。
 
-Global SSO 是 **OneUptime Enterprise Edition** 功能，僅在執行 Enterprise Edition 組建的執行個體上可用。 關於如何執行企業版、授權如何運作，以及社群版中 SSO 要求會怎樣，請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。沒有有效的授權時（14 天試用期結束後，或授權過期 30 天後），在啟用授權之前，全域 SSO 登入將停止，且不會強制執行整個執行個體的「Require SSO」。
+Global SSO（包括執行個體層級的「Require SSO for Login」開關）屬於 OneUptime 的所有版本：每個自架執行個體都可以使用，社群版（Community Edition）也不例外，且無需授權。它屬於執行個體管理功能，因此不適用於 OneUptime Cloud。各版本包含哪些功能，請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。
 
 ## Global SSO 與 Project SSO 的差異
 
@@ -48,7 +48,7 @@ Global SSO 是 **OneUptime Enterprise Edition** 功能，僅在執行 Enterprise
 設定全域提供者並不會強制任何人使用它；密碼登入仍然有效。若要強制使用 SSO，請使用 **Require SSO for Login** 控制項：
 
 - **依專案：** 專案可以要求使用 SSO，並可選擇性地要求*特定*提供者（專案或全域）。
-- **執行個體層級：** **Admin** > **Settings** > **Authentication** 內有一個 **Require SSO for Login** 切換開關，可對執行個體中的每位使用者強制使用 SSO。Master admin 仍然豁免，因此不會被鎖在外面。
+- **執行個體層級：** **Admin** > **Settings** > **Authentication** 內有一個 **登入時要求使用 SSO** 切換開關，可對執行個體中的每位使用者強制使用 SSO。Master admin 仍然豁免，因此不會被鎖在外面。
 
 ## 相關內容
 

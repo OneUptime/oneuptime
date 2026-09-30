@@ -207,7 +207,7 @@ helm install oneuptime oneuptime/oneuptime
 | **适合谁** | 自托管用户与小型团队 | 需要高级支持的受监管团队 |
 | **费用** | 免费且开源 | [联系销售](mailto:sales@oneuptime.com) |
 | **许可证** | Apache 2.0 | Apache 2.0，另外 `ee/` 目录采用 [OneUptime Enterprise License](/ee/LICENSE) |
-| **功能** | 上方“开箱即有的一切”中的全部功能——监控、状态页、事件、值班、日志、链路追踪、指标、错误追踪、工作流与 AI | 社区版全部功能 + SAML 与 OIDC 单点登录、SCIM 用户配置、审计日志、团队合规与实例健康仪表盘，并提供优先支持、定制功能与数据驻留 |
+| **功能** | 上方“开箱即有的一切”中的全部功能——监控、状态页、事件、值班、日志、链路追踪、指标、错误追踪、工作流与 AI——以及 SAML 与 OIDC 单点登录 | 社区版全部功能 + SCIM 用户配置、审计日志、团队合规与实例健康仪表盘，并提供优先支持、定制功能与数据驻留 |
 
 企业版功能位于 [`ee/`](/ee) 目录，仅包含在企业版镜像中。完整对比请参阅 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)。
 

@@ -207,7 +207,7 @@ helm install oneuptime oneuptime/oneuptime
 | **적합 대상** | 셀프 호스터 및 소규모 팀 | 프리미엄 지원이 필요한 규제 산업 팀 |
 | **비용** | 무료 및 오픈소스 | [영업팀 문의](mailto:sales@oneuptime.com) |
 | **라이선스** | Apache 2.0 | Apache 2.0, 그리고 `ee/` 디렉터리에는 [OneUptime Enterprise License](/ee/LICENSE) |
-| **기능** | 위의 기본 제공 기능 전부 — 모니터링, 상태 페이지, 인시던트, 온콜, 로그, 트레이스, 메트릭, 오류 추적, 워크플로, AI | 커뮤니티의 모든 기능 + SAML 및 OIDC 싱글 사인온, SCIM 프로비저닝, 감사 로그, 팀 컴플라이언스, 인스턴스 상태 대시보드, 그리고 우선 지원, 맞춤형 기능 및 데이터 레지던시 |
+| **기능** | 위의 기본 제공 기능 전부 — 모니터링, 상태 페이지, 인시던트, 온콜, 로그, 트레이스, 메트릭, 오류 추적, 워크플로, AI — 그리고 SAML 및 OIDC 싱글 사인온 | 커뮤니티의 모든 기능 + SCIM 프로비저닝, 감사 로그, 팀 컴플라이언스, 인스턴스 상태 대시보드, 그리고 우선 지원, 맞춤형 기능 및 데이터 레지던시 |
 
 엔터프라이즈 기능은 [`ee/`](/ee) 디렉터리에 있으며 엔터프라이즈 이미지에만 포함됩니다. 전체 비교는 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)을 참고하세요.
 
