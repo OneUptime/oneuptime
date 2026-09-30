@@ -11,7 +11,7 @@ This page is the **installation guide**. For configuring Kubernetes monitors and
 - A running Kubernetes cluster (v1.23+)
 - `kubectl` configured to access your cluster
 - `helm` v3 installed
-- A **OneUptime API key** — create one from _Project Settings → API Keys_
+- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_. The agent sends it as the `x-oneuptime-token` header, so a project API key does not work.
 
 ## Step 1 — Add the OneUptime Helm Repository
 
