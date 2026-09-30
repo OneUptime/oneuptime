@@ -22,7 +22,8 @@ import { DataSource, QueryRunner } from "typeorm";
  * and up() then runs on seeded rows. The schema is dropped afterwards.
  */
 
-const describePostgres: typeof describe =
+// describe.skip's type is the one both branches share.
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ENABLE_AI_SWITCH_TESTS"] === "true"
     ? describe
     : describe.skip;

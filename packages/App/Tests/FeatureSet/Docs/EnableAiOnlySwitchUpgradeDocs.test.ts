@@ -9,7 +9,6 @@ import {
   TABLES_WITH_AI_REMEDIATION_MODE,
 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1796600000000-FoldAiSwitchesIntoEnableAi";
 import { describe, expect, it } from "@jest/globals";
-import { QueryRunner } from "typeorm";
 
 /*
  * The upgrade note for folding "Enable Auto-Remediation" and "Enable AI
@@ -23,6 +22,15 @@ const THIRTEEN_TO_FOURTEEN_HEADING: string =
   "## Upgrading from OneUptime 13 → 14";
 const NOTE_HEADING: string = "### Enable AI is the only AI switch";
 
+/*
+ * The QueryRunner the migration's up() takes, read off the migration itself:
+ * App and Common resolve typeorm to different copies, so importing it here
+ * would name a type up() does not accept.
+ */
+type MigrationQueryRunner = Parameters<
+  FoldAiSwitchesIntoEnableAi1796600000000["up"]
+>[0];
+
 type RecordStatementsFunction = () => Promise<Array<string>>;
 
 const recordUpStatements: RecordStatementsFunction = async (): Promise<
@@ -30,12 +38,12 @@ const recordUpStatements: RecordStatementsFunction = async (): Promise<
 > => {
   const statements: Array<string> = [];
 
-  const queryRunner: QueryRunner = {
+  const queryRunner: MigrationQueryRunner = {
     query: (statement: string): Promise<void> => {
       statements.push(statement);
       return Promise.resolve();
     },
-  } as unknown as QueryRunner;
+  } as unknown as MigrationQueryRunner;
 
   await new FoldAiSwitchesIntoEnableAi1796600000000().up(queryRunner);
 
