@@ -30,12 +30,13 @@ import {
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * The notice sits above an investigation report and answers "could AI use
- * kubectl here?". It is fed the clusters' CURRENT readiness (the API
- * computes it at request time), so the one thing it must never do is turn
- * that into a claim about a run that finished earlier: turning investigation
- * off after a run must not make the report say the run "investigated with
- * OneUptime data only" above a usage line counting five kubectl commands.
+ * The notice sits with an investigation (above a live run's steps, after a
+ * finished run's report) and answers "could AI use kubectl here?". It is fed
+ * the clusters' CURRENT readiness (the API computes it at request time), so
+ * the one thing it must never do is turn that into a claim about a run that
+ * finished earlier: turning investigation off after a run must not make the
+ * card say the run "investigated with OneUptime data only" beside a usage
+ * line counting five kubectl commands.
  * What the run did comes from the run's own events (kubectlActivity).
  */
 

@@ -80,6 +80,15 @@ const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
 const READ_ONLY: string = "Read-only — nothing in your systems was changed";
 
 /*
+ * The line that closes a published report. It only renders beside a report,
+ * so the pages use it to know the AI card has finished loading.
+ */
+const REPORT_CAVEAT: string = "AI-generated first pass — verify before acting.";
+
+// The rating row's question, which also names its two-answer group.
+const VERDICT_QUESTION: string = "Was this analysis correct?";
+
+/*
  * "Declare Incident" in an alert's header, after the state actions
  * (Components/Alert/DeclareIncidentFromAlert.ts). It opens the create-incident
  * page prefilled from the alert.
@@ -189,7 +198,7 @@ const INCIDENT_PAGE: EventPage = {
   identifier: "#1042",
   feed: "Incident Feed",
   readyTexts: [
-    "Investigation complete",
+    REPORT_CAVEAT,
     "Rolling checkout-api back to 2026.09.14-1",
     "Communications Lead",
     "eu-west-1 probe",
@@ -247,7 +256,7 @@ const ALERT_PAGE: EventPage = {
   identifier: "#311",
   feed: "Alert Feed",
   readyTexts: [
-    "Investigation complete",
+    REPORT_CAVEAT,
     "Alert #311 Created:",
     "Payments on-call",
     // Its monitor and its one service.
@@ -953,7 +962,7 @@ async function skeletonWasSeen(page: Page): Promise<boolean> {
  */
 
 test.describe("AI investigation report", () => {
-  test("the summary is its own section above the report", async ({
+  test("the summary is the card's first section, above the report", async ({
     page,
   }: {
     page: Page;
@@ -961,9 +970,9 @@ test.describe("AI investigation report", () => {
     await openReady(page, INCIDENT_PAGE);
 
     const investigation: Locator = investigationCard(page);
-    await expect(
-      investigation.getByLabel("Investigation status"),
-    ).toContainText("Investigation complete");
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Completed",
+    );
     await expect(investigation).toContainText(
       "OneUptime AI's root-cause report for this incident.",
     );
@@ -972,7 +981,8 @@ test.describe("AI investigation report", () => {
     await expect(summary.getByRole("heading", { level: 3 })).toHaveText(
       "Summary",
     );
-    await expect(summary.getByText("TL;DR", { exact: true })).toBeVisible();
+    // The TL;DR is the section's lead line; it no longer wears a chip.
+    await expect(summary.getByText("TL;DR", { exact: true })).toHaveCount(0);
     await expect(
       summary.getByText(INCIDENT_TLDR, { exact: true }),
     ).toBeVisible();
@@ -999,26 +1009,14 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     const report: Locator = reportSection(page);
-    await expect(report.getByRole("heading", { level: 3 })).toHaveText(
-      "Investigation report",
-    );
     /*
-     * The header's own line says the report is an AI first pass, so there is
-     * no separate "AI generated" pill beside Copy report.
+     * No title of its own: the card's title already names the report, whose
+     * sections sit directly in the card under h3s like the Summary's.
      */
     await expect(
-      report.getByText("AI-generated first pass — verify before acting.", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
-      0,
-    );
-    await expect(
-      report.getByRole("button", { name: "Copy report" }),
-    ).toBeVisible();
-
-    await expect(report.getByRole("heading", { level: 4 })).toHaveText([
+      report.getByRole("heading", { name: "Investigation report" }),
+    ).toHaveCount(0);
+    await expect(report.getByRole("heading", { level: 3 })).toHaveText([
       "Most likely root cause",
       "Evidence",
       "Suggested next steps",
@@ -1028,10 +1026,30 @@ test.describe("AI investigation report", () => {
       0,
     );
 
+    /*
+     * The caveat and Copy report close the report, after its last section.
+     * There is no separate "AI generated" pill beside Copy report.
+     */
+    const caveat: Locator = report.getByText(REPORT_CAVEAT, { exact: true });
+    await expect(caveat).toBeVisible();
+    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
+      0,
+    );
+    const copyReport: Locator = report.getByRole("button", {
+      name: "Copy report",
+    });
+    await expect(copyReport).toBeVisible();
+    await expectAbove(
+      report.getByRole("heading", { name: "Suggested next steps" }),
+      caveat,
+      "the last section before the caveat",
+    );
+
+    // The root cause is a plain section, not an amber callout.
     const rootCause: Locator = report.locator(
       "section[data-section-kind='RootCause']",
     );
-    await expect(rootCause).toHaveClass(/border-amber-200/);
+    await expect(rootCause).not.toHaveClass(/border|bg-|ring|rounded|shadow/);
     await expect(rootCause).toContainText(
       "Release 2026.09.14-2 of checkout-api started at 17:52:04",
     );
@@ -1228,9 +1246,16 @@ test.describe("AI investigation report", () => {
       }),
     ).toBe(true);
 
-    // #1029 has no investigation: neither the card nor the header summary.
+    /*
+     * #1029 has no investigation: the card says so in its own words, with
+     * nothing of #1042's report, and there is no header summary.
+     */
     await expect(card(page, "Incident Feed")).toBeVisible();
-    await expect(investigationCard(page)).toHaveCount(0);
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Not investigated");
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
@@ -1496,7 +1521,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     const rating: Locator = investigation.getByRole("group", {
-      name: "Rate this investigation",
+      name: VERDICT_QUESTION,
     });
     await rating.getByRole("button", { name: "Confirmed" }).click();
     await expect(
@@ -1544,7 +1569,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     await investigation
-      .getByRole("group", { name: "Rate this investigation" })
+      .getByRole("group", { name: VERDICT_QUESTION })
       .getByRole("button", { name: "Confirmed" })
       .click();
     await expect(
@@ -1573,7 +1598,7 @@ test.describe("AI investigation report", () => {
     const header: Locator = hero(page);
     const investigation: Locator = investigationCard(page);
     const rating: Locator = investigation.getByRole("group", {
-      name: "Rate this investigation",
+      name: VERDICT_QUESTION,
     });
     const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
     const rejected: Locator = header.getByText("Rejected by a responder", {
@@ -1853,7 +1878,7 @@ test.describe("AI investigation report", () => {
       "#298 · Payment webhook 5xx rate above 5% · Resolved",
     );
     await expect(
-      reportSection(page).getByRole("heading", { level: 4 }),
+      reportSection(page).getByRole("heading", { level: 3 }),
     ).toHaveText([
       "Most likely root cause",
       "Evidence",
@@ -2121,7 +2146,7 @@ test.describe("investigation details", () => {
 
     const investigation: Locator = investigationCard(page);
     await expect(investigation.getByLabel("Investigation status")).toHaveText(
-      "Preparing investigation report…",
+      "Preparing report…",
       { timeout: 30000 },
     );
     const details: Locator = investigationDetails(page);
@@ -2829,7 +2854,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "queued",
-    badge: "Queued — waiting for a worker…",
+    badge: "Queued",
     bodyTexts: [
       "OneUptime AI is investigating",
       "Waiting for a worker to pick this up.",
@@ -2839,7 +2864,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "failed",
-    badge: "Investigation did not finish",
+    badge: "Did not finish",
     bodyTexts: [
       "The investigation stopped before it could report.",
       "The LLM provider returned 529 Overloaded three times; the investigation stopped after 4 of 12 planned tool calls.",
@@ -2851,7 +2876,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "pending",
-    badge: "Preparing investigation report…",
+    badge: "Preparing report…",
     bodyTexts: [
       "Preparing the final report",
       "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
@@ -2883,9 +2908,7 @@ test.describe("investigation states", () => {
       await expect(reportSection(page)).toHaveCount(0);
       await expect(evidenceList(page)).toHaveCount(0);
       // Nor a rating: there is nothing to judge, even once the run completes.
-      await expect(
-        investigation.getByText("Rate this investigation"),
-      ).toHaveCount(0);
+      await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
       await expect(
         investigation.getByRole("button", { name: "Confirmed" }),
       ).toHaveCount(0);
@@ -2927,7 +2950,11 @@ test.describe("investigation states", () => {
     });
   }
 
-  test("?ai=none renders no investigation card and no header notice", async ({
+  /*
+   * With no run the slot keeps the same card, header and pill a run gets,
+   * and says why nothing was investigated instead of a report.
+   */
+  test("?ai=none explains the missing run in the same card, with no header notice", async ({
     page,
   }: {
     page: Page;
@@ -2937,7 +2964,30 @@ test.describe("investigation states", () => {
     await expect(
       page.getByText("Rolling checkout-api back").first(),
     ).toBeVisible();
-    await expect(investigationCard(page)).toHaveCount(0);
+
+    const investigation: Locator = investigationCard(page);
+    await expect(investigation).toHaveCount(1);
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Not investigated",
+      { timeout: 30000 },
+    );
+    await expect(
+      investigation.getByRole("heading", {
+        level: 3,
+        name: "No investigation has been recorded",
+      }),
+    ).toBeVisible();
+    await expect(
+      investigation.getByRole("heading", { level: 3, name: "What you can do" }),
+    ).toBeVisible();
+    await expect(
+      investigation.getByRole("link", { name: "Review incident AI settings" }),
+    ).toBeVisible();
+    // Nothing a run would show: no report, details or rating.
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(investigationDetails(page)).toHaveCount(0);
+    await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
     await expect(
       hero(page).getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
@@ -2946,6 +2996,502 @@ test.describe("investigation states", () => {
         "OneUptime AI posted a root cause analysis",
       ),
     ).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * One flat card
+ * ---------------------------------------------------------------------------
+ */
+
+interface PanelOffender {
+  tag: string;
+  className: string;
+  reason: string;
+}
+
+/*
+ * Everything inside the AI card that paints a panel of its own, read from the
+ * browser's computed styles: a tinted background, a frame on all four sides,
+ * or a shadow, on anything big enough to be a region (small marks such as a
+ * spinner are not panels). Controls (buttons, links, tabs, the verdict's
+ * answer group, the rows block of an evidence query), inline code and
+ * collapsed content are left out. The card used to hold a tinted summary box,
+ * a report box with an amber callout inside it, a details box and an actions
+ * box.
+ */
+async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
+  return page
+    .locator("#ai-investigation")
+    .evaluate((region: Element): Array<PanelOffender> => {
+      const offenders: Array<PanelOffender> = [];
+      const isTransparent: (color: string) => boolean = (
+        color: string,
+      ): boolean => {
+        return (
+          color === "transparent" ||
+          /rgba\([^)]*,\s*0\)$/.test(color) ||
+          color === "rgba(0, 0, 0, 0)"
+        );
+      };
+
+      for (const element of Array.from(region.querySelectorAll("*"))) {
+        if (
+          element.closest(
+            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden]",
+          )
+        ) {
+          continue;
+        }
+
+        const rect: DOMRect = element.getBoundingClientRect();
+
+        if (rect.width < 40 || rect.height < 24) {
+          continue;
+        }
+
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        const sides: Array<string> = ["Top", "Right", "Bottom", "Left"];
+        const isFramed: boolean = sides.every((side: string): boolean => {
+          return (
+            parseFloat(
+              style.getPropertyValue(`border-${side.toLowerCase()}-width`),
+            ) > 0 &&
+            style.getPropertyValue(`border-${side.toLowerCase()}-style`) !==
+              "none"
+          );
+        });
+        const shadowColors: Array<string> =
+          style.boxShadow === "none"
+            ? []
+            : style.boxShadow.match(/rgba?\([^)]*\)/g) || [];
+        const hasShadow: boolean = shadowColors.some(
+          (color: string): boolean => {
+            return !isTransparent(color);
+          },
+        );
+        const reasons: Array<string> = [];
+
+        if (!isTransparent(style.backgroundColor)) {
+          reasons.push(`background ${style.backgroundColor}`);
+        }
+
+        if (isFramed) {
+          reasons.push("framed");
+        }
+
+        if (hasShadow) {
+          reasons.push(`shadow ${style.boxShadow}`);
+        }
+
+        if (reasons.length > 0) {
+          offenders.push({
+            tag: element.tagName.toLowerCase(),
+            className: element.getAttribute("class") || "",
+            reason: reasons.join(", "),
+          });
+        }
+      }
+
+      return offenders;
+    });
+}
+
+interface CardState {
+  name: string;
+  query: string;
+  badge: string;
+}
+
+const CARD_STATES: ReadonlyArray<CardState> = [
+  { name: "a completed report", query: "", badge: "Completed" },
+  {
+    name: "a report with cluster access notes",
+    query: "clusters=mixed",
+    badge: "Completed",
+  },
+  { name: "a legacy report", query: "ai=legacy", badge: "Completed" },
+  {
+    name: "a running investigation",
+    query: "ai=running",
+    badge: "Investigating…",
+  },
+  {
+    name: "a running investigation with cluster access notes",
+    query: "ai=running&clusters=mixed",
+    badge: "Investigating…",
+  },
+  { name: "a queued investigation", query: "ai=queued", badge: "Queued" },
+  {
+    name: "a failed investigation",
+    query: "ai=failed",
+    badge: "Did not finish",
+  },
+  {
+    name: "a report being prepared",
+    query: "ai=pending",
+    badge: "Preparing report…",
+  },
+  { name: "no investigation", query: "ai=none", badge: "Not investigated" },
+];
+
+async function openCardState(page: Page, state: CardState): Promise<Locator> {
+  await open(page, INCIDENT_PATH, state.query);
+  const investigation: Locator = investigationCard(page);
+  await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    state.badge,
+    { timeout: 30000 },
+  );
+  return investigation;
+}
+
+test.describe("one flat AI investigation card", () => {
+  for (const state of CARD_STATES) {
+    test(`${state.name} is one card with no panel inside it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const investigation: Locator = await openCardState(page, state);
+
+      // No card inside the card.
+      await expect(investigation.getByTestId("card")).toHaveCount(0);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+  }
+
+  test("an open section and an expanded evidence row still draw no panel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const details: Locator = await expandEvidence(page, "C5");
+    await expect(details.locator("pre")).toBeVisible();
+
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("every heading in the card shares one size, weight and colour", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+
+    const headings: Array<{ text: string; style: string }> = await page
+      .locator("#ai-investigation h3")
+      .evaluateAll(
+        (elements: Array<Element>): Array<{ text: string; style: string }> => {
+          return elements
+            .filter((element: Element): boolean => {
+              return !element.closest("[hidden]");
+            })
+            .map((element: Element): { text: string; style: string } => {
+              const style: CSSStyleDeclaration =
+                window.getComputedStyle(element);
+              return {
+                text: element.textContent || "",
+                style: [
+                  style.fontSize,
+                  style.fontWeight,
+                  style.color,
+                  style.textTransform,
+                  style.letterSpacing,
+                ].join(" "),
+              };
+            });
+        },
+      );
+
+    expect(
+      headings.map((heading: { text: string }): string => {
+        return heading.text;
+      }),
+    ).toEqual([
+      "Summary",
+      "Most likely root cause",
+      "Evidence",
+      "Suggested next steps",
+      "Evidence and activity",
+      "Act on this investigation",
+      VERDICT_QUESTION,
+    ]);
+    expect(
+      new Set(
+        headings.map((heading: { style: string }): string => {
+          return heading.style;
+        }),
+      ).size,
+    ).toBe(1);
+    // A plain title: 14px semibold near-black, never an uppercase label.
+    expect(headings[0]!.style).toBe("14px 600 rgb(17, 24, 39) none normal");
+  });
+
+  test("the status pill is the same neutral pill in every state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const looks: Array<string> = [];
+
+    for (const state of CARD_STATES) {
+      const investigation: Locator = await openCardState(page, state);
+      looks.push(
+        await investigation
+          .getByLabel("Investigation status")
+          .evaluate((element: Element): string => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+            return [
+              style.backgroundColor,
+              style.color,
+              style.boxShadow,
+              style.borderRadius,
+            ].join(" | ");
+          }),
+      );
+    }
+
+    expect(new Set(looks).size).toBe(1);
+    // gray-50 behind gray-700 text: the colour is only in the small mark.
+    expect(looks[0]).toContain("rgb(249, 250, 251) | rgb(55, 65, 81)");
+  });
+
+  test("the report is the first thing in the card and the rating the last", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+    const investigation: Locator = investigationCard(page);
+
+    await expectAbove(
+      investigation.getByTestId("card-description"),
+      summarySection(page),
+      "the title before the summary",
+    );
+    await expectAbove(
+      page.getByTestId("investigation-report-footer"),
+      page.getByTestId("cluster-access-notice"),
+      "the report before the cluster notes",
+    );
+    await expectAbove(
+      page.getByTestId("cluster-access-notice"),
+      investigationDetails(page),
+      "the cluster notes before the working",
+    );
+    await expectAbove(
+      investigationDetails(page),
+      page.getByTestId("investigation-actions"),
+      "the working before the actions",
+    );
+    await expect(
+      page
+        .getByTestId("investigation-actions")
+        .getByRole("heading", { level: 3 }),
+    ).toHaveText(["Act on this investigation", VERDICT_QUESTION]);
+  });
+
+  test("hairlines, not boxes, split the report from its working and its actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    for (const locator of [
+      investigationDetails(page),
+      page.getByTestId("investigation-actions"),
+    ]) {
+      const borders: Array<string> = await locator.evaluate(
+        (element: Element): Array<string> => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return [
+            style.borderTopWidth,
+            style.borderRightWidth,
+            style.borderBottomWidth,
+            style.borderLeftWidth,
+          ];
+        },
+      );
+      expect(borders).toEqual(["1px", "0px", "0px", "0px"]);
+    }
+  });
+
+  test("cluster access notes are plain lines, and the fix link opens the cluster's AI agent page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+    const notice: Locator = page.getByTestId("cluster-access-notice");
+
+    await expect(page.getByTestId("cluster-access-run-usage")).toHaveText(
+      "This investigation used OneUptime data only — no kubectl commands were run.",
+    );
+    const reachable: Locator = page.getByTestId("cluster-access-reachable");
+    await expect(reachable).toHaveText(
+      "OneUptime AI currently has read-only kubectl access to prod-eu-west-1 (fixes ask for your approval).",
+    );
+    await expect(
+      reachable.getByRole("link", { name: "prod-eu-west-1" }),
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/kubernetes/83000000-0000-4000-8000-000000000001/ai/agent`,
+    );
+
+    const unreachable: Locator = page.getByTestId("cluster-access-unreachable");
+    await expect(unreachable).toContainText(
+      'OneUptime AI cannot currently reach cluster "staging-us-east-1" with kubectl',
+    );
+    await expect(unreachable).toContainText(
+      "Why: The Kubernetes AI agent is not connected.",
+    );
+    await expect(unreachable).toContainText(
+      "What to do: Install the Kubernetes AI agent",
+    );
+
+    // Each note is a line with a mark, not a tinted box.
+    for (const row of await notice.locator(":scope > div").all()) {
+      const look: { background: string; border: string } = await row.evaluate(
+        (element: Element): { background: string; border: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopWidth,
+          };
+        },
+      );
+      expect(look).toEqual({ background: "rgba(0, 0, 0, 0)", border: "0px" });
+      await expect(row.locator("svg").first()).toBeVisible();
+    }
+
+    await unreachable
+      .getByRole("link", { name: "Open the cluster's AI agent page" })
+      .click();
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "KUBERNETES_CLUSTER_VIEW_AI_AGENT",
+    );
+    expect(new URL(page.url()).pathname).toBe(
+      `${DASHBOARD}/kubernetes/83000000-0000-4000-8000-000000000002/ai/agent`,
+    );
+  });
+
+  test("a live run lists its cluster access before its steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&clusters=mixed");
+    const live: Locator = investigationCard(page).getByRole("region", {
+      name: "Live investigation",
+      exact: true,
+    });
+
+    await expect(
+      live.getByRole("heading", {
+        level: 3,
+        name: "OneUptime AI is investigating",
+      }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(live).toContainText(
+      "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed.",
+    );
+    await expect(page.getByTestId("cluster-access-unreachable")).toContainText(
+      'Investigating with OneUptime data only — no kubectl access to cluster "staging-us-east-1"',
+    );
+    // What the run did is only said once it has finished.
+    await expect(page.getByTestId("cluster-access-run-usage")).toHaveCount(0);
+    await expectAbove(
+      page.getByTestId("cluster-access-notice"),
+      live.getByText("Starting investigation", { exact: true }),
+      "cluster access before the steps",
+    );
+  });
+
+  test("a chip's highlight reaches past the text while the row and its divider stay put", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const list: Locator = await openEvidence(page);
+    const tabs: Locator = investigationDetails(page).getByRole("tablist");
+    const row: Locator = evidenceRow(page, "C3");
+    const restingBox: Box = await documentBox(row);
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+
+    // The wash fades in over 300ms, so read it once it has settled.
+    await expect
+      .poll(
+        async (): Promise<{
+          left: string;
+          right: string;
+          background: string;
+        }> => {
+          return row.evaluate(
+            (
+              element: Element,
+            ): { left: string; right: string; background: string } => {
+              const style: CSSStyleDeclaration = window.getComputedStyle(
+                element,
+                "::before",
+              );
+              return {
+                left: style.left,
+                right: style.right,
+                background: style.backgroundColor,
+              };
+            },
+          );
+        },
+      )
+      .toEqual({
+        left: "-12px",
+        right: "-12px",
+        // indigo-50 at 70%.
+        background: "rgba(238, 242, 255, 0.7)",
+      });
+
+    // The row itself does not move, so its divider keeps to the text width.
+    const highlightedBox: Box = await documentBox(row);
+    expect(highlightedBox.x).toBeCloseTo(restingBox.x, 0);
+    expect(highlightedBox.width).toBeCloseTo(restingBox.width, 0);
+    const listBox: Box = await documentBox(list);
+    const tabsBox: Box = await documentBox(tabs);
+    expect(highlightedBox.width).toBeCloseTo(listBox.width, 0);
+    expect(listBox.x).toBeCloseTo(tabsBox.x, 0);
+    expect(listBox.width).toBeCloseTo(tabsBox.width, 0);
+
+    // The highlight fades after two seconds.
+    await expect(row).not.toHaveAttribute("data-highlighted", "true", {
+      timeout: 5000,
+    });
+  });
+
+  test("in the dark theme a chip's highlight uses the dark indigo wash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark");
+    await openEvidence(page);
+    const row: Locator = evidenceRow(page, "C3");
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+    // The wash fades in over 300ms, so read it once it has settled.
+    await expect
+      .poll(async (): Promise<string> => {
+        return row.evaluate((element: Element): string => {
+          return window.getComputedStyle(element, "::before").backgroundColor;
+        });
+      })
+      .toBe("rgba(49, 46, 129, 0.35)");
   });
 });
 
@@ -3757,7 +4303,7 @@ test.describe("declare an incident from the alert hero", () => {
   }) => {
     // Without permissions the details card has nothing it may show.
     await openReady(page, ALERT_PAGE, `${CREATED_ALERT.query}&role=loading`, [
-      "Investigation complete",
+      REPORT_CAVEAT,
     ]);
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
@@ -4392,7 +4938,7 @@ const MANY_RESOURCES_HEADINGS: ReadonlyArray<string> = [
   "SLOs 1",
 ];
 const MANY_RESOURCES_READY: ReadonlyArray<string> = [
-  "Investigation complete",
+  REPORT_CAVEAT,
   "13 resources",
 ];
 const LONG_MONITOR_NAME: string =
@@ -4956,7 +5502,7 @@ test.describe("affected resources card", () => {
     page: Page;
   }) => {
     await openReady(page, INCIDENT_PAGE, "resources=none", [
-      "Investigation complete",
+      REPORT_CAVEAT,
       "No resources affected.",
     ]);
 
@@ -5710,6 +6256,29 @@ test.describe("screenshots", () => {
     await openReady(page, INCIDENT_PAGE);
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "incident-ai-report");
+  });
+
+  // Every state of the card, for review: one flat card in each.
+  test("AI investigation card states", async ({ page }: { page: Page }) => {
+    const states: ReadonlyArray<{ file: string; state: CardState }> = [
+      { file: "ai-card-running", state: CARD_STATES[3]! },
+      { file: "ai-card-running-clusters", state: CARD_STATES[4]! },
+      { file: "ai-card-queued", state: CARD_STATES[5]! },
+      { file: "ai-card-failed", state: CARD_STATES[6]! },
+      { file: "ai-card-pending", state: CARD_STATES[7]! },
+      { file: "ai-card-none", state: CARD_STATES[8]! },
+      { file: "ai-card-clusters", state: CARD_STATES[1]! },
+      {
+        file: "ai-card-dark",
+        state: { name: "dark", query: "theme=dark", badge: "Completed" },
+      },
+    ];
+
+    for (const { file, state } of states) {
+      await openCardState(page, state);
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
   });
 
   test.describe("AI report close-ups", () => {

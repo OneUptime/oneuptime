@@ -82,13 +82,15 @@ Query parameters, parsed once per page load:
 | `?resources=` | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
 | `?theme=`     | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?role=`      | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
+| `?clusters=`  | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (138 tests):
+`EventOverview.spec.ts` (157 tests):
 
-- **AI investigation report**: the summary section (TL;DR + summary) above the report; the
-  report's sub-sections in order with the amber root-cause callout; no brand heading, server
+- **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
+  first section, then the report's sections in order under the same plain h3 (the root cause
+  is not a callout), closed by the verify-first caveat and Copy report; no brand heading, server
   "Evidence checked" block or footer in the prose; Copy report copies the published markdown;
   incident and alert reference links (href, `title`, clicking loads the other incident on the
   same route, back returns); citation chips (title and spoken label, click opens the collapsed
@@ -114,7 +116,17 @@ Query parameters, parsed once per page load:
   alert page; `?fail=evidence` with Try again sending a second request while focus stays in
   the row; `?ai=legacy`, where a chip focuses the report's own row.
 - **Investigation states**: running, queued, failed, pending and none, including the header
-  notice and how much of its usage each run shows (a failed run ends its steps with it).
+  notice and how much of its usage each run shows (a failed run ends its steps with it); with
+  no run the same card explains why nothing was investigated.
+- **One flat card**: in every state (report, `?clusters=mixed`, legacy, running with and
+  without clusters, queued, failed, pending, none), and with the details and an evidence row
+  open, the card holds no panel of its own: no element big enough to be a region paints a
+  background, a frame on all four sides or a shadow (computed styles in Chromium). Every h3 in
+  the card shares one size, weight and colour; the status pill looks the same in every state;
+  the order is report, cluster notes, working, actions, split by one-pixel top hairlines; the
+  cluster notes are plain lines whose fix link opens the cluster's AI agent page; a chip's
+  highlight reaches 12px past the text on `::before` while the row and its divider stay put,
+  and uses the dark indigo wash in the dark theme.
 - **Incident and alert**: hero (identifier, title, state, severity, duration, facts and their
   links), stat bar cells, the AI card leading the left column, the right column's stacked card
   headers, Edit buttons and details field order, Resolve / Acknowledge from the hero through
@@ -181,10 +193,12 @@ Playwright reuses a server already listening on port 4222 outside CI. If one fro
 checkout might be running, stop it first or run with `CI=1`.
 
 Screenshots land in `output/playwright/event-overview-ui/`, named `*-synthetic.png` because
-every record in them is fabricated. The hero title-row tests add
-`{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`, and the
-Affected Resources tests add `{incident,alert,scheduled-maintenance}-overview-affected-resources`
-and `incident-affected-resources-{many,mobile,empty,light,dark}`.
+every record in them is fabricated. The AI card's states are
+`ai-card-{running,running-clusters,queued,failed,pending,none,clusters,dark}`. The hero
+title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
+and the Affected Resources tests add
+`{incident,alert,scheduled-maintenance}-overview-affected-resources` and
+`incident-affected-resources-{many,mobile,empty,light,dark}`.
 
 ## Poke at it by hand
 
