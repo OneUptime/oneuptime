@@ -647,7 +647,15 @@ test.describe.skip("Queues Product", () => {
     const productsMenu: Locator = page.getByRole("dialog", {
       name: "Products menu",
     });
-    await expect(productsMenu).toBeVisible({ timeout: 30000 });
+    /*
+     * The dialog element itself is a zero-size wrapper around fixed-position
+     * panels (see NavigationSearch/ForeignHiddenRule.spec.ts), so assert on
+     * what the user sees inside it.
+     */
+    await expect(productsMenu).toHaveCount(1, { timeout: 30000 });
+    await expect(
+      productsMenu.getByRole("combobox", { name: "Search products" }),
+    ).toBeVisible({ timeout: 30000 });
 
     /*
      * A search narrows the menu to the matching products under their
