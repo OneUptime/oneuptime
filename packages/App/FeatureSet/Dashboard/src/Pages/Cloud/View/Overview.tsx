@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getCloudResourceConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -552,6 +554,27 @@ const CloudResourceOverview: FunctionComponent<
         identifierLabel="platform"
         status={r.otelCollectorStatus}
         lastSeenAt={r.lastSeenAt}
+        connectionGuide={
+          /*
+           * An environment with no cloud.platform yet already has the
+           * "Waiting for telemetry" banner above, which says the same.
+           */
+          isScoped ? (
+            <ResourceConnectionGuideCard
+              status={r.otelCollectorStatus as string | undefined}
+              lastSeenAt={r.lastSeenAt}
+              guide={getCloudResourceConnectionGuide({
+                cloudPlatform: r.cloudPlatform as string | undefined,
+                cloudAccountId: r.cloudAccountId as string | undefined,
+                cloudRegion: r.cloudRegion as string | undefined,
+              })}
+              documentationRoute={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route,
+                { modelId: modelId },
+              )}
+            />
+          ) : undefined
+        }
         description={r.description as string}
         chips={chips}
         tiles={tiles}

@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getRumApplicationConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -853,6 +855,21 @@ const RumApplicationOverview: FunctionComponent<
         identifierLabel="service.name"
         status={a.otelCollectorStatus}
         lastSeenAt={a.lastSeenAt}
+        connectionGuide={
+          <ResourceConnectionGuideCard
+            status={a.otelCollectorStatus as string | undefined}
+            lastSeenAt={a.lastSeenAt}
+            guide={getRumApplicationConnectionGuide(
+              (a.appIdentifier as string | undefined) ||
+                (a.name as string | undefined) ||
+                "",
+            )}
+            documentationRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route,
+              { modelId: modelId },
+            )}
+          />
+        }
         description={a.description as string}
         chips={chips}
         tiles={tiles}

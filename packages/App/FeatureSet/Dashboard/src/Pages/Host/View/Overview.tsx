@@ -18,6 +18,8 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import GoldenMetricTile, {
   tileColorClasses,
@@ -1890,6 +1892,25 @@ const HostOverview: FunctionComponent<
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      {host ? (
+        <ResourceConnectionGuideCard
+          status={host.otelCollectorStatus as string | undefined}
+          lastSeenAt={host.lastSeenAt}
+          guide={getHostConnectionGuide(
+            (host.hostIdentifier as string | undefined) ||
+              (host.name as string | undefined) ||
+              "",
+          )}
+          documentationRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+        />
+      ) : (
+        <></>
+      )}
       {renderSummaryCards()}
       <ResourceActivityCards
         modelId={modelId}

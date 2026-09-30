@@ -6,6 +6,8 @@ import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmRe
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getDockerSwarmClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import React, {
   FunctionComponent,
@@ -613,6 +615,19 @@ const DockerSwarmClusterOverview: FunctionComponent<
   return (
     <div>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      <ResourceConnectionGuideCard
+        status={cluster.otelCollectorStatus as string | undefined}
+        lastSeenAt={cluster.lastSeenAt}
+        guide={getDockerSwarmClusterConnectionGuide(
+          (cluster.name as string | undefined) || "",
+        )}
+        documentationRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION] as Route,
+          { modelId: modelId },
+        )}
+      />
 
       {inventoryError && <ErrorMessage message={inventoryError} />}
 

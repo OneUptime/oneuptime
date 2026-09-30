@@ -15,6 +15,8 @@ import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getProxmoxClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import React, {
@@ -2645,6 +2647,19 @@ const ProxmoxClusterOverview: FunctionComponent<
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      <ResourceConnectionGuideCard
+        status={cluster.otelCollectorStatus as string | undefined}
+        lastSeenAt={cluster.lastSeenAt}
+        guide={getProxmoxClusterConnectionGuide(
+          (cluster.name as string | undefined) || "",
+        )}
+        documentationRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION] as Route,
+          { modelId: modelId },
+        )}
+      />
 
       {/* Golden metrics — at-a-glance cluster health */}
       {renderGoldenMetrics()}
