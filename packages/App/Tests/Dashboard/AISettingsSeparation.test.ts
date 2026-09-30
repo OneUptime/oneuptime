@@ -158,11 +158,22 @@ const AI_FEATURES_PAGE: SettingsPage = settingsPage(
   "AIFeatures.tsx",
 );
 
-// The project's AI switches, which live on Project Settings → AI Features.
-const PROJECT_AI_SWITCH_FIELDS: Array<string> = [
-  "enableAi",
+// The project's AI switch, which lives on Project Settings → AI Features.
+const PROJECT_AI_SWITCH_FIELDS: Array<string> = ["enableAi"];
+
+/*
+ * The project switches folded into Enable AI. They are not Project columns
+ * any more, so nothing in the dashboard may read, write or name them.
+ */
+const RETIRED_PROJECT_AI_SWITCH_FIELDS: Array<string> = [
   "enableAutoRemediation",
   "enableAiCommandExecution",
+];
+
+// The titles their toggles had on the AI Features card.
+const RETIRED_PROJECT_AI_SWITCH_TITLES: Array<string> = [
+  "Enable Auto-Remediation",
+  "Enable AI Command Execution",
 ];
 
 const POSTMORTEM_DRAFT_FIELDS: Array<string> = [
@@ -271,6 +282,25 @@ describe("incident and alert AI settings separation", () => {
   });
 });
 
+// Every .ts and .tsx file under the Dashboard source, relative to it.
+function dashboardSourceFiles(
+  directory: string = DASHBOARD_SRC,
+): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...dashboardSourceFiles(entryPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(path.relative(DASHBOARD_SRC, entryPath));
+    }
+  }
+
+  return files;
+}
+
 // The settings side menu's AI section, as source.
 function aiMenuSection(): string {
   const source: string = read("Pages", "Settings", "SideMenu.tsx");
@@ -289,19 +319,70 @@ function aiMenuSection(): string {
 }
 
 /*
- * The project's AI switches used to live on AI Credits — listed only when
+ * The project's AI switch used to live on AI Credits — listed only when
  * billing is on, so on a self-hosted install the master switch was reachable
- * only by URL, and "Enable auto-remediation" had no screen at all. They now
- * have one home that every install shows.
+ * only by URL. It now has one home that every install shows. It is also the
+ * only one: "Enable auto-remediation" and "Enable AI command execution" were
+ * folded into it, so auto-remediation and AI commands on Runners are on
+ * exactly when Enable AI is.
  */
 describe("the project's AI switches", () => {
-  test("AI Features edits and displays exactly the three switches, master switch first", () => {
+  test("AI Features edits and displays exactly one switch, Enable AI", () => {
     expect(namesOf(AI_FEATURES_PAGE.formFields)).toEqual(
       PROJECT_AI_SWITCH_FIELDS,
     );
     expect(namesOf(AI_FEATURES_PAGE.detailFields)).toEqual(
       PROJECT_AI_SWITCH_FIELDS,
     );
+  });
+
+  test("AI Features gates its card on Enable AI alone", () => {
+    expect(read("Pages", "Settings", "AIFeatures.tsx")).toContain(
+      'export const AI_FEATURE_FIELDS: Array<"enableAi"> = ["enableAi"];',
+    );
+  });
+
+  test("AI Features never shows the switches folded into Enable AI", () => {
+    const source: string = read("Pages", "Settings", "AIFeatures.tsx");
+
+    for (const retired of [
+      ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect({ retired, named: source.includes(retired) }).toEqual({
+        retired,
+        named: false,
+      });
+    }
+  });
+
+  /*
+   * The columns are gone from the model and the database. A page that still
+   * selected or wrote one would fail against the API, and copy that still
+   * named a toggle would send people looking for one that does not exist.
+   */
+  test("no Dashboard source reads, writes or names a retired switch", () => {
+    const files: Array<string> = dashboardSourceFiles();
+    const offenders: Array<string> = [];
+
+    // A walk that found nothing would pass vacuously.
+    expect(files).toContain(path.join("Pages", "Settings", "AIFeatures.tsx"));
+    expect(files.length).toBeGreaterThan(100);
+
+    for (const file of files) {
+      const source: string = read(file);
+
+      for (const retired of [
+        ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+        ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+      ]) {
+        if (source.includes(retired)) {
+          offenders.push(`${file}: ${retired}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
   });
 
   test("AI Credits no longer carries any of them", () => {
@@ -312,7 +393,10 @@ describe("the project's AI switches", () => {
       },
     );
 
-    for (const field of PROJECT_AI_SWITCH_FIELDS) {
+    for (const field of [
+      ...PROJECT_AI_SWITCH_FIELDS,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
       expect(credits).not.toContain(field);
     }
     // What stays: the balance and the recharge settings.

@@ -162,6 +162,8 @@ If the project uses auto-remediation rules (rules on the incident and alert sett
 
 An investigation that fails, expires, or goes stale still releases remediation — the deferral delays remediation until the outcome is known; it never cancels it.
 
+Auto-remediation does depend on **Enable AI** (Project Settings > AI > AI Features), the project's one AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.
+
 ## Cost controls
 
 Alert volume can be much higher than incident volume, so autonomous investigations are gated by several cost controls:

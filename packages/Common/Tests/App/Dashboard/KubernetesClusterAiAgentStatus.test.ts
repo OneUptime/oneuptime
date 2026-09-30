@@ -958,6 +958,10 @@ describe("the Needs attention card", () => {
     const expected: Array<[KubernetesAiAccessGapCode, string | null]> = [
       ["investigation_disabled", "turn_on_investigation"],
       ["project_ai_disabled", "open_ai_features"],
+      /*
+       * Retired: both switches were folded into Enable AI, but an older
+       * server may still send them mid-rollout.
+       */
       ["project_auto_remediation_disabled", "open_ai_features"],
       ["project_ai_command_execution_disabled", "open_ai_features"],
       ["llm_provider_missing", "open_llm_providers"],

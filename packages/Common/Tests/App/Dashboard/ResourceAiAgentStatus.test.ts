@@ -847,6 +847,10 @@ describe("Needs attention", () => {
   test.each([
     ["investigation_disabled", "turn_on_investigation"],
     ["ai_disabled_for_project", "open_ai_features"],
+    /*
+     * Retired: "Enable auto-remediation" was folded into Enable AI, but an
+     * older server may still send it mid-rollout.
+     */
     ["auto_remediation_disabled_for_project", "open_ai_features"],
     ["llm_provider_missing", "open_llm_providers"],
     ["ai_balance_insufficient", "open_ai_credits"],
