@@ -5,6 +5,7 @@ import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import IncomingEmailMonitorRequestUtil from "Common/Utils/Monitor/IncomingEmailMonitorRequestUtil";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -18,6 +19,25 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
   const fields: Array<Field<IncomingEmailMonitorRequest>> = [];
+
+  /*
+   * A scheduled check on a monitor that has never received an email carries
+   * the monitor's creation time as its emailReceivedAt. That is not an email.
+   */
+  const hasEmail: boolean = IncomingEmailMonitorRequestUtil.hasEmail(
+    props.incomingEmailMonitorRequest,
+  );
+
+  let lastEmailReceivedAt: string = "-";
+
+  if (!hasEmail) {
+    lastEmailReceivedAt = "No email yet";
+  } else if (props.incomingEmailMonitorRequest?.emailReceivedAt) {
+    lastEmailReceivedAt =
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        props.incomingEmailMonitorRequest.emailReceivedAt,
+      );
+  }
 
   if (props.incomingEmailMonitorRequest?.emailHeaders) {
     fields.push({
@@ -52,13 +72,7 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
           title="Last Email Received At"
-          value={
-            props.incomingEmailMonitorRequest?.emailReceivedAt
-              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  props.incomingEmailMonitorRequest.emailReceivedAt,
-                )
-              : "-"
-          }
+          value={lastEmailReceivedAt}
         />
         <InfoCard
           className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
