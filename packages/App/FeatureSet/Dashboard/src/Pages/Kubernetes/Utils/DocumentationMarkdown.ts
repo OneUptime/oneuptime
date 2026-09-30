@@ -419,7 +419,8 @@ ${codeBlock(
 - **Scopes:** \`podLogs\` (container stdout/stderr), \`ebpfDiscovery\` (eBPF traces and metrics), \`metrics\` (namespaced metrics) and \`traces\` (every span).
 - **Patterns** match the whole namespace name and accept \`*\`, as in \`team-*\`. An \`exclude\` rule always wins over an \`include\` rule.
 - **Setting the rules replaces the default one**, which excludes \`kube-system\` from \`podLogs\` and \`ebpfDiscovery\`. Keep it in your list, as in the second example, if you still want that.
-- Node and cluster metrics have no namespace, so they are always kept.`,
+- Node and cluster metrics have no namespace, so they are always kept.
+- \`--set-json\` needs Helm 3.10 or later.`,
     },
     {
       title: "Control pod log collection",
