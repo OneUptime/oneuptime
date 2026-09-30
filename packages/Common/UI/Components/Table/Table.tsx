@@ -247,7 +247,12 @@ const Table: TableFunction = <T extends GenericObject>(
   const getNoItemsElement: GetReactElementFunction = (): ReactElement => {
     return (
       <div
-        className="border-t border-gray-200 px-6 md:-mx-6"
+        /*
+         * The rule under the header row the table body used to draw. A phone
+         * shows no header row, and the table's own container already draws
+         * that line, so a second one would sit right under it.
+         */
+        className={`${isMobile ? "" : "border-t border-gray-200 "}px-6 md:-mx-6`}
         data-testid={`${props.id}-no-items`}
       >
         <ErrorMessage
