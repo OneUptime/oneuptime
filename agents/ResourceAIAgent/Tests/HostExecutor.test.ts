@@ -255,6 +255,14 @@ function expectRefused(prepared: PrepareResult, pattern: RegExp): string {
   return refusal;
 }
 
+/*
+ * Test data as a RegExp literal: every metacharacter escaped, the backslash
+ * included, so a unit name or glob is matched exactly as written.
+ */
+function escapeRegExp(text: string): string {
+  return text.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
 function expectPrepared(prepared: PrepareResult): PreparedCommand {
   assert.strictEqual(prepared.refusal, null, String(prepared.refusal));
   return prepared as PreparedCommand;
@@ -926,9 +934,7 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
       expectRefused(
         built.executor.prepare(request(command)),
         new RegExp(
-          `would change ${target.replace(/\./g, "\\.")}, which the Host AI agent protects \\(${protectedBy
-            .replace(/\./g, "\\.")
-            .replace(/\*/g, "\\*")}\\)`,
+          `would change ${escapeRegExp(target)}, which the Host AI agent protects \\(${escapeRegExp(protectedBy)}\\)`,
         ),
       );
     }
@@ -1012,12 +1018,7 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
       expectRefused(
         built.executor.prepare(request(`kill -KILL ${pid}`)),
         new RegExp(
-          `^Refused by the Host AI agent: process ${pid} runs in ${unit.replace(
-            /\./g,
-            "\\.",
-          )}\\. .* which the Host AI agent protects \\(${protectedBy
-            .replace(/\./g, "\\.")
-            .replace(/\*/g, "\\*")}\\)`,
+          `^Refused by the Host AI agent: process ${pid} runs in ${escapeRegExp(unit)}\\. .* which the Host AI agent protects \\(${escapeRegExp(protectedBy)}\\)`,
         ),
       );
     }

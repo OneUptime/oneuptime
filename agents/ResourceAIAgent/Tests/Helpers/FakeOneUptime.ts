@@ -51,21 +51,32 @@ export function routeKey(route: string): string {
   return job ? `/job/:id/${job[1]}` : route;
 }
 
-const DEFAULT_REPLIES: Record<string, FakeReply> = {
-  "/register": {
-    json: {
-      agentId: "agent-1",
-      agentKey: "key-1",
-      resourceId: TEST_RESOURCE_ID,
-      resourceName: "web-host-1",
+/*
+ * A Map, not an object literal: the key comes off the request line, and an
+ * object would answer a key like "constructor" with an inherited function,
+ * which the lookup in the request handler would then call as a responder.
+ */
+const DEFAULT_REPLIES: ReadonlyMap<string, FakeReply> = new Map<
+  string,
+  FakeReply
+>([
+  [
+    "/register",
+    {
+      json: {
+        agentId: "agent-1",
+        agentKey: "key-1",
+        resourceId: TEST_RESOURCE_ID,
+        resourceName: "web-host-1",
+      },
     },
-  },
-  "/heartbeat": { json: { status: "ok" } },
-  "/claim-next-job": { json: { job: null } },
-  "/job/:id/heartbeat": { json: { status: "ok" } },
-  "/job/:id/result": { json: { accepted: true } },
-  "/disconnect": { json: { status: "ok" } },
-};
+  ],
+  ["/heartbeat", { json: { status: "ok" } }],
+  ["/claim-next-job", { json: { job: null } }],
+  ["/job/:id/heartbeat", { json: { status: "ok" } }],
+  ["/job/:id/result", { json: { accepted: true } }],
+  ["/disconnect", { json: { status: "ok" } }],
+]);
 
 export default class FakeOneUptime {
   public readonly requests: Array<RecordedRequest> = [];
@@ -204,7 +215,7 @@ export default class FakeOneUptime {
       queue && queue.length > 0 ? queue.shift() : undefined;
     const chosen: FakeReply | FakeResponder = scripted ||
       this.defaults.get(key) ||
-      DEFAULT_REPLIES[key] || {
+      DEFAULT_REPLIES.get(key) || {
         status: 404,
         json: { message: "Not found" },
       };

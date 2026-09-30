@@ -120,7 +120,7 @@ function readJson(relativePath) {
  * Built from REPOSITORY so this file never spells out a reference itself.
  */
 const IMAGE_REFERENCE = new RegExp(
-  `${REPOSITORY.replace(/[/.-]/g, "\\$&")}:(\\$\\{[^}]*\\}|[^\\s"'\`)\\]},;|]*)`,
+  `${REPOSITORY.replace(/[\\^$.*+?()[\]{}|/-]/g, "\\$&")}:(\\$\\{[^}]*\\}|[^\\s"'\`)\\]},;|]*)`,
   "g",
 );
 
