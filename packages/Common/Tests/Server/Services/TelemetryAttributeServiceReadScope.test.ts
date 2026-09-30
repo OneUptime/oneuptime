@@ -19,7 +19,7 @@ import {
 /*
  * The attribute pickers (keys, then values) read the keys and values seen
  * on telemetry rows. A caller limited to some services must get the keys
- * and values of those services' rows only, and the keys are cached - so a
+ * and values of those services' rows only, and both are cached - so a
  * limited answer must be cached apart from the whole project's, and never
  * be served to (or from) another caller's scope.
  */
@@ -43,6 +43,18 @@ function dbResult(rows: Array<JSONObject>): unknown {
   return {
     json: async (): Promise<{ data: Array<JSONObject> }> => {
       return { data: rows };
+    },
+  };
+}
+
+// Statistics say the query finished, so fewer rows than the LIMIT are every value.
+function finishedDbResult(rows: Array<JSONObject>): unknown {
+  return {
+    json: async (): Promise<JSONObject> => {
+      return {
+        data: rows,
+        statistics: { elapsed: 0.1, rows_read: 1, bytes_read: 1 },
+      };
     },
   };
 }
@@ -210,6 +222,192 @@ describe("attribute values follow the caller's read scope", () => {
     });
 
     expect(lastStatement(logQuery).query).not.toContain("primaryEntityId");
+  });
+
+  test("each scope's answer is cached for that scope alone", async () => {
+    logQuery.mockResolvedValue(
+      dbResult([{ attributeValue: "every.service.value" }]),
+    );
+    const projectWide: Array<string> =
+      await TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+      });
+    expect(projectWide).toEqual(["every.service.value"]);
+
+    logQuery.mockResolvedValue(
+      dbResult([{ attributeValue: "service.a.value" }]),
+    );
+    const forLimited: Array<string> =
+      await TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+        serviceFilter: limited,
+      });
+    expect(forLimited).toEqual(["service.a.value"]);
+    expect(logQuery.mock.calls.length).toBe(2);
+
+    // Asked again, each caller gets its own answer back from the cache.
+    expect(
+      await TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+      }),
+    ).toEqual(["every.service.value"]);
+    expect(
+      await TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+        serviceFilter: limited,
+      }),
+    ).toEqual(["service.a.value"]);
+    expect(logQuery.mock.calls.length).toBe(2);
+  });
+
+  test("callers with different scopes are cached apart; the same scope shares its entry", async () => {
+    logQuery.mockResolvedValue(dbResult([{ attributeValue: "GET" }]));
+
+    await TelemetryAttributeServiceInstance.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "http.method",
+      serviceFilter: { serviceIds: [serviceA, serviceB] },
+    });
+    await TelemetryAttributeServiceInstance.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "http.method",
+      serviceFilter: { serviceIds: [serviceB] },
+    });
+    await TelemetryAttributeServiceInstance.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "http.method",
+      serviceFilter: { excludedServiceIds: [serviceB] },
+    });
+
+    // Three scopes, three entries, three reads.
+    expect(cache.size).toBe(3);
+    expect(logQuery.mock.calls.length).toBe(3);
+    for (const key of cache.keys()) {
+      expect(key).toContain(":scope:");
+      // The cache key names no resource id outright.
+      expect(key).not.toContain(serviceA.toString());
+      expect(key).not.toContain(serviceB.toString());
+    }
+
+    // The same services in another order are the same scope: served from the cache.
+    await TelemetryAttributeServiceInstance.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "http.method",
+      serviceFilter: { serviceIds: [serviceB, serviceA] },
+    });
+    expect(logQuery.mock.calls.length).toBe(3);
+  });
+
+  test("a search is answered from a finished load in the caller's own scope only", async () => {
+    // Every value the key has across the project.
+    logQuery.mockResolvedValue(
+      finishedDbResult([{ attributeValue: "GET" }, { attributeValue: "POST" }]),
+    );
+    await TelemetryAttributeServiceInstance.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "http.method",
+    });
+
+    // The limited caller's search reads their services' rows instead.
+    logQuery.mockResolvedValue(dbResult([{ attributeValue: "PUT" }]));
+    expect(
+      await TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+        searchText: "P",
+        serviceFilter: limited,
+      }),
+    ).toEqual(["PUT"]);
+    expect(logQuery.mock.calls.length).toBe(2);
+
+    // Once their own unfiltered load has finished, it answers their searches.
+    logQuery.mockResolvedValue(
+      finishedDbResult([
+        { attributeValue: "PATCH" },
+        { attributeValue: "PUT" },
+      ]),
+    );
+    await TelemetryAttributeServiceInstance.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "http.method",
+      serviceFilter: limited,
+    });
+    expect(
+      await TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+        searchText: "PA",
+        serviceFilter: limited,
+      }),
+    ).toEqual(["PATCH"]);
+    expect(logQuery.mock.calls.length).toBe(3);
+  });
+
+  test("requests that arrive together share a load only within one scope", async () => {
+    let open: () => void = (): void => {};
+    const opened: Promise<void> = new Promise<void>((resolve: () => void) => {
+      open = resolve;
+    });
+    logQuery.mockImplementation(
+      async (statement: Statement): Promise<unknown> => {
+        await opened;
+        return dbResult([
+          {
+            attributeValue: statement.query.includes("primaryEntityId")
+              ? "service.a.value"
+              : "every.service.value",
+          },
+        ]);
+      },
+    );
+
+    const pending: Promise<Array<Array<string>>> = Promise.all([
+      TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+      }),
+      TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+        serviceFilter: limited,
+      }),
+      TelemetryAttributeServiceInstance.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "http.method",
+        serviceFilter: {
+          serviceIds: [serviceA],
+          excludedServiceIds: [serviceC],
+        },
+      }),
+    ]);
+    open();
+
+    expect(await pending).toEqual([
+      ["every.service.value"],
+      ["service.a.value"],
+      ["service.a.value"],
+    ]);
+    // One load for the project, one shared by the two limited callers.
+    expect(logQuery.mock.calls.length).toBe(2);
   });
 });
 
