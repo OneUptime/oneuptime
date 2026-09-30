@@ -225,7 +225,7 @@ describe("source hygiene", (): void => {
 
   /*
    * Common/UI/Config.ts reads window.process.env, and Common/package.json
-   * pulls express, typeorm, stripe and monaco. Only the deliberately
+   * pulls express, typeorm and stripe. Only the deliberately
    * dependency-free Rum modules may be reached, and the esbuild plugin fails
    * the build on anything else - this test just catches it sooner.
    */
