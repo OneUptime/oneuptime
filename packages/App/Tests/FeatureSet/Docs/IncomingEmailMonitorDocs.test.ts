@@ -1,5 +1,6 @@
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { INCOMING_EMAIL_SCHEDULED_CHECK_LABEL } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -200,6 +201,11 @@ describe("What the section tells readers to click", () => {
       source: 'title: "View Summary"',
     },
     {
+      label: "Email",
+      file: "Pages/Monitor/View/Logs.tsx",
+      source: 'title: "Email"',
+    },
+    {
       label: "Settings",
       file: "Pages/Monitor/View/SideMenu.tsx",
       source: 'title: "Settings"',
@@ -229,6 +235,26 @@ describe("What the section tells readers to click", () => {
       expect(readDashboard(entry.file)).toContain(entry.source);
     });
   }
+
+  test("finds the verification email's row by the Email column", () => {
+    expect(section).toContain(
+      "find the verification email by its subject in the **Email** column",
+    );
+    expect(summarySection).toContain(
+      "the **Email** column shows its subject and sender",
+    );
+
+    // The column is the email monitor's alone, and names a check as one.
+    const logsPage: string = readDashboard("Pages/Monitor/View/Logs.tsx");
+
+    expect(summarySection).toContain(
+      `The **Email** column says "${INCOMING_EMAIL_SCHEDULED_CHECK_LABEL}" on those rows`,
+    );
+    expect(logsPage).toContain("{INCOMING_EMAIL_SCHEDULED_CHECK_LABEL}");
+    expect(logsPage).toMatch(
+      /\.\.\.\(isIncomingEmailMonitor\s*\?\s*\[\s*\{[\s\S]*?title: "Email"/,
+    );
+  });
 
   test("quotes what a check that ran before any email shows", () => {
     expect(summarySection).toContain('"No email yet"');

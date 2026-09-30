@@ -8,6 +8,26 @@ import MonitorSummarySnapshotUtil, {
   MonitorSummaryInfoProps,
 } from "./MonitorSummarySnapshotUtil";
 
+export enum IncomingEmailLogEntryKind {
+  Email = "Email",
+  ScheduledCheck = "ScheduledCheck",
+}
+
+/*
+ * What an Incoming Email monitor's Monitoring Logs row was: an email, with
+ * its subject and sender ("" when the email had none), or the worker's
+ * scheduled check for missing email.
+ */
+export interface IncomingEmailLogEntry {
+  kind: IncomingEmailLogEntryKind;
+  subject: string;
+  from: string;
+}
+
+// The Email column's words, shared by the cell, the CSV export and the docs.
+export const INCOMING_EMAIL_SCHEDULED_CHECK_LABEL: string = "Scheduled check";
+export const INCOMING_EMAIL_NO_SUBJECT_LABEL: string = "(no subject)";
+
 /*
  * The "View Summary" modal on a monitor's Monitoring Logs page.
  *
@@ -90,12 +110,77 @@ export default class MonitorLogSummaryUtil {
   }
 
   /*
-   * The id of the probe that ran the check, if the row names one. A stored
-   * body carries it the way ObjectID serialises itself,
-   * {"_type": "ObjectID", "value": "..."}, so the page's old
-   * `probeId.toString()` produced "[object Object]", matched no probe, and
-   * the Probe column read "Unknown" on every row. A plain string, or an
-   * ObjectID from a body that was already deserialized, is taken as is.
+   * The Email column of an Incoming Email monitor's Monitoring Logs: which
+   * email a row evaluated, so a reader can find one - a sender's
+   * verification email, say - without opening every row.
+   *
+   * The worker's scheduled "has an email arrived lately?" check
+   * (Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus) writes a row too,
+   * every 30 seconds while a criteria checks Email Received, and it carries a
+   * copy of the last email. Read by subject alone, each of those rows would
+   * look like that email arriving again, so a check is named as one.
+   *
+   * Null for a row with no incoming email payload at all: an empty body, or
+   * one written before the monitor's type was changed.
+   */
+  public static getIncomingEmailLogEntry(
+    logBody: JSONObject | null | undefined,
+  ): IncomingEmailLogEntry | null {
+    if (!logBody || typeof logBody !== "object" || Array.isArray(logBody)) {
+      return null;
+    }
+
+    if (logBody["onlyCheckForIncomingEmailReceivedAt"] === true) {
+      return {
+        kind: IncomingEmailLogEntryKind.ScheduledCheck,
+        subject: "",
+        from: "",
+      };
+    }
+
+    // processIncomingEmailFromQueue stamps every email with its arrival.
+    if (!logBody["emailReceivedAt"]) {
+      return null;
+    }
+
+    const subject: unknown = logBody["emailSubject"];
+    const from: unknown = logBody["emailFrom"];
+
+    return {
+      kind: IncomingEmailLogEntryKind.Email,
+      subject: typeof subject === "string" ? subject.trim() : "",
+      from: typeof from === "string" ? from.trim() : "",
+    };
+  }
+
+  /*
+   * The Email column as one line of text, for the table's CSV export - which
+   * would otherwise write the whole logBody JSON the column is backed by.
+   */
+  public static formatIncomingEmailLogEntry(
+    entry: IncomingEmailLogEntry | null,
+  ): string {
+    if (!entry) {
+      return "";
+    }
+
+    if (entry.kind === IncomingEmailLogEntryKind.ScheduledCheck) {
+      return INCOMING_EMAIL_SCHEDULED_CHECK_LABEL;
+    }
+
+    const subject: string = entry.subject || INCOMING_EMAIL_NO_SUBJECT_LABEL;
+
+    return entry.from ? `${subject} <${entry.from}>` : subject;
+  }
+
+  /*
+   * The id of the probe that ran the check, if the row names one, whatever
+   * shape the body is in. It is stored, and sent over the wire, the way
+   * ObjectID serialises itself: {"_type": "ObjectID", "value": "..."}. The
+   * dashboard's HTTP client (HTTPResponse) deserialises that back into an
+   * ObjectID, so that is what the Logs page sees; a body read any other way -
+   * straight from the API, or from ClickHouse in a test - still holds the
+   * envelope. Older fixtures use a plain string.
    */
   public static getProbeId(
     logBody: JSONObject | null | undefined,
