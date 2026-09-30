@@ -4342,6 +4342,746 @@ test.describe("alert affected resources", () => {
   });
 });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Affected Resources card
+ * ---------------------------------------------------------------------------
+ *
+ * Each category used to be a card of its own - bordered, shadowed, with a
+ * coloured bar across its top - inside the page's "Affected Resources" card,
+ * so the right column read as cards nested in a card. The categories are now
+ * sections of the one card: a tinted icon, the label and its count, then the
+ * resources indented under the label, split by hairlines. Every row is one
+ * link (the resource's link stretched over the row).
+ */
+
+interface ResourcesCase {
+  eventPage: EventPage;
+  headings: ReadonlyArray<string>;
+  summary: string;
+  rows: number;
+}
+
+const RESOURCES_CASES: ReadonlyArray<ResourcesCase> = [
+  {
+    eventPage: INCIDENT_PAGE,
+    headings: ["Monitors 2", "Services 2"],
+    summary: "4 resources across 2 categories",
+    rows: 4,
+  },
+  {
+    eventPage: ALERT_PAGE,
+    headings: ["Monitors 1", "Services 1"],
+    summary: "2 resources across 2 categories",
+    rows: 2,
+  },
+  {
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    headings: ["Monitors 2", "Services 2"],
+    summary: "4 resources across 2 categories",
+    rows: 4,
+  },
+];
+
+// ?resources=many attaches Incident #1042 to five categories.
+const MANY_RESOURCES_HEADINGS: ReadonlyArray<string> = [
+  "Monitors 6",
+  "Hosts 2",
+  "Kubernetes Clusters 1",
+  "Services 3",
+  "SLOs 1",
+];
+const MANY_RESOURCES_READY: ReadonlyArray<string> = [
+  "Investigation complete",
+  "13 resources",
+];
+const LONG_MONITOR_NAME: string =
+  "Checkout web journey (synthetic) from eu-west-1 and us-east-1";
+
+const SLO_HINT: string =
+  "SLOs are linked automatically when their burn rate rules fire.";
+
+function resourcesCard(page: Page): Locator {
+  return card(page, "Affected Resources");
+}
+
+function resourceSections(page: Page): Locator {
+  return resourcesCard(page).getByTestId("affected-resource-category");
+}
+
+function resourceRows(page: Page): Locator {
+  return resourcesCard(page).getByRole("listitem");
+}
+
+// The display's root: the summary and the grid of sections.
+function resourcesBody(page: Page): Locator {
+  return resourcesCard(page)
+    .getByTestId("affected-resources-grid")
+    .locator("xpath=..");
+}
+
+async function resourceHeadings(page: Page): Promise<Array<string>> {
+  return resourcesCard(page)
+    .getByRole("heading", { level: 3 })
+    .evaluateAll((headings: Array<Element>): Array<string> => {
+      return headings.map((heading: Element): string => {
+        return (heading.textContent || "").replace(/\s+/g, " ").trim();
+      });
+    });
+}
+
+/*
+ * What would make something inside the card a card of its own: a shadow, a
+ * border (other than the hairline above each section but the first) or a
+ * white fill. Read from computed styles, so a class that sneaks it back in
+ * any other way is caught too.
+ */
+async function nestedCardChrome(root: Locator): Promise<Array<string>> {
+  return root.evaluate((element: Element): Array<string> => {
+    const findings: Array<string> = [];
+    const sections: Array<Element> = Array.from(
+      element.querySelectorAll("[data-testid='affected-resource-category']"),
+    );
+
+    for (const node of [
+      element,
+      ...Array.from(element.querySelectorAll("*")),
+    ]) {
+      const style: CSSStyleDeclaration = getComputedStyle(node);
+      const name: string = `${node.tagName.toLowerCase()}${
+        node.getAttribute("data-testid")
+          ? `[${node.getAttribute("data-testid")}]`
+          : ""
+      } "${(node.textContent || "").trim().slice(0, 24)}"`;
+
+      if (style.boxShadow !== "none") {
+        findings.push(`${name}: box-shadow ${style.boxShadow}`);
+      }
+
+      for (const side of ["top", "right", "bottom", "left"]) {
+        const width: string = style.getPropertyValue(`border-${side}-width`);
+
+        if (width === "0px") {
+          continue;
+        }
+
+        if (side === "top" && sections.indexOf(node) > 0 && width === "1px") {
+          continue;
+        }
+
+        findings.push(`${name}: border-${side} ${width}`);
+      }
+
+      if (style.backgroundColor === "rgb(255, 255, 255)") {
+        findings.push(`${name}: white fill`);
+      }
+    }
+
+    return findings;
+  });
+}
+
+// Where the text of an element ends, not the (block-wide) element itself.
+async function textRight(locator: Locator): Promise<number> {
+  return locator.evaluate((element: Element): number => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let right: number = 0;
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      if (!(node.textContent || "").trim()) {
+        continue;
+      }
+
+      const range: Range = document.createRange();
+      range.selectNodeContents(node);
+      right = Math.max(right, range.getBoundingClientRect().right);
+    }
+
+    return right + window.scrollX;
+  });
+}
+
+async function computed(
+  locator: Locator,
+  property: string,
+  pseudo?: string,
+): Promise<string> {
+  return locator.evaluate(
+    (
+      element: Element,
+      args: { property: string; pseudo: string | undefined },
+    ): string => {
+      return getComputedStyle(element, args.pseudo || null).getPropertyValue(
+        args.property,
+      );
+    },
+    { property, pseudo },
+  );
+}
+
+async function expectStubPage(
+  page: Page,
+  pageKey: string,
+  pathname: string,
+): Promise<void> {
+  const stub: Locator = page.getByTestId("stub-page");
+  await expect(stub).toHaveAttribute("data-page", pageKey);
+  await expect(stub).toHaveText(pathname);
+  expect(new URL(page.url()).pathname).toBe(pathname);
+}
+
+test.describe("affected resources card", () => {
+  for (const resourcesCase of RESOURCES_CASES) {
+    const eventPage: EventPage = resourcesCase.eventPage;
+
+    test(`${eventPage.name} lists resources as sections of its card, not cards inside it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, eventPage);
+      await page.mouse.move(0, 0);
+
+      const resources: Locator = resourcesCard(page);
+      expect(await resourceHeadings(page)).toEqual(resourcesCase.headings);
+      await expect(
+        resources.getByTestId("affected-resources-summary"),
+      ).toHaveText(resourcesCase.summary);
+      await expect(resourceRows(page)).toHaveCount(resourcesCase.rows);
+
+      // Nothing inside the card is boxed: no shadow, border or white fill.
+      expect(await nestedCardChrome(resourcesBody(page))).toEqual([]);
+
+      // The page's card is the one card, and it still draws as one.
+      const cardSurface: Locator = resources.locator(":scope > div").first();
+      expect(await computed(cardSurface, "box-shadow")).not.toBe("none");
+      expect(await computed(cardSurface, "border-top-width")).toBe("1px");
+
+      /*
+       * The sections span the card's body evenly. The maintenance card once
+       * used the default detail style, whose -mx-3 row at full width ended
+       * the display 24px short of the card's right edge.
+       */
+      const surfaceBox: Box = await documentBox(cardSurface);
+      const gridBox: Box = await documentBox(
+        resources.getByTestId("affected-resources-grid"),
+      );
+      const leftInset: number = gridBox.x - surfaceBox.x;
+      const rightInset: number =
+        surfaceBox.x + surfaceBox.width - (gridBox.x + gridBox.width);
+      expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(1);
+
+      // Hovering the body washes nothing between it and the card in grey.
+      await resources.getByTestId("affected-resources-summary").hover();
+      expect(
+        await resourcesBody(page).evaluate(
+          (element: Element): Array<string> => {
+            const washed: Array<string> = [];
+            for (
+              let node: Element | null = element;
+              node &&
+              node.parentElement?.getAttribute("data-testid") !== "card";
+              node = node.parentElement
+            ) {
+              const background: string = getComputedStyle(node).backgroundColor;
+              if (background !== "rgba(0, 0, 0, 0)") {
+                washed.push(`${node.className}: ${background}`);
+              }
+            }
+            return washed;
+          },
+        ),
+      ).toEqual([]);
+      await page.mouse.move(0, 0);
+
+      // A hairline between the sections, none above the first.
+      const sections: Locator = resourceSections(page);
+      await expect(sections).toHaveCount(resourcesCase.headings.length);
+      expect(await computed(sections.nth(0), "border-top-width")).toBe("0px");
+      expect(await computed(sections.nth(1), "border-top-width")).toBe("1px");
+      expect(await computed(sections.nth(1), "border-top-color")).toBe(
+        "rgb(243, 244, 246)",
+      );
+      for (const index of [0, 1]) {
+        const section: Locator = sections.nth(index);
+        expect(await computed(section, "background-color")).toBe(
+          "rgba(0, 0, 0, 0)",
+        );
+        expect(await computed(section, "border-top-left-radius")).toBe("0px");
+      }
+
+      await screenshotElement(
+        resources,
+        `${eventPage.name}-affected-resources`,
+      );
+    });
+  }
+
+  test("each resource lines up under its label, past a tinted icon, with the count beside the label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const section: Locator = resourceSections(page).first();
+    const heading: Locator = section.getByRole("heading", { level: 3 });
+    const label: Locator = heading.getByText("Monitors", { exact: true });
+    const count: Locator = section.getByTestId(
+      "affected-resource-category-count",
+    );
+    const tile: Locator = section.locator(":scope > div > div").first();
+    const firstItem: Locator = section
+      .getByTestId("affected-resource-item")
+      .first();
+
+    const labelBox: Box = await documentBox(label);
+    const countBox: Box = await documentBox(count);
+    const tileBox: Box = await documentBox(tile);
+    const itemBox: Box = await documentBox(firstItem);
+    const sectionBox: Box = await documentBox(section);
+
+    // A 24px tinted tile at the section's left edge.
+    expect(tileBox.width).toBeCloseTo(24, 0);
+    expect(tileBox.height).toBeCloseTo(24, 0);
+    expect(Math.abs(tileBox.x - sectionBox.x)).toBeLessThanOrEqual(1);
+    expect(await computed(tile, "background-color")).toBe("rgb(239, 246, 255)");
+    expect(await computed(tile.locator("svg"), "color")).toBe(
+      "rgb(37, 99, 235)",
+    );
+    // The label starts past it, and the names start where the label does.
+    expect(labelBox.x).toBeGreaterThan(tileBox.x + tileBox.width);
+    expect(Math.abs(itemBox.x - labelBox.x)).toBeLessThanOrEqual(1);
+    // The count follows the label rather than sitting at the far edge.
+    const gap: number = countBox.x - (labelBox.x + labelBox.width);
+    expect(gap).toBeGreaterThanOrEqual(4);
+    expect(gap).toBeLessThanOrEqual(12);
+    await expect(count).toHaveText("2");
+    // Rows are a comfortable target.
+    for (const row of await resourceRows(page).all()) {
+      expect((await documentBox(row)).height).toBeGreaterThanOrEqual(32);
+    }
+  });
+
+  test("a click anywhere on a row opens that resource, not only on its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const clickRowEdge: (row: Locator) => Promise<void> = async (
+      row: Locator,
+    ): Promise<void> => {
+      await row.scrollIntoViewIfNeeded();
+      const rowBox: Box = await documentBox(row);
+      const nameEnds: number = await textRight(row);
+      const x: number = rowBox.width - 4;
+
+      // The point clicked is past the end of the name.
+      expect(rowBox.x + x).toBeGreaterThan(nameEnds + 8);
+      await row.click({ position: { x, y: rowBox.height / 2 } });
+    };
+
+    const monitorRow: Locator = resourceRows(page).filter({
+      hasText: "Checkout API p95 latency",
+    });
+    await expect(monitorRow.getByRole("link")).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+    await clickRowEdge(monitorRow);
+    await expectStubPage(
+      page,
+      "MONITOR_VIEW",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+
+    await page.goBack();
+    await expectPageReady(page, INCIDENT_PAGE);
+
+    const serviceRow: Locator = resourceRows(page).filter({
+      hasText: "orders-db",
+    });
+    const serviceHref: string = (await serviceRow
+      .getByRole("link")
+      .getAttribute("href"))!;
+    expect(serviceHref).toBe(`${DASHBOARD}/service/${uuid("75000000", 2)}`);
+    await clickRowEdge(serviceRow);
+    await expectStubPage(page, "SERVICE_VIEW", serviceHref);
+  });
+
+  test("hovering a row lights up the whole row and underlines its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await page.mouse.move(0, 0);
+
+    const row: Locator = resourceRows(page).first();
+    const link: Locator = row.getByRole("link");
+    await row.scrollIntoViewIfNeeded();
+    expect(await computed(row, "background-color")).toBe("rgba(0, 0, 0, 0)");
+    expect(await computed(link, "text-decoration-line")).toBe("none");
+
+    // Over the empty end of the row, well past the name.
+    const rowBox: DOMRect = await row.evaluate((element: Element): DOMRect => {
+      return element.getBoundingClientRect();
+    });
+    await page.mouse.move(
+      rowBox.x + rowBox.width - 4,
+      rowBox.y + rowBox.height / 2,
+    );
+
+    await expect
+      .poll(async (): Promise<string> => {
+        return computed(row, "background-color");
+      })
+      .toBe("rgb(249, 250, 251)");
+    expect(await computed(link, "text-decoration-line")).toBe("underline");
+    expect(await computed(link, "cursor")).toBe("pointer");
+    // The pointer is over the link's stretched overlay, not dead space.
+    expect(
+      await page.evaluate(
+        ({ x, y }: { x: number; y: number }): string | undefined => {
+          return document
+            .elementFromPoint(x, y)
+            ?.closest("a")
+            ?.textContent?.trim();
+        },
+        { x: rowBox.x + rowBox.width - 4, y: rowBox.y + rowBox.height / 2 },
+      ),
+    ).toBe("Checkout API p95 latency");
+  });
+
+  test("keyboard: Tab from Edit reaches each resource with a ring round its row, and Enter opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await resourcesCard(page)
+      .getByTestId("card-header-actions")
+      .getByRole("button", { name: "Edit" })
+      .focus();
+    await page.keyboard.press("Tab");
+
+    const firstLink: Locator = resourceRows(page).first().getByRole("link");
+    await expect(firstLink).toBeFocused();
+    // The ring is drawn by the stretched overlay, around the whole row.
+    expect(await computed(firstLink, "box-shadow", "::after")).toContain(
+      "rgb(99, 102, 241)",
+    );
+    expect(await computed(firstLink, "position", "::after")).toBe("absolute");
+    // The link's own outline, which the truncation would clip, is off.
+    expect(await computed(firstLink, "outline-color")).toBe("rgba(0, 0, 0, 0)");
+
+    await page.keyboard.press("Tab");
+    const secondLink: Locator = resourceRows(page).nth(1).getByRole("link");
+    await expect(secondLink).toBeFocused();
+    expect(await computed(firstLink, "box-shadow", "::after")).not.toContain(
+      "rgb(99, 102, 241)",
+    );
+
+    await page.keyboard.press("Enter");
+    await expectStubPage(
+      page,
+      "MONITOR_VIEW",
+      `${DASHBOARD}/monitors/${uuid("70000000", 2)}`,
+    );
+  });
+
+  test("?resources=many: five categories, and Show more opens the rest in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "resources=many",
+      MANY_RESOURCES_READY,
+    );
+
+    const resources: Locator = resourcesCard(page);
+    expect(await resourceHeadings(page)).toEqual(MANY_RESOURCES_HEADINGS);
+    await expect(
+      resources.getByTestId("affected-resources-summary"),
+    ).toHaveText("13 resources across 5 categories");
+    expect(await nestedCardChrome(resourcesBody(page))).toEqual([]);
+
+    // No label is cut short in the sidebar, the longest included.
+    const labels: Locator = resources
+      .getByRole("heading", { level: 3 })
+      .locator(":scope > span:first-child");
+    await expect(labels).toHaveText([
+      "Monitors",
+      "Hosts",
+      "Kubernetes Clusters",
+      "Services",
+      "SLOs",
+    ]);
+    for (const label of await labels.all()) {
+      expect(await isOverflowing(label)).toBe(false);
+    }
+
+    const monitors: Locator = resources.getByRole("list", {
+      name: "Monitors 6",
+    });
+    await expect(monitors.getByRole("listitem")).toHaveCount(4);
+    // By what it controls, since its name changes when it is pressed.
+    const listId: string = (await monitors.getAttribute("id"))!;
+    const toggle: Locator = resources.locator(
+      `button[aria-controls="${listId}"]`,
+    );
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(resources.getByText("Cart API p99 latency")).toHaveCount(0);
+
+    /*
+     * A name wider than the sidebar ends in an ellipsis, whole in its title.
+     * The element's own flex name span is what truncates: the row turns it
+     * into a truncating block.
+     */
+    const longItem: Locator = resources.getByTitle(LONG_MONITOR_NAME);
+    await expect(longItem).toBeVisible();
+    const longName: Locator = longItem.locator("span.flex");
+    expect(await isOverflowing(longName)).toBe(true);
+    expect(await computed(longName, "text-overflow")).toBe("ellipsis");
+    expect(await computed(longName, "white-space")).toBe("nowrap");
+
+    const hostsBefore: Box = await documentBox(
+      resources.getByRole("list", { name: "Hosts 2" }),
+    );
+
+    await toggle.click();
+    await expect(monitors.getByRole("listitem")).toHaveCount(6);
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toHaveText("Show less");
+    await expect(monitors.getByText("Cart API p99 latency")).toBeVisible();
+    await expect(monitors.getByText("CDN edge eu-west")).toBeVisible();
+    // In place: the sections below make room.
+    const hostsAfter: Box = await documentBox(
+      resources.getByRole("list", { name: "Hosts 2" }),
+    );
+    expect(hostsAfter.y).toBeGreaterThan(hostsBefore.y + 50);
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(resources, "incident-affected-resources-many");
+
+    await toggle.click();
+    await expect(monitors.getByRole("listitem")).toHaveCount(4);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(resources.getByText("Cart API p99 latency")).toHaveCount(0);
+  });
+
+  test("?resources=many: host, cluster and SLO rows open their own pages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const targets: ReadonlyArray<[string, string, string]> = [
+      ["checkout-api-7f9c", "HOST_VIEW", uuid("84000000", 1)],
+      ["prod-eks-eu-west-1", "KUBERNETES_CLUSTER_VIEW", uuid("85000000", 1)],
+      ["Checkout availability 99.9%", "SLO_VIEW", uuid("86000000", 1)],
+    ];
+
+    for (const [name, pageKey, id] of targets) {
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        "resources=many",
+        MANY_RESOURCES_READY,
+      );
+      const link: Locator = resourceRows(page)
+        .filter({ hasText: name })
+        .getByRole("link");
+      const href: string = (await link.getAttribute("href"))!;
+      expect(href).toContain(id);
+      await link.click();
+      await expectStubPage(page, pageKey, href);
+    }
+  });
+
+  test("?resources=many fits a 390px phone, expanded too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "resources=many",
+      MANY_RESOURCES_READY,
+    );
+
+    const resources: Locator = resourcesCard(page);
+    await resources.scrollIntoViewIfNeeded();
+    await expectNoHorizontalOverflow(page);
+    await resources.getByRole("button", { name: "Show 2 more" }).click();
+    await expect(resourceRows(page)).toHaveCount(13);
+    await expectNoHorizontalOverflow(page);
+
+    const cardBox: Box = await documentBox(resources);
+    for (const row of await resourceRows(page).all()) {
+      const rowBox: Box = await documentBox(row);
+      expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width,
+      );
+    }
+    // The long name is cut with an ellipsis rather than widening the card.
+    const longName: Locator = resources
+      .getByTitle(LONG_MONITOR_NAME)
+      .locator("span.flex");
+    expect(await isOverflowing(longName)).toBe(true);
+    expect(await computed(longName, "text-overflow")).toBe("ellipsis");
+    await page.mouse.move(0, 0);
+    await screenshotElement(resources, "incident-affected-resources-mobile");
+  });
+
+  test("?resources=none: the incident's empty state is open text that says SLOs are linked for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "resources=none", [
+      "Investigation complete",
+      "No resources affected.",
+    ]);
+
+    const resources: Locator = resourcesCard(page);
+    const empty: Locator = resources.getByTestId("affected-resources-empty");
+    await expect(empty).toContainText("No resources affected.");
+    await expect(empty).toContainText(SLO_HINT);
+    await expect(resources.getByTestId("affected-resources-grid")).toHaveCount(
+      0,
+    );
+    await expect(resources.getByRole("heading", { level: 3 })).toHaveCount(0);
+    // No dashed, tinted box inside the card.
+    expect(await nestedCardChrome(empty)).toEqual([]);
+    expect(await computed(empty, "border-top-width")).toBe("0px");
+    expect(await computed(empty, "background-color")).toBe("rgba(0, 0, 0, 0)");
+    await screenshotElement(resources, "incident-affected-resources-empty");
+  });
+
+  test("?resources=none: scheduled maintenance never promises SLOs, which nothing links to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "resources=none", [
+      "Subscribers notified",
+      "No resources affected.",
+    ]);
+
+    const empty: Locator = resourcesCard(page).getByTestId(
+      "affected-resources-empty",
+    );
+    await expect(empty).toContainText("No resources affected.");
+    await expect(empty).toContainText(
+      "Attach monitors, hosts, clusters, or services",
+    );
+    await expect(empty).not.toContainText("SLOs");
+  });
+
+  const THEMES: ReadonlyArray<{
+    theme: string;
+    query: string;
+    label: string;
+    item: string;
+    countFill: string;
+    countText: string;
+    divider: string;
+    hover: string;
+    tile: string;
+  }> = [
+    {
+      theme: "light",
+      query: "",
+      label: "rgb(17, 24, 39)",
+      item: "rgb(55, 65, 81)",
+      countFill: "rgb(243, 244, 246)",
+      countText: "rgb(75, 85, 99)",
+      divider: "rgb(243, 244, 246)",
+      hover: "rgb(249, 250, 251)",
+      tile: "rgb(239, 246, 255)",
+    },
+    {
+      /*
+       * Theme.css: --ou-text-primary, --ou-text-secondary,
+       * --ou-surface-tertiary, --ou-text-muted, --ou-border-subtle,
+       * --ou-surface-secondary and blue-50's remap.
+       */
+      theme: "dark",
+      query: "theme=dark",
+      label: "rgb(248, 250, 252)",
+      item: "rgb(226, 232, 240)",
+      countFill: "rgb(39, 52, 73)",
+      countText: "rgb(203, 213, 225)",
+      divider: "rgb(51, 65, 85)",
+      hover: "rgb(30, 41, 59)",
+      tile: "rgba(30, 64, 175, 0.28)",
+    },
+  ];
+
+  for (const colours of THEMES) {
+    test(`${colours.theme} theme: labels, rows, counts, hairlines and hover use its palette`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, colours.query);
+      await page.mouse.move(0, 0);
+
+      const section: Locator = resourceSections(page).first();
+      const row: Locator = resourceRows(page).first();
+      const count: Locator = section.getByTestId(
+        "affected-resource-category-count",
+      );
+
+      expect(
+        await computed(section.getByText("Monitors", { exact: true }), "color"),
+      ).toBe(colours.label);
+      expect(await computed(row, "color")).toBe(colours.item);
+      expect(await computed(count, "background-color")).toBe(colours.countFill);
+      expect(await computed(count, "color")).toBe(colours.countText);
+      expect(
+        await computed(resourceSections(page).nth(1), "border-top-color"),
+      ).toBe(colours.divider);
+      expect(
+        await computed(
+          section.locator(":scope > div > div").first(),
+          "background-color",
+        ),
+      ).toBe(colours.tile);
+
+      await row.hover({ position: { x: 4, y: 4 } });
+      await expect
+        .poll(async (): Promise<string> => {
+          return computed(row, "background-color");
+        })
+        .toBe(colours.hover);
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        resourcesCard(page),
+        `incident-affected-resources-${colours.theme}`,
+      );
+    });
+  }
+});
+
 test.describe("scheduled maintenance overview", () => {
   for (const phase of MAINTENANCE_PHASES) {
     test(`?sm=${phase.sm} shows "${phase.duration}", its actions and the window`, async ({

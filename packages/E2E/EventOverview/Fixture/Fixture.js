@@ -45,6 +45,12 @@
  *            HTTPErrorResponse. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
+ *   ?resources= default | many | none
+ *            What Incident #1042 is attached to, for its Affected Resources
+ *            card. "many" adds more monitors and services, two hosts, a
+ *            Kubernetes cluster and an SLO: five categories, one of them
+ *            behind a Show more. "none" leaves Incident #1042 and Scheduled
+ *            Maintenance #58 with nothing attached, for the empty state.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
@@ -124,6 +130,8 @@ import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -140,6 +148,7 @@ import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/Sched
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -201,6 +210,9 @@ const failures = new Set(
 const roleMode = ["alert-member", "loading"].includes(params.get("role"))
   ? params.get("role")
   : "owner";
+const resourcesMode = ["many", "none"].includes(params.get("resources"))
+  ? params.get("resources")
+  : "default";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -259,6 +271,9 @@ const ID = {
   user: (number) => uuid("80000000", number),
   team: (number) => uuid("81000000", number),
   task: (number) => uuid("82000000", number),
+  host: (number) => uuid("84000000", number),
+  kubernetesCluster: (number) => uuid("85000000", number),
+  slo: (number) => uuid("86000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -285,6 +300,7 @@ const fixture = {
     sm: smMode,
     fail: Array.from(failures),
     role: roleMode,
+    resources: resourcesMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -535,6 +551,73 @@ const services = {
   payments: service(3, "payments-webhooks", "#14b8a6"),
 };
 
+/*
+ * What Incident #1042 is attached to (?resources=). The default is its two
+ * monitors and two services. "many" gives the Affected Resources card five
+ * categories, six monitors among them (so two wait behind Show more) and a
+ * name too long for the sidebar; its extra records exist only then.
+ */
+function incidentResources() {
+  if (resourcesMode === "none") {
+    return { monitors: [], services: [] };
+  }
+
+  if (resourcesMode !== "many") {
+    return {
+      monitors: [monitors.checkoutLatency, monitors.ordersPool],
+      services: [services.checkout, services.orders],
+    };
+  }
+
+  return {
+    monitors: [
+      monitors.checkoutLatency,
+      monitors.ordersPool,
+      monitor(
+        5,
+        "Checkout web journey (synthetic) from eu-west-1 and us-east-1",
+        MonitorType.SyntheticMonitor,
+        monitorStatus.operational,
+      ),
+      monitor(
+        6,
+        "Payments API uptime",
+        MonitorType.API,
+        monitorStatus.operational,
+      ),
+      monitor(
+        7,
+        "Cart API p99 latency",
+        MonitorType.API,
+        monitorStatus.operational,
+      ),
+      monitor(
+        8,
+        "CDN edge eu-west",
+        MonitorType.Website,
+        monitorStatus.operational,
+      ),
+    ],
+    hosts: [
+      insert(Host, { _id: ID.host(1), name: "checkout-api-7f9c" }),
+      insert(Host, { _id: ID.host(2), name: "orders-db-primary" }),
+    ],
+    kubernetesClusters: [
+      insert(KubernetesCluster, {
+        _id: ID.kubernetesCluster(1),
+        name: "prod-eks-eu-west-1",
+      }),
+    ],
+    services: [services.checkout, services.orders, services.payments],
+    serviceLevelObjectives: [
+      insert(ServiceLevelObjective, {
+        _id: ID.slo(1),
+        name: "Checkout availability 99.9%",
+      }),
+    ],
+  };
+}
+
 const policies = {
   checkout: insert(OnCallDutyPolicy, {
     _id: ID.onCallPolicy(1),
@@ -743,6 +826,14 @@ function defineIncident(spec) {
     labels: spec.labels || [labels.checkout, labels.production],
     monitors: spec.monitors || [],
     services: spec.services || [],
+    // Only ?resources=many attaches these, so every other record keeps its shape.
+    ...(spec.hosts ? { hosts: spec.hosts } : {}),
+    ...(spec.kubernetesClusters
+      ? { kubernetesClusters: spec.kubernetesClusters }
+      : {}),
+    ...(spec.serviceLevelObjectives
+      ? { serviceLevelObjectives: spec.serviceLevelObjectives }
+      : {}),
     onCallDutyPolicies: spec.onCallDutyPolicies || [policies.checkout],
     createdByProbe: spec.createdByUser ? undefined : probe,
     createdByProbeId: spec.createdByUser ? undefined : probe.id,
@@ -942,8 +1033,7 @@ const mainIncident = defineIncident({
   ackBy: people.sam,
   resolvedAt: isResolved ? at("18:12") : undefined,
   resolvedBy: people.maya,
-  monitors: [monitors.checkoutLatency, monitors.ordersPool],
-  services: [services.checkout, services.orders],
+  ...incidentResources(),
   episode: incidentEpisodeRecord,
   notificationFailed: failures.has("resend"),
   rootCause: isResolved
@@ -1253,8 +1343,12 @@ table(ScheduledMaintenance).push({
   currentScheduledMaintenanceState: smCurrentState,
   currentScheduledMaintenanceStateId: smCurrentState.id,
   statusPages: [statusPages.public, statusPages.internal],
-  monitors: [monitors.ordersPrimary, monitors.checkoutLatency],
-  services: [services.orders, services.checkout],
+  monitors:
+    resourcesMode === "none"
+      ? []
+      : [monitors.ordersPrimary, monitors.checkoutLatency],
+  services:
+    resourcesMode === "none" ? [] : [services.orders, services.checkout],
   labels: [labels.platform, labels.production],
   subscriberNotificationStatusOnEventScheduled: failures.has("resend")
     ? StatusPageSubscriberNotificationStatus.Failed
@@ -3249,6 +3343,10 @@ const STUB_PAGES = [
   [PageMap.AI_AGENT_TASK_VIEW, "AI Agent Task"],
   [PageMap.AI_AGENT_TASKS, "AI Agent Tasks"],
   [PageMap.MONITOR_VIEW, "Monitor"],
+  // What the Affected Resources card links to with ?resources=many.
+  [PageMap.HOST_VIEW, "Host"],
+  [PageMap.KUBERNETES_CLUSTER_VIEW, "Kubernetes Cluster"],
+  [PageMap.SLO_VIEW, "SLO"],
   [PageMap.ON_CALL_DUTY_POLICY_VIEW, "On-Call Policy"],
   [PageMap.STATUS_PAGE_VIEW, "Status Page"],
   [PageMap.SERVICE_VIEW, "Service"],
