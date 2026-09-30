@@ -284,7 +284,7 @@ const Users: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Users",
           description:
-            "Here is a list of everyone in this project, and the teams they belong to.",
+            "Everyone who can sign in to this project, and the teams they belong to. Invite someone to give them access; their teams decide what they can do.",
           buttons: [
             {
               title: "Invite User",
