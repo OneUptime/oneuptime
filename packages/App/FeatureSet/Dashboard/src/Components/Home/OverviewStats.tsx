@@ -11,6 +11,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -30,6 +31,18 @@ export interface ComponentProps {
   projectId: ObjectID;
 }
 
+/*
+ * A tile about something the project has not set up yet. "All operational"
+ * over zero monitors reads as though monitors were watching and found nothing
+ * wrong, which is exactly the wrong impression to give someone who has not
+ * created one. Such a tile says so instead, and opens the place to fix it.
+ */
+interface NotSetUpState {
+  isNotSetUp: boolean;
+  label: string;
+  pageMap: PageMap;
+}
+
 interface StatTile {
   key: string;
   label: string;
@@ -41,19 +54,33 @@ interface StatTile {
   attentionIcon: IconProp;
   // shown when count === 0
   allClearLabel: string;
+  notSetUp?: NotSetUpState | undefined;
 }
 
 interface StatCounts {
   activeIncidents: number;
   activeAlerts: number;
-  inoperationalMonitors: number;
+  notOperationalMonitors: number;
   ongoingMaintenance: number;
   slosNeedingAttention: number;
+  // Every monitor, whatever its state - zero means none was ever created.
+  totalMonitors: number;
+  // Every SLO that is not archived - zero means none is set up.
+  totalSlos: number;
 }
+
+// The copy the tiles show, exported so tests read the same strings.
+export const NO_MONITORS_YET_LABEL: string = "No monitors yet";
+export const NO_SLOS_YET_LABEL: string = "No SLOs yet";
 
 const OverviewStats: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
   const [counts, setCounts] = useState<StatCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -116,62 +143,90 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       const [
         activeIncidents,
         activeAlerts,
-        inoperationalMonitors,
+        notOperationalMonitors,
         ongoingMaintenance,
         slosNeedingAttention,
-      ]: [number, number, number, number, number] = await Promise.all([
-        fetchActiveIncidentsCount(),
-        fetchActiveAlertsCount(),
-        ModelAPI.count<Monitor>({
-          modelType: Monitor,
-          query: {
-            projectId: props.projectId,
-            currentMonitorStatus: {
-              isOperationalState: false,
+        totalMonitors,
+        totalSlos,
+      ]: [number, number, number, number, number, number, number] =
+        await Promise.all([
+          fetchActiveIncidentsCount(),
+          fetchActiveAlertsCount(),
+          ModelAPI.count<Monitor>({
+            modelType: Monitor,
+            query: {
+              projectId: props.projectId,
+              currentMonitorStatus: {
+                isOperationalState: false,
+              },
             },
-          },
-        }),
-        ModelAPI.count<ScheduledMaintenance>({
-          modelType: ScheduledMaintenance,
-          query: {
-            projectId: props.projectId,
-            currentScheduledMaintenanceState: {
-              isOngoingState: true,
+          }),
+          ModelAPI.count<ScheduledMaintenance>({
+            modelType: ScheduledMaintenance,
+            query: {
+              projectId: props.projectId,
+              currentScheduledMaintenanceState: {
+                isOngoingState: true,
+              },
             },
-          },
-        }),
-        /*
-         * At Risk and Budget Exhausted are the two statuses that mean a
-         * reliability target is in trouble. Misconfigured and Paused are
-         * deliberately excluded: they are a setup problem, not a burning
-         * budget, and mixing them in would make the tile impossible to
-         * act on.
-         *
-         * Archived SLOs are excluded for the same reason disabled ones are:
-         * the worker no longer evaluates them, so their status is frozen at
-         * the moment they were archived, and the SLOs list this tile opens
-         * does not show them either.
-         */
-        ModelAPI.count<ServiceLevelObjective>({
-          modelType: ServiceLevelObjective,
-          query: {
-            projectId: props.projectId,
-            isEnabled: true,
-            isArchived: false,
-            sloStatus: new Includes([
-              SloStatus.AtRisk,
-              SloStatus.BudgetExhausted,
-            ]),
-          },
-        }),
-      ]);
+          }),
+          /*
+           * At Risk and Budget Exhausted are the two statuses that mean a
+           * reliability target is in trouble. Misconfigured and Paused are
+           * deliberately excluded: they are a setup problem, not a burning
+           * budget, and mixing them in would make the tile impossible to
+           * act on.
+           *
+           * Archived SLOs are excluded for the same reason disabled ones are:
+           * the worker no longer evaluates them, so their status is frozen at
+           * the moment they were archived, and the SLOs list this tile opens
+           * does not show them either.
+           */
+          ModelAPI.count<ServiceLevelObjective>({
+            modelType: ServiceLevelObjective,
+            query: {
+              projectId: props.projectId,
+              isEnabled: true,
+              isArchived: false,
+              sloStatus: new Includes([
+                SloStatus.AtRisk,
+                SloStatus.BudgetExhausted,
+              ]),
+            },
+          }),
+          /*
+           * The two totals below tell "nothing is wrong" apart from "nothing
+           * is set up". They run in the same batch as the rest, so a new
+           * project pays for them in parallel, not in a second round trip.
+           */
+          ModelAPI.count<Monitor>({
+            modelType: Monitor,
+            query: {
+              projectId: props.projectId,
+            },
+          }),
+          /*
+           * Disabled SLOs still count as set up (the tile keeps its usual
+           * reading for them); archived ones are gone from the SLOs list, so
+           * they do not.
+           */
+          ModelAPI.count<ServiceLevelObjective>({
+            modelType: ServiceLevelObjective,
+            query: {
+              projectId: props.projectId,
+              isArchived: false,
+            },
+          }),
+        ]);
 
       setCounts({
         activeIncidents,
         activeAlerts,
-        inoperationalMonitors,
+        notOperationalMonitors,
         ongoingMaintenance,
         slosNeedingAttention,
+        totalMonitors,
+        totalSlos,
       });
       setHasError(false);
     } catch {
@@ -219,14 +274,19 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       allClearLabel: "All clear",
     },
     {
-      key: "inoperational-monitors",
-      label: "Inoperational monitors",
+      key: "not-operational-monitors",
+      label: "Not operational monitors",
       pageMap: PageMap.HOME_NOT_OPERATIONAL_MONITORS,
-      count: counts?.inoperationalMonitors || 0,
+      count: counts?.notOperationalMonitors || 0,
       attentionLabel: "Needs attention",
       attentionClassName: "text-red-600",
       attentionIcon: IconProp.Error,
       allClearLabel: "All operational",
+      notSetUp: {
+        isNotSetUp: counts !== null && counts.totalMonitors === 0,
+        label: NO_MONITORS_YET_LABEL,
+        pageMap: PageMap.MONITOR_CREATE,
+      },
     },
     {
       key: "ongoing-maintenance",
@@ -247,6 +307,11 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       attentionClassName: "text-amber-600",
       attentionIcon: IconProp.Gauge,
       allClearLabel: "Budgets healthy",
+      notSetUp: {
+        isNotSetUp: counts !== null && counts.totalSlos === 0,
+        label: NO_SLOS_YET_LABEL,
+        pageMap: PageMap.SLOS,
+      },
     },
   ];
 
@@ -256,7 +321,24 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
     >
       {tiles.map((tile: StatTile) => {
-        const needsAttention: boolean = tile.count > 0;
+        const isNotSetUp: boolean = Boolean(tile.notSetUp?.isNotSetUp);
+        const needsAttention: boolean = !isNotSetUp && tile.count > 0;
+
+        let statusClassName: string = "text-emerald-600";
+        let statusIcon: IconProp = IconProp.CheckCircle;
+        let statusLabel: string = tile.allClearLabel;
+        let targetPageMap: PageMap = tile.pageMap;
+
+        if (isNotSetUp && tile.notSetUp) {
+          statusClassName = "text-gray-500";
+          statusIcon = IconProp.Add;
+          statusLabel = tile.notSetUp.label;
+          targetPageMap = tile.notSetUp.pageMap;
+        } else if (needsAttention) {
+          statusClassName = tile.attentionClassName;
+          statusIcon = tile.attentionIcon;
+          statusLabel = tile.attentionLabel;
+        }
 
         return (
           <InfoCard
@@ -264,7 +346,7 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
             title={tile.label}
             onClick={() => {
               Navigation.navigate(
-                RouteUtil.populateRouteParams(RouteMap[tile.pageMap] as Route),
+                RouteUtil.populateRouteParams(RouteMap[targetPageMap] as Route),
               );
             }}
             value={
@@ -282,25 +364,11 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
                     {tile.count}
                   </div>
                   <div
-                    className={`mt-2 flex items-center gap-1.5 text-sm font-medium ${
-                      needsAttention
-                        ? tile.attentionClassName
-                        : "text-emerald-600"
-                    }`}
+                    data-testid={`home-stat-${tile.key}-status`}
+                    className={`mt-2 flex items-center gap-1.5 text-sm font-medium ${statusClassName}`}
                   >
-                    <Icon
-                      icon={
-                        needsAttention
-                          ? tile.attentionIcon
-                          : IconProp.CheckCircle
-                      }
-                      className="h-4 w-4"
-                    />
-                    <span>
-                      {needsAttention
-                        ? tile.attentionLabel
-                        : tile.allClearLabel}
-                    </span>
+                    <Icon icon={statusIcon} className="h-4 w-4" />
+                    <span>{tx(statusLabel)}</span>
                   </div>
                 </div>
               )
