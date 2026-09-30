@@ -95,6 +95,15 @@ export interface ComponentProps {
    * and it follows the rating control's optimistic value, rollback included.
    */
   onVerdictChange?: ((verdict: AIRunHumanVerdict | null) => void) | undefined;
+  /*
+   * The two-way conversation with OneUptime AI about this subject. The page
+   * supplies it (so the panel stays independent of it); the panel places
+   * it at the bottom of the investigation card ("embedded"), or — when no
+   * investigation ran — as its own card under the explanation ("card").
+   */
+  renderConversation?:
+    | ((variant: "embedded" | "card") => ReactElement)
+    | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
@@ -1075,7 +1084,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   if (!hasLoadedOnce || loadedSubjectKey !== subjectKey || !runStatus) {
     const isLoading: boolean =
       !hasLoadedOnce || loadedSubjectKey !== subjectKey;
-    return (
+    const notStartedCard: ReactElement = (
       <InvestigationNotStartedCard
         subjectType={subjectType}
         reason={isLoading ? null : notInvestigatedReason}
@@ -1102,6 +1111,21 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             });
         }}
       />
+    );
+
+    /*
+     * No investigation ran, but responders can still talk to OneUptime AI
+     * about the subject — it investigates on demand.
+     */
+    if (isLoading || !props.renderConversation) {
+      return notStartedCard;
+    }
+
+    return (
+      <>
+        {notStartedCard}
+        {props.renderConversation("card")}
+      </>
     );
   }
 
@@ -1590,6 +1614,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+          The conversation closes the card: the report above is OneUptime
+          AI's first pass, and this is where responders take it from there.
+        */}
+        {props.renderConversation ? (
+          props.renderConversation("embedded")
         ) : (
           <></>
         )}
