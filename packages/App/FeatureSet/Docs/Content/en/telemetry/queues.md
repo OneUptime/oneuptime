@@ -13,7 +13,7 @@ It works the same way for every broker — Apache Kafka, RabbitMQ, Apache Active
 
 Traces tell OneUptime that a queue exists and how applications use it, but not how full it is. That comes from the broker itself or its cloud provider's monitoring API — or, for [BullMQ](#bullmq), which keeps its jobs in Redis and has no broker to ask, from a gauge the application reports.
 
-You can also add a queue by hand: **Queues → Create Queue**, with its messaging system and destination name — and, for Azure Service Bus and Event Hubs, its namespace.
+You can also add a queue by hand: **Queues → Create Queue**, with its messaging system and destination name — and, for Azure Service Bus and Event Hubs, its namespace. Leave the namespace empty only for a queue your applications reach through an emulator or a custom domain name: their spans name no namespace, and Azure Monitor's metrics never reach such a queue (see [Limitations](#limitations)).
 
 This page covers the [supported messaging systems](#supported-messaging-systems), [how queues are discovered](#how-queues-are-discovered) and what makes two sightings one queue, [instrumenting applications](#instrumenting-applications), setting up [broker health metrics](#broker-health-metrics) for each system, [alerting](#alerting), [limitations](#limitations) and [troubleshooting](#troubleshooting).
 
@@ -68,9 +68,13 @@ A broker metric from the lists under [Broker health metrics](#broker-health-metr
 
 The next discovery run creates the queue if it does not exist yet: one broker metric is enough, within the [auto-create budget](#the-auto-create-budget). So a queue no instrumented application touches still appears once its broker reports it.
 
+Cloud monitoring APIs — CloudWatch, Azure Monitor and Cloud Monitoring — publish each number minutes after the time it measures, and it is stored under that time. So each run reads their metrics from the last hour, rather than from the last 15 minutes it reads spans and other metrics from: a datapoint that arrives late still sights its queue, or creates it.
+
 ### From messaging client metrics
 
 Instrumented clients can report metrics too: OpenTelemetry's messaging client metrics `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` and `messaging.process.duration`, their older names `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` and `messaging.client.published.messages`, and the Azure SDK for Java's `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` and `messaging.servicebus.settlement.sequence_number`. Each datapoint names its system and destination the way a span does — the Azure SDK's Service Bus metrics name no system, so their name stands in for it — and is matched to that queue when it is ingested, so it shows on the queue's **Metrics** tab. So does any metric of your own that carries `messaging.system` and `messaging.destination.name` on each datapoint — not on the resource, where they are not read — such as a queue-depth gauge (see [BullMQ](#bullmq)).
+
+Messaging client metrics never create a queue: traces, broker metrics or a person do. A client metric that names a queue that exists keeps its **Last seen** current, as its spans do. A metric of your own does neither: it only shows on the queue's **Metrics** tab.
 
 ### What makes two sightings one queue
 
@@ -932,7 +936,7 @@ Queues are watched with **Metrics** monitors over their broker metrics (see [Met
 | A Pub/Sub subscription's backlog grows | `pubsub.googleapis.com/subscription/num_undelivered_messages` | `resource.subscription_id` = `orders-billing` | Max |
 | Nobody consumes a RabbitMQ queue | `rabbitmq.consumer.count` | `resource.rabbitmq.queue.name` = `orders` | Min |
 
-To watch every queue of a system with one monitor, group by that attribute instead of filtering on it: each queue then alerts on its own (see [Per-Series Alerting](/docs/monitor/metrics-monitor#per-series-alerting-group-by)). A RabbitMQ queue's depth (`rabbitmq.message.current`) arrives as two series, `state` = `ready` and `state` = `unacknowledged`. The monitor **Create monitor** builds adds them up the way the queue page does — one query per state and a formula, `a + b`, that the threshold applies to — and a monitor built by hand should do the same.
+To watch every queue of a system with one monitor, group by that attribute instead of filtering on it: each queue then alerts on its own (see [Per-Series Alerting](/docs/monitor/metrics-monitor#per-series-alerting-group-by)). A RabbitMQ queue's depth (`rabbitmq.message.current`) arrives as two series, `state` = `ready` and `state` = `unacknowledged`. The monitor **Create monitor** builds adds them up the way the queue page does: a query per state, `a_ready` and `a_unacknowledged`, and the formula `a_ready + a_unacknowledged`, whose alias `a` its starting threshold applies to. A monitor built by hand should do the same, with its criteria on the formula.
 
 **Late metrics.** Cloud monitoring APIs publish their numbers minutes after the fact: the `aws_cloudwatch` receiver's newest point is typically 11 to 25 minutes old, and the `googlecloudmonitoring` receiver's up to 9. A monitor over SQS, SNS or Pub/Sub metrics therefore needs a window longer than that, or it sees no data and never fires; **Create monitor** starts those monitors at 30 and 15 minutes.
 

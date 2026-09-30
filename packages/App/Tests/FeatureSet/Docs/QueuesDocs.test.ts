@@ -12,6 +12,7 @@ import {
 } from "Common/Types/MessageQueue/MessagingSystem";
 import {
   AZURE_SERVICE_BUS_HOST_SUFFIXES,
+  canonicalizeMessageQueueBrokerScope,
   MessageQueueIdentity,
   toMessageQueueIdentity,
 } from "Common/Types/MessageQueue/MessageQueueIdentity";
@@ -20,6 +21,7 @@ import {
   MESSAGING_BROKER_SCOPE_ADDRESS_ATTRIBUTES,
   MESSAGING_DESTINATION_ATTRIBUTES,
   MESSAGING_DIRECTION_ATTRIBUTES,
+  MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
   MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
   MESSAGING_TEMPORARY_FLAG_ATTRIBUTES,
   MESSAGING_TRIGGER_ATTRIBUTES,
@@ -32,14 +34,33 @@ import {
 } from "Common/Types/MessageQueue/MessagingTelemetryResolver";
 import {
   getMessageQueueMetricsForSystem,
+  MESSAGE_QUEUE_BROKER_METRIC_NAMES,
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
   MESSAGING_CLIENT_METRIC_NAMES,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import {
+  buildMessageQueueMetricMonitorQuery,
+  buildMessageQueueMetricMonitorViewConfig,
+  MessageQueueMetricMonitorQuery,
+  MessageQueueMetricMonitorViewConfig,
+  MessageQueueSeriesTotal,
+} from "Common/Types/Monitor/MessageQueueAlertTemplates";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { keyForMessageQueue } from "Common/Utils/Telemetry/EntityKey";
 import {
+  buildMessagingMetricDiscoverySql,
   DEFAULT_MESSAGE_QUEUE_MIN_SPANS,
+  DiscoveredMessageQueue,
+  getMessagingDiscoveryColumn,
+  isMessageQueueAutoCreateCandidate,
+  MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES,
+  MESSAGE_QUEUE_LATE_METRIC_MINUTES,
+  MESSAGE_QUEUE_LATE_METRIC_NAMES,
   MESSAGE_QUEUE_MIN_SPANS_ENV,
+  MessagingMetricDiscoveryRow,
+  resolveMessagingMetricDiscoveryRows,
 } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
@@ -459,6 +480,39 @@ function identityOf(
     brokerScope: resolved.brokerScope,
     destination: resolved.destination,
   });
+}
+
+/*
+ * The queue the discovery run reads from one metric datapoint: a row as the
+ * metric query returns it (every attribute the resolver reads in its
+ * column, '' when absent), resolved the way the run resolves it.
+ */
+function discoveredFromMetric(
+  metricName: string,
+  attributes: Readonly<Record<string, string>>,
+): DiscoveredMessageQueue {
+  for (const key of Object.keys(attributes)) {
+    expect(MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES).toContain(key);
+  }
+
+  const row: MessagingMetricDiscoveryRow = {
+    name: metricName,
+    pointCount: "1",
+    lastSeenUnixMs: "1790000000000",
+  };
+
+  MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES.forEach(
+    (key: string, index: number): void => {
+      row[getMessagingDiscoveryColumn(index)] = attributes[key] ?? "";
+    },
+  );
+
+  const discovered: Array<DiscoveredMessageQueue> =
+    resolveMessagingMetricDiscoveryRows([row]);
+
+  expect(discovered).toHaveLength(1);
+
+  return discovered[0] as DiscoveredMessageQueue;
 }
 
 function spanOf(
@@ -2652,6 +2706,98 @@ describe("Queues docs", (): void => {
       }
     });
 
+    /*
+     * The run reads client metrics as evidence that a queue is in use, not
+     * that it exists: they sight a queue that has a row — a traces
+     * sighting, which sets Last seen — and the create policy refuses them.
+     * A metric of one's own is not read by the run at all: it only
+     * attaches, at ingest.
+     */
+    it("lets client metrics keep a queue's Last seen current but never create one, and a metric of your own do neither", (): void => {
+      const clientMetrics: string = section(
+        readPage(),
+        "### From messaging client metrics",
+      );
+
+      expect(clientMetrics).toContain(
+        "Messaging client metrics never create a queue",
+      );
+      expect(clientMetrics).toContain(
+        "keeps its **Last seen** current, as its spans do",
+      );
+      expect(clientMetrics).toContain("A metric of your own does neither");
+
+      // Client evidence alone is refused, whatever its count ...
+      const client: DiscoveredMessageQueue = discoveredFromMetric(
+        "messaging.client.sent.messages",
+        {
+          "messaging.system": "kafka",
+          "messaging.destination.name": "orders",
+        },
+      );
+
+      expect(client.clientMetrics).not.toBeNull();
+      expect(client.brokerMetrics).toBeNull();
+      expect(client.spans).toBeNull();
+      expect(
+        isMessageQueueAutoCreateCandidate({ discovered: client, minSpans: 1 }),
+      ).toBe(false);
+
+      // ... while one curated broker datapoint creates the queue.
+      expect(
+        isMessageQueueAutoCreateCandidate({
+          discovered: discoveredFromMetric("kafka.consumer_group.lag_sum", {
+            topic: "orders",
+          }),
+          minSpans: DEFAULT_MESSAGE_QUEUE_MIN_SPANS,
+        }),
+      ).toBe(true);
+
+      // An existing queue named by client metrics gets a traces sighting ...
+      expect(JOB).toMatch(
+        /if \(discovered\.spans \|\| discovered\.clientMetrics\) \{\s*await recordMessageQueueSighting\(\{[^}]*source: "traces",/,
+      );
+      // ... and every sighting sets Last seen to the time of the run.
+      expect(
+        fs.readFileSync(
+          path.join(
+            PACKAGES_DIR,
+            "Common/Server/Services/MessageQueueService.ts",
+          ),
+          "utf8",
+        ),
+      ).toMatch(
+        /public async recordSighting\([\s\S]*?const liveness: PartialEntity<Model> = \{\s*lastSeenAt: now,/,
+      );
+
+      // The run reads curated broker and client metric names, nothing else.
+      expect([...MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES].sort()).toEqual(
+        [
+          ...new Set<string>([
+            ...MESSAGE_QUEUE_BROKER_METRIC_NAMES,
+            ...MESSAGING_CLIENT_METRIC_NAMES,
+          ]),
+        ].sort(),
+      );
+
+      // So the gauge the BullMQ section builds is never read by it.
+      const gauge: RegExpMatchArray | null = fencedBlocks(
+        systemSection(
+          getMessagingSystemDescriptor("bullmq") as MessagingSystemDescriptor,
+        ),
+      )
+        .map((block: FencedBlock): string => {
+          return block.body;
+        })
+        .join("\n")
+        .match(/createObservableGauge\("([^"]+)"/);
+
+      expect(gauge).not.toBeNull();
+      expect(MESSAGE_QUEUE_DISCOVERY_METRIC_NAMES).not.toContain(
+        (gauge as RegExpMatchArray)[1],
+      );
+    });
+
     it("attaches a broker metric to a queue by the broker's own attribute, as it says", (): void => {
       const brokerMetrics: string = section(
         readPage(),
@@ -2707,6 +2853,126 @@ describe("Queues docs", (): void => {
           },
         })?.system,
       ).toBe("eventhubs");
+    });
+
+    /*
+     * Cloud monitoring APIs publish a number minutes after the time it
+     * measures, and it is stored under that time: read over the span
+     * window alone, most CloudWatch datapoints would already lie behind the
+     * window of the first run after they arrive. The metric query reads
+     * those metrics MESSAGE_QUEUE_LATE_METRIC_MINUTES further back, and
+     * only those.
+     */
+    it("reads cloud-monitoring metrics as far back as it says, so a late datapoint still sights or creates its queue", (): void => {
+      const windowMinutes: number = Number(
+        (
+          JOB.match(
+            /export const WINDOW_MINUTES: number = (\d+);/,
+          ) as RegExpMatchArray
+        )[1],
+      );
+      const paragraph: string = paragraphWith(
+        section(readPage(), "### From broker metrics"),
+        "minutes after the time it measures",
+      );
+
+      // "The last hour": the span window and the late reach before it.
+      expect(windowMinutes + MESSAGE_QUEUE_LATE_METRIC_MINUTES).toBe(60);
+      expect(paragraph).toContain(
+        "each run reads their metrics from the last hour",
+      );
+      expect(paragraph).toContain(
+        `rather than from the last ${windowMinutes} minutes it reads spans and other metrics from`,
+      );
+      expect(paragraph).toContain(
+        "a datapoint that arrives late still sights its queue, or creates it",
+      );
+
+      // The query reaches that far back for the late names alone.
+      const sql: string = buildMessagingMetricDiscoverySql({
+        projectId: "project",
+        startSql: "WINDOW_START",
+        endSql: "WINDOW_END",
+        maxRows: 10,
+      });
+
+      expect(sql).toContain(
+        `time >= WINDOW_START - INTERVAL ${MESSAGE_QUEUE_LATE_METRIC_MINUTES} MINUTE`,
+      );
+      expect(sql).toContain(
+        `(time >= WINDOW_START OR name IN (${MESSAGE_QUEUE_LATE_METRIC_NAMES.map(
+          (name: string): string => {
+            return `'${name}'`;
+          },
+        ).join(", ")}))`,
+      );
+
+      /*
+       * The late names are exactly the curated metrics of the systems whose
+       * broker metrics come from a cloud provider's monitoring API, and the
+       * paragraph names each of those APIs.
+       */
+      const API_BY_RECEIVER: Readonly<Record<string, string>> = {
+        aws_cloudwatch: "CloudWatch",
+        azure_monitor: "Azure Monitor",
+        googlecloudmonitoring: "Cloud Monitoring",
+      };
+      const cloudMetrics: Array<MessageQueueMetricDescriptor> =
+        MESSAGE_QUEUE_METRICS.filter(
+          (descriptor: MessageQueueMetricDescriptor): boolean => {
+            return (
+              getMessagingSystemDescriptor(descriptor.system)?.brokerMetrics
+                .kind === "cloud-monitoring"
+            );
+          },
+        );
+
+      expect([...MESSAGE_QUEUE_LATE_METRIC_NAMES].sort()).toEqual(
+        [
+          ...new Set<string>(
+            cloudMetrics.map(
+              (descriptor: MessageQueueMetricDescriptor): string => {
+                return descriptor.metricName;
+              },
+            ),
+          ),
+        ].sort(),
+      );
+
+      for (const descriptor of cloudMetrics) {
+        const source: MessagingBrokerMetricsSource = (
+          getMessagingSystemDescriptor(
+            descriptor.system,
+          ) as MessagingSystemDescriptor
+        ).brokerMetrics;
+        const api: string | undefined =
+          source.kind === "cloud-monitoring"
+            ? API_BY_RECEIVER[source.receiver]
+            : undefined;
+
+        expect({
+          metric: descriptor.metricName,
+          api,
+          named: Boolean(api) && paragraph.includes(api as string),
+        }).toEqual({ metric: descriptor.metricName, api, named: true });
+      }
+
+      // A curated broker datapoint: it creates its queue, late or not.
+      const late: DiscoveredMessageQueue = discoveredFromMetric(
+        "amazonaws.com/aws/sqs/approximatenumberofmessagesvisible",
+        { "Dimensions.QueueName": "orders" },
+      );
+
+      expect(MESSAGE_QUEUE_LATE_METRIC_NAMES).toContain(
+        "amazonaws.com/aws/sqs/approximatenumberofmessagesvisible",
+      );
+      expect(late.brokerMetrics).not.toBeNull();
+      expect(
+        isMessageQueueAutoCreateCandidate({
+          discovered: late,
+          minSpans: DEFAULT_MESSAGE_QUEUE_MIN_SPANS,
+        }),
+      ).toBe(true);
     });
 
     it("attaches a JMS broker's own metrics and the BullMQ gauge the way their sections say", (): void => {
@@ -2857,6 +3123,96 @@ describe("Queues docs", (): void => {
 
       expect(alerting).toContain("Counters get no monitor");
       expect(alerting).toContain("`cumulativetodelta`");
+    });
+
+    /*
+     * A RabbitMQ queue's depth is a series total: the queue page's Create
+     * monitor link builds its monitor with
+     * buildMessageQueueMetricMonitorViewConfig under the link's variable
+     * (MESSAGE_QUEUE_METRIC_MONITOR_VARIABLE), puts the starting threshold
+     * on the formula, and Monitor Create turns it into a criteria on the
+     * formula's alias (MessageQueueMonitorLinkMonitorCreate.test renders
+     * that). The page names the aliases the link really builds.
+     */
+    it("names the queries, the formula and the alias Create monitor builds for a RabbitMQ queue's depth", (): void => {
+      const paragraph: string = paragraphWith(
+        section(readPage(), "## Alerting"),
+        "arrives as two series",
+      );
+      const link: string = fs.readFileSync(
+        path.join(
+          PACKAGES_DIR,
+          "App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueMetricMonitorLink.ts",
+        ),
+        "utf8",
+      );
+      const variable: string | undefined = (
+        link.match(
+          /export const MESSAGE_QUEUE_METRIC_MONITOR_VARIABLE: string = "([^"]+)";/,
+        ) as RegExpMatchArray | null
+      )?.[1];
+
+      expect(variable).toBeDefined();
+
+      const depth: MessageQueueMetricDescriptor =
+        getMessageQueueMetricsForSystem("rabbitmq").find(
+          (descriptor: MessageQueueMetricDescriptor): boolean => {
+            return descriptor.metricName === "rabbitmq.message.current";
+          },
+        ) as MessageQueueMetricDescriptor;
+      const query: MessageQueueMetricMonitorQuery | null =
+        buildMessageQueueMetricMonitorQuery({
+          descriptor: depth,
+          observedSeries: [{ "resource.rabbitmq.queue.name": "orders" }],
+          identity: toMessageQueueIdentity({
+            system: "rabbitmq",
+            brokerScope: "",
+            destination: "orders",
+          }),
+        });
+
+      expect(query).not.toBeNull();
+
+      const view: MessageQueueMetricMonitorViewConfig =
+        buildMessageQueueMetricMonitorViewConfig({
+          query: query as MessageQueueMetricMonitorQuery,
+          metricVariable: variable as string,
+          title: "orders: Queue depth",
+        });
+      const formulas: Array<MetricFormulaConfigData> =
+        view.metricViewConfig.formulaConfigs;
+
+      expect(formulas).toHaveLength(1);
+
+      // The two series it names are the ones the formula adds up ...
+      const total: MessageQueueSeriesTotal = (
+        query as MessageQueueMetricMonitorQuery
+      ).seriesTotal as MessageQueueSeriesTotal;
+
+      expect(total.values.length).toBe(2);
+
+      for (const value of total.values) {
+        expect(paragraph).toContain(`\`${total.key}\` = \`${value}\``);
+      }
+
+      // ... one query per state, then the formula, as the link builds them ...
+      expectInOrder(paragraph, [
+        ...view.metricViewConfig.queryConfigs.map(
+          (config: MetricQueryConfigData): string => {
+            return config.metricAliasData?.metricVariable || "";
+          },
+        ),
+        (formulas[0] as MetricFormulaConfigData).metricFormulaData
+          .metricFormula,
+      ]);
+
+      // ... and the threshold on the formula's alias, the one criteria compare.
+      expect(view.criteriaAlias).toBe(
+        (formulas[0] as MetricFormulaConfigData).metricAliasData.metricVariable,
+      );
+      expect(paragraph).toContain(
+        `whose alias \`${view.criteriaAlias}\` its starting threshold applies to`,
+      );
     });
 
     /*
@@ -3032,6 +3388,101 @@ describe("Queues docs", (): void => {
             ),
           ),
         ).not.toEqual(metric);
+      }
+    });
+
+    /*
+     * The Overview's advice for a queue added by hand: the namespace may be
+     * left empty, which keys the queue where emulator and custom-domain
+     * spans land, and where no Azure Monitor datapoint does — those always
+     * name their namespace.
+     */
+    it("lets a hand-made Service Bus or Event Hubs queue leave its namespace empty only for what Azure Monitor never reaches", (): void => {
+      const byHand: string = paragraphWith(
+        section(readPage(), "## Overview"),
+        "**Queues → Create Queue**",
+      );
+
+      expect(byHand).toContain(
+        "Leave the namespace empty only for a queue your applications reach through an emulator or a custom domain name",
+      );
+      expect(byHand).toContain(
+        "Azure Monitor's metrics never reach such a queue",
+      );
+
+      const AZURE_MONITOR_DATAPOINTS: Readonly<
+        Record<string, DatapointFixture>
+      > = {
+        servicebus: {
+          metricName: "azure_activemessages_average",
+          attributes: {
+            type: "Microsoft.ServiceBus/Namespaces",
+            name: "shop-prod",
+            metadata_entityname: "orders",
+          },
+        },
+        eventhubs: {
+          metricName: "azure_incomingmessages_total",
+          attributes: {
+            type: "Microsoft.EventHub/Namespaces",
+            name: "shop-prod",
+            metadata_entityname: "orders",
+          },
+        },
+      };
+      const namespaced: Array<MessagingSystemDescriptor> =
+        MESSAGING_SYSTEMS.filter(
+          (descriptor: MessagingSystemDescriptor): boolean => {
+            return descriptor.brokerScope === "azure-namespace";
+          },
+        );
+
+      expect(
+        namespaced
+          .map((descriptor: MessagingSystemDescriptor): string => {
+            return descriptor.system;
+          })
+          .sort(),
+      ).toEqual(Object.keys(AZURE_MONITOR_DATAPOINTS).sort());
+
+      for (const descriptor of namespaced) {
+        // An empty namespace is accepted, as "no namespace".
+        expect(canonicalizeMessageQueueBrokerScope(descriptor.system, "")).toBe(
+          "",
+        );
+
+        const byHandIdentity: MessageQueueIdentity | null =
+          toMessageQueueIdentity({
+            system: descriptor.system,
+            brokerScope: "",
+            destination: "orders",
+          });
+
+        expect(byHandIdentity).not.toBeNull();
+
+        // Where the emulator's and a custom domain's spans land ...
+        for (const host of ["localhost", "bus.shop.example.com"]) {
+          expect(
+            identityOf(
+              resolveSpan(
+                spanOf(descriptor.system, "orders", "SPAN_KIND_PRODUCER", {
+                  "server.address": host,
+                }),
+              ),
+            ),
+          ).toEqual(byHandIdentity);
+        }
+
+        // ... and never Azure Monitor's metrics, which name their namespace.
+        const monitored: MessageQueueIdentity | null = identityOf(
+          resolveDatapoint(
+            AZURE_MONITOR_DATAPOINTS[descriptor.system] as DatapointFixture,
+          ),
+        );
+
+        expect(monitored?.system).toBe(byHandIdentity?.system);
+        expect(monitored?.brokerScope).toBe("shop-prod");
+        expect(monitored).not.toEqual(byHandIdentity);
       }
     });
 
