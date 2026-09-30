@@ -257,12 +257,14 @@ export default class Log extends AnalyticsBaseModel {
       mapKeysColumn: "attributeKeys",
       /*
        * Bloom filter over the attribute VALUES, so an attribute filter
-       * (`attributes['k'] = 'v'`, `IN (...)`, and the has()/hasAny() hints the
-       * aggregation queries add) can skip granules instead of decompressing
-       * this column — by far the widest in the table — across the whole time
-       * range. idx_attribute_keys cannot do that: a granule of ~8K log lines
-       * holds nearly every key, but only a sliver of the values. A selective
-       * value skips almost everything; a common one only pays the probe.
+       * (`attributes['k'] = 'v'`, `IN (...)`, and the has()/hasAny()
+       * pre-filter the aggregation queries add — see
+       * appendAttributeValuesPrefilter) can skip granules instead of
+       * decompressing this column — by far the widest in the table — across
+       * the whole time range. idx_attribute_keys cannot do that: a granule of
+       * ~8K log lines holds nearly every key, but only a sliver of the values.
+       * A selective value skips almost everything; a common one only pays the
+       * probe.
        * Parts written before the index existed are covered once the
        * MaterializeAttributeValuesIndexOnLogTable data migration has run.
        */
