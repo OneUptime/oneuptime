@@ -26,6 +26,7 @@ import { AddProxmoxResourceNativePushColumns1796200000000 } from "./179620000000
 import { AddResourceAiAgents1796300000000 } from "./1796300000000-AddResourceAiAgents";
 import { AddIncidentForms1796400000000 } from "./1796400000000-AddIncidentForms";
 import { AddTeamComplianceRuleNotificationChannels1796500000000 } from "./1796500000000-AddTeamComplianceRuleNotificationChannels";
+import { FoldAiSwitchesIntoEnableAi1796600000000 } from "./1796600000000-FoldAiSwitchesIntoEnableAi";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1252,4 +1253,5 @@ export default [
   AddResourceAiAgents1796300000000,
   AddIncidentForms1796400000000,
   AddTeamComplianceRuleNotificationChannels1796500000000,
+  FoldAiSwitchesIntoEnableAi1796600000000,
 ];

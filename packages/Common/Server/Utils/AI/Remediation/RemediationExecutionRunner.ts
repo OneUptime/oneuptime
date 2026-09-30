@@ -137,34 +137,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  */
 
 /*
- * A cluster round: remediation a cluster's AI agent page asked for (its
- * Fixes mode), not an auto-remediation rule — it names a cluster and no
- * rule. The project's "Enable AI command execution" opt-in gates rule
- * rounds only; a cluster round's consent lives on the cluster (see
- * RemediationExecutionRunner.checkProjectGates). Keyed on the suggestion
- * row, never on the plan's step types: a rule can compose an all-kubectl
- * plan, and it was composed under the opt-in, so it stays under it. Shared
- * with the approve route so execution and approval can never disagree about
- * which rounds need the opt-in.
- */
-export function isClusterRemediationRound(suggestion: {
-  kubernetesClusterId?: ObjectID | undefined;
-  autoRemediationRuleId?: ObjectID | undefined;
-}): boolean {
-  return (
-    Boolean(suggestion.kubernetesClusterId) && !suggestion.autoRemediationRuleId
-  );
-}
-
-/*
  * A resource round: remediation an infrastructure resource's AI agent page
  * asked for (its Fixes mode) — a Docker or Podman host, a Docker Swarm,
  * Proxmox, VMware or Ceph cluster, a database server or a host — not a
  * rule. It names a resource (type and id) and no rule. Like a cluster
  * round, its consent lives on the resource (its Fixes mode, and the agent's
- * own ONEUPTIME_AI_ALLOW_WRITES), so the project's "Enable AI command
- * execution" opt-in does not gate it. Keyed on the suggestion row, never on
- * the plan's step types, and shared with the approve route.
+ * own ONEUPTIME_AI_ALLOW_WRITES). Keyed on the suggestion row, never on the
+ * plan's step types.
  */
 export function isResourceRemediationRound(suggestion: {
   resourceType?: AiResourceType | string | undefined;
@@ -810,9 +789,8 @@ export default class RemediationExecutionRunner {
        * would fall into the rule lane below and be closed as "the rule
        * behind this suggestion was deleted", naming a rule that never
        * existed. Its server-written name is what is left to tell. Checked
-       * before the project gates: nothing is left to run, and with no
-       * cluster on the row it no longer reads as a cluster round, so the
-       * gates would otherwise blame an opt-in it never needed.
+       * before the project gate: nothing is left to run, so the deletion,
+       * not a project switch, is what the round's record should say.
        */
       const deletedClusterRound: { clusterName: string } | null =
         !suggestion.kubernetesClusterId && !suggestion.autoRemediationRuleId
@@ -831,10 +809,6 @@ export default class RemediationExecutionRunner {
       // Gates that must still hold at execution time, not just at rule match.
       const gateFailure: string | null = await this.checkProjectGates({
         projectId,
-        isClusterRound: isClusterRemediationRound(suggestion),
-        ...(isResourceRemediationRound(suggestion)
-          ? { isResourceRound: true }
-          : {}),
       });
       if (gateFailure) {
         await this.settleNoneApplicable({
@@ -1981,57 +1955,30 @@ export default class RemediationExecutionRunner {
   }
 
   /*
-   * The project switches a round must still pass when it runs. Null when
-   * they do; otherwise the rationale for settling quietly.
+   * The project switch a round must still pass when it runs. Null when it
+   * does; otherwise the rationale for settling quietly.
    *
-   * Enable AI and Enable auto-remediation are kill switches for every
-   * round. The "Enable AI command execution" opt-in gates rule rounds
-   * (Bash/SSH on Runners, and kubectl a rule composes) but not a cluster
-   * round (isClusterRemediationRound): its consent is the cluster's own
-   * Fixes mode plus, for the in-cluster Kubernetes AI agent, the chart's
-   * write RBAC. A cluster reached through an advanced Runner with a
-   * Kubernetes credential has no chart RBAC behind it, so its status keeps
-   * the project_ai_command_execution_disabled gap while the opt-in is off —
-   * and the cluster round stops at isRemediationReady instead.
+   * Enable AI is the project's only AI switch and the kill switch for
+   * every round: rule rounds (Bash/SSH on Runners, and kubectl a rule
+   * composes), cluster rounds and resource rounds alike. Past it, a
+   * round's consent is its own: the rule's mode and allowlist and a
+   * Runner's Runs AI Remediation Commands, or the cluster's or resource's
+   * Fixes mode and its agent's write access.
    */
   public static async checkProjectGates(data: {
     projectId: ObjectID;
-    isClusterRound: boolean;
-    /*
-     * A resource round (isResourceRemediationRound): like a cluster round,
-     * its consent is the resource's own Fixes mode plus the agent's
-     * ONEUPTIME_AI_ALLOW_WRITES, so the opt-in does not gate it.
-     */
-    isResourceRound?: boolean | undefined;
   }): Promise<string | null> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: {
         enableAi: true,
-        enableAutoRemediation: true,
-        enableAiCommandExecution: true,
       },
       props: { isRoot: true },
     });
 
-    if (
-      !project ||
-      project.enableAi === false ||
-      project.enableAutoRemediation === false
-    ) {
-      return "AI or auto-remediation was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
-    }
-
-    if (data.isClusterRound || data.isResourceRound === true) {
-      return null;
-    }
-
-    /*
-     * Opt-in semantics (=== true): a rule's AI command execution never runs
-     * in a project that has not explicitly turned it on.
-     */
-    if (project.enableAiCommandExecution !== true) {
-      return "AI command execution is not enabled for this project (Project Settings → AI Features) — nothing was run or proposed.";
+    // === false: the column is NOT NULL DEFAULT true (see Project.enableAi).
+    if (!project || project.enableAi === false) {
+      return "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
     }
 
     return null;

@@ -529,6 +529,10 @@ export function getResourceAiAgentGapAction(
   switch (gap.code) {
     case "investigation_disabled":
       return "turn_on_investigation";
+    /*
+     * auto_remediation_disabled_for_project is retired (Enable AI covers
+     * it); an older server may still send it mid-rollout.
+     */
     case "ai_disabled_for_project":
     case "auto_remediation_disabled_for_project":
       return "open_ai_features";

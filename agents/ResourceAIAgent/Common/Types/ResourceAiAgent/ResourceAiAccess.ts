@@ -395,8 +395,13 @@ export function parseResourceAiAgentPosture(
  * remediation_disabled:          the remediation mode is Disabled.
  * remediation_write_access_missing: the agent runs read-only
  *                                (RESOURCE_AI_ALLOW_WRITES_ENV is not true).
- * ai_disabled_for_project / auto_remediation_disabled_for_project /
- * llm_provider_missing / ai_balance_insufficient: the project-wide gates.
+ * ai_disabled_for_project / llm_provider_missing / ai_balance_insufficient:
+ *                                the project-wide gates.
+ * auto_remediation_disabled_for_project: retired. It was the project's
+ *                                "Enable auto-remediation" switch, folded
+ *                                into Enable AI (ai_disabled_for_project);
+ *                                the status no longer produces it and the
+ *                                code stays for compatibility.
  */
 export type ResourceAiAccessGapCode =
   | "ai_agent_not_connected"

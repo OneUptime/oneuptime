@@ -1121,8 +1121,8 @@ enum PageMap {
 
   // AI Settings (LLM providers, credits, logs, MCP server)
   /*
-   * The project's AI switches — Enable AI, auto-remediation and AI command
-   * execution — on a page every install shows (AI Credits is billing-only).
+   * The project's AI switch, Enable AI, on a page every install shows (AI
+   * Credits is billing-only).
    */
   SETTINGS_AI_FEATURES = "SETTINGS_AI_FEATURES",
   SETTINGS_AI_LLM_PROVIDERS = "SETTINGS_AI_LLM_PROVIDERS",
