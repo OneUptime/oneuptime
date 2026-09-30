@@ -908,6 +908,20 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     );
     expect((await tool.execute(call)).result?.isTruncated).toBe(true);
 
+    /*
+     * What really arrives: the full-output read reports isTruncated false,
+     * but the Runner / AI agent wrote its own cut marker into the output
+     * (stdout past its byte cap, stderr kept after it).
+     */
+    jobRun.mockResolvedValueOnce(
+      ranOutcome({
+        isTruncated: false,
+        output:
+          "[stdout]\nweb-1  1/1  Running\n... [output truncated: stdout cut at 1000000 bytes; stderr follows]\n[stderr]\nwarning",
+      }),
+    );
+    expect((await tool.execute(call)).result?.isTruncated).toBe(true);
+
     // Long but whole: paged, and not truncated.
     jobRun.mockResolvedValueOnce(
       ranOutcome({ isTruncated: false, output: longListing("END") }),
@@ -1098,7 +1112,9 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     expect(over.textForLlm).toContain(
       `This run has already sent ${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION} kubectl commands, the most one run may send.`,
     );
-    expect(jobRun).toHaveBeenCalledTimes(MAX_KUBECTL_COMMANDS_PER_INVESTIGATION);
+    expect(jobRun).toHaveBeenCalledTimes(
+      MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
+    );
     expect(toolkit.getCommandsRun()).toBe(
       MAX_KUBECTL_COMMANDS_PER_INVESTIGATION,
     );
@@ -1109,7 +1125,9 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
           unknown
         >
       )["stepId"],
-    ).toBe(`ai-investigation-kubectl-${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION}`);
+    ).toBe(
+      `ai-investigation-kubectl-${MAX_KUBECTL_COMMANDS_PER_INVESTIGATION}`,
+    );
   });
 });
 
@@ -1358,21 +1376,17 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
     ).toBeUndefined();
 
     const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
-    const toolkit: KubectlInvestigationToolkit = new KubectlInvestigationToolkit(
-      {
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
         projectId: PROJECT_ID,
         aiRunId: RUN_ID,
         clusters: [readyCluster()],
-      },
-    );
+      });
 
     // A day into the run.
     jest.spyOn(Date, "now").mockReturnValue(NOW_MS + 24 * 60 * 60 * 1000);
 
-    const outcome: ToolCallOutcome = await run(
-      toolkit,
-      MAX_KUBECTL_TIMEOUT_MS,
-    );
+    const outcome: ToolCallOutcome = await run(toolkit, MAX_KUBECTL_TIMEOUT_MS);
 
     expect(outcome.success).toBe(true);
     expect(plan).toHaveBeenCalledWith({
@@ -1398,7 +1412,9 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
       )["description"] as string;
     };
 
-    const unlimited: string = timeoutDescription(toolkitWithDeadline(undefined));
+    const unlimited: string = timeoutDescription(
+      toolkitWithDeadline(undefined),
+    );
     expect(unlimited).toBe(
       `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}).`,
     );

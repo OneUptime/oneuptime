@@ -61,10 +61,18 @@ jest.mock("../../../UI/Utils/User", () => {
     __esModule: true,
     default: {
       getName: () => {
-        return { toString: () => "Sam Lee" };
+        return {
+          toString: () => {
+            return "Sam Lee";
+          },
+        };
       },
       getUserId: () => {
-        return { toString: () => "22222222-2222-4222-8222-222222222222" };
+        return {
+          toString: () => {
+            return "22222222-2222-4222-8222-222222222222";
+          },
+        };
       },
     },
   };
@@ -73,7 +81,10 @@ jest.mock("../../../UI/Utils/User", () => {
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
     __esModule: true,
-    default: (props: { text: string; safeMode?: boolean }): React.ReactElement => {
+    default: (props: {
+      text: string;
+      safeMode?: boolean;
+    }): React.ReactElement => {
       return React.createElement(
         "div",
         {
@@ -127,7 +138,11 @@ jest.mock(
           "ul",
           { "data-testid": "answer-sources" },
           props.citations.map((citation: { id: string; label: string }) => {
-            return React.createElement("li", { key: citation.id }, citation.label);
+            return React.createElement(
+              "li",
+              { key: citation.id },
+              citation.label,
+            );
           }),
         );
       },
@@ -219,7 +234,10 @@ function threadResponse(data: {
 }): { data: JSONObject } {
   return {
     data: {
-      conversationId: data.messages.length > 0 ? "77777777-7777-4777-8777-777777777777" : null,
+      conversationId:
+        data.messages.length > 0
+          ? "77777777-7777-4777-8777-777777777777"
+          : null,
       messages: data.messages,
       activeRun: data.activeRun ?? null,
       isBusy: data.isBusy === true,
@@ -357,7 +375,9 @@ describe("InvestigationConversation — an empty thread", () => {
     });
 
     expect(screen.getByText("Ask OneUptime AI")).toBeVisible();
-    expect(screen.getByTestId("investigation-conversation-empty")).toBeVisible();
+    expect(
+      screen.getByTestId("investigation-conversation-empty"),
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "What should I do right now?" }),
     ).toBeVisible();
@@ -512,7 +532,10 @@ describe("InvestigationConversation — asking", () => {
       send: () => {
         return new HTTPErrorResponse(
           400,
-          { message: "OneUptime AI is still answering a question in this thread." },
+          {
+            message:
+              "OneUptime AI is still answering a question in this thread.",
+          },
           {},
         );
       },
@@ -944,7 +967,9 @@ describe("InvestigationConversation — resilience", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     await flush();
 
-    expect(screen.getByTestId("investigation-conversation-empty")).toBeVisible();
+    expect(
+      screen.getByTestId("investigation-conversation-empty"),
+    ).toBeVisible();
   });
 
   test("moving to another incident never shows the previous thread", async () => {
@@ -981,7 +1006,9 @@ describe("InvestigationConversation — resilience", () => {
     await flush();
 
     expect(screen.queryByText("Old incident question")).toBeNull();
-    const loads: Array<PostRequest> = requests("/ai-investigation/conversation");
+    const loads: Array<PostRequest> = requests(
+      "/ai-investigation/conversation",
+    );
     expect(loads[loads.length - 1]!.data["subjectId"]).toBe(
       OTHER_INCIDENT.toString(),
     );

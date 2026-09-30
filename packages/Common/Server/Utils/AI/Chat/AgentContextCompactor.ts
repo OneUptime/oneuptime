@@ -60,9 +60,7 @@ export function buildElidedToolResult(originalContent: string): string {
   } to keep this investigation within the model's context window — it was ${originalContent.length.toLocaleString(
     "en-US",
   )} characters. ${
-    citation
-      ? `Citations to ${citation} you already wrote stay valid. `
-      : ""
+    citation ? `Citations to ${citation} you already wrote stay valid. ` : ""
   }If you need this data again, run the call again (or read_tool_output for a long command output).]`;
 }
 
@@ -166,7 +164,11 @@ export function joinAnswerContinuation(
    * Trim the longest overlap (bounded) between the end of the previous part
    * and the start of the continuation.
    */
-  const maxOverlap: number = Math.min(200, previous.length, continuation.length);
+  const maxOverlap: number = Math.min(
+    200,
+    previous.length,
+    continuation.length,
+  );
 
   for (let overlap: number = maxOverlap; overlap >= 12; overlap--) {
     if (previous.endsWith(continuation.slice(0, overlap))) {

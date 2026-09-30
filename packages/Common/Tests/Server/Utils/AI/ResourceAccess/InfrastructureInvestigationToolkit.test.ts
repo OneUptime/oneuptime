@@ -340,14 +340,15 @@ describe("InfrastructureInvestigationToolkit tools", () => {
   });
 
   it("mentions shortening the timeout only when the run has a time limit", () => {
-    const timeoutDescription: (kit: InfrastructureInvestigationToolkit) => string =
-      (kit: InfrastructureInvestigationToolkit): string => {
-        const schema: JSONObject = tool(kit, RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME)
-          .definition.inputSchema as JSONObject;
-        return (
-          (schema["properties"] as JSONObject)["timeoutInMs"] as JSONObject
-        )["description"] as string;
-      };
+    const timeoutDescription: (
+      kit: InfrastructureInvestigationToolkit,
+    ) => string = (kit: InfrastructureInvestigationToolkit): string => {
+      const schema: JSONObject = tool(kit, RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME)
+        .definition.inputSchema as JSONObject;
+      return (
+        (schema["properties"] as JSONObject)["timeoutInMs"] as JSONObject
+      )["description"] as string;
+    };
 
     const unlimited: string = timeoutDescription(toolkit([status()]));
     expect(unlimited).toBe(
@@ -849,9 +850,14 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
    * be read back through read_tool_output.
    */
   it("pages a long output instead of cutting it", async () => {
-    const fullOutput: string = longOutput("zzz999   redis:7   Exited (1)   LAST");
+    const fullOutput: string = longOutput(
+      "zzz999   redis:7   Exited (1)   LAST",
+    );
     expect(fullOutput.length).toBeGreaterThan(
-      Math.max(TOOL_OUTPUT_PAGE_CHARS, MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM),
+      Math.max(
+        TOOL_OUTPUT_PAGE_CHARS,
+        MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM,
+      ),
     );
     run.mockResolvedValue(outcome({ output: fullOutput }));
 

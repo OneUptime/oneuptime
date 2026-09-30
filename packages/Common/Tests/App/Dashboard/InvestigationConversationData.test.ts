@@ -193,8 +193,7 @@ describe("parseThreadView", () => {
 
   test("an active run without an id is ignored", () => {
     expect(
-      parseThreadView({ activeRun: { status: AIRunStatus.Running } })
-        .activeRun,
+      parseThreadView({ activeRun: { status: AIRunStatus.Running } }).activeRun,
     ).toBeNull();
   });
 });
@@ -207,13 +206,18 @@ describe("getThreadSignature", () => {
 
   test("is stable for the same thread", () => {
     expect(getThreadSignature(base)).toBe(
-      getThreadSignature(view({ conversationId: "c", messages: [message({})] })),
+      getThreadSignature(
+        view({ conversationId: "c", messages: [message({})] }),
+      ),
     );
   });
 
   test.each([
     ["a new message", { messages: [message({}), message({ id: "m2" })] }],
-    ["a status change", { messages: [message({ status: AIChatMessageStatus.Error })] }],
+    [
+      "a status change",
+      { messages: [message({ status: AIChatMessageStatus.Error })] },
+    ],
     ["an answer growing", { messages: [message({ content: "hi there" })] }],
     ["a busy flag", { isBusy: true }],
     [
@@ -265,15 +269,15 @@ describe("who is asking", () => {
   });
 
   test("possessives read naturally", () => {
-    expect(describeAuthorPossessive({ userId: PRIYA, name: "Priya" }, PRIYA)).toBe(
-      "your",
-    );
-    expect(describeAuthorPossessive({ userId: PRIYA, name: "Priya" }, SAM)).toBe(
-      "Priya's",
-    );
-    expect(describeAuthorPossessive({ userId: SAM, name: "James" }, PRIYA)).toBe(
-      "James'",
-    );
+    expect(
+      describeAuthorPossessive({ userId: PRIYA, name: "Priya" }, PRIYA),
+    ).toBe("your");
+    expect(
+      describeAuthorPossessive({ userId: PRIYA, name: "Priya" }, SAM),
+    ).toBe("Priya's");
+    expect(
+      describeAuthorPossessive({ userId: SAM, name: "James" }, PRIYA),
+    ).toBe("James'");
     expect(describeAuthorPossessive({ userId: SAM, name: " " }, PRIYA)).toBe(
       "a responder's",
     );
@@ -398,9 +402,9 @@ describe("getSendBlocker", () => {
   });
 
   test("nothing to send", () => {
-    expect(
-      getSendBlocker({ view: idle, input: "   ", isSending: false }),
-    ).toBe("Type a question or a request.");
+    expect(getSendBlocker({ view: idle, input: "   ", isSending: false })).toBe(
+      "Type a question or a request.",
+    );
   });
 
   test("already sending", () => {
@@ -457,9 +461,11 @@ describe("getSuggestedPrompts", () => {
       return prompt.isAction;
     });
 
-    expect(actions.map((prompt: SuggestedPrompt) => prompt.label)).toEqual([
-      "Acknowledge this incident",
-    ]);
+    expect(
+      actions.map((prompt: SuggestedPrompt) => {
+        return prompt.label;
+      }),
+    ).toEqual(["Acknowledge this incident"]);
     // The status update is only drafted, so it is a question.
     expect(
       getSuggestedPrompts("incident").find((prompt: SuggestedPrompt) => {

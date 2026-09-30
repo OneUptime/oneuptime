@@ -210,7 +210,9 @@ function finalizedMessage(spies: Spies): JSONObject | undefined {
   return undefined;
 }
 
-function readTool(execute: (args: JSONObject) => ToolCallOutcome): ChatExtraTool {
+function readTool(
+  execute: (args: JSONObject) => ToolCallOutcome,
+): ChatExtraTool {
   return {
     definition: {
       name: "run_kubectl",
@@ -473,7 +475,9 @@ describe("ChatAgentRunner.runTurn — run-scoped tools", () => {
           toolCalls: [{ id: "call-1", name: "run_kubectl", arguments: {} }],
         }) as never,
       )
-      .mockResolvedValueOnce(response({ content: "Could not run it." }) as never);
+      .mockResolvedValueOnce(
+        response({ content: "Could not run it." }) as never,
+      );
 
     await ChatAgentRunner.runTurn(
       buildRequest({
@@ -531,8 +535,7 @@ describe("ChatAgentRunner.runTurn — run-scoped tools", () => {
     expect(shadow).not.toHaveBeenCalled();
     expect(spies.toolboxExecute).toHaveBeenCalledTimes(1);
 
-    const offered: Array<LLMToolDefinition> =
-      llmRequest(spies, 0).tools || [];
+    const offered: Array<LLMToolDefinition> = llmRequest(spies, 0).tools || [];
     expect(
       offered.filter((tool: LLMToolDefinition) => {
         return tool.name === "query_incidents";
@@ -645,9 +648,7 @@ describe("ChatAgentRunner — extra mutation tools follow the permission mode", 
           return call[0] as { data: JSONObject };
         })
         .find((arg: { data: JSONObject }) => {
-          return (
-            arg.data["status"] === AIChatMessageStatus.WaitingForApproval
-          );
+          return arg.data["status"] === AIChatMessageStatus.WaitingForApproval;
         });
 
     const actions: Array<AIChatToolAction> = progress?.data[
@@ -703,7 +704,11 @@ describe("ChatAgentRunner.runTurn — no wall clock", () => {
       Array.from(
         { length: AI_AGENT_RUNAWAY_MAX_TOOL_CALLS + 2 },
         (_: unknown, index: number) => {
-          return { id: `call-${index}`, name: "query_incidents", arguments: {} };
+          return {
+            id: `call-${index}`,
+            name: "query_incidents",
+            arguments: {},
+          };
         },
       );
 
@@ -737,10 +742,15 @@ describe("ChatAgentRunner.runTurn — answers are finished, not cut off", () => 
 
     spies.executeWithLogging
       .mockResolvedValueOnce(
-        response({ content: "The node is at 93% because", stopReason: "length" }) as never,
+        response({
+          content: "The node is at 93% because",
+          stopReason: "length",
+        }) as never,
       )
       .mockResolvedValueOnce(
-        response({ content: " ClickHouse holds a large working set." }) as never,
+        response({
+          content: " ClickHouse holds a large working set.",
+        }) as never,
       );
 
     await ChatAgentRunner.runTurn(buildRequest());

@@ -275,7 +275,9 @@ export default class InvestigationThread {
     }
 
     if (incident?.rootCause) {
-      lines.push(`Root cause (as recorded by responders): ${incident.rootCause}`);
+      lines.push(
+        `Root cause (as recorded by responders): ${incident.rootCause}`,
+      );
     }
 
     return {

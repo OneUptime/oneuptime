@@ -22,7 +22,6 @@ import { ToolArgs } from "../Toolbox/ToolTypes";
 import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
-  KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
   KubectlJobOutcome,
   KubectlRunState,
 } from "./KubectlJobRunner";
@@ -37,6 +36,7 @@ import {
   describeClusterAccessTargetRole,
 } from "./ClusterAccessContext";
 import ToolOutputPager, {
+  hasAgentTruncationMarker,
   PagedToolOutput,
   READ_TOOL_OUTPUT_TOOL_NAME,
 } from "../Chat/ToolOutputPager";
@@ -568,8 +568,8 @@ export default class KubectlInvestigationToolkit {
         redactionCount: outcome.redactionCount ?? 0,
         // Paged output is complete; only an output the agent cut is not.
         isTruncated:
-          outcome.isTruncated ??
-          outcome.output.endsWith(KUBECTL_OUTPUT_TRUNCATED_SUFFIX.trim()),
+          outcome.isTruncated === true ||
+          hasAgentTruncationMarker(outcome.output),
       },
     };
   }

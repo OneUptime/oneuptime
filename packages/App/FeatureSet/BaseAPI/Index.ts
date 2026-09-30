@@ -5462,10 +5462,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
 
     // AI SRE — the shared conversation in the investigation box
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      AIInvestigationConversationAPI,
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationConversationAPI);
 
     /*
      * AI Insights — human verdict/resolve actions + live triage

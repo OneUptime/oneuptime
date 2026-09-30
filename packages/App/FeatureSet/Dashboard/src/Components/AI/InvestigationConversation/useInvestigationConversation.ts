@@ -132,26 +132,24 @@ export default function useInvestigationConversation(options: {
     };
   }, []);
 
-  const post: (
-    path: string,
-    data: JSONObject,
-  ) => Promise<JSONObject> = useCallback(
-    async (path: string, data: JSONObject): Promise<JSONObject> => {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromString(`${APP_API_URL.toString()}${path}`),
-          data: { subjectType, subjectId, ...data },
-          headers: ModelAPI.getCommonHeaders(),
-        });
+  const post: (path: string, data: JSONObject) => Promise<JSONObject> =
+    useCallback(
+      async (path: string, data: JSONObject): Promise<JSONObject> => {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(`${APP_API_URL.toString()}${path}`),
+            data: { subjectType, subjectId, ...data },
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
-      }
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
 
-      return (response.data || {}) as JSONObject;
-    },
-    [subjectType, subjectId],
-  );
+        return (response.data || {}) as JSONObject;
+      },
+      [subjectType, subjectId],
+    );
 
   const refresh: () => Promise<void> = useCallback(async (): Promise<void> => {
     const requestId: number = requestCounterRef.current + 1;
@@ -256,76 +254,75 @@ export default function useInvestigationConversation(options: {
     [],
   );
 
-  const sendMessage: (contentOverride?: string) => Promise<void> =
-    useCallback(
-      async (contentOverride?: string): Promise<void> => {
-        const content: string = (contentOverride ?? input).trim();
+  const sendMessage: (contentOverride?: string) => Promise<void> = useCallback(
+    async (contentOverride?: string): Promise<void> => {
+      const content: string = (contentOverride ?? input).trim();
 
-        if (!content || isSending) {
+      if (!content || isSending) {
+        return;
+      }
+
+      const requestedSubjectKey: string = subjectKey;
+
+      setIsSending(true);
+      setActionError(null);
+      setPendingQuestion(
+        buildOptimisticQuestion({
+          content,
+          viewerUserId: serverView.viewerUserId || getViewerUserId(),
+          viewerName: getViewerName(),
+          now: new Date(),
+        }),
+      );
+
+      if (contentOverride === undefined) {
+        setInput("");
+      }
+
+      busyRef.current = true;
+
+      try {
+        await post("/ai-investigation/conversation/send-message", {
+          content,
+          permissionMode,
+        });
+
+        if (subjectKeyRef.current !== requestedSubjectKey) {
           return;
         }
 
-        const requestedSubjectKey: string = subjectKey;
+        await refresh();
+      } catch (error: unknown) {
+        if (subjectKeyRef.current !== requestedSubjectKey) {
+          return;
+        }
 
-        setIsSending(true);
-        setActionError(null);
-        setPendingQuestion(
-          buildOptimisticQuestion({
-            content,
-            viewerUserId: serverView.viewerUserId || getViewerUserId(),
-            viewerName: getViewerName(),
-            now: new Date(),
-          }),
-        );
+        busyRef.current = false;
+        setActionError(API.getFriendlyMessage(error));
 
+        // Give the question back so nothing typed is ever lost.
         if (contentOverride === undefined) {
-          setInput("");
-        }
-
-        busyRef.current = true;
-
-        try {
-          await post("/ai-investigation/conversation/send-message", {
-            content,
-            permissionMode,
+          setInput((current: string) => {
+            return current ? current : content;
           });
-
-          if (subjectKeyRef.current !== requestedSubjectKey) {
-            return;
-          }
-
-          await refresh();
-        } catch (error: unknown) {
-          if (subjectKeyRef.current !== requestedSubjectKey) {
-            return;
-          }
-
-          busyRef.current = false;
-          setActionError(API.getFriendlyMessage(error));
-
-          // Give the question back so nothing typed is ever lost.
-          if (contentOverride === undefined) {
-            setInput((current: string) => {
-              return current ? current : content;
-            });
-          }
-        } finally {
-          if (subjectKeyRef.current === requestedSubjectKey) {
-            setIsSending(false);
-            setPendingQuestion(null);
-          }
         }
-      },
-      [
-        input,
-        isSending,
-        permissionMode,
-        post,
-        refresh,
-        serverView.viewerUserId,
-        subjectKey,
-      ],
-    );
+      } finally {
+        if (subjectKeyRef.current === requestedSubjectKey) {
+          setIsSending(false);
+          setPendingQuestion(null);
+        }
+      }
+    },
+    [
+      input,
+      isSending,
+      permissionMode,
+      post,
+      refresh,
+      serverView.viewerUserId,
+      subjectKey,
+    ],
+  );
 
   const respondToApproval: (
     assistantMessageId: string,

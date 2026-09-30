@@ -17,6 +17,7 @@ import AIToolbox, {
 } from "../../../../Server/Utils/AI/Toolbox/Index";
 import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
 import { JSONObject } from "../../../../Types/JSON";
+import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
@@ -123,7 +124,9 @@ function advancingClock(stepMs: number): void {
 }
 
 async function ask(
-  overrides?: Partial<Parameters<typeof ObservabilityAssistant.answerQuestion>[0]>,
+  overrides?: Partial<
+    Parameters<typeof ObservabilityAssistant.answerQuestion>[0]
+  >,
 ): Promise<ObservabilityAssistantResult> {
   return ObservabilityAssistant.answerQuestion({
     projectId: ObjectID.generate(),
@@ -154,9 +157,9 @@ describe("ObservabilityAssistant — time limits", () => {
     expect(spies.toolbox).toHaveBeenCalledTimes(3);
     expect(result.toolCallCount).toBe(3);
     expect(request(spies.execute, 3).tools).toBeDefined();
-    expect(
-      JSON.stringify(request(spies.execute, 3).messages),
-    ).not.toContain("time limit");
+    expect(JSON.stringify(request(spies.execute, 3).messages)).not.toContain(
+      "time limit",
+    );
     expect(result.contentInMarkdown).toBe("Done.");
   });
 
@@ -166,7 +169,9 @@ describe("ObservabilityAssistant — time limits", () => {
 
     spies.execute
       .mockResolvedValueOnce(toolCallResponse("a", "query_incidents") as never)
-      .mockResolvedValue(response({ content: "What I found so far." }) as never);
+      .mockResolvedValue(
+        response({ content: "What I found so far." }) as never,
+      );
 
     await ask({ maxWallClockMs: 15 * MINUTE_MS });
 
@@ -291,7 +296,9 @@ describe("ObservabilityAssistant — finished reports", () => {
         }) as never,
       )
       .mockResolvedValueOnce(
-        response({ content: " ClickHouse holds a large working set." }) as never,
+        response({
+          content: " ClickHouse holds a large working set.",
+        }) as never,
       );
 
     const result: ObservabilityAssistantResult = await ask({
@@ -305,9 +312,9 @@ describe("ObservabilityAssistant — finished reports", () => {
 
     const continuation: AILogRequest = request(spies.execute, 1);
     expect(continuation.tools).toBeUndefined();
-    expect(continuation.messages[continuation.messages.length - 1]!.content).toBe(
-      CONTINUE_ANSWER_INSTRUCTION,
-    );
+    expect(
+      continuation.messages[continuation.messages.length - 1]!.content,
+    ).toBe(CONTINUE_ANSWER_INSTRUCTION);
   });
 
   test("stops continuing after the maximum and returns what it has", async () => {
@@ -352,7 +359,9 @@ describe("ObservabilityAssistant — run-scoped tools", () => {
           ],
         }) as never,
       )
-      .mockResolvedValueOnce(response({ content: "ClickHouse [C1]." }) as never);
+      .mockResolvedValueOnce(
+        response({ content: "ClickHouse [C1]." }) as never,
+      );
 
     const result: ObservabilityAssistantResult = await ask({
       maxWallClockMs: null,
@@ -369,9 +378,11 @@ describe("ObservabilityAssistant — run-scoped tools", () => {
 
     expect(executed).toEqual([{ command: "kubectl top pods -A" }]);
     expect(spies.toolbox).not.toHaveBeenCalled();
-    expect(result.citations.map((citation) => citation.toolName)).toEqual([
-      "run_kubectl",
-    ]);
+    expect(
+      result.citations.map((citation: AIChatCitation): string => {
+        return citation.toolName;
+      }),
+    ).toEqual(["run_kubectl"]);
     expect(result.contentInMarkdown).toBe("ClickHouse [C1].");
     expect(
       steps.map((step: ObservabilityAssistantStep) => {
@@ -422,7 +433,9 @@ describe("ObservabilityAssistant — context compaction", () => {
         toolCallResponse(`call-${index}`, "run_kubectl") as never,
       );
     }
-    spies.execute.mockResolvedValueOnce(response({ content: "Done." }) as never);
+    spies.execute.mockResolvedValueOnce(
+      response({ content: "Done." }) as never,
+    );
 
     await ask({
       maxWallClockMs: null,

@@ -27,7 +27,6 @@ import { ToolArgs } from "../Toolbox/ToolTypes";
 import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
-  RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX,
   ResourceCommandJobOutcome,
   ResourceCommandRunState,
 } from "./ResourceCommandJobRunner";
@@ -40,6 +39,7 @@ import ResourceAccessContext, {
   describeResource,
 } from "./ResourceAccessContext";
 import ToolOutputPager, {
+  hasAgentTruncationMarker,
   PagedToolOutput,
   READ_TOOL_OUTPUT_TOOL_NAME,
 } from "../Chat/ToolOutputPager";
@@ -572,11 +572,10 @@ export default class InfrastructureInvestigationToolkit {
         rowCount: outcome.succeeded ? 1 : 0,
         citationLabel,
         redactionCount: outcome.redactionCount ?? 0,
+        // Paged output is complete; only an output the agent cut is not.
         isTruncated:
-          outcome.isTruncated ??
-          outcome.output.endsWith(
-            RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX.trim(),
-          ),
+          outcome.isTruncated === true ||
+          hasAgentTruncationMarker(outcome.output),
       },
     };
   }

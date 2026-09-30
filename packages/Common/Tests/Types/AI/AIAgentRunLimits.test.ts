@@ -85,9 +85,9 @@ describe("AIAgentRunLimitsHelper.normalizeTimeLimitInMinutes", () => {
   });
 
   test("clamps an absurdly long limit", () => {
-    expect(
-      AIAgentRunLimitsHelper.normalizeTimeLimitInMinutes(1_000_000),
-    ).toBe(MAX_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES);
+    expect(AIAgentRunLimitsHelper.normalizeTimeLimitInMinutes(1_000_000)).toBe(
+      MAX_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
+    );
   });
 
   test("accepts a numeric string (form values arrive as strings)", () => {

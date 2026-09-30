@@ -188,7 +188,9 @@ export default class InvestigationThreadService {
         aiRunId: activeMessage.aiRunId.toString(),
         assistantMessageId: activeMessage.id?.toString() || null,
         status: run?.status || null,
-        startedAt: run?.startedAt ? OneUptimeDate.toString(run.startedAt) : null,
+        startedAt: run?.startedAt
+          ? OneUptimeDate.toString(run.startedAt)
+          : null,
         events: BaseModel.toJSONArray(events, AIRunEvent),
       };
     }
@@ -503,14 +505,13 @@ export default class InvestigationThreadService {
     const conversation: AIConversation | null =
       await InvestigationThread.findThread(data);
 
-    const cancellation: ChatRunCancellationResult | null =
-      conversation?.id
-        ? await ChatRunCancellation.cancelActiveRun({
-            projectId: data.projectId,
-            conversationId: conversation.id,
-            userId: data.userId,
-          })
-        : null;
+    const cancellation: ChatRunCancellationResult | null = conversation?.id
+      ? await ChatRunCancellation.cancelActiveRun({
+          projectId: data.projectId,
+          conversationId: conversation.id,
+          userId: data.userId,
+        })
+      : null;
 
     if (!cancellation) {
       throw new BadDataException("OneUptime AI is not answering anything.");

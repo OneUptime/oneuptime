@@ -174,7 +174,7 @@ export default class ObservabilityAssistant {
     const maxWallClockMs: number | undefined =
       request.maxWallClockMs === null
         ? undefined
-        : (request.maxWallClockMs ?? MAX_WALL_CLOCK_MS);
+        : request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
     const maxOutputTokens: number =
       request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
 

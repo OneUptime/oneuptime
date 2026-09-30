@@ -167,7 +167,9 @@ describe("InvestigationThreadService.sendMessage", () => {
   });
 
   async function send(
-    overrides?: Partial<Parameters<typeof InvestigationThreadService.sendMessage>[0]>,
+    overrides?: Partial<
+      Parameters<typeof InvestigationThreadService.sendMessage>[0]
+    >,
   ): Promise<InvestigationThreadSendResult> {
     return InvestigationThreadService.sendMessage({
       projectId: PROJECT_ID,
@@ -196,9 +198,7 @@ describe("InvestigationThreadService.sendMessage", () => {
 
     const [question, answer] = createdMessages;
     expect(question!.role).toBe(AIChatMessageRole.User);
-    expect(question!.contentInMarkdown).toBe(
-      "Which pods use the most memory?",
-    );
+    expect(question!.contentInMarkdown).toBe("Which pods use the most memory?");
     expect(question!.userId?.toString()).toBe(ASKER_ID.toString());
     expect(answer!.role).toBe(AIChatMessageRole.Assistant);
     expect(answer!.status).toBe(AIChatMessageStatus.InProgress);
@@ -222,27 +222,27 @@ describe("InvestigationThreadService.sendMessage", () => {
     await flush();
 
     expect(DEFAULT_THREAD_PERMISSION_MODE).toBe(AIChatPermissionMode.AutoRun);
-    expect(
-      (runTurn.mock.calls[0]![0] as ChatTurnRequest).permissionMode,
-    ).toBe(AIChatPermissionMode.AutoRun);
+    expect((runTurn.mock.calls[0]![0] as ChatTurnRequest).permissionMode).toBe(
+      AIChatPermissionMode.AutoRun,
+    );
   });
 
   test("uses the mode the asker chose", async () => {
     await send({ permissionMode: AIChatPermissionMode.AskForApproval });
     await flush();
 
-    expect(
-      (runTurn.mock.calls[0]![0] as ChatTurnRequest).permissionMode,
-    ).toBe(AIChatPermissionMode.AskForApproval);
+    expect((runTurn.mock.calls[0]![0] as ChatTurnRequest).permissionMode).toBe(
+      AIChatPermissionMode.AskForApproval,
+    );
   });
 
   test("ignores an unknown mode and falls back to the default", async () => {
     await send({ permissionMode: "Sudo" });
     await flush();
 
-    expect(
-      (runTurn.mock.calls[0]![0] as ChatTurnRequest).permissionMode,
-    ).toBe(DEFAULT_THREAD_PERMISSION_MODE);
+    expect((runTurn.mock.calls[0]![0] as ChatTurnRequest).permissionMode).toBe(
+      DEFAULT_THREAD_PERMISSION_MODE,
+    );
   });
 
   test("a context that cannot be built still answers the question", async () => {
@@ -259,10 +259,13 @@ describe("InvestigationThreadService.sendMessage", () => {
     expect(turn.extraTools).toBeUndefined();
   });
 
-  test.each([[""], ["   "]])("refuses an empty question %p", async (content: string) => {
-    await expect(send({ content })).rejects.toThrow(BadDataException);
-    expect(createdRuns).toHaveLength(0);
-  });
+  test.each([[""], ["   "]])(
+    "refuses an empty question %p",
+    async (content: string) => {
+      await expect(send({ content })).rejects.toThrow(BadDataException);
+      expect(createdRuns).toHaveLength(0);
+    },
+  );
 
   test("refuses a question over the length limit", async () => {
     await expect(
@@ -271,7 +274,9 @@ describe("InvestigationThreadService.sendMessage", () => {
   });
 
   test("refuses when AI is turned off for the project", async () => {
-    (ProjectService.findOneById as unknown as jest.SpyInstance).mockResolvedValue(
+    (
+      ProjectService.findOneById as unknown as jest.SpyInstance
+    ).mockResolvedValue(
       (() => {
         const project: Project = new Project(PROJECT_ID);
         project.enableAi = false;
@@ -615,7 +620,11 @@ describe("InvestigationThreadService.cancelRun", () => {
 });
 
 describe("InvestigationThreadService.getView", () => {
-  function question(content: string, userId: ObjectID, name: string): AIConversationMessage {
+  function question(
+    content: string,
+    userId: ObjectID,
+    name: string,
+  ): AIConversationMessage {
     const message: AIConversationMessage = new AIConversationMessage(
       ObjectID.generate(),
     );
@@ -704,9 +713,11 @@ describe("InvestigationThreadService.getView", () => {
     expect(view["conversationId"]).toBe(THREAD_ID.toString());
     expect(view["isBusy"]).toBe(false);
     expect(view["activeRun"]).toBeNull();
-    expect(messages.map((message: JSONObject) => {
-      return message["contentInMarkdown"];
-    })).toEqual([
+    expect(
+      messages.map((message: JSONObject) => {
+        return message["contentInMarkdown"];
+      }),
+    ).toEqual([
       "Which pods use the most memory?",
       "ClickHouse uses 120Gi [C1].",
       "And for me?",

@@ -155,8 +155,15 @@ function projectWithTimeLimits(limits: {
   alertMinutes?: number | undefined;
 }): Project {
   const project: Project = new Project(projectId);
-  project.incidentAiInvestigationTimeLimitInMinutes = limits.incidentMinutes;
-  project.alertAiInvestigationTimeLimitInMinutes = limits.alertMinutes;
+
+  if (limits.incidentMinutes !== undefined) {
+    project.incidentAiInvestigationTimeLimitInMinutes = limits.incidentMinutes;
+  }
+
+  if (limits.alertMinutes !== undefined) {
+    project.alertAiInvestigationTimeLimitInMinutes = limits.alertMinutes;
+  }
+
   return project;
 }
 

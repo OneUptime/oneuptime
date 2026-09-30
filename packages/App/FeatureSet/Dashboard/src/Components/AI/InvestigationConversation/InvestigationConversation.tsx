@@ -1,4 +1,6 @@
-import ChatActivityFeed, { hasRenderableActivity } from "../../AIChat/ChatActivityFeed";
+import ChatActivityFeed, {
+  hasRenderableActivity,
+} from "../../AIChat/ChatActivityFeed";
 import ChatInput from "../../AIChat/ChatInput";
 import CitationChips from "../../AIChat/CitationChips";
 import PermissionModePicker from "../../AIChat/PermissionModePicker";
@@ -339,8 +341,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           >
             <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 motion-safe:animate-spin" />
             <span>
-              {activityLine ||
-                `${AI_DISPLAY_NAME} is looking into it…`}
+              {activityLine || `${AI_DISPLAY_NAME} is looking into it…`}
             </span>
           </div>
         ) : (
@@ -393,8 +394,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {message.status === AIChatMessageStatus.Completed &&
-        message.content ? (
+        {message.status === AIChatMessageStatus.Completed && message.content ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -436,8 +436,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             <span className="text-sm font-semibold text-gray-900">
               {AI_DISPLAY_NAME}
             </span>
-            {!isViewer(message.author, viewerUserId) &&
-            message.author.name ? (
+            {!isViewer(message.author, viewerUserId) && message.author.name ? (
               <span className="text-xs text-gray-400">
                 to {message.author.name}
               </span>

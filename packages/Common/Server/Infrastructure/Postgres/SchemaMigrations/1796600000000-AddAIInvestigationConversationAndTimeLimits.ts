@@ -59,7 +59,9 @@ export class AddAIInvestigationConversationAndTimeLimits1796600000000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_3e33d202ee06482ea5bdfae6ec"`,
     );
-    await queryRunner.query(`ALTER TABLE "AIConversation" DROP COLUMN "alertId"`);
+    await queryRunner.query(
+      `ALTER TABLE "AIConversation" DROP COLUMN "alertId"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "AIConversation" DROP COLUMN "incidentId"`,
     );

@@ -1,5 +1,4 @@
 import { mockRouter } from "./Helpers";
-import "../../../Server/API/AIInvestigationConversationAPI";
 import { parseInvestigationThreadSubject } from "../../../Server/API/AIInvestigationConversationAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import AlertService from "../../../Server/Services/AlertService";
@@ -128,7 +127,11 @@ function bodyFor(route: string, subjectType: "incident" | "alert"): JSONObject {
   }
 
   if (route.endsWith("respond-to-approval")) {
-    return { ...base, assistantMessageId: MESSAGE_ID.toString(), approved: true };
+    return {
+      ...base,
+      assistantMessageId: MESSAGE_ID.toString(),
+      approved: true,
+    };
   }
 
   return base;
@@ -292,7 +295,10 @@ describe.each(["incident", "alert"] as const)(
       const next: jest.Mock = await call(
         "/ai-investigation/conversation/send-message",
         {
-          ...bodyFor("/ai-investigation/conversation/send-message", subjectType),
+          ...bodyFor(
+            "/ai-investigation/conversation/send-message",
+            subjectType,
+          ),
           permissionMode: "AskForApproval",
         },
       );
@@ -362,7 +368,9 @@ describe.each(["incident", "alert"] as const)(
       );
 
       expect(next).toHaveBeenCalledTimes(1);
-      expect(InvestigationThreadService.respondToApproval).not.toHaveBeenCalled();
+      expect(
+        InvestigationThreadService.respondToApproval,
+      ).not.toHaveBeenCalled();
     });
 
     test("stops the answer in flight", async () => {

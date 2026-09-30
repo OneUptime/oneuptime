@@ -144,9 +144,10 @@ export function parseThreadMessage(json: JSONObject): ThreadMessage | null {
   return {
     id,
     role: role as AIChatMessageRole,
-    content: typeof json["contentInMarkdown"] === "string"
-      ? (json["contentInMarkdown"] as string)
-      : "",
+    content:
+      typeof json["contentInMarkdown"] === "string"
+        ? (json["contentInMarkdown"] as string)
+        : "",
     status: status as AIChatMessageStatus,
     citations: asArray<AIChatCitation>(json["citations"]),
     widgets: asArray<AIChatWidget>(json["widgets"]),
@@ -161,7 +162,9 @@ export function parseThreadMessage(json: JSONObject): ThreadMessage | null {
   };
 }
 
-export function parseThreadView(json: JSONObject | null | undefined): ThreadView {
+export function parseThreadView(
+  json: JSONObject | null | undefined,
+): ThreadView {
   if (!json || typeof json !== "object") {
     return EMPTY_THREAD_VIEW;
   }

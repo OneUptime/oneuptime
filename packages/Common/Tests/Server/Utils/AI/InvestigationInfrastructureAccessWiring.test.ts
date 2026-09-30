@@ -189,8 +189,15 @@ function projectWithTimeLimits(limits: {
   alertMinutes?: number | undefined;
 }): Project {
   const project: Project = new Project(projectId);
-  project.incidentAiInvestigationTimeLimitInMinutes = limits.incidentMinutes;
-  project.alertAiInvestigationTimeLimitInMinutes = limits.alertMinutes;
+
+  if (limits.incidentMinutes !== undefined) {
+    project.incidentAiInvestigationTimeLimitInMinutes = limits.incidentMinutes;
+  }
+
+  if (limits.alertMinutes !== undefined) {
+    project.alertAiInvestigationTimeLimitInMinutes = limits.alertMinutes;
+  }
+
   return project;
 }
 
@@ -527,36 +534,161 @@ describe("Investigation runners wire infrastructure access beside cluster access
   });
 
   test.each(SUBJECT_KINDS)(
-    "a %s investigation's infrastructure tools are bound to this run and its deadline",
+    "a %s investigation's infrastructure tools are bound to this run, with no deadline by default",
     async (kind: SubjectKind) => {
       const NOW_MS: number = 1_700_000_000_000;
       const now: jest.SpyInstance = jest
         .spyOn(Date, "now")
         .mockReturnValue(NOW_MS);
-      const enqueue: jest.SpyInstance = jest.spyOn(
-        RunnerJobService,
-        "enqueueAiResourceCommand",
-      );
+      const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+      const commandRun: jest.SpyInstance = jest
+        .spyOn(ResourceCommandJobRunner, "run")
+        .mockResolvedValue(resourceOutcome("[stdout]\nabc   nginx"));
 
       await investigate(kind);
 
-      const runCommand: ObservabilityAssistantExtraTool = (
-        sentRequest(executeRun).extraTools || []
-      ).find((tool: ObservabilityAssistantExtraTool) => {
-        return tool.definition.name === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME;
-      })!;
+      const runCommand: ObservabilityAssistantExtraTool = findTool(
+        sentRequest(executeRun),
+        RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+      );
 
-      // The run's wall clock has run out: the toolkit refuses on its own.
-      now.mockReturnValue(NOW_MS + INVESTIGATION_MAX_WALL_CLOCK_MS + 1);
-      const outcome: ToolCallOutcome = await runCommand.execute({
-        resourceId: DOCKER_ID,
-        command: "docker ps -a",
-        rationale: "see the containers",
+      // A day into the run: an unlimited run is never refused for time.
+      now.mockReturnValue(NOW_MS + 24 * 60 * 60 * 1000);
+      const outcome: ToolCallOutcome =
+        await runCommand.execute(RUN_COMMAND_ARGS);
+
+      expect(outcome.success).toBe(true);
+      expect(plan).toHaveBeenCalledWith(
+        expect.objectContaining({ deadlineAtMs: undefined }),
+      );
+      expect(commandRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId,
+          aiRunId,
+          origin: RunnerJobOrigin.AiInvestigation,
+          resourceType: AiResourceType.DockerHost,
+          command: "docker ps -a",
+        }),
+      );
+    },
+  );
+
+  /*
+   * A project that configured a time limit for the lane: the engine gets
+   * it as maxWallClockMs, and the infrastructure toolkit the deadline it
+   * ends at — the same number, measured from when the run was wired.
+   */
+  test.each(SUBJECT_KINDS)(
+    "a %s investigation with a configured time limit hands the engine and the infrastructure tools the same deadline",
+    async (kind: SubjectKind) => {
+      const NOW_MS: number = 1_700_000_000_000;
+      const LIMIT_MS: number = 15 * 60 * 1000;
+      findProject.mockResolvedValue(
+        projectWithTimeLimits({ incidentMinutes: 15, alertMinutes: 15 }),
+      );
+      const now: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(NOW_MS);
+      const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+      const commandRun: jest.SpyInstance = jest
+        .spyOn(ResourceCommandJobRunner, "run")
+        .mockResolvedValue(resourceOutcome("[stdout]\nabc   nginx"));
+
+      await investigate(kind);
+
+      const request: InvestigationRequest = sentRequest(executeRun);
+      expect(request.maxWallClockMs).toBe(LIMIT_MS);
+
+      const runCommand: ObservabilityAssistantExtraTool = findTool(
+        request,
+        RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+      );
+
+      // Within the limit: planned against the run's deadline.
+      now.mockReturnValue(NOW_MS + 60_000);
+      expect((await runCommand.execute(RUN_COMMAND_ARGS)).success).toBe(true);
+      expect(plan).toHaveBeenCalledWith(
+        expect.objectContaining({ deadlineAtMs: NOW_MS + LIMIT_MS }),
+      );
+
+      // Past it: the toolkit refuses on its own, enqueuing nothing.
+      now.mockReturnValue(NOW_MS + LIMIT_MS + 1);
+      const late: ToolCallOutcome = await runCommand.execute(RUN_COMMAND_ARGS);
+
+      expect(late.success).toBe(false);
+      expect(late.textForLlm).toContain(
+        "Not enough time is left before this investigation's configured time limit to run another infrastructure command",
+      );
+      expect(commandRun).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  /*
+   * The kubectl and infrastructure toolkits of one run share one pager:
+   * their long outputs are numbered in one sequence, and the single
+   * read_tool_output the run is offered reads both. Two pagers would both
+   * hand out "out-1", and the reader could read neither.
+   */
+  test.each(SUBJECT_KINDS)(
+    "a %s investigation's command toolkits share one pager behind read_tool_output",
+    async (kind: SubjectKind) => {
+      clusterStatuses.mockResolvedValue([clusterStatus()]);
+      jest
+        .spyOn(KubectlJobRunner, "run")
+        .mockResolvedValue(
+          kubectlOutcome(
+            longOutput("web-1  1/1     Running   0\n", "KUBECTL-LAST-LINE"),
+          ),
+        );
+      jest
+        .spyOn(ResourceCommandJobRunner, "run")
+        .mockResolvedValue(
+          resourceOutcome(
+            longOutput(
+              "abc123   nginx:1.27   Up 3 hours\n",
+              "DOCKER-LAST-LINE",
+            ),
+          ),
+        );
+
+      await investigate(kind);
+
+      const request: InvestigationRequest = sentRequest(executeRun);
+      const readTool: ObservabilityAssistantExtraTool =
+        request.extraTools![request.extraTools!.length - 1]!;
+      expect(readTool.definition.name).toBe(READ_TOOL_OUTPUT_TOOL_NAME);
+
+      const kubectl: ToolCallOutcome = await findTool(
+        request,
+        RUN_KUBECTL_TOOL_NAME,
+      ).execute({
+        clusterId: CLUSTER_ID,
+        command: "kubectl get pods -A",
+        rationale: "every pod",
+      });
+      const docker: ToolCallOutcome = await findTool(
+        request,
+        RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+      ).execute(RUN_COMMAND_ARGS);
+
+      expect(kubectl.textForLlm).toContain('outputId="out-1"');
+      expect(kubectl.textForLlm).not.toContain("KUBECTL-LAST-LINE");
+      expect(docker.textForLlm).toContain('outputId="out-2"');
+      expect(docker.textForLlm).not.toContain("DOCKER-LAST-LINE");
+
+      const kubectlTail: ToolCallOutcome = await readTool.execute({
+        outputId: "out-1",
+        offset: -40,
+      });
+      const dockerTail: ToolCallOutcome = await readTool.execute({
+        outputId: "out-2",
+        offset: -40,
       });
 
-      expect(outcome.success).toBe(false);
-      expect(outcome.textForLlm).toContain("Not enough time is left");
-      expect(enqueue).not.toHaveBeenCalled();
+      expect(kubectlTail.success).toBe(true);
+      expect(kubectlTail.textForLlm).toContain("KUBECTL-LAST-LINE");
+      expect(dockerTail.success).toBe(true);
+      expect(dockerTail.textForLlm).toContain("DOCKER-LAST-LINE");
     },
   );
 });

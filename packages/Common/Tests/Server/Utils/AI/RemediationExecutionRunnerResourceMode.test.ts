@@ -729,6 +729,8 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
         "execute_remediation_command",
         LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+        // The reads are paged, never cut: their reader comes with them.
+        "read_tool_output",
       ].sort(),
     );
     expect(request.get().personaOverride).toContain(

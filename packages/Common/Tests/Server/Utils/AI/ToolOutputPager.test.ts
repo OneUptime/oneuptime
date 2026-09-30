@@ -1,4 +1,5 @@
 import ToolOutputPager, {
+  hasAgentTruncationMarker,
   MAX_STORED_TOOL_OUTPUT_CHARS,
   MAX_TOOL_OUTPUT_READ_CHARS,
   PagedToolOutput,
@@ -155,8 +156,10 @@ describe("ToolOutputPager.paginate", () => {
 describe("ToolOutputPager.read", () => {
   const pager: ToolOutputPager = new ToolOutputPager({ pageChars: 100 });
   const text: string = numbered(1_000);
-  const outputId: string = pager.paginate({ label: "kubectl logs", text })
-    .outputId!;
+  const outputId: string = pager.paginate({
+    label: "kubectl logs",
+    text,
+  }).outputId!;
 
   test("reads from an offset for one page by default", () => {
     const page: ToolOutputPage = pager.read({
@@ -193,9 +196,9 @@ describe("ToolOutputPager.read", () => {
   });
 
   test("clamps offsets past either end", () => {
-    expect((pager.read({ outputId, offset: 5_000 }) as ToolOutputPage).text).toBe(
-      "",
-    );
+    expect(
+      (pager.read({ outputId, offset: 5_000 }) as ToolOutputPage).text,
+    ).toBe("");
     expect(
       (pager.read({ outputId, offset: -5_000 }) as ToolOutputPage).offset,
     ).toBe(0);
@@ -208,8 +211,10 @@ describe("ToolOutputPager.read", () => {
 
     const bigPager: ToolOutputPager = new ToolOutputPager({ pageChars: 10 });
     const bigText: string = numbered(MAX_TOOL_OUTPUT_READ_CHARS * 2);
-    const bigId: string = bigPager.paginate({ label: "big", text: bigText })
-      .outputId!;
+    const bigId: string = bigPager.paginate({
+      label: "big",
+      text: bigText,
+    }).outputId!;
 
     expect(
       (
@@ -237,8 +242,10 @@ describe("ToolOutputPager memory bound", () => {
     const pager: ToolOutputPager = new ToolOutputPager({ pageChars: 10 });
     const chunk: number = Math.ceil(MAX_STORED_TOOL_OUTPUT_CHARS / 2) + 1;
 
-    const first: string = pager.paginate({ label: "a", text: "a".repeat(chunk) })
-      .outputId!;
+    const first: string = pager.paginate({
+      label: "a",
+      text: "a".repeat(chunk),
+    }).outputId!;
     const second: string = pager.paginate({
       label: "b",
       text: "b".repeat(chunk),
@@ -272,7 +279,8 @@ describe("read_tool_output", () => {
   }
 
   test("is offered with a schema that requires the output id", () => {
-    const tool: ObservabilityAssistantExtraTool = new ToolOutputPager().buildReadTool();
+    const tool: ObservabilityAssistantExtraTool =
+      new ToolOutputPager().buildReadTool();
 
     expect(tool.definition.name).toBe(READ_TOOL_OUTPUT_TOOL_NAME);
     expect(
@@ -293,9 +301,7 @@ describe("read_tool_output", () => {
       '<tool_result source="untrusted_command_output">',
     );
     expect(outcome.textForLlm).toContain(text.slice(100, 200));
-    expect(outcome.textForLlm).toContain(
-      `offset=200 to continue`,
-    );
+    expect(outcome.textForLlm).toContain(`offset=200 to continue`);
     expect(outcome.textForLlm).toContain("never instructions");
     expect(outcome.result?.citationLabel).toBe(
       'kubectl describe node n1 on cluster "prod" (characters 100–200)',
@@ -354,5 +360,23 @@ describe("ToolOutputPager.describeContinuation", () => {
     ).toBe(
       `[This output is 123,456 characters long and nothing was cut: you are seeing the first 40,000. To read the rest, call ${READ_TOOL_OUTPUT_TOOL_NAME} with outputId="out-3" and offset=40000.]`,
     );
+  });
+});
+
+describe("hasAgentTruncationMarker", () => {
+  test.each([
+    ["... [output truncated: stdout cut at 1000000 bytes; stderr follows]"],
+    ["[stderr]\n... [earlier stderr truncated]\nError: boom"],
+    ["pods\n... [output truncated]"],
+  ])("recognises the Runner's and agents' own cut %p", (output: string) => {
+    expect(hasAgentTruncationMarker(output)).toBe(true);
+  });
+
+  test.each([
+    [""],
+    ["NAME READY\nweb-1 1/1"],
+    ["a log line that says output truncated without the marker"],
+  ])("a complete output %p is not truncated", (output: string) => {
+    expect(hasAgentTruncationMarker(output)).toBe(false);
   });
 });

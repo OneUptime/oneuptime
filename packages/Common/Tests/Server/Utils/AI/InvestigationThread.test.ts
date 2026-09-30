@@ -13,6 +13,7 @@ import KubernetesClusterAiAccessService from "../../../../Server/Services/Kubern
 import ResourceAiAccessService from "../../../../Server/Services/ResourceAiAccessService";
 import PostedRootCause from "../../../../Server/Utils/AI/SRE/PostedRootCause";
 import { READ_TOOL_OUTPUT_TOOL_NAME } from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
+import { ChatExtraTool } from "../../../../Server/Utils/AI/Chat/ChatAgentRunner";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -85,7 +86,10 @@ function readyCluster(): KubernetesClusterAiAccessStatus {
     clusterIdentifier: "gke-test-cluster",
     isInvestigationReady: true,
     isRemediationReady: false,
-    runner: { id: "22222222-2222-4222-8222-222222222222", name: "kubernetes-agent" },
+    runner: {
+      id: "22222222-2222-4222-8222-222222222222",
+      name: "kubernetes-agent",
+    },
     gaps: [],
   } as unknown as KubernetesClusterAiAccessStatus;
 }
@@ -107,13 +111,18 @@ describe("InvestigationThread.findOrCreateThread", () => {
     jest
       .spyOn(AIConversationService, "findOneBy")
       .mockResolvedValue(existing as never);
-    const create: jest.SpyInstance = jest.spyOn(AIConversationService, "create");
+    const create: jest.SpyInstance = jest.spyOn(
+      AIConversationService,
+      "create",
+    );
 
-    const thread: AIConversation = await InvestigationThread.findOrCreateThread({
-      projectId: PROJECT_ID,
-      subject: INCIDENT_SUBJECT,
-      title: "Incident #42: Node memory",
-    });
+    const thread: AIConversation = await InvestigationThread.findOrCreateThread(
+      {
+        projectId: PROJECT_ID,
+        subject: INCIDENT_SUBJECT,
+        title: "Incident #42: Node memory",
+      },
+    );
 
     expect(thread).toBe(existing);
     expect(create).not.toHaveBeenCalled();
@@ -129,11 +138,13 @@ describe("InvestigationThread.findOrCreateThread", () => {
       .spyOn(AIConversationService, "create")
       .mockResolvedValue(created as never);
 
-    const thread: AIConversation = await InvestigationThread.findOrCreateThread({
-      projectId: PROJECT_ID,
-      subject: INCIDENT_SUBJECT,
-      title: "x".repeat(200),
-    });
+    const thread: AIConversation = await InvestigationThread.findOrCreateThread(
+      {
+        projectId: PROJECT_ID,
+        subject: INCIDENT_SUBJECT,
+        title: "x".repeat(200),
+      },
+    );
 
     expect(thread).toBe(created);
 
@@ -183,11 +194,13 @@ describe("InvestigationThread.findOrCreateThread", () => {
       .spyOn(AIConversationService, "deleteOneById")
       .mockResolvedValue(undefined as never);
 
-    const thread: AIConversation = await InvestigationThread.findOrCreateThread({
-      projectId: PROJECT_ID,
-      subject: INCIDENT_SUBJECT,
-      title: "Incident #42",
-    });
+    const thread: AIConversation = await InvestigationThread.findOrCreateThread(
+      {
+        projectId: PROJECT_ID,
+        subject: INCIDENT_SUBJECT,
+        title: "Incident #42",
+      },
+    );
 
     expect(thread).toBe(oldest);
     expect(deleteOneById).toHaveBeenCalledWith({
@@ -351,7 +364,9 @@ describe("InvestigationThread.buildInvestigationSection", () => {
     );
 
     expect(section.length).toBeLessThan(MAX_THREAD_REPORT_CHARS + 2_000);
-    expect(section).toContain("the rest of the report is on the incident timeline");
+    expect(section).toContain(
+      "the rest of the report is on the incident timeline",
+    );
   });
 });
 
@@ -376,7 +391,9 @@ describe("InvestigationThread.buildThreadInstructions", () => {
   });
 
   test("acts on clear requests only, and says what it did", () => {
-    expect(instructions).toContain("Only act on what a responder clearly asked");
+    expect(instructions).toContain(
+      "Only act on what a responder clearly asked",
+    );
     expect(instructions).toContain("say exactly what you did");
   });
 
@@ -412,9 +429,7 @@ describe("InvestigationThread.buildTurnContext", () => {
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(incident() as never);
-    jest
-      .spyOn(AlertService, "findOneById")
-      .mockResolvedValue(null as never);
+    jest.spyOn(AlertService, "findOneById").mockResolvedValue(null as never);
     jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValue((data.run ?? null) as never);
@@ -463,13 +478,13 @@ describe("InvestigationThread.buildTurnContext", () => {
         aiRunId: ObjectID.generate(),
       });
 
-    expect(context.additionalSystemInstructions).toContain("# This conversation");
+    expect(context.additionalSystemInstructions).toContain(
+      "# This conversation",
+    );
     expect(context.additionalSystemInstructions).toContain(
       "# Incident #42: Node memory at 93%",
     );
-    expect(context.additionalSystemInstructions).toContain(
-      "Memory is high.",
-    );
+    expect(context.additionalSystemInstructions).toContain("Memory is high.");
     expect(context.pageContext.entityId).toBe(INCIDENT_ID.toString());
     expect(context.title).toBe("Incident #42: Node memory at 93%");
     // No reachable cluster or resource: no command tools, no pager.
@@ -505,9 +520,11 @@ describe("InvestigationThread.buildTurnContext", () => {
         aiRunId: ObjectID.generate(),
       });
 
-    const names: Array<string> = context.extraTools.map((tool) => {
-      return tool.definition.name;
-    });
+    const names: Array<string> = context.extraTools.map(
+      (tool: ChatExtraTool): string => {
+        return tool.definition.name;
+      },
+    );
 
     expect(names).toEqual([
       "list_cluster_access",
@@ -515,7 +532,7 @@ describe("InvestigationThread.buildTurnContext", () => {
       READ_TOOL_OUTPUT_TOOL_NAME,
     ]);
     expect(
-      context.extraTools.every((tool) => {
+      context.extraTools.every((tool: ChatExtraTool): boolean => {
         return tool.isMutation !== true;
       }),
     ).toBe(true);
@@ -538,7 +555,9 @@ describe("InvestigationThread.buildTurnContext", () => {
       });
 
     expect(context.extraTools).toEqual([]);
-    expect(context.additionalSystemInstructions).toContain("# This conversation");
+    expect(context.additionalSystemInstructions).toContain(
+      "# This conversation",
+    );
   });
 
   test("a failed investigation lookup still gives a usable context", async () => {

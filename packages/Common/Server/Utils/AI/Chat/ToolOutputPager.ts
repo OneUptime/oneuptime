@@ -34,6 +34,21 @@ export const MAX_TOOL_OUTPUT_READ_CHARS: number = 60_000;
  */
 export const MAX_STORED_TOOL_OUTPUT_CHARS: number = 20_000_000;
 
+/*
+ * The markers the Runner and the AI agents write when THEY cut a command's
+ * output before it reached the server ("... [output truncated: stdout cut
+ * at N bytes]", "... [earlier stderr truncated]", and the server's own
+ * "... [output truncated]"). Paged output is complete, so these markers are
+ * the only way an output can still be incomplete — and the evidence trail
+ * says so.
+ */
+const AGENT_TRUNCATION_MARKER_PATTERN: RegExp =
+  /\.\.\. \[(?:output truncated|earlier stderr truncated)/;
+
+export function hasAgentTruncationMarker(output: string): boolean {
+  return AGENT_TRUNCATION_MARKER_PATTERN.test(output || "");
+}
+
 interface StoredToolOutput {
   label: string;
   text: string;
@@ -206,7 +221,9 @@ export default class ToolOutputPager {
   }
 
   public executeRead(args: JSONObject): ToolCallOutcome {
-    const outputId: string = (ToolArgs.getString(args, "outputId") || "").trim();
+    const outputId: string = (
+      ToolArgs.getString(args, "outputId") || ""
+    ).trim();
 
     if (!outputId) {
       const message: string =
@@ -234,7 +251,11 @@ export default class ToolOutputPager {
     });
 
     if ("error" in page) {
-      return { success: false, textForLlm: page.error, errorMessage: page.error };
+      return {
+        success: false,
+        textForLlm: page.error,
+        errorMessage: page.error,
+      };
     }
 
     const header: string = `${page.label} — characters ${page.offset.toLocaleString(
