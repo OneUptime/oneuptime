@@ -39,6 +39,10 @@ import {
 import ResourceAccessContext, {
   describeResource,
 } from "./ResourceAccessContext";
+import ToolOutputPager, {
+  PagedToolOutput,
+  READ_TOOL_OUTPUT_TOOL_NAME,
+} from "../Chat/ToolOutputPager";
 
 /*
  * The run-scoped, READ-ONLY infrastructure command toolkit for an
@@ -56,12 +60,14 @@ import ResourceAccessContext, {
  * literally true.
  *
  * What else the toolkit owns, exactly as the kubectl one does:
- *  - the run's wall clock: every command's claim window and timeout are
- *    planned against the run's deadline (KubectlWaitBudget, which is
- *    generic in all but name) and a command the budget can no longer hold
- *    is refused before anything is enqueued;
+ *  - the run's time limit, when its project configured one (by default a
+ *    run has none): every command's claim window and timeout are planned
+ *    against the run's deadline (KubectlWaitBudget, which is generic in
+ *    all but name) and a command the time left can no longer hold is
+ *    refused before anything is enqueued;
  *  - what the model sees: output reaches it only through the shared
- *    ResourceCommandJobRunner redaction;
+ *    ResourceCommandJobRunner redaction, and is never cut — the whole
+ *    redacted output is kept and a long one is paged (ToolOutputPager);
  *  - what counts as evidence: a command that never ran is a failed call
  *    that mints no citation, one whose result never came back is "result
  *    unknown" (never "did not run"), and one that ran and exited non-zero
@@ -74,7 +80,17 @@ export interface InfrastructureInvestigationToolkitOptions {
   projectId: ObjectID;
   aiRunId: ObjectID;
   resources: Array<ResourceAiAccessStatus>;
+  /*
+   * Commands one run may send. Defaults to the runaway guard: an
+   * investigation runs as many commands as it needs.
+   */
   maxCommands?: number | undefined;
+  /*
+   * Where long outputs are kept so the model can page through them
+   * (read_tool_output). Shared with the run's other toolkits so one tool
+   * reads them all; the toolkit makes its own when none is given.
+   */
+  outputPager?: ToolOutputPager | undefined;
   /*
    * Which readiness admits a resource. Investigations require the
    * investigation switch; a remediation run may read a resource it is
@@ -82,9 +98,9 @@ export interface InfrastructureInvestigationToolkitOptions {
    */
   readinessCheck?: "investigation" | "remediation" | undefined;
   /*
-   * When the run's wall-clock budget ends (epoch milliseconds). Every
-   * command's wait is planned to end before it; absent, commands are only
-   * bounded by their own timeouts.
+   * When the run's configured time limit ends (epoch milliseconds). Every
+   * command's wait is planned to end before it; absent (the default — no
+   * time limit), commands are only bounded by their own timeouts.
    */
   runDeadlineAtMs?: number | undefined;
 }
@@ -107,7 +123,14 @@ export default class InfrastructureInvestigationToolkit {
     UnreachableAgent
   >();
 
+  private outputPager: ToolOutputPager;
+
+  public getOutputPager(): ToolOutputPager {
+    return this.outputPager;
+  }
+
   public constructor(options: InfrastructureInvestigationToolkitOptions) {
+    this.outputPager = options.outputPager ?? new ToolOutputPager();
     this.options = options;
   }
 
@@ -267,7 +290,11 @@ export default class InfrastructureInvestigationToolkit {
     return {
       definition: {
         name: RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
-        description: `Run ONE read-only command on a linked infrastructure resource through its AI agent and get its output. The resources you may inspect:\n${this.describeReadyResources()}\n\nWhat each kind of resource accepts:\n\n${this.describeReadCommandGuides()}\n\nOne command per call, written as the program followed by its arguments — never a shell line: pipes, redirects, ;, &&, $( ) and sudo are refused. Anything that changes a resource is refused here — this is an investigation — and so is anything that would read credentials; credential-looking values (passwords, tokens, keys, connection strings) are redacted from every output before you see it, so do not spend commands on them. Keep output small (limit lines and tails). At most ${maxCommands} commands per investigation.`,
+        description: `Run ONE read-only command on a linked infrastructure resource through its AI agent and get its output. The resources you may inspect:\n${this.describeReadyResources()}\n\nWhat each kind of resource accepts:\n\n${this.describeReadCommandGuides()}\n\nOne command per call, written as the program followed by its arguments — never a shell line: pipes, redirects, ;, &&, $( ) and sudo are refused. Anything that changes a resource is refused here — this is an investigation — and so is anything that would read credentials; credential-looking values (passwords, tokens, keys, connection strings) are redacted from every output before you see it, so do not spend commands on them. Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}. Run as many commands as the investigation needs.${
+          maxCommands < MAX_RESOURCE_COMMANDS_PER_INVESTIGATION
+            ? ` At most ${maxCommands} commands in this run.`
+            : ""
+        }`,
         inputSchema: {
           type: "object",
           properties: {
@@ -287,7 +314,11 @@ export default class InfrastructureInvestigationToolkit {
             },
             timeoutInMs: {
               type: "number",
-              description: `Timeout in milliseconds (default ${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS}, max ${MAX_RESOURCE_COMMAND_TIMEOUT_MS}). Shortened automatically when the investigation's time budget is nearly spent.`,
+              description: `Timeout in milliseconds (default ${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS}, max ${MAX_RESOURCE_COMMAND_TIMEOUT_MS}).${
+                this.options.runDeadlineAtMs !== undefined
+                  ? " Shortened automatically when the investigation's configured time limit is close."
+                  : ""
+              }`,
             },
           },
           required: ["resourceId", "command", "rationale"],
@@ -305,7 +336,7 @@ export default class InfrastructureInvestigationToolkit {
   ): Promise<ToolCallOutcome> {
     if (this.commandsRun >= maxCommands) {
       return this.failure(
-        `The per-investigation infrastructure command budget (${maxCommands} commands) is spent. Finish your analysis with what you have.`,
+        `This run has already sent ${maxCommands} infrastructure commands, the most one run may send. Finish your analysis with what you have.`,
       );
     }
 
@@ -404,7 +435,7 @@ export default class InfrastructureInvestigationToolkit {
 
     if (!budget.ok) {
       return this.failure(
-        `Not enough time is left in this investigation's budget to run another infrastructure command (about ${InfrastructureInvestigationToolkit.describeSeconds(
+        `Not enough time is left before this investigation's configured time limit to run another infrastructure command (about ${InfrastructureInvestigationToolkit.describeSeconds(
           budget.refusal.remainingBudgetMs,
         )} remain; a command needs at least ${InfrastructureInvestigationToolkit.describeSeconds(
           budget.refusal.minimumBudgetMs,
@@ -437,6 +468,8 @@ export default class InfrastructureInvestigationToolkit {
         stepId: `ai-investigation-resource-${this.commandsRun}`,
         timeoutInMs: budget.plan.timeoutInMs,
         claimTimeoutInMs: budget.plan.claimTimeoutInMs,
+        // Everything the agent returned; long output is paged below.
+        maxOutputChars: Number.MAX_SAFE_INTEGER,
       });
     } catch (error) {
       const message: string = redactResourceCommandOutput({
@@ -510,10 +543,26 @@ export default class InfrastructureInvestigationToolkit {
       );
     }
 
-    const text: string = ResourceCommandJobRunner.describeForLlm({
-      outcome,
-      resourceType: resource.resourceType,
+    const citationLabel: string =
+      InfrastructureInvestigationToolkit.getCitationLabel({
+        displayCommand: outcome.displayCommand,
+        resource,
+      });
+
+    /*
+     * The whole output came back (see maxOutputChars above). A long one is
+     * shown a page at a time: the first page now, the rest through
+     * read_tool_output — nothing is cut away.
+     */
+    const paged: PagedToolOutput = this.outputPager.paginate({
+      label: citationLabel,
+      text: outcome.output,
     });
+
+    const text: string = `${ResourceCommandJobRunner.describeForLlm({
+      outcome: { ...outcome, output: paged.firstPage },
+      resourceType: resource.resourceType,
+    })}${paged.continuationNote ? `\n${paged.continuationNote}` : ""}`;
 
     return {
       success: true,
@@ -521,10 +570,7 @@ export default class InfrastructureInvestigationToolkit {
       result: {
         dataForLlm: text,
         rowCount: outcome.succeeded ? 1 : 0,
-        citationLabel: InfrastructureInvestigationToolkit.getCitationLabel({
-          displayCommand: outcome.displayCommand,
-          resource,
-        }),
+        citationLabel,
         redactionCount: outcome.redactionCount ?? 0,
         isTruncated:
           outcome.isTruncated ??

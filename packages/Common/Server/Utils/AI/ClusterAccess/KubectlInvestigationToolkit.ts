@@ -36,6 +36,10 @@ import {
   describeClusterAccessTargetOfCluster,
   describeClusterAccessTargetRole,
 } from "./ClusterAccessContext";
+import ToolOutputPager, {
+  PagedToolOutput,
+  READ_TOOL_OUTPUT_TOOL_NAME,
+} from "../Chat/ToolOutputPager";
 
 /*
  * The run-scoped, READ-ONLY kubectl toolkit for an investigation.
@@ -49,15 +53,17 @@ import {
  * changed" stays literally true.
  *
  * Two more things the toolkit owns:
- *  - the run's wall clock. The agent loop checks its budget only between
- *    tool calls and cannot interrupt one, so the toolkit plans every
- *    command's claim window and execution timeout against the run's
- *    deadline (KubectlWaitBudget) and refuses a command the budget can no
+ *  - the run's time limit, when its project configured one (by default a
+ *    run has none). The agent loop checks it only between tool calls and
+ *    cannot interrupt one, so the toolkit plans every command's claim
+ *    window and execution timeout against the run's deadline
+ *    (KubectlWaitBudget) and refuses a command the time left can no
  *    longer hold, before anything is enqueued;
  *  - what the model sees. Output reaches it only through the shared
  *    KubectlJobRunner redaction, and Secret reads are refused by the
  *    policy outright, so the tool says both up front instead of letting
- *    the model burn calls finding out;
+ *    the model burn calls finding out. Output is never cut: the whole
+ *    redacted output is kept and a long one is paged (ToolOutputPager);
  *  - what counts as evidence. A command that never reached kubectl (no
  *    Runner claimed it, or the server or Runner refused it) is a failed
  *    tool call: it mints no citation and is not counted as run anywhere.
@@ -90,24 +96,21 @@ export {
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 
-/*
- * The wall clock an investigation run gets, for the runners to hand to
- * BOTH the engine (its maxWallClockMs) and this toolkit (as an absolute
- * deadline), so the loop's budget and the kubectl budget can never
- * disagree. It IS the engine's default, re-exported under the name the
- * runners use rather than restated. A re-export (a live binding) rather
- * than a copied const: the engine's module graph reaches this file
- * through the services and the investigation runners, so a value copied
- * at load time could read an engine module that has not finished
- * evaluating.
- */
-export { MAX_WALL_CLOCK_MS as INVESTIGATION_MAX_WALL_CLOCK_MS } from "../SRE/AIInvestigationEngine";
-
 export interface KubectlInvestigationToolkitOptions {
   projectId: ObjectID;
   aiRunId: ObjectID;
   clusters: Array<KubernetesClusterAiAccessStatus>;
+  /*
+   * Commands one run may send. Defaults to the runaway guard: an
+   * investigation runs as many kubectl commands as it needs.
+   */
   maxCommands?: number | undefined;
+  /*
+   * Where long outputs are kept so the model can page through them
+   * (read_tool_output). Shared with the run's other toolkits so one tool
+   * reads them all; the toolkit makes its own when none is given.
+   */
+  outputPager?: ToolOutputPager | undefined;
   /*
    * Which readiness admits a cluster. Investigations require the
    * investigation switch; a remediation run may read a cluster it is
@@ -115,9 +118,9 @@ export interface KubectlInvestigationToolkitOptions {
    */
   readinessCheck?: "investigation" | "remediation" | undefined;
   /*
-   * When the run's wall-clock budget ends (epoch milliseconds). Every
-   * command's wait is planned to end before it; absent, commands are only
-   * bounded by their own timeouts.
+   * When the run's configured time limit ends (epoch milliseconds). Every
+   * command's wait is planned to end before it; absent (the default — no
+   * time limit), commands are only bounded by their own timeouts.
    */
   runDeadlineAtMs?: number | undefined;
 }
@@ -145,8 +148,15 @@ export default class KubectlInvestigationToolkit {
     UnreachableRunner
   >();
 
+  private outputPager: ToolOutputPager;
+
   public constructor(options: KubectlInvestigationToolkitOptions) {
     this.options = options;
+    this.outputPager = options.outputPager ?? new ToolOutputPager();
+  }
+
+  public getOutputPager(): ToolOutputPager {
+    return this.outputPager;
   }
 
   // Whether the Runner serving this cluster tripped the breaker.
@@ -266,7 +276,11 @@ export default class KubectlInvestigationToolkit {
     return {
       definition: {
         name: RUN_KUBECTL_TOOL_NAME,
-        description: `Run ONE read-only kubectl command on a linked cluster and get its output. Allowed: get, describe, logs, events, top, rollout status/history, api-resources, explain, auth can-i, cluster-info. Anything that changes the cluster (delete, scale, patch, apply, exec, ...) is refused here — this is an investigation. Reading Secrets is refused too, and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it, so do not spend commands on them. Always pass -n <namespace> for namespaced objects and keep output small (use --tail, -o wide, field selectors). At most ${maxCommands} commands per investigation.`,
+        description: `Run ONE read-only kubectl command on a linked cluster and get its output. Allowed: get, describe, logs, events, top, rollout status/history, api-resources, explain, auth can-i, cluster-info. Anything that changes the cluster (delete, scale, patch, apply, exec, ...) is refused here — this is an investigation. Reading Secrets is refused too, and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it, so do not spend commands on them. Always pass -n <namespace> for namespaced objects. Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}. Run as many commands as the investigation needs.${
+          maxCommands < MAX_KUBECTL_COMMANDS_PER_INVESTIGATION
+            ? ` At most ${maxCommands} commands in this run.`
+            : ""
+        }`,
         inputSchema: {
           type: "object",
           properties: {
@@ -287,7 +301,11 @@ export default class KubectlInvestigationToolkit {
             },
             timeoutInMs: {
               type: "number",
-              description: `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}). Shortened automatically when the investigation's time budget is nearly spent.`,
+              description: `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}).${
+                this.options.runDeadlineAtMs !== undefined
+                  ? " Shortened automatically when the investigation's configured time limit is close."
+                  : ""
+              }`,
             },
           },
           required: ["clusterId", "command", "rationale"],
@@ -305,7 +323,7 @@ export default class KubectlInvestigationToolkit {
   ): Promise<ToolCallOutcome> {
     if (this.commandsRun >= maxCommands) {
       return this.failure(
-        `The per-investigation kubectl budget (${maxCommands} commands) is spent. Finish your analysis with what you have.`,
+        `This run has already sent ${maxCommands} kubectl commands, the most one run may send. Finish your analysis with what you have.`,
       );
     }
 
@@ -396,7 +414,7 @@ export default class KubectlInvestigationToolkit {
 
     if (!budget.ok) {
       return this.failure(
-        `Not enough time is left in this investigation's budget to run another kubectl command (about ${KubectlInvestigationToolkit.describeSeconds(
+        `Not enough time is left before this investigation's configured time limit to run another kubectl command (about ${KubectlInvestigationToolkit.describeSeconds(
           budget.refusal.remainingBudgetMs,
         )} remain; a command needs at least ${KubectlInvestigationToolkit.describeSeconds(
           budget.refusal.minimumBudgetMs,
@@ -425,6 +443,8 @@ export default class KubectlInvestigationToolkit {
         stepId: `ai-investigation-kubectl-${this.commandsRun}`,
         timeoutInMs: budget.plan.timeoutInMs,
         claimTimeoutInMs: budget.plan.claimTimeoutInMs,
+        // Everything the agent returned; long output is paged below.
+        maxOutputChars: Number.MAX_SAFE_INTEGER,
       });
     } catch (error) {
       const message: string =
@@ -517,7 +537,26 @@ export default class KubectlInvestigationToolkit {
       );
     }
 
-    const text: string = KubectlJobRunner.describeForLlm(outcome);
+    const citationLabel: string = `${outcome.displayCommand} on cluster "${cluster.clusterName}"`;
+
+    /*
+     * The whole output came back (see maxOutputChars above). A long one is
+     * shown a page at a time: the first page now, the rest through
+     * read_tool_output — nothing is cut away.
+     */
+    const paged: PagedToolOutput = this.outputPager.paginate({
+      label: citationLabel,
+      text: outcome.output,
+      continuationHint: KubectlInvestigationToolkit.describeStderrPosition(
+        outcome.output,
+        this.outputPager.getPageChars(),
+      ),
+    });
+
+    const text: string = `${KubectlJobRunner.describeForLlm({
+      ...outcome,
+      output: paged.firstPage,
+    })}${paged.continuationNote ? `\n${paged.continuationNote}` : ""}`;
 
     return {
       success: true,
@@ -525,13 +564,32 @@ export default class KubectlInvestigationToolkit {
       result: {
         dataForLlm: text,
         rowCount: outcome.succeeded ? 1 : 0,
-        citationLabel: `${outcome.displayCommand} on cluster "${cluster.clusterName}"`,
+        citationLabel,
         redactionCount: outcome.redactionCount ?? 0,
+        // Paged output is complete; only an output the agent cut is not.
         isTruncated:
           outcome.isTruncated ??
           outcome.output.endsWith(KUBECTL_OUTPUT_TRUNCATED_SUFFIX.trim()),
       },
     };
+  }
+
+  /*
+   * kubectl says why it failed at the END of its output (the Runner puts
+   * its "[stderr]" section last). When that section falls past the first
+   * page, say where it is so the model can read it directly.
+   */
+  public static describeStderrPosition(
+    output: string,
+    pageChars: number,
+  ): string | undefined {
+    const stderrIndex: number = output.lastIndexOf("\n[stderr]\n");
+
+    if (stderrIndex < 0 || stderrIndex < pageChars) {
+      return undefined;
+    }
+
+    return `kubectl's stderr starts at offset ${stderrIndex + 1}.`;
   }
 
   private static describeSeconds(milliseconds: number): string {

@@ -332,6 +332,14 @@ export const MAX_CONCURRENT_JOBS: number = NumberUtil.parseNumberWithDefault({
 
 export const MAX_OUTPUT_BYTES: number = 50_000;
 
+/*
+ * kubectl output kept for the server. Larger than the other executors':
+ * `kubectl describe node` on a busy node or a pod's logs easily pass 50 KB,
+ * and the server pages long output to the model instead of cutting it, so
+ * everything kept here is readable by the investigation.
+ */
+export const MAX_KUBECTL_OUTPUT_BYTES: number = 1_000_000;
+
 // Health/metrics port (KEDA reads the code-fix queue depth from here).
 export const PORT: Port = new Port(
   process.env["PORT"] ? parseInt(process.env["PORT"]) : 3875,

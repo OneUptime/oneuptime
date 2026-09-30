@@ -274,6 +274,12 @@ export default class KubectlJobRunner {
      * every other kubectl job's.
      */
     isAccessTest?: boolean | undefined;
+    /*
+     * How much of the redacted output to keep. Defaults to the shared cap;
+     * a caller that pages long output itself (the investigation and
+     * conversation toolkits) asks for all of it.
+     */
+    maxOutputChars?: number | undefined;
   }): Promise<KubectlJobOutcome> {
     const claimTimeoutInMs: number =
       data.claimTimeoutInMs ?? KUBECTL_CLAIM_TIMEOUT_MS;
@@ -306,6 +312,7 @@ export default class KubectlJobRunner {
       command: data.command,
       claimTimeoutInMs,
       executionTimeoutInMs: data.timeoutInMs,
+      maxOutputChars: data.maxOutputChars,
     });
 
     await KubectlJobRunner.recordOutcomeOnCluster({
@@ -334,6 +341,8 @@ export default class KubectlJobRunner {
     command: string;
     claimTimeoutInMs: number;
     executionTimeoutInMs: number;
+    // How much of the redacted output to keep (default: the shared cap).
+    maxOutputChars?: number | undefined;
   }): Promise<KubectlJobOutcome> {
     const { job, terminalJob } = data;
 
@@ -375,6 +384,7 @@ export default class KubectlJobRunner {
 
     const redacted: RedactedKubectlOutput = this.redactAndCap(
       terminalJob.output || "",
+      data.maxOutputChars,
     );
 
     return {
@@ -734,8 +744,10 @@ export default class KubectlJobRunner {
    */
   public static redactAndCap(
     output: string,
-    maxChars: number = MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
+    maxCharsOverride?: number | undefined,
   ): RedactedKubectlOutput {
+    const maxChars: number =
+      maxCharsOverride ?? MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM;
     const structured: { text: string; redactionCount: number } =
       KubectlOutputRedactor.redact(output || "");
     const generic: { text: string; count: number } =
