@@ -81,9 +81,6 @@ export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
 // The page's heading, matching the AI Insights page's title and subtitle.
 export const RESOURCE_AI_AGENT_PAGE_TITLE: string = "AI agent";
 
-export const RESOURCE_AI_FIXES_OFF_HINT: string =
-  "Want AI to propose fixes? Choose Ask for approval.";
-
 export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string =
   "Ask a project owner or admin.";
 
