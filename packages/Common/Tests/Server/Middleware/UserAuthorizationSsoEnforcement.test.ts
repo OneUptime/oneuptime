@@ -82,10 +82,14 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  *     unknown license states;
  *   - OneUptime Cloud (billing on, ee/ loaded), whatever the license says.
  *
- * What never changes: nothing is enforced when nothing is configured, master
- * admins are exempt from the INSTANCE-WIDE requirement only (so a broken
- * global IdP cannot lock them out) and stay held to a project's own, and an
- * unknown project is TenantNotFound.
+ * What never changes: nothing is enforced when nothing is configured, and
+ * master admins are exempt from the INSTANCE-WIDE requirement only (so a
+ * broken global IdP cannot lock them out) and stay held to a project's own.
+ * On the single-tenant path an unknown project is TenantNotFound and any
+ * other error reading the project's requirement refuses the request (fails
+ * closed). The multi-tenant fan-out reads an unreadable project's own
+ * requirement as not set (the instance-wide requirement still applies) and
+ * leaves access to AccessTokenService.
  *
  * Billing and the edition are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
@@ -306,6 +310,74 @@ describe("UserMiddleware enforces SSO requirements in every edition", () => {
 
         await expect(resolveSingle()).rejects.toThrow(
           new TenantNotFoundException("Invalid tenantId"),
+        );
+      });
+
+      test("any other project lookup error propagates: the request is refused, never let through", async () => {
+        projectRequireSso.mockRejectedValue(new Error("database down"));
+
+        await expect(resolveSingle()).rejects.toThrow("database down");
+        // A project's own requirement binds master admins too, so they are refused as well.
+        await expect(resolveSingle(masterAdminRequest)).rejects.toThrow(
+          "database down",
+        );
+        expect(ssoSatisfied).not.toHaveBeenCalled();
+      });
+
+      test("the multi-tenant path reads a project requirement it cannot read as not set and leaves access to AccessTokenService", async () => {
+        // A database error on one project, an unknown project on the other.
+        projectRequireSso.mockImplementation(
+          async (id: ObjectID): Promise<boolean> => {
+            if (id.toString() === projectId.toString()) {
+              throw new Error("database down");
+            }
+            throw new BadDataException("Project not found");
+          },
+        );
+        // AccessTokenService grants the first project and refuses the second.
+        tenantPermissionLookup.mockImplementation(
+          async (
+            _userId: ObjectID,
+            id: ObjectID,
+          ): Promise<UserTenantAccessPermission | null> => {
+            return id.toString() === projectId.toString()
+              ? tenantPermission
+              : null;
+          },
+        );
+
+        for (const req of [userRequest, masterAdminRequest]) {
+          const result: Dictionary<UserTenantAccessPermission> | null =
+            await resolveMulti(req);
+
+          expect(result).toEqual({
+            [projectId.toString()]: tenantPermission,
+          });
+        }
+        expect(ssoSatisfied).not.toHaveBeenCalled();
+        expect(tenantPermissionLookup).toHaveBeenCalledWith(userId, projectId, {
+          userGlobalAccessPermission: undefined,
+        });
+        expect(tenantPermissionLookup).toHaveBeenCalledWith(
+          userId,
+          otherProjectId,
+          { userGlobalAccessPermission: undefined },
+        );
+      });
+
+      test("the multi-tenant path still applies the instance-wide requirement to a project whose own requirement cannot be read", async () => {
+        projectRequireSso.mockRejectedValue(new Error("database down"));
+        globalRequireSso.mockResolvedValue(true);
+
+        const result: Dictionary<UserTenantAccessPermission> | null =
+          await resolveMulti();
+
+        expect(result).toEqual({
+          [projectId.toString()]: defaultPermission(projectId),
+          [otherProjectId.toString()]: defaultPermission(otherProjectId),
+        });
+        expect(ssoSatisfied).toHaveBeenCalledWith(
+          expect.objectContaining({ projectId }),
         );
       });
 
