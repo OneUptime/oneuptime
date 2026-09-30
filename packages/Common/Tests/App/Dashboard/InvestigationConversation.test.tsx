@@ -78,13 +78,31 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+/*
+ * The markdown renderer is stubbed, but it still calls the component's
+ * citation renderer for every [C#] in the text — exactly the contract the
+ * real inline-reference transform has — so the chips are really rendered.
+ */
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
     __esModule: true,
     default: (props: {
       text: string;
       safeMode?: boolean;
+      inlineReferences?: {
+        renderCitation?: (id: string) => React.ReactElement | null;
+      };
     }): React.ReactElement => {
+      const chips: Array<React.ReactElement | null> = Array.from(
+        props.text.matchAll(/\[(C\d+)\]/g),
+      ).map((match: RegExpMatchArray, index: number) => {
+        const chip: React.ReactElement | null =
+          props.inlineReferences?.renderCitation?.(match[1]!) ?? null;
+        return chip
+          ? React.createElement(React.Fragment, { key: index }, chip)
+          : null;
+      });
+
       return React.createElement(
         "div",
         {
@@ -92,10 +110,25 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
           "data-safe-mode": String(props.safeMode === true),
         },
         props.text,
+        ...chips,
       );
     },
   };
 });
+
+const navigateToCitationTargetMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/CitationTargetNav",
+  () => {
+    return {
+      __esModule: true,
+      navigateToCitationTarget: (...args: Array<unknown>) => {
+        return navigateToCitationTargetMock(...args);
+      },
+    };
+  },
+);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed",
@@ -358,6 +391,7 @@ afterEach(() => {
   getFriendlyMessageMock.mockReset();
   activityFeedMock.mockReset();
   widgetRendererMock.mockReset();
+  navigateToCitationTargetMock.mockReset();
 });
 
 describe("InvestigationConversation — an empty thread", () => {
@@ -675,6 +709,63 @@ describe("InvestigationConversation — a shared thread", () => {
     ).toBeInTheDocument();
   });
 
+  test("turns each [C#] into a chip naming its evidence, and opens linked evidence", async () => {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({
+              content:
+                "Errors spiked [C1] while ClickHouse used 118Gi [C2]. [C9]",
+              userId: SAM,
+              name: "Sam Lee",
+              citations: [
+                {
+                  id: "C1",
+                  toolName: "search_logs",
+                  label: "Error logs, last 1h",
+                  queryArguments: {},
+                  rowCount: 40,
+                  target: { type: "Logs", params: {} },
+                },
+                {
+                  id: "C2",
+                  toolName: "run_kubectl",
+                  label: 'kubectl top pods -A on cluster "prod"',
+                  queryArguments: {},
+                  rowCount: 1,
+                },
+              ],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    const linked: HTMLElement = screen.getByRole("button", {
+      name: "Citation C1: Error logs, last 1h",
+    });
+    expect(linked).toHaveAttribute("title", "Error logs, last 1h");
+
+    fireEvent.click(linked);
+    expect(navigateToCitationTargetMock).toHaveBeenCalledWith({
+      type: "Logs",
+      params: {},
+    });
+
+    // Evidence with no page of its own is a chip, never a dead button.
+    const unlinked: HTMLElement = screen.getByLabelText(
+      'Citation C2: kubectl top pods -A on cluster "prod"',
+    );
+    expect(unlinked.tagName).toBe("SPAN");
+
+    // A marker with no citation behind it stays plain text.
+    expect(document.querySelector('[data-citation-id="C9"]')).toBeNull();
+  });
+
   test("another asker's charts and tables are not shown to the viewer", async () => {
     const widget: JSONObject = {
       id: "W1",
@@ -833,8 +924,8 @@ describe("InvestigationConversation — while OneUptime AI works", () => {
     expect(
       requests("/ai-investigation/conversation/send-message"),
     ).toHaveLength(0);
-    expect(composer().placeholder).toContain(
-      "You can type now and send when it finishes",
+    expect(composer().placeholder).toBe(
+      "Type your next question — send it when this answer finishes…",
     );
   });
 

@@ -4,12 +4,14 @@ import ChatActivityFeed, {
 import ChatInput from "../../AIChat/ChatInput";
 import CitationChips from "../../AIChat/CitationChips";
 import PermissionModePicker from "../../AIChat/PermissionModePicker";
-import SafeChatMarkdown from "../../AIChat/SafeChatMarkdown";
+import { navigateToCitationTarget } from "../../AIChat/CitationTargetNav";
+import { CITATION_CHIP_CLASS_NAME } from "../InvestigationReport/InvestigationCitationChip";
 import ToolApprovalCard, { ToolDecision } from "../../AIChat/ToolApprovalCard";
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
-import { AIChatWidget } from "Common/Types/AI/AIChatTypes";
+import { AIChatCitation, AIChatWidget } from "Common/Types/AI/AIChatTypes";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -89,6 +91,46 @@ const AIAvatar: FunctionComponent = (): ReactElement => {
     >
       <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-white" />
     </div>
+  );
+};
+
+/*
+ * An inline "[C2]" in an answer, as a small chip that names what it cites
+ * and — when the evidence has a page (logs, traces, a monitor) — opens it.
+ * A citation with nowhere to go (a kubectl command) stays a plain chip with
+ * its label on hover, rather than a button that does nothing.
+ */
+const AnswerCitationChip: FunctionComponent<{
+  citation: AIChatCitation;
+}> = (props: { citation: AIChatCitation }): ReactElement => {
+  const label: string = `Citation ${props.citation.id}: ${props.citation.label}`;
+
+  if (!props.citation.target) {
+    return (
+      <span
+        className={CITATION_CHIP_CLASS_NAME}
+        title={props.citation.label}
+        aria-label={label}
+        data-citation-id={props.citation.id}
+      >
+        {props.citation.id}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={CITATION_CHIP_CLASS_NAME}
+      title={props.citation.label}
+      aria-label={label}
+      data-citation-id={props.citation.id}
+      onClick={() => {
+        navigateToCitationTarget(props.citation.target);
+      }}
+    >
+      {props.citation.id}
+    </button>
   );
 };
 
@@ -326,7 +368,29 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
       <div className="mt-1 space-y-3">
         {message.content ? (
           <div className="text-sm leading-6 text-gray-800">
-            <SafeChatMarkdown text={message.content} />
+            {/*
+              Safe mode: the answer is shaped by telemetry an attacker can
+              influence, so links and images never render — navigation is
+              only through the server-minted citations.
+            */}
+            <MarkdownViewer
+              text={message.content}
+              safeMode={true}
+              inlineReferences={{
+                renderCitation: (citationId: string): ReactElement | null => {
+                  const citation: AIChatCitation | undefined =
+                    message.citations.find(
+                      (candidate: AIChatCitation): boolean => {
+                        return candidate.id === citationId;
+                      },
+                    );
+
+                  return citation ? (
+                    <AnswerCitationChip citation={citation} />
+                  ) : null;
+                },
+              }}
+            />
           </div>
         ) : isWaiting ? (
           <p className="text-sm leading-6 text-gray-700">
@@ -632,9 +696,9 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         autoFocus={false}
         footerHint="Answers cite the data they used"
         placeholder={
-          isBusy && activityLine
-            ? `${activityLine} You can type now and send when it finishes.`
-            : `Ask about this ${subjectType}, or ask ${AI_DISPLAY_NAME} to act — e.g. “which pods use the most memory?” or “acknowledge this ${subjectType}”`
+          isBusy
+            ? "Type your next question — send it when this answer finishes…"
+            : `Ask about this ${subjectType}, or ask ${AI_DISPLAY_NAME} to act…`
         }
         leading={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
