@@ -381,12 +381,9 @@ export const fillDestination: (data: {
 };
 
 /*
- * Fills the Monaco CodeEditor used by the Synthetic / Custom-JavaScript step
- * forms. Validation only requires the code to be non-empty, so a short comment
- * is enough - which is the only reason inserting the text is safe here.
- * keyboard.insertText does NOT bypass Monaco's auto-closing brackets: Monaco
- * replays inserted text one character at a time through the same interceptors
- * as typing, so anything with unbalanced brackets or quotes arrives closed.
+ * Fills the CodeEditor used by the Synthetic / Custom-JavaScript step forms.
+ * The editor is a textarea, so fill() sets exactly this code and fires the
+ * input event that writes it into the monitor step's customCode.
  */
 export const fillCodeEditor: (data: {
   page: Page;
@@ -396,13 +393,11 @@ export const fillCodeEditor: (data: {
   code: string;
 }): Promise<void> => {
   const editor: Locator = data.page
-    .locator(`${monitorCreateFormSelector} .monaco-editor`)
+    .locator(`${monitorCreateFormSelector} [data-code-type="javascript"]`)
+    .getByTestId("code-editor-input")
     .first();
   await editor.waitFor({ state: "visible", timeout: 30000 });
-  await editor.click();
-  await data.page.keyboard.insertText(data.code);
-  // Blur so Monaco flushes onChange into the monitorStep customCode.
-  await data.page.keyboard.press("Tab");
+  await editor.fill(data.code);
 };
 
 /*

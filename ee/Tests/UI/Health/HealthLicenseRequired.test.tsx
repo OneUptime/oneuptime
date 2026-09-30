@@ -93,7 +93,10 @@ jest.mock("Common/UI/Utils/API/API", () => {
   };
 });
 
-// Monaco cannot run in jsdom: the console's editor becomes a plain textarea.
+/*
+ * The console's editor is stood in for by a plain textarea: these tests are
+ * about the license screens around it, and typing a query is simplest there.
+ */
 jest.mock("Common/UI/Components/CodeEditor/CodeEditor", () => {
   const react: typeof import("react") = jest.requireActual(
     "react",
