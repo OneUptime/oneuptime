@@ -1247,6 +1247,46 @@ describe("neutralizeUntrustedPlainText", () => {
     expect(neutralizeUntrustedPlainText(text)).toBe(text);
   });
 
+  /*
+   * Beside other Markdown - an episode template puts the title and the
+   * description side by side - a title must not define the reference an
+   * image in the description reads, complete one opened there, or be a link.
+   */
+  test.each([
+    ["a link reference definition", "[a]: https://tracker.example/p.png"],
+    ["a reference that completes an image", "[x][a] Checkout is down"],
+    ["a link", "[Verify your SSO](https://evil.example/login)"],
+  ])(
+    "breaks %s in a title, and it reads exactly as typed",
+    (_label: string, text: string) => {
+      const result: string = neutralizeUntrustedPlainText(text);
+
+      expect(result).not.toBe(text);
+      expect(withoutJoiners(result)).toBe(text);
+      expect(result).not.toMatch(/\][([:]/);
+      expect(neutralizeUntrustedPlainText(result)).toBe(result);
+    },
+  );
+
+  test("a title placed beside the description by an episode template completes no image", () => {
+    const title: string = neutralizeUntrustedPlainText(
+      "[a]: https://tracker.example/p.png",
+    );
+    const description: string = neutralizeUntrustedMarkdown("![a]");
+    // As IncidentGroupingEngineService fills an episode description template.
+    const episodeDescription: string =
+      "{{incidentTitle}}\n\n{{incidentDescription}}"
+        .replace(/\{\{incidentTitle\}\}/g, (): string => {
+          return title;
+        })
+        .replace(/\{\{incidentDescription\}\}/g, (): string => {
+          return description;
+        });
+
+    expectInert(episodeDescription);
+    expectInertInDashboard([episodeDescription]);
+  });
+
   test("is idempotent", () => {
     const once: string = neutralizeUntrustedPlainText(
       "<!here> ![x](https://t.example/p.png) ```mermaid",

@@ -42,6 +42,29 @@ export interface GroupingResult {
   wasReopened?: boolean;
 }
 
+type ReplaceAllLiterallyFunction = (
+  text: string,
+  placeholder: RegExp,
+  value: string,
+) => string;
+
+/*
+ * Puts `value` in for every match of `placeholder`, exactly as written. A
+ * string replacement reads "$&", "$`", "$'" and "$1" in it as patterns, so an
+ * incident titled "Price $& up" - or a title typed on an incident form - came
+ * out of an episode template mangled, or with other parts of the template
+ * copied into it.
+ */
+export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
+  text: string,
+  placeholder: RegExp,
+  value: string,
+): string => {
+  return text.replace(placeholder, (): string => {
+    return value;
+  });
+};
+
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
   public async processIncident(incident: Incident): Promise<GroupingResult> {
@@ -1153,12 +1176,17 @@ class IncidentGroupingEngineServiceClass {
      * {{incidentTitle}}
      */
     if (incident.title) {
-      result = result.replace(/\{\{incidentTitle\}\}/g, incident.title);
+      result = replaceAllLiterally(
+        result,
+        /\{\{incidentTitle\}\}/g,
+        incident.title,
+      );
     }
 
     // {{incidentDescription}}
     if (incident.description) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{incidentDescription\}\}/g,
         incident.description,
       );
@@ -1170,7 +1198,8 @@ class IncidentGroupingEngineServiceClass {
       incident.monitors.length > 0 &&
       incident.monitors[0]?.name
     ) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{monitorName\}\}/g,
         incident.monitors[0].name,
       );
@@ -1178,7 +1207,8 @@ class IncidentGroupingEngineServiceClass {
 
     // {{incidentSeverity}}
     if (incident.incidentSeverity?.name) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{incidentSeverity\}\}/g,
         incident.incidentSeverity.name,
       );
@@ -1208,12 +1238,17 @@ class IncidentGroupingEngineServiceClass {
      * {{incidentTitle}}
      */
     if (incident.title) {
-      result = result.replace(/\{\{incidentTitle\}\}/g, incident.title);
+      result = replaceAllLiterally(
+        result,
+        /\{\{incidentTitle\}\}/g,
+        incident.title,
+      );
     }
 
     // {{incidentDescription}}
     if (incident.description) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{incidentDescription\}\}/g,
         incident.description,
       );
@@ -1225,7 +1260,8 @@ class IncidentGroupingEngineServiceClass {
       incident.monitors.length > 0 &&
       incident.monitors[0]?.name
     ) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{monitorName\}\}/g,
         incident.monitors[0].name,
       );
@@ -1233,7 +1269,8 @@ class IncidentGroupingEngineServiceClass {
 
     // {{incidentSeverity}}
     if (incident.incidentSeverity?.name) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{incidentSeverity\}\}/g,
         incident.incidentSeverity.name,
       );

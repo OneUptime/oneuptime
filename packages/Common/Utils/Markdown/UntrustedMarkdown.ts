@@ -257,6 +257,9 @@ const BACKTICK_RUN_PATTERN: RegExp = /`+/g;
 
 const IMAGE_OPENER_PATTERN: RegExp = /!(?=\[)/g;
 
+// A "]" that a link, a reference or a link definition goes on from.
+const LINK_TAIL_OPENER_PATTERN: RegExp = /\](?=[([:])/g;
+
 enum CandidateKind {
   Image = "image",
   Mermaid = "mermaid",
@@ -1473,10 +1476,12 @@ export type NeutralizeUntrustedPlainTextFunction = (
  * is - an incident's title, which episode titles, feed items, chat
  * messages and note templates take up raw. Its chat control sequences are
  * broken as above, and so, with the same invisible word joiner, is every
- * "![" and every "mermaid" after a fence run: wherever the text lands, no
- * renderer finds a mention, an image or a diagram in it. It reads exactly
- * as typed - in Markdown, and as plain text in an email subject or a text
- * message. Idempotent.
+ * "![", every "]" that a link or a link definition would go on from, and
+ * every "mermaid" after a fence run: wherever the text lands - even beside
+ * other Markdown - no renderer finds a mention, an image or a diagram in it,
+ * or a reference that completes one. It reads exactly as typed - in
+ * Markdown, and as plain text in an email subject or a text message.
+ * Idempotent.
  */
 export const neutralizeUntrustedPlainText: NeutralizeUntrustedPlainTextFunction =
   (value: string | undefined | null): string => {
@@ -1484,10 +1489,16 @@ export const neutralizeUntrustedPlainText: NeutralizeUntrustedPlainTextFunction 
       return "";
     }
 
-    const text: string = neutralizeChatControlSequences(value).replace(
-      IMAGE_OPENER_PATTERN,
-      `!${WORD_JOINER}`,
-    );
+    /*
+     * Also "]" before "(", "[" or ":": joined to other Markdown - an episode
+     * template puts the title and the description side by side - a title
+     * could otherwise define the link reference an image in the description
+     * reads ("[a]: https://tracker.example/p.png"), or complete one opened
+     * there.
+     */
+    const text: string = neutralizeChatControlSequences(value)
+      .replace(IMAGE_OPENER_PATTERN, `!${WORD_JOINER}`)
+      .replace(LINK_TAIL_OPENER_PATTERN, `]${WORD_JOINER}`);
 
     return applyEdits(
       text,
