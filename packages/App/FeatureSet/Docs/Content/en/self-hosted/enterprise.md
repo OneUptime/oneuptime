@@ -132,8 +132,8 @@ A new Enterprise Edition install runs as a **14-day trial**, counted from the
 first time the install starts the Enterprise Edition. The trial is for
 evaluation: production use of the Enterprise Edition needs a subscription under
 the OneUptime Enterprise License. Activate a license before the trial ends:
-after it, SCIM and audit logging stop and enterprise configuration becomes
-read-only (see
+after it, SCIM, audit logging and retention overrides stop and enterprise
+configuration becomes read-only (see
 [When a license expires or is missing](#when-a-license-expires-or-is-missing)).
 To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
@@ -211,7 +211,8 @@ an install activated offline.
 
 Every enterprise feature keeps working during the 14-day trial, and for 30
 days after a license expires (the grace period). The edition label warns
-before either one ends. After that, **SCIM and audit logging stop** until a
+before either one ends. After that, **SCIM, audit logging and retention
+overrides stop** until a
 license is activated, the same as on the Community Edition, and enterprise
 configuration becomes read-only. Single sign-on is not an enterprise feature:
 SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in

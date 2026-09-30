@@ -6,13 +6,19 @@ import Service from "../../../Models/DatabaseModels/Service";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
   jest,
   test,
 } from "@jest/globals";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 
 /*
  * Regression suite for the Postgres CPU incident.
@@ -122,6 +128,21 @@ const buildService: BuildServiceFunction = (overrides?: {
 
   return service;
 };
+
+/*
+ * Retention overrides are an Enterprise feature: ingest applies them only
+ * while EnterpriseFeature.TelemetryRetention is active. These suites are
+ * about the caches, so they run as a licensed Enterprise Edition (a valid
+ * license is active with billing on or off). The Community Edition path is
+ * pinned in OpenTelemetryRetentionOverrideEdition.test.ts.
+ */
+beforeAll(() => {
+  installFakeEnterpriseModule();
+});
+
+afterAll(() => {
+  uninstallEnterpriseModule();
+});
 
 describe("OTelIngestService service-resolution cache", () => {
   let findOneBy: jest.Mock;

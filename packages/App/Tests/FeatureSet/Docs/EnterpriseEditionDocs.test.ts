@@ -114,6 +114,7 @@ const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
   [EnterpriseFeature.TeamCompliance]: "Team compliance settings",
   [EnterpriseFeature.AuditLogs]: "Audit logs",
   [EnterpriseFeature.InstanceHealth]: "Admin **Health** dashboards",
+  [EnterpriseFeature.TelemetryRetention]: "Retention overrides",
 };
 
 /*
@@ -931,10 +932,12 @@ describe("Enterprise Edition docs page", () => {
 
     for (const expected of [
       // What stops, said up front and item by item.
-      "After that, **SCIM and audit logging stop** until a license is activated",
+      "After that, **SCIM, audit logging and retention overrides stop** until a license is activated",
       "**SCIM provisioning stops.**",
       "SCIM team locks are lifted",
       "**Audit logging stops recording.**",
+      "**Retention overrides stop applying.** New telemetry is kept for the project's default retention.",
+      "Telemetry already stored keeps the retention it was written with.",
       "Enterprise configuration becomes **read-only**",
       // The one change a lapsed install still accepts.
       "One change always works, so you can respond to an incident: replacing a SCIM bearer token.",
@@ -946,11 +949,11 @@ describe("Enterprise Edition docs page", () => {
       "single sign-on configuration stays editable",
       "**Core monitoring is never affected**",
       "**Master admins can always sign in with their password.**",
-      "**Nothing is deleted.** SCIM configuration and audit logs stay as they are.",
+      "**Nothing is deleted.** SCIM configuration, audit logs and retention overrides stay as they are.",
       // It all comes back, and an unreadable license state switches nothing off.
       "**Everything resumes as soon as a license is activated**, without a restart",
       "While it cannot read the license state",
-      "SCIM and audit logging stay on",
+      "SCIM, audit logging and retention overrides stay on",
     ]) {
       expect({
         expected: expected,
@@ -1007,7 +1010,7 @@ describe("Enterprise Edition docs page", () => {
     );
 
     expect(licensing).toContain(
-      "Activate a license before the trial ends: after it, SCIM and audit logging stop and enterprise configuration becomes read-only",
+      "Activate a license before the trial ends: after it, SCIM, audit logging and retention overrides stop and enterprise configuration becomes read-only",
     );
     expect(licensing).toContain("(#when-a-license-expires-or-is-missing)");
     expect(ssoLicenseWordingIn(licensing)).toEqual([]);
@@ -1045,6 +1048,10 @@ describe("Enterprise Edition docs page", () => {
     expect(section).toContain("That includes SCIM deprovisioning.");
     expect(section).toContain("**SCIM team locks are lifted**");
     expect(section).toContain("**Audit logging stops.**");
+    expect(section).toContain("**Retention overrides stop applying.**");
+    expect(section).toContain(
+      "The overrides stay in the database and apply again when you switch back.",
+    );
     expect(section).toContain("review who has access");
 
     // The downgrade used to switch single sign-on off (14.0.10 and earlier).

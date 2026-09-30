@@ -723,10 +723,11 @@ describe("EnterpriseEdition runtime state (isFeatureActive)", () => {
     }
   });
 
-  test("the runtime features are SCIM and audit logging, in lapse-log order", () => {
+  test("the runtime features are SCIM, audit logging and retention overrides, in lapse-log order", () => {
     expect([...RUNTIME_ENTERPRISE_FEATURES]).toEqual([
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
+      EnterpriseFeature.TelemetryRetention,
     ]);
     expect(RUNTIME_ENTERPRISE_FEATURES as ReadonlyArray<string>).not.toContain(
       "sso",

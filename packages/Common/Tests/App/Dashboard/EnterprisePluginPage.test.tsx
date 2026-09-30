@@ -577,6 +577,8 @@ describe("the Community plugin door (what this jest config resolves)", () => {
         "SettingsSCIM",
         "StatusPageSCIM",
         "TeamCompliance",
+        "SettingsTelemetryRetentionByType",
+        "TelemetryResourceRetentionSettings",
         "LicenseManager",
       ].sort(),
     );
