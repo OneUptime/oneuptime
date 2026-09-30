@@ -15,6 +15,14 @@ export interface ComponentProps {
 }
 
 /*
+ * Where the docs explain reading a sender's verification email (Azure Monitor
+ * action groups, Amazon SNS) off the monitor. Exported so the docs tests can
+ * check the section is still there.
+ */
+export const VERIFY_ADDRESS_DOCS_ROUTE: string =
+  "/docs/monitor/incoming-email-monitor#verifying-the-address-with-the-sender";
+
+/*
  * The address an incoming-email monitor receives on, or null when this
  * server has no inbound email domain configured (so there is no address to
  * show). A custom address, when set, is the live one: the generated
@@ -87,6 +95,18 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
               </span>
               <CopyableButton textToBeCopied={emailAddress} />
             </div>
+            <p>
+              Some services, such as Azure Monitor action groups, send a
+              verification email before they deliver any alerts. It shows up on
+              this monitor&apos;s Overview page like any other email.{" "}
+              <Link
+                to={Route.fromString(VERIFY_ADDRESS_DOCS_ROUTE)}
+                openInNewTab={true}
+                className="underline"
+              >
+                How to verify the address
+              </Link>
+            </p>
           </div>
         }
       />
