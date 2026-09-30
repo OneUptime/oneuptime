@@ -7,6 +7,17 @@ import {
   SYSTEMD_UNIT_NAME_ATTR,
   encodeUnitNameForUrl,
 } from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnits";
+import {
+  HOST_INSTALL_METHODS,
+  HostInstallMethod,
+  getHostSetupGuide,
+} from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import {
+  SetupGuideContent,
+  SetupGuideOption,
+  SetupGuideTopic,
+  getSetupGuideMarkdown,
+} from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 
 /*
  * The Systemd Units tab is the Linux twin of the Windows Services tab: a list
@@ -631,18 +642,50 @@ describe("systemd receiver documentation", () => {
     expect(unbalanced).toEqual([]);
   });
 
-  test("the in-app Documentation tab explains the Linux setup", () => {
-    const source: string = readSource(
-      "Pages",
-      "Host",
-      "Utils",
-      "DocumentationMarkdown.ts",
-    );
+  /*
+   * The in-app guide is data (a SetupGuideContent per install method), so
+   * these ask it what each install method is offered instead of counting
+   * call sites in its source.
+   */
+  const guideFor: (method: HostInstallMethod) => SetupGuideContent = (
+    method: HostInstallMethod,
+  ): SetupGuideContent => {
+    return getHostSetupGuide({
+      oneuptimeUrl: "https://oneuptime.example.com",
+      apiKey: "tik_secret_123",
+      method: method,
+    });
+  };
 
-    expect(source).toContain("getLinuxSystemdStepMarkdown");
-    expect(source).toContain("Step 3 — Enable the Systemd Units tab");
-    expect(source).toContain("receivers: [hostmetrics, systemd]");
-    expect(source).toContain(MIN_OTELCOL_CONTRIB_VERSION.replace("v", ""));
+  const systemdTopicFor: (
+    method: HostInstallMethod,
+  ) => SetupGuideTopic | undefined = (
+    method: HostInstallMethod,
+  ): SetupGuideTopic | undefined => {
+    return (guideFor(method).advanced || []).find(
+      (topic: SetupGuideTopic): boolean => {
+        return topic.title === "Enable the Systemd Units tab";
+      },
+    );
+  };
+
+  const NATIVE_LINUX_METHODS: Array<HostInstallMethod> = [
+    "linux-deb",
+    "linux-rpm",
+    "linux-tarball",
+  ];
+
+  test("the in-app Documentation tab explains the Linux setup", () => {
+    for (const method of NATIVE_LINUX_METHODS) {
+      const topic: SetupGuideTopic | undefined = systemdTopicFor(method);
+
+      expect(topic).toBeDefined();
+      expect(topic!.markdown).toContain("receivers: [hostmetrics, systemd]");
+      expect(topic!.markdown).toContain(MIN_OTELCOL_CONTRIB_VERSION);
+      expect(topic!.markdown).toContain(
+        "sudo systemctl restart otelcol-contrib",
+      );
+    }
   });
 
   test("the Linux setup is offered on every native Linux install, and only those", () => {
@@ -651,37 +694,26 @@ describe("systemd receiver documentation", () => {
      * offering the step for Docker or Kubernetes would send users down a
      * path that cannot work.
      */
-    const raw: string = fs.readFileSync(
-      path.join(
-        DASHBOARD_SRC,
-        "Pages",
-        "Host",
-        "Utils",
-        "DocumentationMarkdown.ts",
-      ),
-      "utf8",
-    );
+    const offeredOn: Array<HostInstallMethod> = HOST_INSTALL_METHODS.map(
+      (option: SetupGuideOption<HostInstallMethod>): HostInstallMethod => {
+        return option.key;
+      },
+    ).filter((method: HostInstallMethod): boolean => {
+      return systemdTopicFor(method) !== undefined;
+    });
 
-    const callSites: number = (
-      raw.match(/\$\{getLinuxSystemdStepMarkdown\(\)\}/g) || []
-    ).length;
-    expect(callSites).toBe(3);
+    expect(offeredOn).toEqual(NATIVE_LINUX_METHODS);
 
-    const withoutTheStep: Array<string> = [];
-
-    for (const method of ["linux-deb", "linux-rpm", "linux-tarball"]) {
-      const caseStart: number = raw.indexOf(`case "${method}":`);
-      expect(caseStart).toBeGreaterThan(-1);
-      const caseBody: string = raw.substring(
-        caseStart,
-        raw.indexOf('case "', caseStart + 10),
+    for (const method of [
+      "docker",
+      "kubernetes",
+      "macos",
+      "windows",
+    ] as Array<HostInstallMethod>) {
+      expect(getSetupGuideMarkdown(guideFor(method))).not.toContain(
+        "receivers: [hostmetrics, systemd]",
       );
-      if (!caseBody.includes("getLinuxSystemdStepMarkdown")) {
-        withoutTheStep.push(method);
-      }
     }
-
-    expect(withoutTheStep).toEqual([]);
   });
 });
 
