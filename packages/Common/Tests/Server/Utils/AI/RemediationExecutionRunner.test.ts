@@ -1061,7 +1061,6 @@ function kubectlProposal(): JSONObject {
   };
 }
 
-
 /*
  * Drive the captured run_kubectl tool once and return the deadline the
  * toolkit planned the wait against. The job itself is stubbed: what is
