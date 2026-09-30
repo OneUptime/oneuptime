@@ -554,14 +554,15 @@ export class Service extends DatabaseService<Model> {
    * In order, each step refusing before the next one costs anything: the
    * same checks as getPublicForm (link, form on, plan, network), then the
    * instance captcha when it is on, then the answers against the form's
-   * questions (validateIncidentFormSubmission), then the severity, and last
-   * the form's hourly ceiling (IncidentFormRateLimit.reserveFormSubmission),
-   * which only a submission that passed all of those may spend. Only then
-   * is the incident created, as root, from the validated answers - with
-   * nothing left in them that acts on its own when shown
-   * (neutralizeIncidentFormReport) - and the form's own settings. Nothing
-   * else in the request reaches it, least of all a project id: the incident
-   * goes to the form's project.
+   * questions (validateIncidentFormSubmission) and the length of the title
+   * as it will be stored, then the severity, and last the form's hourly
+   * ceiling (IncidentFormRateLimit.reserveFormSubmission), which only a
+   * submission that passed all of those may spend. Only then are the
+   * answers made safe to show (neutralizeIncidentFormReport) - the one step
+   * whose cost grows with the Markdown in them, and one that cannot refuse
+   * - and the incident created, as root, from them and the form's own
+   * settings. Nothing else in the request reaches it, least of all a
+   * project id: the incident goes to the form's project.
    *
    * Once the incident exists the reporter is told it was declared whatever
    * happens next. The submission record and the private note are each
@@ -614,13 +615,11 @@ export class Service extends DatabaseService<Model> {
 
     const answers: ValidatedIncidentFormSubmission = validation.value;
 
-    const report: ValidatedIncidentFormSubmission =
-      neutralizeIncidentFormReport({
-        answers: answers,
-        askedDefinitions: askedDefinitions,
-      });
-
-    if (report.title.length > INCIDENT_FORM_TITLE_MAX_LENGTH) {
+    // The title as it will be stored, which must still fit Incident.title.
+    if (
+      neutralizeIncidentFormTitle(answers.title).length >
+      INCIDENT_FORM_TITLE_MAX_LENGTH
+    ) {
       throw new BadDataException(INCIDENT_FORM_TITLE_TOO_LONG_MESSAGE);
     }
 
@@ -639,6 +638,17 @@ export class Service extends DatabaseService<Model> {
     await IncidentFormRateLimit.reserveFormSubmission({
       shareKey: data.shareKey,
     });
+
+    /*
+     * Only a submission about to declare an incident - which the ceiling
+     * above bounds - pays for reading its Markdown; one refused on the way
+     * here never does.
+     */
+    const report: ValidatedIncidentFormSubmission =
+      neutralizeIncidentFormReport({
+        answers: answers,
+        askedDefinitions: askedDefinitions,
+      });
 
     const incident: Incident = await this.declareIncident({
       form,

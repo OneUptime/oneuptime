@@ -98,7 +98,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
-import { Token, Tokens, marked } from "marked";
+import { Lexer, Token, Tokens, marked } from "marked";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -2293,4 +2293,82 @@ describe("IncidentFormService.submitPublicForm - the form's hourly ceiling", () 
     expect(error?.message).toBe(INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
     expect(incidentCreate).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * Making the description and the Rich text answers safe to show is the one
+ * step whose cost grows with the Markdown in them, and it cannot refuse a
+ * submission. So it is the last step before the incident is declared: a
+ * submission refused on the way - for its title, its severity or the
+ * form's ceiling - never pays for it, and every one that does is bounded by
+ * that ceiling.
+ */
+describe("IncidentFormService.submitPublicForm - reading the reporter's Markdown", () => {
+  const WITH_AN_IMAGE: JSONObject = {
+    ...VALID_ANSWERS,
+    description: "Broken: ![x](https://tracker.example/p.png)",
+  };
+
+  test("happens once the form's ceiling is spent, before the incident is declared", async () => {
+    const lex: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      Lexer.prototype,
+      "lex",
+    );
+
+    await submit({ answers: WITH_AN_IMAGE });
+
+    expect(lex).toHaveBeenCalled();
+    expect(reserveFormSubmission.mock.invocationCallOrder[0]!).toBeLessThan(
+      lex.mock.invocationCallOrder[0]!,
+    );
+    expect(lex.mock.invocationCallOrder[0]!).toBeLessThan(
+      incidentCreate.mock.invocationCallOrder[0]!,
+    );
+    expect(createCall().data.description).toBe(
+      "Broken: \\![x](https://tracker.example/p.png)",
+    );
+  });
+
+  test.each([
+    [
+      "a title that no longer fits",
+      (): void => {
+        // The answers below have the title.
+      },
+      { ...WITH_AN_IMAGE, title: "<!".repeat(250) },
+    ],
+    [
+      "no severity left",
+      (): void => {
+        storedForm = buildForm();
+        setNull(storedForm, "incidentSeverityId");
+      },
+      WITH_AN_IMAGE,
+    ],
+    [
+      "the form's ceiling",
+      (): void => {
+        reserveFormSubmission.mockRejectedValue(
+          new IncidentFormCeilingException(1800),
+        );
+      },
+      WITH_AN_IMAGE,
+    ],
+  ])(
+    "never happens for a submission refused for %s",
+    async (_label: string, arrange: () => void, answers: JSONObject) => {
+      arrange();
+
+      const lex: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        Lexer.prototype,
+        "lex",
+      );
+
+      const error: Exception | undefined = await refusal(submit({ answers }));
+
+      expect(error).toBeDefined();
+      expect(lex).not.toHaveBeenCalled();
+      expect(incidentCreate).not.toHaveBeenCalled();
+    },
+  );
 });
