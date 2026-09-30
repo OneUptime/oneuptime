@@ -97,7 +97,10 @@ import {
 } from "../../../Types/Incident/IncidentFormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
+import {
+  hrefsOf,
+  renderAsDashboard,
+} from "../../Utils/Markdown/DashboardMarkdownRenderer";
 import { Lexer, Token, Tokens, marked } from "marked";
 
 type MockedFn = ReturnType<typeof jest.fn>;
@@ -1887,8 +1890,12 @@ describe("getIncidentFormReporterNote", () => {
      * a mail client reads "#" as a fragment, "?" as headers and "%41" as an
      * escape, so <a%41@example.com> would write to aA@example.com - and one
      * starting with "!" or "#" would open like a Slack control sequence.
-     * Such an address is linked explicitly, those characters escaped in the
-     * link: it still writes to exactly the address the reporter gave.
+     * The renderers differ too: marked (the owners' email) drops "^" from
+     * its autolink rule, so <jane^doe@corp.example> linked doe@corp.example,
+     * and micromark (the dashboard, and slackify) takes no "!" in one, so
+     * <first.last!ops@corp.example> linked ops@corp.example. Such an address
+     * is linked explicitly, what a mailto: link may not carry as it is
+     * percent-encoded: it still writes to exactly the address given.
      */
     test.each([
       ["!bang@example.com"],
@@ -1896,6 +1903,15 @@ describe("getIncidentFormReporterNote", () => {
       ["a#b@example.com"],
       ["a?b@example.com"],
       ["a%41@example.com"],
+      ["jane^doe@corp.example"],
+      ["^jane@corp.example"],
+      ["jane^@corp.example"],
+      ["first.last!ops@corp.example"],
+      ["a/b@example.com"],
+      ["a=b@example.com"],
+      ["a{b}@example.com"],
+      ["a|b@example.com"],
+      ["a`b@example.com"],
     ])(
       "links %s to itself, not to what a mail client would make of it",
       async (address: string) => {
@@ -1934,6 +1950,103 @@ describe("getIncidentFormReporterNote", () => {
         expect(slackLink![2]).toBe(address);
       },
     );
+
+    // What a mailto: link may carry as it is (RFC 6068), the rest encoded.
+    const MAILTO_ADDRESS: RegExp =
+      /^(?:[A-Za-z0-9\-._~!$'()*+,;:@]|%[0-9A-F]{2})+$/;
+
+    // The address's link at the end of a note, written either way.
+    const NOTE_EXPLICIT_LINK: RegExp = /\]\((mailto:[^)]*)\)\)\.$/;
+    const NOTE_AUTOLINK: RegExp = /\(<([^>]+)>\)\.$/;
+
+    function withoutEntities(text: string): string {
+      return text
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, "&");
+    }
+
+    /*
+     * Every character an address may hold (WHOLE_EMAIL_ADDRESS), at the
+     * start, inside and at the end of its local part: the owners' email,
+     * Slack and the dashboard each link exactly the address given, and the
+     * note's own mailto: link carries nothing a mail client could read as
+     * anything but the address.
+     */
+    test("links an address holding any character an address may to exactly that address, in every renderer", async () => {
+      const addresses: Array<string> = [];
+
+      for (const character of "!#$%&'*+/=?^_`{|}~-") {
+        addresses.push(
+          `${character}jane@corp.example`,
+          `ja${character}ne@corp.example`,
+          `jane${character}@corp.example`,
+        );
+      }
+
+      const notes: Array<string> = addresses.map((address: string): string => {
+        return getIncidentFormReporterNote({
+          formName: "Report a Problem",
+          reporterName: "Jane Doe",
+          reporterEmail: address,
+        });
+      });
+
+      const dashboard: Array<string> = renderAsDashboard(notes);
+
+      for (const [index, address] of addresses.entries()) {
+        const note: string = notes[index]!;
+
+        const link: string =
+          NOTE_EXPLICIT_LINK.exec(note)?.[1] ||
+          `mailto:${NOTE_AUTOLINK.exec(note)![1]}`;
+
+        expect({ address: address, link: link }).toEqual({
+          address: address,
+          link: expect.stringMatching(/^mailto:/),
+        });
+        expect(link.slice("mailto:".length)).toMatch(MAILTO_ADDRESS);
+
+        const email: Array<string> = hrefsOf(
+          await Markdown.convertToHTML(note, MarkdownContentType.Email),
+        );
+
+        expect({ address: address, email: email.map(mailtoAddress) }).toEqual({
+          address: address,
+          email: [address],
+        });
+
+        expect({
+          address: address,
+          dashboard: hrefsOf(dashboard[index]!).map(mailtoAddress),
+        }).toEqual({ address: address, dashboard: [address] });
+
+        const slack: RegExpExecArray | null = SLACK_MAILTO_LINK.exec(
+          JSON.parse(
+            JSON.stringify(
+              SlackUtil.getMarkdownBlocks({
+                payloadMarkdownBlock: {
+                  _type: "WorkspacePayloadMarkdown",
+                  text: note,
+                },
+              }),
+            ),
+          )[0].text.text as string,
+        );
+
+        expect({
+          address: address,
+          slack: slack
+            ? [
+                mailtoAddress(`mailto:${withoutEntities(slack[1]!)}`),
+                withoutEntities(slack[2]!),
+              ]
+            : null,
+        }).toEqual({ address: address, slack: [address, address] });
+      }
+    });
 
     test("escapes a value that is not one whole address, rather than linking it", () => {
       expect(

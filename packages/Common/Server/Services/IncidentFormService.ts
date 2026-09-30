@@ -159,26 +159,48 @@ interface TemplateOwners {
 }
 
 /*
- * An address an autolink would not carry whole: one that starts with "!"
- * (or "#"), whose autolink would open like a Slack control sequence ("<!",
- * "<#" - an address cannot start with "@"), and one holding "#", "?" or
- * "%", which a mail client reads in a mailto: link as a fragment, headers or
- * an escape - so <a#b@example.com> writes to "a", and <a%41@example.com> to
- * aA@example.com.
+ * An address an autolink carries whole everywhere: letters, digits, dots
+ * and hyphens, and of the rest of what an address may hold only "_", "~",
+ * "$", "'", "*" and "+" - the characters a mailto: link may carry as they
+ * are (RFC 6068) and that every renderer here keeps inside an autolink.
+ * Every other one is written as an explicit link (see
+ * getIncidentFormReporterNote), because somewhere the autolink would
+ * write to another address:
+ *
+ *   - "!" anywhere: micromark, behind the dashboard and slackify, does not
+ *     take "!" in an autolink's address, so <first.last!ops@corp.example>
+ *     became a link to ops@corp.example (and a leading "!", like a leading
+ *     "#", opens like a Slack control sequence);
+ *   - "^": marked, which renders the owners' email, drops "^" from its
+ *     autolink rule, so <jane^doe@corp.example> linked doe@corp.example;
+ *   - "#", "?" and "%": a mail client reads them in a mailto: link as a
+ *     fragment, headers or an escape - <a#b@example.com> writes to "a",
+ *     <a%41@example.com> to aA@example.com - and slackify cannot even read
+ *     an address with a stray "%" in it;
+ *   - "&", "/", "=", "`", "{", "|" and "}": RFC 6068 has them
+ *     percent-encoded in a mailto: link, which an autolink cannot do.
  */
-const EXPLICIT_LINK_ADDRESS_PATTERN: RegExp = /^!|[#?%]/;
+const EXPLICIT_LINK_ADDRESS_PATTERN: RegExp = /[^a-z0-9.@_~$'*+-]/i;
 
-// The characters of an address a mailto: link would read as URL syntax.
-const MAILTO_SYNTAX_CHARACTER_PATTERN: RegExp = /[#?%]/g;
+/*
+ * The characters of an address a mailto: link carries only percent-encoded
+ * (RFC 6068): all but unreserved characters and "!", "$", "'", "*", "+"
+ * and "@".
+ */
+const MAILTO_ENCODED_CHARACTER_PATTERN: RegExp = /[^a-z0-9.@_~!$'*+-]/gi;
 
 type GetMailtoLinkFunction = (email: string) => string;
 
 // A mailto: link that writes to exactly this address.
 const getMailtoLink: GetMailtoLinkFunction = (email: string): string => {
   return `mailto:${email.replace(
-    MAILTO_SYNTAX_CHARACTER_PATTERN,
+    MAILTO_ENCODED_CHARACTER_PATTERN,
     (character: string): string => {
-      return `%${character.charCodeAt(0).toString(16).toUpperCase()}`;
+      return `%${character
+        .charCodeAt(0)
+        .toString(16)
+        .toUpperCase()
+        .padStart(2, "0")}`;
     },
   )}`;
 };
@@ -214,12 +236,13 @@ export type GetIncidentFormReporterNoteFunction = (data: {
  * which renders the owners' "note posted" email, restarts its bare-address
  * link after every escape, so mary\-jane.watson@corp.example linked
  * mailto:jane.watson@corp.example - somebody else's mailbox. An address an
- * autolink would not carry whole (see EXPLICIT_LINK_ADDRESS_PATTERN: one
- * starting with "!" or "#", which would open like a Slack control sequence,
- * or holding "#", "?" or "%", which a mail client reads as URL syntax) is
- * written as a plain link instead, with those characters escaped in its
- * address. A value that is not one whole address (the function is
- * exported, and could be handed anything) is escaped like the name.
+ * autolink would not carry whole in every renderer, or that a mailto: link
+ * carries only percent-encoded (see EXPLICIT_LINK_ADDRESS_PATTERN: one with
+ * "!", "^", "#", "?", "%" and the like in it) is written as a plain link
+ * instead, [address](mailto:...), with those characters percent-encoded in
+ * its address - a form marked, the dashboard and slackify all link whole.
+ * A value that is not one whole address (the function is exported, and
+ * could be handed anything) is escaped like the name.
  */
 export const getIncidentFormReporterNote: GetIncidentFormReporterNoteFunction =
   (data: {
