@@ -321,7 +321,6 @@ const KubernetesClusters: FunctionComponent<
       />
       {clusterCount === 0 && (
         <KubernetesDocumentationCard
-          clusterName="my-cluster"
           title="Getting Started with Kubernetes Monitoring"
           description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
         />

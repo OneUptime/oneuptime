@@ -1,17 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -53,20 +48,6 @@ const KubernetesClusterSettings: FunctionComponent<
             required: false,
             placeholder: "Production cluster running in US East region on EKS",
           },
-          {
-            field: {
-              retainTelemetryDataForDays: true,
-            },
-            title: "Retain Telemetry Data For (Days)",
-            description:
-              "Default retention for telemetry collected from this Kubernetes cluster. Leave blank to use the project's default.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "Use project default",
-            validation: {
-              minValue: 1,
-            },
-          },
         ]}
         modelDetailProps={{
           modelType: KubernetesCluster,
@@ -94,71 +75,14 @@ const KubernetesClusterSettings: FunctionComponent<
               title: "Cluster Identifier",
               fieldType: FieldType.Text,
             },
-            {
-              field: {
-                retainTelemetryDataForDays: true,
-              },
-              title: "Retain Telemetry Data For (Days)",
-              description:
-                "Default retention for telemetry collected from this Kubernetes cluster. Falls back to the project's default when not set.",
-              fieldType: FieldType.Number,
-              placeholder: "Using project default",
-            },
           ],
         }}
       />
-      <CardModelDetail<KubernetesCluster>
-        name="Retention by Telemetry Type"
-        cardProps={{
-          title: "Retention by Telemetry Type",
-          description:
-            "Override retention for specific telemetry types for this Kubernetes cluster. Any field left blank falls back to the cluster default, then the project's settings.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Overrides"
-        createEditModalWidth={ModalWidth.Large}
-        formFields={[
-          {
-            field: { telemetryRetentionConfig: true },
-            title: "Retention Overrides",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              value: FormValues<KubernetesCluster>,
-              props: CustomElementProps,
-            ) => {
-              return (
-                <TelemetryRetentionConfigForm
-                  {...props}
-                  value={
-                    value.telemetryRetentionConfig as
-                      | TelemetryRetentionConfig
-                      | undefined
-                  }
-                />
-              );
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: KubernetesCluster,
-          id: "model-detail-kubernetes-cluster-telemetry-retention-overrides",
-          fields: [
-            {
-              field: { telemetryRetentionConfig: true },
-              fieldType: FieldType.Element,
-              title: "Retention Overrides",
-              getElement: (item: KubernetesCluster) => {
-                return (
-                  <TelemetryRetentionConfigSummary
-                    config={item.telemetryRetentionConfig}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
+      <TelemetryResourceRetentionSettings<KubernetesCluster>
+        modelType={KubernetesCluster}
+        modelId={modelId}
+        resourceName="Kubernetes cluster"
+        modelDetailIdPrefix="model-detail-kubernetes-cluster"
       />
       <ArchiveResourceCard<KubernetesCluster>
         modelType={KubernetesCluster}

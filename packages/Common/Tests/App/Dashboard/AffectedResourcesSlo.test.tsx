@@ -130,8 +130,11 @@ describe("AffectedResourcesDisplay with SLOs", () => {
 
     expect(grid.children).toHaveLength(1);
     expect(within(grid).getByText("SLOs")).toBeInTheDocument();
-    expect(screen.getByText("1 resource")).toBeInTheDocument();
-    expect(screen.getByText("across 1 category")).toBeInTheDocument();
+    // One category counts itself in its heading; there is no total to add up.
+    expect(
+      within(grid).getByRole("heading", { level: 3, name: "SLOs 1" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("affected-resources-summary")).toBeNull();
   });
 
   test("each SLO links to its overview and carries its full name as a title", () => {
@@ -226,13 +229,27 @@ describe("AffectedResourcesDisplay with SLOs", () => {
   });
 
   test("the empty state explains that SLOs are linked for you, not attached by hand", () => {
-    render(<AffectedResourcesDisplay columns={1} />);
+    // As the incident and alert pages call it: with their (empty) SLO list.
+    render(
+      <AffectedResourcesDisplay serviceLevelObjectives={[]} columns={1} />,
+    );
 
     expect(
       screen.getByText(
         /SLOs are linked automatically when their burn rate rules fire\./,
       ),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Scheduled maintenance and the templates never pass SLOs: nothing links
+   * one to them, so their empty state must not say something will.
+   */
+  test("a caller that never shows SLOs does not promise them in its empty state", () => {
+    render(<AffectedResourcesDisplay columns={1} />);
+
+    expect(screen.getByText("No resources affected.")).toBeInTheDocument();
+    expect(screen.queryByText(/SLOs are linked automatically/)).toBeNull();
   });
 
   test("an empty SLO list alone is still empty", () => {

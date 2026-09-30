@@ -1,3 +1,8 @@
+import ToolOutputPager from "../Chat/ToolOutputPager";
+import {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -182,11 +187,15 @@ const MAX_SIGNAL_TITLE_CHARS: number = 500;
 const MAX_SIGNAL_DESCRIPTION_CHARS: number = 4000;
 const MAX_POSTED_ANALYSIS_CHARS: number = 6000;
 
-// Budgets: execution runs act on real systems and wait on real commands.
-const MAX_LLM_CALLS: number = 10;
-const MAX_TOOL_CALLS: number = 16;
-const MAX_WALL_CLOCK_MS: number = 10 * 60 * 1000;
-const MAX_OUTPUT_TOKENS: number = 2500;
+/*
+ * Budgets. Like an investigation, a remediation run is not rationed: no
+ * wall clock, and step counts that only guard against a runaway loop. What
+ * it may CHANGE is bounded separately (MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
+ * the command policy and the operator's Fixes mode).
+ */
+const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
+const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
+const MAX_OUTPUT_TOKENS: number = 4096;
 
 const MAX_RATIONALE_CHARS: number = 10000;
 
@@ -704,13 +713,14 @@ export default class RemediationExecutionRunner {
     let downgradeNote: string | null = null;
 
     /*
-     * The read toolkit's absolute deadline, from the same wall clock the
-     * engine is handed below (maxWallClockMs), so a diagnostic kubectl wait
-     * is planned to end before the run's budget does — exactly as an
-     * investigation budgets its reads. Taken before the preparation reads
-     * so it can only be conservative.
+     * The read toolkits' absolute deadline. A remediation run has no time
+     * limit, so there is none: every diagnostic command is bounded only by
+     * its own timeout, exactly as an investigation's are by default.
      */
-    const runDeadlineAtMs: number = Date.now() + MAX_WALL_CLOCK_MS;
+    const runDeadlineAtMs: number | undefined = undefined;
+
+    // One pager for the run, so read_tool_output reads every read toolkit's output.
+    const outputPager: ToolOutputPager = new ToolOutputPager();
 
     try {
       suggestion = await AutoRemediationSuggestionService.findOneById({
@@ -934,6 +944,7 @@ export default class RemediationExecutionRunner {
           clusters: [clusterTarget],
           readinessCheck: "remediation",
           runDeadlineAtMs,
+          outputPager,
         });
 
         contextSummary = await this.buildExecutionContext({
@@ -1035,6 +1046,7 @@ export default class RemediationExecutionRunner {
           resources: [resourceTarget],
           readinessCheck: "remediation",
           runDeadlineAtMs,
+          outputPager,
         });
 
         contextSummary = await this.buildExecutionContext({
@@ -1192,6 +1204,7 @@ export default class RemediationExecutionRunner {
             clusters: ruleClusterTargets,
             readinessCheck: "remediation",
             runDeadlineAtMs,
+            outputPager,
           });
         }
 
@@ -1223,10 +1236,16 @@ export default class RemediationExecutionRunner {
       resourceTarget;
     const resolvedDowngradeNote: string | null = downgradeNote;
 
-    const extraTools: Array<ObservabilityAssistantExtraTool> = [
-      ...resolvedToolkit.buildTools(),
+    const readTools: Array<ObservabilityAssistantExtraTool> = [
       ...(readToolkit ? readToolkit.buildTools() : []),
       ...(resourceReadToolkit ? resourceReadToolkit.buildTools() : []),
+    ];
+
+    const extraTools: Array<ObservabilityAssistantExtraTool> = [
+      ...resolvedToolkit.buildTools(),
+      ...readTools,
+      // Long read output is paged, never cut: offer the reader with the reads.
+      ...(readTools.length > 0 ? [outputPager.buildReadTool()] : []),
     ];
 
     const clusterChanges: KubectlChangeSummaryOptions = resolvedClusterTarget
@@ -1289,7 +1308,8 @@ export default class RemediationExecutionRunner {
         extraTools,
         maxLlmCalls: MAX_LLM_CALLS,
         maxToolCalls: MAX_TOOL_CALLS,
-        maxWallClockMs: MAX_WALL_CLOCK_MS,
+        // No time limit (see the budgets above).
+        maxWallClockMs: undefined,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         postAnalysis: async (postData: {
           analysisMarkdown: string;

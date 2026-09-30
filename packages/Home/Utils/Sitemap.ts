@@ -57,6 +57,7 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/cloud": { priority: 0.9, changefreq: "weekly" },
   "/product/profiles": { priority: 0.9, changefreq: "weekly" },
   "/product/services": { priority: 0.9, changefreq: "weekly" },
+  "/product/databases": { priority: 0.9, changefreq: "weekly" },
   "/product/runbooks": { priority: 0.9, changefreq: "weekly" },
 
   // Teams (Solutions) pages

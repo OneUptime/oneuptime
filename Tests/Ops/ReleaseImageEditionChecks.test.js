@@ -22,11 +22,11 @@
  *
  * The two enterprise jobs are the only ones that boot a self-hosted Enterprise
  * stack - the enterprise image with billing OFF, where the license rather than
- * the billing flag decides whether SSO, SCIM and audit logging run - and the
- * only ones that run their suite in two phases against one stack: licensed,
- * then with the trial backdated out from under it. The last describe in this
- * file pins that shape, because a phase that quietly stopped running would
- * leave the job green.
+ * the billing flag decides whether SCIM and audit logging run (single sign-on
+ * is core and runs on every stack) - and the only ones that run their suite in
+ * two phases against one stack: licensed, then with the trial backdated out
+ * from under it. The last describe in this file pins that shape, because a
+ * phase that quietly stopped running would leave the job green.
  *
  * The check's boot probe calls into code it only meets inside a real image,
  * so the second half of this suite pins what the probe relies on: the

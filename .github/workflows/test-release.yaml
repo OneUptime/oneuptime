@@ -1359,18 +1359,22 @@ jobs:
   # SaaS job boots the same image with billing ON, where EnterpriseEdition
   # answers "OneUptime Cloud" to every check and the license decides nothing;
   # the self-hosted job boots the Community image, which has no ee/ at all. Only
-  # here does the LICENSE decide whether SSO, SCIM and audit logging run.
+  # here does the LICENSE decide whether SCIM and audit logging run. (Single
+  # sign-on is core: every stack serves it, and no license decides anything
+  # about it.)
   #
   # The suite runs in two phases against one stack:
   #
   #   A  licensed - a fresh Enterprise install is inside its 14-day unlicensed
-  #      trial, so the 44 identity routes answer through nginx, the dashboard
-  #      renders the SSO/OIDC/SCIM and audit-log screens instead of the upsell,
-  #      and the audit recorder writes a real row to ClickHouse.
+  #      trial, so the SCIM routes answer through nginx beside core's single
+  #      sign-on routes, the dashboard renders the SCIM and audit-log screens
+  #      instead of the upsell (and the SSO/OIDC screens with no license
+  #      notice), and the audit recorder writes a real row to ClickHouse.
   #   B  lapsed - the trial is pushed into the past and the SAME stack is
-  #      re-probed: the license gates refuse (402/403, not 404 - the routes are
-  #      still mounted), enterprise configuration becomes read-only, and
-  #      password sign-in still works.
+  #      re-probed: the SCIM gates refuse (403, not 404 - the routes are still
+  #      mounted), enterprise configuration becomes read-only, single sign-on
+  #      answers and works exactly as in phase A, and password sign-in still
+  #      works.
   #
   # In-process jest suites (test.ee.yaml) already cover route mounting, the gate
   # matrix, recorder eligibility and the license classifier. What only a booted
@@ -1456,9 +1460,9 @@ jobs:
           echo "${KEY}=true" >> "$GITHUB_ENV"
       # The App tag this job boots is a published enterprise- image, and the
       # whole job is meaningless if it is not really the Enterprise Edition: a
-      # Community image would answer 404 to every identity route and phase B
-      # would "pass" for the wrong reason. Check it before booting it: ee/ in
-      # the image and in its UI bundles, and the loader actually loading it.
+      # Community image would answer 404 to every SCIM route and phase B would
+      # "pass" for the wrong reason. Check it before booting it: ee/ in the
+      # image and in its UI bundles, and the loader actually loading it.
       - name: Check the App image is the Enterprise Edition
         env:
           APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test

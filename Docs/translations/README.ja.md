@@ -207,7 +207,7 @@ helm install oneuptime oneuptime/oneuptime
 | **こんな方に** | セルフホスターと小規模チーム | プレミアムサポートを必要とする規制対象チーム |
 | **費用** | 無料＆オープンソース | [営業に問い合わせ](mailto:sales@oneuptime.com) |
 | **ライセンス** | Apache 2.0 | Apache 2.0、ただし `ee/` ディレクトリは [OneUptime Enterprise License](/ee/LICENSE) |
-| **機能** | 上記「すべてが揃っている」の全機能 — 監視、ステータスページ、インシデント、オンコール、ログ、トレース、メトリクス、エラートラッキング、ワークフロー、AI | Community の全機能 + SAML・OIDC シングルサインオン、SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボード、さらに優先サポート、カスタム機能、データレジデンシー |
+| **機能** | 上記「すべてが揃っている」の全機能（監視、ステータスページ、インシデント、オンコール、ログ、トレース、メトリクス、エラートラッキング、ワークフロー、AI）と SAML・OIDC シングルサインオン | Community の全機能 + SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボード、さらに優先サポート、カスタム機能、データレジデンシー |
 
 Enterprise の機能は [`ee/`](/ee) ディレクトリにあり、Enterprise イメージにのみ含まれます。詳しい比較は [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) をご覧ください。
 

@@ -24,8 +24,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ResourceDocumentationCard from "../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getServerlessDocMarkdown } from "../../Components/TelemetryResource/documentationMarkdown";
+import ServerlessDocumentationCard from "../../Components/Serverless/ServerlessDocumentationCard";
 
 const ServerlessFunctions: FunctionComponent<
   PageComponentProps
@@ -285,10 +284,9 @@ const ServerlessFunctions: FunctionComponent<
         }}
       />
       {count === 0 && (
-        <ResourceDocumentationCard
+        <ServerlessDocumentationCard
           title="Getting Started with Serverless Functions"
           description="No serverless functions connected yet. Instrument a function with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
-          buildMarkdown={getServerlessDocMarkdown}
         />
       )}
     </Fragment>

@@ -1,9 +1,15 @@
 import InfrastructureInvestigationToolkit from "../../../../../Server/Utils/AI/ResourceAccess/InfrastructureInvestigationToolkit";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+  RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX,
   ResourceCommandJobOutcome,
   ResourceCommandRunState,
 } from "../../../../../Server/Utils/AI/ResourceAccess/ResourceCommandJobRunner";
+import ToolOutputPager, {
+  READ_TOOL_OUTPUT_TOOL_NAME,
+  TOOL_OUTPUT_PAGE_CHARS,
+  ToolOutputPage,
+} from "../../../../../Server/Utils/AI/Chat/ToolOutputPager";
 import {
   INFRASTRUCTURE_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
@@ -23,6 +29,7 @@ import AiResourceType from "../../../../../Types/ResourceAiAgent/AiResourceType"
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
   MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
+  MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM,
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessStatus,
   ResourceAiRemediationMode,
@@ -42,8 +49,13 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   id, programs) and the read-command guide of each tool policy present,
  *   once per policy;
  * - every command is checked here first (Read tier only, the guide on a
- *   refusal), bounded (per-run cap, 1–120 s timeout, the run's deadline),
- *   and a dead agent trips a breaker after its first unclaimed command;
+ *   refusal), bounded (a per-run runaway guard, 1–120 s timeout, and the
+ *   run's deadline when its project configured a time limit — by default
+ *   there is none), and a dead agent trips a breaker after its first
+ *   unclaimed command;
+ * - output is never cut: the toolkit asks for all of it and pages a long
+ *   one (first page, then a note naming the outputId to read the rest
+ *   from); isTruncated only reports a cut made before it arrived;
  * - only a command that ran is evidence: cited as `<command>` on
  *   <type> "<name>", rowCount 1 when it succeeded and 0 when it returned an
  *   error; one that never ran or whose result never came back is a failed
@@ -166,6 +178,40 @@ function runArgs(overrides: JSONObject = {}): JSONObject {
   };
 }
 
+// A `docker ps -a` listing more than twice one page long.
+function longOutput(lastRow: string): string {
+  const row: string = "abc123   nginx:1.27   Up 3 hours   web\n";
+
+  return `[stdout]\nCONTAINER ID   IMAGE   STATUS   NAMES\n${row.repeat(
+    Math.ceil((2 * TOOL_OUTPUT_PAGE_CHARS) / row.length),
+  )}${lastRow}`;
+}
+
+// Everything the pager holds for one output, read a page at a time.
+function readWholeOutput(pager: ToolOutputPager, outputId: string): string {
+  let text: string = "";
+  let offset: number = 0;
+
+  for (;;) {
+    const page: ToolOutputPage | { error: string } = pager.read({
+      outputId,
+      offset,
+    });
+
+    if ("error" in page) {
+      throw new Error(page.error);
+    }
+
+    text += page.text;
+
+    if (!page.hasMore) {
+      return text;
+    }
+
+    offset = page.end;
+  }
+}
+
 describe("InfrastructureInvestigationToolkit tools", () => {
   it("offers nothing without a ready resource", () => {
     expect(toolkit([]).buildTools()).toEqual([]);
@@ -251,8 +297,69 @@ describe("InfrastructureInvestigationToolkit tools", () => {
     );
     // Not ready: not offered.
     expect(description).not.toContain(DB_ID);
+  });
+
+  /*
+   * The default cap is a runaway guard, not a ration: the model is told to
+   * run what it needs, and that output is paged rather than cut.
+   */
+  it("tells the model to run what it needs and that output is never cut off", () => {
+    const description: string = tool(
+      toolkit([status()]),
+      RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    ).definition.description;
+
     expect(description).toContain(
-      `At most ${MAX_RESOURCE_COMMANDS_PER_INVESTIGATION} commands per investigation.`,
+      `Output is never cut off: a long output shows its first page and tells you how to read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME}.`,
+    );
+    expect(
+      description.endsWith("Run as many commands as the investigation needs."),
+    ).toBe(true);
+    expect(description).not.toContain("At most");
+  });
+
+  it("states an explicit smaller command cap", () => {
+    expect(
+      tool(
+        toolkit([status()], { maxCommands: 3 }),
+        RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+      ).definition.description.endsWith(
+        "Run as many commands as the investigation needs. At most 3 commands in this run.",
+      ),
+    ).toBe(true);
+
+    // A cap at the guard is the guard: not stated.
+    expect(
+      tool(
+        toolkit([status()], {
+          maxCommands: MAX_RESOURCE_COMMANDS_PER_INVESTIGATION,
+        }),
+        RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+      ).definition.description,
+    ).not.toContain("At most");
+  });
+
+  it("mentions shortening the timeout only when the run has a time limit", () => {
+    const timeoutDescription: (
+      kit: InfrastructureInvestigationToolkit,
+    ) => string = (kit: InfrastructureInvestigationToolkit): string => {
+      const schema: JSONObject = tool(kit, RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME)
+        .definition.inputSchema as JSONObject;
+      return (
+        (schema["properties"] as JSONObject)["timeoutInMs"] as JSONObject
+      )["description"] as string;
+    };
+
+    const unlimited: string = timeoutDescription(toolkit([status()]));
+    expect(unlimited).toBe(
+      `Timeout in milliseconds (default ${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS}, max ${MAX_RESOURCE_COMMAND_TIMEOUT_MS}).`,
+    );
+    expect(
+      timeoutDescription(
+        toolkit([status()], { runDeadlineAtMs: Date.now() + 60_000 }),
+      ),
+    ).toBe(
+      `${unlimited} Shortened automatically when the investigation's configured time limit is close.`,
     );
   });
 
@@ -345,6 +452,13 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
     expect(call["stepId"]).toBe("ai-investigation-resource-1");
     expect(call["timeoutInMs"]).toBe(DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS);
     expect(call["claimTimeoutInMs"]).toBe(RESOURCE_COMMAND_CLAIM_TIMEOUT_MS);
+    // The whole redacted output: the toolkit pages, never cuts.
+    expect(call["maxOutputChars"]).toBe(Number.MAX_SAFE_INTEGER);
+
+    // A short output is shown whole: no page note, nothing stored.
+    expect(result.textForLlm).not.toContain(READ_TOOL_OUTPUT_TOOL_NAME);
+    expect(kit.getOutputPager().hasStoredOutputs()).toBe(false);
+    expect(result.result?.isTruncated).toBe(false);
   });
 
   it("cites a command that ran and returned an error with rowCount 0", async () => {
@@ -451,31 +565,45 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
     expect(run).not.toHaveBeenCalled();
   });
 
-  it("stops at the per-investigation cap", async () => {
+  it("stops at an explicit smaller cap", async () => {
     const kit: InfrastructureInvestigationToolkit = toolkit([status()], {
       maxCommands: 2,
     });
 
-    await execute(kit);
-    await execute(kit);
+    expect((await execute(kit)).success).toBe(true);
+    expect((await execute(kit)).success).toBe(true);
     const third: ToolCallOutcome = await execute(kit);
 
     expect(third.success).toBe(false);
-    expect(third.textForLlm).toContain(
-      "The per-investigation infrastructure command budget (2 commands) is spent.",
+    expect(third.textForLlm).toBe(
+      "This run has already sent 2 infrastructure commands, the most one run may send. Finish your analysis with what you have.",
     );
+    expect(third.result).toBeUndefined();
     expect(run).toHaveBeenCalledTimes(2);
+    expect(kit.getCommandsRun()).toBe(2);
   });
 
-  it("uses the shared default cap of 8", async () => {
+  it("uses the shared runaway guard of MAX_RESOURCE_COMMANDS_PER_INVESTIGATION by default", async () => {
+    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(200);
+
     const kit: InfrastructureInvestigationToolkit = toolkit([status()]);
 
-    for (let index: number = 0; index < 9; index++) {
-      await execute(kit);
+    for (
+      let index: number = 0;
+      index < MAX_RESOURCE_COMMANDS_PER_INVESTIGATION;
+      index++
+    ) {
+      expect((await execute(kit)).success).toBe(true);
     }
 
-    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(8);
-    expect(run).toHaveBeenCalledTimes(8);
+    const over: ToolCallOutcome = await execute(kit);
+
+    expect(over.success).toBe(false);
+    expect(over.textForLlm).toContain(
+      `This run has already sent ${MAX_RESOURCE_COMMANDS_PER_INVESTIGATION} infrastructure commands, the most one run may send.`,
+    );
+    expect(run).toHaveBeenCalledTimes(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION);
+    expect(kit.getCommandsRun()).toBe(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION);
   });
 
   it.each<[unknown, number]>([
@@ -528,10 +656,45 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
 
     expect(result.success).toBe(false);
     expect(result.textForLlm).toContain(
-      "Not enough time is left in this investigation's budget to run another infrastructure command",
+      "Not enough time is left before this investigation's configured time limit to run another infrastructure command (about 5s remain;",
+    );
+    expect(result.textForLlm).toContain(
+      `a command needs at least ${Math.round(
+        KubectlWaitBudget.getMinimumBudgetMs() / 1000,
+      )}s including the wait for the agent). Nothing was run.`,
     );
     expect(run).not.toHaveBeenCalled();
     expect(kit.getCommandsRun()).toBe(0);
+  });
+
+  /*
+   * No time limit is the default: without a deadline the wait is planned
+   * without one, and however long the run has been going a command is
+   * never refused for time.
+   */
+  it("has no deadline by default, so an unlimited run never refuses for time", async () => {
+    const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+    const kit: InfrastructureInvestigationToolkit = toolkit([status()]);
+
+    // A day into the run.
+    const aDayLater: number = Date.now() + 24 * 60 * 60 * 1000;
+    jest.spyOn(Date, "now").mockReturnValue(aDayLater);
+
+    const result: ToolCallOutcome = await execute(
+      kit,
+      runArgs({ timeoutInMs: MAX_RESOURCE_COMMAND_TIMEOUT_MS }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(plan).toHaveBeenCalledWith({
+      requestedTimeoutInMs: MAX_RESOURCE_COMMAND_TIMEOUT_MS,
+      maxClaimTimeoutInMs: RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+      deadlineAtMs: undefined,
+    });
+
+    const call: Record<string, unknown> = run.mock.calls[0]![0];
+    expect(call["timeoutInMs"]).toBe(MAX_RESOURCE_COMMAND_TIMEOUT_MS);
+    expect(call["claimTimeoutInMs"]).toBe(RESOURCE_COMMAND_CLAIM_TIMEOUT_MS);
   });
 
   it("trips the agent's breaker on an unclaimed command and refuses the next at once", async () => {
@@ -652,13 +815,132 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
     );
   });
 
-  it("marks truncated output", async () => {
+  /*
+   * The server no longer cuts anything, so isTruncated only reports a cut
+   * made before the output reached it — never an output that is merely
+   * long and paged.
+   */
+  it("marks output the agent already cut as truncated", async () => {
     run.mockResolvedValue(outcome({ isTruncated: true, redactionCount: 3 }));
 
     const result: ToolCallOutcome = await execute(toolkit([status()]));
 
     expect(result.result?.isTruncated).toBe(true);
     expect(result.result?.redactionCount).toBe(3);
+    expect(result.textForLlm).not.toContain(READ_TOOL_OUTPUT_TOOL_NAME);
+  });
+
+  it("marks an outcome that does not say, but carries the cut marker, as truncated", async () => {
+    run.mockResolvedValue(
+      outcome({
+        isTruncated: undefined,
+        output: `[stdout]\nabc   nginx${RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX}`,
+      }),
+    );
+
+    const result: ToolCallOutcome = await execute(toolkit([status()]));
+
+    expect(result.result?.isTruncated).toBe(true);
+  });
+
+  /*
+   * An output past the shared cap (which used to be truncated) shows its
+   * first page inside the tool_result block, then a note naming the
+   * outputId and offset to continue from — and every character of it can
+   * be read back through read_tool_output.
+   */
+  it("pages a long output instead of cutting it", async () => {
+    const fullOutput: string = longOutput(
+      "zzz999   redis:7   Exited (1)   LAST",
+    );
+    expect(fullOutput.length).toBeGreaterThan(
+      Math.max(
+        TOOL_OUTPUT_PAGE_CHARS,
+        MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM,
+      ),
+    );
+    run.mockResolvedValue(outcome({ output: fullOutput }));
+
+    const kit: InfrastructureInvestigationToolkit = toolkit([status()]);
+    const result: ToolCallOutcome = await execute(kit);
+
+    expect(result.success).toBe(true);
+    expect(result.result?.rowCount).toBe(1);
+    const text: string = result.textForLlm;
+
+    // The first page, exactly, inside the untrusted-data block.
+    expect(text).toContain(
+      `<tool_result source="untrusted_resource_output">\n${fullOutput.slice(
+        0,
+        TOOL_OUTPUT_PAGE_CHARS,
+      )}\n</tool_result>`,
+    );
+    expect(text).not.toContain("Exited (1)   LAST");
+    expect(text).not.toContain("[output truncated]");
+
+    // Then, after the block, how to read the rest.
+    const note: string = ToolOutputPager.describeContinuation({
+      outputId: "out-1",
+      shownChars: TOOL_OUTPUT_PAGE_CHARS,
+      totalChars: fullOutput.length,
+    });
+    expect(text.endsWith(`\n${note}`)).toBe(true);
+    expect(text.indexOf(note)).toBeGreaterThan(text.indexOf("</tool_result>"));
+    expect(note).toContain("nothing was cut");
+    expect(note).toContain(
+      `call ${READ_TOOL_OUTPUT_TOOL_NAME} with outputId="out-1" and offset=${TOOL_OUTPUT_PAGE_CHARS}`,
+    );
+    expect(result.result?.dataForLlm).toBe(text);
+
+    // Paged output is complete: not truncated.
+    expect(result.result?.isTruncated).toBe(false);
+
+    // Every character is kept, and the model reads the end with the read tool.
+    const pager: ToolOutputPager = kit.getOutputPager();
+    expect(readWholeOutput(pager, "out-1")).toBe(fullOutput);
+
+    const tail: ToolCallOutcome = await pager
+      .buildReadTool()
+      .execute({ outputId: "out-1", offset: -40 });
+    expect(tail.success).toBe(true);
+    expect(tail.textForLlm).toContain("zzz999   redis:7   Exited (1)   LAST");
+    expect(tail.textForLlm).toContain("[End of output.]");
+    expect(tail.result?.citationLabel).toContain(
+      '`docker ps -a` on Docker host "web-1"',
+    );
+  });
+
+  /*
+   * An investigation's toolkits share one pager, so one read_tool_output
+   * reads every long output of the run — and outputIds never collide.
+   */
+  it("keeps long outputs in the pager it was given, numbered across the run", async () => {
+    run.mockResolvedValue(outcome({ output: longOutput("SHARED-END") }));
+
+    const pager: ToolOutputPager = new ToolOutputPager();
+    // Another toolkit of the run already stored one.
+    pager.paginate({
+      label: "earlier output",
+      text: "e".repeat(TOOL_OUTPUT_PAGE_CHARS + 1),
+    });
+
+    const kit: InfrastructureInvestigationToolkit = toolkit([status()], {
+      outputPager: pager,
+    });
+    expect(kit.getOutputPager()).toBe(pager);
+
+    const result: ToolCallOutcome = await execute(kit);
+
+    expect(result.textForLlm).toContain('outputId="out-2"');
+    expect(readWholeOutput(pager, "out-2")).toBe(longOutput("SHARED-END"));
+    expect(readWholeOutput(pager, "out-1")).toBe(
+      "e".repeat(TOOL_OUTPUT_PAGE_CHARS + 1),
+    );
+
+    // Without one, each toolkit keeps its own.
+    const own: ToolOutputPager = toolkit([status()]).getOutputPager();
+    expect(own).toBeInstanceOf(ToolOutputPager);
+    expect(own).not.toBe(pager);
   });
 });
 

@@ -9,8 +9,8 @@
  *    method on that channel.
  *  - Has<Incident|Alert>[Episode]OnCallRules: the member has an on-call
  *    notification rule for the chosen severities (all of them when none are
- *    chosen), optionally on one specific channel - "call me for Critical
- *    incidents" is HasIncidentOnCallRules + Call + [Critical].
+ *    chosen), optionally on specific channels - one on each - "call me for
+ *    Critical incidents" is HasIncidentOnCallRules + [Call] + [Critical].
  */
 enum ComplianceRuleType {
   HasNotificationEmailMethod = "HasNotificationEmailMethod",

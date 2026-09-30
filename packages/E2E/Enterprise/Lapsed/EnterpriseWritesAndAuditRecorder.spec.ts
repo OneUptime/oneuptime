@@ -48,13 +48,13 @@ import Faker from "Common/Utils/Faker";
  *
  * Three claims, each of which only a booted stack can settle:
  *
- *   1. Password sign-in still works. This is the promise the lapse copy makes
- *      in so many words ("Sign in with your password, or ask your
- *      administrator to renew the license"), and the one whose failure would
- *      be unrecoverable: an installation whose licence ran out while nobody
- *      was watching must not lock its owners out of the Dashboard they would
- *      renew the licence from. Nothing else in the repository proves it end to
- *      end - the jest suites that cover the lapse never sign anybody in.
+ *   1. Password sign-in still works. A lapse stops SCIM and audit logging,
+ *      never signing in, and this is the failure that would be unrecoverable:
+ *      an installation whose licence ran out while nobody was watching must
+ *      not lock its owners out of the Dashboard they would renew the licence
+ *      from. Nothing else in the repository proves it end to end - the jest
+ *      suites that cover the lapse never sign anybody in. (Single sign-on is
+ *      not stopped either; SsoUnaffectedByLapse.spec.ts proves that half.)
  *   2. Enterprise CONFIGURATION writes are refused with the licence message,
  *      not the Community-Edition one. Both are 402, so the status alone cannot
  *      tell a lapsed enterprise stack from a community image; the message can,
@@ -225,11 +225,11 @@ test.describe("Enterprise writes and the audit recorder (lapsed stack)", () => {
     );
 
     /*
-     * The ordinary password form, not an SSO one: the accounts page asks the
-     * identity discovery routes which providers to offer, and those routes now
-     * answer 402. A sign-in page that treated that refusal as a failure - or a
-     * lapse that had disabled password login along with SSO - would strand
-     * every administrator of this installation.
+     * The ordinary password form. The accounts page still asks the single
+     * sign-on discovery routes which providers to offer - they answer as on
+     * every stack, since a lapse leaves SSO alone - and a lapse that disabled
+     * password login along with SCIM and audit logging would strand every
+     * administrator of this installation.
      */
     await page.locator('input[type="email"]').fill(fixture.ownerEmail);
     await page.locator('input[type="password"]').fill(E2E_SIGNUP_PASSWORD);
@@ -432,9 +432,9 @@ test.describe("Enterprise writes and the audit recorder (lapsed stack)", () => {
 
     /*
      * An ordinary column, so an ordinary update: it needs the licence exactly
-     * as a create does. Only the tighten-only updates (disabling a provider,
-     * rotating a leaked bearer token) go through without one, and they are
-     * pinned by EditionPermission's own unit tests rather than here.
+     * as a create does. Only the tighten-only update - rotating a leaked SCIM
+     * bearer token - goes through without one, and it is pinned by
+     * EditionPermission's own unit tests rather than here.
      */
     expect(
       result.status,

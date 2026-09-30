@@ -25,6 +25,8 @@ import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "./1796100000000-
 import { AddProxmoxResourceNativePushColumns1796200000000 } from "./1796200000000-AddProxmoxResourceNativePushColumns";
 import { AddResourceAiAgents1796300000000 } from "./1796300000000-AddResourceAiAgents";
 import { AddIncidentForms1796400000000 } from "./1796400000000-AddIncidentForms";
+import { AddTeamComplianceRuleNotificationChannels1796500000000 } from "./1796500000000-AddTeamComplianceRuleNotificationChannels";
+import { AddAIInvestigationConversationAndTimeLimits1796600000000 } from "./1796600000000-AddAIInvestigationConversationAndTimeLimits";
 import { AddMessageQueueTables1796700000000 } from "./1796700000000-AddMessageQueueTables";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1251,5 +1253,7 @@ export default [
   AddProxmoxResourceNativePushColumns1796200000000,
   AddResourceAiAgents1796300000000,
   AddIncidentForms1796400000000,
+  AddTeamComplianceRuleNotificationChannels1796500000000,
+  AddAIInvestigationConversationAndTimeLimits1796600000000,
   AddMessageQueueTables1796700000000,
 ];

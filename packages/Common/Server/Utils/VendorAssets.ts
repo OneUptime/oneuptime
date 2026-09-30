@@ -17,9 +17,9 @@ import path from "path";
  * An air-gapped deployment has no route to cdn.tailwindcss.com or
  * cdnjs.cloudflare.com, and a `<script src>` pointed at one does not fail
  * fast - the browser waits out the connect timeout with the parser blocked,
- * so the page renders unstyled or not at all. Same class of bug as the Monaco
- * loader (see CodeEditor/MonacoLoader.ts): the fix is to stop reaching off-box
- * for anything the page cannot render without.
+ * so the page renders unstyled or not at all. The code editor's old Monaco
+ * runtime had the same bug, loading from cdn.jsdelivr.net: the fix is to stop
+ * reaching off-box for anything the page cannot render without.
  *
  * Mounted by every service, because there is no single service that serves
  * every one of these pages: Docs, the API reference and the SSO/on-call

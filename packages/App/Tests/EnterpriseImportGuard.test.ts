@@ -1093,10 +1093,10 @@ describe("the Enterprise import guard's own machinery", () => {
       "Fixture.tsx",
       [
         'import { getDashboardPlugins } from "./Plugins";', // 1
-        "const atLoad = getDashboardPlugins().SettingsSSO;", // 2
+        "const atLoad = getDashboardPlugins().SettingsSCIM;", // 2
         "getAdminDashboardPlugins();", // 3
         "export const Page = () => {", // 4
-        "  return getDashboardPlugins().SettingsSSO;", // 5
+        "  return getDashboardPlugins().SettingsSCIM;", // 5
         "};", // 6
         "function render(plugin = getDashboardPlugins().AuditLogsTable) {", // 7
         "  return plugin;", // 8
@@ -1170,7 +1170,7 @@ describe("the Enterprise import guard's own machinery", () => {
 
       fs.writeFileSync(
         offender,
-        'import Page from "../../ee/Dashboard/SSO/Page";\nexport default Page;\n',
+        'import Page from "../../ee/Dashboard/Identity/Page";\nexport default Page;\n',
       );
       fs.writeFileSync(
         clean,
@@ -1181,7 +1181,9 @@ describe("the Enterprise import guard's own machinery", () => {
 
       expect(result.scannedFiles).toBe(2);
       expect(result.violations).toHaveLength(1);
-      expect(result.violations[0]).toContain("../../ee/Dashboard/SSO/Page");
+      expect(result.violations[0]).toContain(
+        "../../ee/Dashboard/Identity/Page",
+      );
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

@@ -12,7 +12,7 @@ import { expect, test } from "@playwright/test";
  *
  * What this proves that the jest suites cannot: ee/Tests/Server/License/*
  * already pins how a licence is classified, and IdentityRoutesLicenseLapse
- * pins the whole lapse-and-renew matrix against a mounted Express app. What
+ * pins the whole SCIM lapse-and-renew matrix against a mounted Express app. What
  * none of them can show is a BOOTED image noticing that its trial ended -
  * the licence inputs are read through a 60s cache and the snapshot the gates
  * use is served synchronously while a reload runs behind it, so "the app
@@ -24,10 +24,13 @@ import { expect, test } from "@playwright/test";
  * actually stops belong beside it, each calling assertLapsedEnterpriseStack()
  * in its own beforeAll:
  *
- *   - the identity surface refuses on both nginx prefixes: Enterprise/Helpers/
- *     IdentityRoutes.ts already carries each probe's `lapsed` expectation
- *     (402 with the SSO message, 403 with the SCIM error body) beside the
- *     `licensed` one the other suite asserts;
+ *   - the SCIM routes refuse on both nginx prefixes: Enterprise/Helpers/
+ *     IdentityRoutes.ts carries each probe's `lapsed` expectation (403 with
+ *     the SCIM error body) beside the `licensed` one the other suite asserts;
+ *   - single sign-on is untouched: its routes answer exactly as on every
+ *     stack (Tests/Helpers/SsoRoutes.ts), a provider can still be configured
+ *     and used, and "Require SSO for login" is still enforced
+ *     (SsoUnaffectedByLapse.spec.ts);
  *   - enterprise configuration writes are refused with the LICENSE_REQUIRED
  *     message and NOT the COMMUNITY_EDITION one (Enterprise/Helpers/
  *     EnterpriseConfiguration.ts), while a tighten-only update still goes
@@ -60,10 +63,10 @@ test.describe("Enterprise licence has lapsed (lapsed stack)", () => {
     const found: string = describeEnterpriseLicenseState(licenseState);
 
     /*
-     * Still "enterprise": the module is loaded and every identity route is
-     * still MOUNTED. That is what makes the refusals below 402/403 rather
-     * than the Community Edition's 404, and it is the whole distinction this
-     * phase exists to draw.
+     * Still "enterprise": the module is loaded and every SCIM route is still
+     * MOUNTED. That is what makes their refusal a 403 rather than the
+     * Community Edition's 404, and it is the whole distinction this phase
+     * exists to draw.
      */
     expect(licenseState.edition, `Found: ${found}`).toBe("enterprise");
 
@@ -80,7 +83,7 @@ test.describe("Enterprise licence has lapsed (lapsed stack)", () => {
 
     /*
      * And nothing is entitled any more. "all" here would mean the gates still
-     * let SSO, SCIM and audit logging run.
+     * let SCIM and audit logging run.
      */
     expect(licenseState.features, `Found: ${found}`).not.toBe("all");
   });

@@ -10,6 +10,11 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
+import AIAgentRunLimitsHelper, {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+  AIAgentRunLimits,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
@@ -56,17 +61,20 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * Enablement + provider gating is shared via isEnabledForProject().
  */
 
-// Budgets — larger than an interactive chat-ops answer, small enough to stay cheap.
-const MAX_LLM_CALLS: number = 8;
-const MAX_TOOL_CALLS: number = 12;
 /*
- * The wall clock an investigation run gets by default. Exported because the
- * kubectl read toolkit plans every command's wait against this same budget
- * (the runners hand it to the engine AND to the toolkit as an absolute
- * deadline), and one definition is how the two can never disagree.
+ * Budgets. An investigation runs until it is done: no wall clock, and step
+ * counts that only guard against a runaway loop (see AIAgentRunLimits). A
+ * project that wants a hard time limit configures one per lane, and the
+ * runners pass it in as maxWallClockMs — and to the command toolkits as a
+ * deadline — so the loop and every command wait agree on one number.
  */
-export const MAX_WALL_CLOCK_MS: number = 150 * 1000;
-const MAX_OUTPUT_TOKENS: number = 2000;
+const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
+const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
+/*
+ * Room for a full report. An answer that still reaches the limit is
+ * finished with continuation calls, never published half-written.
+ */
+const MAX_OUTPUT_TOKENS: number = 4096;
 
 /*
  * Conditional recommendation persistence is idempotent, so transient
@@ -205,6 +213,7 @@ export interface InvestigationRequest {
   extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
   maxLlmCalls?: number | undefined;
   maxToolCalls?: number | undefined;
+  // Undefined means no time limit.
   maxWallClockMs?: number | undefined;
   maxOutputTokens?: number | undefined;
 }
@@ -256,6 +265,39 @@ export default class AIInvestigationEngine {
     }
 
     return this.getProviderOrBalanceReason(projectId);
+  }
+
+  /*
+   * How far an investigation of this lane may run: no time limit unless the
+   * project configured one in its Incident / Alert AI settings. Fails open —
+   * a project that cannot be read runs unbounded rather than being cut
+   * short, since the time limit is an opt-in.
+   */
+  public static async getRunLimitsForProject(
+    projectId: ObjectID,
+    subjectType: AISubjectType,
+  ): Promise<AIAgentRunLimits> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          incidentAiInvestigationTimeLimitInMinutes: true,
+          alertAiInvestigationTimeLimitInMinutes: true,
+        },
+        props: { isRoot: true },
+      });
+
+      return AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
+        subjectType === "Alert"
+          ? project?.alertAiInvestigationTimeLimitInMinutes
+          : project?.incidentAiInvestigationTimeLimitInMinutes,
+      );
+    } catch (error) {
+      logger.error(
+        `AI: could not read the investigation time limit for project ${projectId.toString()}; running without one: ${error}`,
+      );
+      return AIAgentRunLimitsHelper.getDefault();
+    }
   }
 
   /*
@@ -459,7 +501,8 @@ export default class AIInvestigationEngine {
           }\n\n${request.contextSummary}`,
           maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
           maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
-          maxWallClockMs: request.maxWallClockMs ?? MAX_WALL_CLOCK_MS,
+          // Null tells the loop "no time limit" (undefined = its chat default).
+          maxWallClockMs: request.maxWallClockMs ?? null,
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           extraTools: request.extraTools,

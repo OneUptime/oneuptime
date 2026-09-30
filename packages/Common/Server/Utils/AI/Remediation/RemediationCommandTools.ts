@@ -73,6 +73,7 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KubernetesRunnerPosture,
+  MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
   isKubernetesAgentRunnerName,
   isKubernetesAgentRunnerPosture,
   getKubernetesAiAccessTargetKind,
@@ -235,7 +236,12 @@ export const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
  */
 const HEARTBEAT_TOUCH_INTERVAL_MS: number = 15_000;
 
-const MAX_OUTPUT_CHARS_FOR_LLM: number = 6000;
+/*
+ * What the model sees of a Bash/SSH command's output — the same cap as a
+ * kubectl command's, generous enough that a diagnostic's answer is never
+ * cut off in the part that matters.
+ */
+const MAX_OUTPUT_CHARS_FOR_LLM: number = MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM;
 
 // A reason that already ends a sentence.
 const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;

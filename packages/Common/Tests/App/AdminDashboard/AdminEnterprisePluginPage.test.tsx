@@ -64,20 +64,20 @@ const UPSELL: {
   featureName: string;
   benefits: Array<{ icon: IconProp; title: string; subtitle: string }>;
 } = {
-  title: "Global SSO",
-  description: "Instance-wide SAML providers.",
-  featureName: "Global SAML Single Sign On",
+  title: "Valkey",
+  description: "Connectivity and memory capacity for this instance's Valkey.",
+  featureName: "Valkey Health Dashboard",
   benefits: [
     {
-      icon: IconProp.Lock,
-      title: "One sign-in for every project",
-      subtitle: "Point every project at your IdP once.",
+      icon: IconProp.Database,
+      title: "Memory before it runs out",
+      subtitle: "See Valkey's memory use against its limit.",
     },
   ],
 };
 
-const FakeGlobalSSOList: FunctionComponent = (): ReactElement => {
-  return <div data-testid="fake-global-sso" />;
+const FakeHealthRedis: FunctionComponent = (): ReactElement => {
+  return <div data-testid="fake-health-redis" />;
 };
 
 let lazyLoads: number = 0;
@@ -97,7 +97,7 @@ const makeLazyPlugin: (
       });
     }
 
-    return { default: FakeGlobalSSOList };
+    return { default: FakeHealthRedis };
   });
 };
 
@@ -122,13 +122,11 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
       billingEnabledForTest = billingEnabled;
       enterpriseEditionForTest = true;
 
-      render(
-        <EnterprisePluginPage plugin={FakeGlobalSSOList} upsell={UPSELL} />,
-      );
+      render(<EnterprisePluginPage plugin={FakeHealthRedis} upsell={UPSELL} />);
 
-      expect(screen.getByTestId("fake-global-sso")).toBeInTheDocument();
+      expect(screen.getByTestId("fake-health-redis")).toBeInTheDocument();
       expect(
-        screen.queryByText("Global SAML Single Sign On"),
+        screen.queryByText("Valkey Health Dashboard"),
       ).not.toBeInTheDocument();
     },
   );
@@ -146,13 +144,11 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
         <EnterprisePluginPage plugin={makeLazyPlugin(false)} upsell={UPSELL} />,
       );
 
-      expect(
-        screen.getByText("Global SAML Single Sign On"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Valkey Health Dashboard")).toBeInTheDocument();
       expect(
         screen.getAllByText("Learn about Enterprise Edition"),
       ).toHaveLength(2);
-      expect(screen.queryByTestId("fake-global-sso")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("fake-health-redis")).not.toBeInTheDocument();
       expect(lazyLoads).toBe(0);
     },
   );
@@ -162,7 +158,7 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
 
     render(<EnterprisePluginPage plugin={undefined} upsell={UPSELL} />);
 
-    expect(screen.getByText("Global SAML Single Sign On")).toBeInTheDocument();
+    expect(screen.getByText("Valkey Health Dashboard")).toBeInTheDocument();
   });
 
   test("a lazy plugin shows the in-card loader, then the plugin", async () => {
@@ -178,7 +174,7 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
       releaseLazyPlugin?.();
     });
 
-    expect(await screen.findByTestId("fake-global-sso")).toBeInTheDocument();
+    expect(await screen.findByTestId("fake-health-redis")).toBeInTheDocument();
     expect(lazyLoads).toBe(1);
   });
 
@@ -199,7 +195,7 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
       releaseLazyPlugin?.();
     });
 
-    expect(await screen.findByTestId("fake-global-sso")).toBeInTheDocument();
+    expect(await screen.findByTestId("fake-health-redis")).toBeInTheDocument();
   });
 
   test("isEligible overrides the edition, both ways", () => {
@@ -207,23 +203,23 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
     enterpriseEditionForTest = true;
     const { unmount } = render(
       <EnterprisePluginPage
-        plugin={FakeGlobalSSOList}
+        plugin={FakeHealthRedis}
         upsell={UPSELL}
         isEligible={false}
       />,
     );
-    expect(screen.queryByTestId("fake-global-sso")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("fake-health-redis")).not.toBeInTheDocument();
     unmount();
 
     enterpriseEditionForTest = false;
     render(
       <EnterprisePluginPage
-        plugin={FakeGlobalSSOList}
+        plugin={FakeHealthRedis}
         upsell={UPSELL}
         isEligible={true}
       />,
     );
-    expect(screen.getByTestId("fake-global-sso")).toBeInTheDocument();
+    expect(screen.getByTestId("fake-health-redis")).toBeInTheDocument();
   });
 
   test("renderUpsell replaces the shared card", () => {
@@ -231,7 +227,7 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
 
     render(
       <EnterprisePluginPage
-        plugin={FakeGlobalSSOList}
+        plugin={FakeHealthRedis}
         renderUpsell={(): ReactElement => {
           return <div data-testid="health-upsell">Health upsell</div>;
         }}
@@ -262,10 +258,6 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
       [
         "EnterpriseLicenseView",
         "EnterpriseLicensesList",
-        "GlobalOIDCList",
-        "GlobalOIDCView",
-        "GlobalSSOList",
-        "GlobalSSOView",
         "HealthClickhouseCluster",
         "HealthLogs",
         "HealthOverview",
@@ -294,17 +286,39 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
     );
   });
 
+  /*
+   * Settings > Global SSO and Global OIDC are Community Edition screens that
+   * core renders on every edition, so no ee plugin can replace (or hide)
+   * them: the contract has no key for them.
+   */
+  test("has no key for Global SSO or Global OIDC", () => {
+    for (const retiredKey of [
+      "GlobalSSOList",
+      "GlobalSSOView",
+      "GlobalOIDCList",
+      "GlobalOIDCView",
+    ]) {
+      expect([...ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS]).not.toContain(
+        retiredKey,
+      );
+    }
+
+    for (const key of ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS) {
+      expect(key).not.toMatch(/SSO|OIDC|Identity/i);
+    }
+  });
+
   test("a shell reading the real door on a Community build shows the upsell even on the Enterprise Edition", () => {
     enterpriseEditionForTest = true;
 
     render(
       <EnterprisePluginPage
-        plugin={getAdminDashboardPlugins().GlobalSSOList}
+        plugin={getAdminDashboardPlugins().HealthRedis}
         upsell={UPSELL}
       />,
     );
 
-    expect(screen.getByText("Global SAML Single Sign On")).toBeInTheDocument();
+    expect(screen.getByText("Valkey Health Dashboard")).toBeInTheDocument();
   });
 });
 
@@ -321,7 +335,7 @@ describe("the admin plugin door with other plugin modules", () => {
   test("hands back the Enterprise plugin object as is", async () => {
     const enterprisePlugins: AdminDashboardEnterprisePlugins = {
       buildMarker: "ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1",
-      GlobalSSOList: FakeGlobalSSOList,
+      HealthRedis: FakeHealthRedis,
     };
 
     jest.doMock("@oneuptime/ee-admin-dashboard", () => {

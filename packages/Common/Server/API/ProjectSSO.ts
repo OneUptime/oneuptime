@@ -6,7 +6,6 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import EditionEnforcement from "../Utils/EditionEnforcement";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -41,29 +40,22 @@ export default class ProjectSsoAPI extends BaseAPI<
             );
           }
 
-          /*
-           * Only list providers a user can actually sign in with: the
-           * Community Edition serves no SAML login routes, so it lists none
-           * rather than send the user to a 404.
-           */
-          const sso: Array<ProjectSSO> = EditionEnforcement.areSsoRoutesServed()
-            ? await this.service.findBy({
-                query: {
-                  projectId: projectId,
-                  isEnabled: true,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                  name: true,
-                  description: true,
-                  _id: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              })
-            : [];
+          const sso: Array<ProjectSSO> = await this.service.findBy({
+            query: {
+              projectId: projectId,
+              isEnabled: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              name: true,
+              description: true,
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
           return Response.sendEntityArrayResponse(
             req,

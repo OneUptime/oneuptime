@@ -2,105 +2,129 @@ import { describe, expect, test } from "@jest/globals";
 import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
-  getKubernetesInstallationMarkdown,
+  KUBERNETES_PLATFORMS,
+  KubernetesPlatform,
+  getKubernetesSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getAiAgentLogsCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
+import {
+  SetupGuideContent,
+  SetupGuideOption,
+  SetupGuideStep,
+  SetupGuideTopic,
+  getSetupGuideMarkdown,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 
 /*
- * The in-app install page is a new user's first contact with the
- * Kubernetes agent, and the chart now ships the Kubernetes AI agent on by
- * default. The page says so — what it is, that it is read-only, the pod
- * Step 4 lists, how to opt out, and where to see it (AI → Agent) — so the
- * pods the user sees match the pods the page promised.
+ * The in-app install guide is a new user's first contact with the
+ * Kubernetes agent, and the chart ships the Kubernetes AI agent on by
+ * default. Whatever platform the reader picks, the guide says so — what it
+ * is, that it is read-only, the pod the verify step lists, how to opt out,
+ * and where to see it (AI → Agent) — so the pods the user sees match the
+ * pods the guide promised.
  */
 
-const MARKDOWN: string = getKubernetesInstallationMarkdown({
-  clusterName: "prod-east",
-  oneuptimeUrl: "https://oneuptime.example.com",
-  apiKey: "key",
-});
+const PLATFORMS: Array<KubernetesPlatform> = KUBERNETES_PLATFORMS.map(
+  (option: SetupGuideOption<KubernetesPlatform>): KubernetesPlatform => {
+    return option.key;
+  },
+);
 
-// The markdown between a heading and the next heading of the same level.
-function section(heading: string): string {
-  const start: number = MARKDOWN.indexOf(heading);
-  expect(start).toBeGreaterThan(-1);
-  const next: number = MARKDOWN.indexOf("\n## ", start + heading.length);
-  return MARKDOWN.slice(start, next === -1 ? undefined : next);
-}
+const guideFor: (platform: KubernetesPlatform) => SetupGuideContent = (
+  platform: KubernetesPlatform,
+): SetupGuideContent => {
+  return getKubernetesSetupGuide({
+    clusterName: "prod-east",
+    oneuptimeUrl: "https://oneuptime.example.com",
+    apiKey: "key",
+    platform: platform,
+  });
+};
 
-// Every fenced block in a piece of markdown.
-function codeBlocks(markdown: string): Array<string> {
-  return Array.from(markdown.matchAll(/```[a-z]*\n([\s\S]*?)```/g)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1]!;
+const verifyStep: (guide: SetupGuideContent) => string = (
+  guide: SetupGuideContent,
+): string => {
+  const step: SetupGuideStep | undefined = guide.steps.find(
+    (candidate: SetupGuideStep): boolean => {
+      return candidate.title === "Verify the installation";
     },
   );
-}
+  expect(step).toBeDefined();
+  return step!.markdown || "";
+};
 
-describe("the install page's Kubernetes AI agent", () => {
-  test("has a short section saying it is on by default and read-only", () => {
-    const aiSection: string = section(
-      "## Kubernetes AI agent (on by default, read-only)",
-    );
-    expect(aiSection).toContain("**Kubernetes AI agent**");
-    expect(aiSection).toContain("read-only kubectl");
-    expect(aiSection).toContain("can change nothing");
-    // Short: a paragraph or three, not a manual.
-    expect(aiSection.length).toBeLessThan(1200);
-  });
+const aiAgentNote: (guide: SetupGuideContent) => string = (
+  guide: SetupGuideContent,
+): string => {
+  const verify: string = verifyStep(guide);
+  const start: number = verify.indexOf("**Kubernetes AI agent");
+  expect(start).toBeGreaterThan(-1);
+  return verify.slice(start);
+};
 
-  test("comes right after verifying the installation", () => {
-    const verify: number = MARKDOWN.indexOf(
-      "## Step 4: Verify the Installation",
-    );
-    const aiAgent: number = MARKDOWN.indexOf("## Kubernetes AI agent");
-    const configuration: number = MARKDOWN.indexOf("## Configuration Options");
-    expect(verify).toBeGreaterThan(-1);
-    expect(aiAgent).toBeGreaterThan(verify);
-    expect(configuration).toBeGreaterThan(aiAgent);
-  });
+describe.each(PLATFORMS)(
+  "the %s guide's Kubernetes AI agent",
+  (platform: KubernetesPlatform) => {
+    const guide: SetupGuideContent = guideFor(platform);
 
-  test("its pod is in every Step 4 listing", () => {
-    const listings: Array<string> = codeBlocks(
-      section("## Step 4: Verify the Installation"),
-    ).filter((block: string): boolean => {
-      return block.startsWith("NAME ");
+    test("has a short note saying it is on by default and read-only", () => {
+      const note: string = aiAgentNote(guide);
+      expect(note).toContain(
+        "**Kubernetes AI agent (on by default, read-only).**",
+      );
+      expect(note).toContain("read-only kubectl");
+      expect(note).toContain("can change nothing");
+      // Short: a paragraph, not a manual.
+      expect(note.length).toBeLessThan(800);
     });
 
-    expect(listings).toHaveLength(2);
-    for (const listing of listings) {
-      expect(listing).toContain(`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent-`);
-    }
-    expect(
-      section("## Kubernetes AI agent (on by default, read-only)"),
-    ).toContain(`\`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\``);
-  });
+    test("comes right after the pods the reader is checking", () => {
+      const verify: string = verifyStep(guide);
+      expect(verify.indexOf("```output")).toBeGreaterThan(-1);
+      expect(verify.indexOf("**Kubernetes AI agent")).toBeGreaterThan(
+        verify.indexOf("```output"),
+      );
+    });
 
-  test("says how to opt out", () => {
-    expect(
-      section("## Kubernetes AI agent (on by default, read-only)"),
-    ).toContain("`--set aiAgent.enabled=false`");
-  });
+    test("its pod is in the verify listing, and named in the note", () => {
+      const listing: RegExpMatchArray | null = verifyStep(guide).match(
+        /```output\n([\s\S]*?)```/,
+      );
+      expect(listing).not.toBeNull();
+      expect(listing![1]).toContain(
+        `${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent-`,
+      );
+      expect(aiAgentNote(guide)).toContain(
+        `\`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\``,
+      );
+    });
 
-  test("points to AI → Agent to see it", () => {
-    expect(
-      section("## Kubernetes AI agent (on by default, read-only)"),
-    ).toContain("**AI → Agent**");
-    expect(MARKDOWN).toContain(
-      '### AI → Agent shows "Offline" or "Not installed"',
-    );
-  });
+    test("says how to opt out", () => {
+      expect(aiAgentNote(guide)).toContain("`--set aiAgent.enabled=false`");
+    });
 
-  test("troubleshooting reads the agent's logs with the page's own command", () => {
-    const troubleshooting: string = section("## Troubleshooting");
-    expect(troubleshooting).toContain(getAiAgentLogsCommand());
-    expect(troubleshooting).toContain(
-      `kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ai-agent`,
-    );
-    expect(troubleshooting).toContain("--set aiAgent.enabled=true");
-  });
+    test("points to AI → Agent to see it", () => {
+      expect(aiAgentNote(guide)).toContain("**AI → Agent**");
+    });
 
-  test("never names the deprecated aiAccess values", () => {
-    expect(MARKDOWN).not.toContain("aiAccess");
-  });
-});
+    test("troubleshooting reads the agent's logs with the page's own command", () => {
+      const topic: SetupGuideTopic | undefined = guide.troubleshooting?.find(
+        (candidate: SetupGuideTopic): boolean => {
+          return (
+            candidate.title === 'AI → Agent shows "Offline" or "Not installed"'
+          );
+        },
+      );
+      expect(topic).toBeDefined();
+      expect(topic!.markdown).toContain(getAiAgentLogsCommand());
+      expect(topic!.markdown).toContain(
+        `kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ai-agent`,
+      );
+      expect(topic!.markdown).toContain("--set aiAgent.enabled=true");
+    });
+
+    test("never names the deprecated aiAccess values", () => {
+      expect(getSetupGuideMarkdown(guide)).not.toContain("aiAccess");
+    });
+  },
+);

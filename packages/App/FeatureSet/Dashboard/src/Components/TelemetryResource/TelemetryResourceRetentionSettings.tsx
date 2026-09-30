@@ -1,20 +1,17 @@
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { TELEMETRY_RETENTION_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
+import EnterprisePluginPage, {
+  EnterprisePluginUpsellProps,
+} from "../../Enterprise/EnterprisePluginPage";
+import {
+  TelemetryResourceRetentionSettingsProps,
+  TelemetryRetentionModel as ContractTelemetryRetentionModel,
+} from "../../Enterprise/EnterprisePlugins";
+import { getDashboardPlugins } from "../../Enterprise/Plugins";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import React, { Fragment, ReactElement } from "react";
+import React, { ReactElement } from "react";
 
-export interface TelemetryRetentionModel extends BaseModel {
-  retainTelemetryDataForDays?: number | undefined;
-  telemetryRetentionConfig?: TelemetryRetentionConfig | undefined;
-}
+export type TelemetryRetentionModel = ContractTelemetryRetentionModel;
 
 export interface ComponentProps<TModel extends TelemetryRetentionModel> {
   modelType: { new (): TModel };
@@ -23,13 +20,58 @@ export interface ComponentProps<TModel extends TelemetryRetentionModel> {
   modelDetailIdPrefix: string;
 }
 
+/*
+ * The upsell shown in place of the retention cards, on Settings > Telemetry
+ * too. Only retention OVERRIDES are Enterprise: the project's default
+ * retention is part of every edition and stays on Settings > Telemetry.
+ */
+export const getTelemetryRetentionUpsell: (
+  scope: string,
+) => EnterprisePluginUpsellProps = (
+  scope: string,
+): EnterprisePluginUpsellProps => {
+  return {
+    title: "Retention Overrides",
+    description: `Keep telemetry ${scope} for longer or shorter than the project's default retention.`,
+    featureName: "Retention Overrides",
+    featureDescription:
+      "Set retention by telemetry type, log severity and trace status, for the whole project or for one service or resource. Without it, all telemetry is kept for the project's default retention.",
+    featureIcon: IconProp.Clock,
+    benefits: [
+      {
+        icon: IconProp.Filter,
+        title: "Retention by telemetry type",
+        subtitle:
+          "Keep logs, traces, metrics and profiles for different lengths of time.",
+      },
+      {
+        icon: IconProp.Layers,
+        title: "Finer-grained rules",
+        subtitle: "Keep error logs and failed traces longer than routine ones.",
+      },
+      {
+        icon: IconProp.Cube,
+        title: "Per service and resource",
+        subtitle:
+          "Give a service, host, cluster or any other resource its own retention.",
+      },
+      {
+        icon: IconProp.Billing,
+        title: "Control storage",
+        subtitle: "Keep only what you need for as long as you need it.",
+      },
+    ],
+  };
+};
+
 /**
- * The two telemetry-retention controls shared by resource settings pages.
+ * The retention controls of a service's or telemetry resource's Settings
+ * page: the resource's own retention and its retention by telemetry type.
  *
- * Retention fields existed on several resource models before their Settings
- * pages did. Keeping the controls together gives every new resource one
- * component to mount, instead of relying on two manually copied cards that
- * can be forgotten independently.
+ * Retention overrides are part of the Enterprise Edition
+ * (ee/Dashboard/TelemetryRetention). Every Settings page keeps importing
+ * this component; it renders the Enterprise cards when the project may use
+ * the feature and this build includes it, and the upsell card otherwise.
  */
 const TelemetryResourceRetentionSettings: <
   TModel extends TelemetryRetentionModel,
@@ -38,104 +80,22 @@ const TelemetryResourceRetentionSettings: <
 ) => ReactElement = <TModel extends TelemetryRetentionModel>(
   props: ComponentProps<TModel>,
 ): ReactElement => {
-  return (
-    <Fragment>
-      <CardModelDetail<TModel>
-        name="Telemetry Data Retention"
-        cardProps={{
-          title: "Telemetry Data Retention",
-          description: `Set the default retention for telemetry collected from this ${props.resourceName}.`,
-        }}
-        isEditable={true}
-        editButtonText="Edit Retention"
-        formFields={[
-          {
-            field: {
-              retainTelemetryDataForDays: true,
-            },
-            title: "Retain Telemetry Data For (Days)",
-            description:
-              "Leave blank to use the project's default telemetry retention.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "Use project default",
-            validation: {
-              minValue: 1,
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: props.modelType,
-          id: `${props.modelDetailIdPrefix}-telemetry-retention`,
-          modelId: props.modelId,
-          fields: [
-            {
-              field: {
-                retainTelemetryDataForDays: true,
-              },
-              title: "Retain Telemetry Data For (Days)",
-              description:
-                "Falls back to the project's default telemetry retention when not set.",
-              fieldType: FieldType.Number,
-              placeholder: "Using project default",
-            },
-          ],
-        }}
-      />
+  const pluginProps: TelemetryResourceRetentionSettingsProps = {
+    modelType: props.modelType,
+    modelId: props.modelId,
+    resourceName: props.resourceName,
+    modelDetailIdPrefix: props.modelDetailIdPrefix,
+  };
 
-      <CardModelDetail<TModel>
-        name="Retention by Telemetry Type"
-        cardProps={{
-          title: "Retention by Telemetry Type",
-          description: `Override retention for specific telemetry types collected from this ${props.resourceName}. Any field left blank falls back to the resource default above, then the project's settings.`,
-        }}
-        isEditable={true}
-        editButtonText="Edit Overrides"
-        createEditModalWidth={ModalWidth.Large}
-        formFields={[
-          {
-            field: { telemetryRetentionConfig: true },
-            title: "Retention Overrides",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              value: FormValues<TModel>,
-              customElementProps: CustomElementProps,
-            ): ReactElement => {
-              return (
-                <TelemetryRetentionConfigForm
-                  {...customElementProps}
-                  value={
-                    value.telemetryRetentionConfig as
-                      | TelemetryRetentionConfig
-                      | undefined
-                  }
-                />
-              );
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: props.modelType,
-          id: `${props.modelDetailIdPrefix}-telemetry-retention-overrides`,
-          fields: [
-            {
-              field: { telemetryRetentionConfig: true },
-              fieldType: FieldType.Element,
-              title: "Retention Overrides",
-              getElement: (item: TModel): ReactElement => {
-                return (
-                  <TelemetryRetentionConfigSummary
-                    config={item.telemetryRetentionConfig}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: props.modelId,
-        }}
-      />
-    </Fragment>
+  return (
+    <EnterprisePluginPage<TelemetryResourceRetentionSettingsProps>
+      plugin={getDashboardPlugins().TelemetryResourceRetentionSettings}
+      pluginProps={pluginProps}
+      requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}
+      upsell={getTelemetryRetentionUpsell(
+        `collected from this ${props.resourceName}`,
+      )}
+    />
   );
 };
 

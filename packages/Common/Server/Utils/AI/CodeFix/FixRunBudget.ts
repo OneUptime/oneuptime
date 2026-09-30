@@ -13,8 +13,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *
  * Every CodeFix AIRun counts against the daily cap for its lane: incident,
  * alert, or subjectless. Incident and alert runs use their independent
- * settings; recipes with neither subject retain `Project.aiDailyFixTaskLimit`
- * as a fallback. Null/unset means the default below and 0 pauses that lane.
+ * settings; recipes with neither subject always use the default below.
+ * Null/unset means the default and 0 pauses that lane.
  *
  * Enforced centrally at BOTH creation paths:
  *   - TelemetryExceptionService.createCodeFixRunForException (the
@@ -93,23 +93,23 @@ export default class FixRunBudget {
   ): Promise<FixRunBudgetDecision> {
     const lane: FixRunBudgetLane = this.getLane(subject);
 
-    const project: Project | null = await ProjectService.findOneById({
-      id: projectId,
-      select:
-        lane === "incident"
-          ? { incidentAiDailyFixTaskLimit: true }
-          : lane === "alert"
-            ? { alertAiDailyFixTaskLimit: true }
-            : { aiDailyFixTaskLimit: true },
-      props: { isRoot: true },
-    });
+    let configuredLimit: number | null = null;
 
-    const configuredLimit: number | null =
-      lane === "incident"
-        ? project?.incidentAiDailyFixTaskLimit ?? null
-        : lane === "alert"
-          ? project?.alertAiDailyFixTaskLimit ?? null
-          : project?.aiDailyFixTaskLimit ?? null;
+    if (lane !== "other") {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select:
+          lane === "incident"
+            ? { incidentAiDailyFixTaskLimit: true }
+            : { alertAiDailyFixTaskLimit: true },
+        props: { isRoot: true },
+      });
+
+      configuredLimit =
+        lane === "incident"
+          ? project?.incidentAiDailyFixTaskLimit ?? null
+          : project?.alertAiDailyFixTaskLimit ?? null;
+    }
 
     // Paused short-circuits the count query (mirrors the token budget).
     const pausedCheck: FixRunBudgetDecision = this.evaluate({
@@ -177,19 +177,21 @@ export default class FixRunBudget {
     subject?: FixRunBudgetSubject | undefined,
   ): string {
     const lane: FixRunBudgetLane = this.getLane(subject);
+
+    // Subjectless fix tasks have a fixed daily cap with no setting.
+    if (lane === "other") {
+      return `The project's daily fix task limit for AI work outside incidents and alerts has been reached (${decision.runsToday} of ${decision.limit} fix tasks created today, UTC). New fix tasks can be created tomorrow.`;
+    }
+
     const settingTitle: string =
       lane === "incident"
         ? "Daily Incident AI Fix Task Limit"
-        : lane === "alert"
-          ? "Daily Alert AI Fix Task Limit"
-          : "Daily Other AI Fix Task Limit";
+        : "Daily Alert AI Fix Task Limit";
     const settingsLocation: string =
       lane === "incident"
         ? "Incidents > AI > Investigation"
-        : lane === "alert"
-          ? "Alerts > AI > Investigation"
-          : "Project Settings > AI > AI Guardrails";
-    const laneLabel: string = lane === "other" ? "other AI" : `${lane} AI`;
+        : "Alerts > AI > Investigation";
+    const laneLabel: string = `${lane} AI`;
 
     if (decision.paused) {
       return `${laneLabel} fix tasks are paused for this project — the "${settingTitle}" is set to 0. Raise or unset it under ${settingsLocation} to resume.`;

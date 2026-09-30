@@ -66,7 +66,12 @@ export interface KubectlExecResult {
 
 const DEFAULT_KUBECTL_BINARY: string = "kubectl";
 
-export const MAX_OUTPUT_BYTES: number = 50_000;
+/*
+ * kubectl output kept for the server. `kubectl describe node` on a busy node
+ * or a pod's logs easily pass 50 KB, and the server pages long output to the
+ * model instead of cutting it, so everything kept here is readable.
+ */
+export const MAX_OUTPUT_BYTES: number = 1_000_000;
 
 /*
  * --request-timeout bounds each API request; the process timeout bounds the

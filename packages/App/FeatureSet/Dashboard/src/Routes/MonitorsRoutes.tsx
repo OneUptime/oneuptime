@@ -31,7 +31,7 @@ import MonitorViewSlos from "../Pages/Monitor/View/Slos";
 import MonitorIncidents from "../Pages/Monitor/View/Incidents";
 
 import MonitorAlerts from "../Pages/Monitor/View/Alerts";
-import MonitorInoperational from "../Pages/Monitor/NotOperationalMonitors";
+import MonitorNotOperational from "../Pages/Monitor/NotOperationalMonitors";
 import MonitorDisabled from "../Pages/Monitor/DisabledMonitors";
 import MonitorViewCustomFields from "../Pages/Monitor/View/CustomFields";
 import MonitorViewInterval from "../Pages/Monitor/View/Interval";
@@ -115,7 +115,7 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL] || ""}
         element={
-          <MonitorInoperational
+          <MonitorNotOperational
             {...props}
             pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
           />

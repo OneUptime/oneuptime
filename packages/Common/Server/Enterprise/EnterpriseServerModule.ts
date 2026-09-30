@@ -99,7 +99,10 @@ export default interface EnterpriseServerModule {
   licensing: EnterpriseLicensingProvider;
 
   /*
-   * Mounted at ["/api/identity", "/"] right after core's identity routers.
+   * The enterprise identity routers (today: SCIM provisioning). Mounted at
+   * ["/api/identity", "/"] right after core's identity routers
+   * (authentication, reseller and single sign-on, which core serves in every
+   * edition) and before the status page authentication router.
    * RULE for every router below: no layer without a route (no router.use), because
    * a path-less middleware in a router mounted at "/" or ahead of a core router
    * runs for requests meant for core routes.

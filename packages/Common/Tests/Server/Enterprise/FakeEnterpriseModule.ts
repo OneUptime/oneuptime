@@ -299,17 +299,19 @@ export const uninstallEnterpriseModule: () => void = (): void => {
 
 /*
  * ---------------------------------------------------------------------------
- * License states for the RUNTIME features (SSO, SCIM, audit logging), which
- * follow EnterpriseEdition.isFeatureActive: with billing off they run while
- * the license covers them and stop when it lapses; an UNKNOWN license state
- * (not read yet, or unreadable) counts as active.
+ * License states for the RUNTIME features (SCIM provisioning and its team
+ * locks, audit logging), which follow EnterpriseEdition.isFeatureActive: with
+ * billing off they run while the license covers them and stop when it lapses;
+ * an UNKNOWN license state (not read yet, or unreadable) counts as active.
+ * Single sign-on is not one of them: it is part of the Community Edition and
+ * works in every one of these states.
  * ---------------------------------------------------------------------------
  */
 export interface LicenseStateCase {
   label: string;
   // Registers a fresh fake enterprise module in this license state.
   install: () => FakeEnterpriseModule;
-  // Whether SSO, SCIM and audit logging run in this state with billing off.
+  // Whether SCIM and audit logging run in this state with billing off.
   isActiveWithoutBilling: boolean;
   /*
    * The unknown states: active for runtime checks, but unavailable for
@@ -318,7 +320,10 @@ export interface LicenseStateCase {
   isUnknown: boolean;
 }
 
-// A license that entitles everything except the three runtime features.
+/*
+ * A license that entitles everything except the runtime features (SCIM, audit
+ * logs, retention overrides).
+ */
 export const FEATURES_WITHOUT_RUNTIME_FEATURES: Array<EnterpriseFeature> = [
   EnterpriseFeature.TeamCompliance,
   EnterpriseFeature.InstanceHealth,
@@ -407,7 +412,7 @@ export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [
     isUnknown: false,
   },
   {
-    label: "valid license without SSO, SCIM or audit logs",
+    label: "valid license without SCIM or audit logs",
     install: (): FakeEnterpriseModule => {
       return installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("valid", {
@@ -462,7 +467,7 @@ export interface EditionStateCase {
   label: string;
   billing: boolean;
   isLoaded: boolean;
-  // Whether SSO, SCIM and audit logging run in this state.
+  // Whether SCIM and audit logging run in this state.
   isActive: boolean;
   apply: () => FakeEnterpriseModule | null;
 }

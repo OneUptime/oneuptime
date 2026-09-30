@@ -744,10 +744,11 @@ service:
 
 ### Linux (systemd)
 
-The Debian / RPM packages already install a systemd unit. Just enable and start it:
+The Debian / RPM packages already install a systemd unit and start it with the package's own default config, so enable it and restart it to load your `config.yaml`:
 
 ```bash
-sudo systemctl enable --now otelcol-contrib
+sudo systemctl enable otelcol-contrib
+sudo systemctl restart otelcol-contrib
 sudo systemctl status otelcol-contrib
 ```
 
@@ -794,10 +795,9 @@ sudo launchctl list | grep otelcol-contrib
 From an **elevated** PowerShell prompt:
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
-  start= auto `
-  DisplayName= "OpenTelemetry Collector (OneUptime)"
+# --% hands the rest of the line to sc.exe unchanged, so its quoting
+# survives PowerShell — keep the command on one line.
+sc.exe --% create "otelcol-contrib" binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" start= auto DisplayName= "OpenTelemetry Collector (OneUptime)"
 
 sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
 

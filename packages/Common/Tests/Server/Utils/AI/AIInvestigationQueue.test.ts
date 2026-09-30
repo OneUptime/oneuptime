@@ -349,7 +349,6 @@ describe("AIInvestigationQueue", () => {
   test("an incident at its cap does not consume the alert lane's slots", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       id: ObjectID.generate(),
-      aiMaxConcurrentInvestigations: 1,
       incidentAiMaxConcurrentInvestigations: 1,
       alertAiMaxConcurrentInvestigations: 2,
     } as unknown as Project);
@@ -397,20 +396,21 @@ describe("AIInvestigationQueue", () => {
     );
   });
 
-  test("subjectless insight work retains the legacy concurrency cap", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      id: ObjectID.generate(),
-      aiMaxConcurrentInvestigations: 1,
-      incidentAiMaxConcurrentInvestigations: 10,
-      alertAiMaxConcurrentInvestigations: 10,
-    } as unknown as Project);
+  test("subjectless insight work uses the default cap and ignores the legacy project column", async () => {
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({
+        id: ObjectID.generate(),
+        aiMaxConcurrentInvestigations: 1,
+      } as unknown as Project);
+    // Two running in the lane: over the legacy cap of 1, under the default 3.
     const count: jest.SpyInstance = jest
       .spyOn(AIRunService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1));
-    const claim: jest.SpyInstance = jest.spyOn(
-      AIRunService,
-      "attemptStatusTransition",
-    );
+      .mockResolvedValueOnce(new PositiveNumber(2))
+      .mockResolvedValue(new PositiveNumber(0));
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(0);
 
     await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
@@ -419,7 +419,8 @@ describe("AIInvestigationQueue", () => {
       triggeredByAiInsightId: ObjectID.generate(),
     });
 
-    expect(claim).not.toHaveBeenCalled();
+    expect(findProject).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenCalledTimes(1);
     const query: Record<string, unknown> = (
       count.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;

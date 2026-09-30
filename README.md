@@ -207,7 +207,7 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 | **Best for** | Self-hosters & small teams | Regulated teams needing premium support |
 | **Cost** | Free & open source | [Contact sales](mailto:sales@oneuptime.com) |
 | **License** | Apache 2.0 | Apache 2.0, plus the [OneUptime Enterprise License](/ee/LICENSE) for the `ee/` directory |
-| **Features** | Everything in the box above — monitoring, status pages, incidents, on-call, logs, traces, metrics, error tracking, workflows & AI | Everything in Community + SAML & OIDC single sign-on, SCIM provisioning, audit logs, team compliance & instance health dashboards, with priority support, custom features & data residency |
+| **Features** | Everything in the box above — monitoring, status pages, incidents, on-call, logs, traces, metrics, error tracking, workflows & AI — plus SAML & OIDC single sign-on | Everything in Community + SCIM provisioning, audit logs, team compliance & instance health dashboards, with priority support, custom features & data residency |
 
 Enterprise features live in the [`ee/`](/ee) directory and ship only in the Enterprise image. See [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for the full comparison.
 

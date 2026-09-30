@@ -115,10 +115,24 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
 
       setIngestionKeys(result.data);
 
-      // Auto-select the first key if available and none selected
-      if (result.data.length > 0 && !selectedKeyId) {
-        setSelectedKeyId(result.data[0]!.id?.toString() || "");
-      }
+      /*
+       * Keep the selection while the reloaded list still has it; otherwise
+       * select the first key. A guide that narrows the list to another key
+       * type (a browser snippet, then a mobile one) reloads it, and the key
+       * picked before is no longer in it - keeping that id would leave
+       * nothing selected and the snippets on their placeholder.
+       */
+      setSelectedKeyId((current: string): string => {
+        const isStillListed: boolean = result.data.some(
+          (key: TelemetryIngestionKey): boolean => {
+            return key.id?.toString() === current;
+          },
+        );
+        if (current && isStillListed) {
+          return current;
+        }
+        return result.data[0]?.id?.toString() || "";
+      });
     } catch (err) {
       setKeyError(API.getFriendlyErrorMessage(err as Error));
     } finally {

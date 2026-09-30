@@ -31,6 +31,7 @@ import TeamComplianceStatusTable, {
 } from "../../../Dashboard/TeamCompliance/TeamComplianceStatusTable";
 import { MemberStatusFilter } from "../../../Dashboard/TeamCompliance/ComplianceView";
 import {
+  CALL_AND_PUSH_RULE_ID,
   CALL_REASON,
   CALL_RULE_ID,
   EMAIL_REASON,
@@ -43,6 +44,7 @@ import {
   buildMember,
   buildRule,
   buildStatus,
+  callAndPushForIncidentsRule,
   callForIncidentsRule,
   emailRule,
   issue,
@@ -477,11 +479,15 @@ describe("filters and search", () => {
     render(
       <Harness
         status={standardStatus()}
-        initialFilter={MemberStatusFilter.Compliant}
+        initialFilter={MemberStatusFilter.NeedsAttention}
         initialFailingRuleId={CALL_RULE_ID}
         onClearFailingRule={onClearFailingRule}
       />,
     );
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "priya" },
+    });
 
     expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
       "No members match these filters.",
@@ -495,6 +501,181 @@ describe("filters and search", () => {
     expect(onClearFailingRule).toHaveBeenCalledTimes(1);
     expect(listedNames()).toEqual(["Jane Doe", "Omar Haddad", "Priya Patel"]);
     expect(screen.getByRole("searchbox")).toHaveValue("");
+  });
+
+  /*
+   * Compliant under a rule filter is always nobody - everyone failing a rule
+   * needs attention - so the empty list says why instead of a generic "no
+   * match", and Clear filters still resets all of it.
+   */
+  test("Compliant under a rule filter explains why nobody is listed", () => {
+    const onClearFailingRule: jest.Mock = jest.fn();
+
+    render(
+      <Harness
+        status={standardStatus()}
+        initialFilter={MemberStatusFilter.Compliant}
+        initialFailingRuleId={CALL_RULE_ID}
+        onClearFailingRule={onClearFailingRule}
+      />,
+    );
+
+    expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
+      "Everyone failing Call for incidents (Critical Incident and Major Incident) needs attention, so none of them is compliant.",
+    );
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "0 of 3 members",
+    );
+
+    fireEvent.click(screen.getByTestId("compliance-members-clear-filters"));
+
+    expect(onClearFailingRule).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(listedNames()).toEqual(["Jane Doe", "Omar Haddad", "Priya Patel"]);
+  });
+
+  test("Compliant with no rule filter keeps the generic message", () => {
+    render(
+      <Harness
+        status={standardStatus()}
+        initialFilter={MemberStatusFilter.Compliant}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "jane" },
+    });
+
+    expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
+      "No members match these filters.",
+    );
+  });
+
+  /*
+   * The customer's report: under a rule filter, All and Needs attention kept
+   * the rule but Compliant quietly dropped it. The segments narrow what the
+   * list shows; none of them may clear the rule filter.
+   */
+  test("switching segments never clears the rule filter", () => {
+    const onClearFailingRule: jest.Mock = jest.fn();
+
+    render(
+      <Harness
+        status={standardStatus()}
+        initialFailingRuleId={EMAIL_RULE_ID}
+        onClearFailingRule={onClearFailingRule}
+      />,
+    );
+
+    const chip: () => HTMLElement | null = (): HTMLElement | null => {
+      return screen.queryByTestId("compliance-members-rule-filter");
+    };
+
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(
+      screen.getByTestId("compliance-members-no-match"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: /All/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+    expect(chip()).toBeInTheDocument();
+    expect(listedNames()).toEqual(["Jane Doe"]);
+
+    expect(onClearFailingRule).not.toHaveBeenCalled();
+  });
+
+  test("the segment badges count within the rule filter", () => {
+    render(
+      <Harness status={standardStatus()} initialFailingRuleId={CALL_RULE_ID} />,
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All2",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent("Needs attention2");
+    // Nobody failing a rule is compliant: no badge, not a stale team-wide 1.
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      /^Compliant$/,
+    );
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "2 of 3 members",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear the rule filter" }),
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All3",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent("Needs attention2");
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      "Compliant1",
+    );
+  });
+
+  test("the segment badges count within the search", () => {
+    render(<Harness status={standardStatus()} />);
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "priya" },
+    });
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All1",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent(/^Needs attention$/);
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      "Compliant1",
+    );
+
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "" },
+    });
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All3",
+    );
+  });
+
+  test("the selected segment's badge matches the members listed", () => {
+    render(
+      <Harness status={standardStatus()} initialFailingRuleId={CALL_RULE_ID} />,
+    );
+
+    for (const name of [/All/, /Needs attention/]) {
+      const segment: HTMLElement = screen.getByRole("radio", { name: name });
+
+      fireEvent.click(segment);
+
+      expect(segment).toHaveTextContent(String(listedNames().length));
+      expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+        `${listedNames().length} of 3 members`,
+      );
+    }
   });
 
   test("a rule filter from the rules card narrows to who fails it", () => {
@@ -557,7 +738,7 @@ describe("filters and search", () => {
     });
     const major: TeamComplianceRuleJSON = callForIncidentsRule({
       settingId: "call-major",
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       severities: [{ id: "m", name: "Major Incident" }],
       compliantCount: 1,
       nonCompliantCount: 0,
@@ -600,6 +781,188 @@ describe("filters and search", () => {
     expect(
       screen.queryByTestId("compliance-members-rule-filter"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("a rule on several channels", () => {
+  /*
+   * "Call and Push notification for incidents" is met only with a rule on
+   * each channel. Wherever the members section names it on its own - a
+   * square, a failure, the filter chip - it names both channels, so it is
+   * never mistaken for a Call-only rule for the same severity.
+   */
+  const LABEL: string =
+    "Call and Push notification for incidents (Critical Incident)";
+  const PUSH_REASON: string =
+    "No Push notification rule for incident severities: Critical Incident";
+
+  const callAndPushStatus: () => TeamComplianceStatusJSON =
+    (): TeamComplianceStatusJSON => {
+      const rule: TeamComplianceRuleJSON = callAndPushForIncidentsRule({
+        compliantCount: 1,
+        nonCompliantCount: 1,
+      });
+
+      return buildStatus({
+        complianceSettings: [rule],
+        userComplianceStatuses: [
+          buildMember({
+            nonCompliantRules: [issue(rule, PUSH_REASON)],
+          }),
+          buildMember({
+            userId: OMAR_ID,
+            userName: "Omar Haddad",
+            userEmail: "omar@acme.com",
+          }),
+        ],
+      });
+    };
+
+  test("its squares are named with its channels", () => {
+    render(<Harness status={callAndPushStatus()} />);
+
+    const failing: HTMLElement = within(row(JANE_ID)).getByTestId(
+      `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+    );
+    const passing: HTMLElement = within(row(OMAR_ID)).getByTestId(
+      `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+    );
+
+    expect(failing).toHaveAttribute("data-result", "fail");
+    expect(failing).toHaveAttribute(
+      "aria-label",
+      `${LABEL}: not met. ${PUSH_REASON}`,
+    );
+    expect(passing).toHaveAttribute("data-result", "pass");
+    expect(passing).toHaveAttribute("aria-label", `${LABEL}: met`);
+  });
+
+  test("a failure of it is listed under its title, channels and all", () => {
+    render(<Harness status={callAndPushStatus()} />);
+
+    expect(
+      within(row(JANE_ID)).getByTestId("compliance-member-issues"),
+    ).toHaveTextContent(
+      `Call and Push notification for incidents: ${PUSH_REASON}`,
+    );
+  });
+
+  test("its filter chip names its channels", () => {
+    render(
+      <Harness
+        status={callAndPushStatus()}
+        initialFailingRuleId={CALL_AND_PUSH_RULE_ID}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent(`Failing${LABEL}`);
+    expect(listedNames()).toEqual(["Jane Doe"]);
+  });
+
+  test("a Call-only rule for the same severity gets a different name", () => {
+    const callOnly: TeamComplianceRuleJSON = callForIncidentsRule({
+      severities: [{ id: "c", name: "Critical Incident" }],
+      compliantCount: 1,
+      nonCompliantCount: 0,
+    });
+    const callAndPush: TeamComplianceRuleJSON = callAndPushForIncidentsRule({
+      compliantCount: 0,
+      nonCompliantCount: 1,
+    });
+
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [callOnly, callAndPush],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [issue(callAndPush, PUSH_REASON)],
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getByTestId(
+        `compliance-member-rule-${CALL_RULE_ID}`,
+      ),
+    ).toHaveAttribute(
+      "aria-label",
+      "Call for incidents (Critical Incident): met",
+    );
+    expect(
+      within(row(JANE_ID)).getByTestId(
+        `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+      ),
+    ).toHaveAttribute("aria-label", `${LABEL}: not met. ${PUSH_REASON}`);
+  });
+
+  /*
+   * Failing on both channels is one failure of one rule, fixed on one page:
+   * one link, to the member's own incident on-call rules.
+   */
+  test("the member failing it is sent to their incident on-call rules, once", () => {
+    const rule: TeamComplianceRuleJSON = callAndPushForIncidentsRule({
+      compliantCount: 0,
+      nonCompliantCount: 1,
+    });
+
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [rule],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [
+                issue(
+                  rule,
+                  "No Call rule for incident severities: Critical Incident. No Push notification rule for incident severities: Critical Incident",
+                ),
+              ],
+            }),
+          ],
+        })}
+        currentUserId={JANE_ID}
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getAllByRole("link", {
+        name: /Open my incident on-call rules/,
+      }),
+    ).toHaveLength(1);
+  });
+
+  /*
+   * A failure whose rule is not in the list carries no channels, so it is
+   * titled as its kind - never as a rule on channels it may not have had.
+   */
+  test("a failure of an on-call rule that is not listed is titled by its kind alone", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [emailRule()],
+          userComplianceStatuses: [
+            buildMember({
+              nonCompliantRules: [
+                {
+                  settingId: "gone",
+                  ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+                  reason: PUSH_REASON,
+                },
+              ],
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      within(row(JANE_ID)).getByTestId("compliance-member-issues"),
+    ).toHaveTextContent(`Incident on-call rules: ${PUSH_REASON}`);
   });
 });
 

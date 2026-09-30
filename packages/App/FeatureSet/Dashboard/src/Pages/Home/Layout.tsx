@@ -69,9 +69,9 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
         RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
       ),
       presentation: {
-        title: "Inoperational Monitors",
+        title: "Not Operational Monitors",
         breadcrumb: {
-          title: "Inoperational Monitors",
+          title: "Not Operational Monitors",
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
           ),

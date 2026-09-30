@@ -6,7 +6,7 @@ import {
   RulePassRateText,
   getAllSeveritiesLabel,
   getChannelLabel,
-  getRuleChannel,
+  getRuleChannels,
   getRuleIcon,
   getRuleLabel,
   getRulePassRate,
@@ -334,7 +334,52 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // Which severities and which channel an on-call rule covers.
+  /*
+   * One chip per channel the rule insists on - a member needs a rule on each
+   * - or a single "Any channel" chip.
+   */
+  const getChannelChips: (rule: TeamComplianceRuleJSON) => ReactElement = (
+    rule: TeamComplianceRuleJSON,
+  ): ReactElement => {
+    const channels: Array<ComplianceNotificationChannel> =
+      getRuleChannels(rule);
+
+    if (channels.length === 0) {
+      return (
+        <li
+          data-testid="compliance-rule-channel"
+          className={NEUTRAL_CHIP_CLASS_NAME}
+        >
+          <Icon icon={IconProp.BellRinging} className="h-3 w-3 text-gray-400" />
+          {getChannelLabel(undefined)}
+        </li>
+      );
+    }
+
+    return (
+      <>
+        {channels.map(
+          (channel: ComplianceNotificationChannel): ReactElement => {
+            return (
+              <li
+                key={channel}
+                data-testid="compliance-rule-channel"
+                className={NEUTRAL_CHIP_CLASS_NAME}
+              >
+                <Icon
+                  icon={CHANNEL_ICONS[channel]}
+                  className="h-3 w-3 text-gray-400"
+                />
+                {getChannelLabel(channel)}
+              </li>
+            );
+          },
+        )}
+      </>
+    );
+  };
+
+  // Which severities and which channels an on-call rule covers.
   const getScopeChips: (rule: TeamComplianceRuleJSON) => ReactElement = (
     rule: TeamComplianceRuleJSON,
   ): ReactElement => {
@@ -342,8 +387,6 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const channel: ComplianceNotificationChannel | undefined =
-      getRuleChannel(rule);
     const showsEverySeverity: boolean =
       rule.appliesToAllSeverities || rule.severities.length === 0;
 
@@ -385,16 +428,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
         className="mt-2.5 flex flex-wrap items-center gap-1.5"
       >
         {severityChips}
-        <li
-          data-testid="compliance-rule-channel"
-          className={NEUTRAL_CHIP_CLASS_NAME}
-        >
-          <Icon
-            icon={channel ? CHANNEL_ICONS[channel] : IconProp.BellRinging}
-            className="h-3 w-3 text-gray-400"
-          />
-          {getChannelLabel(channel)}
-        </li>
+        {getChannelChips(rule)}
       </ul>
     );
   };

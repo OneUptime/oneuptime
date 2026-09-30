@@ -66,6 +66,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
+import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -1327,6 +1328,8 @@ function defineMonitor(typeKey) {
 
   if (PROBE_CHECK_TYPES.includes(typeKey)) {
     defineProbes({ typeKey, definition, scenario, monitorId, steps, current });
+  } else if (typeKey === "incoming-email" && !isAwaiting) {
+    defineIncomingEmailLogs({ monitorId, record, current });
   } else if (!isAwaiting && typeKey !== "manual") {
     // One evaluation per run for everything that is not a probe check.
     const at =
@@ -1354,6 +1357,91 @@ function defineMonitor(typeKey) {
   defineOwners(typeKey, monitorId);
   defineFeed(typeKey, monitorId, createdAt, segments);
   defineIncidents(typeKey, monitorId, segments);
+}
+
+/*
+ * The incoming email monitor's MonitorLog rows, shaped the way the server
+ * writes them: one per email (Telemetry's processIncomingEmailFromQueue) and
+ * one per scheduled "has an email arrived lately?" check, which carries a
+ * copy of the last email. The newest row is that check, as the overview's
+ * evaluation read expects. The recipient is masked, as ingest masks it.
+ */
+function defineIncomingEmailLogs(data) {
+  const { monitorId, record, current } = data;
+  const lastEmail = record.incomingEmailMonitorRequest;
+  const checkedAt = new Date(record.incomingEmailMonitorHeartbeatCheckedAt);
+  const receivedAt = new Date(lastEmail.emailReceivedAt);
+  const dayBefore = new Date(receivedAt.getTime() - 24 * HOUR);
+  const maskedTo = "monitor-[REDACTED]@inbound.acme-commerce.example";
+
+  const email = (subject, body, at) => {
+    return {
+      ...lastEmail,
+      emailTo: maskedTo,
+      emailSubject: subject,
+      emailBody: body,
+      emailHeaders: {
+        From: `Payroll Provider <${lastEmail.emailFrom}>`,
+        To: maskedTo,
+        Subject: subject,
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+      emailReceivedAt: at.toISOString(),
+      checkedAt: at.toISOString(),
+      onlyCheckForIncomingEmailReceivedAt: false,
+    };
+  };
+
+  const lastEmailBody = email(
+    lastEmail.emailSubject,
+    lastEmail.emailBody,
+    receivedAt,
+  );
+
+  insert(MonitorLog, {
+    monitorId: new ObjectID(monitorId),
+    time: checkedAt,
+    logBody: {
+      ...lastEmailBody,
+      checkedAt: checkedAt.toISOString(),
+      onlyCheckForIncomingEmailReceivedAt: true,
+      evaluationSummary: evaluationSummary({
+        status: current.status,
+        at: checkedAt,
+        withEvents: false,
+      }),
+    },
+  });
+
+  insert(MonitorLog, {
+    monitorId: new ObjectID(monitorId),
+    time: receivedAt,
+    logBody: {
+      ...lastEmailBody,
+      evaluationSummary: evaluationSummary({
+        status: "operational",
+        at: receivedAt,
+        withEvents: false,
+      }),
+    },
+  });
+
+  insert(MonitorLog, {
+    monitorId: new ObjectID(monitorId),
+    time: dayBefore,
+    logBody: {
+      ...email(
+        "Payroll run 2026-09-20 completed",
+        "The payroll run for Acme Commerce completed at 09:41 UTC.",
+        dayBefore,
+      ),
+      evaluationSummary: evaluationSummary({
+        status: "operational",
+        at: dayBefore,
+        withEvents: false,
+      }),
+    },
+  });
 }
 
 function defineProbes(data) {
@@ -1791,6 +1879,32 @@ UserUtil.getEmail = () => {
 PermissionUtil.getAllPermissions = () => {
   return [...rolePermissions];
 };
+/*
+ * The same permissions through the two reads getAllPermissions is built
+ * from. A model table checks every column against them
+ * (BaseModelTable.getUserPermissions); without them the Monitoring Logs
+ * table dropped all its data columns.
+ */
+PermissionUtil.getGlobalPermissions = () => {
+  return {
+    _type: "UserGlobalAccessPermission",
+    projectIds: [projectObjectId],
+    globalPermissions: [...GLOBAL_PERMISSIONS],
+  };
+};
+PermissionUtil.getProjectPermissions = () => {
+  return {
+    _type: "UserTenantAccessPermission",
+    projectId: projectObjectId,
+    permissions: rolePermissions
+      .filter((permission) => {
+        return !GLOBAL_PERMISSIONS.includes(permission);
+      })
+      .map((permission) => {
+        return { _type: "UserPermission", permission, labelIds: [] };
+      }),
+  };
+};
 ProjectUtil.getCurrentProjectId = () => {
   return new ObjectID(PROJECT_ID);
 };
@@ -2138,11 +2252,14 @@ function StubPage(props) {
   );
 }
 
-// Every monitor sub-page and every page the overview links to.
+// Every monitor sub-page but Monitoring Logs, and every page the overview links to.
 const STUB_PAGES = [
   ...Object.values(PageMap)
     .filter((pageKey) => {
-      return String(pageKey).startsWith("MONITOR_VIEW_");
+      return (
+        String(pageKey).startsWith("MONITOR_VIEW_") &&
+        pageKey !== PageMap.MONITOR_VIEW_LOGS
+      );
     })
     .map((pageKey) => {
       return [pageKey, String(pageKey)];
@@ -2215,6 +2332,12 @@ function FixtureApp() {
             <Route
               index
               element={<MonitorView {...pageProps(PageMap.MONITOR_VIEW)} />}
+            />
+            <Route
+              path="logs"
+              element={
+                <MonitorLogs {...pageProps(PageMap.MONITOR_VIEW_LOGS)} />
+              }
             />
           </Route>
           {STUB_PAGES.map(([pageKey, title]) => {

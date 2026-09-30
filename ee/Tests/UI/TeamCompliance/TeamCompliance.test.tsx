@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   RenderHookResult,
+  RenderResult,
   act,
   cleanup,
   fireEvent,
@@ -99,6 +100,7 @@ import EnterpriseDashboardPlugins from "../../../Dashboard/Index";
 import { COMPLIANCE_RULE_PRESETS } from "../../../Dashboard/TeamCompliance/ComplianceRulePresets";
 import {
   ALERT_RULE_ID,
+  CALL_AND_PUSH_RULE_ID,
   CALL_REASON,
   CALL_RULE_ID,
   CRITICAL_ID,
@@ -118,6 +120,7 @@ import {
   buildMember,
   buildRule,
   buildStatus,
+  callAndPushForIncidentsRule,
   callForEveryIncidentRule,
   callForIncidentsRule,
   emailRule,
@@ -135,6 +138,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
@@ -143,6 +147,7 @@ import {
   TeamComplianceRuleJSON,
   TeamComplianceStatusJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
+import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -680,6 +685,82 @@ describe("an answer from an older API", () => {
     expect(screen.getByRole("button", { name: "Add rule" })).not.toBeDisabled();
     expect(updateById).not.toHaveBeenCalled();
     expect(deleteItem).not.toHaveBeenCalled();
+  });
+
+  /*
+   * An App from before a rule could require several channels sends one
+   * `notificationChannel` per rule, or null for any channel. The page shows
+   * each rule on that channel - never as "Any channel".
+   */
+  test("rules sent with one notificationChannel each are shown on that channel", async () => {
+    apiGet.mockResolvedValue({
+      data: {
+        teamId: TEAM_ID.toString(),
+        teamName: "Platform On-Call",
+        evaluatedAt: EVALUATED_AT,
+        complianceSettings: [
+          {
+            settingId: CALL_RULE_ID,
+            ruleType: "HasIncidentOnCallRules",
+            enabled: true,
+            notificationChannel: "Call",
+            severityKind: "Incident",
+            appliesToAllSeverities: true,
+            severities: [],
+            compliantCount: 1,
+            nonCompliantCount: 0,
+            warnings: [],
+          },
+          {
+            settingId: ALERT_RULE_ID,
+            ruleType: "HasAlertOnCallRules",
+            enabled: true,
+            notificationChannel: null,
+            severityKind: "Alert",
+            appliesToAllSeverities: true,
+            severities: [],
+            compliantCount: 1,
+            nonCompliantCount: 0,
+            warnings: [],
+          },
+        ],
+        userComplianceStatuses: [
+          {
+            userId: JANE_ID,
+            userName: "Jane Doe",
+            userEmail: "jane@acme.com",
+            isCompliant: true,
+            nonCompliantRules: [],
+          },
+        ],
+      },
+    } as never);
+
+    render(<TeamViewCompliance {...PAGE_PROPS} />);
+    await screen.findByTestId("team-compliance-page");
+
+    const call: HTMLElement = ruleRow(CALL_RULE_ID);
+
+    expect(within(call).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Call for incidents",
+    );
+    expect(
+      within(call)
+        .getAllByTestId("compliance-rule-channel")
+        .map((chip: HTMLElement): string => {
+          return chip.textContent || "";
+        }),
+    ).toEqual(["Call"]);
+
+    const alert: HTMLElement = ruleRow(ALERT_RULE_ID);
+
+    expect(
+      within(alert)
+        .getAllByTestId("compliance-rule-channel")
+        .map((chip: HTMLElement): string => {
+          return chip.textContent || "";
+        }),
+    ).toEqual(["Any channel"]);
   });
 });
 
@@ -1231,6 +1312,69 @@ describe("rule warnings", () => {
       screen.queryByTestId("compliance-rule-warnings"),
     ).not.toBeInTheDocument();
   });
+
+  /*
+   * One switchable channel among a rule's several is enough: that switch
+   * being off is something no member can fix, and the banner brings the way
+   * to it.
+   */
+  test("a rule on several channels links to the settings when any of them is switched off", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          callAndPushForIncidentsRule({
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Call,
+            ],
+            compliantCount: 1,
+            warnings: [CALL_WARNING],
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const banner: HTMLElement = screen.getByTestId("compliance-rule-warnings");
+
+    expect(banner).toHaveTextContent("1 rule has a problem members cannot fix");
+    expect(
+      screen.getByTestId(`compliance-rule-warning-${CALL_AND_PUSH_RULE_ID}`),
+    ).toHaveTextContent(
+      `Call and Push notification for incidents (Critical Incident): ${CALL_WARNING}`,
+    );
+    expect(
+      within(banner).getByRole("link", { name: /Open notification settings/ }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`,
+    );
+  });
+
+  test("a rule on several channels no project can switch off brings no settings link", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          callAndPushForIncidentsRule({
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.Email,
+            ],
+            compliantCount: 1,
+            warnings: ["Push is not configured for this server."],
+          }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(screen.getByTestId("compliance-rule-warnings")).toHaveTextContent(
+      "Push notification and Email for incidents (Critical Incident): Push is not configured for this server.",
+    );
+    expect(
+      screen.queryByTestId("compliance-rule-warnings-settings-link"),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("the rules card", () => {
@@ -1365,7 +1509,7 @@ describe("the rules card", () => {
           buildRule({
             settingId: "episodes",
             ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-            notificationChannel: ComplianceNotificationChannel.SMS,
+            notificationChannels: [ComplianceNotificationChannel.SMS],
             appliesToAllSeverities: true,
           }),
         ],
@@ -2097,6 +2241,341 @@ describe("two rules of one type and channel", () => {
   });
 });
 
+describe("a rule on several channels", () => {
+  /*
+   * "Call and Push notification for incidents": a member meets it only with
+   * a rule on each of its channels. Its row has to say every channel - in
+   * the title, the sentence and a chip each - and every control has to name
+   * it apart from a Call-only rule for the same severities.
+   */
+  const CALL_AND_PUSH_LABEL: string =
+    "Call and Push notification for incidents (Critical Incident)";
+
+  const withCallAndPush: (
+    overrides?: Partial<TeamComplianceRuleJSON>,
+  ) => TeamComplianceStatusJSON = (
+    overrides?: Partial<TeamComplianceRuleJSON>,
+  ): TeamComplianceStatusJSON => {
+    return buildStatus({
+      complianceSettings: [
+        emailRule({ compliantCount: 1 }),
+        callAndPushForIncidentsRule({
+          compliantCount: 1,
+          ...(overrides || {}),
+        }),
+      ],
+      userComplianceStatuses: [buildMember()],
+    });
+  };
+
+  // What an icon draws, to tell which icon an element shows.
+  const iconPaths: (icon: IconProp) => string = (icon: IconProp): string => {
+    const drawn: RenderResult = render(<Icon icon={icon} />);
+    const paths: string = drawn.container.querySelector("svg")?.innerHTML || "";
+
+    drawn.unmount();
+
+    return paths;
+  };
+
+  // The icon a rule's row leads with.
+  const ruleIconPaths: (row: HTMLElement) => string = (
+    row: HTMLElement,
+  ): string => {
+    return row.querySelector(".h-9.w-9 svg")?.innerHTML || "";
+  };
+
+  const channelChips: (row: HTMLElement) => Array<HTMLElement> = (
+    row: HTMLElement,
+  ): Array<HTMLElement> => {
+    return within(row).getAllByTestId("compliance-rule-channel");
+  };
+
+  const chipLabels: (row: HTMLElement) => Array<string> = (
+    row: HTMLElement,
+  ): Array<string> => {
+    return channelChips(row).map((chip: HTMLElement): string => {
+      return chip.textContent || "";
+    });
+  };
+
+  test("is titled and described for every channel", async () => {
+    await renderPage(withCallAndPush());
+
+    const row: HTMLElement = ruleRow(CALL_AND_PUSH_RULE_ID);
+
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Call and Push notification for incidents",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-sentence"),
+    ).toHaveTextContent(
+      "Every member has incident on-call rules that notify them by Call and by Push notification for Critical Incident.",
+    );
+    expect(screen.getByRole("listitem", { name: CALL_AND_PUSH_LABEL })).toBe(
+      row,
+    );
+  });
+
+  test("has a chip for each channel, in catalog order, beside its severities", async () => {
+    // Sent Push first: the chips still read in the catalog's order.
+    await renderPage(
+      withCallAndPush({
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+      }),
+    );
+
+    const row: HTMLElement = ruleRow(CALL_AND_PUSH_RULE_ID);
+    const scope: HTMLElement = within(row).getByTestId("compliance-rule-scope");
+
+    expect(chipLabels(row)).toEqual(["Call", "Push notification"]);
+    expect(
+      within(scope).getAllByTestId("compliance-rule-channel"),
+    ).toHaveLength(2);
+    expect(
+      within(scope).getByTestId(`compliance-rule-severity-${CRITICAL_ID}`),
+    ).toHaveTextContent("Critical Incident");
+    expect(within(scope).queryByText("Any channel")).not.toBeInTheDocument();
+
+    // Each chip wears its own channel's icon.
+    const [callChip, pushChip] = channelChips(row) as [
+      HTMLElement,
+      HTMLElement,
+    ];
+
+    expect(callChip.querySelector("svg")?.innerHTML).toBe(
+      iconPaths(IconProp.Call),
+    );
+    expect(pushChip.querySelector("svg")?.innerHTML).toBe(
+      iconPaths(IconProp.DevicePhoneMobile),
+    );
+  });
+
+  test("names every channel it insists on, however many", async () => {
+    await renderPage(
+      withCallAndPush({
+        notificationChannels: [
+          ComplianceNotificationChannel.Webhook,
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.MicrosoftTeams,
+        ],
+      }),
+    );
+
+    const row: HTMLElement = ruleRow(CALL_AND_PUSH_RULE_ID);
+
+    expect(chipLabels(row)).toEqual([
+      "Call",
+      "SMS",
+      "Microsoft Teams",
+      "Webhook",
+    ]);
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Call, SMS, Microsoft Teams and Webhook for incidents",
+    );
+  });
+
+  /*
+   * No one channel stands for it - its chips show them all - so its row
+   * leads with its kind's icon, as an any-channel rule's does.
+   */
+  test("leads with its kind's icon, not one of its channels'", async () => {
+    await renderPage(withCallAndPush());
+
+    const paths: string = ruleIconPaths(ruleRow(CALL_AND_PUSH_RULE_ID));
+
+    expect(paths).not.toBe("");
+    expect(paths).toBe(iconPaths(IconProp.Alert));
+    expect(paths).not.toBe(iconPaths(IconProp.Call));
+    expect(paths).not.toBe(iconPaths(IconProp.DevicePhoneMobile));
+  });
+
+  test("a rule on one channel keeps its one chip, and leads with that channel", async () => {
+    await renderPage();
+
+    const row: HTMLElement = ruleRow(CALL_RULE_ID);
+
+    expect(chipLabels(row)).toEqual(["Call"]);
+    expect(ruleIconPaths(row)).toBe(iconPaths(IconProp.Call));
+  });
+
+  test("an any-channel rule has one 'Any channel' chip", async () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings.push(alertRule({ compliantCount: 3 }));
+
+    await renderPage(status);
+
+    const row: HTMLElement = ruleRow(ALERT_RULE_ID);
+
+    expect(chipLabels(row)).toEqual(["Any channel"]);
+    expect(ruleIconPaths(row)).toBe(iconPaths(IconProp.ExclaimationCircle));
+  });
+
+  test("a method rule has no channel chips at all", async () => {
+    await renderPage(withCallAndPush());
+
+    expect(
+      within(ruleRow(EMAIL_RULE_ID)).queryAllByTestId(
+        "compliance-rule-channel",
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("its switch, edit and delete buttons name it with its channels", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(withCallAndPush());
+
+    const row: HTMLElement = ruleRow(CALL_AND_PUSH_RULE_ID);
+
+    expect(within(row).getByRole("switch")).toHaveAccessibleName(
+      `Check members against ${CALL_AND_PUSH_LABEL}`,
+    );
+    expect(
+      within(row).getByRole("button", { name: `Edit ${CALL_AND_PUSH_LABEL}` }),
+    ).toBeInTheDocument();
+    expect(
+      within(row).getByRole("button", {
+        name: `Delete ${CALL_AND_PUSH_LABEL}`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("Edit opens that rule by its id", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(withCallAndPush());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `Edit ${CALL_AND_PUSH_LABEL}` }),
+    );
+
+    expect(screen.getByTestId("rule-form-modal")).toHaveTextContent(
+      "Edit compliance rule",
+    );
+    expect(capturedFormModal?.modelIdToEdit?.toString()).toBe(
+      CALL_AND_PUSH_RULE_ID,
+    );
+  });
+
+  test("the delete confirmation names it with its channels", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(withCallAndPush());
+
+    const deleteItem: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "deleteItem")
+      .mockResolvedValue(undefined as never);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `Delete ${CALL_AND_PUSH_LABEL}` }),
+    );
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      `"${CALL_AND_PUSH_LABEL}" stops being checked for everyone on this team.`,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(deleteItem.mock.calls[0]![0].id.toString()).toBe(
+      CALL_AND_PUSH_RULE_ID,
+    );
+  });
+
+  /*
+   * "Call for Critical" and "Call and Push for Critical" are different
+   * rules, and a team may hold both: same kind, same severity, so their
+   * channels are what tells them apart.
+   */
+  test("sits beside a Call-only rule for the same severity, told apart by its channels", async () => {
+    mockPermissions = EDITOR;
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          callForIncidentsRule({
+            severities: [
+              { id: CRITICAL_ID, name: "Critical Incident", color: "#ff0000" },
+            ],
+            compliantCount: 1,
+          }),
+          callAndPushForIncidentsRule({ compliantCount: 1 }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(
+      screen
+        .getAllByTestId("compliance-rule-title")
+        .map((title: HTMLElement): string => {
+          return title.textContent || "";
+        }),
+    ).toEqual([
+      "Call for incidents",
+      "Call and Push notification for incidents",
+    ]);
+    expect(
+      screen.getByRole("switch", {
+        name: "Check members against Call for incidents (Critical Incident)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", {
+        name: `Check members against ${CALL_AND_PUSH_LABEL}`,
+      }),
+    ).toBeInTheDocument();
+    expect(chipLabels(ruleRow(CALL_RULE_ID))).toEqual(["Call"]);
+    expect(chipLabels(ruleRow(CALL_AND_PUSH_RULE_ID))).toEqual([
+      "Call",
+      "Push notification",
+    ]);
+  });
+
+  test("its failing members are one click away, and the filter names its channels", async () => {
+    const reason: string =
+      "No Push notification rule for incident severities: Critical Incident";
+    const status: TeamComplianceStatusJSON = withCallAndPush({
+      compliantCount: 0,
+      nonCompliantCount: 1,
+    });
+    status.userComplianceStatuses[0]!.isCompliant = false;
+    status.userComplianceStatuses[0]!.nonCompliantRules = [
+      issue(status.complianceSettings[1]!, reason),
+    ];
+
+    await renderPage(status);
+
+    fireEvent.click(
+      screen.getByTestId(
+        `compliance-rule-show-failing-${CALL_AND_PUSH_RULE_ID}`,
+      ),
+    );
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent(`Failing${CALL_AND_PUSH_LABEL}`);
+
+    const jane: HTMLElement = screen.getByTestId(
+      `compliance-member-${JANE_ID}`,
+    );
+
+    expect(
+      within(jane).getByTestId(
+        `compliance-member-rule-${CALL_AND_PUSH_RULE_ID}`,
+      ),
+    ).toHaveAttribute(
+      "aria-label",
+      `${CALL_AND_PUSH_LABEL}: not met. ${reason}`,
+    );
+    expect(
+      within(jane).getByTestId("compliance-member-issues"),
+    ).toHaveTextContent(`Call and Push notification for incidents: ${reason}`);
+  });
+});
+
 describe("a rule whose every severity was deleted", () => {
   /*
    * The team's "Call for incidents" for every severity, and a "Call for
@@ -2549,7 +3028,7 @@ describe("an empty team: recommended rules", () => {
     );
     expect(capturedFormModal?.initialValues).toEqual({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [CRITICAL_ID],
       enabled: true,
     });
@@ -2571,7 +3050,7 @@ describe("an empty team: recommended rules", () => {
     expect(getList.mock.calls[0]![0].modelType).toBe(AlertSeverity);
     expect(capturedFormModal?.initialValues).toEqual({
       ruleType: ComplianceRuleType.HasAlertOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       alertSeverities: ["alert-high"],
       enabled: true,
     });
@@ -2590,7 +3069,7 @@ describe("an empty team: recommended rules", () => {
 
     expect(capturedFormModal?.initialValues).toEqual({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       enabled: true,
     });
   });
@@ -2608,7 +3087,7 @@ describe("an empty team: recommended rules", () => {
 
     expect(capturedFormModal?.initialValues).toEqual({
       ruleType: ComplianceRuleType.HasAlertOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       enabled: true,
     });
   });
@@ -2755,9 +3234,9 @@ describe("from a rule to the members failing it", () => {
   });
 
   /*
-   * Everyone failing a rule needs attention, so "Compliant" plus a rule
-   * filter is always nobody - "0 of 3 members" under a count that promised 1.
-   * Choosing Compliant drops the rule filter, wherever it is chosen.
+   * The hero's counts are team-wide, so pressing one shows exactly the
+   * members it counted: the rule filter goes, or "1 compliant" would open
+   * onto nobody.
    */
   test("choosing Compliant in the hero drops the rule filter", async () => {
     await renderPage();
@@ -2787,23 +3266,187 @@ describe("from a rule to the members failing it", () => {
     ).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("so does the members section's Compliant segment", async () => {
+  test("so does choosing Need attention in the hero: it shows every one it counted", async () => {
     await renderPage();
 
     fireEvent.click(
       screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
     );
-    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    expect(
+      screen.queryByTestId(`compliance-member-${OMAR_ID}`),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Show the 2 members who need attention",
+      }),
+    );
 
     expect(
       screen.queryByTestId("compliance-members-rule-filter"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${OMAR_ID}`),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "2 of 3 members",
+    );
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  /*
+   * A hero count is drawn pressed only while the list shows exactly the
+   * members it counted - not while a rule filter narrows them further.
+   */
+  test("a hero count is not pressed while a rule filter narrows the list", async () => {
+    await renderPage();
+
+    const attention: HTMLElement = screen.getByRole("button", {
+      name: "Show the 2 members who need attention",
+    });
+
+    fireEvent.click(attention);
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+
+    expect(attention).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    // Pressing it now shows its members, rather than toggling back to All.
+    fireEvent.click(attention);
+
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+
+    // And clearing the chip instead would have pressed it again.
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+    expect(attention).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear the rule filter" }),
+    );
+    expect(attention).toHaveAttribute("aria-pressed", "true");
+  });
+
+  /*
+   * The customer's report, step for step: under a rule filter, All and
+   * Needs attention kept it but Compliant silently reset it - so going back
+   * to All showed everyone. The section's segments now leave the rule filter
+   * alone, all three of them.
+   */
+  test("the members section's Compliant segment keeps the rule filter", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /Needs attention/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /All/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toHaveTextContent("Call for incidents");
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("compliance-members-no-match")).toHaveTextContent(
+      "needs attention, so none of them is compliant",
+    );
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "0 of 3 members",
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /All/ }));
+
+    expect(
+      screen.getByTestId("compliance-members-rule-filter"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "2 of 3 members",
+    );
+    expect(
+      screen.queryByTestId(`compliance-member-${PRIYA_ID}`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${JANE_ID}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-member-${OMAR_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("the segment badges agree with the list under a rule filter", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${EMAIL_RULE_ID}`),
+    );
+
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveTextContent(
+      "All1",
+    );
+    expect(
+      screen.getByRole("radio", { name: /Needs attention/ }),
+    ).toHaveTextContent("Needs attention1");
+    expect(screen.getByRole("radio", { name: /Compliant/ })).toHaveTextContent(
+      /^Compliant$/,
+    );
     expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
       "1 of 3 members",
     );
+
+    // The hero keeps counting the whole team.
+    expect(screen.getByTestId("compliance-fact-attention")).toHaveTextContent(
+      "2",
+    );
+    expect(screen.getByTestId("compliance-fact-compliant")).toHaveTextContent(
+      "1",
+    );
+  });
+
+  test("Clear filters from Compliant under a rule filter resets the rules card too", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Compliant/ }));
+    fireEvent.click(screen.getByTestId("compliance-members-clear-filters"));
+
     expect(
-      screen.getByTestId(`compliance-member-${PRIYA_ID}`),
-    ).toBeInTheDocument();
+      screen.queryByTestId("compliance-members-rule-filter"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`compliance-rule-show-failing-${CALL_RULE_ID}`),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("radio", { name: /All/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByTestId("compliance-members-count")).toHaveTextContent(
+      "3 members, worst first",
+    );
   });
 
   test("Needs attention keeps the rule filter: it narrows the same people", async () => {

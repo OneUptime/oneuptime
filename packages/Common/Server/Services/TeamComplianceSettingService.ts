@@ -24,16 +24,23 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
  * The part of a compliance rule that decides what it checks: its type, the
- * channel it insists on (null = any) and the severities it is scoped to
+ * channels it insists on (empty = any) and the severities it is scoped to
  * (empty = every severity of its kind). Two rules with the same scope check
  * exactly the same thing, which is what "duplicate" means here.
  */
 export interface ComplianceRuleScope {
   ruleType: ComplianceRuleType;
-  notificationChannel: ComplianceNotificationChannel | null;
+  // In catalog order, each once (ComplianceRule.normaliseChannels).
+  notificationChannels: Array<ComplianceNotificationChannel>;
   severityKind: ComplianceSeverityKind | null;
   // Sorted, de-duplicated ids of the severity list the rule's kind uses.
   severityIds: Array<string>;
+}
+
+// The two columns a rule's channels are stored in.
+export interface StoredChannelColumns {
+  notificationChannels?: unknown;
+  notificationChannel?: unknown;
 }
 
 // A severity about to be deleted, as the severity services read it.
@@ -122,10 +129,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       createBy.data.ruleType,
     );
 
-    this.assertValidChannel(createBy.data.notificationChannel);
+    TeamComplianceSettingService.normaliseChannelFields(createBy.data);
 
     /*
-     * Normalise before anything is stored: a method rule carries no channel
+     * Normalise before anything is stored: a method rule carries no channels
      * or severities, and an incident rule carries no alert severities. The
      * form hides the fields that do not apply, but the API accepts whatever it
      * is sent, and a stray alert severity on an incident rule would otherwise
@@ -150,7 +157,9 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
     const scope: ComplianceRuleScope = TeamComplianceSettingService.getScope({
       ruleType: ruleType,
-      notificationChannel: createBy.data.notificationChannel,
+      notificationChannels: TeamComplianceSettingService.getStoredChannels(
+        createBy.data,
+      ),
       incidentSeverities: createBy.data.incidentSeverities,
       alertSeverities: createBy.data.alertSeverities,
     });
@@ -183,6 +192,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
     const changesScope: boolean =
       data["ruleType"] !== undefined ||
+      data["notificationChannels"] !== undefined ||
       data["notificationChannel"] !== undefined ||
       data["incidentSeverities"] !== undefined ||
       data["alertSeverities"] !== undefined;
@@ -211,7 +221,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
         ? this.assertKnownRuleType(data["ruleType"])
         : undefined;
 
-    this.assertValidChannel(data["notificationChannel"]);
+    TeamComplianceSettingService.normaliseChannelFields(data);
 
     if (newRuleType) {
       /*
@@ -237,6 +247,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
         teamId: true,
         projectId: true,
         ruleType: true,
+        notificationChannels: true,
         notificationChannel: true,
         options: true,
         incidentSeverities: {
@@ -328,10 +339,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
       const scope: ComplianceRuleScope = TeamComplianceSettingService.getScope({
         ruleType: ruleType,
-        notificationChannel:
-          data["notificationChannel"] !== undefined
-            ? data["notificationChannel"]
-            : existing.notificationChannel,
+        // Sent as a pair by normaliseChannelFields, or not at all.
+        notificationChannels: TeamComplianceSettingService.getStoredChannels(
+          data["notificationChannels"] !== undefined ? data : existing,
+        ),
         incidentSeverities:
           data["incidentSeverities"] !== undefined
             ? data["incidentSeverities"]
@@ -727,7 +738,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
     for (const group of toPause.values()) {
       /*
-       * Neither the type, the channel nor a severity list: the update hook
+       * Neither the type, the channels nor a severity list: the update hook
        * reads nothing for it. (Cast: the write type of a JSON column is too
        * deep for the compiler to spell out.)
        */
@@ -754,23 +765,24 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
   /*
    * What a rule checks, from its stored (or about-to-be-stored) fields. Only
-   * the options its type uses count: a channel on a method rule, or alert
+   * the options its type uses count: channels on a method rule, or alert
    * severities on an incident rule, change nothing about what is checked.
+   * `notificationChannels` is a list; see getStoredChannels for reading one
+   * off a row.
    */
   public static getScope(data: {
     ruleType: ComplianceRuleType;
-    notificationChannel: unknown;
+    notificationChannels: unknown;
     incidentSeverities: unknown;
     alertSeverities: unknown;
   }): ComplianceRuleScope {
     const severityKind: ComplianceSeverityKind | undefined =
       ComplianceRule.getSeverityKind(data.ruleType);
 
-    const notificationChannel: ComplianceNotificationChannel | null =
-      ComplianceRule.supportsChannel(data.ruleType) &&
-      ComplianceRule.isKnownChannel(data.notificationChannel)
-        ? data.notificationChannel
-        : null;
+    const notificationChannels: Array<ComplianceNotificationChannel> =
+      ComplianceRule.supportsChannel(data.ruleType)
+        ? ComplianceRule.normaliseChannels(data.notificationChannels)
+        : [];
 
     let severityIds: Array<string> = [];
 
@@ -784,21 +796,142 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
 
     return {
       ruleType: data.ruleType,
-      notificationChannel: notificationChannel,
+      notificationChannels: notificationChannels,
       severityKind: severityKind || null,
       severityIds: severityIds,
     };
   }
 
+  /*
+   * Both lists are canonical - channels in catalog order, severity ids sorted
+   * - so the same selection compares equal however it was picked.
+   */
   public static isSameScope(
     a: ComplianceRuleScope,
     b: ComplianceRuleScope,
   ): boolean {
     return (
       a.ruleType === b.ruleType &&
-      a.notificationChannel === b.notificationChannel &&
+      a.notificationChannels.join(",") === b.notificationChannels.join(",") &&
       a.severityIds.join(",") === b.severityIds.join(",")
     );
+  }
+
+  /*
+   * CHANNELS. What a rule insists on is the list in notificationChannels -
+   * every one of them - and the older notificationChannel column holds the
+   * first of that list, for everything that only knows the one column (see
+   * the model). What follows keeps the two in step.
+   */
+
+  /*
+   * The channels a row holds, from its two columns. Every build that knows
+   * the list writes the pair together, the single column always the list's
+   * first channel. A build that does not - an older replica still serving
+   * during an upgrade, or a downgrade - writes only the single column and
+   * leaves the list as it was. So a row with no list, or whose list the
+   * single column no longer agrees with, was last written by such a build,
+   * and its single column is what the rule says; otherwise the list is.
+   * Rows from before the list existed have it backfilled by
+   * AddTeamComplianceRuleNotificationChannels.
+   *
+   * The comparison is on the stored values, before anything unknown is
+   * dropped, so a list a newer build wrote with a channel this one does not
+   * know still counts - for the channels it does know.
+   */
+  public static getStoredChannels(
+    row: StoredChannelColumns,
+  ): Array<ComplianceNotificationChannel> {
+    const single: unknown = row.notificationChannel ?? null;
+
+    if (Array.isArray(row.notificationChannels)) {
+      const first: unknown = row.notificationChannels[0] ?? null;
+
+      if (first === single) {
+        return ComplianceRule.normaliseChannels(row.notificationChannels);
+      }
+    }
+
+    return ComplianceRule.isKnownChannel(single) ? [single] : [];
+  }
+
+  /*
+   * The channels a SENT list asks for, as the list that will be stored:
+   * catalog order, each once (the order they were picked in is not part of
+   * the rule). Null is no channels - any channel. Anything else that is not
+   * a list of channels this build knows is refused rather than dropped: a
+   * list that silently lost a channel checks less than the admin asked for,
+   * and one that lost its only channel checks every channel.
+   */
+  public static resolveSentChannels(
+    value: unknown,
+  ): Array<ComplianceNotificationChannel> {
+    if (value === null) {
+      return [];
+    }
+
+    if (!Array.isArray(value)) {
+      throw new BadDataException(
+        "The notification channels of a compliance rule must be a list of channels.",
+      );
+    }
+
+    for (const item of value) {
+      TeamComplianceSettingService.assertKnownChannel(item);
+    }
+
+    return ComplianceRule.normaliseChannels(value);
+  }
+
+  /*
+   * Rewrites whichever channel column a payload sends into the pair that is
+   * stored: the list, and the single column set to its first channel. A
+   * payload that sends the list is taken at its list, whatever single
+   * channel rides along - a client that read a rule and sends it back sends
+   * both, and after the list changes the single one it holds is stale. One
+   * that sends only the single column (a client from before the list, or an
+   * older Dashboard) asks for exactly that channel, or for any channel when
+   * it is null. A payload that sends neither leaves both unsent.
+   */
+  public static normaliseChannelFields(data: Model | JSONObject): void {
+    const target: JSONObject = data as JSONObject;
+    const sentList: unknown = target["notificationChannels"];
+    const sentSingle: unknown = target["notificationChannel"];
+
+    if (sentList === undefined && sentSingle === undefined) {
+      return;
+    }
+
+    // Null / undefined is "any channel"; anything else must be a channel.
+    if (sentSingle !== undefined && sentSingle !== null) {
+      TeamComplianceSettingService.assertKnownChannel(sentSingle);
+    }
+
+    let channels: Array<ComplianceNotificationChannel> = [];
+
+    if (sentList !== undefined) {
+      channels = TeamComplianceSettingService.resolveSentChannels(sentList);
+    } else if (ComplianceRule.isKnownChannel(sentSingle)) {
+      channels = [sentSingle];
+    }
+
+    TeamComplianceSettingService.setChannels(target, channels);
+  }
+
+  private static setChannels(
+    target: JSONObject,
+    channels: Array<ComplianceNotificationChannel>,
+  ): void {
+    target["notificationChannels"] = channels;
+    target["notificationChannel"] = channels[0] ?? null;
+  }
+
+  private static assertKnownChannel(value: unknown): void {
+    if (!ComplianceRule.isKnownChannel(value)) {
+      throw new BadDataException(
+        `"${String(value)}" is not a notification channel a compliance rule can require.`,
+      );
+    }
   }
 
   /*
@@ -992,22 +1125,10 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
     return value;
   }
 
-  // Null / undefined is "any channel" and always valid.
-  private assertValidChannel(value: unknown): void {
-    if (value === undefined || value === null) {
-      return;
-    }
-
-    if (!ComplianceRule.isKnownChannel(value)) {
-      throw new BadDataException(
-        `"${String(value)}" is not a notification channel a compliance rule can require.`,
-      );
-    }
-  }
-
   /*
    * `clearUnsentOptions` also clears the options `data` does not mention, so
    * an update writes them empty on the row instead of leaving what is stored.
+   * Channels arrive here already paired by normaliseChannelFields.
    */
   private clearOptionsThatDoNotApply(
     data: Model | JSONObject,
@@ -1018,14 +1139,12 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
     const severityKind: ComplianceSeverityKind | undefined =
       ComplianceRule.getSeverityKind(ruleType);
 
-    if (!ComplianceRule.supportsChannel(ruleType)) {
-      if (
-        options.clearUnsentOptions ||
-        (target["notificationChannel"] !== undefined &&
-          target["notificationChannel"] !== null)
-      ) {
-        target["notificationChannel"] = null;
-      }
+    if (
+      !ComplianceRule.supportsChannel(ruleType) &&
+      (options.clearUnsentOptions ||
+        target["notificationChannels"] !== undefined)
+    ) {
+      TeamComplianceSettingService.setChannels(target, []);
     }
 
     if (
@@ -1112,6 +1231,7 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       select: {
         _id: true,
         ruleType: true,
+        notificationChannels: true,
         notificationChannel: true,
         options: true,
         incidentSeverities: {
@@ -1142,7 +1262,8 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
       const siblingScope: ComplianceRuleScope =
         TeamComplianceSettingService.getScope({
           ruleType: data.scope.ruleType,
-          notificationChannel: sibling.notificationChannel,
+          notificationChannels:
+            TeamComplianceSettingService.getStoredChannels(sibling),
           incidentSeverities: sibling.incidentSeverities,
           alertSeverities: sibling.alertSeverities,
         });

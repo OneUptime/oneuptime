@@ -1005,6 +1005,13 @@ const ScheduledMaintenanceView: FunctionComponent<
             ]}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
+              /*
+               * As on the incident and alert pages. The default style pulls
+               * its row out by -mx-3 at full width, which cut the display
+               * 24px short of the card's right edge, and washed the whole
+               * body in a rounded grey box on hover.
+               */
+              style: DetailStyle.Compact,
               modelType: ScheduledMaintenance,
               id: "model-detail-scheduled-maintenance-affected-resources",
               fields: [

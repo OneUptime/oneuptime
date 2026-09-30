@@ -739,7 +739,8 @@ describe("KubernetesClusterAiAccessAPI", () => {
 
       await callRoute(TEST_ROUTE);
 
-      expect(redact).toHaveBeenCalledWith("Client Version: v1.31.4");
+      // The access test keeps the shared default cap (no paging there).
+      expect(redact).toHaveBeenCalledWith("Client Version: v1.31.4", undefined);
     });
 
     test("still runs when only the project AI switch or the LLM provider is missing (neither is transport)", async () => {

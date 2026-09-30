@@ -205,6 +205,11 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-pencil-button-ui
+      # Chromium and Firefox: the editor's text layers must line up in both.
+      - name: Run Code Editor UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-code-editor-ui
       - name: Run Alerts UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
@@ -247,6 +252,8 @@ jobs:
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/pencil-button/test-results
+            output/playwright/code-editor-ui/*.png
+            output/playwright/code-editor-ui/test-results
             output/playwright/alerts/*.png
             output/playwright/alerts/test-results
             output/playwright/label-rule-import-export/*.png

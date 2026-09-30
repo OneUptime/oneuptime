@@ -1136,7 +1136,7 @@ enum PageMap {
   // Mobile Apps
   SETTINGS_MOBILE_APPS = "SETTINGS_MOBILE_APPS",
 
-  // AI Settings (LLM providers, guardrails, credits, logs, MCP server)
+  // AI Settings (LLM providers, credits, logs, MCP server)
   /*
    * The project's AI switches — Enable AI, auto-remediation and AI command
    * execution — on a page every install shows (AI Credits is billing-only).
@@ -1144,7 +1144,6 @@ enum PageMap {
   SETTINGS_AI_FEATURES = "SETTINGS_AI_FEATURES",
   SETTINGS_AI_LLM_PROVIDERS = "SETTINGS_AI_LLM_PROVIDERS",
   SETTINGS_AI_LLM_PROVIDER_VIEW = "SETTINGS_AI_LLM_PROVIDER_VIEW",
-  SETTINGS_AI_GUARDRAILS = "SETTINGS_AI_GUARDRAILS",
   SETTINGS_AI_CREDITS = "SETTINGS_AI_CREDITS",
   SETTINGS_AI_LOGS = "SETTINGS_AI_LOGS",
   SETTINGS_MCP_SERVER = "SETTINGS_MCP_SERVER",

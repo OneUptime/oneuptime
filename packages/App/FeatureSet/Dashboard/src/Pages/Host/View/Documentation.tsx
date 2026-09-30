@@ -65,7 +65,7 @@ const HostDocumentation: FunctionComponent<
     <Fragment>
       <HostDocumentationCard
         title="OTel Collector Setup"
-        description={`Connect this host (${host.hostIdentifier || host.name}) by configuring your OpenTelemetry Collector with the snippet below.`}
+        description={`Connect this host (${host.hostIdentifier || host.name}) by installing the OpenTelemetry Collector with the steps below.`}
       />
     </Fragment>
   );

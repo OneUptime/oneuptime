@@ -100,6 +100,8 @@ import GoldenMetricTile, {
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 
 interface ResourceLink {
   title: string;
@@ -2100,6 +2102,21 @@ const KubernetesClusterOverview: FunctionComponent<
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      <ResourceConnectionGuideCard
+        status={cluster.otelCollectorStatus as string | undefined}
+        lastSeenAt={cluster.lastSeenAt}
+        guide={getKubernetesClusterConnectionGuide(
+          (cluster.clusterIdentifier as string | undefined) ||
+            (cluster.name as string | undefined) ||
+            "",
+        )}
+        documentationRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route,
+          { modelId: modelId },
+        )}
+      />
 
       {/* Golden metrics — at-a-glance cluster health */}
       {renderGoldenMetrics()}

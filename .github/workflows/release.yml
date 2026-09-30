@@ -2079,10 +2079,11 @@ jobs:
   # job against the -test tags; this one gates the release tags, so keep the two
   # in step. The published enterprise- App image is booted from
   # docker-compose.yml with billing OFF - the only configuration in which the
-  # LICENSE, rather than the billing flag, decides whether SSO, SCIM and audit
-  # logging run - and the enterprise suite runs twice against that one stack:
-  # phase A inside the unlicensed 14-day trial, phase B after the trial has been
-  # pushed into the past.
+  # LICENSE, rather than the billing flag, decides whether SCIM and audit
+  # logging run (single sign-on is core and runs whatever the license says) -
+  # and the enterprise suite runs twice against that one stack: phase A inside
+  # the unlicensed 14-day trial, phase B after the trial has been pushed into
+  # the past.
   #
   # push-release-tags waits for this job, so an Enterprise stack that no longer
   # serves (or no longer refuses) its enterprise features cannot be promoted to
@@ -2216,7 +2217,7 @@ jobs:
           echo "${KEY}=true" >> "$GITHUB_ENV"
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, and the whole job is meaningless if the tag is not really the
-      # Enterprise Edition: a Community image answers 404 to every identity route
+      # Enterprise Edition: a Community image answers 404 to every SCIM route
       # and phase B would "pass" for the wrong reason. So check it before booting
       # it: ee/ in the image and in its UI bundles, and the loader actually
       # loading it.

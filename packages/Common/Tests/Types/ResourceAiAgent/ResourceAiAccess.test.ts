@@ -188,11 +188,13 @@ describe("pinned wire and deployment constants", () => {
   });
 
   test("the caps", () => {
-    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(8);
+    // A runaway guard, not a ration: an investigation runs what it needs.
+    expect(MAX_RESOURCE_COMMANDS_PER_INVESTIGATION).toBe(200);
     expect(DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS).toBe(30_000);
     expect(MAX_RESOURCE_COMMAND_TIMEOUT_MS).toBe(120_000);
-    expect(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM).toBe(8000);
-    expect(MAX_RESOURCE_AGENT_OUTPUT_BYTES).toBe(50 * 1024);
+    // What a caller that does not page gets; the toolkits page everything.
+    expect(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM).toBe(40_000);
+    expect(MAX_RESOURCE_AGENT_OUTPUT_BYTES).toBe(1024 * 1024);
     expect(DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS).toBeLessThan(
       MAX_RESOURCE_COMMAND_TIMEOUT_MS,
     );

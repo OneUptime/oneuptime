@@ -1,6 +1,7 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { getResourceAiAgentServiceName } from "../../../FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { TOOL_OUTPUT_PAGE_CHARS } from "Common/Types/AI/AIAgentRunLimits";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
   RESOURCE_AI_ALLOWLIST_EXAMPLES,
@@ -795,7 +796,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         `counts as online for ${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes`,
       );
       expect(flat).toContain(
-        `runs up to ${MAX_RESOURCE_COMMANDS_PER_INVESTIGATION} commands per investigation`,
+        `up to ${MAX_RESOURCE_COMMANDS_PER_INVESTIGATION} per investigation, a guard against a runaway loop`,
       );
       expect(flat).toContain(
         `${DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS / 1000} seconds by default and ${
@@ -806,7 +807,12 @@ describe("Infrastructure AI Agents docs", (): void => {
         `capped at ${MAX_RESOURCE_AGENT_OUTPUT_BYTES / 1024} KB on the agent`,
       );
       expect(flat).toContain(
-        `at most ${MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM.toLocaleString("en-US")} characters`,
+        `the first ${TOOL_OUTPUT_PAGE_CHARS.toLocaleString("en-US")} characters, then the rest on request`,
+      );
+      expect(flat).not.toContain("reads at most");
+      // What a caller that does not page gets is at least one page.
+      expect(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM).toBeGreaterThanOrEqual(
+        TOOL_OUTPUT_PAGE_CHARS,
       );
       expect(flat).toContain(
         `at most ${RESOURCE_ALLOWLIST_MAX_PATTERNS} entries of at most ${RESOURCE_ALLOWLIST_MAX_PATTERN_LENGTH} characters`,

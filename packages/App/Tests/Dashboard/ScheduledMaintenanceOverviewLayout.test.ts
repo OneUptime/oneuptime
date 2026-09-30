@@ -541,6 +541,14 @@ describe("scheduled maintenance overview: right column fits its width", () => {
     );
   });
 
+  test("both detail cards use the compact style, as on the incident and alert pages", () => {
+    expect(count(page, "style: DetailStyle.Compact,")).toBe(2);
+    expect(count(rightColumn, "style: DetailStyle.Compact,")).toBe(2);
+    expect(page).toContain(
+      'style: DetailStyle.Compact, modelType: ScheduledMaintenance, id: "model-detail-scheduled-maintenance-affected-resources",',
+    );
+  });
+
   test("custom fields stack too, and resources render in one column", () => {
     expect(rightColumn).toContain(
       'resourceName="Scheduled Maintenance" headerLayout="stacked"',

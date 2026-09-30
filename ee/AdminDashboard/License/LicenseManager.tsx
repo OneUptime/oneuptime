@@ -121,7 +121,7 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
  * beside it - because a token is better than nothing and the daily sync may
  * complete it (LicenseClient.validateWithLicenseServer refuses only a license
  * this installation cannot use at all). But such an install is on the
- * unlicensed trial, and past that trial single sign-on, SCIM and audit logging
+ * unlicensed trial, and past that trial SCIM provisioning and audit logging
  * are OFF. A green "License validated successfully." there tells the admin who
  * came to fix exactly that lapse that they have fixed it.
  *

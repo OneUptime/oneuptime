@@ -1,6 +1,7 @@
 import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
+import { SSO_ROUTERS } from "./SsoRouters";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
@@ -20,14 +21,23 @@ const IdentityFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}`, "/"], ResellerAPI);
 
     /*
-     * Enterprise identity protocols - SAML and OIDC single sign-on for
-     * projects, the whole instance and status pages, and SCIM provisioning -
-     * are served by the Enterprise Edition module (ee/). They are mounted at
-     * the same paths and in the same position the core routers used to have,
-     * so the ACS, redirect and SCIM URLs configured at customers' identity
-     * providers keep working unchanged. The Community Edition mounts none.
-     * They are mounted once, but every route asks the license per request
-     * and refuses while its feature is not active (a lapsed license).
+     * Single sign-on - SAML and OIDC for projects, the whole instance and
+     * status pages (./SsoRouters.ts) - is served in every edition, at the
+     * paths customers' identity providers are configured with.
+     */
+    for (const ssoRouter of SSO_ROUTERS) {
+      app.use([`/${APP_NAME}`, "/"], ssoRouter.router);
+    }
+
+    /*
+     * The Enterprise Edition module (ee/) adds SCIM provisioning for projects
+     * and status pages, mounted right after core's identity routers at the
+     * same two prefixes, so the SCIM base URLs configured at customers'
+     * identity providers keep working unchanged. The Community Edition mounts
+     * none. They are mounted once, but every SCIM route asks the license per
+     * request and refuses while SCIM is not active (a lapsed license). No SCIM
+     * path overlaps an SSO path, so the order between the two blocks does not
+     * change which router answers.
      */
     const enterpriseIdentityRouters: Array<ExpressRouter> =
       EnterpriseEdition.getModule()?.getIdentityRouters() || [];

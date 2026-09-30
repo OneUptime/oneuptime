@@ -63,8 +63,9 @@ const CephClusterDocumentation: FunctionComponent<
   return (
     <Fragment>
       <CephDocumentationCard
+        clusterName={cluster.name || ""}
         title="Ceph Agent Installation Guide"
-        description="Follow these steps to install the OneUptime Ceph Agent for this cluster."
+        description="Install or reconfigure the OneUptime Ceph agent for this cluster. Pick how to install it, then follow the steps."
       />
     </Fragment>
   );

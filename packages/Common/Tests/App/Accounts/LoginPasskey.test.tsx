@@ -39,9 +39,11 @@ import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 
 /*
  * These tests expect the SSO choice next to the password and passkey ones,
- * which the page offers only on the Enterprise Edition or the cloud. Pin the
- * edition instead of inheriting it from the environment (CI's config.env sets
- * BILLING_ENABLED=true); LoginSsoEdition.test.tsx covers the Community case.
+ * which the page offers in every edition. Pinned to the Community Edition
+ * with billing off (CI's config.env sets BILLING_ENABLED=true), the
+ * combination where an SSO link gated on the edition would disappear, so the
+ * SSO assertions below double as a guard against that; LoginSso.test.tsx
+ * covers every edition.
  */
 jest.mock("../../../UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -51,7 +53,7 @@ jest.mock("../../../UI/Config", () => {
   return {
     ...actual,
     BILLING_ENABLED: false,
-    IS_ENTERPRISE_EDITION: true,
+    IS_ENTERPRISE_EDITION: false,
   };
 });
 

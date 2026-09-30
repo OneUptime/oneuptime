@@ -1655,7 +1655,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/inoperational",
-    titles: ["Project", "Monitors", "Inoperational"],
+    titles: ["Project", "Monitors", "Not Operational"],
   },
   {
     getter: "getMonitorBreadcrumbs",

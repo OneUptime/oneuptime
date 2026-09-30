@@ -95,7 +95,6 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Reusable response procedures: ordered checklists of manual or automated steps.",
         }}
-        noItemsMessage={"No runbooks created yet."}
         formFields={[
           {
             field: { name: true },

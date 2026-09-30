@@ -56,6 +56,36 @@ A custom address is just as much a credential as a generated one: anyone who kno
 
 API users can do the same through the Monitor API: set `incomingEmailCustomLocalPart` to the name to use a custom address, or set it to `null` to go back to the generated one. Resetting means writing a new `incomingEmailSecretKey` and setting `incomingEmailCustomLocalPart` to `null` in the same update.
 
+## Verifying the Address With the Sender
+
+Some services won't send alerts to a new address until someone proves they can read mail there. They send a verification email first, and it arrives at the monitor like any other email. To read it:
+
+1. Add the monitor's address to the service and save. The service sends its verification email.
+2. In OneUptime, open the monitor. On its **Overview** page, the **Monitor Summary** card shows the newest email. Check that **From** and **Subject** belong to the verification email, then click **Show More Details**.
+3. The code or link is in **Email Body (Text)**. **Email Body (HTML)** shows the HTML source, so if you copy a link from there, change every `&amp;` in it to `&`.
+4. Finish verifying the way the email tells you to.
+
+If another email has arrived since, the card no longer shows the verification email. Open **Monitoring Logs**, find the verification email by its subject in the **Email** column, and click **View Summary** on that row.
+
+Two things to keep in mind:
+
+- **Your criteria see it too.** The verification email is evaluated like any other email. Wording such as "if you received this in error" matches the default `error` criteria and marks the monitor offline. To avoid that, turn on **Disable Active Monitoring** (on the monitor's **Settings** page, click **Edit Settings**) while you verify. A disabled monitor still records the email, and the **Monitor Summary** card still shows it. It evaluates nothing, though, so the email gets no row in **Monitoring Logs**: read it before another email arrives. Turn the setting off again when you're done.
+- **Verification belongs to the address.** If you [reset or customize the address](#resetting-or-customizing-the-email-address), the service sees a new recipient, and you have to verify again.
+
+### Azure Monitor action groups
+
+Since July 2026, Azure has been rolling out a requirement that every new **Email** recipient in an action group is verified with a one-time passcode. Until it is, the action group sends that address no alerts and no test notifications.
+
+1. Add an **Email** notification with the monitor's address to the action group, and save the action group. Azure sends the verification email from a Microsoft address such as `azure-noreply@microsoft.com`.
+2. Read it on the monitor as described above, and follow its instructions within 30 minutes of saving the action group. If the passcode expires, open the action group and select **Resend**.
+3. Open the action group and select **Test** to send a test notification. It arrives on the monitor like a real alert, so it also shows whether your criteria match Azure's emails.
+
+Verification covers every action group in the same Azure tenant, so each address only has to be verified once.
+
+### Amazon SNS
+
+An email subscription to an SNS topic receives nothing until it's confirmed. When you create the subscription, Amazon SNS sends a confirmation email to the address. Read it on the monitor as described above, and open its **Confirm subscription** link in your browser. SNS deletes a subscription that isn't confirmed within 48 hours; if that happens, create the subscription again.
+
 ## What you get out of the box
 
 A new Incoming Email Monitor is created with two criteria that read the email body:
@@ -205,13 +235,21 @@ When configuring incident templates, you can use these variables from incoming e
 
 ## Monitor Summary View
 
-The monitor summary shows:
+Once the monitor has received an email, the **Monitor Summary** card on its **Overview** page shows the newest one:
 
 - **Last Email Received At:** When the most recent email was received
 - **From:** The sender of the last email
 - **Subject:** The subject line of the last email
-- **Email Headers:** Full headers of the last email (expandable)
-- **Email Body:** Content of the last email (expandable)
+
+Click **Show More Details** to see the rest of it:
+
+- **Email Headers:** Full headers of the last email
+- **Email Body (Text):** The plain text body
+- **Email Body (HTML):** The HTML body, shown as HTML source rather than rendered
+
+### Earlier Emails
+
+The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A disabled monitor evaluates nothing, so the emails it receives get no rows. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default.
 
 ## Self-Hosted Setup
 
@@ -232,9 +270,10 @@ If you're self-hosting OneUptime, you need to configure an inbound email provide
 ### Emails Not Being Received
 
 1. Verify the email address is correct (check for typos)
-2. Check if the email is being blocked by spam filters
-3. Verify your inbound email provider is configured correctly
-4. Check the OneUptime logs for any error messages
+2. Check whether the sender is waiting for you to verify the address. Azure Monitor action groups and Amazon SNS send nothing to a new address until it's verified. See [Verifying the Address With the Sender](#verifying-the-address-with-the-sender).
+3. Check if the email is being blocked by spam filters
+4. Verify your inbound email provider is configured correctly
+5. Check the OneUptime logs for any error messages
 
 ### Alerts Not Being Created
 

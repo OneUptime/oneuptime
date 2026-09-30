@@ -18,7 +18,7 @@ export enum ComplianceRuleCategory {
   NotificationMethod = "NotificationMethod",
   /*
    * The member has on-call notification rules for a set of severities,
-   * optionally on one specific channel.
+   * optionally on specific channels - on every one of them.
    */
   OnCallRule = "OnCallRule",
 }
@@ -176,7 +176,7 @@ export const COMPLIANCE_RULE_DEFINITIONS: ReadonlyArray<ComplianceRuleDefinition
       subject: "incident",
       title: "Incident on-call rules",
       description:
-        "Members are notified when an incident on-call policy pages them - for the severities and channel you choose.",
+        "Members are notified when an incident on-call policy pages them - for the severities and channels you choose.",
     }),
     onCallRule({
       ruleType: ComplianceRuleType.HasAlertOnCallRules,
@@ -185,7 +185,7 @@ export const COMPLIANCE_RULE_DEFINITIONS: ReadonlyArray<ComplianceRuleDefinition
       subject: "alert",
       title: "Alert on-call rules",
       description:
-        "Members are notified when an alert on-call policy pages them - for the severities and channel you choose.",
+        "Members are notified when an alert on-call policy pages them - for the severities and channels you choose.",
     }),
     onCallRule({
       ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
@@ -195,7 +195,7 @@ export const COMPLIANCE_RULE_DEFINITIONS: ReadonlyArray<ComplianceRuleDefinition
       subject: "incident episode",
       title: "Incident episode on-call rules",
       description:
-        "Members are notified when an incident episode on-call policy pages them - for the severities and channel you choose.",
+        "Members are notified when an incident episode on-call policy pages them - for the severities and channels you choose.",
     }),
     onCallRule({
       ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
@@ -204,7 +204,7 @@ export const COMPLIANCE_RULE_DEFINITIONS: ReadonlyArray<ComplianceRuleDefinition
       subject: "alert episode",
       title: "Alert episode on-call rules",
       description:
-        "Members are notified when an alert episode on-call policy pages them - for the severities and channel you choose.",
+        "Members are notified when an alert episode on-call policy pages them - for the severities and channels you choose.",
     }),
     methodRule({
       ruleType: ComplianceRuleType.HasNotificationCallMethod,
@@ -313,6 +313,32 @@ export default class ComplianceRule {
     );
   }
 
+  /*
+   * A rule's channels as one canonical list: the known channels in `value`,
+   * each once, in catalog order - so two lists naming the same channels read,
+   * compare and store alike however they were picked. Anything that is not a
+   * list reads as no channels ("any channel"), and so does a list of nothing
+   * this build recognises; the settings service refuses such input on write,
+   * so only rows it did not write can hold it.
+   */
+  public static normaliseChannels(
+    value: unknown,
+  ): Array<ComplianceNotificationChannel> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return COMPLIANCE_CHANNEL_DEFINITIONS.map(
+      (
+        definition: ComplianceChannelDefinition,
+      ): ComplianceNotificationChannel => {
+        return definition.channel;
+      },
+    ).filter((channel: ComplianceNotificationChannel): boolean => {
+      return value.includes(channel);
+    });
+  }
+
   public static isOnCallRule(ruleType: string | undefined | null): boolean {
     return (
       ComplianceRule.getDefinition(ruleType)?.category ===
@@ -321,7 +347,7 @@ export default class ComplianceRule {
   }
 
   /*
-   * Only on-call rules take a severity scope and a channel. A method rule
+   * Only on-call rules take a severity scope and channels. A method rule
    * ("has a verified email") has neither, and any that arrive with one are
    * ignored rather than half-applied.
    */
@@ -356,11 +382,12 @@ export default class ComplianceRule {
 
   /*
    * The rule's name as a list row shows it: "Call for incidents",
-   * "Incident on-call rules", "Verified push device".
+   * "Call and Push notification for incidents", "Incident on-call rules",
+   * "Verified push device".
    */
   public static getTitle(data: {
     ruleType: string | undefined | null;
-    notificationChannel?: string | undefined | null;
+    notificationChannels?: Array<string> | undefined | null;
   }): string {
     const definition: ComplianceRuleDefinition | undefined =
       ComplianceRule.getDefinition(data.ruleType);
@@ -369,11 +396,15 @@ export default class ComplianceRule {
       return data.ruleType || "Unknown rule";
     }
 
-    const channel: ComplianceChannelDefinition | undefined =
-      ComplianceRule.getChannelDefinition(data.notificationChannel);
+    const channelLabels: Array<string> = ComplianceRule.getChannelLabels(
+      data.notificationChannels,
+    );
 
-    if (definition.category === ComplianceRuleCategory.OnCallRule && channel) {
-      return `${channel.label} for ${definition.subject}s`;
+    if (
+      definition.category === ComplianceRuleCategory.OnCallRule &&
+      channelLabels.length > 0
+    ) {
+      return `${joinAsProse(channelLabels)} for ${definition.subject}s`;
     }
 
     return definition.title;
@@ -382,14 +413,16 @@ export default class ComplianceRule {
   /*
    * The rule as one sentence about what every member must have, e.g.
    * "Every member has an incident on-call rule that notifies them by Call for
-   * Critical Incident and Major Incident."
+   * Critical Incident and Major Incident." A rule on several channels needs a
+   * rule on each, and says so: "Every member has incident on-call rules that
+   * notify them by Call and by Push notification for Critical Incident."
    *
    * `severityNames` is the rule's scope. Empty means every severity, which is
    * what a rule with no severities selected enforces.
    */
   public static describe(data: {
     ruleType: string | undefined | null;
-    notificationChannel?: string | undefined | null;
+    notificationChannels?: Array<string> | undefined | null;
     severityNames?: Array<string> | undefined;
   }): string {
     const definition: ComplianceRuleDefinition | undefined =
@@ -416,14 +449,34 @@ export default class ComplianceRule {
         ? `every ${definition.subject} severity`
         : joinAsProse(severityNames);
 
-    const channel: ComplianceChannelDefinition | undefined =
-      ComplianceRule.getChannelDefinition(data.notificationChannel);
+    const channelLabels: Array<string> = ComplianceRule.getChannelLabels(
+      data.notificationChannels,
+    );
 
-    if (channel) {
-      return `Every member has ${ComplianceRule.withArticle(definition.subject || "")} on-call rule that notifies them by ${channel.label} for ${scope}.`;
+    if (channelLabels.length > 1) {
+      return `Every member has ${definition.subject || ""} on-call rules that notify them ${joinAsProse(
+        channelLabels.map((label: string): string => {
+          return `by ${label}`;
+        }),
+      )} for ${scope}.`;
+    }
+
+    if (channelLabels.length === 1) {
+      return `Every member has ${ComplianceRule.withArticle(definition.subject || "")} on-call rule that notifies them by ${channelLabels[0]} for ${scope}.`;
     }
 
     return `Every member has ${ComplianceRule.withArticle(definition.subject || "")} on-call rule for ${scope}.`;
+  }
+
+  // The labels of the known channels in `channels`, in catalog order.
+  private static getChannelLabels(
+    channels: Array<string> | undefined | null,
+  ): Array<string> {
+    return ComplianceRule.normaliseChannels(channels).map(
+      (channel: ComplianceNotificationChannel): string => {
+        return ComplianceRule.getChannelDefinition(channel)?.label || channel;
+      },
+    );
   }
 
   private static withArticle(noun: string): string {

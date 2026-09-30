@@ -1,22 +1,38 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The whole chain as the Enterprise image builds it: a core shell at the old
- * page path -> src/Enterprise/Plugins.ts -> "@oneuptime/ee-dashboard" (here
- * the REAL ee/Dashboard/Index, as in the Enterprise bundle) -> the lazy SSO
- * plugin -> the moved Enterprise screen. And the same for the Admin
- * Dashboard. On the Enterprise Edition the shell shows the Enterprise screen;
- * on the Community Edition it shows its upsell and never loads the screen.
+ * The identity pages as the Enterprise image builds the Dashboard: "@oneuptime/
+ * ee-dashboard" is the REAL ee/Dashboard/Index here, as in the Enterprise
+ * bundle (and on OneUptime Cloud, which runs that image).
  *
- * The model tables are stand-ins; billing, the edition and the license
- * request are pinned in every test (CI's config.env sets
+ *   - Settings > SSO / OIDC and Status page > SSO / OIDC are core pages. In
+ *     the Enterprise bundle they are the same configuration screen on both
+ *     editions, never an upsell, and they never ask for the license. On the
+ *     Cloud only the plan decides (Scale).
+ *   - Settings > SCIM and Status page > SCIM stay Enterprise screens behind
+ *     their core shells: the Enterprise Edition gets the lazy ee screen, the
+ *     Community Edition the edition upsell even in this bundle, and the Cloud
+ *     the plan rule.
+ *
+ * The model tables are stand-ins; billing, the edition, the plan and the
+ * license request are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
  */
 
+let billingEnabledForTest: boolean = false;
 let enterpriseEditionForTest: boolean = false;
+let currentPlanForTest: string | null = null;
+
+const CLOUD_PLAN_ENV: Record<string, string> = {
+  SUBSCRIPTION_PLAN_BASIC: "Free,priceMonthlyId1,priceYearlyId1,0,0,1,0",
+  SUBSCRIPTION_PLAN_GROWTH: "Growth,priceMonthlyId2,priceYearlyId2,0,0,2,14",
+  SUBSCRIPTION_PLAN_SCALE: "Scale,priceMonthlyId3,priceYearlyId3,0,0,3,0",
+  SUBSCRIPTION_PLAN_ENTERPRISE:
+    "Enterprise,priceMonthlyId4,priceYearlyId4,-1,-1,4,14",
+};
 
 jest.mock("Common/UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -27,7 +43,7 @@ jest.mock("Common/UI/Config", () => {
 
   Object.defineProperty(mocked, "BILLING_ENABLED", {
     get: (): boolean => {
-      return false;
+      return billingEnabledForTest;
     },
   });
 
@@ -37,20 +53,21 @@ jest.mock("Common/UI/Config", () => {
     },
   });
 
+  mocked["getAllEnvVars"] = (): Record<string, string> => {
+    return CLOUD_PLAN_ENV;
+  };
+
   return mocked;
 });
+
+const mockLicenseFetch: jest.Mock = jest.fn();
 
 jest.mock("Common/UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
-      fetch: async (): Promise<unknown> => {
-        return {
-          isSuccess: (): boolean => {
-            return true;
-          },
-          data: { status: "valid", licenseValid: true },
-        };
+      fetch: (...args: Array<unknown>): unknown => {
+        return mockLicenseFetch(...args);
       },
       getFriendlyMessage: (): string => {
         return "";
@@ -71,122 +88,246 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
 jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,
-    default: (): ReactElement => {
-      return <div />;
+    default: (props: { name: string }): ReactElement => {
+      return <div data-testid={`card-model-detail-${props.name}`} />;
     },
   };
 });
 
-jest.mock("Common/UI/Components/Page/Page", () => {
-  return {
-    __esModule: true,
-    default: (props: { children?: ReactNode }): ReactElement => {
-      return <div data-testid="page">{props.children}</div>;
-    },
-  };
-});
-
-jest.mock("@oneuptime/admin-dashboard/Pages/Settings/SideMenu", () => {
-  return {
-    __esModule: true,
-    default: (): ReactElement => {
-      return <nav />;
-    },
-  };
-});
-
-import SettingsSSOShell from "@oneuptime/dashboard/Pages/Settings/SSO";
+import SettingsSSOPage from "@oneuptime/dashboard/Pages/Settings/SSO";
+import SettingsOIDCPage from "@oneuptime/dashboard/Pages/Settings/OIDC";
+import SettingsSCIMShell from "@oneuptime/dashboard/Pages/Settings/SCIM";
+import StatusPageSSOPage from "@oneuptime/dashboard/Pages/StatusPages/View/SSO";
+import StatusPageOIDCPage from "@oneuptime/dashboard/Pages/StatusPages/View/OIDC";
 import StatusPageSCIMShell from "@oneuptime/dashboard/Pages/StatusPages/View/SCIM";
-import GlobalSSOListShell from "@oneuptime/admin-dashboard/Pages/Settings/GlobalSSO/Index";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import { getDashboardPlugins } from "@oneuptime/dashboard/Enterprise/Plugins";
+import DashboardPlugin from "../../../Dashboard/Index";
 import Route from "Common/Types/API/Route";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 
-const PAGE_PROPS: PageComponentProps = {
-  pageRoute: new Route(
-    "/dashboard/11111111-1111-4111-8111-111111111111/settings/sso",
-  ),
-  currentProject: null,
-  hasPaymentMethod: true,
+const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
+const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
+
+interface IdentityPageCase {
+  name: string;
+  Page: FunctionComponent<PageComponentProps>;
+  path: string;
+  table: string;
+  featureName: string;
+}
+
+const SSO_PAGES: Array<IdentityPageCase> = [
+  {
+    name: "Settings > SSO",
+    Page: SettingsSSOPage,
+    path: `/dashboard/${PROJECT_ID}/settings/sso`,
+    table: "sso-table",
+    featureName: "SAML Single Sign On",
+  },
+  {
+    name: "Settings > OIDC",
+    Page: SettingsOIDCPage,
+    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
+    table: "oidc-table",
+    featureName: "OIDC Single Sign On",
+  },
+  {
+    name: "Status page > SSO",
+    Page: StatusPageSSOPage,
+    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
+    table: "sso-table",
+    featureName: "Status Page SAML SSO",
+  },
+  {
+    name: "Status page > OIDC",
+    Page: StatusPageOIDCPage,
+    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
+    table: "oidc-table",
+    featureName: "Status Page OIDC SSO",
+  },
+];
+
+const SCIM_SHELLS: Array<IdentityPageCase> = [
+  {
+    name: "Settings > SCIM",
+    Page: SettingsSCIMShell,
+    path: `/dashboard/${PROJECT_ID}/settings/scim`,
+    table: "scim-table",
+    featureName: "SCIM User Provisioning",
+  },
+  {
+    name: "Status page > SCIM",
+    Page: StatusPageSCIMShell,
+    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/scim`,
+    table: "status-page-scim-table",
+    featureName: "Status Page SCIM Provisioning",
+  },
+];
+
+const renderPage: (pageCase: IdentityPageCase) => Promise<void> = async (
+  pageCase: IdentityPageCase,
+): Promise<void> => {
+  window.history.pushState({}, "", pageCase.path);
+  Navigation.setLocation(window.location as unknown as never);
+
+  render(
+    <pageCase.Page
+      pageRoute={new Route(pageCase.path)}
+      currentProject={null}
+      hasPaymentMethod={true}
+    />,
+  );
+
+  // Let a lazy screen, or a license request, settle.
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 };
 
-const setPath: (path: string) => void = (path: string): void => {
-  window.history.pushState({}, "", path);
-  Navigation.setLocation(window.location as unknown as never);
+const pinCloud: (plan: PlanType) => void = (plan: PlanType): void => {
+  billingEnabledForTest = true;
+  // The Cloud runs the Enterprise image: its effective edition is true.
+  enterpriseEditionForTest = true;
+  currentPlanForTest = plan;
 };
 
 beforeEach(() => {
+  billingEnabledForTest = false;
   enterpriseEditionForTest = false;
+  currentPlanForTest = null;
+  mockLicenseFetch.mockReset();
+  mockLicenseFetch.mockResolvedValue({
+    isSuccess: (): boolean => {
+      return true;
+    },
+    data: { status: "valid", licenseValid: true },
+  });
+  jest
+    .spyOn(ProjectUtil, "getCurrentPlan")
+    .mockImplementation((): PlanType | null => {
+      return currentPlanForTest as PlanType | null;
+    });
 });
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
-describe("core identity shells with the real Enterprise plugin", () => {
-  test("Settings > SSO opens the Enterprise screen on the Enterprise Edition", async () => {
-    enterpriseEditionForTest = true;
-    setPath(PAGE_PROPS.pageRoute.toString());
-
-    render(<SettingsSSOShell {...PAGE_PROPS} />);
-
-    expect(
-      await screen.findByTestId("model-table-sso-table"),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Learn about Enterprise Edition"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("Status page > SCIM opens the Enterprise screen on the Enterprise Edition", async () => {
-    enterpriseEditionForTest = true;
-    setPath(
-      "/dashboard/11111111-1111-4111-8111-111111111111/status-pages/22222222-2222-4222-8222-222222222222/scim",
-    );
-
-    render(<StatusPageSCIMShell {...PAGE_PROPS} />);
-
-    expect(
-      await screen.findByTestId("model-table-status-page-scim-table"),
-    ).toBeInTheDocument();
-  });
-
-  test("Settings > SSO shows the upsell on the Community Edition, even in the Enterprise bundle", () => {
-    render(<SettingsSSOShell {...PAGE_PROPS} />);
-
-    expect(screen.getAllByText("SAML Single Sign On").length).toBeGreaterThan(
-      0,
-    );
-    expect(
-      screen.queryByTestId("model-table-sso-table"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("Admin > Global SSO opens the Enterprise screen on the Enterprise Edition", async () => {
-    enterpriseEditionForTest = true;
-    setPath("/admin/settings/global-sso");
-
-    const Shell: FunctionComponent = GlobalSSOListShell;
-
-    render(<Shell />);
-
-    expect(
-      await screen.findByTestId("model-table-global-sso-table"),
-    ).toBeInTheDocument();
-  });
-
-  test("Admin > Global SSO shows the upsell on the Community Edition", () => {
-    setPath("/admin/settings/global-sso");
-
-    render(<GlobalSSOListShell />);
-
-    expect(
-      screen.getByText(
-        "Instance-wide SAML 2.0 identity providers that can be connected to any project on this OneUptime server.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("model-table-global-sso-table"),
-    ).not.toBeInTheDocument();
-  });
+test("this suite really runs with the Enterprise plugin", () => {
+  expect(getDashboardPlugins()).toBe(DashboardPlugin);
+  expect(getDashboardPlugins().buildMarker).toBe(
+    "ONEUPTIME_EE_DASHBOARD_PLUGIN_v1",
+  );
 });
+
+describe.each(SSO_PAGES)(
+  "$name in the Enterprise bundle",
+  (pageCase: IdentityPageCase) => {
+    test.each([
+      ["the Community Edition", false],
+      ["the Enterprise Edition", true],
+    ])(
+      "on %s: the core configuration screen, and no license request",
+      async (_edition: string, isEnterprise: boolean) => {
+        enterpriseEditionForTest = isEnterprise;
+
+        await renderPage(pageCase);
+
+        expect(
+          screen.getByTestId(`model-table-${pageCase.table}`),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByText("Learn about Enterprise Edition"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(pageCase.featureName),
+        ).not.toBeInTheDocument();
+        expect(mockLicenseFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    test("on OneUptime Cloud below Scale: the Scale plan upsell", async () => {
+      pinCloud(PlanType.Growth);
+
+      await renderPage(pageCase);
+
+      expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+      expect(screen.getByText(pageCase.featureName)).toBeInTheDocument();
+      expect(
+        screen.queryByText("Learn about Enterprise Edition"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(`model-table-${pageCase.table}`),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on OneUptime Cloud on Scale: the configuration screen", async () => {
+      pinCloud(PlanType.Scale);
+
+      await renderPage(pageCase);
+
+      expect(
+        screen.getByTestId(`model-table-${pageCase.table}`),
+      ).toBeInTheDocument();
+      expect(mockLicenseFetch).not.toHaveBeenCalled();
+    });
+  },
+);
+
+describe.each(SCIM_SHELLS)(
+  "$name in the Enterprise bundle",
+  (shellCase: IdentityPageCase) => {
+    test("on the Enterprise Edition: the Enterprise screen", async () => {
+      enterpriseEditionForTest = true;
+
+      await renderPage(shellCase);
+
+      expect(
+        await screen.findByTestId(`model-table-${shellCase.table}`),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Learn about Enterprise Edition"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on the Community Edition: the edition upsell, even though the bundle has the screen", async () => {
+      await renderPage(shellCase);
+
+      expect(
+        screen.getAllByText("Learn about Enterprise Edition"),
+      ).toHaveLength(2);
+      expect(screen.getAllByText(shellCase.featureName).length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        screen.queryByTestId(`model-table-${shellCase.table}`),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on OneUptime Cloud below Scale: the plan upsell", async () => {
+      pinCloud(PlanType.Growth);
+
+      await renderPage(shellCase);
+
+      expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+      expect(
+        screen.queryByTestId(`model-table-${shellCase.table}`),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on OneUptime Cloud on Scale: the Enterprise screen", async () => {
+      pinCloud(PlanType.Scale);
+
+      await renderPage(shellCase);
+
+      expect(
+        await screen.findByTestId(`model-table-${shellCase.table}`),
+      ).toBeInTheDocument();
+    });
+  },
+);

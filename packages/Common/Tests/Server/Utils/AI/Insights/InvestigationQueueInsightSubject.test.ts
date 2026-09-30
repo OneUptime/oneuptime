@@ -165,14 +165,6 @@ describe("AIInvestigationQueue — insight subject", () => {
 describe("AIInvestigationQueue — lane priority (triage never starves RCA)", () => {
   const projectId: ObjectID = ObjectID.generate();
 
-  // Per-project concurrency cap. The default is 3; make it explicit here.
-  function mockCap(cap: number): void {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      id: projectId,
-      aiMaxConcurrentInvestigations: cap,
-    } as unknown as Project);
-  }
-
   /*
    * The claim gates count Running investigations twice: once globally, and
    * once filtered to the triage lane (the query carrying
@@ -226,6 +218,13 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   beforeEach(() => {
     mockBudget(false);
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    /*
+     * No lane overrides: incident work falls back to the default cap of 3,
+     * and triage is subjectless, so it always runs under the default.
+     */
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+    } as unknown as Project);
   });
 
   afterEach(() => {
@@ -233,7 +232,6 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   });
 
   test("the reserved slot is real: with the triage lane full (2 of cap 3), an incident investigation still claims and dispatches", async () => {
-    mockCap(3);
     // Both running investigations are triage runs — the lane's sub-cap.
     mockRunningCounts({ total: 2, triage: 2 });
     const claim: jest.SpyInstance = jest.spyOn(
@@ -262,7 +260,6 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   });
 
   test("a triage run at the lane sub-cap is left Queued — the claim is never even attempted", async () => {
-    mockCap(3);
     // 2 triage running = cap(3) - RESERVED(1): the lane is full.
     mockRunningCounts({ total: 2, triage: 3 - INSIGHT_TRIAGE_RESERVED_SLOTS });
     const claim: jest.SpyInstance = jest.spyOn(
@@ -287,7 +284,6 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   });
 
   test("remediation plans share the background sub-cap: triage + plans together at cap - reserved leave a plan run Queued", async () => {
-    mockCap(3);
     // 1 triage + 1 plan running = cap(3) - RESERVED(1): background lane full.
     mockRunningCounts({ total: 2, triage: 1, plans: 1 });
     const claim: jest.SpyInstance = jest.spyOn(
@@ -308,7 +304,6 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   });
 
   test("triage still runs while under the lane sub-cap — the sub-cap throttles, it does not disable", async () => {
-    mockCap(3);
     mockRunningCounts({ total: 1, triage: 1 });
     const executeTriage: jest.SpyInstance = jest
       .spyOn(InsightTriageRunner, "executeTriage")
@@ -326,25 +321,7 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
     );
   });
 
-  test("a project pinned to the minimum cap of 1 still triages — the lane floor is 1, not 0 (no deadlock)", async () => {
-    mockCap(1);
-    mockRunningCounts({ total: 0, triage: 0 });
-    const executeTriage: jest.SpyInstance = jest
-      .spyOn(InsightTriageRunner, "executeTriage")
-      .mockResolvedValue(undefined);
-
-    await AIInvestigationQueue.processRun({
-      id: ObjectID.generate(),
-      projectId,
-      attemptCount: 0,
-      triggeredByAiInsightId: ObjectID.generate(),
-    });
-
-    expect(executeTriage).toHaveBeenCalled();
-  });
-
   test("interactive gating is unchanged when no insight runs exist: one global count query, no lane query, and the run claims", async () => {
-    mockCap(3);
     const countBy: jest.SpyInstance = mockRunningCounts({
       total: 0,
       triage: 0,

@@ -95,21 +95,23 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
   };
 
   /*
-   * The members section's status filter, from wherever it is chosen - the
-   * hero's counts or the section's own segments. "Compliant" and a rule
-   * filter can never both hold: everyone failing a rule needs attention, so
-   * the pair filters down to nobody under a count that promised somebody.
-   * Choosing Compliant drops the rule filter (the reverse of the guard in
-   * onShowFailing below).
+   * Two places choose the members section's status filter, and they mean
+   * different things:
+   *
+   * - The members section's own segments narrow whatever the list already
+   *   shows. They leave the rule filter alone - All, Needs attention and
+   *   Compliant alike - and their badges are counted within it, so the
+   *   Compliant segment under a rule filter reads as the nobody it is rather
+   *   than quietly dropping the rule.
+   * - The hero's counts are team-wide ("4 need attention"), so pressing one
+   *   shows exactly those members: the rule filter goes, or the list would
+   *   show fewer people than the count that was pressed.
    */
-  const chooseMemberFilter: (filter: MemberStatusFilter) => void = (
+  const showTeamWideMembers: (filter: MemberStatusFilter) => void = (
     filter: MemberStatusFilter,
   ): void => {
     setMemberFilter(filter);
-
-    if (filter === MemberStatusFilter.Compliant) {
-      setFailingRuleId(null);
-    }
+    setFailingRuleId(null);
   };
 
   if (!compliance.status) {
@@ -154,9 +156,13 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
             // reload reports its own failure through the error state.
           });
         }}
-        memberFilter={memberFilter}
+        /*
+         * A hero count is pressed only while the list shows exactly its
+         * members; under a rule filter it shows a narrower set.
+         */
+        memberFilter={failingRuleId ? MemberStatusFilter.All : memberFilter}
         onShowMembers={(filter: MemberStatusFilter) => {
-          chooseMemberFilter(filter);
+          showTeamWideMembers(filter);
           scrollToMembers();
         }}
       />
@@ -188,7 +194,7 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
         <TeamComplianceStatusTable
           status={compliance.status}
           statusFilter={memberFilter}
-          onStatusFilterChange={chooseMemberFilter}
+          onStatusFilterChange={setMemberFilter}
           failingRuleId={failingRuleId}
           onClearFailingRule={() => {
             setFailingRuleId(null);

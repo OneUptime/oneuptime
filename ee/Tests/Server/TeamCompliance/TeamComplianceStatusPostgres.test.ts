@@ -45,8 +45,9 @@ import { DataSource, Logger } from "Common/node_modules/typeorm";
  * reads) run by Postgres, not a mock.
  *
  * Opt in with RUN_POSTGRES_TEAM_COMPLIANCE_TESTS=true against a database the
- * registered migrations (1796000000000-AddTeamComplianceRuleScope included)
- * have been applied to, e.g. from ee/:
+ * registered migrations (1796000000000-AddTeamComplianceRuleScope and
+ * 1796500000000-AddTeamComplianceRuleNotificationChannels included) have
+ * been applied to, e.g. from ee/:
  *
  *   RUN_POSTGRES_TEAM_COMPLIANCE_TESTS=true \
  *   TEAM_COMPLIANCE_TEST_DATABASE_HOST=127.0.0.1 \
@@ -60,7 +61,9 @@ import { DataSource, Logger } from "Common/node_modules/typeorm";
  * rule writes themselves.
  *
  * Scope: channel rules ("Call for Critical incidents", "Push for critical
- * alerts") and method rules, whose data this service reads itself. On-call
+ * alerts", "Call and Push for Critical incidents") and method rules, whose
+ * data this service reads itself - including rows an older build wrote to the
+ * single notificationChannel column alone. On-call
  * rules with NO channel are answered from OnCallReadinessService, which reads
  * the whole on-call graph (policies, schedules, escalation rules...); they are
  * left to the mocked behaviour suite, and none is created here, so readiness
@@ -531,6 +534,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     incidentSeverityId?: ObjectID;
     alertSeverityId?: ObjectID;
     userCallId?: ObjectID;
+    userSmsId?: ObjectID;
     userPushId?: ObjectID;
     userEmailId?: ObjectID;
     isOptOut?: boolean | null;
@@ -548,6 +552,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
       "incidentSeverityId",
       "alertSeverityId",
       "userCallId",
+      "userSmsId",
       "userPushId",
       "userEmailId",
     ] as const) {
@@ -566,7 +571,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     name: string,
     data: {
       ruleType: ComplianceRuleType;
-      notificationChannel?: ComplianceNotificationChannel;
+      notificationChannels?: Array<ComplianceNotificationChannel>;
       incidentSeverities?: Array<ObjectID>;
       alertSeverities?: Array<ObjectID>;
       enabled?: boolean;
@@ -583,8 +588,9 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
       unknown
     >;
 
-    if (data.notificationChannel) {
-      raw["notificationChannel"] = data.notificationChannel;
+    // The list, as the Dashboard's rule form sends it.
+    if (data.notificationChannels) {
+      raw["notificationChannels"] = data.notificationChannels;
     }
 
     // `{_id}` JSON, one of the shapes the API hands the hooks.
@@ -670,7 +676,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("Call for Critical incidents: covered, missing, unverified, not-owned, opted out and legacy rows", async () => {
     await createRule("call-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [critical],
     });
 
@@ -686,7 +692,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: false,
           severities: [
@@ -747,11 +753,11 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("a rule for every severity checks the project's severities in order, and alert, method and disabled rules sit beside it", async () => {
     await createRule("call-for-every-incident", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
     });
     await createRule("push-for-critical-alerts", {
       ruleType: ComplianceRuleType.HasAlertOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       alertSeverities: [criticalAlert],
     });
     await createRule("verified-phone", {
@@ -759,7 +765,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     });
     await createRule("paused-sms", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.SMS,
+      notificationChannels: [ComplianceNotificationChannel.SMS],
       incidentSeverities: [major, critical],
       enabled: false,
     });
@@ -772,7 +778,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: true,
           severities: [],
@@ -786,7 +792,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         {
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
           enabled: true,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           severityKind: ComplianceSeverityKind.Alert,
           appliesToAllSeverities: false,
           severities: [
@@ -806,7 +812,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         {
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
           enabled: true,
-          notificationChannel: null,
+          notificationChannels: [],
           severityKind: null,
           appliesToAllSeverities: false,
           severities: [],
@@ -820,7 +826,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: false,
-          notificationChannel: ComplianceNotificationChannel.SMS,
+          notificationChannels: [ComplianceNotificationChannel.SMS],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: false,
           // In severity order, whatever order they were picked in.
@@ -913,10 +919,330 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     ]);
   });
 
+  /*
+   * A rule on several channels checks each of them, exactly as that many
+   * one-channel rules would: here Call AND Push for Critical incidents.
+   * Bob meets it with ONE notification rule naming both his verified phone
+   * and his verified push device.
+   */
+  test("Call and Push for Critical incidents: a member passes only with a working rule on both channels", async () => {
+    const alicePushForIncidents: ObjectID = ObjectID.generate();
+    const bobCall: ObjectID = ObjectID.generate();
+    const bobPush: ObjectID = ObjectID.generate();
+
+    await insert("UserPush", {
+      _id: alicePushForIncidents.toString(),
+      projectId: projectId.toString(),
+      userId: alice.toString(),
+      deviceToken: "synthetic-device-token-2",
+      deviceType: "Android",
+      isVerified: true,
+      version: 1,
+    });
+    await insert("UserCall", {
+      _id: bobCall.toString(),
+      projectId: projectId.toString(),
+      userId: bob.toString(),
+      phone: "+15555550101",
+      isVerified: true,
+      verificationCode: "123456",
+      version: 1,
+    });
+    await insert("UserPush", {
+      _id: bobPush.toString(),
+      projectId: projectId.toString(),
+      userId: bob.toString(),
+      deviceToken: "synthetic-device-token-3",
+      deviceType: "iOS",
+      isVerified: true,
+      version: 1,
+    });
+
+    await insertNotificationRule({
+      userId: alice,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: critical,
+      userPushId: alicePushForIncidents,
+    });
+    await insertNotificationRule({
+      userId: bob,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: critical,
+      userCallId: bobCall,
+      userPushId: bobPush,
+    });
+
+    await createRule("call-and-push-for-critical", {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      // Picked Push first; listed - and stored - in catalog order.
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ],
+      incidentSeverities: [critical],
+    });
+
+    const stored: Array<SqlRow> = await database.query(
+      `SELECT "notificationChannels", "notificationChannel" FROM "${schema}"."TeamComplianceSetting"`,
+    );
+
+    expect(stored).toEqual([
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+    ]);
+
+    const status: TeamComplianceStatusJSON = await getStatus();
+
+    expect(rulesByName(status)).toEqual([
+      [
+        "call-and-push-for-critical",
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          severityKind: ComplianceSeverityKind.Incident,
+          appliesToAllSeverities: false,
+          severities: [
+            {
+              id: critical.toString(),
+              name: "Critical Incident",
+              color: "#FF0000",
+            },
+          ],
+          compliantCount: 2,
+          nonCompliantCount: 4,
+          // Calls are off for the project; push has no project switch.
+          warnings: [CALL_SWITCHED_OFF_WARNING],
+        },
+      ],
+    ]);
+
+    const noPush: string =
+      "No Push notification rule for incident severities: Critical Incident";
+    const unverifiedCall: string =
+      "The Call rule for incident severities Critical Incident points at an unverified phone number for calls";
+
+    expect(verdicts(status)).toEqual([
+      { name: "Alice", isCompliant: true, issues: {} },
+      { name: "Bob", isCompliant: true, issues: {} },
+      {
+        name: "Carol",
+        isCompliant: false,
+        issues: {
+          "call-and-push-for-critical": `${unverifiedCall}. ${noPush}`,
+        },
+      },
+      {
+        // Said once, not once per channel.
+        name: "Dave",
+        isCompliant: false,
+        issues: {
+          "call-and-push-for-critical":
+            "Opted out of incident notifications for: Critical Incident",
+        },
+      },
+      {
+        name: "Erin",
+        isCompliant: false,
+        issues: {
+          "call-and-push-for-critical": `${unverifiedCall}. ${noPush}`,
+        },
+      },
+      {
+        // His Call rule counts; there is no Push one.
+        name: "Frank",
+        isCompliant: false,
+        issues: { "call-and-push-for-critical": noPush },
+      },
+    ]);
+  });
+
+  test("channels a project switched off are named in one warning, and each drops out when switched on", async () => {
+    const carolSms: ObjectID = ObjectID.generate();
+
+    await insert("UserSMS", {
+      _id: carolSms.toString(),
+      projectId: projectId.toString(),
+      userId: carol.toString(),
+      phone: "+15555550102",
+      isVerified: true,
+      verificationCode: "123456",
+      version: 1,
+    });
+    await insertNotificationRule({
+      userId: carol,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: critical,
+      userSmsId: carolSms,
+    });
+
+    await createRule("sms-and-call-for-critical", {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Call,
+      ],
+      incidentSeverities: [critical],
+    });
+    await createRule("whatsapp-push-and-call-for-critical", {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.WhatsApp,
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ],
+      incidentSeverities: [critical],
+    });
+
+    const warnings: () => Promise<Array<Array<string>>> = async (): Promise<
+      Array<Array<string>>
+    > => {
+      return (await getStatus()).complianceSettings.map(
+        (rule: TeamComplianceRuleJSON): Array<string> => {
+          return rule.warnings;
+        },
+      );
+    };
+
+    expect(await warnings()).toEqual([
+      [
+        "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+      ],
+      [CALL_SWITCHED_OFF_WARNING, WHATSAPP_SWITCHED_OFF_WARNING],
+    ]);
+
+    // Carol's SMS rule counts; only her unverified phone is left.
+    const carolVerdict: MemberVerdict | undefined = verdicts(
+      await getStatus(),
+    ).find((verdict: MemberVerdict): boolean => {
+      return verdict.name === "Carol";
+    });
+
+    expect(carolVerdict?.issues["sms-and-call-for-critical"]).toBe(
+      "The Call rule for incident severities Critical Incident points at an unverified phone number for calls",
+    );
+
+    await database.query(
+      `UPDATE "${schema}"."Project" SET "enableCallNotifications" = true WHERE "_id" = $1`,
+      [projectId.toString()],
+    );
+
+    expect(await warnings()).toEqual([
+      [
+        "SMS notifications are switched off for this project, so members will not be notified by SMS even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+      ],
+      [WHATSAPP_SWITCHED_OFF_WARNING],
+    ]);
+
+    await database.query(
+      `UPDATE "${schema}"."Project" SET "enableSmsNotifications" = true, "enableWhatsAppNotifications" = true WHERE "_id" = $1`,
+      [projectId.toString()],
+    );
+
+    expect(await warnings()).toEqual([[], []]);
+  });
+
+  /*
+   * A replica of the previous build, still serving while this one rolls
+   * out, writes only notificationChannel. The page must check what it
+   * wrote: the single channel of a rule it created (no list at all), and
+   * the single channel it re-picked on a rule whose list it never saw.
+   */
+  test("rules written by an older build are checked by the channel it wrote", async () => {
+    const legacyId: ObjectID = ObjectID.generate();
+
+    await insert("TeamComplianceSetting", {
+      _id: legacyId.toString(),
+      projectId: projectId.toString(),
+      teamId: teamId.toString(),
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: true,
+      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: null,
+      version: 1,
+    });
+    await insert("TeamComplianceSettingIncidentSeverity", {
+      teamComplianceSettingId: legacyId.toString(),
+      incidentSeverityId: critical.toString(),
+    });
+    ruleNames.set(legacyId.toString(), "push-written-by-an-older-build");
+
+    await createRule("re-picked-by-an-older-build", {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      incidentSeverities: [critical],
+    });
+
+    await database.query(
+      `UPDATE "${schema}"."TeamComplianceSetting" SET "notificationChannel" = 'Email' WHERE "_id" <> $1`,
+      [legacyId.toString()],
+    );
+
+    const status: TeamComplianceStatusJSON = await getStatus();
+
+    expect(
+      rulesByName(status).map(
+        ([name, rule]: [string, RuleSummary]): [
+          string,
+          Array<ComplianceNotificationChannel>,
+          Array<string>,
+        ] => {
+          return [name, rule.notificationChannels, rule.warnings];
+        },
+      ),
+    ).toEqual([
+      [
+        "push-written-by-an-older-build",
+        [ComplianceNotificationChannel.Push],
+        [],
+      ],
+      [
+        "re-picked-by-an-older-build",
+        [ComplianceNotificationChannel.Email],
+        // No longer a Call rule, so no word about calls being off.
+        [],
+      ],
+    ]);
+
+    const verdictsByName: Map<string, MemberVerdict> = new Map<
+      string,
+      MemberVerdict
+    >(
+      verdicts(status).map(
+        (verdict: MemberVerdict): [string, MemberVerdict] => {
+          return [verdict.name, verdict];
+        },
+      ),
+    );
+
+    // Bob's verified email covers Critical; nobody else has an email rule.
+    expect(verdictsByName.get("Bob")?.issues).toEqual({
+      "push-written-by-an-older-build":
+        "No Push notification rule for incident severities: Critical Incident",
+    });
+    expect(verdictsByName.get("Frank")?.issues).toEqual({
+      "push-written-by-an-older-build":
+        "No Push notification rule for incident severities: Critical Incident",
+      "re-picked-by-an-older-build":
+        "No Email rule for incident severities: Critical Incident",
+    });
+  });
+
   test("turning the project's calls on clears the warning, and pausing a rule stops it being checked", async () => {
     await createRule("call-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [critical],
     });
 
@@ -957,7 +1283,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("a rescoped rule is checked against its new severities", async () => {
     await createRule("call-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [critical],
     });
 
@@ -1028,12 +1354,12 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("deleting a rule's only severity pauses the rule instead of widening it to every severity", async () => {
     await createRule("call-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [critical],
     });
     await createRule("call-for-critical-and-major", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       incidentSeverities: [critical, major],
     });
 
@@ -1088,7 +1414,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("a Call rule that also names another member's email is refused, as the runtime refuses it", async () => {
     await createRule("call-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [critical],
     });
 
@@ -1134,11 +1460,11 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("a rule a delete emptied cannot be switched back on as it is; re-scoped from its edit form, it is checked again", async () => {
     await createRule("call-for-every-incident", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
     });
     await createRule("call-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [critical],
     });
 
@@ -1178,7 +1504,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     // The real every-severity rule's edit form still saves.
     const everyIncidentForm: UpdateBy<TeamComplianceSetting>["data"] = {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [],
       alertSeverities: [],
       enabled: true,
@@ -1193,7 +1519,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     // The emptied rule's edit form: a new severity, switched back on.
     const rescope: UpdateBy<TeamComplianceSetting>["data"] = {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [{ _id: major.toString() }],
       alertSeverities: [],
       enabled: true,
@@ -1234,7 +1560,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     });
     await createRule("whatsapp-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.WhatsApp,
+      notificationChannels: [ComplianceNotificationChannel.WhatsApp],
       incidentSeverities: [critical],
     });
 
@@ -1272,7 +1598,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   test("more referenced methods than one statement can bind still produce a page", async () => {
     await createRule("webhook-for-critical", {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Webhook,
+      notificationChannels: [ComplianceNotificationChannel.Webhook],
       incidentSeverities: [critical],
     });
 

@@ -158,7 +158,7 @@ Add the people who may sign in on **Status Pages → your page → Security → 
 
 ### SSO and OIDC
 
-For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML (sign-on URL, issuer, x509 certificate, signature and digest methods) and **Status Pages → your page → Security → OIDC** configures OpenID Connect (discovery URL, issuer, client ID and secret, scopes, claim names). **SCIM** provisions private users from the IdP automatically. These are gated behind a plan feature, so they may not be available on every installation.
+For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML (sign-on URL, issuer, x509 certificate, signature and digest methods) and **Status Pages → your page → Security → OIDC** configures OpenID Connect (discovery URL, issuer, client ID and secret, scopes, claim names). **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
 An **SSO Settings** card exposes **Force SSO for Login** (`requireSsoForLogin`, off by default). Test your SSO configuration before you turn it on — if it doesn't work you will lock yourself out of the status page.
 

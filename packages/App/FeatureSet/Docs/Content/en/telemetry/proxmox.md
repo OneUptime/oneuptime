@@ -17,20 +17,22 @@ This page is the **installation guide**. For configuring Proxmox monitors and al
 **Fastest path — run this on any PVE node** (shell as root):
 
 ```bash
+pveum user add monitoring@pam
+pveum acl modify / --roles PVEAuditor --users monitoring@pam
 pveum user token add monitoring@pam oneuptime --privsep 1
 pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 ```
 
-(If the `monitoring@pam` user does not exist yet, create it first with `pveum user add monitoring@pam` — API tokens carry their own secret, so the user needs no password or system account.)
+(The first command only fails, harmlessly, if `monitoring@pam` already exists — API tokens carry their own secret, so the user needs no password or system account.)
 
-The ACL must sit at the root path `/` because **PVEAuditor** needs read access to every node, guest, and storage object the exporter walks — granting it on a narrower path hides the rest of the cluster and produces `401`/`403 Permission check failed (/, Sys.Audit)` errors. The first command prints the token secret once; in your `.env` that becomes `PVE_API_TOKEN_ID=monitoring@pam!oneuptime` and `PVE_API_TOKEN_SECRET=<the printed secret>`.
+The role goes on the user as well as the token because a privilege-separated token only gets the permissions its user also has. The ACL must sit at the root path `/` because **PVEAuditor** needs read access to every node, guest, and storage object the exporter walks — granting it on a narrower path hides the rest of the cluster and produces `401`/`403 Permission check failed (/, Sys.Audit)` errors. `pveum user token add` prints the token secret once; in your `.env` that becomes `PVE_API_TOKEN_ID=monitoring@pam!oneuptime` and `PVE_API_TOKEN_SECRET=<the printed secret>`.
 
 **Or via the Proxmox web UI:**
 
 1. In the Proxmox web UI go to _Datacenter → Permissions → API Tokens_ and click **Add**.
-2. Pick (or create) a user, give the token an ID like `oneuptime`, and **uncheck Privilege Separation** (or grant the token its own permissions in the next step).
-3. Under _Datacenter → Permissions_ add a permission on path `/` for the token with the **PVEAuditor** role.
-4. Copy the token id (`user@realm!tokenname`) and the secret — the secret is shown only once.
+2. Pick (or create) a user, give the token an ID like `oneuptime`, and leave **Privilege Separation** checked.
+3. Copy the token id (`user@realm!tokenname`) and the secret — the secret is shown only once.
+4. Under _Datacenter → Permissions_ add the **PVEAuditor** role on path `/` twice: once as an **API Token Permission** for the token, once as a **User Permission** for its user. A privilege-separated token only gets the permissions its user also has, so both need the role.
 
 ### Where to Run the Agent
 
@@ -222,7 +224,7 @@ The native push only sends what each node knows about itself, so part of what th
 
 | Needs the agent                 | Why                                                                                                          |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| HA state                        | Not pushed — the **HA State Error** template needs the agent.                                                |
+| HA state                        | Not pushed — the **HA Resource in Error State** template needs the agent.                                    |
 | Start-on-boot flag              | Not pushed — the **Guest Down** template, which only pages for guests set to start on boot, needs the agent. |
 | Backup coverage and replication | Not pushed — the **Guest Not Backed Up** and **Replication Failing** templates need the agent.               |
 
@@ -284,7 +286,7 @@ It ends with a VERDICT section naming the most likely root cause. The sections b
 
 ### The exporter logs 401 / authentication errors
 
-The API token is wrong or lacks permissions. Re-check the token id format (`user@realm!tokenname`), the secret, and that the token has the **PVEAuditor** role on path `/` (with privilege separation either disabled or permissions granted to the token itself).
+The API token is wrong or lacks permissions. Re-check the token id format (`user@realm!tokenname`), the secret, and that the **PVEAuditor** role is granted on path `/` to the token and to its user.
 
 ### Only node metrics, no guest metrics
 

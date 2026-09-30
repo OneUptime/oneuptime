@@ -2894,7 +2894,13 @@ describe("alert-only behaviour", () => {
       expect(within(grid).getByTestId("monitor-element")).toHaveTextContent(
         "Developer portal",
       );
-      expect(within(view.container).getByText("1 resource")).toBeVisible();
+      // One category counts itself in its heading; no total line above it.
+      expect(
+        within(grid).getByRole("heading", { level: 3, name: "Monitors 1" }),
+      ).toBeVisible();
+      expect(
+        within(view.container).queryByTestId("affected-resources-summary"),
+      ).toBeNull();
     });
 
     test("shows both the monitor and an SLO, the monitor first", () => {

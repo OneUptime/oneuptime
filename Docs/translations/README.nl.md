@@ -207,7 +207,7 @@ Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te
 | **Ideaal voor** | Zelf-hosters en kleine teams | Gereguleerde teams die premium ondersteuning nodig hebben |
 | **Kosten** | Gratis en open source | [Neem contact op met sales](mailto:sales@oneuptime.com) |
 | **Licentie** | Apache 2.0 | Apache 2.0, plus de [OneUptime Enterprise License](/ee/LICENSE) voor de map `ee/` |
-| **Functies** | Alles uit het pakket hierboven — monitoring, statuspagina's, incidenten, oproepdiensten, logs, traces, metrics, foutopsporing, workflows en AI | Alles uit Community + SAML- en OIDC-single sign-on, SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie, met prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
+| **Functies** | Alles uit het pakket hierboven — monitoring, statuspagina's, incidenten, oproepdiensten, logs, traces, metrics, foutopsporing, workflows en AI — plus SAML- en OIDC-single sign-on | Alles uit Community + SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie, met prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
 
 De Enterprise-functies staan in de map [`ee/`](/ee) en zitten alleen in de Enterprise-image. Zie [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) voor de volledige vergelijking.
 

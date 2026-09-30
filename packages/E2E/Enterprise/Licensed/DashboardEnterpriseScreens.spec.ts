@@ -5,6 +5,10 @@ import {
   describeStackFrontendEnvironment,
   fetchStackFrontendEnvironment,
 } from "../Helpers/FrontendEnvironment";
+import {
+  EnterpriseLicenseState,
+  describeEnterpriseLicenseState,
+} from "../Helpers/LicenseState";
 import { assertLicensedEnterpriseStack } from "../Helpers/StackGuard";
 import {
   APIResponse,
@@ -18,7 +22,8 @@ import {
 } from "@playwright/test";
 
 /*
- * The shipped Dashboard bundle really carries the Enterprise screens.
+ * The shipped Dashboard bundle really carries the Enterprise screens - and
+ * renders the single sign-on screens as the core screens they are.
  *
  * What this proves that the jest suites cannot: the Dashboard renders each
  * enterprise screen through EnterprisePluginPage, which shows the ee plugin
@@ -29,7 +34,16 @@ import {
  * in the community one. Every jest test of that component supplies the plugin
  * itself, so none of them can tell whether the published bundle has one. Only
  * loading the real screens from the real image can, and that is the difference
- * between "the server serves SSO" and "an administrator can configure SSO".
+ * between "the server serves SCIM" and "an administrator can configure SCIM".
+ *
+ * Settings > SSO and Settings > OIDC are NOT enterprise screens: single
+ * sign-on is core, and those pages are plain core pages in every edition
+ * (packages/App/FeatureSet/Dashboard/src/Pages/Settings/SSO.tsx and OIDC.tsx).
+ * On this stack they are the other half of the proof - rendered with no
+ * upsell and no licence notice, although a fresh install is in its trial,
+ * where the SCIM screen beside them does warn that SCIM stops when the trial
+ * ends. A licence notice on an SSO screen would mean single sign-on depended
+ * on the licence.
  *
  * The same page load also proves the edition pill reports the Enterprise
  * Edition, which reads env.js's IS_ENTERPRISE_EDITION - overwritten by the
@@ -39,54 +53,87 @@ import {
  * else asserts over HTTP.
  */
 
-interface EnterpriseScreen {
+interface DashboardScreen {
   // Test title.
   label: string;
   // Path below /dashboard/<projectId>/.
   route: string;
   /*
-   * Copy that only the ee screen renders. Every one of these is the screen's
-   * own card description, which the upsell card for the same route words
-   * differently - so seeing it is proof the plugin rendered, not the shell.
+   * Copy only the real screen renders: its own card description, which the
+   * upsell card for the same route words differently - so seeing it is proof
+   * the screen rendered, not the upsell.
    */
-  enterpriseCopy: string;
+  copy: string;
 }
 
 /*
  * The upsell card's call to action when a self-hosted build lacks the
  * enterprise screens (EnterpriseFeatureUpgrade, Edition reason - the reason
  * used whenever billing is off). Its absence is asserted on every screen:
- * seeing the enterprise copy proves the plugin rendered, and this proves the
- * shell did not ALSO fall back for some other element of the page.
+ * seeing the screen's copy proves it rendered, and this proves the page did
+ * not ALSO fall back to an upsell for some other element of it.
  */
 const UPSELL_CALL_TO_ACTION: string = "Learn about Enterprise Edition";
 
-const ENTERPRISE_SCREENS: ReadonlyArray<EnterpriseScreen> = [
-  {
-    label: "Settings > SSO",
-    route: "settings/sso",
-    enterpriseCopy:
-      "Single sign-on is an authentication scheme that allows a user to log in with a single ID",
-  },
-  {
-    label: "Settings > OIDC",
-    route: "settings/oidc",
-    enterpriseCopy:
-      "Configure OpenID Connect identity providers for single sign-on",
-  },
+const ENTERPRISE_SCREENS: ReadonlyArray<DashboardScreen> = [
   {
     label: "Settings > SCIM",
     route: "settings/scim",
-    enterpriseCopy:
-      "SCIM is an open standard for automating the exchange of user identity information",
+    copy: "SCIM is an open standard for automating the exchange of user identity information",
   },
   {
     label: "Settings > Audit Logs",
     route: "settings/audit-logs/settings",
-    enterpriseCopy:
-      "When enabled, every create, update and delete action on your project's resources will be recorded in the audit log",
+    copy: "When enabled, every create, update and delete action on your project's resources will be recorded in the audit log",
   },
 ];
+
+// Core screens in every edition, which never depend on a licence.
+const SINGLE_SIGN_ON_SCREENS: ReadonlyArray<DashboardScreen> = [
+  {
+    label: "Settings > SSO",
+    route: "settings/sso",
+    copy: "Single sign-on is an authentication scheme that allows a user to log in with a single ID",
+  },
+  {
+    label: "Settings > OIDC",
+    route: "settings/oidc",
+    copy: "Configure OpenID Connect identity providers for single sign-on",
+  },
+];
+
+/*
+ * Test ids of every licence notice the ee identity screens can show
+ * (ee/Dashboard/Identity/License/EnterpriseLicenseBanner.tsx and
+ * ee/Dashboard/Identity/TightenOnly/ReadOnlyActionsNotice.tsx), copied rather
+ * than imported: nothing in core, this package included, may import from ee/.
+ */
+const GRACE_BANNER_TEST_ID: string = "enterprise-license-grace-banner";
+
+const LICENSE_NOTICE_TEST_IDS: ReadonlyArray<string> = [
+  GRACE_BANNER_TEST_ID,
+  "enterprise-license-read-only-banner",
+  "enterprise-license-not-included-banner",
+  "enterprise-read-only-actions-notice",
+];
+
+// EnterpriseLicenseBanner.tsx GRACE_TITLE: what the SCIM screen says during the trial.
+const SCIM_GRACE_TITLE: string =
+  "No valid Enterprise license: SCIM stops when the trial or grace period ends.";
+
+// A fresh install's licence status, inside its unlicensed trial.
+const TRIAL_LICENSE_STATUS: string = "grace";
+
+/*
+ * The edition pill in the Dashboard footer once it has the licence answer:
+ * its accessible name starts "Enterprise Edition (Checking...)" until
+ * GET /api/global-config/license - the endpoint every ee licence notice reads
+ * too - has answered (Common/UI/Components/EditionLabel/EditionLabel.tsx).
+ * Waiting for it is the settle point before asserting that a screen shows NO
+ * licence notice, so the absence is read after the licence was known.
+ */
+const EDITION_PILL_WITH_LICENSE_ANSWER: RegExp =
+  /^Enterprise Edition(?! \(Checking)/;
 
 test.describe("Dashboard enterprise screens (licensed stack)", () => {
   test.describe.configure({ mode: "serial" });
@@ -103,6 +150,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
   };
   let context: BrowserContext;
   let frontendEnvironment: StackFrontendEnvironment;
+  let licenseState: EnterpriseLicenseState;
 
   test.beforeAll(
     async ({
@@ -114,7 +162,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     }): Promise<void> => {
       test.setTimeout(300000);
 
-      await assertLicensedEnterpriseStack();
+      licenseState = await assertLicensedEnterpriseStack();
       frontendEnvironment = await fetchStackFrontendEnvironment();
 
       context = await browser.newContext({
@@ -180,7 +228,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
        * each screen: wait on the copy itself rather than on a load event.
        */
       await expect(
-        page.getByText(screen.enterpriseCopy).first(),
+        page.getByText(screen.copy).first(),
         `${screen.label} did not render the Enterprise screen. On a build without ` +
           `the ee Dashboard plugins this route shows the upsell card instead.`,
       ).toBeVisible({ timeout: 60000 });
@@ -193,7 +241,93 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     });
   }
 
-  test("Settings > SSO renders the enterprise-only Force SSO card", async (): Promise<void> => {
+  test("Settings > SCIM says what stops when the trial ends", async (): Promise<void> => {
+    const page: Page = shared.page;
+    const found: string = describeEnterpriseLicenseState(licenseState);
+
+    await page.goto(`${origin}/dashboard/${shared.projectId}/settings/scim`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await expect(
+      page
+        .getByText(
+          "SCIM is an open standard for automating the exchange of user identity information",
+        )
+        .first(),
+    ).toBeVisible({ timeout: 60000 });
+
+    if (licenseState.status !== TRIAL_LICENSE_STATUS) {
+      /*
+       * A licence was installed on this stack, so there is no trial to warn
+       * about and the screen shows no notice at all. Not a skip: the licensed
+       * suite is equally valid either way.
+       */
+      await expect(
+        page.getByTestId(GRACE_BANNER_TEST_ID),
+        `A valid licence must not warn about a trial ending. Found: ${found}`,
+      ).toHaveCount(0);
+      return;
+    }
+
+    /*
+     * The control for the single sign-on screens below: on this very stack,
+     * in this very state, the licence machinery does put a notice on an
+     * Enterprise screen - naming SCIM alone, since SCIM is what the licence
+     * decides.
+     */
+    await expect(
+      page.getByTestId(GRACE_BANNER_TEST_ID),
+      `A fresh install inside its trial must warn on the SCIM screen that SCIM ` +
+        `stops when the trial ends. Found: ${found}`,
+    ).toBeVisible({ timeout: 60000 });
+
+    await expect(page.getByTestId(GRACE_BANNER_TEST_ID)).toContainText(
+      SCIM_GRACE_TITLE,
+    );
+  });
+
+  for (const screen of SINGLE_SIGN_ON_SCREENS) {
+    test(`${screen.label} renders as a core screen: no upsell and no licence notice`, async (): Promise<void> => {
+      const page: Page = shared.page;
+
+      await page.goto(
+        `${origin}/dashboard/${shared.projectId}/${screen.route}`,
+        {
+          waitUntil: "domcontentloaded",
+        },
+      );
+
+      await expect(
+        page.getByText(screen.copy).first(),
+        `${screen.label} did not render its configuration screen.`,
+      ).toBeVisible({ timeout: 60000 });
+
+      await expect(
+        page
+          .getByRole("button", { name: EDITION_PILL_WITH_LICENSE_ANSWER })
+          .first(),
+        "The edition pill never showed the licence state, so the page never " +
+          "finished reading the licence.",
+      ).toBeVisible({ timeout: 60000 });
+
+      await expect(
+        page.getByText(UPSELL_CALL_TO_ACTION),
+        `${screen.label} showed the Enterprise upsell card: single sign-on is ` +
+          `in every edition and must never be sold as an Enterprise feature.`,
+      ).toHaveCount(0);
+
+      for (const noticeTestId of LICENSE_NOTICE_TEST_IDS) {
+        await expect(
+          page.getByTestId(noticeTestId),
+          `${screen.label} showed a licence notice (${noticeTestId}). Single ` +
+            `sign-on never depends on the Enterprise licence.`,
+        ).toHaveCount(0);
+      }
+    });
+  }
+
+  test("Settings > SSO offers the Force SSO card, editable", async (): Promise<void> => {
     const page: Page = shared.page;
 
     await page.goto(`${origin}/dashboard/${shared.projectId}/settings/sso`, {
@@ -201,12 +335,17 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     });
 
     /*
-     * A second card the upsell has no counterpart for: the SSO screen is the
-     * whole ee page, not just a table the shell could have rendered.
+     * "Require SSO for login" is core too, so its card is always there and
+     * always editable - it is never locked behind a licence.
      */
     await expect(
       page.getByRole("heading", { name: "SSO Settings", exact: true }),
     ).toBeVisible({ timeout: 60000 });
+
+    await expect(
+      page.getByRole("button", { name: "Edit Settings", exact: true }),
+      "The Force SSO card must offer its Edit Settings button to the project owner.",
+    ).toBeEnabled({ timeout: 60000 });
   });
 
   test("the edition label reports the Enterprise Edition", async (): Promise<void> => {

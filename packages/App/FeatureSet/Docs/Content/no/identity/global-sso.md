@@ -2,7 +2,7 @@
 
 Global SSO lar en OneUptime **instansadministrator** (master-admin) konfigurere én enkelt SAML 2.0- eller OpenID Connect (OIDC)-identitetsleverandør **én gang på instansnivå** og koble den til hvilket som helst prosjekt på serveren. Det er den instansomfattende motparten til SSO per prosjekt: i stedet for at hver prosjekteier konfigurerer sin egen identitetsleverandør, setter en master-admin opp én som kan betjene hele instansen.
 
-Global SSO er en funksjon i **OneUptime Enterprise Edition** og er kun tilgjengelig på instanser som kjører Enterprise Edition-bygget. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hvordan du kjører den, hvordan lisensiering fungerer, og hva som skjer med SSO-krav i Community Edition. Uten en gyldig lisens (etter den 14 dager lange prøveperioden, eller 30 dager etter at en lisens er utløpt) stopper global SSO-pålogging, og «Require SSO» for hele instansen håndheves ikke før en lisens aktiveres.
+Global SSO, inkludert bryteren «Require SSO for Login» for hele instansen, er en del av alle OneUptime-utgaver: alle selvdriftede instanser har det, også med Community Edition, og det krever ingen lisens. Det er instansadministrasjon og gjelder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
 
 ## Global SSO vs. prosjekt-SSO
 
@@ -48,7 +48,7 @@ Hvis du vil forhindre all automatisk kontoopprettelse selv når prosjekter er kn
 Å konfigurere en global leverandør tvinger ingen til å bruke den; passordinnlogging fungerer fortsatt. For å kreve SSO, bruk kontrollene **Require SSO for Login**:
 
 - **Per prosjekt:** et prosjekt kan kreve SSO, og eventuelt kreve en _bestemt_ leverandør (prosjekt eller global).
-- **Instansomfattende:** **Admin** > **Innstillinger** > **Autentisering** har en **Require SSO for Login**-bryter som tvinger frem SSO for alle brukere på tvers av instansen. Master-admins forblir unntatt slik at de ikke kan bli utestengt.
+- **Instansomfattende:** **Admin** > **Innstillinger** > **Autentisering** har en **Krev SSO for innlogging**-bryter som tvinger frem SSO for alle brukere på tvers av instansen. Master-admins forblir unntatt slik at de ikke kan bli utestengt.
 
 ## Relatert
 

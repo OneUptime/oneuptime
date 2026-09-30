@@ -2,7 +2,7 @@
 
 OneUptime は、エンタープライズ認証のための SAML 2.0 ベースのシングルサインオン（SSO）をサポートしています。SSO により、チームメンバーが組織のアイデンティティプロバイダー（IdP）を使用して OneUptime にログインでき、集中アクセス管理とセキュリティの強化が実現します。
 
-> **エディション:** SSO は OneUptime Enterprise Edition の機能です。OneUptime Cloud では **Scale** プラン以上で利用できます。セルフホスト環境では Enterprise Edition イメージとライセンスが必要です。詳しくは [Enterprise Edition](/docs/self-hosted/enterprise) をご覧ください。有効なライセンスがない場合（14 日間のトライアル終了後、またはライセンスの有効期限切れから 30 日後）、ライセンスが有効化されるまで SSO によるサインインは停止し、「Require SSO」は適用されません。
+> **エディション:** SSO（「Require SSO for login」を含む）は OneUptime のすべてのエディションに含まれます。セルフホスト環境では Community Edition で利用でき、ライセンスは不要です。OneUptime Cloud では **Scale** プラン以上で利用できます。各エディションに含まれる機能については [Enterprise Edition](/docs/self-hosted/enterprise) をご覧ください。
 
 ## 概要
 

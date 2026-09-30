@@ -287,6 +287,53 @@ describe("VMware product page", () => {
   });
 });
 
+describe("Databases product page", () => {
+  /*
+   * The same three-way agreement - route, SEO entry, sitemap priority - plus
+   * the one thing this page needs that the others do not: the route hands
+   * the template the content its engine and monitor lists render from.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/databases")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/databases`);
+  });
+
+  test("it hands the template the product's catalogs", () => {
+    const body: string | null = bodyOfGetRoute("/product/databases");
+
+    expect(body).toContain("getSEOForPath(");
+    expect(body).toContain('"/product/databases"');
+    expect(body).toContain("databases: getDatabasesPageContent()");
+    expect(routesSource).toContain(
+      'import { getDatabasesPageContent } from "./Utils/Databases";',
+    );
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/databases")).toBeNull();
+    expect(isRedirectPath("/product/databases")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/databases"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/databases");
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/databases": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
 describe("SEO registration", () => {
   test("both new canonical pages resolve their own SEO data", () => {
     for (const pagePath of ["/enterprise/self-hosted", "/trust"]) {

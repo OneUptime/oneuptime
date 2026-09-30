@@ -17,6 +17,10 @@ import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../../Server/Enterprise/FakeEnterpriseModule";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -1242,16 +1246,31 @@ describe("Databases (DatabaseServer) models", () => {
       );
 
       test("a manual create with labels and retention passes too", () => {
-        const data: DatabaseServer = manualCreateData();
-        const label: Label = new Label();
-        label._id = ObjectID.generate().toString();
-        data.labels = [label];
-        data.retainTelemetryDataForDays = 7;
-        data.isArchived = false;
+        /*
+         * Retention overrides are an Enterprise feature: with billing off,
+         * setting one needs a license that includes them (the Community
+         * Edition refusal is pinned in
+         * Server/Types/Database/Permissions/RetentionOverrideColumns.test.ts).
+         * A licensed Enterprise Edition passes with billing on or off.
+         */
+        installFakeEnterpriseModule();
 
-        expect(
-          checkCreate(DatabaseServer, data, [Permission.CreateDatabaseServer]),
-        ).not.toThrow();
+        try {
+          const data: DatabaseServer = manualCreateData();
+          const label: Label = new Label();
+          label._id = ObjectID.generate().toString();
+          data.labels = [label];
+          data.retainTelemetryDataForDays = 7;
+          data.isArchived = false;
+
+          expect(
+            checkCreate(DatabaseServer, data, [
+              Permission.CreateDatabaseServer,
+            ]),
+          ).not.toThrow();
+        } finally {
+          uninstallEnterpriseModule();
+        }
       });
 
       test.each(

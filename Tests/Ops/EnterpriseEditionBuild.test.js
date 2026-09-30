@@ -1244,8 +1244,8 @@ describe("release workflows", () => {
   /*
    * The self-hosted ENTERPRISE e2e jobs: the enterprise image with billing
    * OFF. That combination is the whole point of them - it is the only one in
-   * which the license, rather than the billing flag, decides whether SSO, SCIM
-   * and audit logging run. Turn billing on and EnterpriseEdition answers
+   * which the license, rather than the billing flag, decides whether SCIM and
+   * audit logging run. Turn billing on and EnterpriseEdition answers
    * "OneUptime Cloud" to every check; move them to a Community tag and there is
    * no ee/ to gate. Either mistake leaves a green job that proves nothing, so
    * both are pinned here. (Their two-phase structure is pinned in

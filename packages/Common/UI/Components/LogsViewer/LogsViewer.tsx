@@ -71,6 +71,7 @@ import OneUptimeDate from "../../../Types/Date";
 import useViewerTimeRangeZoom, {
   ViewerTimeRangeZoom,
 } from "../TelemetryViewer/useViewerTimeRangeZoom";
+import { hasLockedTelemetryScope } from "../TelemetryViewer/FacetVisibility";
 import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
@@ -1309,6 +1310,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               onSavedViewSelect={props.onSavedViewSelect}
               onClearSavedView={props.onClearSavedView}
               onFacetSearchChange={props.onFacetSearchChange}
+              onlyShowValuesInScope={hasLockedTelemetryScope(
+                enrichedBaseActiveFilters,
+              )}
             />
           )}
 

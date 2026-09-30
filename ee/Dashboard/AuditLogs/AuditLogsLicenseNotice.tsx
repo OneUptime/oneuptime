@@ -1,4 +1,4 @@
-import { EnterpriseLicenseMode } from "../SSO/License/EnterpriseLicenseMode";
+import { EnterpriseLicenseMode } from "../Identity/License/EnterpriseLicenseMode";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,

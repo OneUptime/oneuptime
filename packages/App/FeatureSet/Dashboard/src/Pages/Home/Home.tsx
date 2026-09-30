@@ -118,7 +118,7 @@ const Home: FunctionComponent<ComponentProps> = (
             }}
             noItemsMessage="Nice work! No Active Incidents so far."
             title="Active Incidents"
-            description="Here is a list of all the Active Incidents for this project."
+            description="Incidents that are not resolved yet: problems affecting your users right now. View an incident to see who is responding and to post updates."
           />
         )}
     </div>

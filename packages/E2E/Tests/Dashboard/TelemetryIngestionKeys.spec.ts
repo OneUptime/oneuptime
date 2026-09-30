@@ -88,44 +88,23 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(modal().locator('[aria-current="step"]')).toHaveText(title);
   };
 
+  // The Allowed Origins code editor: a textarea named by the field's label.
+  const originsInput: () => Locator = (): Locator => {
+    return modal().getByRole("textbox", { name: /^Allowed Origins/ });
+  };
+
+  /*
+   * fill() replaces the document exactly - unbalanced brackets included,
+   * which is what the Browser Settings validation cases need - and fires
+   * the input event the form listens to. Focus then moves on, as a
+   * person's would.
+   */
   const fillOrigins: (value: string) => Promise<void> = async (
     value: string,
   ): Promise<void> => {
-    /*
-     * Wait for - and act on - the editor itself, never Monaco's focusable
-     * control. That control is a hidden textarea Monaco parks at the caret,
-     * and it collapses to zero size whenever the editor is not focused: on
-     * the second call in a step Firefox reports it as hidden, and every
-     * actionability check on it then times out. Clicking the rendered lines
-     * focuses the editor the way a person does, and the keyboard goes
-     * through the page rather than through a locator that has to be
-     * "visible" first.
-     */
-    const lines: Locator = modal().locator(".monaco-editor .view-lines");
-    await expect(modal().locator(".monaco-editor").first()).toBeVisible({
-      timeout: 30000,
-    });
-    await lines.click();
-    await ctx.page.keyboard.press("ControlOrMeta+A");
-    await ctx.page.keyboard.press("Backspace");
-    await expect(lines).toHaveText("");
-    await ctx.page.keyboard.insertText(value);
-    /*
-     * Inserting the whole document at once does not escape Monaco's
-     * auto-closing brackets: CursorsController.type replays the string one
-     * character at a time through the same interceptors as real typing. So
-     * `["https://app.example.com"` landed in the editor as
-     * `["https://app.example.com"]` - valid JSON - and the wizard stepped
-     * past the Browser Settings validation this helper exists to exercise.
-     *
-     * Everything Monaco auto-closes sits after the caret, on the caret's own
-     * line (these fixtures are single-line), so select to the end of the line
-     * and delete it. When the value needed no repair the selection is empty
-     * and Delete at the end of the document is a no-op, which leaves balanced
-     * values exactly as they were inserted.
-     */
-    await ctx.page.keyboard.press("Shift+End");
-    await ctx.page.keyboard.press("Delete");
+    await expect(originsInput()).toBeVisible({ timeout: 30000 });
+    await originsInput().fill(value);
+    await expect(originsInput()).toHaveValue(value);
     await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
   };
 
@@ -401,12 +380,7 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(
       modal().getByPlaceholder("storefront-web", { exact: true }),
     ).toHaveValue(serviceName);
-    await expect(modal().locator(".monaco-editor .view-lines")).toContainText(
-      origins[0]!,
-    );
-    await expect(modal().locator(".monaco-editor .view-lines")).toContainText(
-      origins[1]!,
-    );
+    await expect(originsInput()).toHaveValue(JSON.stringify(origins));
     await review();
     await expect(modal().getByText(name, { exact: true })).toBeVisible();
     await expect(modal().getByText(description, { exact: true })).toBeVisible();
@@ -491,7 +465,13 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     const origin: string = "https://mobile.example.com";
     const serverStepCount: number = IS_BILLING_ENABLED ? 4 : 3;
     const browserStepCount: number = serverStepCount + 1;
-    const progress: Locator = modal().getByRole("status");
+    /*
+     * The form's step indicator. It is not the modal's only live region: the
+     * Allowed Origins code editor has its own status bar.
+     */
+    const progress: Locator = modal()
+      .getByRole("status")
+      .filter({ hasText: /^Step \d+ of \d+/ });
     const backButton: Locator = modal().getByRole("button", {
       name: "Back",
       exact: true,

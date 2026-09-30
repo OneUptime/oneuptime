@@ -194,7 +194,7 @@ export function isAnalysisPendingForRun(data: {
  * incident/alert under THEIR permissions, then read the run + events as root.
  */
 
-async function getLoggedInProps(
+export async function getLoggedInProps(
   req: ExpressRequest,
 ): Promise<DatabaseCommonInteractionProps> {
   const props: DatabaseCommonInteractionProps =
@@ -215,7 +215,7 @@ async function getLoggedInProps(
  * and the subject is then asserted to belong to it, so "whose grants were
  * checked" and "which project was queried" can never diverge.
  */
-function pinPropsToTenant(
+export function pinPropsToTenant(
   props: DatabaseCommonInteractionProps,
 ): DatabaseCommonInteractionProps {
   return { ...props, isMultiTenantRequest: false };
@@ -225,7 +225,7 @@ function pinPropsToTenant(
  * Access check under the VIEWER's tenant-pinned permissions: throws unless
  * they can read the incident/alert AND it belongs to the tenant.
  */
-async function assertSubjectReadableInTenant(data: {
+export async function assertSubjectReadableInTenant(data: {
   subjectType: InvestigationReferenceKind;
   subjectId: ObjectID;
   tenantId: ObjectID;

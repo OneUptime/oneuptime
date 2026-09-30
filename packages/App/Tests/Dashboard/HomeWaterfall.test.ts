@@ -314,12 +314,17 @@ describe("Home page request waterfall", () => {
     );
   });
 
-  test("OverviewStats issues all five counts in a single parallel stage", () => {
+  test("OverviewStats issues all seven counts in a single parallel stage", () => {
     /*
      * The old shape awaited two state lists, THEN ran five counts — although
      * the monitor, maintenance and SLO counts need no state list at all. The
      * fixed shape has exactly one await in fetchCounts, and it is the one
      * Promise.all joining every tile's count.
+     *
+     * Two totals joined that batch later, so a new project's tiles can tell
+     * "nothing is wrong" apart from "nothing is set up" ("No monitors yet",
+     * "No SLOs yet"). They must ride in the same parallel stage: a second
+     * round trip on every Home visit, for every project, would undo the fix.
      */
     const body: string = arrowFunctionBody(
       OVERVIEW_STATS_SOURCE,
@@ -333,7 +338,7 @@ describe("Home page request waterfall", () => {
 
     const entries: Array<string> = promiseAllEntries(body);
 
-    expect(entries.length).toBe(5);
+    expect(entries.length).toBe(7);
 
     // The three state-independent counts sit directly in the parallel batch…
     expect(
@@ -363,6 +368,123 @@ describe("Home page request waterfall", () => {
         return entry.includes("Alert");
       }),
     ).toBe(true);
+  });
+
+  test("the two set-up totals count everything, not a slice, in the same batch", () => {
+    const body: string = arrowFunctionBody(
+      OVERVIEW_STATS_SOURCE,
+      "fetchCounts",
+    );
+    const entries: Array<string> = promiseAllEntries(body);
+
+    // The query object of one ModelAPI.count entry, whitespace collapsed.
+    const queryOf: (entry: string) => string = (entry: string): string => {
+      const queryIndex: number = entry.indexOf("query:");
+
+      expect(queryIndex).toBeGreaterThanOrEqual(0);
+
+      return balancedBlock(entry, entry.indexOf("{", queryIndex), "{", "}")
+        .replace(/\s+/g, " ")
+        .replace(/,\s*}/g, " }");
+    };
+
+    const monitorTotals: Array<string> = entries.filter(
+      (entry: string): boolean => {
+        return (
+          entry.includes("ModelAPI.count<Monitor>") &&
+          queryOf(entry) === "{ projectId: props.projectId }"
+        );
+      },
+    );
+
+    /*
+     * Every monitor, whatever its status or whether it is enabled: zero
+     * means the project never created one. A narrower query would call a
+     * project whose monitors are all disabled "not set up".
+     */
+    expect(monitorTotals).toHaveLength(1);
+
+    const sloTotals: Array<string> = entries.filter(
+      (entry: string): boolean => {
+        return (
+          entry.includes("ModelAPI.count<ServiceLevelObjective>") &&
+          !queryOf(entry).includes("sloStatus")
+        );
+      },
+    );
+
+    expect(sloTotals).toHaveLength(1);
+
+    const sloTotalQuery: string = queryOf(sloTotals[0]!);
+
+    // Archived SLOs are gone from the SLOs list, so they do not count…
+    expect(sloTotalQuery).toContain("isArchived: false");
+    // …but disabled ones do: they are set up, just paused by someone.
+    expect(sloTotalQuery).not.toContain("isEnabled");
+
+    // The at-risk count keeps its own narrower query, unchanged.
+    const atRisk: Array<string> = entries.filter((entry: string): boolean => {
+      return (
+        entry.includes("ModelAPI.count<ServiceLevelObjective>") &&
+        queryOf(entry).includes("sloStatus")
+      );
+    });
+
+    expect(atRisk).toHaveLength(1);
+    expect(queryOf(atRisk[0]!)).toContain("isEnabled: true");
+    expect(queryOf(atRisk[0]!)).toContain("isArchived: false");
+  });
+
+  test("the batch's results are destructured in the order the counts are issued", () => {
+    /*
+     * Promise.all answers positionally. The totals were appended after the
+     * five tile counts; a destructuring list out of step with the batch would
+     * hand the monitor total to the SLO tile (or a tile count to a total)
+     * without any type error — every slot is a number.
+     */
+    const body: string = arrowFunctionBody(
+      OVERVIEW_STATS_SOURCE,
+      "fetchCounts",
+    );
+
+    const destructuring: RegExpMatchArray | null = body.match(
+      /const\s*\[([^\]]*)\]\s*:/,
+    );
+
+    expect(destructuring).not.toBeNull();
+
+    const names: Array<string> = destructuring![1]!
+      .split(",")
+      .map((name: string): string => {
+        return name.trim();
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+
+    expect(names).toEqual([
+      "activeIncidents",
+      "activeAlerts",
+      "notOperationalMonitors",
+      "ongoingMaintenance",
+      "slosNeedingAttention",
+      "totalMonitors",
+      "totalSlos",
+    ]);
+
+    const entries: Array<string> = promiseAllEntries(body);
+
+    expect(entries[0]).toContain("fetchActiveIncidentsCount");
+    expect(entries[1]).toContain("fetchActiveAlertsCount");
+    expect(entries[2]).toContain("ModelAPI.count<Monitor>");
+    expect(entries[2]).toContain("isOperationalState: false");
+    expect(entries[3]).toContain("ModelAPI.count<ScheduledMaintenance>");
+    expect(entries[4]).toContain("ModelAPI.count<ServiceLevelObjective>");
+    expect(entries[4]).toContain("sloStatus");
+    expect(entries[5]).toContain("ModelAPI.count<Monitor>");
+    expect(entries[5]).not.toContain("currentMonitorStatus");
+    expect(entries[6]).toContain("ModelAPI.count<ServiceLevelObjective>");
+    expect(entries[6]).not.toContain("sloStatus");
   });
 
   test("Home hands the widgets a project id memoized on its string value", () => {

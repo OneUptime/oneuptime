@@ -387,7 +387,7 @@ describe("results", () => {
   });
 
   test("stdout is capped at the output budget and says so", async () => {
-    kubectl.setBehaviour({ stdoutBytes: 120_000 });
+    kubectl.setBehaviour({ stdoutBytes: MAX_OUTPUT_BYTES + 70_000 });
 
     const result: KubectlExecResult = await run(settings(), request());
 
@@ -401,7 +401,7 @@ describe("results", () => {
 
   test("stderr keeps its tail, and is never pushed out by a large stdout", async () => {
     kubectl.setBehaviour({
-      stdoutBytes: 120_000,
+      stdoutBytes: MAX_OUTPUT_BYTES + 70_000,
       stderr: `${"e".repeat(30_000)}\nError: the real reason\n`,
       exitCode: 1,
     });

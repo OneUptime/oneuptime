@@ -41,7 +41,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     modelType: "RumApplication",
     countState: "count",
     countSetter: "setCount",
-    documentationCard: "ResourceDocumentationCard",
+    documentationCard: "RumDocumentationCard",
   },
   {
     label: "Kubernetes clusters",
@@ -129,7 +129,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     modelType: "ServerlessFunction",
     countState: "count",
     countSetter: "setCount",
-    documentationCard: "ResourceDocumentationCard",
+    documentationCard: "ServerlessDocumentationCard",
   },
   {
     label: "databases",

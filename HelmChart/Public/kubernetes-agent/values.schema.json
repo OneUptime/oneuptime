@@ -31,7 +31,7 @@
         },
         "apiKey": {
           "type": "string",
-          "description": "Project API key from OneUptime (Settings > API Keys)"
+          "description": "Telemetry ingestion key from OneUptime (Project Settings > Telemetry & APM > Ingestion Keys), sent as the x-oneuptime-token header. A project API key (Settings > API Keys) does not work here."
         },
         "labels": {
           "type": "object",

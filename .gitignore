@@ -11,7 +11,8 @@ node_modules
 # Build Dist
 **/dist/*
 
-# Monaco runtime, copied from node_modules at build time
+# The Monaco runtime older builds copied here. The code editor no longer uses
+# it, but a checkout that built before that still has the directory on disk.
 **/public/assets/monaco/
 
 # Tailwind, copied from Common/Server/Static/Vendor at build time

@@ -150,10 +150,10 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showViewIdButton={true}
           cardProps={{
             title: "Workflows",
-            description: "Here is a list of workflows for this project.",
+            description:
+              "No-code automations that run when something happens, such as posting to Slack when an incident is created. Start from a template or build your own.",
           }}
           videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
-          noItemsMessage={"No workflows found."}
           formSteps={[
             {
               title: "Workflow Info",

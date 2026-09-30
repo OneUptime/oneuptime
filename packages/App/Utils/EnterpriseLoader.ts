@@ -34,8 +34,8 @@ import JobDictionary from "../FeatureSet/Workers/Utils/JobDictionary";
  *   - fail fast when the Enterprise Edition is requested
  *     (IS_ENTERPRISE_EDITION=true) but ee is not loaded, unless
  *     ONEUPTIME_EDITION=community explicitly chooses the Community Edition
- *     (then only a warning). Starting anyway would silently stop enforcing
- *     "Require SSO", SSO/SCIM and audit logging: a fail-open upgrade;
+ *     (then only a warning). Starting anyway would silently stop SCIM
+ *     provisioning and audit logging: a fail-open upgrade;
  *   - log and continue for anything at runtime: init() throwing or hanging,
  *     the first license load failing. Core monitoring must never be taken
  *     down by the enterprise module.
@@ -319,16 +319,16 @@ export default class EnterpriseLoader {
   /*
    * - billing on (the hosted oneuptime.com) without ee: fatal, unless the
    *   ALLOW_BILLING_WITHOUT_ENTERPRISE development escape hatch is set. Paid
-   *   SSO and audit logging would silently stop, and the license server that
+   *   SCIM and audit logging would silently stop, and the license server that
    *   self-hosted customers activate against would be gone.
    * - the Enterprise Edition requested (IS_ENTERPRISE_EDITION=true) without
    *   ee: fatal. The variable no longer turns anything on; the image does.
    *   Before the edition split a Docker Compose Enterprise install was
    *   APP_TAG=release plus IS_ENTERPRISE_EDITION=true, and APP_TAG=release is
-   *   now the Community image. Starting it would silently stop enforcing
-   *   "Require SSO" (password sign-in accepted again), 404 the SSO and SCIM
-   *   routes (identity provider deprovisioning stops) and stop audit logging,
-   *   so the boot refuses and the error says exactly what to set.
+   *   now the Community image. Starting it would 404 the SCIM routes
+   *   (identity provider deprovisioning stops), stop audit logging and drop
+   *   team compliance and the Health dashboards, so the boot refuses and the
+   *   error says exactly what to set.
    *   An explicit ONEUPTIME_EDITION=community is the operator choosing the
    *   Community Edition, so it only warns. isEnterpriseEditionRequested
    *   already excludes that case when both values come from the environment;
@@ -340,7 +340,7 @@ export default class EnterpriseLoader {
       const message: string =
         "BILLING_ENABLED=true but the OneUptime Enterprise module is not loaded. " +
         "The hosted deployment must run the Enterprise image: on the Community image " +
-        "SSO, SCIM and audit logging stop and the license server is not served.";
+        "SCIM and audit logging stop and the license server is not served.";
 
       if (!input.allowBillingWithoutEnterprise) {
         throw new EnterpriseLoaderError(
@@ -360,8 +360,9 @@ export default class EnterpriseLoader {
     if (input.edition === "community") {
       logger.warn(
         "IS_ENTERPRISE_EDITION=true, but ONEUPTIME_EDITION=community: running the OneUptime Community " +
-          'Edition as configured. It does not enforce "Require SSO", does not serve SSO or SCIM, and ' +
-          "does not record audit logs; your SSO, SCIM and audit log settings are kept, not enforced. " +
+          "Edition as configured. It does not serve SCIM, does not record audit logs and has no team " +
+          "compliance or Health dashboards; your SCIM, audit log and team compliance settings are kept, " +
+          "not enforced. " +
           "Set IS_ENTERPRISE_EDITION=false to confirm the Community Edition, or unset " +
           "ONEUPTIME_EDITION on the Enterprise image to run the Enterprise Edition.",
       );
@@ -371,14 +372,14 @@ export default class EnterpriseLoader {
     throw new EnterpriseLoaderError(
       "IS_ENTERPRISE_EDITION=true, but the OneUptime Enterprise module is not loaded, so this process " +
         "would run as the Community Edition (the Community image contains no enterprise code). Refusing " +
-        'to start: the Community Edition does not enforce "Require SSO" (password sign-in would be ' +
-        "accepted), does not serve SSO or SCIM (identity provider deprovisioning would stop) and does " +
-        "not record audit logs, so starting would silently switch those off. " +
+        "to start: the Community Edition does not serve SCIM (identity provider deprovisioning would " +
+        "stop), does not record audit logs and has no team compliance or Health dashboards, so starting " +
+        "would silently switch those off. " +
         "To keep the Enterprise Edition, run the Enterprise image: with Docker Compose set " +
         "APP_TAG=enterprise-<version> (for example APP_TAG=enterprise-release) in config.env and run " +
         '"npm run update"; with Helm set image.type: enterprise-edition. ' +
-        "To run the Community Edition, which does not enforce SSO, SCIM or audit logging, set " +
-        "IS_ENTERPRISE_EDITION=false (or ONEUPTIME_EDITION=community).",
+        "To run the Community Edition, which does not include SCIM, audit logging, team compliance or " +
+        "the Health dashboards, set IS_ENTERPRISE_EDITION=false (or ONEUPTIME_EDITION=community).",
     );
   }
 

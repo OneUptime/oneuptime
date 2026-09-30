@@ -60,6 +60,10 @@ import {
   KubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -1057,9 +1061,6 @@ function kubectlProposal(): JSONObject {
   };
 }
 
-// The run's wall clock (RemediationExecutionRunner's MAX_WALL_CLOCK_MS).
-const REMEDIATION_RUN_WALL_CLOCK_MS: number = 10 * 60 * 1000;
-
 /*
  * Drive the captured run_kubectl tool once and return the deadline the
  * toolkit planned the wait against. The job itself is stubbed: what is
@@ -1287,27 +1288,23 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     expect(incidentFeed).not.toHaveBeenCalled();
   });
 
-  it("hands the cluster round's read toolkit the run's wall clock as a deadline, and the engine the same budget", async () => {
+  it("gives the cluster round no wall clock: its reads plan no deadline and the engine has no time limit", async () => {
     mockSuggestionHonouringSelect(clusterRow());
     const request: { get: () => InvestigationRequest } = captureRequest();
-    const startedAtMs: number = Date.now();
 
     await run();
 
-    const finishedAtMs: number = Date.now();
-    expect(request.get().maxWallClockMs).toBe(REMEDIATION_RUN_WALL_CLOCK_MS);
+    expect(request.get().maxWallClockMs).toBeUndefined();
+    expect(request.get().maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
+    expect(request.get().maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
     expect(toolNames(request.get())).toContain("run_kubectl");
+    // Its read output is paged, so the reader comes with the reads.
+    expect(toolNames(request.get())).toContain("read_tool_output");
 
     const deadlineAtMs: number | undefined = await deadlinePlannedForRunKubectl(
       request.get(),
     );
-    expect(deadlineAtMs).toBeDefined();
-    expect(deadlineAtMs).toBeGreaterThanOrEqual(
-      startedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
-    expect(deadlineAtMs).toBeLessThanOrEqual(
-      finishedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
+    expect(deadlineAtMs).toBeUndefined();
   });
 
   it("the harness catches a select that drops executionMode: the same row would then silently run Suggest", async () => {
@@ -2933,25 +2930,17 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
     );
   });
 
-  it("hands a rule-driven run's read toolkit the run's wall clock as a deadline too", async () => {
+  it("gives a rule-driven run no wall clock either", async () => {
     const request: { get: () => InvestigationRequest } = captureRequest();
-    const startedAtMs: number = Date.now();
 
     await run();
 
-    const finishedAtMs: number = Date.now();
-    expect(request.get().maxWallClockMs).toBe(REMEDIATION_RUN_WALL_CLOCK_MS);
+    expect(request.get().maxWallClockMs).toBeUndefined();
 
     const deadlineAtMs: number | undefined = await deadlinePlannedForRunKubectl(
       request.get(),
     );
-    expect(deadlineAtMs).toBeDefined();
-    expect(deadlineAtMs).toBeGreaterThanOrEqual(
-      startedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
-    expect(deadlineAtMs).toBeLessThanOrEqual(
-      finishedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
+    expect(deadlineAtMs).toBeUndefined();
   });
 
   it("drops a cluster whose breaker tripped from the command targets, keeps it readable, and tells the model", async () => {

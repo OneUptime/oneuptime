@@ -85,6 +85,8 @@ jest.mock(
 import InvestigationEvidenceList, {
   ComponentProps as EvidenceListProps,
   EVIDENCE_HIGHLIGHT_DURATION_MS,
+  EVIDENCE_ROW_CLASS_NAME,
+  EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME,
   EvidenceFocusRequest,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationEvidenceList";
 import {
@@ -777,7 +779,9 @@ describe("InvestigationEvidenceList loading rows", () => {
       const emptyState: HTMLElement =
         await screen.findByText("No rows returned.");
       expect(emptyState.tagName).toBe("P");
-      expect(emptyState).toHaveClass("text-center");
+      // Plain text under the Rows heading, no longer centred in a box.
+      expect(emptyState).toHaveClass("text-sm", "text-gray-500");
+      expect(emptyState.className).not.toMatch(/ring|rounded|bg-|text-center/);
       expect(emptyState.textContent).toBe("No rows returned.");
 
       const rows: HTMLElement = screen.getByRole("group", { name: "Rows" });
@@ -797,9 +801,10 @@ describe("InvestigationEvidenceList loading rows", () => {
 
     fireEvent.click(rowToggle(/Active incidents/));
 
-    expect(await screen.findByText("No rows returned.")).toHaveClass(
-      "text-center",
-    );
+    const emptyState: HTMLElement =
+      await screen.findByText("No rows returned.");
+    expect(emptyState).toHaveClass("text-sm", "text-gray-500");
+    expect(emptyState.className).not.toMatch(/ring|rounded|bg-|text-center/);
     expect(
       screen.getByRole("group", { name: "Rows" }).querySelectorAll("p"),
     ).toHaveLength(1);
@@ -1123,7 +1128,7 @@ describe("InvestigationEvidenceList focus requests", () => {
     const row: HTMLElement = toggle.closest("li")!;
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(row).toHaveAttribute("data-highlighted", "true");
-    expect(row).toHaveClass("ring-2", "ring-indigo-400");
+    expect(row).toHaveClass("before:ring-2", "before:ring-indigo-500");
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
       block: "nearest",
@@ -1354,6 +1359,166 @@ describe("InvestigationEvidenceList focus requests", () => {
     expect(jest.getTimerCount()).toBe(0);
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
     expect(postMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The list sits inside the card with no frame of its own. Its dividers stay at
+ * the width of the text, like every other rule on the card, while a row's
+ * hover and a chip's highlight reach 12px past the text through the row's
+ * pseudo-element, so neither the row nor its divider moves. An expanded row
+ * indents its details under the row instead of opening a gray panel with a
+ * white box inside it.
+ */
+describe("InvestigationEvidenceList layout", () => {
+  const BOX_CLASS: RegExp =
+    /^(border|border-[a-z]+-\d+|ring-\d|ring-[a-z]+-\d+|shadow(-[a-z]+)?|rounded(-[a-z0-9]+)?|bg-[a-z0-9/-]+)$/;
+
+  function boxClasses(element: Element): Array<string> {
+    return (element.getAttribute("class") || "")
+      .split(/\s+/)
+      .filter((className: string): boolean => {
+        return BOX_CLASS.test(className);
+      });
+  }
+
+  test("keeps every row at the text width and gives it a wash that reaches past it", () => {
+    renderList();
+
+    const rows: Array<HTMLElement> =
+      within(evidenceList()).getAllByRole("listitem");
+    expect(rows).toHaveLength(3);
+
+    for (const row of rows) {
+      expect(row).toHaveClass(...EVIDENCE_ROW_CLASS_NAME.split(" "));
+      // The row itself never moves, so its divider stays at the text width.
+      expect(row.className).not.toMatch(/(^|\s)-mx-/);
+      expect(boxClasses(row)).toEqual([]);
+    }
+
+    expect(EVIDENCE_ROW_CLASS_NAME).toContain("before:-inset-x-3");
+    expect(evidenceList()).toHaveClass("divide-y", "divide-gray-100");
+  });
+
+  test("lets a row's toggle reach past the text so its hover has room around the badge", () => {
+    renderList();
+
+    const toggle: HTMLElement = rowToggle(/Active incidents/);
+    expect(toggle).toHaveClass(
+      "-mx-3",
+      "w-[calc(100%+1.5rem)]",
+      "px-3",
+      "rounded-lg",
+      "hover:bg-gray-50",
+    );
+  });
+
+  test("indents an expanded row's details instead of boxing them", async () => {
+    postMock.mockResolvedValue(rowsResponse() as never);
+    renderList();
+
+    fireEvent.click(rowToggle(/Active incidents/));
+
+    const details: HTMLElement = screen.getByRole("region", {
+      name: "Active incidents (7 total) details",
+    });
+    expect(details).toHaveClass("sm:pl-12");
+    expect(boxClasses(details)).toEqual([]);
+
+    // What was queried is a plain list of labels and values, not a box.
+    const queried: HTMLElement = details.querySelector("dl")!;
+    expect(queried).not.toBeNull();
+    expect(boxClasses(queried)).toEqual([]);
+    for (const pair of Array.from(queried.children)) {
+      expect(boxClasses(pair)).toEqual([]);
+    }
+
+    await flush();
+    const rows: HTMLElement = within(details).getByRole("group", {
+      name: "Rows",
+    });
+    expect(boxClasses(rows)).toEqual([]);
+  });
+
+  test("draws the loading placeholder without a box", async () => {
+    postMock.mockReturnValue(new Promise(() => {}) as never);
+    renderList();
+
+    fireEvent.click(rowToggle(/Active incidents/));
+
+    const status: HTMLElement = within(
+      screen.getByRole("region", {
+        name: "Active incidents (7 total) details",
+      }),
+    ).getByRole("status");
+    expect(boxClasses(status)).toEqual([]);
+  });
+
+  test("highlights a chip's row through its wash, and takes it away again", async () => {
+    jest.useFakeTimers();
+    postMock.mockReturnValue(new Promise(() => {}) as never);
+    const view: ReturnType<typeof render> = renderList();
+
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({ focusRequest: { citationId: "C1", requestId: 1 } })}
+      />,
+    );
+    await flush();
+
+    const row: HTMLElement = rowToggle(/Active incidents/).closest("li")!;
+    expect(row).toHaveClass(...EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME.split(" "));
+    // Only the pseudo-element is painted: the row itself stays unframed.
+    expect(boxClasses(row)).toEqual([]);
+    for (const className of EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME.split(" ")) {
+      expect(className).toMatch(/^(dark:)?before:/);
+    }
+    // The other rows are not highlighted.
+    expect(logsToggle().closest("li")).not.toHaveClass("before:ring-2");
+
+    await act(async (): Promise<void> => {
+      jest.advanceTimersByTime(EVIDENCE_HIGHLIGHT_DURATION_MS);
+    });
+
+    expect(row).not.toHaveClass("before:ring-2");
+    expect(row).toHaveClass(...EVIDENCE_ROW_CLASS_NAME.split(" "));
+  });
+
+  test("gives a legacy row the same unframed row and wash", async () => {
+    const view: ReturnType<typeof render> = renderList({
+      items: [],
+      legacyEntries,
+    });
+
+    const rows: Array<HTMLElement> =
+      within(evidenceList()).getAllByRole("listitem");
+    for (const row of rows) {
+      expect(row).toHaveClass(...EVIDENCE_ROW_CLASS_NAME.split(" "));
+      expect(boxClasses(row)).toEqual([]);
+    }
+
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({
+          items: [],
+          legacyEntries,
+          focusRequest: { citationId: "C2", requestId: 1 },
+        })}
+      />,
+    );
+    await flush();
+
+    const highlighted: HTMLElement = screen
+      .getByText("Monitors (2 found)")
+      .closest("li")!;
+    expect(highlighted).toHaveClass(
+      ...EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME.split(" "),
+    );
+    // Keyboard focus lands on the row; its ring is drawn on the wash too.
+    expect(highlighted).toHaveClass("focus-visible:before:ring-2");
+    expect(highlighted.className).not.toMatch(
+      /(^|\s)focus-visible:ring-2(\s|$)/,
+    );
   });
 });
 
