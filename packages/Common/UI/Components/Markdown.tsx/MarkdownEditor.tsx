@@ -29,6 +29,7 @@ import {
   deleteSelectionForInsert,
   insertBlocksAtCaret,
   isCaretOnEmptyLine,
+  moveCaretIntoEmptyListAhead,
 } from "./MarkdownVisualEditing";
 import React, {
   FunctionComponent,
@@ -189,12 +190,20 @@ const onLinesOfItsOwn: (
         return line ? `${indent}${line}` : line;
       })
       .join("\n");
-    const bare: boolean = RE_BARE_LIST_MARKER_LINE.test(before);
-    textarea.setSelectionRange(
-      bare ? lineStart : start - spacesBefore,
-      end + spacesAfter,
-    );
-    return `${bare ? "" : "\n"}${items}${textAfter ? "\n\n" : ""}`;
+    if (RE_BARE_LIST_MARKER_LINE.test(before)) {
+      /*
+       * Only the item's marker (and task box) is before the caret. An empty
+       * item is replaced by the pasted items; an item with text keeps its
+       * own marker and task box, and the pasted items go in before it, as in
+       * the visual editor. Deciding on what is before the caret alone turned
+       * "- [x] |rolled back deploy" into a paragraph: the marker and the tick
+       * went, and the item's text was left on a line of its own.
+       */
+      textarea.setSelectionRange(lineStart, end + spacesAfter);
+      return textAfter ? `${items}\n${before}` : items;
+    }
+    textarea.setSelectionRange(start - spacesBefore, end + spacesAfter);
+    return `\n${items}${textAfter ? "\n\n" : ""}`;
   }
   textarea.setSelectionRange(start - spacesBefore, end + spacesAfter);
   return `${textBefore ? "\n\n" : ""}${markdown}${textAfter ? "\n\n" : ""}`;
@@ -551,6 +560,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       editable.innerHTML += html;
       syncFromEditable();
       return;
+    }
+    // Chromium's caret just before a list it has just made goes into its item.
+    if (moveCaretIntoEmptyListAhead(editable, range)) {
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
     /*
      * A single paragraph goes in as its contents, so text pasted into the
@@ -1343,8 +1357,15 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     if (hasSelection) {
       execEditable("createLink", url);
     } else {
+      /*
+       * Wrapped in a paragraph, so a link put into a line goes in as that
+       * line's own inline content (insertHtmlAtCursorInEditable unwraps a
+       * single paragraph). A bare <a> was taken for a block: it split the
+       * line, and "See " plus the link saved as two paragraphs. Into the
+       * empty editor the paragraph goes in whole.
+       */
       insertHtmlAtCursorInEditable(
-        `<a href="${url.replace(/"/g, "&quot;")}">${url.replace(/</g, "&lt;")}</a>`,
+        `<p><a href="${url.replace(/"/g, "&quot;")}">${url.replace(/</g, "&lt;")}</a></p>`,
       );
     }
   };

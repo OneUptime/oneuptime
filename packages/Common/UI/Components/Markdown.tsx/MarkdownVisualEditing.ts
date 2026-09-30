@@ -425,6 +425,59 @@ const listItemsOf: (fragment: DocumentFragment) => Array<Element> | null = (
 };
 
 /*
+ * The empty first item of the list right after a caret that sits on the
+ * editor itself, or null. Once the Bullet or Numbered List button has made a
+ * list in the empty editor, Chromium leaves the selection on the editor
+ * itself, just before the list -- though it shows the caret in the list's
+ * empty first item, and types into it.
+ */
+const emptyListItemAfterEditorCaret: (
+  editable: HTMLElement,
+  range: Range,
+) => HTMLElement | null = (
+  editable: HTMLElement,
+  range: Range,
+): HTMLElement | null => {
+  if (range.startContainer !== editable) {
+    return null;
+  }
+  const next: ChildNode | undefined = editable.childNodes[range.startOffset];
+  const tag: string = tagOf(next);
+  const first: Element | null =
+    tag === "ul" || tag === "ol" ? (next as Element).firstElementChild : null;
+  return first && tagOf(first) === "li" && holdsNothing(first)
+    ? (first as HTMLElement)
+    : null;
+};
+
+/*
+ * Moves a collapsed caret that Chromium left on the editor itself, just
+ * before a list the Bullet or Numbered List button has just made, into that
+ * list's empty first item -- where the caret shows, and where typing goes.
+ * The editor's own inserts then go there too: left on the editor, a paste
+ * or the Code Block button went in above the list, with an empty bullet
+ * left under it ("restart the api\n\n-"). Returns whether it moved it.
+ */
+export const moveCaretIntoEmptyListAhead: (
+  editable: HTMLElement,
+  range: Range,
+) => boolean = (editable: HTMLElement, range: Range): boolean => {
+  if (!range.collapsed) {
+    return false;
+  }
+  const item: HTMLElement | null = emptyListItemAfterEditorCaret(
+    editable,
+    range,
+  );
+  if (!item) {
+    return false;
+  }
+  range.setStart(item, 0);
+  range.collapse(true);
+  return true;
+};
+
+/*
  * The list item whose list the items of a list inserted at the caret join:
  * the item the caret is in -- unless it is in a code block, a quote or a
  * table cell inside that item, which a list inserted there stays in.
@@ -436,20 +489,8 @@ const listItemAtCaret: (
   editable: HTMLElement,
   range: Range,
 ): HTMLElement | null => {
-  /*
-   * Once the Bullet or Numbered List button has made a list in the empty
-   * editor, Chromium leaves the selection on the editor itself, just before
-   * the list -- though it shows the caret in the list's empty first item,
-   * and types into it.
-   */
   if (range.startContainer === editable) {
-    const next: ChildNode | undefined = editable.childNodes[range.startOffset];
-    const tag: string = tagOf(next);
-    const first: Element | null =
-      tag === "ul" || tag === "ol" ? (next as Element).firstElementChild : null;
-    return first && tagOf(first) === "li" && holdsNothing(first)
-      ? (first as HTMLElement)
-      : null;
+    return emptyListItemAfterEditorCaret(editable, range);
   }
   let current: Node | null = range.startContainer;
   while (current && current !== editable) {

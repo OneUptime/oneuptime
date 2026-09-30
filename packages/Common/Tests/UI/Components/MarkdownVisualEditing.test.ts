@@ -8,6 +8,7 @@ import {
   deleteSelectionForInsert,
   insertBlocksAtCaret,
   isCaretOnEmptyLine,
+  moveCaretIntoEmptyListAhead,
 } from "../../../UI/Components/Markdown.tsx/MarkdownVisualEditing";
 
 /*
@@ -650,6 +651,65 @@ describe("insertBlocksAtCaret, a list in a list item", () => {
     );
 
     expect(root.querySelector("li:last-child > p")?.textContent).toBe("after");
+  });
+});
+
+/*
+ * After the Bullet or Numbered List button in the empty editor, Chromium
+ * leaves the selection on the editor itself, before the new list, while it
+ * shows (and types into) the caret in the list's empty first item.
+ */
+describe("moveCaretIntoEmptyListAhead", () => {
+  it("moves a caret just before a new bulleted list into its empty first item", () => {
+    const root: HTMLDivElement = mountHtml("<ul><li><br></li></ul>");
+    const range: Range = caretOn(root, 0);
+
+    expect(moveCaretIntoEmptyListAhead(root, range)).toBe(true);
+    expect(range.collapsed).toBe(true);
+    expect(range.startContainer).toBe(root.querySelector("li"));
+    expect(range.startOffset).toBe(0);
+  });
+
+  it("moves it into a new numbered list's empty first item too", () => {
+    const root: HTMLDivElement = mountHtml("<ol><li><br></li></ol>");
+    const range: Range = caretOn(root, 0);
+
+    expect(moveCaretIntoEmptyListAhead(root, range)).toBe(true);
+    expect(range.startContainer).toBe(root.querySelector("li"));
+  });
+
+  it("leaves a caret before a list whose first item has text", () => {
+    const root: HTMLDivElement = mountHtml("<ul><li>first</li></ul>");
+    const range: Range = caretOn(root, 0);
+
+    expect(moveCaretIntoEmptyListAhead(root, range)).toBe(false);
+    expect(range.startContainer).toBe(root);
+  });
+
+  it("leaves a caret on the editor that is not before a list", () => {
+    const root: HTMLDivElement = mountHtml("<p>Run:</p><ul><li><br></li></ul>");
+    const range: Range = caretOn(root, 0);
+
+    expect(moveCaretIntoEmptyListAhead(root, range)).toBe(false);
+    expect(range.startContainer).toBe(root);
+  });
+
+  it("leaves a caret that is already inside a line", () => {
+    const root: HTMLDivElement = mountHtml("<ul><li>first</li></ul>");
+    const range: Range = caretAt(root, "first", 2);
+
+    expect(moveCaretIntoEmptyListAhead(root, range)).toBe(false);
+    expect(caretText(range)).toBe("fi");
+  });
+
+  it("leaves a selection alone", () => {
+    const root: HTMLDivElement = mountHtml("<ul><li><br></li></ul>");
+    const range: Range = document.createRange();
+    range.setStart(root, 0);
+    range.setEnd(root, 1);
+
+    expect(moveCaretIntoEmptyListAhead(root, range)).toBe(false);
+    expect(range.collapsed).toBe(false);
   });
 });
 

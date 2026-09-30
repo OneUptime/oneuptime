@@ -1957,6 +1957,148 @@ describe("MarkdownEditor blocks inserted into a line of text", () => {
 });
 
 /*
+ * The Link button with nothing selected puts the link into the line the
+ * caret is in. It went in as a bare <a>, which the insert took for a block:
+ * the line was split, and "Run this now" with a link after "Run " saved as
+ * "Run" and the link as two paragraphs, in every engine.
+ */
+describe("MarkdownEditor Link button with nothing selected", () => {
+  const LINK: string = "https://x.test/";
+
+  const clickLink: () => void = (): void => {
+    jest.spyOn(window, "prompt").mockReturnValue(LINK);
+    fireEvent.click(screen.getByTitle("Link"));
+  };
+
+  test("puts the link into the middle of a paragraph", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="Run this now" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("Run this now", 4);
+
+    clickLink();
+
+    expect(lastChange(onChange)).toBe(`Run [${LINK}](${LINK})this now`);
+  });
+
+  test("puts the link at the end of a paragraph", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue="See the runbook" onChange={onChange} />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("See the runbook", 15);
+
+    clickLink();
+
+    expect(lastChange(onChange)).toBe(`See the runbook[${LINK}](${LINK})`);
+  });
+
+  test("puts the link into a heading", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="# Title here" onChange={onChange} />);
+    stubBlinkExecCommand();
+    placeCaret("Title here", 6);
+
+    clickLink();
+
+    expect(lastChange(onChange)).toBe(`# Title [${LINK}](${LINK})here`);
+  });
+
+  test("puts the link into a list item", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor initialValue={"- Run this now"} onChange={onChange} />,
+    );
+    stubBlinkExecCommand();
+    placeCaret("Run this now", 4);
+
+    clickLink();
+
+    expect(lastChange(onChange)).toBe(`- Run [${LINK}](${LINK})this now`);
+  });
+
+  test("puts the link into the empty editor as a paragraph of its own", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    stubBlinkExecCommand();
+    act(() => {
+      editableOf().focus();
+    });
+    const range: Range = document.createRange();
+    range.setStart(editableOf(), 0);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    clickLink();
+
+    expect(lastChange(onChange)).toBe(`[${LINK}](${LINK})`);
+  });
+});
+
+/*
+ * After the Bullet or Numbered List button in the empty editor, Chromium
+ * leaves the selection on the editor itself, before the new list -- though it
+ * shows the caret, and types, in the list's empty first item. The editor's own
+ * inserts went where the selection was: above the list, leaving an empty
+ * bullet under what was pasted ("restart the api\n\n-").
+ */
+describe("MarkdownEditor inserts after Chromium's list button in the empty editor", () => {
+  const listJustMade: (html: string) => jest.Mock = (
+    html: string,
+  ): jest.Mock => {
+    const onChange: jest.Mock = jest.fn();
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    stubBlinkExecCommand();
+    const editable: HTMLElement = editableOf();
+    act(() => {
+      editable.focus();
+    });
+    editable.innerHTML = html;
+    const range: Range = document.createRange();
+    range.setStart(editable, 0);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    return onChange;
+  };
+
+  test("a line pasted then is the bulleted list's first item", () => {
+    const onChange: jest.Mock = listJustMade("<ul><li><br></li></ul>");
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "restart the api" }),
+    });
+
+    expect(lastChange(onChange)).toBe("- restart the api");
+  });
+
+  test("a line pasted then is the numbered list's first item", () => {
+    const onChange: jest.Mock = listJustMade("<ol><li><br></li></ol>");
+
+    fireEvent.paste(editableOf(), {
+      clipboardData: clipboardWith({ "text/plain": "restart the api" }),
+    });
+
+    expect(lastChange(onChange)).toBe("1. restart the api");
+  });
+
+  test("the Code Block button then puts its block in the list's item, not above the list", () => {
+    const onChange: jest.Mock = listJustMade("<ul><li><br></li></ul>");
+
+    fireEvent.click(screen.getByTitle("Code Block"));
+
+    const saved: string = lastChange(onChange);
+    expect(saved.startsWith("- ")).toBe(true);
+    expect(saved).toContain("code block");
+    expect(saved).not.toMatch(/\n-\s*$/);
+    expect(editableOf().firstElementChild?.tagName).toBe("UL");
+    expect(editableOf().querySelector("li pre")).not.toBeNull();
+  });
+});
+
+/*
  * A list pasted into a list item, or the Task List button's task, joins the
  * item's list. Kept inside the item, as a code block pasted there is, it was
  * a list nested in it: pasted into the empty item Enter leaves, it showed two
@@ -2321,6 +2463,80 @@ describe("MarkdownEditor paste in the markdown source", () => {
     });
 
     expect(lastChange(onChange)).toBe("Steps:\n\n- restart api\n- check logs");
+  });
+
+  /*
+   * Only an EMPTY item is replaced. Right after the marker of an item that
+   * has text, the pasted items go in before it and it keeps its marker and
+   * task box, as in the visual editor. Deciding on the text before the caret
+   * alone deleted the marker (and the tick of a done task) and left the
+   * item's text as a paragraph.
+   */
+  test("pastes a list right after an item's marker before that item, which keeps its marker", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- item one\n- item two"}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(13, 13);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>restart api</li><li>check logs</li></ul>",
+        "text/plain": "restart api\ncheck logs",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- item one\n- restart api\n- check logs\n- item two",
+    );
+  });
+
+  test("keeps a done task's marker and tick when a list is pasted right after them", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- [x] rolled back deploy\n- [ ] notify customers"}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(6, 6);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>check logs</li><li>restart api</li></ul>",
+        "text/plain": "check logs\nrestart api",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe(
+      "- check logs\n- restart api\n- [x] rolled back deploy\n- [ ] notify customers",
+    );
+  });
+
+  test("keeps the item's marker when a list is pasted over text that starts right after it", () => {
+    const onChange: jest.Mock = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue={"- [x] rolled back deploy"}
+        onChange={onChange}
+      />,
+    );
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+    textarea.setSelectionRange(6, 18);
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({
+        "text/html": "<ul><li>check logs</li></ul>",
+        "text/plain": "check logs",
+      }),
+    });
+
+    expect(lastChange(onChange)).toBe("- check logs\n- [x] deploy");
   });
 
   test("pastes a list at the end of a list item as the items after it", () => {
