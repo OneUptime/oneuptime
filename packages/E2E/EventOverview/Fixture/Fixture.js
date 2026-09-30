@@ -3326,6 +3326,24 @@ async function handleApi(method, options) {
     return ok({ aiRunId: ID.task(1) });
   }
 
+  /*
+   * The investigation box's shared conversation, which it reads on load and
+   * then polls. Nobody has asked OneUptime AI anything about these incidents
+   * and alerts, so every subject gets what InvestigationThreadService.getView
+   * answers for one without a thread. Sending a question, answering an
+   * approval and stopping a run are not modelled: a spec that does any of
+   * them finds it in `unhandled`.
+   */
+  if (url.endsWith("/ai-investigation/conversation")) {
+    return ok({
+      conversationId: null,
+      messages: [],
+      activeRun: null,
+      isBusy: false,
+      viewerUserId: people.maya.id.toString(),
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }
