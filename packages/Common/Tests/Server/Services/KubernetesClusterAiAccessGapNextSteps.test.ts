@@ -62,16 +62,12 @@ const AGENT_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
   aiBalanceBlocker: null,
 };
 
 const CLOSED_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: false,
-  isAutoRemediationEnabled: false,
-  isAiCommandExecutionEnabled: false,
   hasLlmProvider: false,
   aiBalanceBlocker: "This project's AI credit balance is used up.",
 };
@@ -293,8 +289,6 @@ const PRODUCED_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "remediation_disabled",
   "remediation_write_access_missing",
   "project_ai_disabled",
-  "project_auto_remediation_disabled",
-  "project_ai_command_execution_disabled",
   "llm_provider_missing",
 ];
 
@@ -302,12 +296,17 @@ const PRODUCED_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
  * Codes kept in the union for compatibility that the status no longer
  * produces: the AI agent replaced "bind a Runner" (no_runner_bound), a
  * kubernetes-agent row is never an advanced Runner any more
- * (credential_on_agent_runner), and last_access_check_failed never was.
+ * (credential_on_agent_runner), last_access_check_failed never was, and
+ * the project's "Enable auto-remediation" and "Enable AI command
+ * execution" switches were folded into Enable AI (project_ai_disabled),
+ * so their gaps went with them.
  */
 const RETIRED_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "no_runner_bound",
   "credential_on_agent_runner",
   "last_access_check_failed",
+  "project_auto_remediation_disabled",
+  "project_ai_command_execution_disabled",
 ];
 
 describe("KubernetesClusterAiAccessService gap next steps", () => {
@@ -462,16 +461,30 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
     expect(stepOf("project_ai_disabled")).toBe(
       "Enable AI under Project Settings → AI Features.",
     );
-    expect(stepOf("project_auto_remediation_disabled")).toBe(
-      "Enable auto-remediation under Project Settings → AI Features.",
-    );
-    expect(stepOf("project_ai_command_execution_disabled")).toBe(
-      'Turn on "Enable AI Command Execution" under Project Settings → AI Features.',
-    );
+    // Enable AI is the one switch on AI Features: nothing else sends there.
+    expect(
+      gaps
+        .filter((gap: KubernetesAiAccessGap) => {
+          return gap.nextStep.includes("AI Features");
+        })
+        .map((gap: KubernetesAiAccessGap) => {
+          return gap.code;
+        }),
+    ).toEqual(["project_ai_disabled"]);
     // Credits are still bought where credits live.
     expect(stepOf("ai_balance_insufficient")).toBe(
       "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).",
     );
+  });
+
+  it("no next step names a switch Enable AI replaced", async () => {
+    for (const entry of await everyGap()) {
+      const text: string = `${entry.scenario}: ${entry.gap.title} ${entry.gap.description} ${entry.gap.nextStep}`;
+
+      expect(text).not.toContain("Enable AI Command Execution");
+      expect(text).not.toMatch(/auto-remediation/i);
+      expect(text).not.toMatch(/command execution/i);
+    }
   });
 
   it("no next step still tells anyone to turn aiAccess on", async () => {

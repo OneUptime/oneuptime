@@ -68,8 +68,6 @@ const SUGGESTION_ID: ObjectID = new ObjectID(
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
   aiBalanceBlocker: null,
 };

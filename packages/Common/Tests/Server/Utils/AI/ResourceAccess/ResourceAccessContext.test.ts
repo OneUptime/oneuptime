@@ -66,8 +66,6 @@ function readyDocker(
     } as never,
     gates: {
       isAiEnabled: true,
-      isAutoRemediationEnabled: true,
-      isAiCommandExecutionEnabled: false,
       hasLlmProvider: true,
     },
   });
@@ -89,8 +87,6 @@ function hostWithoutAgent(): ResourceAiAccessStatus {
     agentRow: null,
     gates: {
       isAiEnabled: true,
-      isAutoRemediationEnabled: true,
-      isAiCommandExecutionEnabled: false,
       hasLlmProvider: true,
     },
   });
