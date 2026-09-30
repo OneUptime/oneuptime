@@ -6,10 +6,14 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import API, { RequestOptions } from "../../../Utils/API";
 import LlmType from "../../../Types/LLM/LlmType";
+import APIException from "../../../Types/Exception/ApiException";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import EgressGuardException, {
+  EgressFailureReason,
+} from "../../../Types/Exception/EgressGuardException";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import DataSourceEgressGuard from "../DataSource/EgressGuard";
+import DataSourceEgressGuard, { PinnedAgents } from "../DataSource/EgressGuard";
 
 export interface LLMToolDefinition {
   name: string;
@@ -139,6 +143,21 @@ const OLLAMA_RESERVED_REQUEST_KEYS: Set<string> = new Set([
   "tools",
   "stream",
 ]);
+
+/*
+ * Why the egress guard refused a provider URL, in words that do not name the
+ * host. Unreachable stays a single sentence: the guard uses it for both a
+ * failed lookup and a refused address, so they cannot be told apart.
+ */
+const EGRESS_REFUSAL_DESCRIPTIONS: Record<EgressFailureReason, string> = {
+  [EgressFailureReason.InvalidTarget]:
+    "the LLM provider base URL is not a valid http or https URL",
+  [EgressFailureReason.AddressBlocked]:
+    "the LLM provider base URL points to an address OneUptime is not allowed to connect to",
+  [EgressFailureReason.ResolutionFailed]:
+    "the LLM provider's host name could not be resolved",
+  [EgressFailureReason.Unreachable]: "the LLM provider could not be reached",
+};
 
 export default class LLMService {
   /*
@@ -747,17 +766,6 @@ export default class LLMService {
     );
   }
 
-  /**
-   * POST an OpenAI-style chat completion, reshaping and retrying when the
-   * endpoint rejects a generation parameter it does not support.
-   *
-   * This is error-driven rather than model-driven on purpose. Azure sends the
-   * deployment name in `model`, and operators name deployments whatever they
-   * like, so there is no reliable way to know up front whether a deployment is
-   * a reasoning model. The provider itself is the only authority, and it names
-   * the offending parameter in the 400 — one parameter per response, hence the
-   * loop.
-   */
   /*
    * Request options for a call to a tenant-configured LLM endpoint.
    *
@@ -773,29 +781,88 @@ export default class LLMService {
    * around it. Private ranges stay reachable on self-hosted installs, because
    * a self-hosted Ollama on 10.x is the documented deployment.
    */
-  private static async buildGuardedRequestOptions(
-    requestUrl: string,
-    options: RequestOptions,
-  ): Promise<RequestOptions> {
-    const { httpAgent, httpsAgent } =
-      await DataSourceEgressGuard.assertUrlAllowedAndPin(requestUrl, {
-        targetLabel: "LLM provider",
+  private static async buildGuardedRequestOptions(data: {
+    providerName: string;
+    requestUrl: string;
+    options: RequestOptions;
+    logAttributes: LogAttributes;
+  }): Promise<RequestOptions> {
+    let pinnedAgents: PinnedAgents;
+
+    try {
+      pinnedAgents = await DataSourceEgressGuard.assertUrlAllowedAndPin(
+        data.requestUrl,
+        {
+          targetLabel: "LLM provider",
+        },
+      );
+    } catch (error) {
+      // The guard's refusal names the host it refused.
+      throw this.toAddressFreeProviderError({
+        providerName: data.providerName,
+        error: error,
+        logAttributes: data.logAttributes,
       });
+    }
 
     return {
-      ...options,
+      ...data.options,
       doNotFollowRedirects: true,
-      httpAgent,
-      httpsAgent,
+      httpAgent: pinnedAgents.httpAgent,
+      httpsAgent: pinnedAgents.httpsAgent,
     };
   }
 
+  /*
+   * POST to a provider. A request that gets no response at all is thrown by
+   * API as "Request failed to <url>. <reason>", so it is rethrown without the
+   * address; a provider that answers with an error status is returned as an
+   * HTTPErrorResponse, as before.
+   */
+  private static async postToProvider(data: {
+    providerName: string;
+    requestUrl: string;
+    body: JSONObject;
+    headers: Headers;
+    options: RequestOptions;
+    logAttributes: LogAttributes;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    try {
+      return await API.post<JSONObject>({
+        url: URL.fromString(data.requestUrl),
+        data: data.body,
+        headers: data.headers,
+        options: data.options,
+      });
+    } catch (error) {
+      throw this.toAddressFreeProviderError({
+        providerName: data.providerName,
+        error: error,
+        timeoutInMs: data.options.timeout,
+        logAttributes: data.logAttributes,
+      });
+    }
+  }
+
+  /**
+   * POST an OpenAI-style chat completion, reshaping and retrying when the
+   * endpoint rejects a generation parameter it does not support.
+   *
+   * This is error-driven rather than model-driven on purpose. Azure sends the
+   * deployment name in `model`, and operators name deployments whatever they
+   * like, so there is no reliable way to know up front whether a deployment is
+   * a reasoning model. The provider itself is the only authority, and it names
+   * the offending parameter in the 400 — one parameter per response, hence the
+   * loop.
+   */
   private static async postOpenAIChatCompletion(data: {
+    providerName: string;
     requestUrl: string;
     headers: Headers;
     config: LLMProviderConfig;
     modelName: string;
     request: LLMCompletionRequest;
+    logAttributes: LogAttributes;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     let adaptation: OpenAIRequestAdaptation = this.getInitialRequestAdaptation(
       data.config,
@@ -817,13 +884,15 @@ export default class LLMService {
      * DNS round trips (and a rebind window between them).
      */
     const requestOptions: RequestOptions =
-      await this.buildGuardedRequestOptions(
-        data.requestUrl,
-        this.buildRequestPolicy({
+      await this.buildGuardedRequestOptions({
+        providerName: data.providerName,
+        requestUrl: data.requestUrl,
+        options: this.buildRequestPolicy({
           request: data.request,
           defaultTimeoutInMs: 120000,
         }),
-      );
+        logAttributes: data.logAttributes,
+      });
 
     const post: () => Promise<
       HTTPResponse<JSONObject> | HTTPErrorResponse
@@ -840,11 +909,13 @@ export default class LLMService {
         attemptedTokenLimitParams.add(TokenLimitParam.MaxTokens);
       }
 
-      return API.post<JSONObject>({
-        url: URL.fromString(data.requestUrl),
-        data: body,
+      return this.postToProvider({
+        providerName: data.providerName,
+        requestUrl: data.requestUrl,
+        body: body,
         headers: data.headers,
         options: requestOptions,
+        logAttributes: data.logAttributes,
       });
     };
 
@@ -967,6 +1038,122 @@ export default class LLMService {
     throw new BadDataException(
       `${data.providerName} API request failed. Review the provider configuration and try again.`,
     );
+  }
+
+  /*
+   * The error for a provider that could not be reached, rebuilt so that it
+   * never names the provider's address.
+   *
+   * API reports a request that got no response as "Request failed to <url>.
+   * <reason>", and the egress guard names the host it refused. Those messages
+   * end up in LlmLog, chat replies and the investigation panel, which every
+   * project member can read, and for the global provider that exposes an LLM
+   * server tenants were never given. So the message says what went wrong but
+   * not where, and the operator gets the original in the server log.
+   *
+   * The exception type (and the guard's reason) is kept, so status codes and
+   * retry classification are unchanged. The original error is not attached:
+   * an AxiosError carries the URL and the request headers, credentials
+   * included.
+   */
+  private static toAddressFreeProviderError(data: {
+    providerName: string;
+    error: unknown;
+    timeoutInMs?: number | undefined;
+    logAttributes: LogAttributes;
+  }): Error {
+    logger.error(
+      `${data.providerName} API request failed before the provider responded: ${
+        data.error instanceof Error ? data.error.message : String(data.error)
+      }`,
+      data.logAttributes,
+    );
+
+    if (data.error instanceof EgressGuardException) {
+      return new EgressGuardException(
+        `${data.providerName} API request failed: ${
+          EGRESS_REFUSAL_DESCRIPTIONS[data.error.reason]
+        }.`,
+        data.error.reason,
+      );
+    }
+
+    return new APIException(
+      `${data.providerName} API request failed: ${this.describeTransportFailure(
+        data.error,
+        data.timeoutInMs,
+      )}.`,
+    );
+  }
+
+  private static describeTransportFailure(
+    error: unknown,
+    timeoutInMs: number | undefined,
+  ): string {
+    // API wraps the transport error, and its code is what says what happened.
+    const cause: unknown =
+      error instanceof APIException && error.error ? error.error : error;
+    const rawCode: unknown =
+      cause && typeof cause === "object"
+        ? (cause as { code?: unknown }).code
+        : undefined;
+    const code: string = typeof rawCode === "string" ? rawCode : "";
+    const message: string = (
+      cause instanceof Error ? cause.message : String(cause)
+    ).toLowerCase();
+
+    // axios' own per-attempt timeout: "timeout of 120000ms exceeded".
+    if (code === "ECONNABORTED" || message.includes("timeout of")) {
+      if (!timeoutInMs) {
+        return "the LLM provider did not respond in time";
+      }
+
+      const seconds: number = Math.round(timeoutInMs / 1000);
+
+      return `the LLM provider did not respond within ${
+        seconds >= 1
+          ? `${seconds} second${seconds === 1 ? "" : "s"}`
+          : `${timeoutInMs} ms`
+      }`;
+    }
+
+    if (code === "ETIMEDOUT" || code === "ESOCKETTIMEDOUT") {
+      return "the connection to the LLM provider timed out";
+    }
+
+    if (code === "ECONNREFUSED") {
+      return "the LLM provider refused the connection";
+    }
+
+    if (
+      code === "ECONNRESET" ||
+      code === "EPIPE" ||
+      message.includes("socket hang up")
+    ) {
+      return "the LLM provider closed the connection before responding";
+    }
+
+    if (code === "ENOTFOUND" || code === "EAI_AGAIN") {
+      return "the LLM provider's host name could not be resolved";
+    }
+
+    if (
+      code === "EHOSTUNREACH" ||
+      code === "ENETUNREACH" ||
+      code === "EADDRNOTAVAIL"
+    ) {
+      return "the LLM provider could not be reached over the network";
+    }
+
+    // Certificate and handshake failures, e.g. CERT_HAS_EXPIRED.
+    const tlsFailureCodeRegex: RegExp =
+      /^(CERT_|ERR_TLS_|ERR_SSL_|EPROTO$)|SELF_SIGNED|UNABLE_TO_/;
+
+    if (tlsFailureCodeRegex.test(code)) {
+      return "a secure connection to the LLM provider could not be established";
+    }
+
+    return "the LLM provider could not be reached";
   }
 
   /*
@@ -1102,8 +1289,14 @@ export default class LLMService {
       "https://api.openai.com/v1";
     const modelName: string =
       config.modelName || defaultModels[config.llmType] || "gpt-5.1";
+    const logAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await this.postOpenAIChatCompletion({
+        providerName: config.llmType.toString(),
         requestUrl: this.buildOpenAICompatibleChatCompletionsUrl(baseUrl),
         headers: {
           "Content-Type": "application/json",
@@ -1119,12 +1312,8 @@ export default class LLMService {
         config: config,
         modelName: modelName,
         request: request,
+        logAttributes: logAttributes,
       });
-
-    const logAttributes: LogAttributes = {
-      llmType: config.llmType,
-      modelName: modelName,
-    };
 
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
@@ -1192,9 +1381,14 @@ export default class LLMService {
     const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
       config.baseUrl,
     );
+    const logAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await this.postOpenAIChatCompletion({
+        providerName: "Azure OpenAI",
         requestUrl: requestUrl,
         headers: {
           "api-key": config.apiKey,
@@ -1203,12 +1397,8 @@ export default class LLMService {
         config: config,
         modelName: modelName,
         request: request,
+        logAttributes: logAttributes,
       });
-
-    const logAttributes: LogAttributes = {
-      llmType: config.llmType,
-      modelName: modelName,
-    };
 
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
@@ -1399,29 +1589,32 @@ export default class LLMService {
     }
 
     const anthropicRequestUrl: string = `${baseUrl}/messages`;
+    const anthropicLogAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>({
-        url: URL.fromString(anthropicRequestUrl),
-        data: requestData,
+      await this.postToProvider({
+        providerName: "Anthropic",
+        requestUrl: anthropicRequestUrl,
+        body: requestData,
         headers: {
           "x-api-key": config.apiKey,
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
-        options: await this.buildGuardedRequestOptions(
-          anthropicRequestUrl,
-          this.buildRequestPolicy({
+        options: await this.buildGuardedRequestOptions({
+          providerName: "Anthropic",
+          requestUrl: anthropicRequestUrl,
+          options: this.buildRequestPolicy({
             request: request,
             defaultTimeoutInMs: 120000,
           }),
-        ),
+          logAttributes: anthropicLogAttributes,
+        }),
+        logAttributes: anthropicLogAttributes,
       });
-
-    const anthropicLogAttributes: LogAttributes = {
-      llmType: config.llmType,
-      modelName: modelName,
-    };
 
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
@@ -1624,27 +1817,30 @@ export default class LLMService {
     }
 
     const ollamaRequestUrl: string = `${config.baseUrl}/api/chat`;
-
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>({
-        url: URL.fromString(ollamaRequestUrl),
-        data: requestData,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        options: await this.buildGuardedRequestOptions(
-          ollamaRequestUrl,
-          this.buildRequestPolicy({
-            request: request,
-            defaultTimeoutInMs: 300000, // Ollama may be slower
-          }),
-        ),
-      });
-
     const ollamaLogAttributes: LogAttributes = {
       llmType: config.llmType,
       modelName: modelName,
     };
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await this.postToProvider({
+        providerName: "Ollama",
+        requestUrl: ollamaRequestUrl,
+        body: requestData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        options: await this.buildGuardedRequestOptions({
+          providerName: "Ollama",
+          requestUrl: ollamaRequestUrl,
+          options: this.buildRequestPolicy({
+            request: request,
+            defaultTimeoutInMs: 300000, // Ollama may be slower
+          }),
+          logAttributes: ollamaLogAttributes,
+        }),
+        logAttributes: ollamaLogAttributes,
+      });
 
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
