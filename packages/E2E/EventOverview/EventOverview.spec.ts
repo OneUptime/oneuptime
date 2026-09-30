@@ -3026,12 +3026,14 @@ async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
     .locator("#ai-investigation")
     .evaluate((region: Element): Array<PanelOffender> => {
       const offenders: Array<PanelOffender> = [];
+      // Declared in here: this callback runs in the page, not in Node.
+      const zeroAlphaRgba: RegExp = /rgba\([^)]*,\s*0\)$/;
       const isTransparent: (color: string) => boolean = (
         color: string,
       ): boolean => {
         return (
           color === "transparent" ||
-          /rgba\([^)]*,\s*0\)$/.test(color) ||
+          zeroAlphaRgba.test(color) ||
           color === "rgba(0, 0, 0, 0)"
         );
       };
