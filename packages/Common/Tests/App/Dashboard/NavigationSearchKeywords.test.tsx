@@ -106,6 +106,14 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["redis", "Databases", PageMap.DATABASE_SERVERS],
   ["mongodb", "Databases", PageMap.DATABASE_SERVERS],
   ["sql server", "Databases", PageMap.DATABASE_SERVERS],
+  ["kafka", "Queues", PageMap.MESSAGE_QUEUES],
+  ["rabbitmq", "Queues", PageMap.MESSAGE_QUEUES],
+  ["sqs", "Queues", PageMap.MESSAGE_QUEUES],
+  ["service bus", "Queues", PageMap.MESSAGE_QUEUES],
+  ["pub/sub", "Queues", PageMap.MESSAGE_QUEUES],
+  ["consumer lag", "Queues", PageMap.MESSAGE_QUEUES],
+  ["dead letter", "Queues", PageMap.MESSAGE_QUEUES],
+  ["message queue", "Queues", PageMap.MESSAGE_QUEUES],
 ];
 
 function navbar(): React.ReactElement {

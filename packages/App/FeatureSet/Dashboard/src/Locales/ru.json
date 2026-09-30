@@ -80,6 +80,8 @@
       "servicesDescription": "Каталогизируйте каждый сервис, который вы запускаете.",
       "databasesTitle": "Базы данных",
       "databasesDescription": "Все базы данных, к которым обращаются ваши приложения, с метриками движка.",
+      "queuesTitle": "Очереди",
+      "queuesDescription": "Очереди сообщений и топики из ваших трассировок и брокеров.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Мониторинг кластеров Kubernetes.",
       "dockerTitle": "Docker",

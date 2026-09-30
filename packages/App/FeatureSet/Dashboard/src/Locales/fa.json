@@ -80,6 +80,8 @@
       "servicesDescription": "همه سرویس‌هایی را که اجرا می‌کنید فهرست کنید.",
       "databasesTitle": "پایگاه‌های داده",
       "databasesDescription": "هر پایگاه داده‌ای که برنامه‌های شما از آن پرس‌وجو می‌کنند، همراه با معیارهای موتور.",
+      "queuesTitle": "صف‌ها",
+      "queuesDescription": "صف‌های پیام و موضوع‌ها از ترِیس‌ها و کارگزارهای شما.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "خوشه‌های Kubernetes را پایش کنید.",
       "dockerTitle": "Docker",

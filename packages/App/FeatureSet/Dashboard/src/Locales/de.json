@@ -80,6 +80,8 @@
       "servicesDescription": "Katalogisieren Sie jeden Dienst, den Sie betreiben.",
       "databasesTitle": "Datenbanken",
       "databasesDescription": "Jede Datenbank, die Ihre Anwendungen abfragen, mit Engine-Metriken.",
+      "queuesTitle": "Warteschlangen",
+      "queuesDescription": "Nachrichtenwarteschlangen und Topics aus Ihren Traces und Brokern.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetes-Cluster überwachen.",
       "dockerTitle": "Docker",

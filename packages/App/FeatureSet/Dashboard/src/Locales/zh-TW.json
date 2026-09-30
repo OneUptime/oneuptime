@@ -80,6 +80,8 @@
       "servicesDescription": "為運行的每個服務建立目錄。",
       "databasesTitle": "資料庫",
       "databasesDescription": "應用程式查詢的每個資料庫，以及引擎指標。",
+      "queuesTitle": "佇列",
+      "queuesDescription": "來自追蹤與訊息代理的訊息佇列與主題。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "監測 Kubernetes 叢集。",
       "dockerTitle": "Docker",

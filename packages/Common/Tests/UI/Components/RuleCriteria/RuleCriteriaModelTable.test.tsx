@@ -332,9 +332,9 @@ More details stay here.
       },
     );
 
-    expect(staticRuleFormFiles).toHaveLength(66);
-    expect(helpFormFiles).toHaveLength(59);
-    expect(helpMarkdown).toHaveLength(65);
+    expect(staticRuleFormFiles).toHaveLength(68);
+    expect(helpFormFiles).toHaveLength(61);
+    expect(helpMarkdown).toHaveLength(67);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

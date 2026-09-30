@@ -447,6 +447,50 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "indigo",
       category: resourcesCategory,
     },
+    /*
+     * Queues span every broker and platform (Kafka, RabbitMQ, SQS, Pub/Sub,
+     * Service Bus, ...), so they sit with the cross-platform catalogs, next
+     * to Databases. Keep the copy and keywords clear of the short aliases of
+     * Real User Monitoring and Kubernetes ("instrumented" hides one): each
+     * alias must still narrow the catalog to exactly one product.
+     */
+    {
+      title: t("navbar.items.queuesTitle", "Queues"),
+      keywords: [
+        "queue",
+        "message queue",
+        "messaging",
+        "broker",
+        "kafka",
+        "rabbitmq",
+        "activemq",
+        "jms",
+        "sqs",
+        "sns",
+        "pub/sub",
+        "pubsub",
+        "service bus",
+        "event hubs",
+        "pulsar",
+        "rocketmq",
+        "nats",
+        "bullmq",
+        "topics",
+        "consumer lag",
+        "dead letter",
+      ],
+      description: t(
+        "navbar.items.queuesDescription",
+        "Message queues and topics from your traces and brokers.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MESSAGE_QUEUES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.MESSAGE_QUEUES],
+      icon: IconProp.QueueList,
+      iconColor: "indigo",
+      category: resourcesCategory,
+    },
     {
       title: t("navbar.items.rumTitle"),
       keywords: [

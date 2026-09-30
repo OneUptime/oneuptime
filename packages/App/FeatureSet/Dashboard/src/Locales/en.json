@@ -80,6 +80,8 @@
       "servicesDescription": "Catalog every service you run.",
       "databasesTitle": "Databases",
       "databasesDescription": "Every database your applications query, with engine metrics.",
+      "queuesTitle": "Queues",
+      "queuesDescription": "Message queues and topics from your traces and brokers.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitor Kubernetes clusters.",
       "dockerTitle": "Docker",

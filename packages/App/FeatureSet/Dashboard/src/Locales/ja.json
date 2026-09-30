@@ -80,6 +80,8 @@
       "servicesDescription": "実行中のすべてのサービスをカタログ化。",
       "databasesTitle": "データベース",
       "databasesDescription": "アプリケーションがクエリするすべてのデータベースとエンジンメトリクス。",
+      "queuesTitle": "キュー",
+      "queuesDescription": "トレースとブローカーから検出したメッセージキューとトピック。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetesクラスターを監視。",
       "dockerTitle": "Docker",
