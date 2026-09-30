@@ -23,8 +23,12 @@ export interface TeamComplianceRuleJSON {
   settingId: string;
   ruleType: ComplianceRuleType;
   enabled: boolean;
-  // Null means "any channel" (and is always null for method rules).
-  notificationChannel: ComplianceNotificationChannel | null;
+  /*
+   * The channels an on-call rule insists on - a member needs a rule on each
+   * - in catalog order. Empty means "any channel", and is always empty for
+   * method rules.
+   */
+  notificationChannels: Array<ComplianceNotificationChannel>;
   // Which severity list scopes the rule; null for method rules.
   severityKind: ComplianceSeverityKind | null;
   /*

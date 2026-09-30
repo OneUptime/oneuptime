@@ -213,11 +213,11 @@ interface ChannelRuleData {
  *    computation per member: each of those resolves the project's entire
  *    responder set.
  *  - method rules: ONE read per channel of the members' verified methods.
- *  - on-call rules with a channel: the project's severities of the kinds
+ *  - on-call rules with channels: the project's severities of the kinds
  *    needed, ONE read of the members' notification rules of the types needed
  *    (with the owner of every method each rule names), and ONE read per
  *    channel - per thousand referenced methods - of the method rows those
- *    rules point at.
+ *    rules point at. A channel several rules insist on is read once.
  *  - the project's channel switches, when a rule relies on Call, SMS,
  *    WhatsApp or Telegram: with the channel switched off for the project, a
  *    member who meets a Call, SMS or Telegram rule is still never notified
@@ -277,6 +277,8 @@ export default class TeamComplianceService {
           _id: true,
           ruleType: true,
           enabled: true,
+          // Both channel columns: see getStoredChannels.
+          notificationChannels: true,
           notificationChannel: true,
           // Carries the mark a severity delete leaves on a rule it emptied.
           options: true,
@@ -586,7 +588,7 @@ export default class TeamComplianceService {
   }
 
   /*
-   * Everything the on-call rules WITH a channel need. Readiness cannot answer
+   * Everything the on-call rules WITH channels need. Readiness cannot answer
    * them - its coverage cells carry no channel - so the members' rules are read
    * directly, together with the method rows they point at.
    */
@@ -1013,7 +1015,8 @@ export default class TeamComplianceService {
       settingId: TeamComplianceService.idOf(setting) || "",
       ruleType: setting.ruleType?.toString() || undefined,
       enabled: setting.enabled === true,
-      notificationChannel: setting.notificationChannel?.toString() || null,
+      notificationChannels:
+        TeamComplianceSettingRules.getStoredChannels(setting),
       createdAt: setting.createdAt || undefined,
       incidentSeverities: TeamComplianceService.toSeverityInputs(
         setting.incidentSeverities,

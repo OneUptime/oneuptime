@@ -9,7 +9,7 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import ColumnType from "../../../Types/Database/ColumnType";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Permission from "../../../Types/Permission";
 import ComplianceNotificationChannel from "../../../Types/Team/ComplianceNotificationChannel";
 import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
@@ -20,17 +20,20 @@ import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs"
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
 /*
- * Schema-level guarantees of TeamComplianceSetting after rules gained a
- * channel and a severity scope.
+ * Schema-level guarantees of TeamComplianceSetting after rules gained
+ * channels and a severity scope.
  *
  * None of this is visible to a service or server test - they pass just as
  * happily against a column the API cannot write, a scope a project viewer can
  * edit, or a rule table a lapsed licence can still change. So this pins the
- * three new columns (type, related model, nullability, who may read and
- * write them), that nothing about the table's gating changed (enterprise
- * only, the same table permissions, no workflow components), that the unique
- * (teamId, ruleType) index is gone, and that the API layer turns a posted
- * severity list into models.
+ * scope columns (type, related model, nullability, who may read and write
+ * them) - notificationChannels, the list of channels a member needs a rule
+ * on, and notificationChannel, the deprecated single channel kept beside it
+ * for older clients and builds - that nothing about the table's gating
+ * changed (enterprise only, the same table permissions, no workflow
+ * components), that the unique (teamId, ruleType) index is gone, and that the
+ * API layer turns a posted severity list into models and keeps a posted
+ * channel list a list.
  */
 
 type ModelType = { new (): BaseModel };
@@ -53,13 +56,22 @@ const READERS: Array<Permission> = [
   Permission.ReadProjectTeam,
 ];
 
-// The columns that together say what a rule checks.
+/*
+ * The columns that together say what a rule checks. notificationChannel is
+ * written with the list on every save (it holds the list's first channel), so
+ * it is as much a part of the scope as the list.
+ */
 const SCOPE_COLUMNS: Array<string> = [
   "ruleType",
+  "notificationChannels",
   "notificationChannel",
   "incidentSeverities",
   "alertSeverities",
 ];
+
+const ALL_CHANNELS: Array<ComplianceNotificationChannel> = Object.values(
+  ComplianceNotificationChannel,
+);
 
 type AccessControlForFunction = (
   column: string,
@@ -167,7 +179,47 @@ describe("TeamComplianceSetting - the table", () => {
 });
 
 describe("TeamComplianceSetting - the scope columns", () => {
-  test("notificationChannel is optional short text: null means any channel", () => {
+  test("notificationChannels is an optional JSON list, with no default: empty or null means any channel", () => {
+    const metadata: TableColumnMetadata = model.getTableColumnMetadata(
+      "notificationChannels",
+    );
+
+    expect(metadata.type).toBe(TableColumnType.JSON);
+    expect(metadata.required).toBe(false);
+    expect(metadata.title).toBe("Notification Channels");
+    expect(metadata.defaultValue).toBeUndefined();
+    expect(metadata.isDefaultValueColumn).toBeFalsy();
+    expect(columnArgs("notificationChannels")?.options).toMatchObject({
+      type: ColumnType.JSON,
+      nullable: true,
+    });
+    // Rows from before the column are backfilled by a migration, not a default.
+    expect(columnArgs("notificationChannels")?.options.default).toBeUndefined();
+    expect(ColumnType.JSON).toBe("jsonb");
+  });
+
+  test("notificationChannels is a column on the rule row, not a relation", () => {
+    expect(columnArgs("notificationChannels")).toBeDefined();
+    expect(relationArgs("notificationChannels")).toBeUndefined();
+    expect(
+      model.getTableColumnMetadata("notificationChannels").modelType,
+    ).toBeUndefined();
+  });
+
+  test("notificationChannels' API description names every channel it accepts, and says a member needs every one", () => {
+    const description: string =
+      model.getTableColumnMetadata("notificationChannels").description || "";
+
+    for (const channel of ALL_CHANNELS) {
+      expect(description).toContain(channel);
+    }
+
+    expect(description).toMatch(/On-call rules only/);
+    expect(description).toMatch(/\beach member needs a rule on every one\b/);
+    expect(description).toMatch(/Leave empty to accept any channel\.$/);
+  });
+
+  test("notificationChannel stays optional short text, and says it is deprecated in favour of the list", () => {
     const metadata: TableColumnMetadata = model.getTableColumnMetadata(
       "notificationChannel",
     );
@@ -175,6 +227,16 @@ describe("TeamComplianceSetting - the scope columns", () => {
     expect(metadata.type).toBe(TableColumnType.ShortText);
     expect(metadata.required).toBe(false);
     expect(metadata.title).toBe("Notification Channel");
+    expect(metadata.description).toMatch(
+      /^Deprecated: use notificationChannels\./,
+    );
+    // What a client that only knows this field needs to hear.
+    expect(metadata.description).toContain(
+      "first of the rule's notification channels",
+    );
+    expect(metadata.description).toContain(
+      "Sending this field without notificationChannels sets the rule to that one channel",
+    );
     expect(columnArgs("notificationChannel")?.options).toMatchObject({
       type: ColumnType.ShortText,
       length: ColumnLength.ShortText,
@@ -183,13 +245,36 @@ describe("TeamComplianceSetting - the scope columns", () => {
     expect(columnArgs("notificationChannel")?.options.default).toBeUndefined();
   });
 
-  test("notificationChannel's API description names every channel it accepts", () => {
+  test("notificationChannel's API description still names every channel it accepts", () => {
     const description: string =
       model.getTableColumnMetadata("notificationChannel").description || "";
 
-    for (const channel of Object.values(ComplianceNotificationChannel)) {
+    for (const channel of ALL_CHANNELS) {
       expect(description).toContain(channel);
     }
+  });
+
+  test("both channel columns are documented for the API: a client of either finds its field", () => {
+    for (const column of ["notificationChannels", "notificationChannel"]) {
+      expect({
+        column,
+        hidden: Boolean(
+          model.getTableColumnMetadata(column).hideColumnInDocumentation,
+        ),
+        computed: Boolean(model.getTableColumnMetadata(column).computed),
+      }).toEqual({ column, hidden: false, computed: false });
+    }
+  });
+
+  test("the two channel columns have exactly the same access control, so writing one never refuses the other", () => {
+    /*
+     * The settings service writes BOTH columns whenever a payload sends
+     * either (the list, and its first channel beside it), under the caller's
+     * permissions.
+     */
+    expect(accessControlFor("notificationChannels")).toEqual(
+      accessControlFor("notificationChannel"),
+    );
   });
 
   test.each([
@@ -245,8 +330,9 @@ describe("TeamComplianceSetting - the scope columns", () => {
 
   test("whoever may edit any part of a rule may edit all of it", () => {
     /*
-     * The settings service writes the channel and severity columns when a
-     * rule type changes (clearing what the new type does not use), under the
+     * The settings service writes both channel columns and the severity
+     * columns when a rule type changes (clearing what the new type does not
+     * use), and both channel columns whenever either is sent, under the
      * caller's permissions - so they must be exactly as editable as ruleType.
      */
     const ruleTypeAccess: ColumnAccessControl | undefined =
@@ -343,5 +429,95 @@ describe("TeamComplianceSetting - a rule as the API reads and writes it", () => 
     );
 
     expect(setting.notificationChannel).toBeNull();
+  });
+
+  test("a posted channel list stays a list of the channels posted, both ways", () => {
+    const json: JSONObject = {
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Call,
+    };
+
+    const setting: TeamComplianceSetting = BaseModel.fromJSONObject(
+      json,
+      TeamComplianceSetting,
+    );
+
+    /*
+     * A JSON column, not an entity list: the channels are not turned into
+     * models the way a severity list is.
+     */
+    expect(setting.notificationChannels).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(setting.notificationChannel).toBe(
+      ComplianceNotificationChannel.Call,
+    );
+
+    const back: JSONObject = BaseModel.toJSONObject(
+      setting,
+      TeamComplianceSetting,
+    );
+
+    expect(back["notificationChannels"]).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(back["notificationChannel"]).toBe(
+      ComplianceNotificationChannel.Call,
+    );
+    // And over the wire, as the API sends it.
+    expect(JSON.parse(JSON.stringify(back))["notificationChannels"]).toEqual([
+      "Call",
+      "Push",
+    ]);
+  });
+
+  test("every channel survives the trip in a list", () => {
+    const setting: TeamComplianceSetting = BaseModel.fromJSONObject(
+      {
+        ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+        notificationChannels: ALL_CHANNELS,
+      },
+      TeamComplianceSetting,
+    );
+
+    expect(
+      BaseModel.toJSONObject(setting, TeamComplianceSetting)[
+        "notificationChannels"
+      ],
+    ).toEqual(ALL_CHANNELS);
+  });
+
+  test.each<[string, JSONValue]>([
+    ["an empty list", []],
+    ["null", null],
+  ])(
+    "a channel list cleared to %s arrives as it was sent - 'any channel'",
+    (_label: string, value: JSONValue) => {
+      const setting: TeamComplianceSetting = BaseModel.fromJSONObject(
+        {
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          notificationChannels: value,
+        },
+        TeamComplianceSetting,
+      );
+
+      expect(setting.notificationChannels).toEqual(value);
+    },
+  );
+
+  test("a rule posted with neither channel field has neither set", () => {
+    const setting: TeamComplianceSetting = BaseModel.fromJSONObject(
+      { ruleType: ComplianceRuleType.HasAlertOnCallRules },
+      TeamComplianceSetting,
+    );
+
+    expect(setting.notificationChannels).toBeUndefined();
+    expect(setting.notificationChannel).toBeUndefined();
   });
 });

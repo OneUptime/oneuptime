@@ -45,7 +45,11 @@ import path from "path";
  *    method a UserNotificationRule can point at, and "has a verification
  *    step" exactly where the method table has an isVerified column;
  *  - every lookup and predicate, per rule type;
- *  - the exact titles and sentences, since they are what a user reads;
+ *  - the one canonical form of a rule's channels (normaliseChannels), which
+ *    storage, the duplicate check and every reader agree on;
+ *  - the exact titles and sentences, since they are what a user reads - for
+ *    a rule on no channel, on one, and on several (a rule on several needs a
+ *    rule on EACH, and says so);
  *  - that the catalog stays pure, because it is bundled into the Dashboard.
  */
 
@@ -272,7 +276,7 @@ describe("ComplianceRuleType and ComplianceNotificationChannel - stored values",
     ]);
   });
 
-  test("every channel fits the notificationChannel column (varchar 100)", () => {
+  test("every channel fits the notificationChannel column (varchar 100), which still holds a rule's first channel", () => {
     for (const channel of ALL_CHANNELS) {
       expect(channel.length).toBeLessThanOrEqual(100);
     }
@@ -347,7 +351,7 @@ describe("COMPLIANCE_RULE_DEFINITIONS - the catalog", () => {
         ruleType: expected.ruleType,
         category: ComplianceRuleCategory.OnCallRule,
         title: expected.title,
-        description: `Members are notified when an ${expected.subject} on-call policy pages them - for the severities and channel you choose.`,
+        description: `Members are notified when an ${expected.subject} on-call policy pages them - for the severities and channels you choose.`,
         notificationRuleType: expected.notificationRuleType,
         severityKind: expected.severityKind,
         subject: expected.subject,
@@ -627,6 +631,197 @@ describe("ComplianceRule - lookups and predicates", () => {
   );
 });
 
+/*
+ * What a rule's channel list can hold that this build does not know - what an
+ * older client, a newer build or a hand-edited row might leave there.
+ */
+const NOT_CHANNELS: Array<unknown> = [
+  "Pager",
+  "call",
+  "",
+  "Microsoft Teams",
+  "Push notification",
+  "HasNotificationCallMethod",
+  3,
+  true,
+  null,
+  undefined,
+  {},
+  ["Call"],
+];
+
+// What a rule with no channels can carry: "any channel", however it is said.
+const NO_CHANNELS: Array<Array<string> | null | undefined> = [
+  undefined,
+  null,
+  [],
+];
+
+// Every subset of the nine channels, each in catalog order.
+const everyChannelSubset: () => Array<
+  Array<ComplianceNotificationChannel>
+> = (): Array<Array<ComplianceNotificationChannel>> => {
+  const subsets: Array<Array<ComplianceNotificationChannel>> = [];
+
+  for (let mask: number = 0; mask < 1 << ALL_CHANNELS.length; mask++) {
+    subsets.push(
+      ALL_CHANNELS.filter(
+        (_channel: ComplianceNotificationChannel, index: number): boolean => {
+          return (mask & (1 << index)) !== 0;
+        },
+      ),
+    );
+  }
+
+  return subsets;
+};
+
+// Every pair of channels, each pair in catalog order.
+const everyChannelPair: () => Array<
+  [ChannelExpectation, ChannelExpectation]
+> = (): Array<[ChannelExpectation, ChannelExpectation]> => {
+  const pairs: Array<[ChannelExpectation, ChannelExpectation]> = [];
+
+  CHANNELS.forEach((first: ChannelExpectation, index: number): void => {
+    for (const second of CHANNELS.slice(index + 1)) {
+      pairs.push([first, second]);
+    }
+  });
+
+  return pairs;
+};
+
+describe("ComplianceRule.normaliseChannels", () => {
+  /*
+   * The one canonical form of a rule's channels. The settings service stores
+   * it and compares duplicates with it, and the evaluator and the Dashboard
+   * read with it - so a rule picked as "Push and Call" is the same rule as
+   * "Call and Push" everywhere, and reads the same wherever it is shown.
+   */
+  test.each<[string, unknown]>([
+    ["undefined", undefined],
+    ["null", null],
+    ["one channel as a bare string", "Call"],
+    ["a comma-separated string", "Call,Push"],
+    ["a number", 3],
+    ["a boolean", true],
+    ["an object", { channel: "Call" }],
+    ["an array-like object", { 0: "Call", length: 1 }],
+    ["a Set", new Set<string>(["Call"])],
+  ])(
+    "%s is not a list, and reads as no channels",
+    (_label: string, value: unknown) => {
+      expect(ComplianceRule.normaliseChannels(value)).toEqual([]);
+    },
+  );
+
+  test("an empty list is no channels", () => {
+    expect(ComplianceRule.normaliseChannels([])).toEqual([]);
+  });
+
+  test("keeps only the channels this build knows", () => {
+    expect(
+      ComplianceRule.normaliseChannels([
+        ...NOT_CHANNELS,
+        ComplianceNotificationChannel.Slack,
+      ]),
+    ).toEqual([ComplianceNotificationChannel.Slack]);
+  });
+
+  test("a list of nothing it knows is no channels - 'any channel'", () => {
+    expect(ComplianceRule.normaliseChannels(NOT_CHANNELS)).toEqual([]);
+  });
+
+  test("names each channel once", () => {
+    expect(
+      ComplianceRule.normaliseChannels([
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ]),
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+  });
+
+  test("puts the channels in catalog order, whatever order they were picked in", () => {
+    expect(
+      ComplianceRule.normaliseChannels([...ALL_CHANNELS].reverse()),
+    ).toEqual(ALL_CHANNELS);
+
+    const picked: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.Webhook,
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Telegram,
+    ];
+
+    for (const order of [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ]) {
+      expect(
+        ComplianceRule.normaliseChannels(
+          order.map((index: number): ComplianceNotificationChannel => {
+            return picked[index]!;
+          }),
+        ),
+      ).toEqual([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Telegram,
+        ComplianceNotificationChannel.Webhook,
+      ]);
+    }
+  });
+
+  test("every one of the 512 subsets of the channels comes back as itself, in catalog order", () => {
+    const subsets: Array<Array<ComplianceNotificationChannel>> =
+      everyChannelSubset();
+
+    expect(subsets).toHaveLength(512);
+
+    for (const subset of subsets) {
+      expect(ComplianceRule.normaliseChannels([...subset].reverse())).toEqual(
+        subset,
+      );
+    }
+  });
+
+  test("leaves the list it is given alone, and hands back a new one", () => {
+    const picked: Array<string> = [
+      ComplianceNotificationChannel.Push,
+      "Pager",
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ];
+
+    expect(ComplianceRule.normaliseChannels(picked)).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(picked).toEqual([
+      ComplianceNotificationChannel.Push,
+      "Pager",
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+
+    // Already canonical, and still a copy: the caller's list is never shared.
+    const canonical: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ];
+
+    expect(ComplianceRule.normaliseChannels(canonical)).not.toBe(canonical);
+  });
+});
+
 describe("ComplianceRule.getTitle", () => {
   test.each(ON_CALL_RULES)(
     "$ruleType with no channel is '$title'",
@@ -634,12 +829,15 @@ describe("ComplianceRule.getTitle", () => {
       expect(ComplianceRule.getTitle({ ruleType: expected.ruleType })).toBe(
         expected.title,
       );
-      expect(
-        ComplianceRule.getTitle({
-          ruleType: expected.ruleType,
-          notificationChannel: null,
-        }),
-      ).toBe(expected.title);
+
+      for (const none of NO_CHANNELS) {
+        expect(
+          ComplianceRule.getTitle({
+            ruleType: expected.ruleType,
+            notificationChannels: none,
+          }),
+        ).toBe(expected.title);
+      }
     },
   );
 
@@ -679,7 +877,7 @@ describe("ComplianceRule.getTitle", () => {
       expect(
         ComplianceRule.getTitle({
           ruleType: ruleType,
-          notificationChannel: channel,
+          notificationChannels: [channel],
         }),
       ).toBe(title);
     },
@@ -691,34 +889,174 @@ describe("ComplianceRule.getTitle", () => {
         expect(
           ComplianceRule.getTitle({
             ruleType: expected.ruleType,
-            notificationChannel: channel.channel,
+            notificationChannels: [channel.channel],
           }),
         ).toBe(`${channel.label} for ${expected.subject}s`);
       }
     }
   });
 
+  test.each<[ComplianceRuleType, Array<ComplianceNotificationChannel>, string]>(
+    [
+      [
+        ComplianceRuleType.HasIncidentOnCallRules,
+        [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        "Call and Push notification for incidents",
+      ],
+      [
+        ComplianceRuleType.HasAlertOnCallRules,
+        [
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.Email,
+        ],
+        "SMS and Email for alerts",
+      ],
+      [
+        ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+        [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.Push,
+        ],
+        "Call, SMS and Push notification for incident episodes",
+      ],
+      [
+        ComplianceRuleType.HasAlertEpisodeOnCallRules,
+        [
+          ComplianceNotificationChannel.Slack,
+          ComplianceNotificationChannel.MicrosoftTeams,
+          ComplianceNotificationChannel.Webhook,
+        ],
+        "Slack, Microsoft Teams and Webhook for alert episodes",
+      ],
+      [
+        ComplianceRuleType.HasIncidentOnCallRules,
+        ALL_CHANNELS,
+        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams and Webhook for incidents",
+      ],
+    ],
+  )(
+    "%s on %j is '%s'",
+    (
+      ruleType: ComplianceRuleType,
+      channels: Array<ComplianceNotificationChannel>,
+      title: string,
+    ) => {
+      expect(
+        ComplianceRule.getTitle({
+          ruleType: ruleType,
+          notificationChannels: channels,
+        }),
+      ).toBe(title);
+    },
+  );
+
+  test("every pair of channels on every on-call rule is '<first> and <second> for <subject>s', in catalog order whatever order they were picked in", () => {
+    for (const expected of ON_CALL_RULES) {
+      for (const [first, second] of everyChannelPair()) {
+        expect(
+          ComplianceRule.getTitle({
+            ruleType: expected.ruleType,
+            notificationChannels: [second.channel, first.channel],
+          }),
+        ).toBe(`${first.label} and ${second.label} for ${expected.subject}s`);
+      }
+    }
+  });
+
+  test("the same channels picked in any order, or twice, are the same title", () => {
+    const title: string = ComplianceRule.getTitle({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: ALL_CHANNELS,
+    });
+
+    expect(
+      ComplianceRule.getTitle({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [...ALL_CHANNELS].reverse(),
+      }),
+    ).toBe(title);
+    expect(
+      ComplianceRule.getTitle({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+      }),
+    ).toBe("Call and Push notification for incidents");
+    expect(
+      ComplianceRule.getTitle({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Call,
+        ],
+      }),
+    ).toBe("Call for incidents");
+  });
+
   test("an on-call rule with an unknown channel keeps its plain title", () => {
     expect(
       ComplianceRule.getTitle({
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: "Pager",
+        notificationChannels: ["Pager"],
+      }),
+    ).toBe("Alert on-call rules");
+    expect(
+      ComplianceRule.getTitle({
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        notificationChannels: NOT_CHANNELS as Array<string>,
       }),
     ).toBe("Alert on-call rules");
   });
 
+  test("a channel this build does not know is left out of the title, and the known ones stay", () => {
+    expect(
+      ComplianceRule.getTitle({
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        notificationChannels: ["Pager", ComplianceNotificationChannel.Push],
+      }),
+    ).toBe("Push notification for alerts");
+    expect(
+      ComplianceRule.getTitle({
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        notificationChannels: [
+          "Pager",
+          "call",
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.Call,
+        ],
+      }),
+    ).toBe("Call and SMS for alerts");
+  });
+
   test.each(METHOD_RULE_TYPES)(
-    "%s is titled by the catalog, whatever channel it carries",
+    "%s is titled by the catalog, whatever channels it carries",
     (ruleType: ComplianceRuleType) => {
       const title: string = definitionOf(ruleType).title;
 
       expect(ComplianceRule.getTitle({ ruleType: ruleType })).toBe(title);
-      expect(
-        ComplianceRule.getTitle({
-          ruleType: ruleType,
-          notificationChannel: ComplianceNotificationChannel.Call,
-        }),
-      ).toBe(title);
+
+      for (const channels of [
+        [ComplianceNotificationChannel.Call],
+        [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        ALL_CHANNELS,
+      ]) {
+        expect(
+          ComplianceRule.getTitle({
+            ruleType: ruleType,
+            notificationChannels: channels,
+          }),
+        ).toBe(title);
+      }
     },
   );
 
@@ -744,7 +1082,10 @@ describe("ComplianceRule.getTitle", () => {
     expect(
       ComplianceRule.getTitle({
         ruleType: "RequireTwoFactorAuth",
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
       }),
     ).toBe("RequireTwoFactorAuth");
   });
@@ -771,12 +1112,18 @@ describe("ComplianceRule.describe", () => {
     },
   );
 
-  test("a method rule ignores a channel and severities it does not take", () => {
+  test("a method rule ignores channels and severities it does not take", () => {
     expect(
       ComplianceRule.describe({
         ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         severityNames: ["Critical"],
+      }),
+    ).toBe("Every member has a verified email address.");
+    expect(
+      ComplianceRule.describe({
+        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+        notificationChannels: ALL_CHANNELS,
       }),
     ).toBe("Every member has a verified email address.");
   });
@@ -802,13 +1149,16 @@ describe("ComplianceRule.describe", () => {
     "%s on any channel for every severity: '%s'",
     (ruleType: ComplianceRuleType, sentence: string) => {
       expect(ComplianceRule.describe({ ruleType: ruleType })).toBe(sentence);
-      expect(
-        ComplianceRule.describe({
-          ruleType: ruleType,
-          notificationChannel: null,
-          severityNames: [],
-        }),
-      ).toBe(sentence);
+
+      for (const none of NO_CHANNELS) {
+        expect(
+          ComplianceRule.describe({
+            ruleType: ruleType,
+            notificationChannels: none,
+            severityNames: [],
+          }),
+        ).toBe(sentence);
+      }
     },
   );
 
@@ -835,7 +1185,7 @@ describe("ComplianceRule.describe", () => {
     expect(
       ComplianceRule.describe({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         severityNames: ["Critical Incident", "Major Incident"],
       }),
     ).toBe(
@@ -875,30 +1225,190 @@ describe("ComplianceRule.describe", () => {
       expect(
         ComplianceRule.describe({
           ruleType: ruleType,
-          notificationChannel: channel,
+          notificationChannels: [channel],
           severityNames: severityNames,
         }),
       ).toBe(sentence);
     },
   );
 
-  test("an unknown channel reads as 'any channel'", () => {
+  /*
+   * A rule on several channels is met only by a rule on EACH of them, so the
+   * sentence says "rules", plural, and names every channel with its own "by"
+   * - never "a rule that notifies them by Call and Push", which reads as one
+   * rule doing both.
+   */
+  test("a rule on several channels asks for a rule on each - the example the catalog documents", () => {
     expect(
       ComplianceRule.describe({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: "Pager",
-        severityNames: ["Critical"],
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        severityNames: ["Critical Incident"],
       }),
-    ).toBe("Every member has an incident on-call rule for Critical.");
+    ).toBe(
+      "Every member has incident on-call rules that notify them by Call and by Push notification for Critical Incident.",
+    );
   });
 
-  test("every rule, on every channel, reads as one sentence about every member", () => {
+  test.each<
+    [
+      ComplianceRuleType,
+      Array<ComplianceNotificationChannel>,
+      Array<string>,
+      string,
+    ]
+  >([
+    [
+      ComplianceRuleType.HasAlertOnCallRules,
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+      [],
+      "Every member has alert on-call rules that notify them by Call, by SMS and by Push notification for every alert severity.",
+    ],
+    [
+      ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+      [
+        ComplianceNotificationChannel.Email,
+        ComplianceNotificationChannel.Webhook,
+      ],
+      ["Sev 1", "Sev 2"],
+      "Every member has incident episode on-call rules that notify them by Email and by Webhook for Sev 1 and Sev 2.",
+    ],
+    [
+      ComplianceRuleType.HasIncidentOnCallRules,
+      [
+        ComplianceNotificationChannel.Telegram,
+        ComplianceNotificationChannel.WhatsApp,
+      ],
+      ["Critical", "Major", "Minor"],
+      "Every member has incident on-call rules that notify them by WhatsApp and by Telegram for Critical, Major and Minor.",
+    ],
+    [
+      ComplianceRuleType.HasAlertEpisodeOnCallRules,
+      ALL_CHANNELS,
+      ["P1"],
+      "Every member has alert episode on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams and by Webhook for P1.",
+    ],
+  ])(
+    "%s on %j for %j",
+    (
+      ruleType: ComplianceRuleType,
+      channels: Array<ComplianceNotificationChannel>,
+      severityNames: Array<string>,
+      sentence: string,
+    ) => {
+      expect(
+        ComplianceRule.describe({
+          ruleType: ruleType,
+          notificationChannels: channels,
+          severityNames: severityNames,
+        }),
+      ).toBe(sentence);
+    },
+  );
+
+  test("the channels read the same in any order, and a repeat is named once", () => {
+    const sentence: string = ComplianceRule.describe({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      severityNames: ["Critical"],
+    });
+
+    expect(
+      ComplianceRule.describe({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        severityNames: ["Critical"],
+      }),
+    ).toBe(sentence);
+    // Twice the same channel is still one channel: one rule, singular.
+    expect(
+      ComplianceRule.describe({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Call,
+        ],
+        severityNames: ["Critical"],
+      }),
+    ).toBe(
+      "Every member has an incident on-call rule that notifies them by Call for Critical.",
+    );
+  });
+
+  test("an unknown channel reads as 'any channel'", () => {
+    for (const channels of [["Pager"], ["Pager", "call"], NOT_CHANNELS]) {
+      expect(
+        ComplianceRule.describe({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: channels as Array<string>,
+          severityNames: ["Critical"],
+        }),
+      ).toBe("Every member has an incident on-call rule for Critical.");
+    }
+  });
+
+  test("one known channel among unknown ones reads as a one-channel rule", () => {
+    expect(
+      ComplianceRule.describe({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: ["Pager", ComplianceNotificationChannel.Call],
+        severityNames: ["Critical"],
+      }),
+    ).toBe(
+      "Every member has an incident on-call rule that notifies them by Call for Critical.",
+    );
+  });
+
+  test("every rule, on every channel and every mix of channels, reads as one sentence about every member", () => {
+    const channelLists: Array<Array<string> | null> = [
+      null,
+      [],
+      ...ALL_CHANNELS.map(
+        (channel: ComplianceNotificationChannel): Array<string> => {
+          return [channel];
+        },
+      ),
+      ...everyChannelPair().map(
+        ([first, second]: [
+          ChannelExpectation,
+          ChannelExpectation,
+        ]): Array<string> => {
+          return [second.channel, first.channel];
+        },
+      ),
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+      ALL_CHANNELS,
+      ["Pager"],
+      ["Pager", ComplianceNotificationChannel.Call],
+    ];
+
     for (const ruleType of Object.values(ComplianceRuleType)) {
-      for (const channel of [null, ...ALL_CHANNELS]) {
+      for (const channels of channelLists) {
+        const known: Array<ComplianceNotificationChannel> =
+          ComplianceRule.normaliseChannels(channels);
+
         for (const severityNames of [[], ["A"], ["A", "B"]]) {
           const sentence: string = ComplianceRule.describe({
             ruleType: ruleType,
-            notificationChannel: channel,
+            notificationChannels: channels,
             severityNames: severityNames,
           });
 
@@ -910,6 +1420,44 @@ describe("ComplianceRule.describe", () => {
           // "an incident", never "a incident" - nor "an verified".
           expect(sentence).not.toMatch(/\ba [aeiou]/);
           expect(sentence).not.toMatch(/\ban [b-df-hj-np-tv-z]/);
+
+          if (!ComplianceRule.isOnCallRule(ruleType)) {
+            continue;
+          }
+
+          if (known.length > 1) {
+            // Rules, plural, with no article: "has an incident on-call rules" is wrong.
+            expect(sentence).toContain(" on-call rules that notify them by ");
+            expect(sentence).not.toMatch(/^Every member has an? /);
+          } else if (known.length === 1) {
+            expect(sentence).toContain(" on-call rule that notifies them by ");
+          } else {
+            expect(sentence).not.toContain("notif");
+          }
+
+          /*
+           * Every channel is named exactly once, after its own "by" - and
+           * followed by the next "by" or the scope, never run into another
+           * word. (No label is the start of another.)
+           */
+          for (const channel of known) {
+            const label: string =
+              ComplianceRule.getChannelDefinition(channel)!.label;
+
+            const times: number = sentence
+              .split(`by ${label}`)
+              .slice(1)
+              .filter((rest: string): boolean => {
+                return rest.startsWith(",") || rest.startsWith(" ");
+              }).length;
+
+            expect({ ruleType, channels, label, times }).toEqual({
+              ruleType,
+              channels,
+              label,
+              times: 1,
+            });
+          }
         }
       }
     }
@@ -929,7 +1477,10 @@ describe("ComplianceRule.describe", () => {
       expect(
         ComplianceRule.describe({
           ruleType: ruleType,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
           severityNames: ["Critical"],
         }),
       ).toBe(sentence);

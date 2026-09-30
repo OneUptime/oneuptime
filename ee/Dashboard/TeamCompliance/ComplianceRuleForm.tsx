@@ -12,6 +12,7 @@ import ComplianceRule, {
   ComplianceRuleCategory,
   ComplianceRuleDefinition,
   ComplianceSeverityKind,
+  joinAsProse,
 } from "Common/Types/Team/ComplianceRule";
 import {
   CardSelectOption,
@@ -29,8 +30,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The create / edit form for one compliance rule, as a guided two-step
  * dialog: first WHAT every member must have (a card per rule kind, on-call
  * rules first because "will this person actually be paged" is the question
- * the page exists for), then HOW STRICT - which channel and which severities -
- * with a live sentence saying exactly what will be checked.
+ * the page exists for), then HOW STRICT - which channels and which
+ * severities - with a live sentence saying exactly what will be checked.
  *
  * Everything the form offers comes from the shared catalog
  * (Common/Types/Team/ComplianceRule), the same table the server evaluates
@@ -121,7 +122,7 @@ export const isSeverityFieldShown: (
 
 /*
  * Picking a different kind of rule drops the options that no longer apply,
- * so what the form holds is always what it shows: a channel stays with an
+ * so what the form holds is always what it shows: channels stay with an
  * on-call rule, incident severities with an incident rule. (The settings
  * service clears them on save regardless; this keeps the live preview and
  * the saved rule telling the same story.)
@@ -139,15 +140,14 @@ export const getValuesForRuleType: (
   };
 
   /*
-   * null, not undefined: the request body drops undefined keys, so an
-   * undefined channel never reaches the server and an edited rule keeps the
-   * channel it was saved with - even after the admin went to a method card
-   * and back, and the form showed "Any channel". null is sent, and clears it.
-   * (FormValues' types do not admit null for the column, which is nullable,
-   * hence Object.assign.)
+   * An empty list, not undefined: the request body drops undefined keys, so
+   * undefined channels never reach the server and an edited rule keeps the
+   * channels it was saved with - even after the admin went to a method card
+   * and back, and the form showed "Any channel". An empty list is sent, and
+   * clears them.
    */
   if (!ComplianceRule.supportsChannel(ruleType)) {
-    Object.assign(next, { notificationChannel: null });
+    next.notificationChannels = [];
   }
 
   const kind: ComplianceSeverityKind | undefined =
@@ -184,6 +184,52 @@ export const getProjectSwitchNote: (
   return `${ComplianceRule.getChannelDefinition(channel)?.label || channel} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.`;
 };
 
+/*
+ * The notes for every channel of a rule that a project can switch off, in
+ * catalog order whatever order they arrive in. The channels whose pages would
+ * not be SENT share one sentence, so a rule on Call and SMS does not say the
+ * same thing twice; WhatsApp keeps its own, because what it stops is members
+ * adding a number.
+ */
+export const getProjectSwitchNotes: (
+  channels: Array<ComplianceNotificationChannel>,
+) => Array<string> = (
+  channels: Array<ComplianceNotificationChannel>,
+): Array<string> => {
+  const switched: Array<ComplianceNotificationChannel> =
+    ComplianceRule.normaliseChannels(channels).filter(
+      (channel: ComplianceNotificationChannel): boolean => {
+        return PROJECT_SWITCHED_CHANNELS.includes(channel);
+      },
+    );
+
+  const notSent: Array<ComplianceNotificationChannel> = switched.filter(
+    (channel: ComplianceNotificationChannel): boolean => {
+      return channel !== ComplianceNotificationChannel.WhatsApp;
+    },
+  );
+
+  const notes: Array<string> = [];
+
+  if (notSent.length === 1) {
+    notes.push(getProjectSwitchNote(notSent[0]!));
+  } else if (notSent.length > 1) {
+    notes.push(
+      `${joinAsProse(
+        notSent.map((channel: ComplianceNotificationChannel): string => {
+          return ComplianceRule.getChannelDefinition(channel)?.label || channel;
+        }),
+      )} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached those ways.`,
+    );
+  }
+
+  if (switched.includes(ComplianceNotificationChannel.WhatsApp)) {
+    notes.push(getProjectSwitchNote(ComplianceNotificationChannel.WhatsApp));
+  }
+
+  return notes;
+};
+
 export interface RulePreviewText {
   title: string;
   sentence: string;
@@ -206,11 +252,10 @@ export const getRulePreviewText: (
     return null;
   }
 
-  const channel: string | null =
-    ComplianceRule.supportsChannel(ruleType) &&
-    ComplianceRule.isKnownChannel(values.notificationChannel)
-      ? (values.notificationChannel as string)
-      : null;
+  const channels: Array<ComplianceNotificationChannel> =
+    ComplianceRule.supportsChannel(ruleType)
+      ? ComplianceRule.normaliseChannels(values.notificationChannels)
+      : [];
 
   const kind: ComplianceSeverityKind | undefined =
     ComplianceRule.getSeverityKind(ruleType);
@@ -234,17 +279,13 @@ export const getRulePreviewText: (
             : `the ${selectedCount} severities you selected`,
         ];
 
-  const notes: Array<string> = [];
-
   const definition: ComplianceRuleDefinition | undefined =
     ComplianceRule.getDefinition(ruleType);
-  const switchedChannel: ComplianceNotificationChannel | undefined =
-    (channel as ComplianceNotificationChannel | null) ||
-    definition?.methodChannel;
 
-  if (switchedChannel && PROJECT_SWITCHED_CHANNELS.includes(switchedChannel)) {
-    notes.push(getProjectSwitchNote(switchedChannel));
-  }
+  // The rule's channels, or the one a method rule is about.
+  const notes: Array<string> = getProjectSwitchNotes(
+    definition?.methodChannel ? [definition.methodChannel] : channels,
+  );
 
   if (values.enabled === false) {
     notes.push(
@@ -255,11 +296,11 @@ export const getRulePreviewText: (
   return {
     title: ComplianceRule.getTitle({
       ruleType: ruleType,
-      notificationChannel: channel,
+      notificationChannels: channels,
     }),
     sentence: ComplianceRule.describe({
       ruleType: ruleType,
-      notificationChannel: channel,
+      notificationChannels: channels,
       severityNames: severityNames,
     }),
     notes: notes,
@@ -341,13 +382,13 @@ export const getComplianceRuleFormFields: () => Array<
     },
     {
       field: {
-        notificationChannel: true,
+        notificationChannels: true,
       },
       stepId: RULE_FORM_STEP_SCOPE,
-      title: "Channel",
+      title: "Channels",
       description:
-        "Require members' rules to notify them on this channel - Call, say, so a critical page rings their phone. Leave empty to accept any channel.",
-      fieldType: FormFieldSchemaType.Dropdown,
+        "Members need a rule that notifies them on each channel you pick - Call and Push notification, say, so a critical page rings their phone and reaches the app. Leave empty to accept any channel.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
       dropdownOptions: getChannelDropdownOptions(),
       placeholder: "Any channel",
       required: false,
@@ -444,7 +485,7 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
       description={
         isEditing
           ? "Change what this rule checks. Every member is checked against the new version as soon as you save."
-          : "Choose what every member of this team must have set up, then narrow it to the channel and severities that matter."
+          : "Choose what every member of this team must have set up, then narrow it to the channels and severities that matter."
       }
       name={
         isEditing

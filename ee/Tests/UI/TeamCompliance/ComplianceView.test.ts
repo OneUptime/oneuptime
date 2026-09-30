@@ -24,7 +24,7 @@ import {
   getMemberIssueForRule,
   getNextRuleSquareIndex,
   getNoActiveRulesAdvice,
-  getRuleChannel,
+  getRuleChannels,
   getRuleIcon,
   getRuleLabel,
   getRulePassRate,
@@ -48,6 +48,7 @@ import {
   summarizeCompliance,
 } from "../../../Dashboard/TeamCompliance/ComplianceView";
 import {
+  CALL_AND_PUSH_RULE_ID,
   CALL_REASON,
   CALL_RULE_ID,
   EMAIL_REASON,
@@ -61,6 +62,7 @@ import {
   buildMember,
   buildRule,
   buildStatus,
+  callAndPushForIncidentsRule,
   callForEveryIncidentRule,
   callForIncidentsRule,
   emailRule,
@@ -174,43 +176,166 @@ describe("rule presentation", () => {
     );
   });
 
-  test("the channel a rule is about", () => {
-    expect(getRuleChannel(emailRule())).toBe(
+  test("the channels a rule is about", () => {
+    expect(getRuleChannels(emailRule())).toEqual([
       ComplianceNotificationChannel.Email,
-    );
-    expect(getRuleChannel(callForIncidentsRule())).toBe(
+    ]);
+    expect(getRuleChannels(callForIncidentsRule())).toEqual([
       ComplianceNotificationChannel.Call,
-    );
-    expect(getRuleChannel(alertRule())).toBeUndefined();
+    ]);
+    expect(getRuleChannels(callAndPushForIncidentsRule())).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    // Any channel.
+    expect(getRuleChannels(alertRule())).toEqual([]);
     expect(
-      getRuleChannel(
+      getRuleChannels(
         buildRule({
           ruleType: "HasCarrierPigeon" as ComplianceRuleType,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
         }),
       ),
-    ).toBeUndefined();
+    ).toEqual([]);
     expect(
-      getRuleChannel(
+      getRuleChannels(
         callForIncidentsRule({
-          notificationChannel: "Fax" as ComplianceNotificationChannel,
+          notificationChannels: ["Fax" as ComplianceNotificationChannel],
         }),
       ),
-    ).toBeUndefined();
+    ).toEqual([]);
   });
 
-  test("a method rule never takes the on-call rule's channel", () => {
+  test("a method rule is about its own channel, never an on-call rule's list", () => {
     expect(
-      getRuleChannel(
-        emailRule({ notificationChannel: ComplianceNotificationChannel.Call }),
+      getRuleChannels(
+        emailRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
       ),
-    ).toBe(ComplianceNotificationChannel.Email);
+    ).toEqual([ComplianceNotificationChannel.Email]);
+    expect(
+      getRuleChannels(
+        buildRule({
+          ruleType: ComplianceRuleType.HasNotificationWebhookMethod,
+        }),
+      ),
+    ).toEqual([ComplianceNotificationChannel.Webhook]);
+  });
+
+  test.each(
+    COMPLIANCE_RULE_DEFINITIONS.filter(
+      (definition: ComplianceRuleDefinition): boolean => {
+        return (
+          definition.category === ComplianceRuleCategory.NotificationMethod
+        );
+      },
+    ).map(
+      (
+        definition: ComplianceRuleDefinition,
+      ): [string, ComplianceNotificationChannel] => {
+        return [definition.ruleType, definition.methodChannel!];
+      },
+    ),
+  )(
+    "the method rule %s is about exactly %s",
+    (ruleType: string, channel: ComplianceNotificationChannel) => {
+      expect(
+        getRuleChannels(
+          buildRule({ ruleType: ruleType as ComplianceRuleType }),
+        ),
+      ).toEqual([channel]);
+    },
+  );
+
+  /*
+   * The list an on-call rule arrives with is read the way the server reads
+   * it: known channels only, each once, in catalog order - whatever order
+   * they were picked or sent in.
+   */
+  test("an on-call rule's channels are read in catalog order, each once, known ones only", () => {
+    expect(
+      getRuleChannels(
+        callForIncidentsRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Webhook,
+            "Fax" as ComplianceNotificationChannel,
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+      ComplianceNotificationChannel.Webhook,
+    ]);
   });
 
   test("a channel rule wears its channel, an any-channel rule its kind", () => {
     expect(getRuleIcon(callForIncidentsRule())).toBe(IconProp.Call);
     expect(getRuleIcon(alertRule())).toBe(IconProp.ExclaimationCircle);
     expect(getRuleIcon(emailRule())).toBe(IconProp.Email);
+  });
+
+  /*
+   * No one channel stands for a rule on several - its chips show them all -
+   * so it wears its kind, as an any-channel rule does.
+   */
+  test("a rule on several channels wears its kind, not one of its channels", () => {
+    expect(getRuleIcon(callAndPushForIncidentsRule())).toBe(IconProp.Alert);
+    expect(
+      getRuleIcon(
+        alertRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toBe(IconProp.ExclaimationCircle);
+    expect(
+      getRuleIcon(
+        buildRule({
+          ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
+          notificationChannels: [
+            ComplianceNotificationChannel.Slack,
+            ComplianceNotificationChannel.Webhook,
+          ],
+        }),
+      ),
+    ).toBe(IconProp.SquareStack3D);
+  });
+
+  test("a rule whose list holds one known channel wears that channel", () => {
+    expect(
+      getRuleIcon(
+        callForIncidentsRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            "Fax" as ComplianceNotificationChannel,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toBe(IconProp.DevicePhoneMobile);
+  });
+
+  test("a method rule wears its own channel, whatever list it carries", () => {
+    expect(
+      getRuleIcon(
+        emailRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toBe(IconProp.Email);
   });
 
   test("channel labels come from the catalog; none means any channel", () => {
@@ -232,7 +357,7 @@ describe("rule presentation", () => {
       getRuleTitle(
         buildRule({
           ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
         }),
       ),
     ).toBe("Push notification for alert episodes");
@@ -241,6 +366,52 @@ describe("rule presentation", () => {
         buildRule({ ruleType: "HasCarrierPigeon" as ComplianceRuleType }),
       ),
     ).toBe("HasCarrierPigeon");
+  });
+
+  test("a rule on several channels is titled for all of them, in catalog order", () => {
+    expect(getRuleTitle(callAndPushForIncidentsRule())).toBe(
+      "Call and Push notification for incidents",
+    );
+    expect(
+      getRuleTitle(
+        alertRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Webhook,
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+      ),
+    ).toBe("Call, SMS and Webhook for alerts");
+    // A title needs no more of the rule than its type and channels.
+    expect(
+      getRuleTitle({
+        ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.MicrosoftTeams,
+          ComplianceNotificationChannel.Slack,
+        ],
+      }),
+    ).toBe("Slack and Microsoft Teams for incident episodes");
+    expect(
+      getRuleTitle({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [],
+      }),
+    ).toBe("Incident on-call rules");
+  });
+
+  test("a method rule's title ignores any channel list it carries", () => {
+    expect(
+      getRuleTitle(
+        emailRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toBe("Verified email");
   });
 
   /*
@@ -266,6 +437,35 @@ describe("rule presentation", () => {
     expect(getRuleLabel(major)).toBe("Call for incidents (Major Incident)");
     expect(getRuleLabel(callForIncidentsRule())).toBe(
       "Call for incidents (Critical Incident and Major Incident)",
+    );
+  });
+
+  /*
+   * "Call for Critical" and "Call and Push for Critical" are different rules
+   * a team may hold side by side, and their names differ by their channels.
+   */
+  test("rules of one type and severity are told apart by their channels", () => {
+    const callOnly: TeamComplianceRuleJSON = callForIncidentsRule({
+      severities: [{ id: "c", name: "Critical Incident" }],
+    });
+    const callAndPush: TeamComplianceRuleJSON = callAndPushForIncidentsRule();
+
+    expect(getRuleLabel(callOnly)).toBe(
+      "Call for incidents (Critical Incident)",
+    );
+    expect(getRuleLabel(callAndPush)).toBe(
+      "Call and Push notification for incidents (Critical Incident)",
+    );
+    expect(getRuleLabel(callAndPush)).not.toBe(getRuleLabel(callOnly));
+    expect(
+      getRuleLabel(
+        callAndPushForIncidentsRule({
+          appliesToAllSeverities: true,
+          severities: [],
+        }),
+      ),
+    ).toBe(
+      "Call and Push notification for incidents (all incident severities)",
     );
   });
 
@@ -302,6 +502,49 @@ describe("rule presentation", () => {
     );
   });
 
+  /*
+   * A rule on several channels is met only with a rule on each, and its
+   * sentence says rules - plural - on every one of them.
+   */
+  test("a rule on several channels says a rule is needed on each", () => {
+    expect(getRuleSentence(callAndPushForIncidentsRule())).toBe(
+      "Every member has incident on-call rules that notify them by Call and by Push notification for Critical Incident.",
+    );
+    expect(
+      getRuleSentence(
+        alertRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Telegram,
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.SMS,
+          ],
+        }),
+      ),
+    ).toBe(
+      "Every member has alert on-call rules that notify them by Call, by SMS and by Telegram for every alert severity.",
+    );
+  });
+
+  test("a sentence ignores values that are not channels", () => {
+    expect(
+      getRuleSentence(
+        callForIncidentsRule({
+          notificationChannels: [
+            "Fax" as ComplianceNotificationChannel,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+      ),
+    ).toBe(getRuleSentence(callForIncidentsRule()));
+    expect(
+      getRuleSentence(
+        alertRule({
+          notificationChannels: ["Fax" as ComplianceNotificationChannel],
+        }),
+      ),
+    ).toBe("Every member has an alert on-call rule for every alert severity.");
+  });
+
   test("an unscoped rule reads as every severity", () => {
     expect(getRuleSentence(alertRule())).toBe(
       "Every member has an alert on-call rule for every alert severity.",
@@ -324,12 +567,24 @@ describe("rule presentation", () => {
       getRuleSentence(
         noSeveritiesLeftRule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: null,
+          notificationChannels: [],
           severityKind: ComplianceSeverityKind.Alert,
         }),
       ),
     ).toBe(
       "Every member has an alert on-call rule for severities that have since been deleted.",
+    );
+    expect(
+      getRuleSentence(
+        noSeveritiesLeftRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toBe(
+      "Every member has incident on-call rules that notify them by Call and by Push notification for severities that have since been deleted.",
     );
   });
 
@@ -445,8 +700,19 @@ describe("a rule whose every severity was deleted", () => {
       hasNoSeveritiesLeft(
         noSeveritiesLeftRule({
           ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-          notificationChannel: null,
+          notificationChannels: [],
           severityKind: ComplianceSeverityKind.Alert,
+        }),
+      ),
+    ).toBe(true);
+    // However many channels it insists on.
+    expect(
+      hasNoSeveritiesLeft(
+        noSeveritiesLeftRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
         }),
       ),
     ).toBe(true);
@@ -478,11 +744,21 @@ describe("a rule whose every severity was deleted", () => {
       getRuleLabel(
         noSeveritiesLeftRule({
           ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-          notificationChannel: null,
+          notificationChannels: [],
           severityKind: ComplianceSeverityKind.Alert,
         }),
       ),
     ).toBe("Alert episode on-call rules (no severities left)");
+    expect(
+      getRuleLabel(
+        noSeveritiesLeftRule({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ),
+    ).toBe("Call and Push notification for incidents (no severities left)");
   });
 
   /*
@@ -1347,7 +1623,7 @@ describe("rule warnings", () => {
       "Call for incidents (Critical Incident and Major Incident)",
     );
     expect(groups[0]!.warnings).toEqual([CALL_WARNING]);
-    expect(groups[0]!.channel).toBe(ComplianceNotificationChannel.Call);
+    expect(groups[0]!.channels).toEqual([ComplianceNotificationChannel.Call]);
   });
 
   test.each(ALL_CHANNELS)(
@@ -1355,7 +1631,7 @@ describe("rule warnings", () => {
     (channel: ComplianceNotificationChannel) => {
       const group: RuleWarningGroup = getRuleWarningGroups([
         callForIncidentsRule({
-          notificationChannel: channel,
+          notificationChannels: [channel],
           warnings: ["x"],
         }),
       ])[0]!;
@@ -1365,6 +1641,118 @@ describe("rule warnings", () => {
       );
     },
   );
+
+  test("a group carries every channel of a rule on several, in catalog order", () => {
+    const group: RuleWarningGroup = getRuleWarningGroups([
+      callAndPushForIncidentsRule({
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+        warnings: [CALL_WARNING],
+      }),
+    ])[0]!;
+
+    expect(group.title).toBe(
+      "Call and Push notification for incidents (Critical Incident)",
+    );
+    expect(group.channels).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(group.rule.settingId).toBe(CALL_AND_PUSH_RULE_ID);
+  });
+
+  test("an any-channel rule's group has no channels, and no settings fix", () => {
+    const group: RuleWarningGroup = getRuleWarningGroups([
+      alertRule({ warnings: ["x"] }),
+    ])[0]!;
+
+    expect(group.channels).toEqual([]);
+    expect(isFixedInProjectNotificationSettings(group)).toBe(false);
+  });
+
+  /*
+   * One switchable channel among several is enough: that switch being off is
+   * something no member can fix, and the way to it is the settings page.
+   */
+  test.each<[string, Array<ComplianceNotificationChannel>, boolean]>([
+    [
+      "Push and Call",
+      [ComplianceNotificationChannel.Push, ComplianceNotificationChannel.Call],
+      true,
+    ],
+    [
+      "Email and Telegram",
+      [
+        ComplianceNotificationChannel.Email,
+        ComplianceNotificationChannel.Telegram,
+      ],
+      true,
+    ],
+    [
+      "Slack and WhatsApp",
+      [
+        ComplianceNotificationChannel.Slack,
+        ComplianceNotificationChannel.WhatsApp,
+      ],
+      true,
+    ],
+    [
+      "Call and SMS",
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.SMS],
+      true,
+    ],
+    [
+      "Push and Email",
+      [ComplianceNotificationChannel.Push, ComplianceNotificationChannel.Email],
+      false,
+    ],
+    [
+      "Slack, Microsoft Teams and Webhook",
+      [
+        ComplianceNotificationChannel.Slack,
+        ComplianceNotificationChannel.MicrosoftTeams,
+        ComplianceNotificationChannel.Webhook,
+      ],
+      false,
+    ],
+  ])(
+    "a rule on %s is fixed in project notification settings: %s",
+    (
+      _label: string,
+      channels: Array<ComplianceNotificationChannel>,
+      fixedThere: boolean,
+    ) => {
+      const group: RuleWarningGroup = getRuleWarningGroups([
+        callForIncidentsRule({
+          notificationChannels: channels,
+          warnings: ["x"],
+        }),
+      ])[0]!;
+
+      expect(isFixedInProjectNotificationSettings(group)).toBe(fixedThere);
+    },
+  );
+
+  test("a rule with no severities left is fixed by editing it, whatever its channels", () => {
+    const group: RuleWarningGroup = getRuleWarningGroups([
+      noSeveritiesLeftRule({
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.WhatsApp,
+        ],
+      }),
+    ])[0]!;
+
+    expect(group.channels).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.SMS,
+      ComplianceNotificationChannel.WhatsApp,
+    ]);
+    expect(isFixedInProjectNotificationSettings(group)).toBe(false);
+  });
 
   /*
    * Call, SMS and Telegram: switched off, nobody is notified that way.
@@ -1388,7 +1776,7 @@ describe("rule warnings", () => {
         warnings: ["WhatsApp is switched off for this project."],
       }),
       callForIncidentsRule({
-        notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        notificationChannels: [ComplianceNotificationChannel.WhatsApp],
         warnings: ["WhatsApp is switched off for this project."],
       }),
     ]);
@@ -1420,7 +1808,7 @@ describe("rule warnings", () => {
     expect(groups[0]!.title).toBe("Call for incidents (no severities left)");
     expect(groups[0]!.warnings).toEqual([SEVERITIES_DELETED_WARNING]);
     // A Call rule, but its fix is the rule, not the project's Call switch.
-    expect(groups[0]!.channel).toBe(ComplianceNotificationChannel.Call);
+    expect(groups[0]!.channels).toEqual([ComplianceNotificationChannel.Call]);
     expect(isFixedInProjectNotificationSettings(groups[0]!)).toBe(false);
   });
 
@@ -1444,7 +1832,21 @@ describe("rule warnings", () => {
       }),
     ])[0]!;
 
+    expect(group.channels).toEqual([ComplianceNotificationChannel.SMS]);
     expect(isFixedInProjectNotificationSettings(group)).toBe(true);
+  });
+
+  test("a method rule on a channel no project switches off has no settings fix, whatever list it carries", () => {
+    const group: RuleWarningGroup = getRuleWarningGroups([
+      buildRule({
+        ruleType: ComplianceRuleType.HasNotificationPushMethod,
+        notificationChannels: [ComplianceNotificationChannel.Call],
+        warnings: ["x"],
+      }),
+    ])[0]!;
+
+    expect(group.channels).toEqual([ComplianceNotificationChannel.Push]);
+    expect(isFixedInProjectNotificationSettings(group)).toBe(false);
   });
 
   test("an unknown rule's warning has no settings fix", () => {
@@ -1505,7 +1907,7 @@ describe("parsing the payload", () => {
       settingId: "legacy-rule-0",
       ruleType: "HasNotificationEmailMethod",
       enabled: true,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -1632,7 +2034,7 @@ describe("parsing the payload", () => {
         settingId: "s1",
         ruleType: "HasIncidentOnCallRules",
         enabled: false,
-        notificationChannel: null,
+        notificationChannels: [],
         severityKind: null,
         appliesToAllSeverities: false,
         severities: [{ id: "a", name: "A" }],
@@ -1702,6 +2104,221 @@ describe("parsing the payload", () => {
     expect(getRuleLabel(parsed.complianceSettings[0]!)).toBe(
       "Incident on-call rules (all incident severities)",
     );
+  });
+
+  describe("a rule's channels", () => {
+    // The parsed channels of one rule sent with these fields.
+    const channelsOf: (fields: JSONObject) => Array<string> = (
+      fields: JSONObject,
+    ): Array<string> => {
+      return parseComplianceStatus({
+        complianceSettings: [
+          {
+            settingId: "r",
+            ruleType: "HasIncidentOnCallRules",
+            enabled: true,
+            ...fields,
+          },
+        ],
+      } as unknown as JSONObject).complianceSettings[0]!.notificationChannels;
+    };
+
+    test("a rule on several channels passes through unchanged", () => {
+      const status: TeamComplianceStatusJSON = standardStatus();
+      status.complianceSettings.push(
+        callAndPushForIncidentsRule({ compliantCount: 3 }),
+      );
+
+      const parsed: TeamComplianceStatusJSON = parseComplianceStatus(
+        JSON.parse(JSON.stringify(status)) as unknown as JSONObject,
+      );
+
+      expect(parsed).toEqual(status);
+      expect(parsed.complianceSettings[2]!.notificationChannels).toEqual([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ]);
+      expect(getRuleTitle(parsed.complianceSettings[2]!)).toBe(
+        "Call and Push notification for incidents",
+      );
+    });
+
+    test("the list is kept as it was sent", () => {
+      expect(
+        channelsOf({
+          notificationChannels: [
+            ComplianceNotificationChannel.Push,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+      ).toEqual([
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ]);
+      expect(channelsOf({ notificationChannels: [] })).toEqual([]);
+    });
+
+    test("a channel sent twice is kept once", () => {
+      expect(
+        channelsOf({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.SMS,
+            ComplianceNotificationChannel.Call,
+          ],
+        }),
+      ).toEqual([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+      ]);
+    });
+
+    /*
+     * An API from before a rule could require several channels - an older
+     * replica answering during a rolling deploy - sends one
+     * `notificationChannel` per rule, or null for any channel.
+     */
+    test("an API from before channel lists: its one channel becomes the list", () => {
+      expect(
+        channelsOf({ notificationChannel: ComplianceNotificationChannel.Call }),
+      ).toEqual([ComplianceNotificationChannel.Call]);
+      expect(channelsOf({ notificationChannel: null })).toEqual([]);
+      expect(channelsOf({ notificationChannel: "" })).toEqual([]);
+
+      const parsed: TeamComplianceStatusJSON = parseComplianceStatus({
+        complianceSettings: [
+          {
+            settingId: "legacy-call",
+            ruleType: "HasIncidentOnCallRules",
+            enabled: true,
+            notificationChannel: "Call",
+            severityKind: "Incident",
+            appliesToAllSeverities: true,
+            severities: [],
+          },
+        ],
+      } as unknown as JSONObject);
+
+      expect(getRuleTitle(parsed.complianceSettings[0]!)).toBe(
+        "Call for incidents",
+      );
+      expect(getRuleLabel(parsed.complianceSettings[0]!)).toBe(
+        "Call for incidents (all incident severities)",
+      );
+      expect(getRuleIcon(parsed.complianceSettings[0]!)).toBe(IconProp.Call);
+    });
+
+    test("neither field: any channel", () => {
+      expect(channelsOf({})).toEqual([]);
+    });
+
+    test("a list, when there is one, wins over the single channel", () => {
+      expect(
+        channelsOf({
+          notificationChannels: [
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.Push,
+          ],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        }),
+      ).toEqual([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ]);
+      // An empty list is "any channel", not "no list".
+      expect(
+        channelsOf({
+          notificationChannels: [],
+          notificationChannel: ComplianceNotificationChannel.Call,
+        }),
+      ).toEqual([]);
+    });
+
+    test("a list that is not a list falls back to the single channel, and to nothing", () => {
+      expect(channelsOf({ notificationChannels: "Call" })).toEqual([]);
+      expect(channelsOf({ notificationChannels: { 0: "Call" } })).toEqual([]);
+      expect(channelsOf({ notificationChannels: null })).toEqual([]);
+      expect(
+        channelsOf({
+          notificationChannels: "Call",
+          notificationChannel: ComplianceNotificationChannel.SMS,
+        }),
+      ).toEqual([ComplianceNotificationChannel.SMS]);
+    });
+
+    test("items that are not strings are dropped, and empty strings with them", () => {
+      expect(
+        channelsOf({
+          notificationChannels: [
+            null,
+            {},
+            [ComplianceNotificationChannel.SMS],
+            "",
+            ComplianceNotificationChannel.Push,
+          ],
+        }),
+      ).toEqual([ComplianceNotificationChannel.Push]);
+      expect(channelsOf({ notificationChannel: { value: "Call" } })).toEqual(
+        [],
+      );
+    });
+
+    /*
+     * A number or a boolean is written out as text, the way a warning is -
+     * and, being no channel, is ignored everywhere a channel is read.
+     */
+    test("a number or a boolean becomes text, and is no channel", () => {
+      const parsed: TeamComplianceStatusJSON = parseComplianceStatus({
+        complianceSettings: [
+          {
+            settingId: "r",
+            ruleType: "HasIncidentOnCallRules",
+            enabled: true,
+            notificationChannels: [7, true, ComplianceNotificationChannel.Push],
+          },
+        ],
+      } as unknown as JSONObject);
+      const rule: TeamComplianceRuleJSON = parsed.complianceSettings[0]!;
+
+      expect(rule.notificationChannels).toEqual([
+        "7",
+        "true",
+        ComplianceNotificationChannel.Push,
+      ]);
+      expect(getRuleChannels(rule)).toEqual([
+        ComplianceNotificationChannel.Push,
+      ]);
+      expect(getRuleTitle(rule)).toBe("Push notification for incidents");
+    });
+
+    /*
+     * A channel a newer build added is kept as it was sent, so nothing about
+     * the rule is lost in reading it - and it is left out wherever this
+     * build names channels.
+     */
+    test("a channel this build does not know is kept, and left out of what is shown", () => {
+      const parsed: TeamComplianceStatusJSON = parseComplianceStatus({
+        complianceSettings: [
+          {
+            settingId: "r",
+            ruleType: "HasIncidentOnCallRules",
+            enabled: true,
+            notificationChannels: ["Pager", ComplianceNotificationChannel.Call],
+          },
+        ],
+      } as unknown as JSONObject);
+      const rule: TeamComplianceRuleJSON = parsed.complianceSettings[0]!;
+
+      expect(rule.notificationChannels).toEqual([
+        "Pager",
+        ComplianceNotificationChannel.Call,
+      ]);
+      expect(getRuleChannels(rule)).toEqual([
+        ComplianceNotificationChannel.Call,
+      ]);
+      expect(getRuleTitle(rule)).toBe("Call for incidents");
+      expect(getRuleIcon(rule)).toBe(IconProp.Call);
+    });
   });
 
   test("the severity kind survives for both kinds", () => {

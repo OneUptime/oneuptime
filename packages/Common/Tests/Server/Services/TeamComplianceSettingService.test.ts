@@ -5,6 +5,7 @@ import TeamComplianceSettingService, {
   OPTIONS_DIFFER_MESSAGE,
   SEVERITIES_DELETED_ENABLE_MESSAGE,
   SEVERITIES_DELETED_OPTION,
+  StoredChannelColumns,
   TeamComplianceSettingService as TeamComplianceSettingServiceClass,
 } from "../../../Server/Services/TeamComplianceSettingService";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
@@ -42,24 +43,35 @@ import { FindOperator } from "typeorm";
 /*
  * TeamComplianceSettingService guards what a team compliance rule may say.
  *
- * A rule is a type (ComplianceRuleType), optionally a channel ("Call") and a
- * severity scope ("Critical"). One team may hold several rules of one type -
- * "Call for Critical incidents" and "Push for Critical incidents" are both
+ * A rule is a type (ComplianceRuleType), optionally channels ("Call", or
+ * "Call and Push" - a member needs a rule on each) and a severity scope
+ * ("Critical"). One team may hold several rules of one type - "Call for
+ * Critical incidents" and "Push for Critical incidents" are both
  * HasIncidentOnCallRules - so there is no unique index any more; the service
- * refuses EXACT duplicates instead (same type, channel and severity set).
+ * refuses EXACT duplicates instead (same type, channel set and severity set).
+ *
+ * The channels are stored twice: as the list in notificationChannels, and -
+ * for API clients and builds from before the list - as the list's first
+ * channel in notificationChannel. A payload may send either; the hooks write
+ * both, and a stored row is read by getStoredChannels, which trusts the list
+ * only while the single column still agrees with it.
  *
  * These tests pin, against an in-memory team of stored rules and project
  * severities:
  *
- *  - create refuses unknown rule types and channels, and anything without a
- *    project or team, before reading anything;
+ *  - create refuses unknown rule types and channels (in a list or on their
+ *    own), and anything without a project or team, before reading anything;
+ *  - a channel list is stored canonical - catalog order, each channel once -
+ *    with its first channel beside it, and a single-channel payload from an
+ *    older client is stored as a one-item list;
  *  - options a rule type does not use are cleared, per kind, so nothing is
  *    stored that looks like part of a rule without being checked;
  *  - selected severities must exist in the rule's own project, of the rule's
  *    own kind - checked in one count, as root, and never for a stray option;
  *  - duplicates are judged on content (order, repeats and id case do not
- *    matter), legacy "no channel, every severity" rows included, while a
- *    different channel, severity set, rule type or team is a different rule;
+ *    matter, for channels as for severities), legacy "no channel, every
+ *    severity" rows and rows an older build wrote included, while a different
+ *    channel set, severity set, rule type or team is a different rule;
  *  - an update that only switches a rule off reads nothing at all; one that
  *    switches it on reads only whether a severity delete left it with
  *    nothing to check, and refuses that;
@@ -69,8 +81,9 @@ import { FindOperator } from "typeorm";
  *    siblings excluding the row itself, reads only inside the caller's
  *    project, and a rule type change clears the options the new type does not
  *    use, including ones already stored on the row;
- *  - the static scope helpers the ee server can reuse (getIds, getScope,
- *    isSameScope).
+ *  - the static helpers the ee server can reuse (getIds, getScope,
+ *    isSameScope, getStoredChannels) and the channel ones behind the hooks
+ *    (resolveSentChannels, normaliseChannelFields).
  *
  * The protected hooks are called directly, as the other service tests do; a
  * last block drives updateOneById - the path the API takes - to show that what
@@ -112,6 +125,9 @@ const UNKNOWN_CHANNEL_MESSAGE: (value: string) => string = (
 ): string => {
   return `"${value}" is not a notification channel a compliance rule can require.`;
 };
+
+const NOT_A_CHANNEL_LIST_MESSAGE: string =
+  "The notification channels of a compliance rule must be a list of channels.";
 
 const UNKNOWN_RULE_TYPE_MESSAGE: (value: string) => string = (
   value: string,
@@ -314,6 +330,14 @@ interface StoredRuleInput {
   ruleType: string;
   teamId?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
+  /*
+   * The channel columns as the row holds them. A row a current build wrote
+   * has the list, and its first channel in notificationChannel - give only
+   * `notificationChannels` for that. A row an older build wrote (or one from
+   * before the list) has notificationChannel alone and the list NULL - give
+   * only `notificationChannel`. Give both to store a pair that disagrees.
+   */
+  notificationChannels?: Array<string> | null | undefined;
   notificationChannel?: string | null | undefined;
   incidentSeverityIds?: Array<string> | undefined;
   alertSeverityIds?: Array<string> | undefined;
@@ -341,8 +365,14 @@ const storedRule: (input: StoredRuleInput) => TeamComplianceSetting = (
   }
 
   (setting as unknown as Record<string, unknown>)["ruleType"] = input.ruleType;
+  (setting as unknown as Record<string, unknown>)["notificationChannels"] =
+    input.notificationChannels === undefined
+      ? null
+      : input.notificationChannels;
   (setting as unknown as Record<string, unknown>)["notificationChannel"] =
-    input.notificationChannel === undefined ? null : input.notificationChannel;
+    input.notificationChannel !== undefined
+      ? input.notificationChannel
+      : input.notificationChannels?.[0] || null;
   setting.enabled = input.enabled === undefined ? true : input.enabled;
 
   if (input.options !== undefined) {
@@ -378,6 +408,8 @@ const store: (...rows: Array<StoredRuleInput>) => void = (
 
 interface NewRuleInput {
   ruleType?: unknown;
+  notificationChannels?: unknown;
+  // The single channel of a client from before the list.
   notificationChannel?: unknown;
   incidentSeverities?: unknown;
   alertSeverities?: unknown;
@@ -405,6 +437,7 @@ const newRule: (input: NewRuleInput) => TeamComplianceSetting = (
 
   for (const key of [
     "ruleType",
+    "notificationChannels",
     "notificationChannel",
     "incidentSeverities",
     "alertSeverities",
@@ -613,6 +646,28 @@ const modelValue: (setting: TeamComplianceSetting, key: string) => unknown = (
   return (setting as unknown as Record<string, unknown>)[key];
 };
 
+// The two channel columns a create or an update is about to write.
+interface ChannelPair {
+  notificationChannels: unknown;
+  notificationChannel: unknown;
+}
+
+const channelsOf: (
+  data: TeamComplianceSetting | Record<string, unknown>,
+) => ChannelPair = (
+  data: TeamComplianceSetting | Record<string, unknown>,
+): ChannelPair => {
+  const values: Record<string, unknown> = data as unknown as Record<
+    string,
+    unknown
+  >;
+
+  return {
+    notificationChannels: values["notificationChannels"],
+    notificationChannel: values["notificationChannel"],
+  };
+};
+
 /*
  * A severity list as the hooks leave it for the relation save: models of the
  * list's own kind, each carrying nothing but its id. Returns those ids.
@@ -706,47 +761,69 @@ describe("TeamComplianceSettingService onBeforeCreate - what may be created", ()
   });
 
   test.each(ALL_CHANNELS)(
-    "accepts the %s channel on every on-call rule type and keeps it",
+    "accepts the %s channel on every on-call rule type and keeps it, with the channel beside the list",
     async (channel: ComplianceNotificationChannel) => {
       for (const ruleType of ON_CALL_RULE_TYPES) {
         const result: OnCreate<TeamComplianceSetting> = await create({
           ruleType: ruleType,
-          notificationChannel: channel,
+          notificationChannels: [channel],
         });
 
-        expect({
+        expect({ ruleType, ...channelsOf(result.createBy.data) }).toEqual({
           ruleType,
-          channel: result.createBy.data.notificationChannel,
-        }).toEqual({ ruleType, channel });
+          notificationChannels: [channel],
+          notificationChannel: channel,
+        });
       }
     },
   );
 
   test.each([
-    ["undefined", undefined],
+    ["an empty list", []],
     ["null", null],
   ])(
-    "a %s channel is 'any channel', and is valid",
-    async (_label: string, channel: unknown) => {
+    "channels sent as %s are 'any channel': valid, and written as an empty list with no channel beside it",
+    async (_label: string, channels: unknown) => {
       const result: OnCreate<TeamComplianceSetting> = await create({
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: channel,
+        notificationChannels: channels,
       });
 
-      expect(modelValue(result.createBy.data, "notificationChannel")).toBe(
-        channel,
-      );
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: [],
+        notificationChannel: null,
+      });
     },
   );
+
+  test("channels not sent are 'any channel' too, and stay unsent", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      notificationChannels: undefined,
+    });
+
+    expect(channelsOf(result.createBy.data)).toEqual({
+      notificationChannels: undefined,
+      notificationChannel: undefined,
+    });
+  });
 
   test.each([
     ["a channel that does not exist", "Pager"],
     ["a channel in the wrong case", "call"],
     ["an empty string", ""],
     ["a method rule type", "HasNotificationCallMethod"],
+    ["a label rather than a value", "Push notification"],
   ])(
-    "refuses %s as the channel, before reading anything",
+    "refuses %s as a channel, before reading anything - in a list, and on its own",
     async (_label: string, channel: string) => {
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: [ComplianceNotificationChannel.Call, channel],
+        }),
+      ).rejects.toThrow(new BadDataException(UNKNOWN_CHANNEL_MESSAGE(channel)));
+
       await expect(
         create({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
@@ -758,7 +835,32 @@ describe("TeamComplianceSettingService onBeforeCreate - what may be created", ()
     },
   );
 
+  test.each([
+    ["one channel as a bare string", ComplianceNotificationChannel.Call],
+    ["an object", { channel: ComplianceNotificationChannel.Call }],
+    ["a number", 3],
+  ])(
+    "refuses channels sent as %s rather than a list, before reading anything",
+    async (_label: string, channels: unknown) => {
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: channels,
+        }),
+      ).rejects.toThrow(new BadDataException(NOT_A_CHANNEL_LIST_MESSAGE));
+
+      expectNoReads();
+    },
+  );
+
   test("refuses a channel that is not a channel even on a method rule - garbage is refused, not quietly dropped", async () => {
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+        notificationChannels: ["Pager"],
+      }),
+    ).rejects.toThrow(UNKNOWN_CHANNEL_MESSAGE("Pager"));
+
     await expect(
       create({
         ruleType: ComplianceRuleType.HasNotificationEmailMethod,
@@ -845,16 +947,35 @@ describe("TeamComplianceSettingService onBeforeCreate - options a rule type does
     async (ruleType: ComplianceRuleType) => {
       const result: OnCreate<TeamComplianceSetting> = await create({
         ruleType: ruleType,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
         incidentSeverities: [CRITICAL_INCIDENT],
         alertSeverities: [CRITICAL_ALERT],
       });
 
-      expect(
-        modelValue(result.createBy.data, "notificationChannel"),
-      ).toBeNull();
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: [],
+        notificationChannel: null,
+      });
       expect(result.createBy.data.incidentSeverities).toEqual([]);
       expect(result.createBy.data.alertSeverities).toEqual([]);
+    },
+  );
+
+  test.each(METHOD_RULE_TYPES)(
+    "%s keeps no channel sent the old way either",
+    async (ruleType: ComplianceRuleType) => {
+      const result: OnCreate<TeamComplianceSetting> = await create({
+        ruleType: ruleType,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      });
+
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: [],
+        notificationChannel: null,
+      });
     },
   );
 
@@ -863,14 +984,15 @@ describe("TeamComplianceSettingService onBeforeCreate - options a rule type does
     async (ruleType: ComplianceRuleType) => {
       const result: OnCreate<TeamComplianceSetting> = await create({
         ruleType: ruleType,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         incidentSeverities: [CRITICAL_INCIDENT],
         alertSeverities: [CRITICAL_ALERT],
       });
 
-      expect(result.createBy.data.notificationChannel).toBe(
-        ComplianceNotificationChannel.Push,
-      );
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: [ComplianceNotificationChannel.Push],
+        notificationChannel: ComplianceNotificationChannel.Push,
+      });
       expect(
         writtenIds(
           modelValue(result.createBy.data, "incidentSeverities"),
@@ -886,14 +1008,15 @@ describe("TeamComplianceSettingService onBeforeCreate - options a rule type does
     async (ruleType: ComplianceRuleType) => {
       const result: OnCreate<TeamComplianceSetting> = await create({
         ruleType: ruleType,
-        notificationChannel: ComplianceNotificationChannel.SMS,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
         incidentSeverities: [CRITICAL_INCIDENT],
         alertSeverities: [CRITICAL_ALERT],
       });
 
-      expect(result.createBy.data.notificationChannel).toBe(
-        ComplianceNotificationChannel.SMS,
-      );
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      });
       expect(
         writtenIds(
           modelValue(result.createBy.data, "alertSeverities"),
@@ -933,6 +1056,7 @@ describe("TeamComplianceSettingService onBeforeCreate - options a rule type does
       ruleType: ComplianceRuleType.HasNotificationEmailMethod,
     });
 
+    expect(result.createBy.data.notificationChannels).toBeUndefined();
     expect(result.createBy.data.notificationChannel).toBeUndefined();
     expect(result.createBy.data.incidentSeverities).toBeUndefined();
     expect(result.createBy.data.alertSeverities).toBeUndefined();
@@ -1099,7 +1223,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
   test("the duplicate lookup reads the team's rules of that type in the project, as root", async () => {
     await create({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
     });
 
     expect(settingsFindBy).toHaveBeenCalledTimes(1);
@@ -1113,6 +1237,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
     expect(findBy["select"]).toEqual({
       _id: true,
       ruleType: true,
+      notificationChannels: true,
       notificationChannel: true,
       // A rule a severity delete emptied is no duplicate: see below.
       options: true,
@@ -1137,12 +1262,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [CRITICAL_INCIDENT],
       },
     ],
@@ -1151,12 +1276,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [MAJOR_INCIDENT, CRITICAL_INCIDENT],
       },
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [
           { _id: CRITICAL_INCIDENT },
           { _id: MAJOR_INCIDENT },
@@ -1169,12 +1294,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         alertSeverityIds: [CRITICAL_ALERT],
       },
       {
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         alertSeverities: [CRITICAL_ALERT.toUpperCase()],
       },
     ],
@@ -1196,7 +1321,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       },
       {
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: null,
+        notificationChannels: [],
         alertSeverities: [],
       },
     ],
@@ -1218,7 +1343,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       },
       {
         ruleType: ComplianceRuleType.HasNotificationCallMethod,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [CRITICAL_INCIDENT],
         alertSeverities: [CRITICAL_ALERT],
       },
@@ -1250,12 +1375,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Webhook,
+        notificationChannels: [ComplianceNotificationChannel.Webhook],
         alertSeverityIds: [MAJOR_ALERT, CRITICAL_ALERT],
       },
       {
         ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Webhook,
+        notificationChannels: [ComplianceNotificationChannel.Webhook],
         alertSeverities: [CRITICAL_ALERT, MAJOR_ALERT],
       },
     ],
@@ -1280,12 +1405,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         incidentSeverities: [CRITICAL_INCIDENT],
       },
     ],
@@ -1294,12 +1419,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: null,
+        notificationChannels: [],
         incidentSeverities: [CRITICAL_INCIDENT],
       },
     ],
@@ -1311,7 +1436,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       },
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
       },
     ],
     [
@@ -1319,12 +1444,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [CRITICAL_INCIDENT, MAJOR_INCIDENT],
       },
     ],
@@ -1333,12 +1458,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         alertSeverityIds: [CRITICAL_ALERT],
       },
       {
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
       },
     ],
     [
@@ -1346,12 +1471,12 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: SIBLING_SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [CRITICAL_INCIDENT],
       },
     ],
@@ -1406,13 +1531,13 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
       {
         id: "66666666-6666-4666-8666-00000000000a",
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         id: "66666666-6666-4666-8666-00000000000b",
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
@@ -1424,7 +1549,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
     await expect(
       create({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.SMS,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
         incidentSeverities: [CRITICAL_INCIDENT],
       }),
     ).resolves.toBeDefined();
@@ -1432,7 +1557,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
     await expect(
       create({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         incidentSeverities: [CRITICAL_INCIDENT],
       }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -1448,7 +1573,7 @@ describe("TeamComplianceSettingService onBeforeCreate - exact duplicates are ref
 const INCIDENT_CALL_CRITICAL: StoredRuleInput = {
   id: SETTING_ID,
   ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-  notificationChannel: ComplianceNotificationChannel.Call,
+  notificationChannels: [ComplianceNotificationChannel.Call],
   incidentSeverityIds: [CRITICAL_INCIDENT],
 };
 
@@ -1459,7 +1584,7 @@ const INCIDENT_CALL_CRITICAL: StoredRuleInput = {
 const EMPTIED_BY_DELETE: StoredRuleInput = {
   id: SETTING_ID,
   ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-  notificationChannel: ComplianceNotificationChannel.Call,
+  notificationChannels: [ComplianceNotificationChannel.Call],
   enabled: false,
   options: { [SEVERITIES_DELETED_OPTION]: true },
 };
@@ -1531,7 +1656,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - turning a rule on", () =
     store(INCIDENT_CALL_CRITICAL, {
       id: SIBLING_SETTING_ID,
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       enabled: false,
     });
 
@@ -1643,7 +1768,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - turning a rule on", () =
     store({
       id: SETTING_ID,
       ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       enabled: false,
       options: { [SEVERITIES_DELETED_OPTION]: true },
       // A stray severity of the other kind is not a scope.
@@ -1662,7 +1787,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - re-scoping a rule a seve
 
     const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [{ _id: MAJOR_INCIDENT }],
       alertSeverities: [],
       enabled: true,
@@ -1685,7 +1810,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - re-scoping a rule a seve
     ],
     [
       "a new channel",
-      { notificationChannel: ComplianceNotificationChannel.Push },
+      { notificationChannels: [ComplianceNotificationChannel.Push] },
     ],
     [
       "a new rule type",
@@ -1752,7 +1877,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - re-scoping a rule a seve
       {
         ...INCIDENT_CALL_CRITICAL,
         id: SIBLING_SETTING_ID,
-        notificationChannel: ComplianceNotificationChannel.SMS,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
         options: { note: "the sibling's own" },
       },
     );
@@ -1791,14 +1916,14 @@ describe("TeamComplianceSettingService - a rule a severity delete emptied duplic
       {
         id: SETTING_ID,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
       },
     );
 
     await expect(
       update({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [],
         alertSeverities: [],
         enabled: false,
@@ -1812,7 +1937,7 @@ describe("TeamComplianceSettingService - a rule a severity delete emptied duplic
     await expect(
       create({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
       }),
     ).resolves.toBeDefined();
   });
@@ -1827,7 +1952,7 @@ describe("TeamComplianceSettingService - a rule a severity delete emptied duplic
     await expect(
       create({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
       }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
   });
@@ -1842,7 +1967,7 @@ describe("TeamComplianceSettingService - a rule a severity delete emptied duplic
     await expect(
       create({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [MAJOR_INCIDENT],
       }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -1867,7 +1992,9 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
   test("reads the rows being changed inside the caller's project, as root, with what their scope needs", async () => {
     store(INCIDENT_CALL_CRITICAL);
 
-    await update({ notificationChannel: ComplianceNotificationChannel.Push });
+    await update({
+      notificationChannels: [ComplianceNotificationChannel.Push],
+    });
 
     const existingRead: JSONObject = findByCalls()[0]!;
     expect(existingRead["query"]).toEqual({
@@ -1879,6 +2006,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
       teamId: true,
       projectId: true,
       ruleType: true,
+      notificationChannels: true,
       notificationChannel: true,
       options: true,
       incidentSeverities: { _id: true },
@@ -1893,7 +2021,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
     store(INCIDENT_CALL_CRITICAL);
 
     const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
     });
 
     await onBeforeUpdate(updateBy);
@@ -1911,13 +2039,13 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
     store({
       ...INCIDENT_CALL_CRITICAL,
       id: SIBLING_SETTING_ID,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
     });
 
     await expect(
       onBeforeUpdate(
         updateByFor(
-          { notificationChannel: ComplianceNotificationChannel.Push },
+          { notificationChannels: [ComplianceNotificationChannel.Push] },
           { query: { _id: OTHER_PROJECT_SETTING_ID } },
         ),
       ),
@@ -1936,7 +2064,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
 
     await onBeforeUpdate(
       updateByFor(
-        { notificationChannel: ComplianceNotificationChannel.Push },
+        { notificationChannels: [ComplianceNotificationChannel.Push] },
         { props: { isRoot: true } },
       ),
     );
@@ -1952,7 +2080,9 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
   test("compares against the team's other rules, never against the row itself", async () => {
     store(INCIDENT_CALL_CRITICAL);
 
-    await update({ notificationChannel: ComplianceNotificationChannel.Push });
+    await update({
+      notificationChannels: [ComplianceNotificationChannel.Push],
+    });
 
     const siblings: Array<JSONObject> = siblingReads();
     expect(siblings).toHaveLength(1);
@@ -1978,7 +2108,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
     await expect(
       update({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [{ _id: CRITICAL_INCIDENT }],
         alertSeverities: [],
         enabled: true,
@@ -1990,11 +2120,11 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
     store(INCIDENT_CALL_CRITICAL, {
       ...INCIDENT_CALL_CRITICAL,
       id: SIBLING_SETTING_ID,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
     });
 
     await expect(
-      update({ notificationChannel: ComplianceNotificationChannel.Push }),
+      update({ notificationChannels: [ComplianceNotificationChannel.Push] }),
     ).rejects.toThrow(new BadDataException(DUPLICATE_COMPLIANCE_RULE_MESSAGE));
   });
 
@@ -2020,12 +2150,12 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
     store(INCIDENT_CALL_CRITICAL, {
       id: SIBLING_SETTING_ID,
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.SMS,
+      notificationChannels: [ComplianceNotificationChannel.SMS],
       incidentSeverityIds: [CRITICAL_INCIDENT],
     });
 
     await expect(
-      update({ notificationChannel: ComplianceNotificationChannel.SMS }),
+      update({ notificationChannels: [ComplianceNotificationChannel.SMS] }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
   });
 
@@ -2036,7 +2166,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
       incidentSeverityIds: [CRITICAL_INCIDENT],
     });
 
-    await expect(update({ notificationChannel: null })).rejects.toThrow(
+    await expect(update({ notificationChannels: [] })).rejects.toThrow(
       DUPLICATE_COMPLIANCE_RULE_MESSAGE,
     );
   });
@@ -2066,11 +2196,11 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
     store({
       id: SETTING_ID,
       ruleType: "RequireTwoFactorAuth",
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
     });
 
     await expect(
-      update({ notificationChannel: ComplianceNotificationChannel.Push }),
+      update({ notificationChannels: [ComplianceNotificationChannel.Push] }),
     ).resolves.toBeDefined();
 
     expect(siblingReads()).toEqual([]);
@@ -2177,7 +2307,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
       await expect(
         onBeforeUpdate(
           updateByFor(
-            { notificationChannel: ComplianceNotificationChannel.Push },
+            { notificationChannels: [ComplianceNotificationChannel.Push] },
             { props: { isRoot: true } },
           ),
         ),
@@ -2196,7 +2326,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
 
     await onBeforeUpdate(
       updateByFor(
-        { notificationChannel: ComplianceNotificationChannel.Push },
+        { notificationChannels: [ComplianceNotificationChannel.Push] },
         {
           query: {
             ruleType: ComplianceRuleType.HasIncidentOnCallRules,
@@ -2225,6 +2355,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - a rule type change", () 
 
     expect(dataOf(updateBy)).toEqual({
       ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+      notificationChannels: [],
       notificationChannel: null,
       incidentSeverities: [],
       alertSeverities: [],
@@ -2268,7 +2399,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - a rule type change", () 
     store(INCIDENT_CALL_CRITICAL, {
       id: SIBLING_SETTING_ID,
       ruleType: ComplianceRuleType.HasAlertOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
     });
 
     await expect(
@@ -2350,13 +2481,14 @@ describe("TeamComplianceSettingService onBeforeUpdate - options the stored type 
     });
 
     const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [CRITICAL_INCIDENT],
     });
 
     await onBeforeUpdate(updateBy);
 
     expect(dataOf(updateBy)).toEqual({
+      notificationChannels: [],
       notificationChannel: null,
       incidentSeverities: [],
     });
@@ -2366,7 +2498,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - options the stored type 
     store(INCIDENT_CALL_CRITICAL);
 
     const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       incidentSeverities: [{ _id: MAJOR_INCIDENT }],
     });
 
@@ -2375,10 +2507,12 @@ describe("TeamComplianceSettingService onBeforeUpdate - options the stored type 
     expect(Object.keys(dataOf(updateBy)).sort()).toEqual([
       "incidentSeverities",
       "notificationChannel",
+      "notificationChannels",
     ]);
-    expect(dataOf(updateBy)["notificationChannel"]).toBe(
-      ComplianceNotificationChannel.Push,
-    );
+    expect(channelsOf(dataOf(updateBy))).toEqual({
+      notificationChannels: [ComplianceNotificationChannel.Push],
+      notificationChannel: ComplianceNotificationChannel.Push,
+    });
     expect(
       writtenIds(dataOf(updateBy)["incidentSeverities"], IncidentSeverity),
     ).toEqual([MAJOR_INCIDENT]);
@@ -2403,7 +2537,7 @@ describe("TeamComplianceSettingService - the severities checked are the severiti
   test("create: repeats and case collapse to one lower-case id each, handed to the save as models", async () => {
     const result: OnCreate<TeamComplianceSetting> = await create({
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       incidentSeverities: [
         CRITICAL_INCIDENT.toUpperCase(),
         { _id: CRITICAL_INCIDENT },
@@ -2459,7 +2593,7 @@ describe("TeamComplianceSettingService - the severities checked are the severiti
     store(INCIDENT_CALL_CRITICAL, {
       id: SIBLING_SETTING_ID,
       ruleType: ComplianceRuleType.HasAlertOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       alertSeverityIds: [CRITICAL_ALERT],
     });
 
@@ -2529,7 +2663,7 @@ describe("TeamComplianceSettingService - the severities checked are the severiti
     await expect(
       create({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [{ _id: 1, id: CRITICAL_INCIDENT }],
       }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -2885,7 +3019,7 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
           createByFor(
             newRule({
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: [FOREIGN_INCIDENT],
             }),
             props,
@@ -2898,7 +3032,7 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
           createByFor(
             newRule({
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-              notificationChannel: ComplianceNotificationChannel.Call,
+              notificationChannels: [ComplianceNotificationChannel.Call],
               incidentSeverities: [CRITICAL_INCIDENT],
             }),
             props,
@@ -2916,12 +3050,12 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
       store(INCIDENT_CALL_CRITICAL, {
         ...INCIDENT_CALL_CRITICAL,
         id: SIBLING_SETTING_ID,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
       });
 
       for (const data of [
         { incidentSeverities: [FOREIGN_INCIDENT] },
-        { notificationChannel: ComplianceNotificationChannel.Push },
+        { notificationChannels: [ComplianceNotificationChannel.Push] },
       ]) {
         await expect(
           onBeforeUpdate(updateByFor({ ...data }, { props: props })),
@@ -2995,13 +3129,13 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
       for (const input of [
         {
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
-          notificationChannel: ComplianceNotificationChannel.SMS,
+          notificationChannels: [ComplianceNotificationChannel.SMS],
           incidentSeverities: [FOREIGN_INCIDENT],
           alertSeverities: [FOREIGN_ALERT],
         },
         {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [CRITICAL_INCIDENT, CRITICAL_INCIDENT],
           alertSeverities: [FOREIGN_ALERT],
         },
@@ -3030,7 +3164,7 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
       createByFor(
         newRule({
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
-          notificationChannel: ComplianceNotificationChannel.Push,
+          notificationChannels: [ComplianceNotificationChannel.Push],
           alertSeverities: [CRITICAL_ALERT],
           incidentSeverities: [CRITICAL_INCIDENT],
         }),
@@ -3058,7 +3192,7 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
           incidentSeverities: [{ _id: MAJOR_INCIDENT }, MAJOR_INCIDENT],
           alertSeverities: [FOREIGN_ALERT],
         },
-        { notificationChannel: null },
+        { notificationChannels: [] },
       ]) {
         const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor(
           { ...data },
@@ -3105,7 +3239,7 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
     );
     await onBeforeUpdate(
       updateByFor(
-        { notificationChannel: ComplianceNotificationChannel.Push },
+        { notificationChannels: [ComplianceNotificationChannel.Push] },
         { props: { isRoot: true } },
       ),
     );
@@ -3164,37 +3298,37 @@ describe("TeamComplianceSettingService - a severity delete pauses and marks the 
       {
         id: RULE_CRITICAL_ONLY,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         id: RULE_EPISODE_CRITICAL_ONLY,
         ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.SMS,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
         incidentSeverityIds: [CRITICAL_INCIDENT],
       },
       {
         id: RULE_CRITICAL_AND_MAJOR,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Push,
+        notificationChannels: [ComplianceNotificationChannel.Push],
         incidentSeverityIds: [CRITICAL_INCIDENT, MAJOR_INCIDENT],
       },
       {
         id: RULE_EVERY_SEVERITY,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Email,
+        notificationChannels: [ComplianceNotificationChannel.Email],
       },
       {
         id: RULE_PAUSED,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Slack,
+        notificationChannels: [ComplianceNotificationChannel.Slack],
         incidentSeverityIds: [CRITICAL_INCIDENT],
         enabled: false,
       },
       {
         id: RULE_ALERT,
         ruleType: ComplianceRuleType.HasAlertOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         alertSeverityIds: [CRITICAL_ALERT],
       },
       {
@@ -3213,7 +3347,7 @@ describe("TeamComplianceSettingService - a severity delete pauses and marks the 
       {
         id: RULE_MAJOR_ONLY,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.WhatsApp,
+        notificationChannels: [ComplianceNotificationChannel.WhatsApp],
         incidentSeverityIds: [MAJOR_INCIDENT],
       },
     );
@@ -3319,7 +3453,7 @@ describe("TeamComplianceSettingService - a severity delete pauses and marks the 
       {
         id: RULE_CRITICAL_ONLY,
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
       },
       {
         id: RULE_EPISODE_CRITICAL_ONLY,
@@ -3492,7 +3626,7 @@ describe("TeamComplianceSettingService - a severity delete pauses and marks the 
     store({
       id: RULE_CRITICAL_AND_MAJOR,
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       incidentSeverityIds: [MAJOR_INCIDENT],
     });
 
@@ -3508,7 +3642,7 @@ describe("TeamComplianceSettingService - a severity delete pauses and marks the 
     store({
       id: RULE_CRITICAL_AND_MAJOR,
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
     });
 
     expect(
@@ -3699,13 +3833,13 @@ describe("TeamComplianceSettingService.getScope", () => {
       expect(
         TeamComplianceSettingServiceClass.getScope({
           ruleType: ruleType,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [CRITICAL_INCIDENT],
           alertSeverities: [CRITICAL_ALERT],
         }),
       ).toEqual({
         ruleType: ruleType,
-        notificationChannel: null,
+        notificationChannels: [],
         severityKind: null,
         severityIds: [],
       });
@@ -3718,13 +3852,13 @@ describe("TeamComplianceSettingService.getScope", () => {
       expect(
         TeamComplianceSettingServiceClass.getScope({
           ruleType: ruleType,
-          notificationChannel: ComplianceNotificationChannel.Call,
+          notificationChannels: [ComplianceNotificationChannel.Call],
           incidentSeverities: [MAJOR_INCIDENT, CRITICAL_INCIDENT],
           alertSeverities: [CRITICAL_ALERT],
         }),
       ).toEqual({
         ruleType: ruleType,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         severityKind: ComplianceSeverityKind.Incident,
         severityIds: [CRITICAL_INCIDENT, MAJOR_INCIDENT].sort(),
       });
@@ -3737,35 +3871,71 @@ describe("TeamComplianceSettingService.getScope", () => {
       expect(
         TeamComplianceSettingServiceClass.getScope({
           ruleType: ruleType,
-          notificationChannel: null,
+          notificationChannels: [],
           incidentSeverities: [CRITICAL_INCIDENT],
           alertSeverities: [MAJOR_ALERT],
         }),
       ).toEqual({
         ruleType: ruleType,
-        notificationChannel: null,
+        notificationChannels: [],
         severityKind: ComplianceSeverityKind.Alert,
         severityIds: [MAJOR_ALERT],
       });
     },
   );
 
-  test.each([
+  test.each<[string, unknown]>([
     ["undefined", undefined],
     ["null", null],
-    ["an unknown channel", "Pager"],
-    ["a channel in the wrong case", "call"],
+    ["an empty list", []],
+    ["one channel as a bare string, not a list", "Call"],
+    ["a list of an unknown channel", ["Pager"]],
+    ["a list of a channel in the wrong case", ["call"]],
+    ["a list of a number", [3]],
     ["a number", 3],
-  ])("reads %s as 'any channel'", (_label: string, channel: unknown) => {
+  ])("reads %s as 'any channel'", (_label: string, channels: unknown) => {
     expect(
       TeamComplianceSettingServiceClass.getScope({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: channel,
+        notificationChannels: channels,
         incidentSeverities: undefined,
         alertSeverities: undefined,
-      }).notificationChannel,
-    ).toBeNull();
+      }).notificationChannels,
+    ).toEqual([]);
   });
+
+  test("an on-call rule's channels are read canonical: known ones only, each once, in catalog order", () => {
+    expect(
+      TeamComplianceSettingServiceClass.getScope({
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Webhook,
+          "Pager",
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Webhook,
+        ],
+        incidentSeverities: undefined,
+        alertSeverities: undefined,
+      }).notificationChannels,
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Webhook,
+    ]);
+  });
+
+  test.each(METHOD_RULE_TYPES)(
+    "%s has no channels, however many are passed",
+    (ruleType: ComplianceRuleType) => {
+      expect(
+        TeamComplianceSettingServiceClass.getScope({
+          ruleType: ruleType,
+          notificationChannels: ALL_CHANNELS,
+          incidentSeverities: undefined,
+          alertSeverities: undefined,
+        }).notificationChannels,
+      ).toEqual([]);
+    },
+  );
 
   test.each(
     COMPLIANCE_RULE_DEFINITIONS.map(
@@ -3779,7 +3949,7 @@ describe("TeamComplianceSettingService.getScope", () => {
       const scope: ComplianceRuleScope =
         TeamComplianceSettingServiceClass.getScope({
           ruleType: ruleType,
-          notificationChannel: ComplianceNotificationChannel.Slack,
+          notificationChannels: [ComplianceNotificationChannel.Slack],
           incidentSeverities: [CRITICAL_INCIDENT],
           alertSeverities: [CRITICAL_ALERT],
         });
@@ -3787,10 +3957,10 @@ describe("TeamComplianceSettingService.getScope", () => {
       expect(scope.severityKind).toBe(
         ComplianceRule.getSeverityKind(ruleType) || null,
       );
-      expect(scope.notificationChannel).toBe(
+      expect(scope.notificationChannels).toEqual(
         ComplianceRule.supportsChannel(ruleType)
-          ? ComplianceNotificationChannel.Slack
-          : null,
+          ? [ComplianceNotificationChannel.Slack]
+          : [],
       );
       expect(scope.severityIds).toHaveLength(
         ComplianceRule.supportsSeverityScope(ruleType) ? 1 : 0,
@@ -3802,7 +3972,7 @@ describe("TeamComplianceSettingService.getScope", () => {
 describe("TeamComplianceSettingService.isSameScope", () => {
   const base: ComplianceRuleScope = TeamComplianceSettingServiceClass.getScope({
     ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-    notificationChannel: ComplianceNotificationChannel.Call,
+    notificationChannels: [ComplianceNotificationChannel.Call],
     incidentSeverities: [CRITICAL_INCIDENT, MAJOR_INCIDENT],
     alertSeverities: undefined,
   });
@@ -3823,7 +3993,7 @@ describe("TeamComplianceSettingService.isSameScope", () => {
     const reordered: ComplianceRuleScope =
       TeamComplianceSettingServiceClass.getScope({
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        notificationChannel: ComplianceNotificationChannel.Call,
+        notificationChannels: [ComplianceNotificationChannel.Call],
         incidentSeverities: [
           MAJOR_INCIDENT.toUpperCase(),
           { _id: CRITICAL_INCIDENT },
@@ -3847,9 +4017,9 @@ describe("TeamComplianceSettingService.isSameScope", () => {
     ],
     [
       "the channel",
-      { notificationChannel: ComplianceNotificationChannel.Push },
+      { notificationChannels: [ComplianceNotificationChannel.Push] },
     ],
-    ["'any channel' against one channel", { notificationChannel: null }],
+    ["'any channel' against one channel", { notificationChannels: [] }],
     ["a narrower severity set", { severityIds: [CRITICAL_INCIDENT] }],
     ["every severity against some", { severityIds: [] }],
     [
@@ -3871,6 +4041,1501 @@ describe("TeamComplianceSettingService.isSameScope", () => {
       );
     },
   );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Channels: a list, with its first channel beside it.
+ * ---------------------------------------------------------------------------
+ *
+ * A rule insists on the channels in notificationChannels - a member needs a
+ * rule on every one of them. notificationChannel, the column the list
+ * replaced, is kept equal to the list's first channel for whatever only knows
+ * that one column: an API client or a Dashboard bundle from before the list,
+ * or a replica of an older build still serving during an upgrade. The hooks
+ * write the pair from whichever field a payload sends, and a stored row is
+ * read back by getStoredChannels.
+ */
+
+// Every subset of the nine channels, each in catalog order.
+const everyChannelSubset: () => Array<
+  Array<ComplianceNotificationChannel>
+> = (): Array<Array<ComplianceNotificationChannel>> => {
+  const subsets: Array<Array<ComplianceNotificationChannel>> = [];
+
+  for (let mask: number = 0; mask < 1 << ALL_CHANNELS.length; mask++) {
+    subsets.push(
+      ALL_CHANNELS.filter(
+        (_channel: ComplianceNotificationChannel, index: number): boolean => {
+          return (mask & (1 << index)) !== 0;
+        },
+      ),
+    );
+  }
+
+  return subsets;
+};
+
+// "Call and Push for Critical incidents", as a current build stores it.
+const CALL_AND_PUSH_FOR_CRITICAL: StoredRuleInput = {
+  id: SIBLING_SETTING_ID,
+  ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+  notificationChannels: [
+    ComplianceNotificationChannel.Call,
+    ComplianceNotificationChannel.Push,
+  ],
+  incidentSeverityIds: [CRITICAL_INCIDENT],
+};
+
+describe("TeamComplianceSettingService.resolveSentChannels", () => {
+  test("null is no channels - 'any channel'", () => {
+    expect(TeamComplianceSettingServiceClass.resolveSentChannels(null)).toEqual(
+      [],
+    );
+  });
+
+  test("an empty list is no channels", () => {
+    expect(TeamComplianceSettingServiceClass.resolveSentChannels([])).toEqual(
+      [],
+    );
+  });
+
+  test("keeps each channel once, in catalog order, whatever order they were picked in", () => {
+    expect(
+      TeamComplianceSettingServiceClass.resolveSentChannels([
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ]),
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(
+      TeamComplianceSettingServiceClass.resolveSentChannels(
+        [...ALL_CHANNELS].reverse(),
+      ),
+    ).toEqual(ALL_CHANNELS);
+  });
+
+  test("leaves the list it was sent alone", () => {
+    const sent: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.Webhook,
+      ComplianceNotificationChannel.Call,
+    ];
+
+    const resolved: Array<ComplianceNotificationChannel> =
+      TeamComplianceSettingServiceClass.resolveSentChannels(sent);
+
+    expect(resolved).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Webhook,
+    ]);
+    expect(sent).toEqual([
+      ComplianceNotificationChannel.Webhook,
+      ComplianceNotificationChannel.Call,
+    ]);
+  });
+
+  test.each<[string, unknown]>([
+    ["undefined", undefined],
+    ["one channel as a bare string", ComplianceNotificationChannel.Call],
+    ["a comma-separated string", "Call,Push"],
+    ["an object", { 0: ComplianceNotificationChannel.Call }],
+    ["a number", 3],
+    ["true", true],
+  ])(
+    "refuses %s, which is not a list, and says what it must be",
+    (_label: string, value: unknown) => {
+      expect(() => {
+        TeamComplianceSettingServiceClass.resolveSentChannels(value);
+      }).toThrow(new BadDataException(NOT_A_CHANNEL_LIST_MESSAGE));
+    },
+  );
+
+  /*
+   * Refused, never dropped: a list that silently lost a channel checks less
+   * than the admin asked for, and one that lost its only channel checks
+   * every channel.
+   */
+  test.each<[string, unknown, string]>([
+    ["an unknown channel", "Pager", UNKNOWN_CHANNEL_MESSAGE("Pager")],
+    ["a channel in the wrong case", "push", UNKNOWN_CHANNEL_MESSAGE("push")],
+    [
+      "a label rather than a value",
+      "Microsoft Teams",
+      UNKNOWN_CHANNEL_MESSAGE("Microsoft Teams"),
+    ],
+    ["an empty string", "", UNKNOWN_CHANNEL_MESSAGE("")],
+    ["null", null, UNKNOWN_CHANNEL_MESSAGE("null")],
+    ["a number", 7, UNKNOWN_CHANNEL_MESSAGE("7")],
+  ])(
+    "refuses a list holding %s, by name",
+    (_label: string, item: unknown, message: string) => {
+      expect(() => {
+        TeamComplianceSettingServiceClass.resolveSentChannels([
+          ComplianceNotificationChannel.Call,
+          item,
+        ]);
+      }).toThrow(new BadDataException(message));
+    },
+  );
+
+  test("refuses a list of nothing but garbage rather than read it as 'any channel'", () => {
+    expect(() => {
+      TeamComplianceSettingServiceClass.resolveSentChannels(["Pager"]);
+    }).toThrow(UNKNOWN_CHANNEL_MESSAGE("Pager"));
+  });
+});
+
+describe("TeamComplianceSettingService.normaliseChannelFields", () => {
+  const normalised: (
+    data: Record<string, unknown>,
+  ) => Record<string, unknown> = (
+    data: Record<string, unknown>,
+  ): Record<string, unknown> => {
+    const copy: Record<string, unknown> = { ...data };
+
+    TeamComplianceSettingServiceClass.normaliseChannelFields(
+      copy as JSONObject,
+    );
+
+    return copy;
+  };
+
+  test("a payload that sends neither channel field is left exactly as it was", () => {
+    const written: Record<string, unknown> = normalised({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: true,
+    });
+
+    expect(written).toEqual({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: true,
+    });
+    expect("notificationChannels" in written).toBe(false);
+    expect("notificationChannel" in written).toBe(false);
+  });
+
+  test.each<[string, Record<string, unknown>, ChannelPair]>([
+    [
+      "a list",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+      },
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+    ],
+    [
+      "a list of one",
+      { notificationChannels: [ComplianceNotificationChannel.Webhook] },
+      {
+        notificationChannels: [ComplianceNotificationChannel.Webhook],
+        notificationChannel: ComplianceNotificationChannel.Webhook,
+      },
+    ],
+    [
+      "a list of every channel, backwards",
+      { notificationChannels: [...ALL_CHANNELS].reverse() },
+      {
+        notificationChannels: ALL_CHANNELS,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+    ],
+    [
+      "a list with a repeat",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.SMS,
+        ],
+      },
+      {
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      },
+    ],
+    [
+      "an empty list",
+      { notificationChannels: [] },
+      { notificationChannels: [], notificationChannel: null },
+    ],
+    [
+      "a null list",
+      { notificationChannels: null },
+      { notificationChannels: [], notificationChannel: null },
+    ],
+    [
+      "one channel, the old way",
+      { notificationChannel: ComplianceNotificationChannel.SMS },
+      {
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      },
+    ],
+    [
+      "no channel, the old way",
+      { notificationChannel: null },
+      { notificationChannels: [], notificationChannel: null },
+    ],
+    [
+      "a list, and the stale single channel a client read it with",
+      {
+        notificationChannels: [ComplianceNotificationChannel.Push],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      {
+        notificationChannels: [ComplianceNotificationChannel.Push],
+        notificationChannel: ComplianceNotificationChannel.Push,
+      },
+    ],
+    [
+      "an empty list, and a stale single channel",
+      {
+        notificationChannels: [],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      { notificationChannels: [], notificationChannel: null },
+    ],
+    [
+      "a list, and no single channel",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: null,
+      },
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+    ],
+    [
+      "a list, and the single channel that agrees with it - a rule sent back as it was read",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+    ],
+  ])(
+    "%s is written as the list and its first channel",
+    (_label: string, sent: Record<string, unknown>, written: ChannelPair) => {
+      expect(channelsOf(normalised(sent))).toEqual(written);
+    },
+  );
+
+  test("a single channel that is garbage is refused, even beside a good list", () => {
+    expect(() => {
+      normalised({
+        notificationChannels: [ComplianceNotificationChannel.Call],
+        notificationChannel: "Pager",
+      });
+    }).toThrow(new BadDataException(UNKNOWN_CHANNEL_MESSAGE("Pager")));
+  });
+
+  test("a refused list leaves the payload as it was sent", () => {
+    const data: Record<string, unknown> = {
+      notificationChannels: [ComplianceNotificationChannel.Call, "Pager"],
+    };
+
+    expect(() => {
+      TeamComplianceSettingServiceClass.normaliseChannelFields(
+        data as JSONObject,
+      );
+    }).toThrow(UNKNOWN_CHANNEL_MESSAGE("Pager"));
+
+    expect(data).toEqual({
+      notificationChannels: [ComplianceNotificationChannel.Call, "Pager"],
+    });
+  });
+
+  test("channels that are not a list are refused", () => {
+    expect(() => {
+      normalised({ notificationChannels: ComplianceNotificationChannel.Call });
+    }).toThrow(new BadDataException(NOT_A_CHANNEL_LIST_MESSAGE));
+  });
+
+  test("touches nothing but the two channel fields", () => {
+    const severities: Array<string> = [CRITICAL_INCIDENT];
+    const options: JSONObject = { note: "kept" };
+
+    const written: Record<string, unknown> = normalised({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      incidentSeverities: severities,
+      options: options,
+      enabled: false,
+      notificationChannels: [ComplianceNotificationChannel.Push],
+    });
+
+    expect(Object.keys(written).sort()).toEqual(
+      [
+        "enabled",
+        "incidentSeverities",
+        "notificationChannel",
+        "notificationChannels",
+        "options",
+        "ruleType",
+      ].sort(),
+    );
+    expect(written["incidentSeverities"]).toBe(severities);
+    expect(written["options"]).toBe(options);
+    expect(written["enabled"]).toBe(false);
+  });
+
+  test("writes a new list: the one the caller sent is not changed or shared", () => {
+    const sent: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.Push,
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ];
+    const data: Record<string, unknown> = { notificationChannels: sent };
+
+    TeamComplianceSettingServiceClass.normaliseChannelFields(
+      data as JSONObject,
+    );
+
+    expect(sent).toEqual([
+      ComplianceNotificationChannel.Push,
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(data["notificationChannels"]).not.toBe(sent);
+  });
+
+  test("works on the model a create hands over as well as on an update's JSON", () => {
+    const setting: TeamComplianceSetting = new TeamComplianceSetting();
+    setting.notificationChannels = [
+      ComplianceNotificationChannel.Push,
+      ComplianceNotificationChannel.Call,
+    ];
+
+    TeamComplianceSettingServiceClass.normaliseChannelFields(setting);
+
+    expect(setting.notificationChannels).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(setting.notificationChannel).toBe(
+      ComplianceNotificationChannel.Call,
+    );
+  });
+
+  test("every set of channels, sent as a list in any order, is read back as itself", () => {
+    for (const subset of everyChannelSubset()) {
+      const data: Record<string, unknown> = {
+        notificationChannels: [...subset].reverse(),
+      };
+
+      TeamComplianceSettingServiceClass.normaliseChannelFields(
+        data as JSONObject,
+      );
+
+      expect(channelsOf(data)).toEqual({
+        notificationChannels: subset,
+        notificationChannel: subset[0] || null,
+      });
+      expect(TeamComplianceSettingServiceClass.getStoredChannels(data)).toEqual(
+        subset,
+      );
+    }
+  });
+});
+
+describe("TeamComplianceSettingService.getStoredChannels", () => {
+  /*
+   * A current build writes the pair together; an older build writes only the
+   * single column and leaves the list as it was. So the list is what the rule
+   * says while the single column still agrees with its first channel, and the
+   * single column is what the rule says once it does not - or when there is
+   * no list at all.
+   */
+  test.each<
+    [string, StoredChannelColumns, Array<ComplianceNotificationChannel>]
+  >([
+    [
+      "a pair a current build wrote",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+    ],
+    [
+      "one channel a current build wrote",
+      {
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      },
+      [ComplianceNotificationChannel.SMS],
+    ],
+    [
+      "'any channel' a current build wrote",
+      { notificationChannels: [], notificationChannel: null },
+      [],
+    ],
+    [
+      "every channel",
+      {
+        notificationChannels: ALL_CHANNELS,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      ALL_CHANNELS,
+    ],
+    [
+      "a row from before the list, with a channel",
+      {
+        notificationChannels: null,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      [ComplianceNotificationChannel.Call],
+    ],
+    [
+      "a row from before the list, with no channel",
+      { notificationChannels: null, notificationChannel: null },
+      [],
+    ],
+    [
+      "a row an older build created, its list never written",
+      {
+        notificationChannels: undefined,
+        notificationChannel: ComplianceNotificationChannel.Push,
+      },
+      [ComplianceNotificationChannel.Push],
+    ],
+    [
+      "a list an older build re-pointed to another channel",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      },
+      [ComplianceNotificationChannel.SMS],
+    ],
+    [
+      "a list an older build cleared to 'any channel'",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: null,
+      },
+      [],
+    ],
+    [
+      "'any channel' an older build put a channel on",
+      {
+        notificationChannels: [],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      [ComplianceNotificationChannel.Call],
+    ],
+    [
+      "a list whose rule an older build re-saved without touching its channel",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+    ],
+    [
+      "a list a newer build wrote, led by a channel this one does not know",
+      {
+        notificationChannels: ["Pager", ComplianceNotificationChannel.Call],
+        notificationChannel: "Pager",
+      },
+      [ComplianceNotificationChannel.Call],
+    ],
+    [
+      "a list stored out of catalog order that agrees with its own first channel",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Push,
+      },
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+    ],
+    [
+      "a list holding a channel twice",
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.Call,
+      },
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+    ],
+    [
+      "no list, and a single channel this build does not know",
+      { notificationChannels: null, notificationChannel: "Pager" },
+      [],
+    ],
+    [
+      "a list column holding a bare string",
+      {
+        notificationChannels: ComplianceNotificationChannel.Push,
+        notificationChannel: ComplianceNotificationChannel.Push,
+      },
+      [ComplianceNotificationChannel.Push],
+    ],
+    ["neither column", {}, []],
+  ])(
+    "reads %s",
+    (
+      _label: string,
+      row: StoredChannelColumns,
+      channels: Array<ComplianceNotificationChannel>,
+    ) => {
+      expect(TeamComplianceSettingServiceClass.getStoredChannels(row)).toEqual(
+        channels,
+      );
+    },
+  );
+
+  test("an older build's single channel wins over every list it disagrees with", () => {
+    const lists: Array<Array<ComplianceNotificationChannel>> = [
+      [],
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+      ALL_CHANNELS,
+    ];
+
+    for (const channel of ALL_CHANNELS) {
+      for (const list of lists) {
+        if ((list[0] || null) === channel) {
+          continue;
+        }
+
+        expect({
+          list,
+          channel,
+          read: TeamComplianceSettingServiceClass.getStoredChannels({
+            notificationChannels: list,
+            notificationChannel: channel,
+          }),
+        }).toEqual({ list, channel, read: [channel] });
+      }
+    }
+  });
+
+  test("reads a row as findBy hands it over", () => {
+    expect(
+      TeamComplianceSettingServiceClass.getStoredChannels(
+        storedRule({ ...CALL_AND_PUSH_FOR_CRITICAL }),
+      ),
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+    expect(
+      TeamComplianceSettingServiceClass.getStoredChannels(
+        storedRule({
+          id: SETTING_ID,
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannel: ComplianceNotificationChannel.Push,
+        }),
+      ),
+    ).toEqual([ComplianceNotificationChannel.Push]);
+  });
+
+  test("changes nothing on the row it reads", () => {
+    const row: StoredChannelColumns = {
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Push,
+    };
+
+    TeamComplianceSettingServiceClass.getStoredChannels(row);
+
+    expect(row).toEqual({
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Push,
+    });
+  });
+});
+
+describe("TeamComplianceSettingService.getScope / isSameScope - channel lists", () => {
+  const scopeOf: (channels: unknown) => ComplianceRuleScope = (
+    channels: unknown,
+  ): ComplianceRuleScope => {
+    return TeamComplianceSettingServiceClass.getScope({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: channels,
+      incidentSeverities: [CRITICAL_INCIDENT],
+      alertSeverities: undefined,
+    });
+  };
+
+  test("the same channels in another order, or with a repeat, are the same scope", () => {
+    const callAndPush: ComplianceRuleScope = scopeOf([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+
+    for (const channels of [
+      [ComplianceNotificationChannel.Push, ComplianceNotificationChannel.Call],
+      [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+    ]) {
+      expect(
+        TeamComplianceSettingServiceClass.isSameScope(
+          callAndPush,
+          scopeOf(channels),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test.each<[string, Array<ComplianceNotificationChannel>]>([
+    ["one of its channels", [ComplianceNotificationChannel.Call]],
+    [
+      "a channel more",
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+    ],
+    [
+      "another pair",
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.SMS],
+    ],
+    ["any channel", []],
+  ])(
+    "'Call and Push' differs from %s",
+    (_label: string, channels: Array<ComplianceNotificationChannel>) => {
+      const callAndPush: ComplianceRuleScope = scopeOf([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ]);
+
+      expect(
+        TeamComplianceSettingServiceClass.isSameScope(
+          callAndPush,
+          scopeOf(channels),
+        ),
+      ).toBe(false);
+      expect(
+        TeamComplianceSettingServiceClass.isSameScope(
+          scopeOf(channels),
+          callAndPush,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("two different sets of channels never compare the same", () => {
+    const subsets: Array<Array<ComplianceNotificationChannel>> =
+      everyChannelSubset().filter(
+        (subset: Array<ComplianceNotificationChannel>): boolean => {
+          return subset.length <= 2;
+        },
+      );
+
+    for (const a of subsets) {
+      for (const b of subsets) {
+        expect({
+          a,
+          b,
+          same: TeamComplianceSettingServiceClass.isSameScope(
+            scopeOf(a),
+            scopeOf([...b].reverse()),
+          ),
+        }).toEqual({ a, b, same: a.join(",") === b.join(",") });
+      }
+    }
+  });
+});
+
+describe("TeamComplianceSettingService onBeforeCreate - a rule on several channels", () => {
+  test("is stored as the canonical list - catalog order, each channel once - with its first channel beside it", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      incidentSeverities: [CRITICAL_INCIDENT],
+    });
+
+    expect(channelsOf(result.createBy.data)).toEqual({
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+  });
+
+  test.each(ON_CALL_RULE_TYPES)(
+    "%s may insist on every channel there is",
+    async (ruleType: ComplianceRuleType) => {
+      const result: OnCreate<TeamComplianceSetting> = await create({
+        ruleType: ruleType,
+        notificationChannels: [...ALL_CHANNELS].reverse(),
+      });
+
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: ALL_CHANNELS,
+        notificationChannel: ComplianceNotificationChannel.Call,
+      });
+    },
+  );
+
+  test("is refused as a duplicate of a rule on the same channels, picked in any order", async () => {
+    store(CALL_AND_PUSH_FOR_CRITICAL);
+
+    for (const channels of [
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+      [ComplianceNotificationChannel.Push, ComplianceNotificationChannel.Call],
+      [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+    ]) {
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: channels,
+          incidentSeverities: [CRITICAL_INCIDENT],
+        }),
+      ).rejects.toThrow(
+        new BadDataException(DUPLICATE_COMPLIANCE_RULE_MESSAGE),
+      );
+    }
+  });
+
+  test.each<[string, Array<ComplianceNotificationChannel>, Array<string>]>([
+    [
+      "one of its channels",
+      [ComplianceNotificationChannel.Call],
+      [CRITICAL_INCIDENT],
+    ],
+    [
+      "the other of its channels",
+      [ComplianceNotificationChannel.Push],
+      [CRITICAL_INCIDENT],
+    ],
+    [
+      "a channel more",
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+      [CRITICAL_INCIDENT],
+    ],
+    [
+      "another pair",
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.SMS],
+      [CRITICAL_INCIDENT],
+    ],
+    ["any channel", [], [CRITICAL_INCIDENT]],
+    [
+      "the same channels for another severity",
+      [ComplianceNotificationChannel.Call, ComplianceNotificationChannel.Push],
+      [MAJOR_INCIDENT],
+    ],
+    [
+      "the same channels for every severity",
+      [ComplianceNotificationChannel.Push, ComplianceNotificationChannel.Call],
+      [],
+    ],
+  ])(
+    "is a different rule from 'Call and Push for Critical' when it asks for %s",
+    async (
+      _label: string,
+      channels: Array<ComplianceNotificationChannel>,
+      severities: Array<string>,
+    ) => {
+      store(CALL_AND_PUSH_FOR_CRITICAL);
+
+      await expect(
+        create({
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          notificationChannels: channels,
+          incidentSeverities: severities,
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test("the same channels on the episode rule type are another rule", async () => {
+    store(CALL_AND_PUSH_FOR_CRITICAL);
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test.each<[string, DatabaseCommonInteractionProps]>([
+    ["a team editor", EDITOR_PROPS],
+    ["Edit Teams on its own", memberProps([Permission.EditProjectTeam])],
+  ])(
+    "what the hook leaves - the list and the channel it adds beside it - passes the create check DatabaseService repeats, for %s",
+    async (_label: string, props: DatabaseCommonInteractionProps) => {
+      const result: OnCreate<TeamComplianceSetting> = await onBeforeCreate(
+        createByFor(
+          newRule({
+            ruleType: ComplianceRuleType.HasAlertOnCallRules,
+            notificationChannels: [
+              ComplianceNotificationChannel.Push,
+              ComplianceNotificationChannel.SMS,
+            ],
+            alertSeverities: [CRITICAL_ALERT],
+          }),
+          props,
+        ),
+      );
+
+      expect(channelsOf(result.createBy.data)).toEqual({
+        notificationChannels: [
+          ComplianceNotificationChannel.SMS,
+          ComplianceNotificationChannel.Push,
+        ],
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      });
+      expect((): void => {
+        ModelPermission.checkCreatePermissions(
+          TeamComplianceSetting,
+          result.createBy.data,
+          props,
+        );
+      }).not.toThrow();
+    },
+  );
+
+  test("a caller with no say in the project is refused before a list is even looked at", async () => {
+    await expect(
+      onBeforeCreate(
+        createByFor(
+          newRule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [ComplianceNotificationChannel.Call, "Pager"],
+          }),
+          OUTSIDER_PROPS,
+        ),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    expectNoReads();
+  });
+});
+
+describe("TeamComplianceSettingService onBeforeUpdate - channel lists", () => {
+  test("a list is written canonical, with its first channel beside it", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.Call,
+      ],
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(dataOf(updateBy)).toEqual({
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+  });
+
+  test("an update that sends only the list is a scope change: it is checked for duplicates, as a set", async () => {
+    store(INCIDENT_CALL_CRITICAL, CALL_AND_PUSH_FOR_CRITICAL);
+
+    await expect(
+      update({
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+      }),
+    ).rejects.toThrow(new BadDataException(DUPLICATE_COMPLIANCE_RULE_MESSAGE));
+
+    expect(siblingReads()).toHaveLength(1);
+  });
+
+  test("an update that sends only the list is a scope change: the caller's permission is checked before anything is read", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor(
+          { notificationChannels: [ComplianceNotificationChannel.Push] },
+          { props: OUTSIDER_PROPS },
+        ),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    expectNoReads();
+  });
+
+  test("adding a channel to a rule makes a rule neither it nor its one-channel sibling is", async () => {
+    store(INCIDENT_CALL_CRITICAL, {
+      ...INCIDENT_CALL_CRITICAL,
+      id: SIBLING_SETTING_ID,
+      notificationChannels: [ComplianceNotificationChannel.Push],
+    });
+
+    await expect(
+      update({
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("a channel change keeps the stored severities when it is judged", async () => {
+    store(INCIDENT_CALL_CRITICAL, {
+      ...CALL_AND_PUSH_FOR_CRITICAL,
+      incidentSeverityIds: [MAJOR_INCIDENT],
+    });
+
+    // "Call and Push for Critical" - the sibling is for Major.
+    await expect(
+      update({
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+      }),
+    ).resolves.toBeDefined();
+
+    // A severity change keeps the stored channels: "Call for Major" is new too.
+    await expect(
+      update({ incidentSeverities: [MAJOR_INCIDENT] }),
+    ).resolves.toBeDefined();
+  });
+
+  test.each<[string, Record<string, unknown>, string]>([
+    [
+      "a list with an unknown channel",
+      { notificationChannels: [ComplianceNotificationChannel.Call, "Pager"] },
+      UNKNOWN_CHANNEL_MESSAGE("Pager"),
+    ],
+    [
+      "a list with a channel in the wrong case",
+      { notificationChannels: ["push"] },
+      UNKNOWN_CHANNEL_MESSAGE("push"),
+    ],
+    [
+      "channels that are not a list",
+      { notificationChannels: ComplianceNotificationChannel.Call },
+      NOT_A_CHANNEL_LIST_MESSAGE,
+    ],
+    [
+      "a garbage single channel beside a good list",
+      {
+        notificationChannels: [ComplianceNotificationChannel.Call],
+        notificationChannel: "Pager",
+      },
+      UNKNOWN_CHANNEL_MESSAGE("Pager"),
+    ],
+  ])(
+    "refuses %s before anything is read",
+    async (_label: string, data: Record<string, unknown>, message: string) => {
+      store(INCIDENT_CALL_CRITICAL);
+
+      await expect(update(data)).rejects.toThrow(new BadDataException(message));
+      expectNoReads();
+    },
+  );
+
+  test("a type change to a method rule clears a stored list of several channels", async () => {
+    store({
+      ...INCIDENT_CALL_CRITICAL,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+    });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(channelsOf(dataOf(updateBy))).toEqual({
+      notificationChannels: [],
+      notificationChannel: null,
+    });
+  });
+
+  test("a type change to another on-call rule keeps the stored channels, and judges the new rule by them", async () => {
+    store(
+      {
+        ...INCIDENT_CALL_CRITICAL,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+      },
+      {
+        ...CALL_AND_PUSH_FOR_CRITICAL,
+        ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+      },
+    );
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      ruleType: ComplianceRuleType.HasIncidentEpisodeOnCallRules,
+    });
+
+    await expect(onBeforeUpdate(updateBy)).rejects.toThrow(
+      DUPLICATE_COMPLIANCE_RULE_MESSAGE,
+    );
+    // Not sent, so not rewritten: the row keeps the list it has.
+    expect("notificationChannels" in dataOf(updateBy)).toBe(false);
+    expect("notificationChannel" in dataOf(updateBy)).toBe(false);
+  });
+
+  test("what the hook leaves for any channel payload passes the update check _updateBy repeats", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    for (const data of [
+      {
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+      },
+      { notificationChannels: null },
+      { notificationChannel: ComplianceNotificationChannel.SMS },
+      { notificationChannel: null },
+    ]) {
+      const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+        ...data,
+      });
+
+      await onBeforeUpdate(updateBy);
+
+      expect(Object.keys(dataOf(updateBy)).sort()).toEqual([
+        "notificationChannel",
+        "notificationChannels",
+      ]);
+      await expect(
+        ModelPermission.checkUpdateQueryPermissions(
+          TeamComplianceSetting,
+          { _id: SETTING_ID },
+          updateBy.data,
+          EDITOR_PROPS,
+        ),
+      ).resolves.toBeDefined();
+    }
+  });
+});
+
+describe("TeamComplianceSettingService - a payload from before the channel list", () => {
+  /*
+   * API clients written before a rule could require several channels, and a
+   * Dashboard bundle from before the list, send notificationChannel alone. It
+   * still means what it always meant: exactly that channel, or any channel.
+   * Before the list existed the model had no other field, so dropping it -
+   * reading such a payload as "any channel" - would silently widen the rule.
+   */
+  test("create: one channel is stored as a one-item list, with itself beside it", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [CRITICAL_INCIDENT],
+    });
+
+    expect(channelsOf(result.createBy.data)).toEqual({
+      notificationChannels: [ComplianceNotificationChannel.Call],
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+  });
+
+  test("create: null is 'any channel'", async () => {
+    const result: OnCreate<TeamComplianceSetting> = await create({
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      notificationChannel: null,
+    });
+
+    expect(channelsOf(result.createBy.data)).toEqual({
+      notificationChannels: [],
+      notificationChannel: null,
+    });
+  });
+
+  test("create: a channel sent the old way duplicates a rule stored with that channel alone in its list", async () => {
+    store({
+      id: SIBLING_SETTING_ID,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [ComplianceNotificationChannel.Call],
+      incidentSeverityIds: [CRITICAL_INCIDENT],
+    });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).rejects.toThrow(new BadDataException(DUPLICATE_COMPLIANCE_RULE_MESSAGE));
+  });
+
+  test("create: ...but not a rule on that channel and another", async () => {
+    store(CALL_AND_PUSH_FOR_CRITICAL);
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannel: ComplianceNotificationChannel.Call,
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("update: one channel replaces the rule's whole list", async () => {
+    store({ ...CALL_AND_PUSH_FOR_CRITICAL, id: SETTING_ID });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(dataOf(updateBy)).toEqual({
+      notificationChannels: [ComplianceNotificationChannel.SMS],
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+  });
+
+  test("update: null clears the list to 'any channel' - a scope change, checked for duplicates", async () => {
+    store(INCIDENT_CALL_CRITICAL, {
+      id: SIBLING_SETTING_ID,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      incidentSeverityIds: [CRITICAL_INCIDENT],
+    });
+
+    await expect(update({ notificationChannel: null })).rejects.toThrow(
+      DUPLICATE_COMPLIANCE_RULE_MESSAGE,
+    );
+  });
+
+  test("update: a channel sent the old way is a scope change, so the caller's permission is checked before anything is read", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    await expect(
+      onBeforeUpdate(
+        updateByFor(
+          { notificationChannel: ComplianceNotificationChannel.Push },
+          { props: OUTSIDER_PROPS },
+        ),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    expectNoReads();
+  });
+
+  test("update: a rule sent back as it was read - the list and its first channel - keeps its list", async () => {
+    store({ ...CALL_AND_PUSH_FOR_CRITICAL, id: SETTING_ID });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverities: [{ _id: CRITICAL_INCIDENT }],
+      alertSeverities: [],
+      enabled: true,
+    });
+
+    await expect(onBeforeUpdate(updateBy)).resolves.toBeDefined();
+
+    expect(channelsOf(dataOf(updateBy))).toEqual({
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+  });
+
+  test("update: a list changed beside the single channel it was read with is written as the new list", async () => {
+    store(INCIDENT_CALL_CRITICAL);
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.SMS,
+      ],
+      // Stale: what the rule was read with.
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(dataOf(updateBy)).toEqual({
+      notificationChannels: [
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+  });
+
+  test("update: a channel sent the old way to a method rule is dropped, list and all", async () => {
+    store({
+      id: SETTING_ID,
+      ruleType: ComplianceRuleType.HasNotificationSMSMethod,
+    });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(dataOf(updateBy)).toEqual({
+      notificationChannels: [],
+      notificationChannel: null,
+    });
+  });
+});
+
+describe("TeamComplianceSettingService - rules an older build wrote", () => {
+  /*
+   * An older replica still serving during an upgrade - or the build a site
+   * rolled back to - writes only notificationChannel and leaves the list as
+   * it was. Its rows are judged by what that column says, so a rule such a
+   * build created or changed is neither missed by the duplicate check nor
+   * read as a rule it no longer is.
+   */
+  test("a rule it created - no list, one channel - duplicates a new rule on that one channel", async () => {
+    store({
+      id: SIBLING_SETTING_ID,
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannel: ComplianceNotificationChannel.Call,
+      incidentSeverityIds: [CRITICAL_INCIDENT],
+    });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [ComplianceNotificationChannel.Call],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).rejects.toThrow(new BadDataException(DUPLICATE_COMPLIANCE_RULE_MESSAGE));
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("a rule it re-pointed to another channel is that channel only, whatever its list still says", async () => {
+    store({
+      ...CALL_AND_PUSH_FOR_CRITICAL,
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("a rule it cleared to 'any channel' is 'any channel', whatever its list still says", async () => {
+    store({ ...CALL_AND_PUSH_FOR_CRITICAL, notificationChannel: null });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("a rule it re-saved without touching the channel keeps its whole list", async () => {
+    store({
+      ...CALL_AND_PUSH_FOR_CRITICAL,
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+        ],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+
+    await expect(
+      create({
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [ComplianceNotificationChannel.Call],
+        incidentSeverities: [CRITICAL_INCIDENT],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("the rule being updated is judged by its single channel when its list disagrees", async () => {
+    store(
+      {
+        // SMS for Critical: an older build re-pointed "Call and Push".
+        ...CALL_AND_PUSH_FOR_CRITICAL,
+        id: SETTING_ID,
+        notificationChannel: ComplianceNotificationChannel.SMS,
+      },
+      {
+        id: SIBLING_SETTING_ID,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        incidentSeverityIds: [MAJOR_INCIDENT],
+      },
+    );
+
+    // Re-scoped to Major it is "SMS for Major" - the sibling.
+    await expect(
+      update({ incidentSeverities: [MAJOR_INCIDENT] }),
+    ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
+  });
+
+  test("...and by its list when the two agree", async () => {
+    store(
+      { ...CALL_AND_PUSH_FOR_CRITICAL, id: SETTING_ID },
+      {
+        id: SIBLING_SETTING_ID,
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        notificationChannels: [ComplianceNotificationChannel.SMS],
+        incidentSeverityIds: [MAJOR_INCIDENT],
+      },
+    );
+
+    // "Call and Push for Major" is not "SMS for Major".
+    await expect(
+      update({ incidentSeverities: [MAJOR_INCIDENT] }),
+    ).resolves.toBeDefined();
+  });
+
+  test("an update that sends the list writes the pair, so the row reads as its list again", async () => {
+    store({
+      ...CALL_AND_PUSH_FOR_CRITICAL,
+      id: SETTING_ID,
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+
+    const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
+      notificationChannels: [
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.SMS,
+      ],
+    });
+
+    await onBeforeUpdate(updateBy);
+
+    expect(channelsOf(dataOf(updateBy))).toEqual({
+      notificationChannels: [
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+    expect(
+      TeamComplianceSettingServiceClass.getStoredChannels(dataOf(updateBy)),
+    ).toEqual([
+      ComplianceNotificationChannel.SMS,
+      ComplianceNotificationChannel.Push,
+    ]);
+  });
 });
 
 /*
@@ -3973,6 +5638,7 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
     expect(written["ruleType"]).toBe(
       ComplianceRuleType.HasNotificationEmailMethod,
     );
+    expect(written["notificationChannels"]).toEqual([]);
     expect(written["notificationChannel"]).toBeNull();
     expect(written["incidentSeverities"]).toEqual([]);
     expect(written["alertSeverities"]).toEqual([]);
@@ -3982,14 +5648,14 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
     store({
       id: SIBLING_SETTING_ID,
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-      notificationChannel: ComplianceNotificationChannel.Push,
+      notificationChannels: [ComplianceNotificationChannel.Push],
       incidentSeverityIds: [CRITICAL_INCIDENT],
     });
 
     await expect(
       service.updateOneById({
         id: new ObjectID(SETTING_ID),
-        data: { notificationChannel: ComplianceNotificationChannel.Push },
+        data: { notificationChannels: [ComplianceNotificationChannel.Push] },
         props: { isRoot: true },
       }),
     ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
@@ -4037,5 +5703,101 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
 
     expect(save).not.toHaveBeenCalled();
     expect(repositoryUpdate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The channel columns are plain columns - the list is JSON, not a relation
+   * - so an update that changes only them is a plain column update, and
+   * reaches it as the pair the hook wrote.
+   */
+  test("a channel list reaches the write canonical, with its first channel beside it", async () => {
+    await service.updateOneById({
+      id: new ObjectID(SETTING_ID),
+      data: {
+        notificationChannels: [
+          ComplianceNotificationChannel.Push,
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.Push,
+        ],
+      } as never,
+      props: { isRoot: true },
+    });
+
+    expect(save).not.toHaveBeenCalled();
+    expect(repositoryUpdate).toHaveBeenCalledTimes(1);
+    expect(repositoryUpdate.mock.calls[0]?.[1]).toMatchObject({
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      notificationChannel: ComplianceNotificationChannel.Call,
+    });
+  });
+
+  test("a channel sent the old way reaches the write as a one-item list", async () => {
+    await service.updateOneById({
+      id: new ObjectID(SETTING_ID),
+      data: { notificationChannel: ComplianceNotificationChannel.SMS },
+      props: { isRoot: true },
+    });
+
+    expect(repositoryUpdate).toHaveBeenCalledTimes(1);
+    expect(repositoryUpdate.mock.calls[0]?.[1]).toMatchObject({
+      notificationChannels: [ComplianceNotificationChannel.SMS],
+      notificationChannel: ComplianceNotificationChannel.SMS,
+    });
+  });
+
+  test("clearing the channels reaches the write as an empty list and no channel", async () => {
+    await service.updateOneById({
+      id: new ObjectID(SETTING_ID),
+      data: { notificationChannels: [] } as never,
+      props: { isRoot: true },
+    });
+
+    expect(repositoryUpdate).toHaveBeenCalledTimes(1);
+    expect(repositoryUpdate.mock.calls[0]?.[1]).toMatchObject({
+      notificationChannels: [],
+      notificationChannel: null,
+    });
+  });
+
+  test("a list with a channel this build does not know is refused before anything is written", async () => {
+    await expect(
+      service.updateOneById({
+        id: new ObjectID(SETTING_ID),
+        data: {
+          notificationChannels: [ComplianceNotificationChannel.Call, "Pager"],
+        } as never,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(UNKNOWN_CHANNEL_MESSAGE("Pager"));
+
+    expect(save).not.toHaveBeenCalled();
+    expect(repositoryUpdate).not.toHaveBeenCalled();
+  });
+
+  test("a rule type change clears a list of several channels in the same write", async () => {
+    storedSettings = [];
+    store({
+      ...INCIDENT_CALL_CRITICAL,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(SETTING_ID),
+      data: { ruleType: ComplianceRuleType.HasNotificationWebhookMethod },
+      props: { isRoot: true },
+    });
+
+    const written: Record<string, unknown> = save.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(written["notificationChannels"]).toEqual([]);
+    expect(written["notificationChannel"]).toBeNull();
   });
 });
