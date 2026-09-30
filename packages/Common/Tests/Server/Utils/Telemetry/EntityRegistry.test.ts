@@ -87,6 +87,25 @@ describe("REGISTRY_PROMOTED_TYPES", () => {
     expect(REGISTRY_PROMOTED_TYPES.has(EntityType.Database)).toBe(true);
   });
 
+  test("message.queue is membership-only (the MessageQueue table is its row)", () => {
+    expect(REGISTRY_PROMOTED_TYPES.has(EntityType.MessageQueue)).toBe(false);
+    // The broker a messaging span calls is still a promoted dependency node.
+    expect(REGISTRY_PROMOTED_TYPES.has(EntityType.RemoteService)).toBe(true);
+  });
+
+  test("an OTLP entity_ref of type message.queue writes no registry row", async () => {
+    await reconcileEntityRegistryThrottled({
+      projectId: PROJECT_ID,
+      entities: [entity(EntityType.MessageQueue, "0123456789abcdef")],
+    });
+
+    expect(GlobalCache.setStringIfNotExists).not.toHaveBeenCalled();
+    expect(InventoryItemService.reconcileEntities).not.toHaveBeenCalled();
+    expect(
+      InventoryItemRelationshipService.reconcileRelationships,
+    ).not.toHaveBeenCalled();
+  });
+
   test("every other entity type is promoted", () => {
     const membershipOnly: Array<EntityType> = [
       EntityType.Container,
@@ -94,6 +113,7 @@ describe("REGISTRY_PROMOTED_TYPES", () => {
       EntityType.ServiceInstance,
       EntityType.TelemetrySdk,
       EntityType.DatabaseServer,
+      EntityType.MessageQueue,
     ];
 
     for (const entityType of Object.values(EntityType)) {
