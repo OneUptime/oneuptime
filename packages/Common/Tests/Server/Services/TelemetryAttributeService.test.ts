@@ -1,8 +1,10 @@
 import { TelemetryAttributeService } from "../../../Server/Services/TelemetryAttributeService";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 describe("TelemetryAttributeService.buildAttributeValuesStatement", () => {
   /*
@@ -160,20 +162,24 @@ describe("TelemetryAttributeService.fetchAttributeValuesFromDatabase", () => {
     attributeKey: string;
   };
 
-  type FetchFunction = (
-    data: JSONObject | undefined,
-  ) => Promise<{ values: Array<string>; statements: Array<Statement> }>;
+  type FetchResult = {
+    values: Array<string>;
+    isComplete: boolean;
+    statements: Array<Statement>;
+  };
+
+  type FetchFunction = (data: JSONObject | undefined) => Promise<FetchResult>;
 
   const fetchValues: FetchFunction = async (
     data: JSONObject | undefined,
-  ): Promise<{ values: Array<string>; statements: Array<Statement> }> => {
+  ): Promise<FetchResult> => {
     const statements: Array<Statement> = [];
 
-    const values: Array<string> = await (
+    const entry: { values: Array<string>; isComplete: boolean } = await (
       TelemetryAttributeService as unknown as {
         fetchAttributeValuesFromDatabase: (
           input: FetchInput,
-        ) => Promise<Array<string>>;
+        ) => Promise<{ values: Array<string>; isComplete: boolean }>;
       }
     ).fetchAttributeValuesFromDatabase({
       projectId: ObjectID.generate(),
@@ -196,7 +202,15 @@ describe("TelemetryAttributeService.fetchAttributeValuesFromDatabase", () => {
       attributeKey: "RequestPath",
     });
 
-    return { values, statements };
+    return { values: entry.values, isComplete: entry.isComplete, statements };
+  };
+
+  type RowsFunction = (count: number) => Array<JSONObject>;
+
+  const rows: RowsFunction = (count: number): Array<JSONObject> => {
+    return Array.from({ length: count }, (_value: unknown, index: number) => {
+      return { attributeValue: `/path/${index}` };
+    });
   };
 
   test("runs the values statement once", async () => {
@@ -247,8 +261,542 @@ describe("TelemetryAttributeService.fetchAttributeValuesFromDatabase", () => {
   });
 
   test("returns no values when the response has no data", async () => {
-    const { values } = await fetchValues(undefined);
+    const { values, isComplete } = await fetchValues(undefined);
 
     expect(values).toEqual([]);
+    // Without statistics nothing says the query was not stopped early.
+    expect(isComplete).toBe(false);
+  });
+
+  test("is complete when the query finished below the limit", async () => {
+    const { isComplete } = await fetchValues({
+      data: rows(99),
+      statistics: { elapsed: 7.2, rows_read: 35000000, bytes_read: 1 },
+    });
+
+    expect(isComplete).toBe(true);
+  });
+
+  test("is incomplete once the rows reach the limit", async () => {
+    const { values, isComplete } = await fetchValues({
+      data: [{ attributeValue: "" }, ...rows(99)],
+      statistics: { elapsed: 0.2, rows_read: 8192, bytes_read: 1 },
+    });
+
+    // The empty value took one of the hundred rows.
+    expect(values).toHaveLength(99);
+    expect(isComplete).toBe(false);
+  });
+
+  // ClickHouse reported 0.297s for a query 'break' stopped at 0.3s.
+  test.each([40.5, 44.6, 45.3])(
+    "is incomplete when the query ran %ss, as long as the time limit allows",
+    async (elapsed: number) => {
+      const { isComplete } = await fetchValues({
+        data: rows(3),
+        statistics: { elapsed, rows_read: 1, bytes_read: 1 },
+      });
+
+      expect(isComplete).toBe(false);
+    },
+  );
+
+  test("puts the time limit it checks against into the statement", async () => {
+    const { statements } = await fetchValues({ data: [] });
+
+    expect(statements[0]!.query).toContain(
+      "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+  });
+});
+
+describe("TelemetryAttributeService.fetchAttributeValues", () => {
+  type Response = {
+    values?: Array<string>;
+    rowCount?: number;
+    elapsed?: number;
+  };
+
+  type Database = {
+    statements: Array<Statement>;
+    service: TelemetryAttributeService;
+  };
+
+  type RespondFunction = (statement: Statement) => Promise<Response>;
+
+  type DatabaseOptions = {
+    isMutableMetricSource?: boolean;
+  };
+
+  type CreateDatabaseFunction = (
+    respond: RespondFunction,
+    options?: DatabaseOptions,
+  ) => Database;
+
+  const createDatabase: CreateDatabaseFunction = (
+    respond: RespondFunction,
+    options?: DatabaseOptions,
+  ): Database => {
+    const statements: Array<Statement> = [];
+    const service: TelemetryAttributeService = new TelemetryAttributeService();
+
+    (
+      service as unknown as {
+        getTelemetrySource: () => unknown;
+      }
+    ).getTelemetrySource = (): unknown => {
+      return {
+        tableName: "LogItemV3",
+        attributesColumn: "attributes",
+        attributeKeysColumn: "attributeKeys",
+        timeColumn: "time",
+        isMutableMetricSource: options?.isMutableMetricSource,
+        service: {
+          executeQuery: async (statement: Statement): Promise<unknown> => {
+            statements.push(statement);
+            const response: Response = await respond(statement);
+            const values: Array<string> = response.values || [];
+
+            return {
+              json: async (): Promise<JSONObject> => {
+                return {
+                  data: Array.from(
+                    { length: response.rowCount ?? values.length },
+                    (_value: unknown, index: number) => {
+                      return {
+                        attributeValue: values[index] ?? `value-${index}`,
+                      };
+                    },
+                  ),
+                  statistics: {
+                    elapsed: response.elapsed ?? 0.1,
+                    rows_read: 1,
+                    bytes_read: 1,
+                  },
+                };
+              },
+            };
+          },
+        },
+      };
+    };
+
+    return { statements, service };
+  };
+
+  type Cache = {
+    entries: Map<string, JSONObject>;
+    expiries: Array<number | undefined>;
+  };
+
+  type MockCacheFunction = () => Cache;
+
+  const mockCache: MockCacheFunction = (): Cache => {
+    const cache: Cache = { entries: new Map(), expiries: [] };
+
+    jest
+      .spyOn(GlobalCache, "getJSONObject")
+      .mockImplementation(
+        async (namespace: string, key: string): Promise<JSONObject | null> => {
+          return cache.entries.get(`${namespace}-${key}`) || null;
+        },
+      );
+
+    jest
+      .spyOn(GlobalCache, "setJSON")
+      .mockImplementation(
+        async (
+          namespace: string,
+          key: string,
+          value: JSONObject,
+          options?: { expiresInSeconds: number },
+        ): Promise<void> => {
+          cache.entries.set(
+            `${namespace}-${key}`,
+            JSON.parse(JSON.stringify(value)) as JSONObject,
+          );
+          cache.expiries.push(options?.expiresInSeconds);
+        },
+      );
+
+    return cache;
+  };
+
+  type Gate = {
+    opened: Promise<void>;
+    open: () => void;
+  };
+
+  type CreateGateFunction = () => Gate;
+
+  const createGate: CreateGateFunction = (): Gate => {
+    let open: () => void = (): void => {};
+
+    const opened: Promise<void> = new Promise<void>((resolve: () => void) => {
+      open = resolve;
+    });
+
+    return { opened, open };
+  };
+
+  type Request = {
+    projectId: ObjectID;
+    telemetryType: TelemetryType;
+    attributeKey: string;
+    searchText?: string;
+    metricName?: string;
+  };
+
+  const environments: Array<string> = ["development", "production", "staging"];
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("serves a repeat request from the cache for five minutes", async () => {
+    const cache: Cache = mockCache();
+    const { service, statements } = createDatabase(async () => {
+      return { values: environments };
+    });
+    const projectId: ObjectID = ObjectID.generate();
+
+    const first: Array<string> = await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    });
+    const second: Array<string> = await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    });
+
+    expect(first).toEqual(environments);
+    expect(second).toEqual(environments);
+    expect(statements).toHaveLength(1);
+    expect(cache.expiries).toEqual([300]);
+  });
+
+  test("shares one query between identical requests that arrive together", async () => {
+    mockCache();
+    const gate: Gate = createGate();
+    const { service, statements } = createDatabase(async () => {
+      await gate.opened;
+      return { values: environments };
+    });
+    const request: Request = {
+      projectId: ObjectID.generate(),
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    };
+
+    const pending: Promise<Array<Array<string>>> = Promise.all([
+      service.fetchAttributeValues(request),
+      service.fetchAttributeValues(request),
+      service.fetchAttributeValues(request),
+    ]);
+    gate.open();
+
+    expect(await pending).toEqual([environments, environments, environments]);
+    expect(statements).toHaveLength(1);
+  });
+
+  test("answers a search by filtering the values an unfiltered load found", async () => {
+    mockCache();
+    const { service, statements } = createDatabase(async () => {
+      return { values: environments };
+    });
+    const projectId: ObjectID = ObjectID.generate();
+
+    await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    });
+
+    // Case-insensitive, as ILIKE is.
+    expect(
+      await service.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+        searchText: " PROD ",
+      }),
+    ).toEqual(["production"]);
+    expect(
+      await service.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+        searchText: "o",
+      }),
+    ).toEqual(["development", "production"]);
+    expect(statements).toHaveLength(1);
+  });
+
+  test("answers a search that arrives while the unfiltered load runs", async () => {
+    mockCache();
+    const gate: Gate = createGate();
+    const { service, statements } = createDatabase(async () => {
+      await gate.opened;
+      return { values: environments };
+    });
+    const projectId: ObjectID = ObjectID.generate();
+
+    const unfiltered: Promise<Array<string>> = service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    });
+    const search: Promise<Array<string>> = service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+      searchText: "stag",
+    });
+    gate.open();
+
+    expect(await unfiltered).toEqual(environments);
+    expect(await search).toEqual(["staging"]);
+    expect(statements).toHaveLength(1);
+  });
+
+  test("asks the database when the unfiltered load reached the limit", async () => {
+    mockCache();
+    const { service, statements } = createDatabase(
+      async (statement: Statement) => {
+        if (statement.query.includes("ILIKE")) {
+          return { values: ["/api/orders/archived"] };
+        }
+
+        return { rowCount: 100 };
+      },
+    );
+    const projectId: ObjectID = ObjectID.generate();
+
+    await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "RequestPath",
+    });
+    const values: Array<string> = await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "RequestPath",
+      searchText: "archived",
+    });
+
+    expect(values).toEqual(["/api/orders/archived"]);
+    expect(statements).toHaveLength(2);
+    expect(statements[1]!.query).toContain("ILIKE");
+  });
+
+  test("asks the database when the unfiltered load may have been cut short", async () => {
+    mockCache();
+    const { service, statements } = createDatabase(
+      async (statement: Statement) => {
+        if (statement.query.includes("ILIKE")) {
+          return { values: ["qa"] };
+        }
+
+        return { values: environments, elapsed: 45.1 };
+      },
+    );
+    const projectId: ObjectID = ObjectID.generate();
+
+    await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    });
+
+    expect(
+      await service.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+        searchText: "qa",
+      }),
+    ).toEqual(["qa"]);
+    expect(statements).toHaveLength(2);
+  });
+
+  test("keeps searches, keys, metrics and projects apart", async () => {
+    mockCache();
+    const { service, statements } = createDatabase(
+      async (statement: Statement) => {
+        // Unfiltered loads reach the limit, so each search asks too.
+        return {
+          values: [JSON.stringify(Object.values(statement.query_params))],
+          rowCount: statement.query.includes("ILIKE") ? 1 : 100,
+        };
+      },
+    );
+    const projectId: ObjectID = ObjectID.generate();
+    const requests: Array<Request> = [
+      { projectId, telemetryType: TelemetryType.Log, attributeKey: "env" },
+      {
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+        searchText: "a",
+      },
+      {
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+        searchText: "b",
+      },
+      { projectId, telemetryType: TelemetryType.Log, attributeKey: "region" },
+      {
+        projectId: ObjectID.generate(),
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+      },
+      {
+        projectId,
+        telemetryType: TelemetryType.Metric,
+        attributeKey: "c",
+        metricName: "a:b",
+      },
+      {
+        projectId,
+        telemetryType: TelemetryType.Metric,
+        attributeKey: "b:c",
+        metricName: "a",
+      },
+    ];
+
+    const firstAnswers: Array<Array<string>> = [];
+
+    for (const request of requests) {
+      firstAnswers.push(await service.fetchAttributeValues(request));
+    }
+
+    expect(statements).toHaveLength(requests.length);
+    expect(
+      new Set(
+        firstAnswers.map((answer: Array<string>) => {
+          return JSON.stringify(answer);
+        }),
+      ).size,
+    ).toBe(requests.length);
+
+    for (const [index, request] of requests.entries()) {
+      expect(await service.fetchAttributeValues(request)).toEqual(
+        firstAnswers[index],
+      );
+    }
+
+    expect(statements).toHaveLength(requests.length);
+  });
+
+  test("does not cache a failed load", async () => {
+    const cache: Cache = mockCache();
+    let failuresLeft: number = 1;
+    const { service, statements } = createDatabase(async () => {
+      if (failuresLeft > 0) {
+        failuresLeft--;
+        throw new Error("Timeout error.");
+      }
+
+      return { values: environments };
+    });
+    const projectId: ObjectID = ObjectID.generate();
+
+    await expect(
+      service.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+      }),
+    ).rejects.toThrow("Timeout error.");
+    expect(cache.entries.size).toBe(0);
+
+    expect(
+      await service.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+      }),
+    ).toEqual(environments);
+    expect(statements).toHaveLength(2);
+  });
+
+  test("still answers when the cache is unreachable", async () => {
+    jest
+      .spyOn(GlobalCache, "getJSONObject")
+      .mockRejectedValue(new Error("Cache is not connected"));
+    jest
+      .spyOn(GlobalCache, "setJSON")
+      .mockRejectedValue(new Error("Cache is not connected"));
+    const { service, statements } = createDatabase(async () => {
+      return { values: environments };
+    });
+    const projectId: ObjectID = ObjectID.generate();
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      expect(
+        await service.fetchAttributeValues({
+          projectId,
+          telemetryType: TelemetryType.Log,
+          attributeKey: "env",
+        }),
+      ).toEqual(environments);
+    }
+
+    expect(statements).toHaveLength(2);
+  });
+
+  test("ignores a cache entry of the wrong shape", async () => {
+    const cache: Cache = mockCache();
+    const { service, statements } = createDatabase(async () => {
+      return { values: environments };
+    });
+    const projectId: ObjectID = ObjectID.generate();
+
+    await service.fetchAttributeValues({
+      projectId,
+      telemetryType: TelemetryType.Log,
+      attributeKey: "env",
+    });
+
+    for (const key of cache.entries.keys()) {
+      cache.entries.set(key, { attributes: environments });
+    }
+
+    expect(
+      await service.fetchAttributeValues({
+        projectId,
+        telemetryType: TelemetryType.Log,
+        attributeKey: "env",
+      }),
+    ).toEqual(environments);
+    expect(statements).toHaveLength(2);
+  });
+
+  test("reads mutable metrics fresh every time", async () => {
+    const cache: Cache = mockCache();
+    const { service, statements } = createDatabase(
+      async () => {
+        return { values: ["critical", "warning"] };
+      },
+      { isMutableMetricSource: true },
+    );
+    const projectId: ObjectID = ObjectID.generate();
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      expect(
+        await service.fetchAttributeValues({
+          projectId,
+          telemetryType: TelemetryType.Metric,
+          metricName: "oneuptime.incident.count",
+          attributeKey: "severity",
+        }),
+      ).toEqual(["critical", "warning"]);
+    }
+
+    expect(statements).toHaveLength(2);
+    expect(cache.entries.size).toBe(0);
   });
 });
