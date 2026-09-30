@@ -416,6 +416,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProxmoxResourcePostgres.test.ts --forceExit
 
+      # Enable AI became the project's only AI switch. Clones the migrated
+      # Project, AutoRemediationRule, Runner and Fixes-mode tables into an
+      # isolated schema, puts the two dropped switches back with the
+      # migration's own down(), seeds every kind of rule, cluster binding and
+      # resource under each switch combination, and runs up(): only the
+      # unattended rows a switch was holding back may move to asking first,
+      # and the kubernetes-agent Runner predicate must agree with the
+      # server's.
+      - name: Test folding the AI switches into Enable AI on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ENABLE_AI_SWITCH_TESTS: "true"
+          ENABLE_AI_SWITCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ENABLE_AI_SWITCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ENABLE_AI_SWITCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/FoldAiSwitchesIntoEnableAiPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service
