@@ -93,6 +93,10 @@ import {
 import ProbeUtil from "../../Utils/Probe";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 import { MonitorPayAsYouGoCard } from "../../Components/Billing/PayAsYouGo";
+import {
+  shouldDropDefaultMonitoringInterval,
+  withDefaultMonitoringInterval,
+} from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -1062,9 +1066,11 @@ const MonitorCreate: FunctionComponent<
                  * The form reads initialValues once, on mount - which is why
                  * the render above waits for the probe list.
                  */
-                seededProbes
-                  ? { ...initialValues, probes: seededProbes }
-                  : initialValues
+                withDefaultMonitoringInterval(
+                  seededProbes
+                    ? { ...initialValues, probes: seededProbes }
+                    : initialValues,
+                )
               }
               fields={[
                 {
@@ -1153,8 +1159,14 @@ const MonitorCreate: FunctionComponent<
                   showEvenIfPermissionDoesNotExist: true,
                   stepId: "monitoring-interval",
                   title: "Probes",
+                  /*
+                   * It used to say an empty selection meant "use the
+                   * defaults". It does not: an explicit empty selection
+                   * reaches the server as "attach no probes", and nothing
+                   * ever checks that monitor.
+                   */
                   description:
-                    "Which probes should monitor this resource? Leave this empty to use every probe that is set to monitor new monitors by default.",
+                    "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   required: false,
                   placeholder: "Select Probes",
@@ -1250,6 +1262,17 @@ const MonitorCreate: FunctionComponent<
                 },
               ]}
               onBeforeCreate={async (item: Monitor): Promise<Monitor> => {
+                if (
+                  shouldDropDefaultMonitoringInterval({
+                    monitorType: item.monitorType,
+                    isIntervalPrefilled: Object.prototype.hasOwnProperty.call(
+                      initialValues,
+                      "monitoringInterval",
+                    ),
+                  })
+                ) {
+                  delete item.monitoringInterval;
+                }
                 if (monitorTemplateId) {
                   item.monitorTemplateId = new ObjectID(monitorTemplateId);
                 }
