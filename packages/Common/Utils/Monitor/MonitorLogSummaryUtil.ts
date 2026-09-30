@@ -8,6 +8,22 @@ import MonitorSummarySnapshotUtil, {
   MonitorSummaryInfoProps,
 } from "./MonitorSummarySnapshotUtil";
 
+export enum IncomingEmailLogEntryKind {
+  Email = "Email",
+  ScheduledCheck = "ScheduledCheck",
+}
+
+/*
+ * What an Incoming Email monitor's Monitoring Logs row was: an email, with
+ * its subject and sender ("" when the email had none), or the worker's
+ * scheduled check for missing email.
+ */
+export interface IncomingEmailLogEntry {
+  kind: IncomingEmailLogEntryKind;
+  subject: string;
+  from: string;
+}
+
 /*
  * The "View Summary" modal on a monitor's Monitoring Logs page.
  *
@@ -87,6 +103,50 @@ export default class MonitorLogSummaryUtil {
     }
 
     return props;
+  }
+
+  /*
+   * The Email column of an Incoming Email monitor's Monitoring Logs: which
+   * email a row evaluated, so a reader can find one - a sender's
+   * verification email, say - without opening every row.
+   *
+   * The worker's scheduled "has an email arrived lately?" check
+   * (Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus) writes a row too,
+   * every 30 seconds while a criteria checks Email Received, and it carries a
+   * copy of the last email. Read by subject alone, each of those rows would
+   * look like that email arriving again, so a check is named as one.
+   *
+   * Null for a row with no incoming email payload at all: an empty body, or
+   * one written before the monitor's type was changed.
+   */
+  public static getIncomingEmailLogEntry(
+    logBody: JSONObject | null | undefined,
+  ): IncomingEmailLogEntry | null {
+    if (!logBody || typeof logBody !== "object" || Array.isArray(logBody)) {
+      return null;
+    }
+
+    if (logBody["onlyCheckForIncomingEmailReceivedAt"] === true) {
+      return {
+        kind: IncomingEmailLogEntryKind.ScheduledCheck,
+        subject: "",
+        from: "",
+      };
+    }
+
+    // processIncomingEmailFromQueue stamps every email with its arrival.
+    if (!logBody["emailReceivedAt"]) {
+      return null;
+    }
+
+    const subject: unknown = logBody["emailSubject"];
+    const from: unknown = logBody["emailFrom"];
+
+    return {
+      kind: IncomingEmailLogEntryKind.Email,
+      subject: typeof subject === "string" ? subject.trim() : "",
+      from: typeof from === "string" ? from.trim() : "",
+    };
   }
 
   /*

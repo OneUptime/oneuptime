@@ -364,6 +364,30 @@ function closeSummary(modal: HTMLElement): void {
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 }
 
+function columnHeaderTexts(): Array<string> {
+  return screen
+    .getAllByRole("columnheader")
+    .map((header: HTMLElement): string => {
+      return header.textContent || "";
+    });
+}
+
+// Each data row's cell in the column headed `title`, newest row first.
+function cellsOfColumn(title: string): Array<HTMLElement> {
+  const column: number = columnHeaderTexts().indexOf(title);
+
+  expect(column).toBeGreaterThanOrEqual(0);
+
+  return screen
+    .getAllByTestId("row-actions")
+    .map((actions: HTMLElement): HTMLElement => {
+      return actions
+        .closest("tr")!
+        .querySelectorAll("td")
+        .item(column) as HTMLElement;
+    });
+}
+
 // The value an InfoCard in `container` shows under `title`.
 function infoCardValue(container: HTMLElement, title: string): string {
   const card: HTMLElement | null = within(container)
@@ -489,6 +513,105 @@ describe("Monitoring Logs > View Summary on an Incoming Email monitor", () => {
     ).not.toBeInTheDocument();
     expect(getAllProbesMock).not.toHaveBeenCalled();
   });
+
+  /*
+   * Every row used to read "Criteria met: ..." and nothing else, so the
+   * verification email's row could only be found by opening each one.
+   */
+  test("names each row's email in an Email column after the time", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.IncomingEmail,
+      rows: ROWS,
+    });
+
+    const headers: Array<string> = columnHeaderTexts();
+
+    expect(headers.indexOf("Email")).toBeGreaterThan(
+      headers.indexOf("Monitored At"),
+    );
+    expect(headers.indexOf("Evaluation Outcome")).toBeGreaterThan(
+      headers.indexOf("Email"),
+    );
+
+    const [later, verification, check] = cellsOfColumn("Email");
+
+    expect(
+      within(later!).getByText("Fired: Sev3 Azure Monitor Alert CPU above 90%"),
+    ).toBeInTheDocument();
+    expect(
+      within(later!).getByText("alerts-noreply@mail.windowsazure.com"),
+    ).toBeInTheDocument();
+
+    expect(
+      within(verification!).getByText(
+        "Verify your email address for Azure Monitor",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(verification!).getByText("azure-noreply@microsoft.com"),
+    ).toBeInTheDocument();
+
+    expect(check).toHaveTextContent(/^Scheduled check$/);
+  });
+
+  test("calls a scheduled check a check, though it carries the last email", async () => {
+    // The worker's check spreads the monitor's last email into its payload.
+    const checkAfterVerification: JSONObject = logRow({
+      id: "a0000000-0000-4000-8000-000000000004",
+      time: "2026-09-30T09:42:30.000Z",
+      body: {
+        ...(VERIFICATION_ROW["logBody"] as JSONObject),
+        checkedAt: at("2026-09-30T09:42:30.000Z"),
+        onlyCheckForIncomingEmailReceivedAt: true,
+      },
+    });
+
+    await renderLogsPage({
+      monitorType: MonitorType.IncomingEmail,
+      rows: [checkAfterVerification, VERIFICATION_ROW],
+    });
+
+    const [check, verification] = cellsOfColumn("Email");
+
+    expect(check).toHaveTextContent(/^Scheduled check$/);
+    expect(verification).toHaveTextContent(
+      "Verify your email address for Azure Monitor",
+    );
+
+    // Its summary still shows the email the check measured, and when.
+    const modal: HTMLElement = openSummary(0);
+
+    expect(infoCardValue(modal, "Subject")).toBe(
+      "Verify your email address for Azure Monitor",
+    );
+    expect(infoCardValue(modal, "Monitor Status Check At")).toBe(
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        at("2026-09-30T09:42:30.000Z"),
+      ),
+    );
+  });
+
+  test("says an email had no subject rather than leaving the cell blank", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.IncomingEmail,
+      rows: [
+        emailRow({
+          id: "a0000000-0000-4000-8000-000000000005",
+          time: "2026-09-30T10:00:00.000Z",
+          from: "backup@nightly.example",
+          subject: "",
+          body: "Backup completed.",
+        }),
+      ],
+    });
+
+    const [cell] = cellsOfColumn("Email");
+
+    expect(within(cell!).getByText("(no subject)")).toBeInTheDocument();
+    expect(
+      within(cell!).getByText("backup@nightly.example"),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("Monitoring Logs on a probe monitor", () => {
@@ -558,6 +681,12 @@ describe("Monitoring Logs on a probe monitor", () => {
     expect(probeCells).toEqual(["N. Virginia", "Frankfurt"]);
   });
 
+  test("has no Email column, which only an email monitor gets", async () => {
+    await renderLogsPage({ monitorType: MonitorType.Website, rows: ROWS });
+
+    expect(columnHeaderTexts()).not.toContain("Email");
+  });
+
   test("shows a check and its probe in View Summary", async () => {
     await renderLogsPage({ monitorType: MonitorType.Website, rows: ROWS });
 
@@ -591,6 +720,9 @@ describe("Monitoring Logs on the other push monitors", () => {
         }),
       ],
     });
+
+    // Its heartbeats are requests, not emails.
+    expect(columnHeaderTexts()).not.toContain("Email");
 
     const modal: HTMLElement = openSummary(0);
 

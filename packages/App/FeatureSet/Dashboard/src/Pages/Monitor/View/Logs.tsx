@@ -36,7 +36,10 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
-import MonitorLogSummaryUtil from "Common/Utils/Monitor/MonitorLogSummaryUtil";
+import MonitorLogSummaryUtil, {
+  IncomingEmailLogEntry,
+  IncomingEmailLogEntryKind,
+} from "Common/Utils/Monitor/MonitorLogSummaryUtil";
 import { MonitorSummaryInfoProps } from "Common/Utils/Monitor/MonitorSummarySnapshotUtil";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -113,6 +116,43 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const isSyntheticMonitor: boolean =
     monitorType === MonitorType.SyntheticMonitor;
+
+  const isIncomingEmailMonitor: boolean =
+    monitorType === MonitorType.IncomingEmail;
+
+  type GetIncomingEmailCellFunction = (log: MonitorLog) => ReactElement;
+
+  const getIncomingEmailCell: GetIncomingEmailCellFunction = (
+    log: MonitorLog,
+  ): ReactElement => {
+    const entry: IncomingEmailLogEntry | null =
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(log.logBody);
+
+    if (!entry) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+
+    if (entry.kind === IncomingEmailLogEntryKind.ScheduledCheck) {
+      return <span className="text-sm text-gray-500">Scheduled check</span>;
+    }
+
+    return (
+      <div className="min-w-0">
+        {entry.subject ? (
+          <div className="text-sm text-gray-900 break-words">
+            {entry.subject}
+          </div>
+        ) : (
+          <div className="text-sm italic text-gray-500">(no subject)</div>
+        )}
+        {entry.from ? (
+          <div className="text-xs text-gray-500 break-all">{entry.from}</div>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
 
   type GetMaxAttemptsFunction = (logBody: unknown) => number;
 
@@ -249,6 +289,26 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Monitored At",
             type: FieldType.DateTime,
           },
+          /*
+           * Which email a row evaluated, so one can be found without
+           * opening every row - or that the row is the worker's scheduled
+           * check for missing email, which would otherwise read as its copy
+           * of the last email arriving again.
+           */
+          ...(isIncomingEmailMonitor
+            ? [
+                {
+                  field: {
+                    logBody: true,
+                  },
+                  title: "Email",
+                  type: FieldType.Text,
+                  getElement: (item: MonitorLog): ReactElement => {
+                    return getIncomingEmailCell(item);
+                  },
+                },
+              ]
+            : []),
           // Conditionally add Probe column for probeable monitors
           ...(isProbableMonitor
             ? [

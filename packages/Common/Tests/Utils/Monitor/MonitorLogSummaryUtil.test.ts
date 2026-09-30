@@ -10,7 +10,10 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { redactForPersistence } from "../../../Server/Utils/Monitor/MonitorPayloadRedaction";
 import IncomingEmailMonitorRequestUtil from "../../../Utils/Monitor/IncomingEmailMonitorRequestUtil";
-import MonitorLogSummaryUtil from "../../../Utils/Monitor/MonitorLogSummaryUtil";
+import MonitorLogSummaryUtil, {
+  IncomingEmailLogEntry,
+  IncomingEmailLogEntryKind,
+} from "../../../Utils/Monitor/MonitorLogSummaryUtil";
 import { MonitorSummaryInfoProps } from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
 import { describe, expect, it } from "@jest/globals";
 
@@ -652,5 +655,136 @@ describe("MonitorLogSummaryUtil.getProbeId", () => {
     for (const body of withoutProbe) {
       expect(MonitorLogSummaryUtil.getProbeId(body)).toBeUndefined();
     }
+  });
+});
+
+/*
+ * The Email column of an Incoming Email monitor's Monitoring Logs. Without
+ * it every row looked the same ("Criteria met: ..."), so finding the one
+ * that holds a sender's verification email meant opening them one by one.
+ */
+describe("MonitorLogSummaryUtil.getIncomingEmailLogEntry", () => {
+  it("names the email a row evaluated by its subject and sender", () => {
+    expect(
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+        storeAsMonitorLog(receivedEmail()),
+      ),
+    ).toEqual({
+      kind: IncomingEmailLogEntryKind.Email,
+      subject: "Verify your email address for Azure Monitor",
+      from: "azure-noreply@microsoft.com",
+    });
+  });
+
+  it("calls a scheduled check a check, not the email it copied", () => {
+    /*
+     * The check's payload carries the last email's subject and sender, so
+     * read naively every one of these rows - one every 30 seconds while a
+     * criteria checks Email Received - would look like that email again.
+     */
+    const stored: JSONObject = storeAsMonitorLog(scheduledCheckAfterEmail());
+
+    expect(stored["emailSubject"]).toBe(
+      "Verify your email address for Azure Monitor",
+    );
+    expect(MonitorLogSummaryUtil.getIncomingEmailLogEntry(stored)).toEqual({
+      kind: IncomingEmailLogEntryKind.ScheduledCheck,
+      subject: "",
+      from: "",
+    });
+  });
+
+  it("calls a check on a monitor that never received mail a check", () => {
+    expect(
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+        storeAsMonitorLog(scheduledCheckWithoutEmail()),
+      )?.kind,
+    ).toBe(IncomingEmailLogEntryKind.ScheduledCheck);
+  });
+
+  it("keeps an email with no subject or sender an email", () => {
+    const entry: IncomingEmailLogEntry | null =
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+        storeAsMonitorLog(
+          receivedEmail({ emailSubject: "   ", emailFrom: "" } as JSONObject),
+        ),
+      );
+
+    expect(entry).toEqual({
+      kind: IncomingEmailLogEntryKind.Email,
+      subject: "",
+      from: "",
+    });
+  });
+
+  it("trims the subject and sender it shows", () => {
+    expect(
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+        storeAsMonitorLog(
+          receivedEmail({
+            emailSubject: "  Fired: CPU above 90%  ",
+            emailFrom: " alerts-noreply@mail.windowsazure.com ",
+          } as JSONObject),
+        ),
+      ),
+    ).toEqual({
+      kind: IncomingEmailLogEntryKind.Email,
+      subject: "Fired: CPU above 90%",
+      from: "alerts-noreply@mail.windowsazure.com",
+    });
+  });
+
+  it("treats only a true flag as a scheduled check", () => {
+    // Emails are stored with the flag false; older rows may not have it.
+    const withoutFlag: JSONObject = storeAsMonitorLog(receivedEmail());
+    delete withoutFlag["onlyCheckForIncomingEmailReceivedAt"];
+
+    for (const body of [
+      withoutFlag,
+      storeAsMonitorLog(
+        receivedEmail({
+          onlyCheckForIncomingEmailReceivedAt: "true",
+        } as unknown as JSONObject),
+      ),
+    ]) {
+      expect(MonitorLogSummaryUtil.getIncomingEmailLogEntry(body)?.kind).toBe(
+        IncomingEmailLogEntryKind.Email,
+      );
+    }
+  });
+
+  it("finds no email in a row that has none", () => {
+    const withoutEmail: Array<JSONObject | null | undefined> = [
+      null,
+      undefined,
+      {},
+      [] as unknown as JSONObject,
+      "an email" as unknown as JSONObject,
+      // Written before the monitor's type was changed to Incoming Email.
+      storeAsMonitorLog(probeCheck()),
+      storeAsMonitorLog(serverReport()),
+      storeAsMonitorLog({ ...receivedEmail(), emailReceivedAt: null }),
+    ];
+
+    for (const body of withoutEmail) {
+      expect(MonitorLogSummaryUtil.getIncomingEmailLogEntry(body)).toBeNull();
+    }
+  });
+
+  it("ignores a subject or sender that is not text", () => {
+    expect(
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+        storeAsMonitorLog(
+          receivedEmail({
+            emailSubject: { text: "nested" },
+            emailFrom: 42,
+          } as unknown as JSONObject),
+        ),
+      ),
+    ).toEqual({
+      kind: IncomingEmailLogEntryKind.Email,
+      subject: "",
+      from: "",
+    });
   });
 });

@@ -65,7 +65,7 @@ Some services won't send alerts to a new address until someone proves they can r
 3. The code or link is in **Email Body (Text)**. **Email Body (HTML)** shows the HTML source, so if you copy a link from there, change every `&amp;` in it to `&`.
 4. Finish verifying the way the email tells you to.
 
-If another email has arrived since, the card no longer shows the verification email. Open **Monitoring Logs** and click **View Summary** on the verification email's row instead.
+If another email has arrived since, the card no longer shows the verification email. Open **Monitoring Logs**, find the verification email by its subject in the **Email** column, and click **View Summary** on that row.
 
 Two things to keep in mind:
 
@@ -249,7 +249,7 @@ Click **Show More Details** to see the rest of it:
 
 ### Earlier Emails
 
-The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**, and **View Summary** on its row shows that email the same way. A disabled monitor evaluates nothing, so the emails it receives get no rows. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. Those rows show the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default.
+The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A disabled monitor evaluates nothing, so the emails it receives get no rows. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default.
 
 ## Self-Hosted Setup
 
