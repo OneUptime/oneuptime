@@ -332,6 +332,7 @@ export const getDockerSwarmClusterConnectionGuide: (
       containerName: "oneuptime-docker-swarm-agent",
       nameVariable: "DOCKER_SWARM_CLUSTER_NAME",
       installWhere: "on a manager node of the swarm",
+      troubleshootScriptUrl: troubleshootScript("DockerSwarmAgent"),
     },
     clusterName,
   );

@@ -21,28 +21,27 @@ import {
   quoteForShell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
 import {
+  SetupGuideContent,
+  getSetupGuideMarkdown,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
-  getKubernetesInstallationMarkdown,
+  getKubernetesSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
-import { getDockerInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationMarkdown";
-import { getPodmanInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
-import { getDockerSwarmInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
-import { getProxmoxInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
-import { getCephInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
-import { getVMwareInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { getDockerSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationMarkdown";
+import { getPodmanSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
+import { getDockerSwarmSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import { getProxmoxSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import { getCephSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import { getVMwareSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import {
-  getHostIntroMarkdown,
-  getHostMethodMarkdown,
+  getHostCollectorConfig,
+  getHostSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
-import {
-  getIoTIntroMarkdown,
-  getIoTMethodMarkdown,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
-import {
-  getRumDocMarkdown,
-  getServerlessDocMarkdown,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/documentationMarkdown";
+import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import { getRumSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
+import { getServerlessSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessSetupGuide";
 
 /*
  * The steps the "how do I connect this?" card shows on each resource's
@@ -59,7 +58,9 @@ import {
  * - Agreement with the full guide. Every command and setting the card
  *   names must be one the resource's Documentation tab (and the agent it
  *   installs) actually uses, so the short version never contradicts the
- *   long one.
+ *   long one. The tab is a SetupGuideCard over the resource's
+ *   SetupGuideContent, read here as one document with getSetupGuideMarkdown,
+ *   filled in for the same resource where the guide takes its name.
  */
 
 const VARS: { oneuptimeUrl: string; apiKey: string } = {
@@ -79,6 +80,11 @@ const AGENTS_DIRECTORY: string = path.join(
 
 function readAgentFile(agent: string, file: string): string {
   return fs.readFileSync(path.join(AGENTS_DIRECTORY, agent, file), "utf8");
+}
+
+// A Documentation tab's whole guide, in the order it reads on screen.
+function fullGuide(content: SetupGuideContent): string {
+  return getSetupGuideMarkdown(content);
 }
 
 function allText(guide: ResourceConnectionGuide): string {
@@ -390,10 +396,13 @@ describe("Kubernetes cluster guide", () => {
 
     expect(setting).toBe('--set clusterName="prod-us-east-1"');
     expect(
-      getKubernetesInstallationMarkdown({
-        clusterName: "prod-us-east-1",
-        ...VARS,
-      }),
+      fullGuide(
+        getKubernetesSetupGuide({
+          ...VARS,
+          platform: "standard",
+          clusterName: "prod-us-east-1",
+        }),
+      ),
     ).toContain(setting);
   });
 
@@ -403,7 +412,13 @@ describe("Kubernetes cluster guide", () => {
     expect(guide.setupSteps[2]!.code).toBe(podsCommand);
     expect(guide.troubleshootingSteps[0]!.code).toBe(podsCommand);
     expect(
-      getKubernetesInstallationMarkdown({ clusterName: "c", ...VARS }),
+      fullGuide(
+        getKubernetesSetupGuide({
+          ...VARS,
+          platform: "standard",
+          clusterName: "c",
+        }),
+      ),
     ).toContain(podsCommand);
   });
 
@@ -428,7 +443,8 @@ describe("Kubernetes cluster guide", () => {
 
 interface ContainerHostCase {
   build: (identifier: string) => ResourceConnectionGuide;
-  markdown: string;
+  // The host's guide with the run command picked, which the card names.
+  setupGuide: (hostName: string) => SetupGuideContent;
   agentDirectory: string;
   cli: string;
   containerName: string;
@@ -440,7 +456,13 @@ describe.each([
     "Docker",
     {
       build: getDockerHostConnectionGuide,
-      markdown: getDockerInstallationMarkdown(VARS),
+      setupGuide: (hostName: string): SetupGuideContent => {
+        return getDockerSetupGuide({
+          ...VARS,
+          method: "docker-cli",
+          hostName: hostName,
+        });
+      },
       agentDirectory: "DockerAgent",
       cli: "docker",
       containerName: "oneuptime-docker-agent",
@@ -451,7 +473,13 @@ describe.each([
     "Podman",
     {
       build: getPodmanHostConnectionGuide,
-      markdown: getPodmanInstallationMarkdown(VARS),
+      setupGuide: (hostName: string): SetupGuideContent => {
+        return getPodmanSetupGuide({
+          ...VARS,
+          method: "podman-cli",
+          hostName: hostName,
+        });
+      },
       agentDirectory: "PodmanAgent",
       cli: "podman",
       containerName: "oneuptime-podman-agent",
@@ -462,12 +490,14 @@ describe.each([
   "%s host guide",
   (_name: string, hostCase: ContainerHostCase) => {
     const guide: ResourceConnectionGuide = hostCase.build("web-01");
+    const markdown: string = fullGuide(hostCase.setupGuide("web-01"));
 
     test("tells the agent this host's name through the variable the run command sets", () => {
       expect(guide.setupSteps[1]!.code).toBe(
         `-e ${hostCase.variable}="web-01"`,
       );
-      expect(hostCase.markdown).toContain(`-e ${hostCase.variable}=`);
+      // The run command on this host's Documentation tab, word for word.
+      expect(markdown).toContain(guide.setupSteps[1]!.code!);
       expect(
         readAgentFile(hostCase.agentDirectory, "docker-compose.yml"),
       ).toContain(hostCase.variable);
@@ -481,8 +511,8 @@ describe.each([
       expect(guide.troubleshootingSteps[1]!.code).toBe(
         `${hostCase.cli} logs ${hostCase.containerName} --tail 50`,
       );
-      expect(hostCase.markdown).toContain(psCommand);
-      expect(hostCase.markdown).toContain(`--name ${hostCase.containerName}`);
+      expect(markdown).toContain(psCommand);
+      expect(markdown).toContain(`--name ${hostCase.containerName}`);
       expect(
         readAgentFile(hostCase.agentDirectory, "docker-compose.yml"),
       ).toContain(`container_name: ${hostCase.containerName}`);
@@ -490,13 +520,21 @@ describe.each([
   },
 );
 
+// The two installs the card's "Install the agent" step offers.
+type ComposeInstallMethod = "install-script" | "docker-compose";
+
+const COMPOSE_INSTALL_METHODS: Array<ComposeInstallMethod> = [
+  "install-script",
+  "docker-compose",
+];
+
 interface ComposeCase {
   build: (identifier: string) => ResourceConnectionGuide;
-  markdown: string;
+  // The resource's guide with one install method picked.
+  setupGuide: (method: ComposeInstallMethod, name: string) => SetupGuideContent;
   agentDirectory: string;
   containerName: string;
   variable: string;
-  hasDiagnosticScript: boolean;
 }
 
 describe.each([
@@ -504,55 +542,98 @@ describe.each([
     "Docker Swarm",
     {
       build: getDockerSwarmClusterConnectionGuide,
-      markdown: getDockerSwarmInstallationMarkdown(VARS),
+      setupGuide: (
+        method: ComposeInstallMethod,
+        name: string,
+      ): SetupGuideContent => {
+        return getDockerSwarmSetupGuide({
+          ...VARS,
+          method: method,
+          clusterName: name,
+        });
+      },
       agentDirectory: "DockerSwarmAgent",
       containerName: "oneuptime-docker-swarm-agent",
       variable: "DOCKER_SWARM_CLUSTER_NAME",
-      hasDiagnosticScript: false,
     },
   ],
   [
     "Proxmox",
     {
       build: getProxmoxClusterConnectionGuide,
-      markdown: getProxmoxInstallationMarkdown(VARS),
+      setupGuide: (
+        method: ComposeInstallMethod,
+        name: string,
+      ): SetupGuideContent => {
+        return getProxmoxSetupGuide({
+          ...VARS,
+          hasApiKey: true,
+          method: method,
+          clusterName: name,
+        });
+      },
       agentDirectory: "ProxmoxAgent",
       containerName: "oneuptime-proxmox-agent",
       variable: "PROXMOX_CLUSTER_NAME",
-      hasDiagnosticScript: true,
     },
   ],
   [
     "Ceph",
     {
       build: getCephClusterConnectionGuide,
-      markdown: getCephInstallationMarkdown(VARS),
+      setupGuide: (
+        method: ComposeInstallMethod,
+        name: string,
+      ): SetupGuideContent => {
+        return getCephSetupGuide({
+          ...VARS,
+          hasApiKey: true,
+          method: method,
+          clusterName: name,
+        });
+      },
       agentDirectory: "CephAgent",
       containerName: "oneuptime-ceph-agent",
       variable: "CEPH_CLUSTER_NAME",
-      hasDiagnosticScript: true,
     },
   ],
   [
     "VMware",
     {
       build: getVMwareVCenterConnectionGuide,
-      markdown: getVMwareInstallationMarkdown(VARS),
+      setupGuide: (
+        method: ComposeInstallMethod,
+        name: string,
+      ): SetupGuideContent => {
+        return getVMwareSetupGuide({
+          ...VARS,
+          hasApiKey: true,
+          method: method,
+          vcenterName: name,
+        });
+      },
       agentDirectory: "VMwareAgent",
       containerName: "oneuptime-vmware-agent",
       variable: "VMWARE_VCENTER_NAME",
-      hasDiagnosticScript: true,
     },
   ],
 ] as Array<[string, ComposeCase]>)(
   "%s guide",
   (_name: string, composeCase: ComposeCase) => {
     const guide: ResourceConnectionGuide = composeCase.build("site-a");
+    const markdownFor: (method: ComposeInstallMethod) => string = (
+      method: ComposeInstallMethod,
+    ): string => {
+      return fullGuide(composeCase.setupGuide(method, "site-a"));
+    };
 
     test("gives the .env line that names this resource, with the variable the guide and agent use", () => {
       expect(guide.setupSteps[1]!.code).toBe(`${composeCase.variable}=site-a`);
       expect(guide.setupSteps[1]!.description).toContain('"site-a"');
-      expect(composeCase.markdown).toContain(`${composeCase.variable}=`);
+      // The line the Docker Compose install writes into .env for this resource.
+      expect(markdownFor("docker-compose")).toContain(
+        guide.setupSteps[1]!.code!,
+      );
       expect(
         readAgentFile(composeCase.agentDirectory, "docker-compose.yml") +
           readAgentFile(
@@ -582,21 +663,29 @@ describe.each([
       expect(
         readAgentFile(composeCase.agentDirectory, "docker-compose.yml"),
       ).toContain(`container_name: ${composeCase.containerName}`);
-      expect(composeCase.markdown).toContain(composeCase.containerName);
+      for (const method of COMPOSE_INSTALL_METHODS) {
+        expect(markdownFor(method)).toContain(composeCase.containerName);
+      }
     });
 
     test("the second check is the diagnostic script where the guide documents one, else the logs", () => {
       const second: ResourceConnectionGuideStep =
         guide.troubleshootingSteps[1]!;
+      const url: string = `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${composeCase.agentDirectory}/troubleshoot.sh`;
+      const documented: Array<boolean> = COMPOSE_INSTALL_METHODS.map(
+        (method: ComposeInstallMethod): boolean => {
+          return markdownFor(method).includes(url);
+        },
+      );
 
-      if (composeCase.hasDiagnosticScript) {
-        const url: string = `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${composeCase.agentDirectory}/troubleshoot.sh`;
+      // Both installs agree, so the card can give one answer for either.
+      expect(documented[1]).toBe(documented[0]);
 
+      if (documented[0]) {
         expect(second.title).toBe("Run the diagnostic script");
         expect(second.code).toBe(
           `curl -sSL ${url} -o troubleshoot.sh && bash troubleshoot.sh`,
         );
-        expect(composeCase.markdown).toContain(url);
         expect(
           fs.existsSync(
             path.join(
@@ -625,11 +714,16 @@ describe("Host guide", () => {
     expect(step.description).toContain("host.name");
     expect(step.description).toContain('"db-01"');
     expect(step.code).toBe("hostname");
-    expect(getHostIntroMarkdown(VARS)).toContain("host.name");
+    // The collector config every install saves takes host.name from the OS.
+    expect(getHostCollectorConfig(VARS)).toMatch(
+      /hostname_sources: \[os\]\s+resource_attributes:\s+host\.name:\s+enabled: true/,
+    );
   });
 
   test("the service checks are the ones the Linux install uses", () => {
-    const linux: string = getHostMethodMarkdown(VARS, "linux-deb");
+    const linux: string = fullGuide(
+      getHostSetupGuide({ ...VARS, method: "linux-deb" }),
+    );
 
     expect(guide.troubleshootingSteps[0]!.code).toBe(
       "sudo systemctl status otelcol-contrib",
@@ -645,9 +739,9 @@ describe("Host guide", () => {
     expect(guide.troubleshootingSteps[0]!.description).toContain(
       "otel-collector",
     );
-    expect(getHostMethodMarkdown(VARS, "docker")).toContain(
-      "--name otel-collector",
-    );
+    expect(
+      fullGuide(getHostSetupGuide({ ...VARS, method: "docker" })),
+    ).toContain("--name otel-collector");
   });
 });
 
@@ -659,10 +753,16 @@ describe("IoT fleet guide", () => {
     expect(guide.setupSteps[1]!.code).toBe(
       "OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,service.name=iot/building-a-sensors",
     );
-    expect(getIoTMethodMarkdown(VARS, "opentelemetry")).toContain(
-      "OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors",
+    // The SDK quick start, which stamps its example fleet the same way.
+    const sdkGuide: string = fullGuide(
+      getIoTSetupGuide({ ...VARS, method: "opentelemetry-sdk" }),
     );
-    expect(getIoTIntroMarkdown()).toContain("service.name=iot/<fleet>");
+
+    expect(sdkGuide).toContain(
+      "OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,",
+    );
+    expect(sdkGuide).toContain("service.name=iot/building-a-sensors");
+    expect(sdkGuide).toContain("service.name=iot/<fleet>");
   });
 
   test("a fleet name with spaces or commas is percent-encoded", () => {
@@ -714,7 +814,15 @@ describe("RUM application guide", () => {
     expect(guide.troubleshootingSteps[2]!.description).toMatch(
       /browser\.\* or device\.\*/,
     );
-    expect(getRumDocMarkdown(VARS)).toContain("service.name");
+    expect(
+      fullGuide(
+        getRumSetupGuide({
+          ...VARS,
+          client: "browser",
+          appName: "storefront-web",
+        }),
+      ),
+    ).toContain("service.name");
   });
 
   test("asks for a Browser ingestion key, as the RUM guide does", () => {
@@ -722,7 +830,9 @@ describe("RUM application guide", () => {
       getRumApplicationConnectionGuide("storefront-web");
 
     expect(guide.setupSteps[0]!.title).toBe("Create a Browser ingestion key");
-    expect(getRumDocMarkdown(VARS)).toContain("Browser ingestion key");
+    expect(
+      fullGuide(getRumSetupGuide({ ...VARS, client: "browser" })),
+    ).toContain("Browser ingestion key");
   });
 });
 
@@ -734,9 +844,21 @@ describe("Serverless function guide", () => {
     expect(guide.setupSteps[1]!.code).toBe(
       'OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler"',
     );
-    expect(getServerlessDocMarkdown(VARS)).toContain(
-      'OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler',
-    );
+    /*
+     * The guide's variable list writes the same variable and value without
+     * the shell quotes (an encoded value never needs them). On AWS Lambda
+     * the layer sets faas.name itself, so "Other runtimes" is the guide
+     * that sets it by hand.
+     */
+    expect(
+      fullGuide(
+        getServerlessSetupGuide({
+          ...VARS,
+          platform: "other",
+          functionName: "checkout-handler",
+        }),
+      ),
+    ).toContain("OTEL_RESOURCE_ATTRIBUTES=faas.name=checkout-handler,");
   });
 
   test("a function that only runs on demand is told so, not alarmed", () => {
