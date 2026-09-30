@@ -4,17 +4,13 @@ import {
   IdentityRouterEntry,
 } from "../../../Server/Identity/Index";
 import LicensedFeatureGate, {
-  MESSAGE_VIEW,
-  MOBILE_SSO_UNAVAILABLE_ERROR,
   SCIM_UNAVAILABLE_MESSAGE,
-  SSO_UNAVAILABLE_MESSAGE,
-  SSO_UNAVAILABLE_TITLE,
 } from "../../../Server/Identity/Middleware/LicensedFeatureGate";
 import SCIMMiddleware from "../../../Server/Identity/Middleware/SCIMAuthorization";
 import {
-  MOBILE_SSO_CALLBACK_URL,
-  getMobileSsoIntentCookieName,
-} from "../../../Server/Identity/Utils/MobileSso";
+  SSO_ROUTERS,
+  SsoRouterEntry,
+} from "App/FeatureSet/Identity/SsoRouters";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import EditionEnforcement from "Common/Server/Utils/EditionEnforcement";
@@ -25,42 +21,41 @@ import Express, {
   NextFunction,
   RequestHandler,
 } from "Common/Server/Utils/Express";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import FakeEnterpriseModule, {
   createEditionStateCases,
   createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
   EditionStateCase,
   installFakeEnterpriseModule,
+  installFakeEnterpriseModuleWithFeatures,
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 
 /*
- * Every enterprise identity route answers only while its feature is ACTIVE
- * (EnterpriseEdition.isFeatureActive): SSO for the SAML/OIDC routers (project,
- * instance-wide and status page, including the mobile flows), SCIM for the two
- * SCIM routers. When a self-hosted license lapses, SSO and SCIM stop - the
- * Community Edition behaviour - and resume on renewal, with no restart.
+ * Every enterprise identity route - SCIM provisioning, for projects and
+ * status pages - answers only while SCIM is ACTIVE
+ * (EnterpriseEdition.isFeatureActive). When a self-hosted license lapses,
+ * SCIM stops - the Community Edition behaviour - and resumes on renewal,
+ * with no restart.
  *
  * The routers are mounted once at boot and may not have router.use() layers
  * (ModuleShape.test.ts), so the check is a per-request gate that must be the
- * FIRST handler of every route. This suite:
+ * FIRST handler of every route, before the SCIM bearer-token check. This
+ * suite:
  *
  *   1. enumerates every route the live identity routers register and requires
- *      the gate for the right feature as its first handler - with a negative
- *      control proving the enumeration catches a route without it (missing,
- *      wrong feature, or not first);
- *   2. runs each route's gate with the feature stopped and requires the
- *      refusal its route family answers with (message page, 402 JSON, SCIM
- *      error), and with the feature active requires it to hand on untouched;
- *   3. checks the mobile flows end on the app's failure deep link;
- *   4. checks the gates agree with core's EditionEnforcement in every state,
- *      which is the other half of "SSO is enforced iff SSO is served"
- *      (packages/App/Tests/FeatureSet/Identity/SsoEnforcementRoutesInvariant).
+ *      the SCIM gate as its first handler - with a negative control proving
+ *      the enumeration catches a route without it (missing, or not first);
+ *   2. runs each route's gate with SCIM stopped and requires the SCIM error
+ *      body (403), and with SCIM active requires it to hand on untouched;
+ *   3. checks the gate agrees with core's EditionEnforcement (the SCIM Push
+ *      Groups team locks) in every state;
+ *   4. checks single sign-on stays out of it: SAML and OIDC are core, served
+ *      in every edition (packages/App/FeatureSet/Identity/SsoRouters.ts), and
+ *      no core SSO route carries a license gate, whatever ee has loaded.
  *
  * Billing and the edition are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
@@ -96,23 +91,6 @@ interface IdentityRoute {
   path: string;
   handlers: Array<RequestHandler>;
 }
-
-type GateFamily = "sso-json" | "sso-page" | "scim";
-
-const SCIM_ROUTER_NAMES: ReadonlyArray<string> = ["SCIM", "StatusPageSCIM"];
-
-const STATUS_PAGE_ROUTER_NAMES: ReadonlyArray<string> = [
-  "StatusPageSSO",
-  "StatusPageOIDC",
-];
-
-// The JSON discovery routes sign-in pages call; every other SSO route is a browser flow.
-const SSO_JSON_PATHS: ReadonlyArray<string> = [
-  "/service-provider-login",
-  "/service-provider-login-oidc",
-  "/global-sso/service-provider-login",
-  "/global-oidc/service-provider-login",
-];
 
 const getLayers: (router: ExpressRouter) => Array<RouteLayer> = (
   router: ExpressRouter,
@@ -157,23 +135,12 @@ const ALL_ROUTES: Array<IdentityRoute> = IDENTITY_ROUTERS.flatMap(
   },
 );
 
-const featureOf: (routerName: string) => EnterpriseFeature = (
-  routerName: string,
-): EnterpriseFeature => {
-  return SCIM_ROUTER_NAMES.includes(routerName)
-    ? EnterpriseFeature.SCIM
-    : EnterpriseFeature.SSO;
-};
-
-const familyOf: (route: IdentityRoute) => GateFamily = (
-  route: IdentityRoute,
-): GateFamily => {
-  if (SCIM_ROUTER_NAMES.includes(route.router)) {
-    return "scim";
-  }
-
-  return SSO_JSON_PATHS.includes(route.path) ? "sso-json" : "sso-page";
-};
+// Every route of the core single sign-on routers.
+const CORE_SSO_ROUTES: Array<IdentityRoute> = SSO_ROUTERS.flatMap(
+  (entry: SsoRouterEntry): Array<IdentityRoute> => {
+    return getRoutes(entry.name, entry.router);
+  },
+);
 
 const describeRoute: (route: IdentityRoute) => string = (
   route: IdentityRoute,
@@ -182,22 +149,38 @@ const describeRoute: (route: IdentityRoute) => string = (
 };
 
 /*
- * The enumeration check: every route whose first handler is not the license
- * gate for `feature`. Empty means every route is gated.
+ * The enumeration check: every route whose first handler is not the SCIM
+ * license gate. Empty means every route is gated.
  */
-const findRoutesWithoutGate: (
+const findRoutesWithoutGate: (routes: Array<IdentityRoute>) => Array<string> = (
   routes: Array<IdentityRoute>,
-  expectedFeature: (route: IdentityRoute) => EnterpriseFeature,
-) => Array<string> = (
-  routes: Array<IdentityRoute>,
-  expectedFeature: (route: IdentityRoute) => EnterpriseFeature,
 ): Array<string> => {
   return routes
     .filter((route: IdentityRoute): boolean => {
       return (
         LicensedFeatureGate.getGatedFeature(route.handlers[0]) !==
-        expectedFeature(route)
+        EnterpriseFeature.SCIM
       );
+    })
+    .map(describeRoute);
+};
+
+/*
+ * The coexistence check: every route with a license gate ANYWHERE in its
+ * handler stack. Empty means nothing in front of (or behind) the route's own
+ * handler asks the license.
+ */
+const findRoutesWithAnyGate: (routes: Array<IdentityRoute>) => Array<string> = (
+  routes: Array<IdentityRoute>,
+): Array<string> => {
+  return routes
+    .filter((route: IdentityRoute): boolean => {
+      return route.handlers.some((handler: RequestHandler): boolean => {
+        return (
+          LicensedFeatureGate.getGatedFeature(handler) !== null ||
+          handler === LicensedFeatureGate.forScim
+        );
+      });
     })
     .map(describeRoute);
 };
@@ -210,18 +193,8 @@ const findRoutesWithoutGate: (
 
 const PARAM_VALUE: string = "6570b1d3-e2f4-4a5c-8d7e-8f9012345678";
 
-interface FakeRequestData {
-  query?: Record<string, string> | undefined;
-  body?: JSONObject | undefined;
-  cookies?: Record<string, string> | undefined;
-}
-
-const buildRequest: (
+const buildRequest: (route: IdentityRoute) => ExpressRequest = (
   route: IdentityRoute,
-  data?: FakeRequestData,
-) => ExpressRequest = (
-  route: IdentityRoute,
-  data?: FakeRequestData,
 ): ExpressRequest => {
   const params: Record<string, string> = {};
 
@@ -233,9 +206,9 @@ const buildRequest: (
     method: route.method,
     path: route.path,
     params,
-    query: data?.query || {},
-    body: data?.body || {},
-    cookies: data?.cookies || {},
+    query: {},
+    body: {},
+    cookies: {},
     headers: {},
   } as unknown as ExpressRequest;
 };
@@ -243,8 +216,6 @@ const buildRequest: (
 interface RecordedResponse {
   status: number;
   body: unknown;
-  redirectedTo: string | null;
-  rendered: { view: string; vars: JSONObject } | null;
   hasResponded: boolean;
 }
 
@@ -257,8 +228,6 @@ const buildResponse: () => FakeResponse = (): FakeResponse => {
   const recorded: RecordedResponse = {
     status: 200,
     body: undefined,
-    redirectedTo: null,
-    rendered: null,
     hasResponded: false,
   };
 
@@ -278,14 +247,6 @@ const buildResponse: () => FakeResponse = (): FakeResponse => {
     recorded.hasResponded = true;
     return response;
   };
-  response["redirect"] = (url: string): void => {
-    recorded.redirectedTo = url;
-    recorded.hasResponded = true;
-  };
-  response["render"] = (view: string, vars: JSONObject): void => {
-    recorded.rendered = { view, vars };
-    recorded.hasResponded = true;
-  };
 
   return { recorded, express: response as unknown as ExpressResponse };
 };
@@ -298,12 +259,8 @@ interface GateOutcome {
 }
 
 // Runs a route's FIRST handler only - the gate. The real handler never runs.
-const runFirstHandler: (
+const runFirstHandler: (route: IdentityRoute) => Promise<GateOutcome> = async (
   route: IdentityRoute,
-  data?: FakeRequestData,
-) => Promise<GateOutcome> = async (
-  route: IdentityRoute,
-  data?: FakeRequestData,
 ): Promise<GateOutcome> => {
   const fakeResponse: FakeResponse = buildResponse();
   let handedOn: boolean = false;
@@ -316,7 +273,7 @@ const runFirstHandler: (
 
   // A gate is synchronous; Promise.resolve also settles an async handler.
   const returned: unknown = route.handlers[0]!(
-    buildRequest(route, data),
+    buildRequest(route),
     fakeResponse.express,
     next,
   );
@@ -325,13 +282,10 @@ const runFirstHandler: (
   return { handedOn, nextError, response: fakeResponse.recorded };
 };
 
-const deepLinkParams: (url: string | null) => URLSearchParams = (
-  url: string | null,
-): URLSearchParams => {
-  expect(url).not.toBeNull();
-  expect(url!.startsWith(`${MOBILE_SSO_CALLBACK_URL}?`)).toBe(true);
-
-  return new URLSearchParams(url!.slice(url!.indexOf("?") + 1));
+const SCIM_ERROR_BODY: JSONObject = {
+  schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"],
+  status: "403",
+  detail: SCIM_UNAVAILABLE_MESSAGE,
 };
 
 const findRoute: (
@@ -365,7 +319,6 @@ const installLicenseWithout: (feature: EnterpriseFeature) => void = (
   installFakeEnterpriseModule({
     snapshot: createLicenseSnapshot({
       features: [
-        EnterpriseFeature.SSO,
         EnterpriseFeature.SCIM,
         EnterpriseFeature.AuditLogs,
         EnterpriseFeature.TeamCompliance,
@@ -394,30 +347,28 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("every identity route starts with the license gate for its feature", () => {
-  test("the enumeration sees all 46 routes of the nine routers", () => {
-    expect(IDENTITY_ROUTERS).toHaveLength(9);
-    expect(ALL_ROUTES).toHaveLength(46);
-
-    const families: Record<GateFamily, number> = {
-      "sso-json": 0,
-      "sso-page": 0,
-      scim: 0,
-    };
-
-    for (const route of ALL_ROUTES) {
-      families[familyOf(route)]++;
-    }
-
-    expect(families).toEqual({ "sso-json": 4, "sso-page": 16, scim: 26 });
+describe("every SCIM route starts with the SCIM license gate, then the bearer check", () => {
+  test("the enumeration sees all 26 routes of the two SCIM routers", () => {
+    expect(
+      IDENTITY_ROUTERS.map((entry: IdentityRouterEntry): string => {
+        return entry.name;
+      }),
+    ).toEqual(["SCIM", "StatusPageSCIM"]);
+    expect(ALL_ROUTES).toHaveLength(26);
+    expect(
+      ALL_ROUTES.filter((route: IdentityRoute): boolean => {
+        return route.router === "SCIM";
+      }),
+    ).toHaveLength(16);
+    expect(
+      ALL_ROUTES.filter((route: IdentityRoute): boolean => {
+        return route.router === "StatusPageSCIM";
+      }),
+    ).toHaveLength(10);
   });
 
   test("no route is missing its gate", () => {
-    expect(
-      findRoutesWithoutGate(ALL_ROUTES, (route: IdentityRoute) => {
-        return featureOf(route.router);
-      }),
-    ).toEqual([]);
+    expect(findRoutesWithoutGate(ALL_ROUTES)).toEqual([]);
   });
 
   test.each(ALL_ROUTES.map(describeRoute))("%s", (label: string) => {
@@ -427,21 +378,15 @@ describe("every identity route starts with the license gate for its feature", ()
       },
     )!;
 
-    // The gate, then at least the route's own handler.
-    expect(route.handlers.length).toBeGreaterThanOrEqual(2);
+    // The gate, the bearer check, then at least the route's own handler.
+    expect(route.handlers.length).toBeGreaterThanOrEqual(3);
     expect(LicensedFeatureGate.getGatedFeature(route.handlers[0])).toBe(
-      featureOf(route.router),
+      EnterpriseFeature.SCIM,
     );
 
-    if (familyOf(route) === "sso-json") {
-      expect(route.handlers[0]).toBe(LicensedFeatureGate.forSsoJson);
-    }
-
-    if (familyOf(route) === "scim") {
-      // The license gate runs before the bearer-token check, so a lapsed license answers first.
-      expect(route.handlers[0]).toBe(LicensedFeatureGate.forScim);
-      expect(route.handlers[1]).toBe(SCIMMiddleware.isAuthorizedSCIMRequest);
-    }
+    // The license gate runs before the bearer-token check, so a lapsed license answers first.
+    expect(route.handlers[0]).toBe(LicensedFeatureGate.forScim);
+    expect(route.handlers[1]).toBe(SCIMMiddleware.isAuthorizedSCIMRequest);
 
     // Only the first handler is a gate: the route's own handlers are not.
     for (const handler of route.handlers.slice(1)) {
@@ -460,30 +405,20 @@ describe("every identity route starts with the license gate for its feature", ()
     const buildControlRouter: () => ExpressRouter = (): ExpressRouter => {
       const router: ExpressRouter = Express.getRouter();
 
-      router.get("/gated", LicensedFeatureGate.forSsoJson, handler);
+      router.get("/gated", LicensedFeatureGate.forScim, handler);
       router.get("/ungated", handler);
-      router.get("/wrong-feature", LicensedFeatureGate.forScim, handler);
-      router.post("/gate-not-first", handler, LicensedFeatureGate.forSsoJson);
+      router.post("/gate-not-first", handler, LicensedFeatureGate.forScim);
 
       return router;
     };
 
-    test("statically: every ungated, wrongly gated or late-gated route is reported", () => {
+    test("statically: every ungated or late-gated route is reported", () => {
       expect(
-        findRoutesWithoutGate(
-          getRoutes("Control", buildControlRouter()),
-          (): EnterpriseFeature => {
-            return EnterpriseFeature.SSO;
-          },
-        ),
-      ).toEqual([
-        "Control: GET /ungated",
-        "Control: GET /wrong-feature",
-        "Control: POST /gate-not-first",
-      ]);
+        findRoutesWithoutGate(getRoutes("Control", buildControlRouter())),
+      ).toEqual(["Control: GET /ungated", "Control: POST /gate-not-first"]);
     });
 
-    test("behaviourally: with SSO stopped, the ungated route reaches its handler while the gated one refuses", async () => {
+    test("behaviourally: with SCIM stopped, the ungated route reaches its handler while the gated one refuses", async () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("expired"),
       });
@@ -497,7 +432,7 @@ describe("every identity route starts with the license gate for its feature", ()
       const ungated: GateOutcome = await runFirstHandler(routes[1]!);
 
       expect(gated.handedOn).toBe(false);
-      expect(gated.response.status).toBe(402);
+      expect(gated.response.status).toBe(403);
       expect(ungated.response.body).toBe("the real handler ran");
       expect(ungated.response.status).toBe(200);
     });
@@ -505,6 +440,7 @@ describe("every identity route starts with the license gate for its feature", ()
     test("a plain function is not mistaken for a gate", () => {
       expect(LicensedFeatureGate.getGatedFeature(handler)).toBeNull();
       expect(LicensedFeatureGate.getGatedFeature(undefined)).toBeNull();
+      expect(LicensedFeatureGate.getGatedFeature("forScim")).toBeNull();
       expect(
         LicensedFeatureGate.getGatedFeature(
           SCIMMiddleware.isAuthorizedSCIMRequest,
@@ -514,7 +450,7 @@ describe("every identity route starts with the license gate for its feature", ()
   });
 });
 
-describe("with the feature stopped, every route refuses the way its family answers", () => {
+describe("with SCIM stopped, every SCIM route refuses with a SCIM error body", () => {
   test.each(ALL_ROUTES.map(describeRoute))(
     "%s (license expired past grace)",
     async (label: string) => {
@@ -532,47 +468,20 @@ describe("with the feature stopped, every route refuses the way its family answe
 
       expect(outcome.handedOn).toBe(false);
       expect(outcome.response.hasResponded).toBe(true);
-      expect(outcome.response.redirectedTo).toBeNull();
-
-      switch (familyOf(route)) {
-        case "sso-json":
-          expect(outcome.response.status).toBe(402);
-          expect(outcome.response.body).toEqual({
-            message: SSO_UNAVAILABLE_MESSAGE,
-          });
-          break;
-        case "sso-page":
-          expect(outcome.response.status).toBe(402);
-          expect(outcome.response.rendered).toEqual({
-            view: MESSAGE_VIEW,
-            vars: expect.objectContaining({
-              title: SSO_UNAVAILABLE_TITLE,
-              message: SSO_UNAVAILABLE_MESSAGE,
-            }),
-          });
-          break;
-        case "scim":
-          expect(outcome.response.status).toBe(403);
-          expect(outcome.response.body).toEqual({
-            schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            status: "403",
-            detail: SCIM_UNAVAILABLE_MESSAGE,
-          });
-          break;
-      }
+      expect(outcome.response.status).toBe(403);
+      expect(outcome.response.body).toEqual(SCIM_ERROR_BODY);
     },
   );
 
-  test("the messages name the lapsed license and what to do", () => {
-    expect(SSO_UNAVAILABLE_MESSAGE).toContain(
-      "Single sign-on is unavailable because this OneUptime installation's Enterprise license has lapsed",
+  test("the message names the lapsed license and says nothing was changed", () => {
+    expect(SCIM_UNAVAILABLE_MESSAGE).toContain(
+      "SCIM provisioning is unavailable because this OneUptime installation's Enterprise license has lapsed",
     );
-    expect(SSO_UNAVAILABLE_MESSAGE).toContain("Sign in with your password");
-    expect(SSO_UNAVAILABLE_MESSAGE).toContain("renew the license");
-    expect(SCIM_UNAVAILABLE_MESSAGE).toContain("Enterprise license has lapsed");
+    expect(SCIM_UNAVAILABLE_MESSAGE).toContain("Nothing was changed.");
+    expect(SCIM_UNAVAILABLE_MESSAGE).toContain("renews the license");
   });
 
-  test("each feature is gated on its own: a license without SCIM stops SCIM routes only", async () => {
+  test("a license without SCIM stops every SCIM route", async () => {
     installLicenseWithout(EnterpriseFeature.SCIM);
 
     for (const route of ALL_ROUTES) {
@@ -581,31 +490,32 @@ describe("with the feature stopped, every route refuses the way its family answe
       expect({
         route: describeRoute(route),
         handedOn: outcome.handedOn,
-      }).toEqual({
-        route: describeRoute(route),
-        handedOn: familyOf(route) !== "scim",
-      });
+        status: outcome.response.status,
+      }).toEqual({ route: describeRoute(route), handedOn: false, status: 403 });
     }
   });
 
-  test("each feature is gated on its own: a license without SSO stops SSO routes only", async () => {
-    installLicenseWithout(EnterpriseFeature.SSO);
+  test("a license with SCIM alone serves every SCIM route (the other features do not matter)", async () => {
+    installFakeEnterpriseModuleWithFeatures([EnterpriseFeature.SCIM]);
 
     for (const route of ALL_ROUTES) {
-      const outcome: GateOutcome = await runFirstHandler(route);
-
       expect({
         route: describeRoute(route),
-        handedOn: outcome.handedOn,
-      }).toEqual({
-        route: describeRoute(route),
-        handedOn: familyOf(route) === "scim",
-      });
+        handedOn: (await runFirstHandler(route)).handedOn,
+      }).toEqual({ route: describeRoute(route), handedOn: true });
+    }
+  });
+
+  test("a license without audit logs still serves SCIM (each feature is gated on its own)", async () => {
+    installLicenseWithout(EnterpriseFeature.AuditLogs);
+
+    for (const route of ALL_ROUTES) {
+      expect((await runFirstHandler(route)).handedOn).toBe(true);
     }
   });
 });
 
-describe("with the feature active, every gate hands the request on untouched", () => {
+describe("with SCIM active, every gate hands the request on untouched", () => {
   const activeStates: Array<EditionStateCase> =
     createEditionStateCases().filter((state: EditionStateCase): boolean => {
       return state.isActive;
@@ -623,9 +533,7 @@ describe("with the feature active, every gate hands the request on untouched", (
     state.apply();
 
     for (const route of ALL_ROUTES) {
-      const outcome: GateOutcome = await runFirstHandler(route, {
-        query: { mobile: "true" },
-      });
+      const outcome: GateOutcome = await runFirstHandler(route);
 
       expect({
         route: describeRoute(route),
@@ -660,7 +568,7 @@ describe("with the feature active, every gate hands the request on untouched", (
   });
 });
 
-describe("the gates agree with core's EditionEnforcement in every state", () => {
+describe("the gate agrees with core's EditionEnforcement in every state", () => {
   test.each(
     createEditionStateCases().map(
       (state: EditionStateCase): [string, EditionStateCase] => {
@@ -670,41 +578,20 @@ describe("the gates agree with core's EditionEnforcement in every state", () => 
   )("%s", async (_label: string, state: EditionStateCase) => {
     state.apply();
 
-    const ssoRoutes: Array<IdentityRoute> = ALL_ROUTES.filter(
-      (route: IdentityRoute): boolean => {
-        return familyOf(route) !== "scim";
-      },
-    );
-    const scimRoutes: Array<IdentityRoute> = ALL_ROUTES.filter(
-      (route: IdentityRoute): boolean => {
-        return familyOf(route) === "scim";
-      },
-    );
-
-    for (const route of ssoRoutes) {
+    for (const route of ALL_ROUTES) {
       const outcome: GateOutcome = await runFirstHandler(route);
 
-      // Served exactly when core enforces SSO requirements and lists providers.
+      // SCIM answers exactly when core applies the Push Groups team locks.
       expect({
         route: describeRoute(route),
         handedOn: outcome.handedOn,
       }).toEqual({
         route: describeRoute(route),
-        handedOn: EditionEnforcement.isSsoEnforced(),
+        handedOn: EditionEnforcement.areScimTeamLocksEnforced(),
       });
-      expect(outcome.handedOn).toBe(EditionEnforcement.areSsoRoutesServed());
     }
 
-    for (const route of scimRoutes) {
-      const outcome: GateOutcome = await runFirstHandler(route);
-
-      // SCIM answers exactly when core applies the Push Groups team locks.
-      expect(outcome.handedOn).toBe(
-        EditionEnforcement.areScimTeamLocksEnforced(),
-      );
-    }
-
-    expect(EditionEnforcement.isSsoEnforced()).toBe(state.isActive);
+    expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(state.isActive);
   });
 });
 
@@ -714,13 +601,17 @@ describe("a license change applies to the next request, with the same mounted ro
       snapshot: createLicenseSnapshotWithStatus("valid"),
     });
     const samples: Array<IdentityRoute> = [
-      findRoute("SSO", "POST", "/idp-login/:projectId/:projectSsoId"),
-      findRoute("GlobalOIDC", "GET", "/global-oidc/service-provider-login"),
       findRoute("SCIM", "GET", "/scim/v2/:projectScimId/Users"),
+      findRoute("SCIM", "PATCH", "/scim/v2/:projectScimId/Groups/:groupId"),
       findRoute(
         "StatusPageSCIM",
         "POST",
         "/status-page-scim/v2/:statusPageScimId/Users",
+      ),
+      findRoute(
+        "StatusPageSCIM",
+        "GET",
+        "/status-page-scim/v2/:statusPageScimId/ServiceProviderConfig",
       ),
     ];
 
@@ -749,162 +640,90 @@ describe("a license change applies to the next request, with the same mounted ro
   });
 });
 
-describe("mobile SSO flows end on the app's failure deep link", () => {
-  const PROVIDER_ID: ObjectID = new ObjectID(PARAM_VALUE);
-
-  beforeEach(() => {
-    installFakeEnterpriseModule({
-      snapshot: createLicenseSnapshotWithStatus("expired"),
-    });
+describe("single sign-on is core and never license-gated, with the Enterprise Edition loaded", () => {
+  test("the core SSO routers are all there: 20 routes across 7 routers", () => {
+    expect(SSO_ROUTERS).toHaveLength(7);
+    expect(CORE_SSO_ROUTES).toHaveLength(20);
   });
 
-  const expectMobileRefusal: (outcome: GateOutcome) => void = (
-    outcome: GateOutcome,
-  ): void => {
-    expect(outcome.handedOn).toBe(false);
-    expect(outcome.response.rendered).toBeNull();
+  test("no core SSO route has a license gate anywhere in its handler stack", () => {
+    expect(findRoutesWithAnyGate(CORE_SSO_ROUTES)).toEqual([]);
+  });
 
-    const params: URLSearchParams = deepLinkParams(
-      outcome.response.redirectedTo,
-    );
+  test.each(CORE_SSO_ROUTES.map(describeRoute))(
+    "%s is its own handler alone",
+    (label: string) => {
+      const route: IdentityRoute = CORE_SSO_ROUTES.find(
+        (candidate: IdentityRoute): boolean => {
+          return describeRoute(candidate) === label;
+        },
+      )!;
 
-    expect(params.get("error")).toBe(MOBILE_SSO_UNAVAILABLE_ERROR);
-    expect(params.get("errorDescription")).toBe(SSO_UNAVAILABLE_MESSAGE);
-    expect(params.get("accessToken")).toBeNull();
-  };
-
-  test.each([
-    ["SSO", "/sso/:projectId/:projectSsoId"],
-    ["OIDC", "/oidc/:projectId/:projectOidcId"],
-    ["GlobalSSO", "/global-sso/:globalSsoId"],
-    ["GlobalOIDC", "/global-oidc/:globalOidcId"],
-  ])(
-    "%s: the SP-initiated start with mobile=true",
-    async (router: string, path: string) => {
-      expectMobileRefusal(
-        await runFirstHandler(findRoute(router, "GET", path), {
-          query: { mobile: "true" },
-        }),
-      );
+      expect(route.handlers).toHaveLength(1);
+      expect(LicensedFeatureGate.getGatedFeature(route.handlers[0])).toBeNull();
     },
   );
 
-  test.each([
-    ["SSO", "POST", "/idp-login/:projectId/:projectSsoId"],
-    ["SSO", "GET", "/idp-login/:projectId/:projectSsoId"],
-    ["GlobalSSO", "POST", "/global-idp-login/:globalSsoId"],
-  ])(
-    "%s: the SAML callback %s %s with RelayState=mobile in the body",
-    async (router: string, method: string, path: string) => {
-      expectMobileRefusal(
-        await runFirstHandler(findRoute(router, method, path), {
-          body: { SAMLResponse: "PHNhbWw+", RelayState: "mobile" },
-        }),
-      );
-    },
-  );
+  test("negative control: the coexistence check reports an SSO route that carries a gate", () => {
+    const handler: RequestHandler = (
+      _req: ExpressRequest,
+      res: ExpressResponse,
+    ): void => {
+      res.send("sso");
+    };
+    const router: ExpressRouter = Express.getRouter();
 
-  test("the project SAML callback with RelayState=mobile in the query", async () => {
-    expectMobileRefusal(
-      await runFirstHandler(
-        findRoute("SSO", "GET", "/idp-login/:projectId/:projectSsoId"),
-        { query: { RelayState: "mobile" } },
-      ),
+    router.get("/sso/:projectId/:projectSsoId", handler);
+    router.get(
+      "/global-sso/:globalSsoId",
+      LicensedFeatureGate.forScim,
+      handler,
     );
+    router.post("/idp-login/:projectId/:projectSsoId", handler);
+    router.post(
+      "/global-idp-login/:globalSsoId",
+      handler,
+      LicensedFeatureGate.forScim,
+    );
+
+    expect(findRoutesWithAnyGate(getRoutes("Control", router))).toEqual([
+      "Control: GET /global-sso/:globalSsoId",
+      "Control: POST /global-idp-login/:globalSsoId",
+    ]);
   });
 
-  test.each([
-    ["GlobalSSO", "POST", "/global-idp-login/:globalSsoId"],
-    ["GlobalOIDC", "GET", "/global-oidc-callback/:globalOidcId"],
-  ])(
-    "%s: the callback %s %s recognised by the provider's mobile intent cookie",
-    async (router: string, method: string, path: string) => {
-      expectMobileRefusal(
-        await runFirstHandler(findRoute(router, method, path), {
-          cookies: { [getMobileSsoIntentCookieName(PROVIDER_ID)]: "true" },
-        }),
-      );
-    },
-  );
-
-  test("the project OIDC callback recognised by the isMobile flag in its signed state cookie", async () => {
-    const stateCookie: string = JSONWebToken.signJsonPayload(
-      { state: "s", nonce: "n", codeVerifier: "v", isMobile: true },
-      600,
+  test("the ee identity routers are SCIM only: none serves a path a core SSO router serves", () => {
+    const corePaths: Set<string> = new Set(
+      CORE_SSO_ROUTES.map((route: IdentityRoute): string => {
+        return `${route.method} ${route.path}`;
+      }),
     );
 
-    expectMobileRefusal(
-      await runFirstHandler(
-        findRoute("OIDC", "GET", "/oidc-callback/:projectId/:projectOidcId"),
-        { cookies: { [`oidc-state-${PARAM_VALUE}`]: stateCookie } },
-      ),
-    );
-  });
-
-  test("a project OIDC callback whose state cookie says web, or cannot be verified, renders the page", async () => {
-    const route: IdentityRoute = findRoute(
-      "OIDC",
-      "GET",
-      "/oidc-callback/:projectId/:projectOidcId",
-    );
-    const webState: string = JSONWebToken.signJsonPayload(
-      { state: "s", nonce: "n", codeVerifier: "v", isMobile: false },
-      600,
-    );
-
-    for (const cookie of [webState, "not-a-signed-token"]) {
-      const outcome: GateOutcome = await runFirstHandler(route, {
-        cookies: { [`oidc-state-${PARAM_VALUE}`]: cookie },
-      });
-
-      expect(outcome.response.redirectedTo).toBeNull();
-      expect(outcome.response.rendered?.view).toBe(MESSAGE_VIEW);
+    for (const route of ALL_ROUTES) {
+      expect(corePaths.has(`${route.method} ${route.path}`)).toBe(false);
+      expect(
+        route.path.startsWith("/scim/v2/") ||
+          route.path.startsWith("/status-page-scim/v2/"),
+      ).toBe(true);
     }
   });
 
-  test("an intent cookie for another provider does not make a web login mobile", async () => {
-    const outcome: GateOutcome = await runFirstHandler(
-      findRoute("GlobalSSO", "POST", "/global-idp-login/:globalSsoId"),
-      {
-        cookies: {
-          [getMobileSsoIntentCookieName(
-            new ObjectID("11111111-1111-4111-8111-111111111111"),
-          )]: "true",
-        },
+  test.each(
+    createEditionStateCases().map(
+      (state: EditionStateCase): [string, EditionStateCase] => {
+        return [state.label, state];
       },
-    );
+    ),
+  )(
+    "%s: the core SSO routes stay ungated while the SCIM gate follows the license",
+    async (_label: string, state: EditionStateCase) => {
+      state.apply();
 
-    expect(outcome.response.redirectedTo).toBeNull();
-    expect(outcome.response.rendered?.view).toBe(MESSAGE_VIEW);
-  });
+      expect(findRoutesWithAnyGate(CORE_SSO_ROUTES)).toEqual([]);
 
-  test.each(STATUS_PAGE_ROUTER_NAMES)(
-    "%s has no mobile flow: mobile=true still renders the page",
-    async (router: string) => {
-      for (const route of ALL_ROUTES.filter((candidate: IdentityRoute) => {
-        return candidate.router === router;
-      })) {
-        const outcome: GateOutcome = await runFirstHandler(route, {
-          query: { mobile: "true" },
-          body: { RelayState: "mobile" },
-        });
-
-        expect(outcome.response.redirectedTo).toBeNull();
-        expect(outcome.response.rendered?.view).toBe(MESSAGE_VIEW);
+      for (const route of ALL_ROUTES) {
+        expect((await runFirstHandler(route)).handedOn).toBe(state.isActive);
       }
     },
   );
-
-  test("the JSON discovery routes answer 402 JSON even for the app (it reads that as no SSO offered)", async () => {
-    for (const route of ALL_ROUTES.filter((candidate: IdentityRoute) => {
-      return familyOf(candidate) === "sso-json";
-    })) {
-      const outcome: GateOutcome = await runFirstHandler(route, {
-        query: { mobile: "true" },
-      });
-
-      expect(outcome.response.redirectedTo).toBeNull();
-      expect(outcome.response.status).toBe(402);
-    }
-  });
 });

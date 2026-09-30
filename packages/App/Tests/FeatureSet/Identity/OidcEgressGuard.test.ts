@@ -1,4 +1,4 @@
-import OIDCUtil from "../../../Server/Identity/Utils/OIDC";
+import OIDCUtil from "../../../FeatureSet/Identity/Utils/OIDC";
 import { TestIdp, startTestIdp } from "./OidcTestIdp";
 import URL from "Common/Types/API/URL";
 import { afterEach, describe, expect, test } from "@jest/globals";

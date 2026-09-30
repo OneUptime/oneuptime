@@ -14,7 +14,6 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
-import EditionEnforcement from "../Utils/EditionEnforcement";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
 import Errors from "../Utils/Errors";
@@ -144,15 +143,6 @@ export type ProjectBalanceColumnName =
  * month closes. Larger corrections are still possible, just not in one click.
  */
 export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
-
-/*
- * The project columns that hold its SSO requirement: the ones onFindSuccess
- * masks and onBeforeUpdate guards while SSO is not active.
- */
-export const PROJECT_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
-  "requireSsoForLogin",
-  "requireSsoWithSsoProviderId",
-];
 
 // The project columns that decide what the audit log records and keeps.
 export interface ProjectAuditLogSettings {
@@ -693,17 +683,6 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    /*
-     * While SSO is not active this caller only ever read the requirement as
-     * off (see onFindSuccess), so a write of it must not switch the stored
-     * requirement off, or set one nobody could see. Drops or refuses it.
-     */
-    EditionEnforcement.guardSsoRequirementWrite({
-      props: updateBy.props,
-      data: updateBy.data as unknown as Record<string, unknown>,
-      columns: PROJECT_SSO_REQUIREMENT_COLUMNS,
-    });
-
     /*
      * Any project field could have changed; invalidate the in-process cache
      * of the SSO flag. Cheap to refetch on the next request.
@@ -2855,44 +2834,6 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     return { findBy, carryForward: null };
-  }
-
-  /*
-   * While SSO is not active a project's SSO requirement is not enforced: on
-   * the Community Edition (the SSO login routes are part of the Enterprise
-   * Edition), and on an Enterprise install whose license is lapsed or does
-   * not include SSO (the routes refuse). Reads made for a caller then report
-   * the EFFECTIVE value: not required, no required provider. Clients decide
-   * from these columns whether to start an SSO flow - the mobile app hides a
-   * project's on-call data behind an SSO login it cannot complete, and its
-   * store builds cannot be patched.
-   *
-   * Only the returned objects change. Internal (root) reads, and the stored
-   * row, keep the real value, and onBeforeUpdate keeps a caller from writing
-   * the masked value back. So running the Enterprise Edition with a valid
-   * license (or in its trial or grace period) again restores enforcement
-   * exactly as configured.
-   */
-  @CaptureSpan()
-  protected override async onFindSuccess(
-    onFind: OnFind<Model>,
-    items: Array<Model>,
-  ): Promise<OnFind<Model>> {
-    if (
-      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
-    ) {
-      for (const item of items) {
-        if (item.requireSsoForLogin !== undefined) {
-          item.requireSsoForLogin = false;
-        }
-
-        if (item.requireSsoWithSsoProviderId !== undefined) {
-          item.requireSsoWithSsoProviderId = null!;
-        }
-      }
-    }
-
-    return { ...onFind, carryForward: items };
   }
 
   @CaptureSpan()

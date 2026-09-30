@@ -14,7 +14,7 @@ import AppMetricsAPI from "./API/Metrics";
 import AdminHealthAPI from "./API/AdminHealth";
 import EnterpriseLoader from "./Utils/EnterpriseLoader";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
-import CommunityEditionSsoReport from "Common/Server/Utils/CommunityEditionSsoReport";
+import RelaxedScimTeamLocksReport from "Common/Server/Utils/RelaxedScimTeamLocksReport";
 import Express, {
   ExpressApplication,
   ExpressRouter,
@@ -165,13 +165,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await EnterpriseLoader.load();
 
     /*
-     * Community Edition: log once which SSO requirements and SCIM team locks
-     * left over from an Enterprise install are not enforced (the SSO login
-     * routes are part of ee/). Enterprise Edition: start watching the license,
-     * and log the same list whenever SSO or SCIM stops because the license
-     * lapsed. Fire-and-forget.
+     * Community Edition: log once which SCIM Push Groups team locks left over
+     * from an Enterprise install are not enforced (the SCIM endpoints are part
+     * of ee/). Enterprise Edition: start watching the license, and log the
+     * same list whenever SCIM stops because the license lapsed.
+     * Fire-and-forget.
      */
-    void CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+    void RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
 
     // Initialize real-time functionalities
     await Realtime.init();

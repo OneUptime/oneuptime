@@ -1,5 +1,4 @@
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
-import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import URL from "Common/Types/API/URL";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
@@ -19,7 +18,6 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-  RequestHandler,
   extractDeviceInfo,
   getClientIp,
   headerValueToString,
@@ -45,19 +43,14 @@ const getOidcStateCookieName: (statusPageOidcId: ObjectID) => string = (
 };
 
 /*
- * Every route below starts with a license gate (see
- * ../Middleware/LicensedFeatureGate.ts): while SSO is not active they refuse.
- * Status page sign-in has no mobile app flow.
+ * Status page OIDC sign-in, served by core in every edition. The redirect URI
+ * (/identity/status-page-oidc-callback/:statusPageId/:statusPageOidcId) is
+ * pasted into customers' identity providers, so no path below may ever
+ * change: Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts pins them.
  */
-const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage({
-  isMobileRequest: (): boolean => {
-    return false;
-  },
-});
 
 router.get(
   "/status-page-oidc/:statusPageId/:statusPageOidcId",
-  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -184,7 +177,6 @@ router.get(
 
 router.get(
   "/status-page-oidc-callback/:statusPageId/:statusPageOidcId",
-  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

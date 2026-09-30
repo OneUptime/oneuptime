@@ -271,9 +271,9 @@ const LOCKED_STATES: Array<EditionState & { message: string }> = [
     billing: false,
     install: (): void => {
       installFakeEnterpriseModuleWithFeatures([
-        EnterpriseFeature.SSO,
         EnterpriseFeature.SCIM,
         EnterpriseFeature.AuditLogs,
+        EnterpriseFeature.TeamCompliance,
       ]);
     },
     message: EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
@@ -1060,7 +1060,7 @@ describe("the support bundle reports the edition this process really runs", () =
 
   test("a license subset is listed feature by feature", async () => {
     installFakeEnterpriseModuleWithFeatures([
-      EnterpriseFeature.SSO,
+      EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
     ]);
 
@@ -1070,7 +1070,7 @@ describe("the support bundle reports the edition this process really runs", () =
     ] as JSONObject;
 
     expect(license["features"]).toEqual(
-      [EnterpriseFeature.AuditLogs, EnterpriseFeature.SSO].sort(),
+      [EnterpriseFeature.AuditLogs, EnterpriseFeature.SCIM].sort(),
     );
     expect(license["instanceHealthAvailable"]).toBe(false);
   });

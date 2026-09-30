@@ -3,7 +3,6 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoConfirmationResult,
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
-import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -12,7 +11,6 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-  RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 
@@ -28,12 +26,14 @@ import Response from "Common/Server/Utils/Response";
  *         nobody in -- it hands the person back to the provider's own
  *         sign-in, which now goes through.
  *
- * Gated like every other SSO page, so a lapsed license refuses this too.
+ * Core serves it in every edition. Only the hosted service sends the email,
+ * so anywhere else no valid link exists and the page only ever reports an
+ * invalid link. Its path is written into emails already sent, so it must
+ * never change (Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts pins
+ * it).
  */
 
 const router: ExpressRouter = Express.getRouter();
-
-const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage();
 
 export const SSO_SIGN_IN_CONFIRMATION_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/SsoSignInConfirmation.ejs";
@@ -82,7 +82,6 @@ const INVALID_LINK_PAGE: JSONObject = {
 
 router.get(
   CONFIRMATION_PATH,
-  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -140,7 +139,6 @@ router.get(
 
 router.post(
   CONFIRMATION_PATH,
-  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

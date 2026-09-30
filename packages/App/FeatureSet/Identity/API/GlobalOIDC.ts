@@ -1,6 +1,5 @@
-import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
+import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
-import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import {
   buildMobileSsoSuccessUrl,
   clearMobileSsoIntentCookie,
@@ -40,7 +39,6 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-  RequestHandler,
   extractDeviceInfo,
   getClientIp,
   headerValueToString,
@@ -71,21 +69,11 @@ const getGlobalOidcStateCookieName: (globalOidcId: ObjectID) => string = (
 };
 
 /*
- * Every route below starts with a license gate (see
- * ../Middleware/LicensedFeatureGate.ts): while SSO is not active they refuse.
- * A mobile login is recognised by `mobile=true` on the start route and by the
- * provider's mobile intent cookie on the callback.
+ * Instance-wide OIDC sign-in (Global OIDC), served by core in every edition.
+ * The redirect URI (/identity/global-oidc-callback/:globalOidcId) is pasted
+ * into the identity provider, so no path below may ever change:
+ * Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts pins them.
  */
-const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage({
-  isMobileRequest: (req: ExpressRequest): boolean => {
-    const globalOidcId: string | undefined = req.params["globalOidcId"];
-
-    return isMobileSsoRequest({
-      req,
-      providerId: globalOidcId ? new ObjectID(globalOidcId) : undefined,
-    });
-  },
-});
 
 /*
  * Service-provider initiated discovery: returns enabled Global OIDC providers
@@ -93,7 +81,6 @@ const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage({
  */
 router.get(
   "/global-oidc/service-provider-login",
-  LicensedFeatureGate.forSsoJson,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -127,7 +114,6 @@ router.get(
 
 router.get(
   "/global-oidc/:globalOidcId",
-  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -257,7 +243,6 @@ router.get(
 
 router.get(
   "/global-oidc-callback/:globalOidcId",
-  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

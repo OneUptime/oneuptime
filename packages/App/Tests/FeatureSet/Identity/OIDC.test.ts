@@ -21,7 +21,7 @@
  */
 import OIDCUtil, {
   OidcCallbackResult,
-} from "../../../Server/Identity/Utils/OIDC";
+} from "../../../FeatureSet/Identity/Utils/OIDC";
 import {
   IdpKeyPair,
   IdpOptions,

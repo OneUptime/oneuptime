@@ -23,8 +23,10 @@ import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageOIDC from "../../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import FakeEnterpriseModule, {
   createEditionStateCases,
+  createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
   EditionStateCase,
   installFakeEnterpriseModule,
@@ -82,16 +84,14 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * The provider lists that sign-in pages offer, and the status page's own
  * "should I force SSO / offer SSO" flags.
  *
- * The SAML/OIDC login routes answer only while SSO is ACTIVE
- * (EnterpriseEdition.isFeatureActive(SSO), through EditionEnforcement): the
- * Enterprise Edition with billing on, or with a license that covers SSO
- * (valid, grace, trial), or while the license state is unknown. So:
- *   - SSO active: providers are listed as configured, and a status page's
- *     SSO requirement is reported.
- *   - SSO not active - the Community Edition, or an Enterprise install whose
- *     license lapsed: every list is empty and the status page reports no SSO,
- *     so no client sends a user into a route that answers 404 or refuses.
- *     Nothing is even read from the provider tables.
+ * Single sign-on is part of the Community Edition: the SAML/OIDC sign-in
+ * routes answer in every edition, so in EVERY edition and license state - the
+ * Community Edition (billing off and on), the Enterprise Edition licensed, in
+ * its trial or grace, lapsed, with a license that leaves SCIM and audit logs
+ * out, or in an unknown license state, and OneUptime Cloud - these routes
+ * list the enabled providers, and the master page reports the stored "Require
+ * SSO for login" and the real number of enabled SAML providers. Nothing here
+ * asks the license.
  *
  * Billing and the edition are pinned in every test. This suite runs without
  * ee/: it uses the fake enterprise module only.
@@ -193,7 +193,36 @@ const listedItems: () => Array<unknown> = (): Array<unknown> => {
   return items;
 };
 
-describe("SSO provider listings and status page SSO flags, by edition", () => {
+// The master page's payload for a status page as stored.
+const readMasterPage: (stored: {
+  requireSsoForLogin: boolean;
+}) => Promise<JSONObject> = async (stored: {
+  requireSsoForLogin: boolean;
+}): Promise<JSONObject> => {
+  const statusPage: StatusPage = new StatusPage();
+  statusPage.id = STATUS_PAGE_ID;
+  statusPage.pageTitle = "Customer Status";
+  statusPage.requireSsoForLogin = stored.requireSsoForLogin;
+
+  getJestSpyOn(StatusPageService, "findOneById").mockResolvedValue(statusPage);
+  getJestSpyOn(StatusPageFooterLinkService, "findBy").mockResolvedValue([]);
+  getJestSpyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([]);
+  getJestSpyOn(StatusPageDomainService, "findOneBy").mockResolvedValue(null);
+
+  (Response.sendJsonObjectResponse as jest.Mock).mockClear();
+
+  await invoke({
+    route: MASTER_PAGE_ROUTE,
+    params: { statusPageId: STATUS_PAGE_ID.toString() },
+  });
+
+  expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+
+  return (Response.sendJsonObjectResponse as jest.Mock).mock
+    .calls[0]![2] as JSONObject;
+};
+
+describe("SSO provider listings and status page SSO flags in every edition", () => {
   const originalHost: string | undefined = process.env["HOST"];
 
   let projectSsoFind: SpyInstance;
@@ -214,6 +243,12 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
     process.env["HOST"] = "app.example.com";
     setTestBillingEnabled(false);
     uninstallEnterpriseModule();
+    getJestSpyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    getJestSpyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
 
     projectSsoFind = getJestSpyOn(
       ProjectSsoService,
@@ -249,12 +284,22 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
     }
   });
 
-  test("the cases include lapsed Enterprise licenses, not just the two editions", () => {
+  test("the cases include the Community Edition, lapsed Enterprise licenses and the Cloud", () => {
+    expect(
+      EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+        return !editionCase.isLoaded;
+      }),
+    ).toHaveLength(2);
     expect(
       EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
         return editionCase.isLoaded && !editionCase.isActive;
       }).length,
     ).toBeGreaterThanOrEqual(4);
+    expect(
+      EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+        return editionCase.isLoaded && editionCase.billing;
+      }).length,
+    ).toBeGreaterThan(0);
   });
 
   describe.each(
@@ -266,167 +311,176 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
   )("%s", (_label: string, editionCase: EditionStateCase) => {
     beforeEach(() => {
       editionCase.apply();
-      getJestSpyOn(logger, "warn").mockImplementation((): void => {
-        return undefined;
-      });
     });
 
-    test(`project SSO list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
+    test("the project SSO list lists the enabled providers", async () => {
       await invoke({
         route: PROJECT_SSO_ROUTE,
         params: { projectId: PROJECT_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
-
-      if (editionCase.isActive) {
-        expect(projectSsoFind).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: { projectId: PROJECT_ID, isEnabled: true },
-            props: { isRoot: true },
-          }),
-        );
-      } else {
-        expect(projectSsoFind).not.toHaveBeenCalled();
-      }
+      expect(listedItems()).toHaveLength(1);
+      expect(projectSsoFind).toHaveBeenCalledTimes(1);
+      expect(projectSsoFind).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { projectId: PROJECT_ID, isEnabled: true },
+          select: { name: true, description: true, _id: true },
+          props: { isRoot: true },
+        }),
+      );
     });
 
-    test(`project OIDC list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
+    test("the project OIDC list lists the enabled providers", async () => {
       await invoke({
         route: PROJECT_OIDC_ROUTE,
         params: { projectId: PROJECT_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
-      expect(projectOidcFind).toHaveBeenCalledTimes(
-        editionCase.isActive ? 1 : 0,
+      expect(listedItems()).toHaveLength(1);
+      expect(projectOidcFind).toHaveBeenCalledTimes(1);
+      expect(projectOidcFind).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { projectId: PROJECT_ID, isEnabled: true },
+          props: { isRoot: true },
+        }),
       );
     });
 
-    test(`status page SSO list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
+    test("the status page SSO list lists the enabled providers", async () => {
       await invoke({
         route: STATUS_PAGE_SSO_ROUTE,
         params: { statusPageId: STATUS_PAGE_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
-      expect(statusPageSsoFind).toHaveBeenCalledTimes(
-        editionCase.isActive ? 1 : 0,
+      expect(listedItems()).toHaveLength(1);
+      expect(statusPageSsoFind).toHaveBeenCalledTimes(1);
+      expect(statusPageSsoFind).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { statusPageId: STATUS_PAGE_ID, isEnabled: true },
+          props: { isRoot: true },
+        }),
       );
     });
 
-    test(`status page OIDC list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
+    test("the status page OIDC list lists the enabled providers", async () => {
       await invoke({
         route: STATUS_PAGE_OIDC_ROUTE,
         params: { statusPageId: STATUS_PAGE_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
-      expect(statusPageOidcFind).toHaveBeenCalledTimes(
-        editionCase.isActive ? 1 : 0,
+      expect(listedItems()).toHaveLength(1);
+      expect(statusPageOidcFind).toHaveBeenCalledTimes(1);
+      expect(statusPageOidcFind).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { statusPageId: STATUS_PAGE_ID, isEnabled: true },
+          props: { isRoot: true },
+        }),
       );
     });
 
-    test(`master page ${editionCase.isActive ? "reports the stored SSO requirement and providers" : "reports no SSO (effective value) and leaves the stored value alone"}`, async () => {
-      const statusPage: StatusPage = new StatusPage();
-      statusPage.id = STATUS_PAGE_ID;
-      statusPage.pageTitle = "Customer Status";
-      statusPage.requireSsoForLogin = true;
-
-      const findStatusPage: SpyInstance = getJestSpyOn(
-        StatusPageService,
-        "findOneById",
-      ).mockResolvedValue(statusPage);
-      getJestSpyOn(StatusPageFooterLinkService, "findBy").mockResolvedValue([]);
-      getJestSpyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([]);
-      getJestSpyOn(StatusPageDomainService, "findOneBy").mockResolvedValue(
-        null,
-      );
+    test("an empty provider table is an empty list", async () => {
+      projectSsoFind.mockResolvedValue([]);
 
       await invoke({
-        route: MASTER_PAGE_ROUTE,
-        params: { statusPageId: STATUS_PAGE_ID.toString() },
+        route: PROJECT_SSO_ROUTE,
+        params: { projectId: PROJECT_ID.toString() },
       });
 
-      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+      expect(listedItems()).toEqual([]);
+    });
 
-      const payload: JSONObject = (Response.sendJsonObjectResponse as jest.Mock)
-        .mock.calls[0]![2] as JSONObject;
+    test("the master page reports the stored SSO requirement and the enabled providers", async () => {
+      const payload: JSONObject = await readMasterPage({
+        requireSsoForLogin: true,
+      });
 
       expect((payload["statusPage"] as JSONObject)["requireSsoForLogin"]).toBe(
-        editionCase.isActive,
+        true,
       );
-      expect(payload["hasEnabledSSO"]).toBe(editionCase.isActive ? 2 : 0);
-      expect(statusPageSsoCount).toHaveBeenCalledTimes(
-        editionCase.isActive ? 1 : 0,
+      expect(payload["hasEnabledSSO"]).toBe(2);
+      expect(statusPageSsoCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { isEnabled: true, statusPageId: STATUS_PAGE_ID },
+          props: { isRoot: true },
+        }),
       );
-
-      // The stored requirement is still read, never written.
-      expect(findStatusPage).toHaveBeenCalledWith(
+      expect(StatusPageService.findOneById).toHaveBeenCalledWith(
         expect.objectContaining({
           select: expect.objectContaining({ requireSsoForLogin: true }),
           props: { isRoot: true },
         }),
       );
     });
+
+    test("the master page reports a page that does not require SSO, with no providers, as such", async () => {
+      statusPageSsoCount.mockResolvedValue(new PositiveNumber(0));
+
+      const payload: JSONObject = await readMasterPage({
+        requireSsoForLogin: false,
+      });
+
+      expect((payload["statusPage"] as JSONObject)["requireSsoForLogin"]).toBe(
+        false,
+      );
+      expect(payload["hasEnabledSSO"]).toBe(0);
+    });
   });
 
-  test("the lists follow the license at request time: empty while lapsed, listed again after renewal", async () => {
-    getJestSpyOn(logger, "warn").mockImplementation((): void => {
-      return undefined;
-    });
-    getJestSpyOn(logger, "info").mockImplementation((): void => {
-      return undefined;
+  test("license changes never empty the lists or hide the requirement", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("valid"),
     });
 
-    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+    for (const snapshot of [
+      createLicenseSnapshotWithStatus("expired"),
+      createLicenseSnapshotWithStatus("valid"),
+      createLicenseSnapshotWithStatus("invalid"),
+      createLicenseSnapshot({ features: [] }),
+      null,
+    ]) {
+      fake.setSnapshot(snapshot);
+      (Response.sendEntityArrayResponse as jest.Mock).mockClear();
+
+      await invoke({
+        route: PROJECT_SSO_ROUTE,
+        params: { projectId: PROJECT_ID.toString() },
+      });
+
+      expect(listedItems()).toHaveLength(1);
+
+      const payload: JSONObject = await readMasterPage({
+        requireSsoForLogin: true,
+      });
+
+      expect((payload["statusPage"] as JSONObject)["requireSsoForLogin"]).toBe(
+        true,
+      );
+      expect(payload["hasEnabledSSO"]).toBe(2);
+    }
+
+    expect(projectSsoFind).toHaveBeenCalledTimes(5);
+  });
+
+  test("no listing asks the enterprise facade", async () => {
+    installFakeEnterpriseModule({
       snapshot: createLicenseSnapshotWithStatus("expired"),
     });
-
-    await invoke({
-      route: PROJECT_SSO_ROUTE,
-      params: { projectId: PROJECT_ID.toString() },
-    });
-
-    expect(listedItems()).toHaveLength(0);
-    expect(projectSsoFind).not.toHaveBeenCalled();
-
-    fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-    (Response.sendEntityArrayResponse as jest.Mock).mockClear();
-
-    await invoke({
-      route: PROJECT_SSO_ROUTE,
-      params: { projectId: PROJECT_ID.toString() },
-    });
-
-    expect(listedItems()).toHaveLength(1);
-    expect(projectSsoFind).toHaveBeenCalledTimes(1);
-  });
-
-  test("the master page reports a page that does not require SSO the same way on both editions", async () => {
-    const statusPage: StatusPage = new StatusPage();
-    statusPage.id = STATUS_PAGE_ID;
-    statusPage.requireSsoForLogin = false;
-
-    getJestSpyOn(StatusPageService, "findOneById").mockResolvedValue(
-      statusPage,
+    const isFeatureActive: SpyInstance = getJestSpyOn(
+      EnterpriseEdition,
+      "isFeatureActive",
     );
-    getJestSpyOn(StatusPageFooterLinkService, "findBy").mockResolvedValue([]);
-    getJestSpyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([]);
-    getJestSpyOn(StatusPageDomainService, "findOneBy").mockResolvedValue(null);
 
-    installFakeEnterpriseModule();
+    for (const [route, params] of [
+      [PROJECT_SSO_ROUTE, { projectId: PROJECT_ID.toString() }],
+      [PROJECT_OIDC_ROUTE, { projectId: PROJECT_ID.toString() }],
+      [STATUS_PAGE_SSO_ROUTE, { statusPageId: STATUS_PAGE_ID.toString() }],
+      [STATUS_PAGE_OIDC_ROUTE, { statusPageId: STATUS_PAGE_ID.toString() }],
+    ] as Array<[string, Record<string, string>]>) {
+      await invoke({ route, params });
+    }
 
-    await invoke({
-      route: MASTER_PAGE_ROUTE,
-      params: { statusPageId: STATUS_PAGE_ID.toString() },
-    });
+    await readMasterPage({ requireSsoForLogin: true });
 
-    const payload: JSONObject = (Response.sendJsonObjectResponse as jest.Mock)
-      .mock.calls[0]![2] as JSONObject;
-
-    expect((payload["statusPage"] as JSONObject)["requireSsoForLogin"]).toBe(
-      false,
-    );
+    expect(isFeatureActive).not.toHaveBeenCalled();
   });
 });

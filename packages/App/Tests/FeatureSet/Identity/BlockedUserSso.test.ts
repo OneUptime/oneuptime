@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "@jest/globals";
-import SSORouter from "../../../Server/Identity/API/SSO";
-import OIDCRouter from "../../../Server/Identity/API/OIDC";
-import GlobalSSORouter from "../../../Server/Identity/API/GlobalSSO";
-import GlobalOIDCRouter from "../../../Server/Identity/API/GlobalOIDC";
+import SSORouter from "../../../FeatureSet/Identity/API/SSO";
+import OIDCRouter from "../../../FeatureSet/Identity/API/OIDC";
+import GlobalSSORouter from "../../../FeatureSet/Identity/API/GlobalSSO";
+import GlobalOIDCRouter from "../../../FeatureSet/Identity/API/GlobalOIDC";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -15,6 +15,7 @@ import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 
 /*
  * ---------------------------------------------------------------------------
@@ -26,12 +27,16 @@ import PositiveNumber from "Common/Types/PositiveNumber";
  * read `User.isBlocked`, so blocking a user did nothing to stop them signing
  * straight back in through their company's IdP.
  *
- * Each callback is run through its real handler (the license gate in front of
- * it is IdentityLicenseGates.test.ts). The provider side is stubbed at the
- * utility boundary -- the SAML signature check and the OIDC code exchange --
- * so the assertion that arrives is a genuine, verified identity. UserService
+ * Each callback is run through its real route handler. The provider side is
+ * stubbed at the utility boundary -- the SAML signature check and the OIDC
+ * code exchange -- so the assertion that arrives is a genuine, verified
+ * identity. UserService
  * lookups honour `select`, so a callback that stops selecting isBlocked reads
  * it as undefined and these tests fail rather than pass.
+ *
+ * Every flow runs on a self-hosted install and on the hosted service (billing
+ * on, where project SSO also asks for the account's consent), with billing
+ * pinned: CI's config.env sets BILLING_ENABLED=true.
  * ---------------------------------------------------------------------------
  */
 
@@ -43,6 +48,20 @@ const TEAM_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const ISSUER: string = "https://idp.example.com/metadata";
 
 let storedRow: Record<string, unknown> = {};
+
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 const userFindOneBy: jest.Mock = jest.fn();
 const userCreateByEmail: jest.Mock = jest.fn();
@@ -194,7 +213,7 @@ jest.mock("Common/Server/Services/GlobalOidcProjectService", () => {
 });
 
 // A signature that verified: the identity below is what the IdP asserted.
-jest.mock("../../../Server/Identity/Utils/SSO", () => {
+jest.mock("../../../FeatureSet/Identity/Utils/SSO", () => {
   return {
     __esModule: true,
     default: {
@@ -214,7 +233,7 @@ jest.mock("../../../Server/Identity/Utils/SSO", () => {
 });
 
 // A code exchange that succeeded, with an ID token that validated.
-jest.mock("../../../Server/Identity/Utils/OIDC", () => {
+jest.mock("../../../FeatureSet/Identity/Utils/OIDC", () => {
   return {
     __esModule: true,
     default: {
@@ -234,7 +253,7 @@ jest.mock("../../../Server/Identity/Utils/OIDC", () => {
   };
 });
 
-jest.mock("App/FeatureSet/Identity/Utils/AuthenticationEmail", () => {
+jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
     __esModule: true,
     default: { sendVerificationEmail: jest.fn() },
@@ -375,7 +394,7 @@ interface RouteLayer {
     | undefined;
 }
 
-// The route's own handler: the last one, after the license gate.
+// The route's own handler: the last one in its stack.
 function handlerFor(
   router: ExpressRouter,
   method: string,
@@ -401,6 +420,7 @@ function handlerFor(
 
 type Flow = {
   name: string;
+  billing: boolean;
   router: ExpressRouter;
   method: string;
   path: string;
@@ -421,7 +441,7 @@ const SAML_BODY: (isMobile: boolean) => JSONObject = (
   };
 };
 
-const FLOWS: Array<Flow> = [
+const CALLBACKS: Array<Omit<Flow, "billing">> = [
   {
     name: "project SAML (/idp-login)",
     router: SSORouter,
@@ -468,6 +488,19 @@ const FLOWS: Array<Flow> = [
   },
 ];
 
+// Every callback, self-hosted (billing off) and on the hosted service.
+const FLOWS: Array<Flow> = [false, true].flatMap(
+  (billing: boolean): Array<Flow> => {
+    return CALLBACKS.map((callback: Omit<Flow, "billing">): Flow => {
+      return {
+        ...callback,
+        name: `${callback.name}, billing=${billing}`,
+        billing,
+      };
+    });
+  },
+);
+
 type RunResult = { nextError: unknown };
 
 // res.redirect: where the mobile flows send the app its deep link.
@@ -478,6 +511,8 @@ async function runFlow(
   data: { isMobile: boolean },
 ): Promise<RunResult> {
   const { body, query } = flow.request(data);
+
+  setTestBillingEnabled(flow.billing);
 
   // The OIDC flows carry "mobile" in their signed state cookie.
   oidcStateIsMobile = data.isMobile;

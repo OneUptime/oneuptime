@@ -14,8 +14,10 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import FakeEnterpriseModule, {
   createEditionStateCases,
+  createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
   EditionStateCase,
   installFakeEnterpriseModule,
@@ -28,21 +30,17 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
 /*
  * ---------------------------------------------------------------------------------------------
- * A private status page's "Require SSO", by edition and license.
+ * A private status page's "Require SSO for login", in every edition.
  *
  * The three password surfaces of a status page - /login, /forgot-password and
  * /reset-password - refuse with "Status Page supports authentication by SSO" when the page
- * requires SSO. That refusal holds while SSO is ACTIVE (EnterpriseEdition.isFeatureActive):
+ * requires SSO. Status page SSO is part of the Community Edition, so the refusal holds in
+ * EVERY edition and license state: the Community Edition (billing off and on), the
+ * Enterprise Edition licensed, in its trial or grace, lapsed, with a license that leaves
+ * SCIM and audit logs out, or in an unknown license state, and OneUptime Cloud. A page that
+ * does not require SSO runs the password flow everywhere.
  *
- *   - SSO active - the Enterprise Edition with billing on, or with a license that covers SSO
- *     (valid, grace, trial), or while the license state is unknown: the refusal holds.
- *   - SSO not active - the Community Edition, where the status page SSO login routes do not
- *     exist, or an Enterprise install whose license lapsed, where they refuse: the refusal
- *     would lock every private user out. The requirement is relaxed and the password flow
- *     runs as on any other page (users who only ever used SSO reset their password).
- *
- * A license change applies to the next request, without a restart. Billing is pinned
- * (CI's config.env sets BILLING_ENABLED=true).
+ * Billing is pinned (CI's config.env sets BILLING_ENABLED=true).
  * ---------------------------------------------------------------------------------------------
  */
 
@@ -425,51 +423,82 @@ describe("status page password surfaces when the page requires SSO", () => {
   for (const scenario of SCENARIOS) {
     describe(scenario.label, () => {
       for (const editionCase of EDITION_CASES) {
-        it(`${editionCase.isActive ? "is refused" : "runs the password flow"}: ${editionCase.label}`, async () => {
+        it(`is refused: ${editionCase.label}`, async () => {
           editionCase.apply();
 
           const result: InvokeResult = await scenario.run();
 
-          if (editionCase.isActive) {
-            expect(result.nextError?.message).toBe(SSO_REFUSAL);
-            scenario.expectPasswordFlowStopped();
-          } else {
-            expect(result.nextError?.message).not.toBe(SSO_REFUSAL);
-            scenario.expectPasswordFlowRan(result);
-          }
+          expect(result.nextError?.message).toBe(SSO_REFUSAL);
+          scenario.expectPasswordFlowStopped();
         });
       }
     });
   }
 
-  it("the matrix includes lapsed Enterprise licenses, which run the password flow", () => {
-    expect(
-      EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
-        return editionCase.isLoaded && !editionCase.isActive;
-      }).length,
-    ).toBeGreaterThanOrEqual(4);
+  it("the matrix covers the Community Edition, lapsed and unknown licenses, and the Cloud", () => {
+    const labels: Array<string> = EDITION_CASES.map(
+      (editionCase: EditionStateCase): string => {
+        return editionCase.label;
+      },
+    );
+
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "billing=false, Community Edition",
+        "billing=true, Community Edition",
+        "billing=false, Enterprise Edition, license expired more than 30 days ago",
+        "billing=false, Enterprise Edition, no license after the trial",
+        "billing=false, Enterprise Edition, invalid license",
+        "billing=false, Enterprise Edition, license not read yet (unknown)",
+        "billing=true, Enterprise Edition, valid license",
+      ]),
+    );
   });
 
-  it("a license change applies to the next request: lapsed runs the password flow, renewed refuses again", async () => {
+  it("the license never relaxes the requirement: lapse, renewal and lapse again all refuse", async () => {
     const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
-      snapshot: createLicenseSnapshotWithStatus("expired"),
+      snapshot: createLicenseSnapshotWithStatus("valid"),
     });
 
-    const whileLapsed: InvokeResult = await forgotPassword();
+    for (const snapshot of [
+      createLicenseSnapshotWithStatus("expired"),
+      createLicenseSnapshotWithStatus("valid"),
+      createLicenseSnapshotWithStatus("missing"),
+      createLicenseSnapshot({ features: [] }),
+      null,
+    ]) {
+      fake.setSnapshot(snapshot);
+      jest.clearAllMocks();
 
-    expect(whileLapsed.nextError).toBeNull();
-    expect(sendMail).toHaveBeenCalledTimes(1);
+      for (const scenario of SCENARIOS) {
+        const result: InvokeResult = await scenario.run();
 
-    fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-    jest.clearAllMocks();
-
-    const afterRenewal: InvokeResult = await forgotPassword();
-
-    expect(afterRenewal.nextError?.message).toBe(SSO_REFUSAL);
-    expect(sendMail).not.toHaveBeenCalled();
+        expect(result.nextError?.message).toBe(SSO_REFUSAL);
+        scenario.expectPasswordFlowStopped();
+      }
+    }
   });
 
-  it("a page that does not require SSO runs the password flow on both editions", async () => {
+  it("the check never asks the enterprise facade", async () => {
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("expired"),
+    });
+    const isFeatureActive: jest.SpyInstance = jest.spyOn(
+      EnterpriseEdition,
+      "isFeatureActive",
+    );
+
+    for (const scenario of SCENARIOS) {
+      await scenario.run();
+    }
+
+    expect(isFeatureActive).not.toHaveBeenCalled();
+    isFeatureActive.mockRestore();
+  });
+});
+
+describe("status page password surfaces when the page does not require SSO", () => {
+  beforeEach(() => {
     statusPageFindOneById.mockResolvedValue({
       id: new ObjectID(STATUS_PAGE_ID),
       _id: STATUS_PAGE_ID,
@@ -477,20 +506,20 @@ describe("status page password surfaces when the page requires SSO", () => {
       projectId: new ObjectID(PROJECT_ID),
       requireSsoForLogin: false,
     });
-
-    installFakeEnterpriseModule();
-
-    const onEnterprise: InvokeResult = await forgotPassword();
-
-    expect(onEnterprise.nextError).toBeNull();
-
-    uninstallEnterpriseModule();
-    jest.clearAllMocks();
-    privateUserUpdateOneBy.mockResolvedValue(1);
-
-    const onCommunity: InvokeResult = await forgotPassword();
-
-    expect(onCommunity.nextError).toBeNull();
-    expect(sendMail).toHaveBeenCalledTimes(1);
   });
+
+  for (const scenario of SCENARIOS) {
+    describe(scenario.label, () => {
+      for (const editionCase of EDITION_CASES) {
+        it(`runs the password flow: ${editionCase.label}`, async () => {
+          editionCase.apply();
+
+          const result: InvokeResult = await scenario.run();
+
+          expect(result.nextError?.message).not.toBe(SSO_REFUSAL);
+          scenario.expectPasswordFlowRan(result);
+        });
+      }
+    });
+  }
 });

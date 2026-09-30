@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
-import SSORouter from "../../../Server/Identity/API/SSO";
-import OIDCRouter from "../../../Server/Identity/API/OIDC";
+import SSORouter from "../../../FeatureSet/Identity/API/SSO";
+import OIDCRouter from "../../../FeatureSet/Identity/API/OIDC";
 import ConfirmationRouter, {
   SSO_SIGN_IN_CONFIRMATION_VIEW,
-} from "../../../Server/Identity/API/ProjectSsoSignInConfirmation";
+} from "../../../FeatureSet/Identity/API/ProjectSsoSignInConfirmation";
 import ProjectSsoSignInConfirmation, {
   PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS,
   PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
@@ -13,7 +13,7 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoConfirmationOutcome,
   ProjectSsoConfirmationResult,
   ProjectSsoKind,
-} from "../../../Server/Identity/Utils/ProjectSsoSignInConfirmation";
+} from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -243,7 +243,7 @@ jest.mock("Common/Server/Services/UserProjectSsoConsentService", () => {
 });
 
 // A signature that verified: the identity below is what the IdP asserted.
-jest.mock("../../../Server/Identity/Utils/SSO", () => {
+jest.mock("../../../FeatureSet/Identity/Utils/SSO", () => {
   return {
     __esModule: true,
     default: {
@@ -263,7 +263,7 @@ jest.mock("../../../Server/Identity/Utils/SSO", () => {
 });
 
 // A code exchange that succeeded, with an ID token that validated.
-jest.mock("../../../Server/Identity/Utils/OIDC", () => {
+jest.mock("../../../FeatureSet/Identity/Utils/OIDC", () => {
   return {
     __esModule: true,
     default: {
@@ -285,7 +285,7 @@ jest.mock("../../../Server/Identity/Utils/OIDC", () => {
 
 const sendVerificationEmail: jest.Mock = jest.fn();
 
-jest.mock("App/FeatureSet/Identity/Utils/AuthenticationEmail", () => {
+jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
     __esModule: true,
     default: {
@@ -416,7 +416,7 @@ interface RouteLayer {
     | undefined;
 }
 
-// The route's own handler: the last one, after the license gate.
+// The route's own handler: the last one in its stack.
 function handlerFor(
   router: ExpressRouter,
   method: string,
@@ -1564,9 +1564,9 @@ describe("ProjectSsoSignInConfirmation", () => {
 
 describe("the confirmation email template", () => {
   /*
-   * The template lives in the App (core) package, which is what renders every
-   * email, and the variables are set here. A rename on either side renders a
-   * button that points nowhere.
+   * The template is rendered by the Notification feature set, and the
+   * variables are set here. A rename on either side renders a button that
+   * points nowhere.
    */
   const templateSource: string = fs.readFileSync(
     nodePath.join(
@@ -1574,9 +1574,6 @@ describe("the confirmation email template", () => {
       "..",
       "..",
       "..",
-      "..",
-      "packages",
-      "App",
       "FeatureSet",
       "Notification",
       "Templates",

@@ -26,7 +26,6 @@ import StatusPagePrivateUserSessionService, {
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
-import EditionEnforcement from "Common/Server/Utils/EditionEnforcement";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -606,15 +605,7 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      /*
-       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
-       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
-       * Community Edition and while the Enterprise license is lapsed, where
-       * the status page SSO routes do not exist or refuse, so a configured
-       * requirement falls back to email and password. An unknown license
-       * state enforces.
-       */
-      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+      if (statusPage.requireSsoForLogin) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
@@ -822,15 +813,7 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      /*
-       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
-       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
-       * Community Edition and while the Enterprise license is lapsed, where
-       * the status page SSO routes do not exist or refuse, so a configured
-       * requirement falls back to email and password. An unknown license
-       * state enforces.
-       */
-      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+      if (statusPage.requireSsoForLogin) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
@@ -950,15 +933,7 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      /*
-       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
-       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
-       * Community Edition and while the Enterprise license is lapsed, where
-       * the status page SSO routes do not exist or refuse, so a configured
-       * requirement falls back to email and password. An unknown license
-       * state enforces.
-       */
-      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
+      if (statusPage.requireSsoForLogin) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );

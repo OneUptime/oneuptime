@@ -25,7 +25,7 @@
  */
 import SSOUtil, {
   VerifiedSamlResponse,
-} from "../../../Server/Identity/Utils/SSO";
+} from "../../../FeatureSet/Identity/Utils/SSO";
 import {
   SamlKeyPair,
   generateRsaKeyPair,

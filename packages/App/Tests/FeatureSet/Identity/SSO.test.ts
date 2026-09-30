@@ -1,6 +1,6 @@
 import SSOUtil, {
   VerifiedSamlResponse,
-} from "../../../Server/Identity/Utils/SSO";
+} from "../../../FeatureSet/Identity/Utils/SSO";
 import Email from "Common/Types/Email";
 import URL from "Common/Types/API/URL";
 import { describe, expect, test, beforeAll } from "@jest/globals";

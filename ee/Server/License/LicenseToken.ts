@@ -812,9 +812,9 @@ const classifyMissingToken: (
  *
  * It used to classify "invalid", which is not usable
  * (EnterpriseLicenseSnapshotUtil.isUsable accepts only "valid" and "grace"),
- * so SSO, SCIM and audit logging stopped the moment such an install upgraded:
- * no trial, no grace, no warning, for a customer whose license may be
- * perfectly good. A missing expiry is this product's own bookkeeping failing,
+ * so every licensed feature stopped the moment such an install upgraded: no
+ * trial, no grace, no warning, for a customer whose license may be perfectly
+ * good. A missing expiry is this product's own bookkeeping failing,
  * not an entitlement ending, so it must not be a cliff.
  *
  * It is therefore treated exactly as an install with no license at all: the

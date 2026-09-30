@@ -1,7 +1,7 @@
-import CommunityEditionSsoReport, {
-  MAX_IDS_LISTED_PER_KIND,
-  RelaxedEnforcementSummary,
-} from "../../../Server/Utils/CommunityEditionSsoReport";
+import RelaxedScimTeamLocksReport, {
+  MAX_IDS_LISTED,
+  RelaxedScimTeamLocksSummary,
+} from "../../../Server/Utils/RelaxedScimTeamLocksReport";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
 import {
@@ -15,9 +15,7 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import Project from "../../../Models/DatabaseModels/Project";
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
-import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import FakeEnterpriseModule, {
   createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
@@ -53,19 +51,24 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 
 /*
  * Moving an install from the Enterprise image to the Community one keeps its
- * database, so projects and status pages that required SSO still say so - and
- * the Community Edition relaxes those requirements (it has no SSO login). The
- * same happens on an Enterprise install whose license lapses: SSO and SCIM
- * stop, and their requirements and locks are relaxed until a license is
- * activated. Neither may happen silently:
+ * database, so a SCIM configuration with Push Groups on still says so - and
+ * the Community Edition relaxes its team locks (it has no SCIM endpoint, so
+ * the identity provider that owns those teams cannot reach it). The same
+ * happens on an Enterprise install whose license stops covering SCIM: the
+ * locks are relaxed until a license is activated. Neither may happen
+ * silently:
  *
- *   - a Community Edition process logs, once at boot, which settings it is
- *     not enforcing;
+ *   - a Community Edition process logs, once at boot, which locks it is not
+ *     enforcing;
  *   - an Enterprise process watches the license and logs the same report
- *     each time SSO or SCIM stops (a license already lapsed at boot
- *     included), naming only what stopped.
+ *     each time SCIM stops (a license already lapsed at boot included).
  *
- * It never throws, and it reads nothing while the license covers SSO and SCIM.
+ * It never throws, and it reads nothing while the license covers SCIM.
+ *
+ * Single sign-on is not part of the report: it is part of the Community
+ * Edition, and a configured "Require SSO for login" is enforced in every
+ * edition, so there is nothing relaxed to report. The report never reads the
+ * SSO requirement columns.
  */
 
 const LAPSE_REPORT_PREFIX: string = "OneUptime Enterprise license lapsed:";
@@ -83,21 +86,6 @@ const PROJECT_A: ObjectID = new ObjectID(
 const PROJECT_B: ObjectID = new ObjectID(
   "12222222-2222-4222-8222-222222222222",
 );
-const STATUS_PAGE_A: ObjectID = new ObjectID(
-  "77777777-7777-4777-8777-777777777777",
-);
-
-const project: (id: ObjectID) => Project = (id: ObjectID): Project => {
-  const model: Project = new Project();
-  model._id = id.toString();
-  return model;
-};
-
-const statusPage: (id: ObjectID) => StatusPage = (id: ObjectID): StatusPage => {
-  const model: StatusPage = new StatusPage();
-  model._id = id.toString();
-  return model;
-};
 
 const scim: (projectId: ObjectID) => ProjectSCIM = (
   projectId: ObjectID,
@@ -107,34 +95,64 @@ const scim: (projectId: ObjectID) => ProjectSCIM = (
   return model;
 };
 
+let scimCount: SpyInstance;
+let scimFind: SpyInstance;
 let instanceRequiresSso: SpyInstance;
 let projectCount: SpyInstance;
 let projectFind: SpyInstance;
 let statusPageCount: SpyInstance;
 let statusPageFind: SpyInstance;
-let scimCount: SpyInstance;
-let scimFind: SpyInstance;
 let warn: SpyInstance;
 let error: SpyInstance;
 
-const allQuerySpies: () => Array<SpyInstance> = (): Array<SpyInstance> => {
-  return [
-    instanceRequiresSso,
-    projectCount,
-    projectFind,
-    statusPageCount,
-    statusPageFind,
-    scimCount,
-    scimFind,
-  ];
+const scimQuerySpies: () => Array<SpyInstance> = (): Array<SpyInstance> => {
+  return [scimCount, scimFind];
 };
 
-describe("CommunityEditionSsoReport", () => {
+// The SSO requirement reads the report used to make; it must make none.
+const ssoRequirementSpies: () => Array<SpyInstance> =
+  (): Array<SpyInstance> => {
+    return [
+      instanceRequiresSso,
+      projectCount,
+      projectFind,
+      statusPageCount,
+      statusPageFind,
+    ];
+  };
+
+const loggedWarnings: () => Array<string> = (): Array<string> => {
+  return warn.mock.calls
+    .map((call: Array<unknown>): unknown => {
+      return call[0];
+    })
+    .filter((message: unknown): message is string => {
+      return typeof message === "string";
+    });
+};
+
+const expectNoSingleSignOnWording: (message: string) => void = (
+  message: string,
+): void => {
+  expect(message).not.toMatch(/\bSSO\b/);
+  expect(message).not.toMatch(/single sign-on/i);
+  expect(message).not.toContain("sign in with email and password");
+  expect(message).not.toContain("reset their password");
+};
+
+describe("RelaxedScimTeamLocksReport", () => {
   beforeEach(() => {
     setTestBillingEnabled(false);
     uninstallEnterpriseModule();
-    CommunityEditionSsoReport.resetForTests();
+    RelaxedScimTeamLocksReport.resetForTests();
 
+    scimCount = getJestSpyOn(ProjectSCIMService, "countBy").mockResolvedValue(
+      new PositiveNumber(3),
+    );
+    scimFind = getJestSpyOn(ProjectSCIMService, "findBy").mockResolvedValue([
+      scim(PROJECT_A),
+      scim(PROJECT_B),
+    ]);
     instanceRequiresSso = getJestSpyOn(
       GlobalConfigService,
       "getRequireSsoForLogin",
@@ -142,10 +160,7 @@ describe("CommunityEditionSsoReport", () => {
     projectCount = getJestSpyOn(ProjectService, "countBy").mockResolvedValue(
       new PositiveNumber(3),
     );
-    projectFind = getJestSpyOn(ProjectService, "findBy").mockResolvedValue([
-      project(PROJECT_A),
-      project(PROJECT_B),
-    ]);
+    projectFind = getJestSpyOn(ProjectService, "findBy").mockResolvedValue([]);
     statusPageCount = getJestSpyOn(
       StatusPageService,
       "countBy",
@@ -153,13 +168,7 @@ describe("CommunityEditionSsoReport", () => {
     statusPageFind = getJestSpyOn(
       StatusPageService,
       "findBy",
-    ).mockResolvedValue([statusPage(STATUS_PAGE_A)]);
-    scimCount = getJestSpyOn(ProjectSCIMService, "countBy").mockResolvedValue(
-      new PositiveNumber(1),
-    );
-    scimFind = getJestSpyOn(ProjectSCIMService, "findBy").mockResolvedValue([
-      scim(PROJECT_B),
-    ]);
+    ).mockResolvedValue([]);
     warn = getJestSpyOn(logger, "warn").mockImplementation((): void => {
       return undefined;
     });
@@ -171,22 +180,22 @@ describe("CommunityEditionSsoReport", () => {
   afterEach(() => {
     uninstallEnterpriseModule();
     setTestBillingEnabled(false);
-    CommunityEditionSsoReport.resetForTests();
+    RelaxedScimTeamLocksReport.resetForTests();
     jest.restoreAllMocks();
   });
 
   test.each([false, true])(
-    "does nothing on the Enterprise Edition while the license covers SSO and SCIM (billing=%p)",
+    "does nothing on the Enterprise Edition while the license covers SCIM (billing=%p)",
     async (billing: boolean) => {
       setTestBillingEnabled(billing);
       installFakeEnterpriseModule();
 
       await expect(
-        CommunityEditionSsoReport.logRelaxedEnforcementOnce(),
+        RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce(),
       ).resolves.toBeNull();
       await flush();
 
-      for (const spy of allQuerySpies()) {
+      for (const spy of [...scimQuerySpies(), ...ssoRequirementSpies()]) {
         expect(spy).not.toHaveBeenCalled();
       }
       expect(warn).not.toHaveBeenCalled();
@@ -199,10 +208,10 @@ describe("CommunityEditionSsoReport", () => {
       snapshot: createLicenseSnapshotWithStatus("expired"),
     });
 
-    await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+    await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
     await flush();
 
-    for (const spy of allQuerySpies()) {
+    for (const spy of [...scimQuerySpies(), ...ssoRequirementSpies()]) {
       expect(spy).not.toHaveBeenCalled();
     }
     expect(warn).not.toHaveBeenCalled();
@@ -210,16 +219,9 @@ describe("CommunityEditionSsoReport", () => {
 
   describe("on an Enterprise install whose license lapses", () => {
     const lapseReports: () => Array<string> = (): Array<string> => {
-      return warn.mock.calls
-        .map((call: Array<unknown>): unknown => {
-          return call[0];
-        })
-        .filter((message: unknown): message is string => {
-          return (
-            typeof message === "string" &&
-            message.startsWith(LAPSE_REPORT_PREFIX)
-          );
-        });
+      return loggedWarnings().filter((message: string): boolean => {
+        return message.startsWith(LAPSE_REPORT_PREFIX);
+      });
     };
 
     test("a license already lapsed at boot is reported at boot, once", async () => {
@@ -228,14 +230,14 @@ describe("CommunityEditionSsoReport", () => {
       });
 
       await expect(
-        CommunityEditionSsoReport.logRelaxedEnforcementOnce(),
+        RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce(),
       ).resolves.toBeNull();
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
       await flush();
 
       // Later checks by requests see no new change, so no new report.
-      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
       EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
       await flush();
 
       expect(lapseReports()).toHaveLength(1);
@@ -243,53 +245,56 @@ describe("CommunityEditionSsoReport", () => {
       const message: string = lapseReports()[0]!;
 
       expect(message).toContain(
-        "because SSO login and SCIM provisioning have stopped until a license that includes them is activated",
-      );
-      expect(message).toContain('"Require SSO for Login"');
-      expect(message).toContain(
-        `3 project(s) that require SSO for login (ids: ${PROJECT_A.toString()}, ${PROJECT_B.toString()} and 1 more)`,
+        "because SCIM provisioning has stopped until a license that includes it is activated",
       );
       expect(message).toContain(
-        `1 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again (project ids: ${PROJECT_B.toString()})`,
+        `3 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again (project ids: ${PROJECT_A.toString()}, ${PROJECT_B.toString()} and 1 more)`,
       );
-      expect(message).toContain("reset their password");
       expect(message).toContain("without a restart");
       expect(message).not.toContain("Community Edition");
+      expectNoSingleSignOnWording(message);
+
+      for (const spy of ssoRequirementSpies()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
     });
 
     test("a lapse at runtime is reported when it is first noticed, and again after a renewal and a new lapse", async () => {
       const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
 
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
       await flush();
       expect(lapseReports()).toHaveLength(0);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
-      // A request asks, e.g. UserAuthorization through EditionEnforcement.
-      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
-      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+      // A request asks, e.g. TeamService through EditionEnforcement.
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
       await flush();
       expect(lapseReports()).toHaveLength(1);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
       await flush();
       expect(lapseReports()).toHaveLength(1);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("invalid"));
-      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
       await flush();
       expect(lapseReports()).toHaveLength(2);
     });
 
-    test("a license without SCIM reports the SCIM locks only, not the SSO requirements", async () => {
+    test("a license without SCIM reports the SCIM locks", async () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshot({
-          features: [EnterpriseFeature.SSO, EnterpriseFeature.AuditLogs],
+          features: [
+            EnterpriseFeature.AuditLogs,
+            EnterpriseFeature.TeamCompliance,
+          ],
         }),
       });
 
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
       await flush();
 
       expect(lapseReports()).toHaveLength(1);
@@ -298,41 +303,53 @@ describe("CommunityEditionSsoReport", () => {
 
       expect(message).toContain("because SCIM provisioning has stopped");
       expect(message).toContain("SCIM configuration(s) with Push Groups on");
-      expect(message).not.toContain("project(s) that require SSO");
-      expect(message).not.toContain("Require SSO for Login");
-      expect(message).not.toContain("sign in with email and password");
+      expectNoSingleSignOnWording(message);
     });
 
     test("a lapse of audit logging alone reads nothing and reports nothing", async () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshot({
-          features: [EnterpriseFeature.SSO, EnterpriseFeature.SCIM],
+          features: [EnterpriseFeature.SCIM],
         }),
       });
 
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
       EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
       await flush();
 
-      for (const spy of allQuerySpies()) {
+      for (const spy of [...scimQuerySpies(), ...ssoRequirementSpies()]) {
         expect(spy).not.toHaveBeenCalled();
       }
       expect(lapseReports()).toHaveLength(0);
     });
 
+    test("a lapse with no SCIM Push Groups configured reports nothing", async () => {
+      scimCount.mockResolvedValue(new PositiveNumber(0));
+      scimFind.mockResolvedValue([]);
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
+      await flush();
+
+      expect(scimCount).toHaveBeenCalledTimes(1);
+      expect(lapseReports()).toHaveLength(0);
+    });
+
     test("a failed check is logged, never thrown", async () => {
-      projectCount.mockRejectedValue(new Error("database unavailable"));
+      scimCount.mockRejectedValue(new Error("database unavailable"));
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("expired"),
       });
 
       await expect(
-        CommunityEditionSsoReport.logRelaxedEnforcementOnce(),
+        RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce(),
       ).resolves.toBeNull();
       await flush();
 
       expect(error).toHaveBeenCalledWith(
-        "OneUptime Enterprise license lapsed: could not check which SSO requirements and SCIM team locks are no longer enforced.",
+        "OneUptime Enterprise license lapsed: could not check which SCIM Push Groups team locks are no longer enforced.",
       );
       expect(lapseReports()).toHaveLength(0);
     });
@@ -340,10 +357,10 @@ describe("CommunityEditionSsoReport", () => {
     test("an unknown license state is not a lapse", async () => {
       installFakeEnterpriseModule({ snapshot: null });
 
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
       await flush();
 
-      for (const spy of allQuerySpies()) {
+      for (const spy of scimQuerySpies()) {
         expect(spy).not.toHaveBeenCalled();
       }
       expect(lapseReports()).toHaveLength(0);
@@ -361,34 +378,32 @@ describe("CommunityEditionSsoReport", () => {
         }),
       });
 
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
       await flush();
 
-      for (const spy of allQuerySpies()) {
+      for (const spy of scimQuerySpies()) {
         expect(spy).not.toHaveBeenCalled();
       }
       expect(lapseReports()).toHaveLength(0);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
-      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
       await flush();
 
       expect(lapseReports()).toHaveLength(1);
     });
   });
 
-  test("on the Community Edition, logs every relaxed setting once, with counts and ids", async () => {
-    const summary: RelaxedEnforcementSummary | null =
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+  test("on the Community Edition, logs the relaxed SCIM locks once, with the count and ids", async () => {
+    const summary: RelaxedScimTeamLocksSummary | null =
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
 
     expect(summary).toEqual({
-      instanceRequiresSso: true,
-      projectsRequiringSso: 3,
-      projectIdsRequiringSso: [PROJECT_A.toString(), PROJECT_B.toString()],
-      statusPagesRequiringSso: 1,
-      statusPageIdsRequiringSso: [STATUS_PAGE_A.toString()],
-      scimConfigurationsWithPushGroups: 1,
-      projectIdsWithScimPushGroups: [PROJECT_B.toString()],
+      scimConfigurationsWithPushGroups: 3,
+      projectIdsWithScimPushGroups: [
+        PROJECT_A.toString(),
+        PROJECT_B.toString(),
+      ],
     });
 
     expect(warn).toHaveBeenCalledTimes(1);
@@ -397,22 +412,15 @@ describe("CommunityEditionSsoReport", () => {
 
     expect(message).toContain("Community Edition");
     expect(message).toContain("Enterprise Edition");
-    expect(message).toContain('"Require SSO for Login"');
     expect(message).toContain(
-      `3 project(s) that require SSO for login (ids: ${PROJECT_A.toString()}, ${PROJECT_B.toString()} and 1 more)`,
-    );
-    expect(message).toContain(
-      `1 private status page(s) that require SSO for login (ids: ${STATUS_PAGE_A.toString()})`,
-    );
-    expect(message).toContain(
-      `1 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again (project ids: ${PROJECT_B.toString()})`,
+      `3 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again (project ids: ${PROJECT_A.toString()}, ${PROJECT_B.toString()} and 1 more)`,
     );
     expect(message).toContain("kept unchanged");
     /*
      * Running the Enterprise image is not enough on its own: an Enterprise
      * install enforces them only while its license (or trial, or grace)
-     * covers SSO and SCIM. The trial and the grace period are different
-     * lengths, and the message names each with its own.
+     * covers SCIM. The trial and the grace period are different lengths, and
+     * the message names each with its own.
      */
     expect(message).toContain(
       `enforced again when this server runs the Enterprise Edition image with a valid license (or during its ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires)`,
@@ -420,146 +428,142 @@ describe("CommunityEditionSsoReport", () => {
     expect(message).toContain("14-day trial");
     expect(message).toContain("30-day grace period");
     expect(message).not.toContain("14-day trial or grace period");
+    expectNoSingleSignOnWording(message);
   });
 
-  test("reads the stored settings as root, with bounded id lists", async () => {
-    await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+  test.each([false, true])(
+    "on the Community Edition (billing=%p) it never reads the SSO requirements",
+    async (billing: boolean) => {
+      setTestBillingEnabled(billing);
 
-    for (const spy of [
-      projectCount,
-      projectFind,
-      statusPageCount,
-      statusPageFind,
-      scimCount,
-      scimFind,
-    ]) {
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
+
+      for (const spy of ssoRequirementSpies()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  test("reads the stored settings as root, with a bounded id list", async () => {
+    await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
+
+    for (const spy of scimQuerySpies()) {
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({ props: { isRoot: true } }),
       );
-    }
-
-    expect(projectCount).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { requireSsoForLogin: true } }),
-    );
-    expect(statusPageCount).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { requireSsoForLogin: true } }),
-    );
-    expect(scimCount).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { enablePushGroups: true } }),
-    );
-
-    for (const spy of [projectFind, statusPageFind, scimFind]) {
       expect(spy).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: MAX_IDS_LISTED_PER_KIND }),
+        expect.objectContaining({ query: { enablePushGroups: true } }),
       );
     }
+
+    expect(scimFind).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: MAX_IDS_LISTED }),
+    );
   });
 
   test("logs once per process", async () => {
-    await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+    await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
 
     await expect(
-      CommunityEditionSsoReport.logRelaxedEnforcementOnce(),
+      RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce(),
     ).resolves.toBeNull();
 
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(projectCount).toHaveBeenCalledTimes(1);
+    expect(scimCount).toHaveBeenCalledTimes(1);
   });
 
   test("stays quiet when nothing is relaxed", async () => {
-    instanceRequiresSso.mockResolvedValue(false);
-    projectCount.mockResolvedValue(new PositiveNumber(0));
-    projectFind.mockResolvedValue([]);
-    statusPageCount.mockResolvedValue(new PositiveNumber(0));
-    statusPageFind.mockResolvedValue([]);
     scimCount.mockResolvedValue(new PositiveNumber(0));
     scimFind.mockResolvedValue([]);
 
-    const summary: RelaxedEnforcementSummary | null =
-      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+    const summary: RelaxedScimTeamLocksSummary | null =
+      await RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce();
 
-    expect(summary?.projectsRequiringSso).toBe(0);
+    expect(summary).toEqual({
+      scimConfigurationsWithPushGroups: 0,
+      projectIdsWithScimPushGroups: [],
+    });
     expect(warn).not.toHaveBeenCalled();
   });
 
   test("never throws: a failed check is logged and boot carries on", async () => {
-    projectCount.mockRejectedValue(new Error("database unavailable"));
+    scimFind.mockRejectedValue(new Error("database unavailable"));
 
     await expect(
-      CommunityEditionSsoReport.logRelaxedEnforcementOnce(),
+      RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce(),
     ).resolves.toBeNull();
 
-    expect(error).toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(
+      "Community Edition: could not check for SCIM Push Groups team locks left over from an Enterprise Edition install.",
+    );
     expect(warn).not.toHaveBeenCalled();
   });
 
   describe("describe()", () => {
-    const empty: RelaxedEnforcementSummary = {
-      instanceRequiresSso: false,
-      projectsRequiringSso: 0,
-      projectIdsRequiringSso: [],
-      statusPagesRequiringSso: 0,
-      statusPageIdsRequiringSso: [],
+    const empty: RelaxedScimTeamLocksSummary = {
       scimConfigurationsWithPushGroups: 0,
       projectIdsWithScimPushGroups: [],
     };
 
-    test("returns null when nothing is relaxed", () => {
-      expect(CommunityEditionSsoReport.describe(empty)).toBeNull();
+    test("returns null when nothing is relaxed, in either context", () => {
+      expect(RelaxedScimTeamLocksReport.describe(empty)).toBeNull();
+      expect(
+        RelaxedScimTeamLocksReport.describe(empty, {
+          reason: "lapsed-license",
+          isScimRelaxed: true,
+        }),
+      ).toBeNull();
     });
 
-    test("names only what is relaxed", () => {
-      const message: string | null = CommunityEditionSsoReport.describe({
-        ...empty,
-        statusPagesRequiringSso: 2,
-        statusPageIdsRequiringSso: ["a", "b"],
-      });
-
-      expect(message).toContain(
-        "2 private status page(s) that require SSO for login (ids: a, b)",
-      );
-      expect(message).not.toContain("project(s) that require SSO");
-      expect(message).not.toContain("Require SSO for Login");
-      expect(message).not.toContain("SCIM configuration(s)");
-    });
-
-    test("the lapsed-license wording names only what stopped", () => {
-      const summary: RelaxedEnforcementSummary = {
-        ...empty,
-        instanceRequiresSso: true,
+    test("the lapsed-license wording names SCIM, only when SCIM stopped", () => {
+      const summary: RelaxedScimTeamLocksSummary = {
         scimConfigurationsWithPushGroups: 1,
         projectIdsWithScimPushGroups: ["p"],
       };
 
-      const ssoOnly: string | null = CommunityEditionSsoReport.describe(
+      const lapsed: string | null = RelaxedScimTeamLocksReport.describe(
         summary,
-        { reason: "lapsed-license", isSsoRelaxed: true, isScimRelaxed: false },
+        { reason: "lapsed-license", isScimRelaxed: true },
       );
 
-      expect(ssoOnly).toContain(LAPSE_REPORT_PREFIX);
-      expect(ssoOnly).toContain("because SSO login has stopped");
-      expect(ssoOnly).toContain('"Require SSO for Login"');
-      expect(ssoOnly).not.toContain("SCIM configuration(s)");
+      expect(lapsed).toContain(LAPSE_REPORT_PREFIX);
+      expect(lapsed).toContain("because SCIM provisioning has stopped");
+      expect(lapsed).toContain(
+        "1 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again (project ids: p)",
+      );
+      expectNoSingleSignOnWording(lapsed!);
 
       expect(
-        CommunityEditionSsoReport.describe(
-          { ...empty, instanceRequiresSso: true },
-          {
-            reason: "lapsed-license",
-            isSsoRelaxed: false,
-            isScimRelaxed: true,
-          },
-        ),
+        RelaxedScimTeamLocksReport.describe(summary, {
+          reason: "lapsed-license",
+          isScimRelaxed: false,
+        }),
       ).toBeNull();
     });
 
-    test("a count without ids still reads well", () => {
-      const message: string | null = CommunityEditionSsoReport.describe({
-        ...empty,
-        projectsRequiringSso: 4,
+    test("the Community wording says SCIM is part of the Enterprise Edition", () => {
+      const message: string | null = RelaxedScimTeamLocksReport.describe({
+        scimConfigurationsWithPushGroups: 2,
+        projectIdsWithScimPushGroups: ["a", "b"],
       });
 
-      expect(message).toContain("4 project(s) that require SSO for login.");
+      expect(message).toContain(
+        "because SCIM provisioning is part of the OneUptime Enterprise Edition",
+      );
+      expect(message).toContain("(project ids: a, b)");
+      expect(message).not.toContain("and 0 more");
+      expectNoSingleSignOnWording(message!);
+    });
+
+    test("a count without ids still reads well", () => {
+      const message: string | null = RelaxedScimTeamLocksReport.describe({
+        scimConfigurationsWithPushGroups: 4,
+        projectIdsWithScimPushGroups: [],
+      });
+
+      expect(message).toContain(
+        "4 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again.",
+      );
     });
   });
 });

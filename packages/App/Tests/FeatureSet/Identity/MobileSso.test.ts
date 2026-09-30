@@ -8,7 +8,7 @@ import {
   isMobileSsoRequest,
   respondToMobileSsoFailure,
   setMobileSsoIntentCookie,
-} from "../../../Server/Identity/Utils/MobileSso";
+} from "../../../FeatureSet/Identity/Utils/MobileSso";
 import ObjectID from "Common/Types/ObjectID";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -300,7 +300,7 @@ describe("setMobileSsoIntentCookie", () => {
          * the one place in the file where require() is the right tool.
          */
         /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-        const freshModule: MobileSsoModule = require("../../../Server/Identity/Utils/MobileSso");
+        const freshModule: MobileSsoModule = require("../../../FeatureSet/Identity/Utils/MobileSso");
         /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
         freshModule.setMobileSsoIntentCookie(response.express, PROVIDER_ID);

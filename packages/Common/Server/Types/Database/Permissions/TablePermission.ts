@@ -61,9 +61,9 @@ export default class TablePermission {
      * edition or the license does not allow? (Reads and deletes always pass.)
      * Updates are checked by UpdatePermission.checkUpdatePermissions instead,
      * which every update runs and which sees what the update writes: an
-     * update that only tightens security (disabling an identity provider,
-     * rotating a SCIM token) needs no license, and this check, which is not
-     * handed the data, could only refuse it.
+     * update that only tightens security (rotating a SCIM token) needs no
+     * license, and this check, which is not handed the data, could only
+     * refuse it.
      */
     if (type !== DatabaseRequestType.Update) {
       EditionPermissions.checkEditionPermissions(modelType, props, type);

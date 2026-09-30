@@ -6,7 +6,6 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -29,9 +28,6 @@ import {
  * defines the default teams a federated user is provisioned into on first
  * login. Sibling of GlobalSSOProject for the OIDC protocol.
  */
-@TableEditionAccessControl({
-  requiresEnterprise: true,
-})
 @TableAccessControl({
   create: [],
   read: [],
