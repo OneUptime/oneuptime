@@ -611,17 +611,23 @@ describe("the chip other products render for the databaseServers relation", () =
 });
 
 describe("the install guide embeds the real agent configuration", () => {
-  test("the card renders the markdown builder with the selected key", () => {
+  test("the card renders the setup guide builders with the selected key", () => {
     const card: string = squash(
       readSource("Components", "DatabaseServer", "DocumentationCard.tsx"),
     );
 
     expect(card).toContain("const DatabaseDocumentationCard");
-    expect(card).toContain("getDatabaseAgentInstallationMarkdown({");
-    expect(card).toContain("getDatabaseOwnCollectorMarkdown({");
-    expect(card).toContain("apiKey: apiKeyValue");
+    expect(card).toContain("<SetupGuideCard");
+    expect(card).toContain("getDatabaseAgentSetupGuide({");
+    expect(card).toContain("getDatabaseOwnCollectorSetupGuide({");
+    // The key SetupGuideCard's shared picker selected, and whether it is one.
+    expect(card.match(/apiKey: context\.apiKey,/g)?.length).toBe(2);
+    expect(card.match(/hasApiKey: context\.hasApiKey,/g)?.length).toBe(2);
     expect(card).toContain("RouteMap[PageMap.MONITOR_CREATE] as Route");
     expect(card).toContain("export default DatabaseDocumentationCard");
+    // The key picker is the shared one now: no private copy of it here.
+    expect(card).not.toContain("ModelFormModal");
+    expect(card).not.toContain("TelemetryIngestionKey");
   });
 
   test("the builder takes the configs from the generated embed, not a paraphrase", () => {
