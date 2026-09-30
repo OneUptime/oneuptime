@@ -50,6 +50,7 @@ import {
 import { generateNostrWellKnown } from "./Utils/Nostr";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
+import { getDatabasesPageContent } from "./Utils/Databases";
 import { redirectPreservingQuery } from "./Utils/Redirect";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
@@ -928,6 +929,21 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/services`, {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/databases",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/databases",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/databases`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          databases: getDatabasesPageContent(),
         });
       },
     );
