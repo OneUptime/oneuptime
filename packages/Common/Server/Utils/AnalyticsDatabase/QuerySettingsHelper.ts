@@ -72,8 +72,10 @@ export interface QuerySettingsOptions {
    */
   maxExecutionTimeInSeconds?: number | undefined;
   /**
-   * What ClickHouse does when max_execution_time fires: 'break' returns
-   * partial results, 'throw' fails the query (the server default).
+   * What ClickHouse does when max_execution_time fires: 'break' stops the
+   * query and returns what it has, 'throw' fails it (the server default).
+   * Over HTTP a 'break' stop often arrives as an empty or cut-off JSON body
+   * rather than as partial rows — read such results with readJSONResponse.
    * Omitted from the clause when undefined.
    */
   timeoutOverflowMode?: TimeoutOverflowMode | undefined;

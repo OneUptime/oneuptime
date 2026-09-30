@@ -6,10 +6,14 @@ import LogAggregationService, {
 import LogDatabaseService from "../../../Server/Services/LogService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import { getQueryStoppedMessage } from "../../../Server/Utils/AnalyticsDatabase/QueryResponse";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import ServerException from "../../../Types/Exception/ServerException";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import { ResultSet } from "@clickhouse/client";
+import { Readable } from "node:stream";
 import { describe, expect, test, afterEach, jest } from "@jest/globals";
 
 describe("LogAggregationService", () => {
@@ -564,5 +568,201 @@ describe("LogAggregationService histogram retention filter", () => {
         "retentionDate",
       );
     }
+  });
+});
+
+/*
+ * Every capped read here runs with timeout_overflow_mode = 'break', and a
+ * read stopped that way can come back as HTTP 200 with an empty or cut-off
+ * body. Each of them handed that body straight to JSON.parse, so a wide
+ * window surfaced as a bare "Server Error" (or, for the AI tools and the
+ * insight detectors, an unexplained SyntaxError) instead of saying what
+ * actually happened.
+ */
+describe("LogAggregationService reads stopped by timeout_overflow_mode = 'break'", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const projectId: ObjectID = ObjectID.generate();
+  const startTime: Date = new Date("2026-03-01T00:00:00.000Z");
+  const endTime: Date = new Date("2026-03-12T00:00:00.000Z");
+
+  const CUT_OFF_BODY: string =
+    '{\n\t"meta": [{"name": "cnt", "type": "UInt64"}],\n\t"data": [{"cnt": 4';
+
+  // A fresh stream per call: getDropFilterEstimate runs two reads at once.
+  const respondWith: (body: string) => void = (body: string): void => {
+    jest
+      .spyOn(LogDatabaseService, "executeQuery")
+      .mockImplementation((): Promise<Results> => {
+        return Promise.resolve(
+          new ResultSet(Readable.from([Buffer.from(body)]), "JSON", "query-id"),
+        );
+      });
+  };
+
+  const analyticsRequest: AnalyticsRequest = {
+    projectId,
+    startTime,
+    endTime,
+    bucketSizeInMinutes: 60,
+    chartType: "timeseries",
+    aggregation: "count",
+    groupBy: ["severityText"],
+  };
+
+  const reads: Array<[string, string, () => Promise<unknown>]> = [
+    [
+      "getHistogram",
+      "The log query",
+      () => {
+        return LogAggregationService.getHistogram({
+          projectId,
+          startTime,
+          endTime,
+          bucketSizeInMinutes: 60,
+          attributes: { "service.name": "public-api" },
+        });
+      },
+    ],
+    [
+      "getFacetValues",
+      "The log query",
+      () => {
+        return LogAggregationService.getFacetValues({
+          projectId,
+          startTime,
+          endTime,
+          facetKey: "severityText",
+        });
+      },
+    ],
+    [
+      "getAnalyticsTimeseries",
+      "The log query",
+      () => {
+        return LogAggregationService.getAnalyticsTimeseries(analyticsRequest);
+      },
+    ],
+    [
+      "getAnalyticsTopList",
+      "The log query",
+      () => {
+        return LogAggregationService.getAnalyticsTopList({
+          ...analyticsRequest,
+          chartType: "toplist",
+        });
+      },
+    ],
+    [
+      "getAnalyticsTable",
+      "The log query",
+      () => {
+        return LogAggregationService.getAnalyticsTable({
+          ...analyticsRequest,
+          chartType: "table",
+        });
+      },
+    ],
+    [
+      "getTopErrorPatterns",
+      "The log query",
+      () => {
+        return LogAggregationService.getTopErrorPatterns({
+          projectId,
+          startTime,
+          endTime,
+        });
+      },
+    ],
+    [
+      "getExportLogs",
+      "The log export",
+      () => {
+        return LogAggregationService.getExportLogs({
+          projectId,
+          startTime,
+          endTime,
+          limit: 100,
+        });
+      },
+    ],
+    [
+      "getDropFilterEstimate",
+      "The drop filter estimate",
+      () => {
+        return LogAggregationService.getDropFilterEstimate({
+          projectId,
+          startTime,
+          endTime,
+          filterQuery: "health check",
+        });
+      },
+    ],
+  ];
+
+  const readError: (read: () => Promise<unknown>) => Promise<unknown> = (
+    read: () => Promise<unknown>,
+  ): Promise<unknown> => {
+    return read().then(
+      () => {
+        return undefined;
+      },
+      (caught: unknown) => {
+        return caught;
+      },
+    );
+  };
+
+  test.each(reads)(
+    "%s reports an empty body as a stopped query",
+    async (_name: string, subject: string, read: () => Promise<unknown>) => {
+      respondWith("");
+
+      const error: unknown = await readError(read);
+
+      expect(error).toBeInstanceOf(ServerException);
+      expect((error as ServerException).message).toBe(
+        getQueryStoppedMessage(subject),
+      );
+    },
+  );
+
+  test.each(reads)(
+    "%s reports a cut-off body as a stopped query",
+    async (_name: string, subject: string, read: () => Promise<unknown>) => {
+      respondWith(CUT_OFF_BODY);
+
+      const error: unknown = await readError(read);
+
+      expect(error).toBeInstanceOf(ServerException);
+      expect((error as ServerException).message).toBe(
+        getQueryStoppedMessage(subject),
+      );
+    },
+  );
+
+  test("a complete response is still read as before", async () => {
+    respondWith(
+      JSON.stringify({
+        meta: [{ name: "cnt", type: "UInt64" }],
+        data: [{ cnt: "40" }],
+        rows: 1,
+      }),
+    );
+
+    await expect(
+      LogAggregationService.getDropFilterEstimate({
+        projectId,
+        startTime,
+        endTime,
+        filterQuery: "health check",
+      }),
+    ).resolves.toEqual({
+      totalLogs: 40,
+      matchingLogs: 40,
+      estimatedReductionPercent: 100,
+    });
   });
 });
