@@ -1,4 +1,4 @@
-import { FacetData } from "./types";
+import { ActiveFilter, FacetData } from "./types";
 
 /*
  * Which facet sections a telemetry sidebar (Logs, Traces, Metrics,
@@ -115,6 +115,94 @@ export const computeFacetVisibility: (
   };
 };
 
+/*
+ * A locked chip is the viewer's host saying "this page is about one slice" —
+ * a database, a service, a trace, a stored query — so its sidebar lists only
+ * what is in that slice (getFacetValuesInScope).
+ */
+export const hasLockedTelemetryScope: (
+  activeFilters: ReadonlyArray<ActiveFilter> | null | undefined,
+) => boolean = (
+  activeFilters: ReadonlyArray<ActiveFilter> | null | undefined,
+): boolean => {
+  if (!Array.isArray(activeFilters)) {
+    return false;
+  }
+
+  return activeFilters.some((filter: ActiveFilter): boolean => {
+    return Boolean(filter && filter.readOnly);
+  });
+};
+
+export interface FacetValuesInScopeOptions {
+  facetData: FacetData;
+  // Selected values per facet key: kept whatever their count, so they can be cleared.
+  activeValuesByKey: Readonly<Record<string, Set<string> | undefined>>;
+}
+
+/*
+ * The sidebar of a viewer pinned to one scope — a database's Logs tab, a
+ * service's Traces tab, an incident's stored query — lists only values that
+ * occur in that scope.
+ *
+ * Resource facets (Service, Database, Kubernetes Cluster, Host, ...) arrive
+ * as the project's whole Postgres list, with count 0 for every resource with
+ * no rows in range. On the main explorer that is the point: any resource can
+ * be picked, even a quiet one. Under a locked scope it is noise that reads
+ * as wrong — a PostgreSQL database's Logs tab listed fifty other databases
+ * and thirty services, all at 0, as if they were part of it, and picking one
+ * could only ever empty the list. A count of 0 never comes from a GROUP BY,
+ * so dropping the zero-count values drops exactly the catalog padding.
+ *
+ * A selected value survives at 0 (the reader must be able to clear it). A
+ * facet left with no values keeps its key with an empty list, so the
+ * sidebar's own empty-facet rules decide whether to fold it away. Facets
+ * with nothing to drop keep their very array.
+ */
+export const getFacetValuesInScope: (
+  options: FacetValuesInScopeOptions,
+) => FacetData = (options: FacetValuesInScopeOptions): FacetData => {
+  const result: FacetData = {};
+
+  for (const [key, values] of Object.entries(options.facetData)) {
+    if (!Array.isArray(values)) {
+      result[key] = values;
+      continue;
+    }
+
+    const activeValues: Set<string> | undefined =
+      options.activeValuesByKey[key];
+
+    const kept: FacetData[string] = values.filter(
+      (value: FacetData[string][number]): boolean => {
+        const count: number = Number(value?.count);
+        return (
+          (Number.isFinite(count) && count > 0) ||
+          Boolean(activeValues?.has(String(value?.value)))
+        );
+      },
+    );
+
+    result[key] = kept.length === values.length ? values : kept;
+  }
+
+  return result;
+};
+
+/*
+ * The empty state of a resource facet under a locked scope. The project may
+ * well have such resources; none of them has rows in this scope and window,
+ * so "in this project" would be false.
+ */
+export const getScopedHiddenFacetEmptyStateText: (
+  pluralNoun: string | undefined,
+) => string = (pluralNoun: string | undefined): string => {
+  const noun: string = (pluralNoun || "").trim();
+  return noun
+    ? `No ${noun} in this time range`
+    : DEFAULT_FACET_EMPTY_STATE_TEXT;
+};
+
 // Keeps only entries with non-blank text, trimmed.
 export const getNonEmptySearchTextByKey: (
   searchTextByKey: Readonly<Record<string, string | undefined>>,
@@ -208,6 +296,11 @@ export interface SidebarFacetEmptyStateOptions {
    * even though the box has since been cleared.
    */
   searchedAtArrivalText?: string | undefined;
+  /*
+   * The sidebar lists only values in a locked scope (getFacetValuesInScope),
+   * so an empty resource facet means none in scope, not none in the project.
+   */
+  isScoped?: boolean | undefined;
 }
 
 /*
@@ -223,7 +316,9 @@ export const getSidebarFacetEmptyStateText: (
     return getFacetNoMatchesText(options.searchedAtArrivalText);
   }
   if (options.isHideable) {
-    return getHiddenFacetEmptyStateText(options.emptyStateNoun);
+    return options.isScoped
+      ? getScopedHiddenFacetEmptyStateText(options.emptyStateNoun)
+      : getHiddenFacetEmptyStateText(options.emptyStateNoun);
   }
   return undefined;
 };
