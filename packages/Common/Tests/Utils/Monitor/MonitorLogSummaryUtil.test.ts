@@ -11,6 +11,8 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { redactForPersistence } from "../../../Server/Utils/Monitor/MonitorPayloadRedaction";
 import IncomingEmailMonitorRequestUtil from "../../../Utils/Monitor/IncomingEmailMonitorRequestUtil";
 import MonitorLogSummaryUtil, {
+  INCOMING_EMAIL_NO_SUBJECT_LABEL,
+  INCOMING_EMAIL_SCHEDULED_CHECK_LABEL,
   IncomingEmailLogEntry,
   IncomingEmailLogEntryKind,
 } from "../../../Utils/Monitor/MonitorLogSummaryUtil";
@@ -786,5 +788,75 @@ describe("MonitorLogSummaryUtil.getIncomingEmailLogEntry", () => {
       subject: "",
       from: "",
     });
+  });
+});
+
+/*
+ * The Email column in the table's CSV export. It is backed by the whole
+ * logBody, so without its own value the export would write that JSON.
+ */
+describe("MonitorLogSummaryUtil.formatIncomingEmailLogEntry", () => {
+  it("writes an email as its subject and sender", () => {
+    expect(
+      MonitorLogSummaryUtil.formatIncomingEmailLogEntry(
+        MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+          storeAsMonitorLog(receivedEmail()),
+        ),
+      ),
+    ).toBe(
+      "Verify your email address for Azure Monitor <azure-noreply@microsoft.com>",
+    );
+  });
+
+  it("writes a scheduled check as the words the column shows", () => {
+    expect(INCOMING_EMAIL_SCHEDULED_CHECK_LABEL).toBe("Scheduled check");
+    expect(
+      MonitorLogSummaryUtil.formatIncomingEmailLogEntry(
+        MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+          storeAsMonitorLog(scheduledCheckAfterEmail()),
+        ),
+      ),
+    ).toBe(INCOMING_EMAIL_SCHEDULED_CHECK_LABEL);
+  });
+
+  it("names a missing subject, and leaves out a missing sender", () => {
+    expect(INCOMING_EMAIL_NO_SUBJECT_LABEL).toBe("(no subject)");
+
+    const cases: Array<{ entry: IncomingEmailLogEntry; text: string }> = [
+      {
+        entry: {
+          kind: IncomingEmailLogEntryKind.Email,
+          subject: "",
+          from: "backup@nightly.example",
+        },
+        text: "(no subject) <backup@nightly.example>",
+      },
+      {
+        entry: {
+          kind: IncomingEmailLogEntryKind.Email,
+          subject: "Backup completed",
+          from: "",
+        },
+        text: "Backup completed",
+      },
+      {
+        entry: {
+          kind: IncomingEmailLogEntryKind.Email,
+          subject: "",
+          from: "",
+        },
+        text: "(no subject)",
+      },
+    ];
+
+    for (const testCase of cases) {
+      expect(
+        MonitorLogSummaryUtil.formatIncomingEmailLogEntry(testCase.entry),
+      ).toBe(testCase.text);
+    }
+  });
+
+  it("writes nothing for a row with no email", () => {
+    expect(MonitorLogSummaryUtil.formatIncomingEmailLogEntry(null)).toBe("");
   });
 });

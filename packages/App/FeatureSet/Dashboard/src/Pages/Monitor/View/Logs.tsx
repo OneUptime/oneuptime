@@ -37,6 +37,8 @@ import MonitorEvaluationSummary, {
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import MonitorLogSummaryUtil, {
+  INCOMING_EMAIL_NO_SUBJECT_LABEL,
+  INCOMING_EMAIL_SCHEDULED_CHECK_LABEL,
   IncomingEmailLogEntry,
   IncomingEmailLogEntryKind,
 } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
@@ -133,7 +135,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
 
     if (entry.kind === IncomingEmailLogEntryKind.ScheduledCheck) {
-      return <span className="text-sm text-gray-500">Scheduled check</span>;
+      return (
+        <span className="text-sm text-gray-500">
+          {INCOMING_EMAIL_SCHEDULED_CHECK_LABEL}
+        </span>
+      );
     }
 
     return (
@@ -143,7 +149,9 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             {entry.subject}
           </div>
         ) : (
-          <div className="text-sm italic text-gray-500">(no subject)</div>
+          <div className="text-sm italic text-gray-500">
+            {INCOMING_EMAIL_NO_SUBJECT_LABEL}
+          </div>
         )}
         {entry.from ? (
           <div className="text-xs text-gray-500 break-all">{entry.from}</div>
@@ -303,8 +311,19 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   },
                   title: "Email",
                   type: FieldType.Text,
+                  // Backed by the whole logBody: there is nothing to sort on.
+                  disableSort: true,
+                  // A subject is the sender's prose; it wraps, not widens.
+                  wrapContent: true,
                   getElement: (item: MonitorLog): ReactElement => {
                     return getIncomingEmailCell(item);
+                  },
+                  getExportValue: (item: MonitorLog): string => {
+                    return MonitorLogSummaryUtil.formatIncomingEmailLogEntry(
+                      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+                        item.logBody,
+                      ),
+                    );
                   },
                 },
               ]
@@ -371,6 +390,12 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Evaluation Outcome",
             type: FieldType.Text,
+            /*
+             * Names an operator's criteria. Wrapping keeps a long name - or
+             * the Email column beside it - from pushing View Summary off the
+             * card.
+             */
+            wrapContent: true,
             getElement: (item: MonitorLog): ReactElement => {
               const evaluationSummary: MonitorEvaluationSummary | undefined = (
                 item.logBody as unknown as {

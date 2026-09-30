@@ -26,10 +26,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Monitoring Logs > View Summary, on the real page (Pages/Monitor/View/Logs)
  * and the real table (AnalyticsModelTable, BaseModelTable, Table). Only the
  * edges are stubbed: the analytics and model APIs, the probe list, the
- * project, the viewer and translation. The analytics stub answers like the
- * server, with only the selected fields, and every logBody is stored the way
- * MonitorLogUtil writes it (redacted, JSON round-tripped - so the probe id is
- * an ObjectID envelope and dates are ISO strings).
+ * project, the viewer and translation. Every logBody is stored the way
+ * MonitorLogUtil writes it (redacted, JSON round-tripped - so its ids are
+ * ObjectID envelopes and its dates ISO strings), and the analytics stub
+ * answers the way the server and the dashboard's HTTP client do together:
+ * only the selected fields, deserialised by HTTPResponse, which turns those
+ * envelopes back into ObjectIDs.
  *
  * The bug: on an Incoming Email monitor, View Summary said "No summary
  * available. Looks like no email has been received yet." for every row. The
@@ -37,10 +39,6 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * a sender's verification email - Azure Monitor action groups now send a
  * one-time passcode to every new recipient - could see it on the Overview
  * only until the next email pushed it off, and nowhere after that.
- *
- * On the same page, the Probe column read "Unknown" on every row: it
- * compared the stored probe id envelope's toString(), "[object Object]",
- * with each probe's id.
  */
 
 const analyticsGetListMock: MockFunction = getJestMockFunction();
@@ -174,16 +172,18 @@ import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import { redactForPersistence } from "../../../Server/Utils/Monitor/MonitorPayloadRedaction";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import OneUptimeDate from "../../../Types/Date";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
-import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
+import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const MONITOR_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -309,8 +309,22 @@ beforeEach(() => {
           return fields;
         },
       );
+      // What AnalyticsModelAPI.getList gets back from its HTTP client.
+      const wire: HTTPResponse<JSONArray> = new HTTPResponse<JSONArray>(
+        200,
+        {
+          data: selected,
+          count: selected.length,
+          skip: 0,
+          limit: selected.length,
+        },
+        {},
+      );
       const data: Array<MonitorLog> =
-        AnalyticsBaseModel.fromJSONArray<MonitorLog>(selected, MonitorLog);
+        AnalyticsBaseModel.fromJSONArray<MonitorLog>(
+          wire.data as Array<JSONObject>,
+          MonitorLog,
+        );
       return { data, count: data.length, skip: 0, limit: data.length };
     },
   );
@@ -591,6 +605,51 @@ describe("Monitoring Logs > View Summary on an Incoming Email monitor", () => {
     );
   });
 
+  test("exports the Email column as its words, not the log body behind it", async () => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+
+    jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      });
+
+    await renderLogsPage({
+      monitorType: MonitorType.IncomingEmail,
+      rows: ROWS,
+    });
+
+    // Every bulk action, the export included, waits behind a selection.
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "Select all items" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Bulk Actions"));
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Export CSV")).not.toBeNull();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Export CSV"));
+    });
+    await waitFor(() => {
+      expect(downloads).toHaveLength(1);
+    });
+
+    const csv: string = downloads[0]!.csv;
+
+    expect(csv.split("\r\n")[0]).toContain("Email");
+    expect(csv).toContain(
+      "Fired: Sev3 Azure Monitor Alert CPU above 90% <alerts-noreply@mail.windowsazure.com>",
+    );
+    expect(csv).toContain(
+      "Verify your email address for Azure Monitor <azure-noreply@microsoft.com>",
+    );
+    expect(csv).toContain("Scheduled check");
+  });
+
   test("says an email had no subject rather than leaving the cell blank", async () => {
     await renderLogsPage({
       monitorType: MonitorType.IncomingEmail,
@@ -653,8 +712,8 @@ describe("Monitoring Logs on a probe monitor", () => {
     }),
   ];
 
-  test("names the probe that ran each check, which read Unknown before", async () => {
-    // The stored shape the column has to read.
+  test("names the probe that ran each check", async () => {
+    // Stored as an envelope; the HTTP client hands the page an ObjectID.
     expect((ROWS[0]!["logBody"] as JSONObject)["probeId"]).toEqual({
       _type: "ObjectID",
       value: PROBE_VIRGINIA,

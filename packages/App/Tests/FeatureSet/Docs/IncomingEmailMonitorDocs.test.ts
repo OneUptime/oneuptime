@@ -1,5 +1,6 @@
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { INCOMING_EMAIL_SCHEDULED_CHECK_LABEL } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -247,11 +248,9 @@ describe("What the section tells readers to click", () => {
     const logsPage: string = readDashboard("Pages/Monitor/View/Logs.tsx");
 
     expect(summarySection).toContain(
-      'The **Email** column says "Scheduled check" on those rows',
+      `The **Email** column says "${INCOMING_EMAIL_SCHEDULED_CHECK_LABEL}" on those rows`,
     );
-    expect(logsPage).toContain(
-      '<span className="text-sm text-gray-500">Scheduled check</span>',
-    );
+    expect(logsPage).toContain("{INCOMING_EMAIL_SCHEDULED_CHECK_LABEL}");
     expect(logsPage).toMatch(
       /\.\.\.\(isIncomingEmailMonitor\s*\?\s*\[\s*\{[\s\S]*?title: "Email"/,
     );
