@@ -204,7 +204,7 @@ To use Proxmox monitoring, you need to:
 2. Pass `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `PROXMOX_CLUSTER_NAME`, and the Proxmox API details as environment variables
 3. Wait for the cluster to auto-register (about a minute after the first scrape)
 
-> Proxmox VE 9+ can also push metrics natively via its built-in OpenTelemetry metric server — see the [zero-install alternative](/docs/telemetry/proxmox) in the agent guide. OneUptime translates the native push into the same `pve_*` series, so the catalog and the CPU, memory and storage templates on this page work with it too. So do Node Offline and Cluster Quorum at Risk: each node pushes only its own status, so a node that stops reporting is reported down (`pve_up` = 0) by the nodes still alive — see [When a node stops reporting](/docs/telemetry/proxmox#when-a-node-stops-reporting) for what that covers. Guest Down, HA State Error, Guest Not Backed Up and Replication Failing need data only the agent collects.
+> Proxmox VE 9+ can also push metrics natively via its built-in OpenTelemetry metric server — see the [zero-install alternative](/docs/telemetry/proxmox) in the agent guide. OneUptime translates the native push into the same `pve_*` series, so the catalog and the CPU, memory and storage templates on this page work with it too. So do Node Offline and Cluster Quorum at Risk: each node pushes only its own status, so a node that stops reporting is reported down (`pve_up` = 0) by the nodes still alive — see [When a node stops reporting](/docs/telemetry/proxmox#when-a-node-stops-reporting) for what that covers. Guest Down, HA Resource in Error State, Guest Not Backed Up and Replication Failing need data only the agent collects.
 
 ## Troubleshooting
 

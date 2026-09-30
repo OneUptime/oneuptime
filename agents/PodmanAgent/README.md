@@ -265,6 +265,7 @@ podman ps --filter name=oneuptime-podman-agent
 # View agent logs
 podman logs -f oneuptime-podman-agent
 
-# Verify Podman socket access
-podman exec oneuptime-podman-agent ls -la /run/podman/podman.sock
+# Verify Podman socket access — the agent image has no shell, so look from a
+# throwaway container that shares its mounts
+podman run --rm --volumes-from oneuptime-podman-agent alpine:3.19 ls -la /run/podman/podman.sock
 ```
