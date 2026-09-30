@@ -17,6 +17,15 @@ export interface SkipIndex {
   // e.g. 0.01 for bloom_filter, 10 for set, or [10240, 3, 0] for tokenbf_v1
   params?: Array<number> | undefined;
   granularity: number;
+  /*
+   * What the index covers, when it is not the column itself — e.g.
+   * `mapValues(attributes)` to index the values of a Map column, which
+   * ClickHouse then uses for `attributes['k'] = 'v'`, `has(mapValues(...))`
+   * and friends. Written into the DDL verbatim, so it must be a trusted
+   * literal from the model definition, never user input. Defaults to the
+   * column key.
+   */
+  expression?: string | undefined;
 }
 
 /*

@@ -32,6 +32,7 @@ import CommonModel, {
 import AnalyticsTableColumn, {
   ColumnCodecConfig,
   ColumnCodecValue,
+  SkipIndex,
   SkipIndexType,
 } from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
@@ -2056,22 +2057,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     );
 
     for (const col of skipIndexColumns) {
-      const idx: AnalyticsTableColumn["skipIndex"] = col.skipIndex!;
-      const paramsStr: string =
-        idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
-      /*
-       * tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in ClickHouse.
-       * Wrap with assumeNotNull() for Nullable (non-required) columns.
-       */
-      const needsAssumeNotNull: boolean =
-        !col.required &&
-        (idx.type === SkipIndexType.TokenBF ||
-          idx.type === SkipIndexType.NgramBF);
-      const columnExpr: string = needsAssumeNotNull
-        ? `assumeNotNull(${col.key})`
-        : col.key;
       columns.append(
-        `, INDEX ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+        `, INDEX ${StatementGenerator.toSkipIndexDefinition(col)}`,
       );
     }
 
@@ -2291,24 +2278,45 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
+  /*
+   * `<name> <expression> TYPE <type>(<params>) GRANULARITY <n>` — the part of
+   * a skip index shared by CREATE TABLE (`INDEX ...`) and
+   * `ALTER TABLE ... ADD INDEX IF NOT EXISTS ...`, so a fresh install and an
+   * upgraded one always end up with the same index.
+   */
+  public static toSkipIndexDefinition(column: AnalyticsTableColumn): string {
+    const idx: SkipIndex = column.skipIndex!;
+    const paramsStr: string =
+      idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
+
+    return `${idx.name} ${StatementGenerator.toSkipIndexExpression(column)} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`;
+  }
+
+  private static toSkipIndexExpression(column: AnalyticsTableColumn): string {
+    const idx: SkipIndex = column.skipIndex!;
+
+    if (idx.expression) {
+      return idx.expression;
+    }
+
+    /*
+     * tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in ClickHouse.
+     * Wrap with assumeNotNull() for Nullable (non-required) columns.
+     */
+    const needsAssumeNotNull: boolean =
+      !column.required &&
+      (idx.type === SkipIndexType.TokenBF ||
+        idx.type === SkipIndexType.NgramBF);
+
+    return needsAssumeNotNull ? `assumeNotNull(${column.key})` : column.key;
+  }
+
   public toAddSkipIndexStatement(
     column: AnalyticsTableColumn,
   ): Statement | null {
     if (!column.skipIndex) {
       return null;
     }
-
-    const idx: AnalyticsTableColumn["skipIndex"] = column.skipIndex;
-    const paramsStr: string =
-      idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
-
-    const needsAssumeNotNull: boolean =
-      !column.required &&
-      (idx.type === SkipIndexType.TokenBF ||
-        idx.type === SkipIndexType.NgramBF);
-    const columnExpr: string = needsAssumeNotNull
-      ? `assumeNotNull(${column.key})`
-      : column.key;
 
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
@@ -2319,7 +2327,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * fails with "Missing columns: '<col>'" (Code 47).
      */
     statement.append(
-      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${StatementGenerator.toSkipIndexDefinition(column)}`,
     );
 
     logger.debug(`${this.model.tableName} Add Skip Index Statement`);
