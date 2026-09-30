@@ -43,6 +43,7 @@ import {
   getResourceAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -89,7 +90,8 @@ jest.mock("react-i18next", () => {
  * table runs the page on each of the eight. Three cards at most: the
  * agent's card in each of its states (connected, offline, unreachable, not
  * installed — with the install instructions), "Needs attention" only when
- * the server has gaps, and "What AI may do" with its Change modal — whose
+ * the server has gaps — as ONE item: a headline and a short step per gap —
+ * and "What AI may do" with its Change modal — whose
  * loosening rules, allowlist checks and confirmations mirror the server's.
  */
 
@@ -177,6 +179,15 @@ function gap(code: ResourceAiAccessGapCode): ResourceAiAccessGap {
     blocksInvestigation: true,
     blocksRemediation: true,
   };
+}
+
+// A gap with the flags the server gives it, for the headline's sake.
+function flaggedGap(
+  code: ResourceAiAccessGapCode,
+  blocksInvestigation: boolean,
+  blocksRemediation: boolean,
+): ResourceAiAccessGap {
+  return { ...gap(code), blocksInvestigation, blocksRemediation };
 }
 
 function makeStatus(
@@ -650,7 +661,10 @@ describe("the agent card", () => {
     const row: HTMLElement = await findTestId(
       "ai-agent-gap-ai_agent_unreachable_resource",
     );
-    fireEvent.click(within(row).getByText("Test connection"));
+    expect(row).toHaveTextContent(
+      "Let the Docker AI agent reach this Docker host (its error and the logs command are above), then test the connection.",
+    );
+    fireEvent.click(within(row).getByTestId("ai-agent-gap-test-connection"));
     expect(await findText("The connection works")).toBeInTheDocument();
   });
 
@@ -839,7 +853,7 @@ describe("Needs attention", () => {
     expect(screen.queryByText(GAPS_CARD_TITLE)).not.toBeInTheDocument();
   });
 
-  test("lists one row per server gap with its title and next step", async () => {
+  test("merges every server gap into one item: a headline, then a numbered step each", async () => {
     serve(
       makeStatus({
         isInvestigationReady: false,
@@ -852,14 +866,278 @@ describe("Needs attention", () => {
     );
     openAgentPage();
 
-    const list: HTMLElement = await findTestId("ai-agent-gaps");
-    const rows: Array<HTMLElement> = within(list).getAllByRole("listitem");
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent("Title of ai_balance_insufficient");
-    expect(rows[0]).toHaveTextContent("Next step for ai_balance_insufficient");
-    expect(rows[1]).toHaveTextContent("Title of llm_provider_missing");
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(screen.getAllByTestId("ai-agent-attention")).toHaveLength(1);
     expect(screen.getByText(GAPS_CARD_TITLE)).toBeInTheDocument();
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't investigate this Docker host");
+
+    // The fixes-off choice is not a step.
+    const steps: Array<HTMLElement> = within(
+      within(item).getByTestId("ai-agent-gaps"),
+    ).getAllByRole("listitem");
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toHaveAttribute(
+      "data-testid",
+      "ai-agent-gap-ai_balance_insufficient",
+    );
+    expect(
+      within(steps[0]!).getByTestId("ai-agent-gap-number"),
+    ).toHaveTextContent("1.");
+    expect(steps[0]).toHaveTextContent(
+      "Add AI credits to this project, or turn on auto-recharge.",
+    );
+    expect(steps[1]).toHaveAttribute(
+      "data-testid",
+      "ai-agent-gap-llm_provider_missing",
+    );
+    expect(
+      within(steps[1]!).getByTestId("ai-agent-gap-number"),
+    ).toHaveTextContent("2.");
+    expect(steps[1]).toHaveTextContent(
+      "Add an AI provider for this project, or use OneUptime AI credits.",
+    );
+
+    // Not a row per gap with the server's title and next step any more.
+    expect(item).not.toHaveTextContent("Title of");
+    expect(item).not.toHaveTextContent("Next step for");
+    expect(screen.queryByText(/Each item stops/)).not.toBeInTheDocument();
     expect(screen.queryByTestId("ai-agent-ready")).not.toBeInTheDocument();
+  });
+
+  test("a new database server: what is wrong in one line, and the two steps that fix it", async () => {
+    const database: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+      AiResourceType.DatabaseServer,
+    );
+    serve(
+      makeStatus({
+        resourceType: AiResourceType.DatabaseServer,
+        resourceName: "orders-db",
+        agent: null,
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        // The server's own words, as the screenshot showed them.
+        gaps: [
+          {
+            code: "ai_agent_not_connected",
+            title: "No Database AI agent is connected",
+            nextStep: `Install the Database AI agent next to this database server's telemetry collector: run the oneuptime/resource-ai-agent image with ONEUPTIME_AI_AGENT_RESOURCE_TYPE=database and DATABASE_SERVER_ID=${RESOURCE_ID}. The complete snippet is on the database server's AI agent page (AI → AI agent).`,
+            blocksInvestigation: true,
+            blocksRemediation: true,
+          },
+          {
+            code: "investigation_disabled",
+            title: "AI investigation is turned off for this database server",
+            nextStep:
+              "Turn on AI investigation on the database server's AI agent page (AI → AI agent).",
+            blocksInvestigation: true,
+            blocksRemediation: false,
+          },
+          {
+            code: "remediation_disabled",
+            title: "AI fixes are turned off for this database server",
+            nextStep:
+              'Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on the database server\'s AI agent page (AI → AI agent).',
+            blocksInvestigation: false,
+            blocksRemediation: true,
+          },
+        ],
+      }),
+    );
+    openAgentPage(database);
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't investigate this database server");
+    const steps: Array<HTMLElement> = within(item).getAllByRole("listitem");
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toHaveTextContent(
+      "Install the Database AI agent with the instructions above.",
+    );
+    expect(within(steps[0]!).queryByRole("button")).not.toBeInTheDocument();
+    expect(steps[1]).toHaveTextContent("Turn on AI investigation.");
+
+    // Nothing sends the reader to the page they are on, or repeats the snippet.
+    expect(item).not.toHaveTextContent("AI → AI agent");
+    expect(item).not.toHaveTextContent("oneuptime/resource-ai-agent");
+    expect(item).not.toHaveTextContent(RESOURCE_ID);
+
+    // The instructions it points at are on the page, above it.
+    const install: HTMLElement = screen.getByTestId("ai-agent-install");
+    expect(
+      install.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(
+      within(steps[1]!).getByTestId("ai-agent-gap-turn-on-investigation"),
+    );
+    expect(await waitForOneUpdate()).toEqual({
+      isAiInvestigationEnabled: true,
+    });
+    expect(updateRequests()[0]!["modelType"]).toBe(DatabaseServer);
+    expect(await findTestId("ai-agent-action-notice")).toHaveTextContent(
+      `AI may now investigate this database server with ${database.readOnlyCommandsPhrase}.`,
+    );
+  });
+
+  test("a single gap is a single sentence, without a number", async () => {
+    serve(
+      makeStatus({
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [flaggedGap("investigation_disabled", true, false)],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(within(item).getAllByRole("listitem")).toHaveLength(1);
+    expect(
+      within(item).queryByTestId("ai-agent-gap-number"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(item).getByTestId("ai-agent-gap-investigation_disabled"),
+    ).toHaveTextContent("Turn on AI investigation.");
+  });
+
+  test("fixes on and nothing installed: the headline names both", async () => {
+    serve(
+      makeStatus({
+        agent: null,
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        isInvestigationReady: false,
+        gaps: [flaggedGap("ai_agent_not_connected", true, true)],
+      }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-attention-title")).toHaveTextContent(
+      "OneUptime AI can't investigate this Docker host or run fixes on it",
+    );
+    expect(
+      screen.getByTestId("ai-agent-gap-ai_agent_not_connected"),
+    ).toHaveTextContent(
+      "Install the Docker AI agent with the instructions above.",
+    );
+  });
+
+  test("fixes on with a read-only agent: only fixes are blocked, and the steps are below", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        gaps: [flaggedGap("remediation_write_access_missing", false, true)],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't run fixes on this Docker host");
+    expect(
+      within(item).getByTestId("ai-agent-gap-remediation_write_access_missing"),
+    ).toHaveTextContent(
+      "Give the Docker AI agent write access with the steps below.",
+    );
+    // Investigation still works, so the agent card still says it is ready.
+    expect(screen.getByTestId("ai-agent-ready")).toBeInTheDocument();
+    const writeCommands: HTMLElement = screen.getByTestId(
+      "ai-access-write-commands",
+    );
+    expect(
+      item.compareDocumentPosition(writeCommands) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("an offline agent: bring it back, with the logs command above", async () => {
+    serve(
+      makeStatus({
+        agent: makeAgent({ isOnline: false, lastAliveAt: minutesAgo(30) }),
+        isInvestigationReady: false,
+        gaps: [flaggedGap("ai_agent_offline", true, true)],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't investigate this Docker host");
+    expect(item).toHaveTextContent(
+      "Bring the Docker AI agent back online. Its logs say why it is offline (the command is above).",
+    );
+    expect(
+      screen
+        .getByTestId("ai-agent-logs-command")
+        .compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a member gets the button they may use and is told who to ask for the rest, in the same item", async () => {
+    serve(
+      makeStatus({
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [
+          flaggedGap("investigation_disabled", true, false),
+          flaggedGap("llm_provider_missing", true, true),
+        ],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    const investigation: HTMLElement = within(item).getByTestId(
+      "ai-agent-gap-investigation_disabled",
+    );
+    const provider: HTMLElement = within(item).getByTestId(
+      "ai-agent-gap-llm_provider_missing",
+    );
+    expect(
+      within(investigation).getByTestId("ai-agent-gap-turn-on-investigation"),
+    ).toBeInTheDocument();
+    expect(
+      within(investigation).queryByTestId("ai-agent-gap-ask"),
+    ).not.toBeInTheDocument();
+    expect(within(provider).getByTestId("ai-agent-gap-ask")).toHaveTextContent(
+      "Ask a project owner or admin.",
+    );
+    expect(
+      within(provider).queryByText("Open LLM Providers"),
+    ).not.toBeInTheDocument();
+    expect(within(item).getAllByTestId("ai-agent-gap-ask")).toHaveLength(1);
+  });
+
+  test("the item goes away once its last gap is fixed", async () => {
+    serve(
+      makeStatus({
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [flaggedGap("investigation_disabled", true, false)],
+      }),
+    );
+    openAgentPage();
+
+    const button: HTMLElement = await findTestId(
+      "ai-agent-gap-turn-on-investigation",
+    );
+    // What the server says once investigation is on.
+    serve(makeStatus());
+    fireEvent.click(button);
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByTestId("ai-agent-attention"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.queryByText(GAPS_CARD_TITLE)).not.toBeInTheDocument();
+    expect(await findTestId("ai-agent-ready")).toBeInTheDocument();
   });
 
   test("an editor turns investigation on from its row", async () => {
@@ -981,6 +1259,9 @@ describe("Needs attention", () => {
 
     const row: HTMLElement = await findTestId(
       "ai-agent-gap-ai_agent_not_connected",
+    );
+    expect(row).toHaveTextContent(
+      "Install the Docker AI agent with the instructions above.",
     );
     expect(within(row).queryByRole("button")).not.toBeInTheDocument();
     expect(within(row).queryByRole("link")).not.toBeInTheDocument();
@@ -1715,6 +1996,14 @@ describe("every resource type", () => {
       });
       expect(codeIn(await findTestId("ai-agent-install-command"))).toContain(
         `${getResourceAiAgentServiceName(type)}:`,
+      );
+      expect(screen.getByTestId("ai-agent-attention-title")).toHaveTextContent(
+        `OneUptime AI can't investigate this ${descriptor.noun}`,
+      );
+      expect(
+        screen.getByTestId("ai-agent-gap-ai_agent_not_connected"),
+      ).toHaveTextContent(
+        `Install the ${descriptor.agentName} with the instructions above.`,
       );
     },
   );
