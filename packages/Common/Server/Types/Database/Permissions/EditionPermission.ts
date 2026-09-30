@@ -152,6 +152,127 @@ export default class EditionPermissions {
   }
 
   /*
+   * Gates enterprise configuration kept in COLUMNS of core models (see
+   * EnterpriseEdition.getEnterpriseColumnsForTableName): the retention
+   * overrides on Project, Service and every telemetry resource.
+   *
+   * A create or update that writes an override - any value retention would
+   * use - needs the column's feature, like a write to an enterprise model
+   * (checkEditionPermissions). Clearing an override (null, an empty value,
+   * or a retention config with no retention in it) never does, for the same
+   * reason reads and deletes of enterprise models never do: an install that
+   * dropped to the Community Edition, or whose license lapsed, must still be
+   * able to remove what it configured. Every other column of the same write
+   * is left to the usual checks.
+   *
+   * Same rules as checkEditionPermissions otherwise: synchronous, internal
+   * root writes are never checked, master admins are, and with billing on
+   * (OneUptime Cloud) the plan gates these columns instead, through their
+   * @ColumnBillingAccessControl.
+   */
+  @CaptureSpan()
+  public static checkEnterpriseColumnPermissions(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    operation: DatabaseRequestType,
+    data: unknown,
+  ): void {
+    if (IsBillingEnabled) {
+      return;
+    }
+
+    if (props.isRoot) {
+      return;
+    }
+
+    if (
+      operation !== DatabaseRequestType.Create &&
+      operation !== DatabaseRequestType.Update
+    ) {
+      return;
+    }
+
+    for (const feature of EditionPermissions.getEnterpriseFeaturesWritten(
+      new modelType().tableName,
+      data,
+    )) {
+      EnterpriseEdition.assertFeatureAvailableSync(feature);
+    }
+  }
+
+  /*
+   * The features whose enterprise columns this write sets to a value that
+   * takes effect (see isEnterpriseColumnValueSet), without duplicates.
+   * Anything that is not a plain object of columns writes none.
+   */
+  public static getEnterpriseFeaturesWritten(
+    tableName: string | null | undefined,
+    data: unknown,
+  ): Array<EnterpriseFeature> {
+    const columns: Readonly<Record<string, EnterpriseFeature>> | null =
+      EnterpriseEdition.getEnterpriseColumnsForTableName(tableName);
+
+    if (!columns || !data || typeof data !== "object" || Array.isArray(data)) {
+      return [];
+    }
+
+    const features: Array<EnterpriseFeature> = [];
+
+    for (const [column, feature] of Object.entries(columns)) {
+      const value: unknown = (data as Record<string, unknown>)[column];
+
+      if (
+        EditionPermissions.isEnterpriseColumnValueSet(value) &&
+        !features.includes(feature)
+      ) {
+        features.push(feature);
+      }
+    }
+
+    return features;
+  }
+
+  /*
+   * Whether a value written to an enterprise column sets something, as
+   * opposed to clearing it. Retention only ever uses positive numbers
+   * (resolveTelemetryRetentionInDays skips everything else), so a value sets
+   * an override when it is, or contains at any depth, a positive number - or
+   * a string of one, which the API accepts for a number column. null, "",
+   * zero, {} and a retention config whose every entry is blank all clear.
+   */
+  public static isEnterpriseColumnValueSet(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    if (typeof value === "number") {
+      return Number.isFinite(value) && value > 0;
+    }
+
+    if (typeof value === "string") {
+      const trimmed: string = value.trim();
+
+      if (!trimmed) {
+        return false;
+      }
+
+      const parsed: number = Number(trimmed);
+
+      return Number.isFinite(parsed) && parsed > 0;
+    }
+
+    if (typeof value === "object") {
+      return Object.values(value as Record<string, unknown>).some(
+        (entry: unknown): boolean => {
+          return EditionPermissions.isEnterpriseColumnValueSet(entry);
+        },
+      );
+    }
+
+    return false;
+  }
+
+  /*
    * True when the update writes at least one column, and every column it
    * writes is on the table's tighten-only list with a value that passes the
    * column's rule. Columns set to undefined are not written and are ignored.

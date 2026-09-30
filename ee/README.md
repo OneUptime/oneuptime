@@ -42,12 +42,16 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | `Server/LicenseServer/` | The license server that oneuptime.com runs. Mounted only when billing is enabled. |
 | `Server/AdminHealth/` | The live OneUptime Health dashboards (overview, queues, Valkey, logs, ClickHouse cluster, telemetry ingestion, Postgres cluster and activity) and the query console, served by one router mounted ahead of core's. Core keeps the every-edition routes, the probes they share (`App/API/AdminHealthProbes.ts`) and a 402 fallback for each enterprise path. |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
-| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). |
+| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
 
 Models, migrations, CRUD services, the audit-log table, the license columns
-and every enforcement site stay in core (Apache-2.0). `ee/` holds behaviour,
+and every enforcement site stay in core (Apache-2.0). That includes the
+retention overrides: the columns stay on core models, the write gate is core's
+`EditionPermissions.checkEnterpriseColumnPermissions`, and ingest drops the
+overrides in `OpenTelemetryIngestService.applyRetentionOverrideEdition` while
+the feature is not active. `ee/` holds behaviour,
 not schema, so switching editions never needs a migration.
 
 ## How core finds `ee/`
@@ -145,7 +149,8 @@ load creates an import cycle that crashes the Enterprise bundle.
   routers and jobs exist and which edition operators are told they run.
 - `EnterpriseEdition.isFeatureActive(feature)`: does the feature's runtime
   behaviour run right now? This governs SCIM provisioning and the SCIM Push
-  Groups team locks (`SCIM`) and audit-log recording (`AuditLogs`). Core reads
+  Groups team locks (`SCIM`), audit-log recording (`AuditLogs`) and whether
+  ingest applies retention overrides (`TelemetryRetention`). Core reads
   the SCIM team locks through
   `packages/Common/Server/Utils/EditionEnforcement.ts`.
 - `EnterpriseEdition.isFeatureAvailable(feature)` and
@@ -180,7 +185,12 @@ what `isFeatureAvailableSync` treats as unavailable. Then:
   with a SCIM error body naming the lapsed license, and the SCIM Push Groups
   team locks relax so teams can be managed in OneUptime.
 - **Audit logging stops recording.**
-- Enterprise configuration becomes read-only (`isFeatureAvailable`). The
+- **Retention overrides stop applying.** New telemetry gets the project's
+  default retention; rows already written keep theirs.
+- Enterprise configuration becomes read-only (`isFeatureAvailable`). For the
+  retention overrides, which are columns of core models
+  (`EnterpriseEdition.getEnterpriseColumnsForTableName`), that means a write
+  that sets one is refused, and one that clears it is not. The
   Health dashboards and team compliance keep their own rules.
 
 Single sign-on is not affected: its routes have no license gate, and "Require

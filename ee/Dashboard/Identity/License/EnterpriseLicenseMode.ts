@@ -55,6 +55,7 @@ export enum EnterpriseLicenseMode {
 export enum LicensedFeature {
   SCIM = "scim",
   AuditLogs = "audit-logs",
+  TelemetryRetention = "telemetry-retention",
 }
 
 // The features claim value that entitles every feature (ENTERPRISE_FEATURE_WILDCARD).

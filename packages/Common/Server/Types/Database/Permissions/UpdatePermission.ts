@@ -56,6 +56,12 @@ export default class UpdatePermission {
         DatabaseRequestType.Update,
         data,
       );
+      EditionPermissions.checkEnterpriseColumnPermissions(
+        modelType,
+        props,
+        DatabaseRequestType.Update,
+        data,
+      );
     }
 
     if (props.isRoot || props.isMasterAdmin) {
@@ -70,6 +76,13 @@ export default class UpdatePermission {
     );
 
     EditionPermissions.checkEditionPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Update,
+      data,
+    );
+
+    EditionPermissions.checkEnterpriseColumnPermissions(
       modelType,
       props,
       DatabaseRequestType.Update,

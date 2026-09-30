@@ -2,10 +2,10 @@ import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import TelemetryRetentionConfigForm from "../../../../UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfig from "../../../../Types/Telemetry/TelemetryRetentionConfig";
-import LogSeverity from "../../../../Types/Log/LogSeverity";
-import { SpanStatus } from "../../../../Models/AnalyticsModels/Span";
+import TelemetryRetentionConfigForm from "../../../Dashboard/TelemetryRetention/TelemetryRetentionConfigForm";
+import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import LogSeverity from "Common/Types/Log/LogSeverity";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 
 /*
  * This form decides when a customer's telemetry is deleted, so the values it

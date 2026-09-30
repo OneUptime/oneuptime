@@ -13,6 +13,12 @@ enum EnterpriseFeature {
   TeamCompliance = "team-compliance",
   AuditLogs = "audit-logs",
   InstanceHealth = "instance-health",
+  /*
+   * Retention overrides: retention by telemetry type (Project, and every
+   * service and resource), and per-service and per-resource retention.
+   * The project-wide default retention is not part of it.
+   */
+  TelemetryRetention = "telemetry-retention",
 }
 
 export const ALL_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> =

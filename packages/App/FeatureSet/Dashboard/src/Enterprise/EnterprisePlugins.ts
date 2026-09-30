@@ -1,5 +1,7 @@
 import PageComponentProps from "../Pages/PageComponentProps";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import { LicenseManagerComponent } from "Common/UI/Components/EditionLabel/LicenseManager";
 import { ComponentType, ExoticComponent } from "react";
 
@@ -55,6 +57,25 @@ export interface AuditLogsTableProps {
   rootResourceId?: ObjectID | undefined;
 }
 
+// A service or telemetry resource whose retention can be overridden.
+export interface TelemetryRetentionModel extends BaseModel {
+  retainTelemetryDataForDays?: number | undefined;
+  telemetryRetentionConfig?: TelemetryRetentionConfig | undefined;
+}
+
+/*
+ * Props of the retention cards on a service's or resource's Settings page
+ * (Components/TelemetryResource/TelemetryResourceRetentionSettings).
+ */
+export interface TelemetryResourceRetentionSettingsProps {
+  modelType: { new (): TelemetryRetentionModel };
+  modelId: ObjectID;
+  // Lower-case, as it reads in a sentence: "service", "Kubernetes cluster".
+  resourceName: string;
+  // Prefix of the cards' ids: "<prefix>-telemetry-retention(-overrides)".
+  modelDetailIdPrefix: string;
+}
+
 export interface DashboardEnterprisePlugins {
   /*
    * Set only by the Enterprise plugin, to a fixed sentinel string. The EE
@@ -88,6 +109,22 @@ export interface DashboardEnterprisePlugins {
   AuditLogsTable?: EnterprisePluginComponent<AuditLogsTableProps> | undefined;
 
   /*
+   * Settings > Telemetry: the project's retention by telemetry type. The
+   * project's default retention stays in core, on the same page.
+   */
+  SettingsTelemetryRetentionByType?:
+    | EnterprisePluginComponent<PageComponentProps>
+    | undefined;
+
+  /*
+   * The retention cards of every service and telemetry resource Settings
+   * page: the resource's own retention and its retention by telemetry type.
+   */
+  TelemetryResourceRetentionSettings?:
+    | EnterprisePluginComponent<TelemetryResourceRetentionSettingsProps>
+    | undefined;
+
+  /*
    * License management (activation, refresh, seat usage, the instances on
    * the license) in the edition dialog of the footer's edition pill. Footer
    * passes it to EditionLabel, which keeps the read-only license status. Not
@@ -113,6 +150,8 @@ const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   StatusPageSCIM: true,
   TeamCompliance: true,
   AuditLogsTable: true,
+  SettingsTelemetryRetentionByType: true,
+  TelemetryResourceRetentionSettings: true,
   LicenseManager: true,
 };
 

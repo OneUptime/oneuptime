@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
-import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
-import LogSeverity from "../../../Types/Log/LogSeverity";
+import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import LogSeverity from "Common/Types/Log/LogSeverity";
 
 export interface ComponentProps {
   config?: TelemetryRetentionConfig | null | undefined;

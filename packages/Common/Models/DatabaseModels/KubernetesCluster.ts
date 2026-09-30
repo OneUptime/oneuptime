@@ -1,3 +1,5 @@
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Label from "./Label";
 import Project from "./Project";
 import RunbookCredential from "./RunbookCredential";
@@ -951,6 +953,11 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
     unique: false,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public retainTelemetryDataForDays?: number = undefined;
 
   @ColumnAccessControl({
@@ -991,6 +998,11 @@ export default class KubernetesCluster extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 

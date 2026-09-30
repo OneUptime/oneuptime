@@ -29,6 +29,12 @@ export default class CreatePermission {
         props,
         DatabaseRequestType.Create,
       );
+      EditionPermissions.checkEnterpriseColumnPermissions(
+        modelType,
+        props,
+        DatabaseRequestType.Create,
+        data,
+      );
     }
 
     // If system is making this query then let the query run!
@@ -43,6 +49,13 @@ export default class CreatePermission {
       modelType,
       props,
       DatabaseRequestType.Create,
+    );
+
+    EditionPermissions.checkEnterpriseColumnPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Create,
+      data,
     );
 
     ColumnPermissions.checkDataColumnPermissions(

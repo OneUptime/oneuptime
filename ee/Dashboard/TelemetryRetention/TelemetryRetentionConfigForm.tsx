@@ -4,11 +4,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
-import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
-import LogSeverity from "../../../Types/Log/LogSeverity";
-import FieldLabelElement from "../Detail/FieldLabel";
-import Input, { InputType } from "../Input/Input";
+import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import LogSeverity from "Common/Types/Log/LogSeverity";
+import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 
 export interface ComponentProps {
   onChange?: ((value: TelemetryRetentionConfig | null) => void) | undefined;
