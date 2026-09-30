@@ -1021,7 +1021,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_AI_FEATURES]: "ai-features",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_AI_GUARDRAILS]: "ai-guardrails",
   [PageMap.SETTINGS_RUNNERS]: "runners",
   [PageMap.SETTINGS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_RUNNER_CREDENTIALS]: "runner-credentials",
@@ -6496,12 +6495,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AI_CREDITS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_AI_GUARDRAILS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_AI_GUARDRAILS]
     }`,
   ),
 

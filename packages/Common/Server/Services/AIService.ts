@@ -188,7 +188,7 @@ export const LEGACY_AUTONOMOUS_AI_FEATURES: Array<string> = [
 /*
  * Features that run WITHOUT a human in the loop. Incident-linked and
  * alert-linked calls use their respective daily token limits; subjectless
- * calls use Project.aiDailyAutonomousTokenLimit. Interactive chat and
+ * calls have no daily token limit. Interactive chat and
  * explicitly user-triggered AI are never budget-blocked.
  * Auto-postmortem is deliberately excluded for now: it is one call per
  * resolved incident, not storm-shaped; include it when it moves to the queue.
@@ -571,24 +571,23 @@ export class Service extends BaseService {
   ): Promise<AutonomousBudgetStatus> {
     this.assertSingleSubject(subject);
 
+    // Subjectless autonomous work has no daily token limit.
+    if (!subject?.incidentId && !subject?.alertId) {
+      return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
+    }
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
-        aiDailyAutonomousTokenLimit: true,
         incidentAiDailyAutonomousTokenLimit: true,
         alertAiDailyAutonomousTokenLimit: true,
       },
       props: { isRoot: true },
     });
 
-    let limitInTokens: number | null =
-      project?.aiDailyAutonomousTokenLimit ?? null;
-
-    if (subject?.incidentId) {
-      limitInTokens = project?.incidentAiDailyAutonomousTokenLimit ?? null;
-    } else if (subject?.alertId) {
-      limitInTokens = project?.alertAiDailyAutonomousTokenLimit ?? null;
-    }
+    const limitInTokens: number | null = subject?.incidentId
+      ? project?.incidentAiDailyAutonomousTokenLimit ?? null
+      : project?.alertAiDailyAutonomousTokenLimit ?? null;
 
     if (limitInTokens === null) {
       return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
@@ -783,9 +782,7 @@ export class Service extends BaseService {
       if (budget.exhausted) {
         const settingsLocation: string = request.incidentId
           ? "Incidents > AI > Investigation"
-          : request.alertId
-            ? "Alerts > AI > Investigation"
-            : "Project Settings > AI > AI Guardrails";
+          : "Alerts > AI > Investigation";
         const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;

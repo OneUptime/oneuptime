@@ -369,7 +369,6 @@ describe("AIInvestigationQueue concurrency cap", () => {
   test("an alert cap override of 1 blocks the second concurrent alert run", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       id: ObjectID.generate(),
-      aiMaxConcurrentInvestigations: 10,
       incidentAiMaxConcurrentInvestigations: 10,
       alertAiMaxConcurrentInvestigations: 1,
     } as unknown as Project);
