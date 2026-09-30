@@ -282,10 +282,15 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       attentionClassName: "text-red-600",
       attentionIcon: IconProp.Error,
       allClearLabel: "All operational",
+      /*
+       * The Monitors list, not the create form: its empty state offers the
+       * Create Monitor button behind the same permission gate as its header,
+       * while the form would open for someone who cannot submit it.
+       */
       notSetUp: {
         isNotSetUp: counts !== null && counts.totalMonitors === 0,
         label: NO_MONITORS_YET_LABEL,
-        pageMap: PageMap.MONITOR_CREATE,
+        pageMap: PageMap.MONITORS,
       },
     },
     {
