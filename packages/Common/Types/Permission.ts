@@ -1888,6 +1888,16 @@ enum Permission {
   EditIncidentAlert = "EditIncidentAlert",
   ReadIncidentAlert = "ReadIncidentAlert",
 
+  // Incident Form (public forms that declare incidents) Permissions
+  CreateIncidentForm = "CreateIncidentForm",
+  DeleteIncidentForm = "DeleteIncidentForm",
+  EditIncidentForm = "EditIncidentForm",
+  ReadIncidentForm = "ReadIncidentForm",
+
+  // Incident Form Submission Permissions
+  DeleteIncidentFormSubmission = "DeleteIncidentFormSubmission",
+  ReadIncidentFormSubmission = "ReadIncidentFormSubmission",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -15324,6 +15334,70 @@ export class PermissionHelper {
         title: "Read Incident Alert",
         description:
           "This permission can read which alerts are linked to which incidents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Form Permissions
+      {
+        permission: Permission.CreateIncidentForm,
+        title: "Create Incident Form",
+        description:
+          "This permission can create incident forms in this project. Anyone with a form's link can declare an incident through it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentForm,
+        title: "Delete Incident Form",
+        description:
+          "This permission can delete incident forms in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentForm,
+        title: "Edit Incident Form",
+        description:
+          "This permission can edit incident forms in this project, including turning a form off and resetting its link.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentForm,
+        title: "Read Incident Form",
+        description:
+          "This permission can read incident forms in this project, including their links.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Form Submission Permissions
+      {
+        permission: Permission.DeleteIncidentFormSubmission,
+        title: "Delete Incident Form Submission",
+        description:
+          "This permission can delete incident form submissions, and the reporter's name and email they hold, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentFormSubmission,
+        title: "Read Incident Form Submission",
+        description:
+          "This permission can read the submissions made through incident forms in this project, including the reporter's name and email.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

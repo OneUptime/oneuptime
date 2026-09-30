@@ -93,7 +93,10 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -2111,6 +2114,23 @@ export class Service extends DatabaseService<Model> {
         false;
     }
 
+    /*
+     * Owners handed over to be notified are added by onCreateSuccess's
+     * chain, once the incident's Slack / Microsoft Teams channels exist -
+     * seconds after the incident is written, with a workspace connected. The
+     * owners' "Incident Created" notification is sent by a job that runs
+     * every minute and takes every incident not yet marked as notified: run
+     * in between, it would find no owners, tell the project's owners
+     * instead, and mark the incident done, and the owners the create named
+     * would hear nothing of it ("owner added" is off by default). So such an
+     * incident is written as notified already, and the chain marks it not
+     * notified once it has added them (releaseCreatedNotificationHeldForOwners):
+     * the job then tells them on its next run.
+     */
+    if (this.isCreatedNotificationHeldForOwners(createBy)) {
+      createBy.data.isOwnerNotifiedOfResourceCreation = true;
+    }
+
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
@@ -2847,12 +2867,32 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Owners handed over with the create: a template's owners, from the
+         * dashboard's Declare Incident page or from an incident form. Added
+         * here - after the incident's Slack / Microsoft Teams channels
+         * exist, which is when the owners' own hooks can invite them to
+         * those channels, and after "Incident Created" - rather than by the
+         * caller once the create returns, while this chain may still be
+         * creating the channels.
+         *
+         * Whether they are notified is the caller's to say, but only an
+         * internal (root) caller's: an incident form asks for its
+         * template's owners to be notified - they are the people a report
+         * through it is meant to reach. A user's request cannot: the
+         * dashboard's declare has always added them quietly, and misc data
+         * is whatever the request body says.
+         */
         try {
           if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps["ownerTeams"] ||
               onCreate.createBy.miscDataProps["ownerUsers"])
           ) {
+            const notifyOwners: boolean =
+              onCreate.createBy.props.isRoot === true &&
+              onCreate.createBy.miscDataProps["notifyOwners"] === true;
+
             return await this.addOwners(
               createdItem.projectId!,
               createdItem.id!,
@@ -2862,7 +2902,7 @@ export class Service extends DatabaseService<Model> {
               (onCreate.createBy.miscDataProps[
                 "ownerTeams"
               ] as Array<ObjectID>) || [],
-              false,
+              notifyOwners,
               onCreate.createBy.props,
             );
           }
@@ -2877,6 +2917,15 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        } finally {
+          /*
+           * The owners the create handed over exist now - or could not be
+           * added, and this chain will not try again: either way the
+           * "Incident Created" notification held for them may go out.
+           */
+          if (this.isCreatedNotificationHeldForOwners(onCreate.createBy)) {
+            await this.releaseCreatedNotificationHeldForOwners(createdItem);
+          }
         }
       })
       .then(async () => {
@@ -3299,6 +3348,63 @@ export class Service extends DatabaseService<Model> {
       });
   }
 
+  /*
+   * Whether a create hands owners to its own onCreateSuccess chain to be
+   * notified, and so holds the incident's "Incident Created" notification
+   * until the chain has added them (see onBeforeCreate). Only an internal
+   * (root) caller can ask for owners to be notified - misc data is whatever
+   * a user's request body says - and today only an incident form does, for
+   * its template's owners. Every other create is written and notified as it
+   * always was. One predicate for the hold and the release alike, so the
+   * chain never releases an incident nobody held: the job may already have
+   * notified that one, and would do it again.
+   */
+  private isCreatedNotificationHeldForOwners(
+    createBy: CreateBy<Model>,
+  ): boolean {
+    const miscDataProps: JSONObject | undefined = createBy.miscDataProps;
+
+    return (
+      createBy.props.isRoot === true &&
+      miscDataProps?.["notifyOwners"] === true &&
+      Boolean(miscDataProps["ownerUsers"] || miscDataProps["ownerTeams"])
+    );
+  }
+
+  /*
+   * Marks an incident whose create held its "Incident Created" notification
+   * as not notified, so the owners' job sends it on its next run - to the
+   * owners the chain has just added. Without the update hooks, as the other
+   * notification markers on an incident are written: nothing they react to
+   * changed. It never throws, so the chain's later steps (the owner rules,
+   * on-call) still run; a failure is logged, and leaves the notification
+   * unsent.
+   */
+  private async releaseCreatedNotificationHeldForOwners(
+    incident: Model,
+  ): Promise<void> {
+    try {
+      await this.updateOneById({
+        id: incident.id!,
+        data: {
+          isOwnerNotifiedOfResourceCreation: false,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
   @CaptureSpan()
   private async handleIncidentWorkspaceOperationsAsync(
     createdItem: Model,
@@ -3399,9 +3505,19 @@ export class Service extends DatabaseService<Model> {
         incident.incidentNumberWithPrefix ||
         "#" + incident.incidentNumber?.toString();
 
+      /*
+       * The title is plain text - one line, typed by whoever declared the
+       * incident, which is anyone holding an incident form's link - placed
+       * into Markdown that is rendered without the viewer's safe mode and
+       * posted to Slack and Teams. Escaped as MarkdownEscape says a title
+       * must be, so "[Reset your password](...)" arrives as those
+       * characters, "![](https://tracker...)" is not fetched and "<!here>"
+       * is not a mention, while "Site 03 - payments (EU)" reads unchanged.
+       * The description stays Markdown: that is what it is written in.
+       */
       let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
         
-**${incident.title || "No title provided."}**:
+**${escapeMarkdownValue(incident.title || "No title provided.")}**:
 
 ${incident.description || "No description provided."}
 
@@ -4137,8 +4253,10 @@ ${incident.remediationNotes || "No remediation notes provided."}
         if (
           Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
         ) {
-          const title: string =
-            (updatedIncidentData.title as string) || "No title provided.";
+          // Plain text, escaped as in the "Incident Created" item.
+          const title: string = escapeMarkdownValue(
+            (updatedIncidentData.title as string) || "No title provided.",
+          );
           feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
           shouldAddIncidentFeed = true;
         }

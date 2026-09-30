@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   ReactNode,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -358,10 +359,31 @@ const CodeBlock: FunctionComponent<{
     langDisplayNames[language] ||
     (language ? language.charAt(0).toUpperCase() + language.slice(1) : "");
 
+  /*
+   * The highlighter's classes carry no language, so a copy of the rendered
+   * note would paste back as spans of plain text. The data attributes tell
+   * the editor's paste handler (MarkdownPaste) that this is a code block and
+   * in which language, and that the header -- the language label and the
+   * Copy button -- is not part of the document.
+   *
+   * They are on the <pre> the code is in as well as on the block: a copy of
+   * part of the block -- a drag over its lines, a triple click -- carries
+   * the <pre> around the selected text in every browser, but no <div> above
+   * it, so hints on the block alone were lost and the code pasted back as
+   * markdown ("# deploy config" a heading). The header cannot be selected at
+   * all, so its "Copy" label never lands in a copy's plain text.
+   */
   return (
-    <div className="relative rounded-lg mt-3 mb-3 overflow-hidden border border-gray-200 shadow-sm">
+    <div
+      className="relative rounded-lg mt-3 mb-3 overflow-hidden border border-gray-200 shadow-sm"
+      data-markdown-code-block="true"
+      data-language={language}
+    >
       {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700">
+      <div
+        className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 select-none"
+        data-markdown-ignore="true"
+      >
         <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400 select-none">
           {displayLang}
         </span>
@@ -407,7 +429,9 @@ const CodeBlock: FunctionComponent<{
       {/* Code content */}
       <SyntaxHighlighter
         {...rest}
-        PreTag="div"
+        PreTag="pre"
+        data-markdown-code-block="true"
+        data-language={language}
         // eslint-disable-next-line react/no-children-prop
         children={content}
         language={language}
@@ -454,6 +478,78 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
     >
       {localFormatted}
     </time>
+  );
+};
+
+/*
+ * A fenced block's class is "language-" followed by the first word of its
+ * info string -- the one class remark gives it. Read from the start of the
+ * class, as it is written: searched for anywhere in it, an info string of
+ * "-language-mermaid" (class "language--language-mermaid") gave the language
+ * "mermaid" too.
+ */
+const RE_CODE_LANGUAGE: RegExp = /^language-(\w+)/;
+
+/*
+ * Whether a code element's class makes it a mermaid diagram: only a fence
+ * whose language is exactly "mermaid" is one. The class was searched for
+ * "language-mermaid" anywhere, so "```-language-mermaid" drew a diagram --
+ * and a diagram's image nodes are fetched as it is drawn, which the server
+ * keeps out of a reporter's text by renaming the fences whose language is
+ * mermaid, and only those.
+ */
+const isMermaidCodeClass: (className: unknown) => boolean = (
+  className: unknown,
+): boolean => {
+  return className === "language-mermaid";
+};
+
+/*
+ * How many lists deep a list sits. Every level used to draw the same filled
+ * disc, so a nested list stood apart from its parent only by its indent. A
+ * bulleted list now steps through disc, circle and square -- the browser's
+ * own defaults, and how Word and Outlook draw the same list -- and, as in
+ * the browser's defaults, a numbered list counts as a level too.
+ */
+const ListDepthContext: React.Context<number> = React.createContext<number>(0);
+
+const BULLET_STYLES: Array<string> = [
+  "list-disc",
+  "list-[circle]",
+  "list-[square]",
+];
+
+const getBulletStyleForDepth: (depth: number) => string = (
+  depth: number,
+): string => {
+  return (
+    BULLET_STYLES[Math.min(Math.max(depth, 0), BULLET_STYLES.length - 1)] ||
+    "list-disc"
+  );
+};
+
+const MarkdownBulletList: FunctionComponent<any> = (
+  props: any,
+): ReactElement => {
+  const depth: number = useContext(ListDepthContext);
+  return (
+    <ListDepthContext.Provider value={depth + 1}>
+      <ul
+        className={`${getBulletStyleForDepth(depth)} pl-6 mt-0 mb-1`}
+        {...props}
+      />
+    </ListDepthContext.Provider>
+  );
+};
+
+const MarkdownNumberedList: FunctionComponent<any> = (
+  props: any,
+): ReactElement => {
+  const depth: number = useContext(ListDepthContext);
+  return (
+    <ListDepthContext.Provider value={depth + 1}>
+      <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />
+    </ListDepthContext.Provider>
   );
 };
 
@@ -612,7 +708,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
         const isMermaid: boolean =
           React.isValidElement(children) &&
-          (children as any).props?.className?.includes("language-mermaid");
+          isMermaidCodeClass((children as any).props?.className);
 
         if (isMermaid) {
           // For mermaid, just return the children (MermaidDiagram component)
@@ -687,10 +783,10 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         );
       },
       ul: ({ ...props }: any) => {
-        return <ul className="list-disc pl-6 mt-0 mb-1" {...props} />;
+        return <MarkdownBulletList {...props} />;
       },
       ol: ({ ...props }: any) => {
-        return <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />;
+        return <MarkdownNumberedList {...props} />;
       },
       blockquote: ({ children, ...props }: any) => {
         return (
@@ -755,14 +851,14 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       code: (props: any) => {
         const { children, className, ...rest } = props;
 
-        const match: RegExpExecArray | null = new RegExp(
-          "language-(\\w+)",
-        ).exec(className || "");
+        const match: RegExpExecArray | null = RE_CODE_LANGUAGE.exec(
+          className || "",
+        );
 
         const content: string = String(children as string).replace(/\n$/, "");
 
         // Handle mermaid diagrams
-        if (match && match[1] === "mermaid") {
+        if (isMermaidCodeClass(className)) {
           /*
            * Never render mermaid for untrusted content: a diagram can
            * carry an image node whose src the renderer fetches on paint

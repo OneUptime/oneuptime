@@ -1,10 +1,14 @@
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import DOMPurify from "dompurify";
+import fs from "fs";
+import path from "path";
 import { marked, Token, Tokens } from "marked";
 import AffectedResourceList, {
   AffectedResourceListEntry,
 } from "../../../Server/Utils/Monitor/AffectedResourceList";
 import {
+  domToMarkdown,
   htmlToMarkdown,
   markdownToHtml,
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
@@ -85,6 +89,43 @@ describe("markdownToHtml", () => {
       );
     });
 
+    /*
+     * "***a***" is what the serializer writes for text that is both bold
+     * and italic. The bold pass used to pair its first "**" with the third
+     * star and render "<strong>*a</strong>*", stray asterisks and all.
+     */
+    it("renders three stars on each side as bold italic", () => {
+      expect(markdownToHtml("***a***")).toBe(
+        "<p><em><strong>a</strong></em></p>",
+      );
+      expect(markdownToHtml("x ***a b*** y")).toBe(
+        "<p>x <em><strong>a b</strong></em> y</p>",
+      );
+    });
+
+    it("keeps bold italic text through the editor's save loop", () => {
+      expect(htmlToMarkdown("<p><strong><em>a</em></strong></p>")).toBe(
+        "***a***",
+      );
+      expect(htmlToMarkdown("<p><em><strong>a</strong></em></p>")).toBe(
+        "***a***",
+      );
+      expect(htmlToMarkdown(markdownToHtml("***a*** and ***b***"))).toBe(
+        "***a*** and ***b***",
+      );
+    });
+
+    it("keeps inline code inside bold italic", () => {
+      expect(markdownToHtml("***see `x`***")).toBe(
+        "<p><em><strong>see <code>x</code></strong></em></p>",
+      );
+    });
+
+    it("leaves a run of stars with nothing inside it alone", () => {
+      expect(markdownToHtml("a ****** b")).not.toContain("<em>");
+      expect(markdownToHtml("a *** b *** c")).not.toContain("<em>");
+    });
+
     it("renders strikethrough", () => {
       expect(markdownToHtml("~~gone~~")).toBe("<p><s>gone</s></p>");
     });
@@ -115,6 +156,107 @@ describe("markdownToHtml", () => {
       expect(markdownToHtml("press <kbd>K</kbd>")).toBe(
         "<p>press <kbd>K</kbd></p>",
       );
+    });
+  });
+
+  /*
+   * Every finished inline element is stashed under a NUL-delimited numbered
+   * token and put back at the end. The delimiter is written as an escape in
+   * the source now, so these pin that the tokens still come back where they
+   * were, in order, past the single digits, and never confused with digits
+   * in the text around them.
+   */
+  describe("inline placeholder tokens", () => {
+    it("puts a dozen stashed spans back in their own places", () => {
+      const spans: Array<string> = [];
+      for (let index: number = 0; index < 12; index++) {
+        spans.push(`\`c${index}\``);
+      }
+
+      const expected: string = spans
+        .map((_span: string, index: number): string => {
+          return `<code>c${index}</code>`;
+        })
+        .join(" ");
+
+      expect(markdownToHtml(spans.join(" "))).toBe(`<p>${expected}</p>`);
+    });
+
+    it("does not read the digits next to a token as part of it", () => {
+      expect(markdownToHtml("1 **a** 2 `b` 30")).toBe(
+        "<p>1 <strong>a</strong> 2 <code>b</code> 30</p>",
+      );
+    });
+
+    /*
+     * A link label or an emphasis is rendered by a nested call, and its text
+     * can already hold tokens the outer call stashed (inline code, a link,
+     * an image, an inner emphasis). Each call used to number tokens in a
+     * list of its own, so the nested call read those tokens from the wrong
+     * list: the label repeated "a" in place of `b`, and a struck-through
+     * italic came back empty -- which the next save wrote into the document.
+     */
+    it("keeps inline code inside a link label", () => {
+      expect(markdownToHtml("[**a** `b`](https://x.test)")).toBe(
+        '<p><a href="https://x.test"><strong>a</strong> <code>b</code></a></p>',
+      );
+    });
+
+    it("keeps an italic inside a strikethrough", () => {
+      expect(markdownToHtml("~~*c*~~")).toBe("<p><s><em>c</em></s></p>");
+    });
+
+    it("keeps inline code, a link and an image inside bold", () => {
+      expect(markdownToHtml("**see `x`**")).toBe(
+        "<p><strong>see <code>x</code></strong></p>",
+      );
+      expect(markdownToHtml("**[a](https://x.test)**")).toBe(
+        '<p><strong><a href="https://x.test">a</a></strong></p>',
+      );
+      expect(markdownToHtml("*![g](https://x.test/g.png)*")).toBe(
+        '<p><em><img alt="g" src="https://x.test/g.png"></em></p>',
+      );
+    });
+
+    it("keeps every nested span through the editor's save loop", () => {
+      const markdown: string =
+        "**see `x`** and ~~*c*~~ and [**a** `b`](https://x.test)";
+
+      const once: string = htmlToMarkdown(markdownToHtml(markdown));
+      const twice: string = htmlToMarkdown(markdownToHtml(once));
+
+      expect(once).toBe(markdown);
+      expect(twice).toBe(markdown);
+    });
+
+    it("round trips a line that mixes every stashed kind", () => {
+      const markdown: string =
+        "a **b** *c* ~~d~~ `e` [f](https://x.test) ![g](https://x.test/g.png) <u>h</u>";
+
+      expect(htmlToMarkdown(markdownToHtml(markdown))).toBe(markdown);
+    });
+
+    /*
+     * A literal NUL byte in the source made git treat the whole file as
+     * binary, so no change to it could be reviewed as a diff.
+     */
+    it("keeps the converter source free of NUL bytes so git diffs it", () => {
+      const source: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "UI",
+          "Components",
+          "Markdown.tsx",
+          "MarkdownConverters.ts",
+        ),
+        "utf8",
+      );
+
+      expect(source).toContain("PLACEHOLDER_OPEN");
+      expect(source.includes("\u0000")).toBe(false);
     });
   });
 
@@ -823,9 +965,119 @@ describe("htmlToMarkdown", () => {
       expect(htmlToMarkdown("<div>a</div>")).toBe("a");
     });
 
+    /*
+     * Chromium leaves the first line typed into an empty editor as bare
+     * text and puts each later line in a <div>. The <div> wrote its line
+     * break only after itself, so "abc", Enter, "def" saved as "abcdef".
+     */
+    it("keeps the line break before a div line, as Chromium writes typed lines", () => {
+      expect(htmlToMarkdown("abc<div>def</div>")).toBe("abc\ndef");
+      expect(htmlToMarkdown("abc<div>def</div><div>ghi</div>")).toBe(
+        "abc\ndef\nghi",
+      );
+      expect(htmlToMarkdown("<b>x</b><div>y</div>")).toBe("**x**\ny");
+    });
+
+    it("writes Firefox's div per line the same way", () => {
+      expect(htmlToMarkdown("<div>abc</div><div>def</div>")).toBe("abc\ndef");
+    });
+
+    it("adds no break where the text before the div already ended its line", () => {
+      expect(htmlToMarkdown("<p>a</p><div>b</div>")).toBe("a\n\nb");
+      expect(htmlToMarkdown("a<br><div>b</div>")).toBe("a\nb");
+    });
+
+    it("keeps the line break before a div inside a list item", () => {
+      expect(htmlToMarkdown("<ul><li>a<div>b</div></li></ul>")).toBe(
+        "- a\n  b",
+      );
+    });
+
+    it("reads the typed lines back as the same lines", () => {
+      const saved: string = htmlToMarkdown("abc<div>def</div>");
+
+      expect(markdownToHtml(saved)).toBe("<p>abc<br>def</p>");
+      expect(htmlToMarkdown(markdownToHtml(saved))).toBe(saved);
+    });
+
     it("drops a comment node", () => {
       expect(htmlToMarkdown("<p>a<!-- note --></p>")).toBe("a");
     });
+  });
+
+  /*
+   * Chromium runs the onerror handler of an <img> parsed through a detached
+   * element's innerHTML. The HTML is parsed into a <template>, whose content
+   * is inert, and never into a <div>.
+   */
+  describe("parsing", () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("parses into an inert template rather than a detached div", () => {
+      const createElement: SpyInstance<typeof document.createElement> =
+        jest.spyOn(document, "createElement");
+
+      expect(
+        htmlToMarkdown('<p>ok</p><img src="x" onerror="window.__ran=1">'),
+      ).toBe("ok\n\n![](x)");
+
+      const tags: Array<string> = createElement.mock.calls.map(
+        (call: Parameters<typeof document.createElement>): string => {
+          return String(call[0]);
+        },
+      );
+      expect(tags).toEqual(["template"]);
+      expect((window as unknown as { __ran?: number }).__ran).toBeUndefined();
+    });
+
+    it("reads a table row outside a table like any other element", () => {
+      expect(htmlToMarkdown("<tr><td>a</td></tr>")).toBe("a");
+    });
+  });
+});
+
+/*
+ * The paste handler cleans clipboard HTML as a DOM tree and serializes the
+ * tree itself, rather than turning it back into a string first.
+ */
+describe("domToMarkdown", () => {
+  const parse: (html: string) => HTMLElement = (html: string): HTMLElement => {
+    return new DOMParser().parseFromString(html, "text/html").body;
+  };
+
+  it("serializes a parsed tree exactly as htmlToMarkdown serializes the markup", () => {
+    const html: string =
+      '<h2>T</h2><p>a <strong>b</strong> <a href="https://x.test">c</a></p><ul><li>d<ul><li>e</li></ul></li></ul><ol start="3"><li>f</li></ol><pre><code class="language-ts">g</code></pre>';
+
+    expect(domToMarkdown(parse(html))).toBe(htmlToMarkdown(html));
+    expect(domToMarkdown(parse(html))).toBe(
+      "## T\n\na **b** [c](https://x.test)\n\n- d\n  - e\n\n3. f\n\n```ts\ng\n```",
+    );
+  });
+
+  it("serializes the children of a fragment", () => {
+    const fragment: DocumentFragment = document.createDocumentFragment();
+    const item: HTMLElement = document.createElement("p");
+    item.textContent = "x";
+    fragment.appendChild(item);
+
+    expect(domToMarkdown(fragment)).toBe("x");
+  });
+
+  it("reads a task box from a document other than the page's", () => {
+    expect(
+      domToMarkdown(
+        parse(
+          '<ul><li><input type="checkbox" checked> a</li><li><input type="checkbox"> b</li></ul>',
+        ),
+      ),
+    ).toBe("- [x] a\n- [ ] b");
+  });
+
+  it("returns an empty string for an empty tree", () => {
+    expect(domToMarkdown(parse(""))).toBe("");
   });
 });
 

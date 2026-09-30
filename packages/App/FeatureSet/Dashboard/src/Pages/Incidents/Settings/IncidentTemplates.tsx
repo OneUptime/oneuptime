@@ -57,6 +57,18 @@ import {
   INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
   isAskedOnIncidentForm,
 } from "../../../Components/Incident/IncidentCustomFieldDefinitions";
+import IncidentCustomFieldCreateSettingsCopy, {
+  INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_ID,
+  INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_TITLE,
+} from "../../../Components/Incident/IncidentCustomFieldCreateSettingsCopy";
+import {
+  buildCustomFieldSettingsModelFormFields,
+  getKeyedCustomFieldDefinitions,
+  KeyedIncidentCustomFieldDefinition,
+  packCustomFieldSettingsFormValues,
+  removeCustomFieldSettingsFormKeys,
+} from "../../../Components/Incident/IncidentCustomFieldCreateSettingsForm";
+import { CustomFieldCreateSettings } from "Common/Types/CustomField/CustomFieldCreateSettings";
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -110,6 +122,54 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           {
             title: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
             id: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_ID,
+          },
+        ]
+      : [];
+
+  /*
+   * Which of those fields the Details step asks for when an incident is
+   * declared from the template, and which it requires ("Custom Fields on
+   * Create"): a step of its own, since a field's value and whether it is
+   * asked for are separate choices. Settings are keyed by each field's
+   * template variable key, so only fields with one are offered.
+   */
+  const customFieldSettingDefinitions: Array<KeyedIncidentCustomFieldDefinition> =
+    useMemo(() => {
+      return getKeyedCustomFieldDefinitions(customFieldDefinitions);
+    }, [customFieldDefinitions]);
+
+  const customFieldSettingFormFields: Array<ModelField<IncidentTemplate>> =
+    useMemo(() => {
+      const fields: Array<ModelField<IncidentTemplate>> =
+        buildCustomFieldSettingsModelFormFields<IncidentTemplate>({
+          definitions: customFieldSettingDefinitions,
+          mode: "template",
+          stepId: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_ID,
+        });
+
+      /*
+       * What Default means, above the first dropdown: a form step has a
+       * title but no description, and a section needs a heading to carry
+       * one.
+       */
+      if (fields[0]) {
+        fields[0] = {
+          ...fields[0],
+          sectionTitle: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_TITLE,
+          sectionDescription:
+            IncidentCustomFieldCreateSettingsCopy.templateDescription,
+        };
+      }
+
+      return fields;
+    }, [customFieldSettingDefinitions]);
+
+  const customFieldSettingSteps: Array<FormStep<IncidentTemplate>> =
+    customFieldSettingDefinitions.length > 0
+      ? [
+          {
+            title: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_TITLE,
+            id: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_ID,
           },
         ]
       : [];
@@ -202,6 +262,25 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             item.customFields = customFields;
           }
 
+          /*
+           * The Custom Fields on Create step's choices, also from the
+           * submitted values. Default says nothing, so only the fields the
+           * template changes are stored; a template that changes none
+           * stores no settings at all.
+           */
+          const customFieldSettings: CustomFieldCreateSettings =
+            packCustomFieldSettingsFormValues({
+              definitions: customFieldSettingDefinitions,
+              formValues: formValues,
+              mode: "template",
+            });
+
+          removeCustomFieldSettingsFormKeys(miscDataProps);
+
+          if (Object.keys(customFieldSettings).length > 0) {
+            item.customFieldSettings = customFieldSettings;
+          }
+
           return item;
         }}
         formSteps={[
@@ -218,6 +297,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             id: "resources-affected",
           },
           ...customFieldSteps,
+          ...customFieldSettingSteps,
           {
             title: "On-Call",
             id: "on-call",
@@ -479,6 +559,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
           },
           ...customFieldFormFields,
+          ...customFieldSettingFormFields,
           {
             field: {
               onCallDutyPolicies: true,

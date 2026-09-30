@@ -847,6 +847,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_SEVERITY]: "settings/severity",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
+  [PageMap.INCIDENTS_SETTINGS_FORMS]: "settings/forms",
+  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: `settings/forms/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES]:
@@ -2076,6 +2078,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_FORMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]
     }`,
   ),
 

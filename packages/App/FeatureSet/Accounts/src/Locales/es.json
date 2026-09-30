@@ -178,6 +178,19 @@
     "alreadyVerified": "Tu dirección de correo electrónico ya está verificada. Ya puedes iniciar sesión.",
     "failed": "No hemos podido enviar un nuevo correo de verificación. Inténtalo de nuevo en unos momentos."
   },
+  "incidentForm": {
+    "title": "Título",
+    "titleDescription": "Un breve resumen de lo que falla.",
+    "description": "Descripción",
+    "severity": "Gravedad",
+    "reporterName": "Tu nombre",
+    "reporterEmail": "Tu correo electrónico",
+    "successTitle": "Gracias: tu informe se ha enviado.",
+    "incidentNumber": "Tu informe es el incidente {{incidentNumber}}.",
+    "submitAnother": "Enviar otro informe",
+    "retryAfter": "Podrás volver a intentarlo {{when}}.",
+    "tryAgain": "Volver a intentarlo"
+  },
   "errors": {
     "forbidden": {
       "title": "Prohibido",
@@ -222,5 +235,25 @@
   "Complete:": "Cumplido:",
   "Incomplete:": "No cumplido:",
   "Special character included (optional)": "Carácter especial incluido (opcional)",
-  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $."
+  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $.",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "Este formulario no está disponible. Es posible que se haya desactivado o que el enlace esté desactualizado.",
+  "This form can only be opened from an allowed network.": "Este formulario solo se puede abrir desde una red permitida.",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "Se han enviado demasiados informes desde tu red. Espera unos minutos y vuelve a intentarlo.",
+  "This form is receiving too many reports right now. Please try again later.": "Este formulario está recibiendo demasiados informes en este momento. Vuelve a intentarlo más tarde.",
+  "Too many requests. Please try again later.": "Demasiadas solicitudes. Vuelve a intentarlo más tarde.",
+  "Captcha token is missing. Please complete the verification challenge.": "Falta el token del captcha. Completa la verificación.",
+  "Captcha verification failed. Please try again.": "La verificación del captcha ha fallado. Vuelve a intentarlo.",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "Este formulario no puede declarar un incidente porque no tiene gravedad. Avisa al equipo que lo compartió.",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "No se pueden aceptar informes en este momento. Vuelve a intentarlo en unos minutos.",
+  "Your report could not be submitted. Please try again in a few minutes.": "No se ha podido enviar tu informe. Vuelve a intentarlo en unos minutos.",
+  "This form could not be loaded. Please try again in a few minutes.": "No se ha podido cargar este formulario. Vuelve a intentarlo en unos minutos.",
+  "(Optional)": "(Opcional)",
+  "{{field}} is required.": "{{field}} es obligatorio.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} no puede tener más de {{maxLength}} caracteres.",
+  "Email is not valid.": "El correo electrónico no es válido.",
+  "{{field}} must be checked.": "{{field}} debe estar marcado.",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Esta hora está en tu zona horaria - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Escriba su contenido aquí...",
+  "Type your markdown here...": "Escriba su Markdown aquí...",
+  "Formatting help": "Ayuda de formato"
 }

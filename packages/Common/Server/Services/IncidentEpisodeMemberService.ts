@@ -17,8 +17,28 @@ import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/Incide
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import IncidentService from "./IncidentService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+
+/*
+ * An incident's or an episode's title is plain text - an incident's is typed
+ * by whoever declared it, which is anyone holding an incident form's link,
+ * and an episode's is often copied from its first incident's - and the feed
+ * items below place it into Markdown that the dashboard renders without its
+ * safe mode and that is posted to Slack and Teams. Escaped as MarkdownEscape
+ * says a title must be (as the incident's own "Incident Created" item does),
+ * so "![](https://tracker...)" is not fetched and "[Reset your password](...)"
+ * is not a link that hides where it goes, while an ordinary title reads as
+ * typed.
+ */
+type GetFeedTitleFunction = (title: string | undefined | null) => string;
+
+const getFeedTitle: GetFeedTitleFunction = (
+  title: string | undefined | null,
+): string => {
+  return escapeMarkdownValue(title || "No title");
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -174,7 +194,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId,
       incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.IncidentAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** added to episode: ${incident?.title || "No title"}`,
+      feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** added to episode: ${getFeedTitle(incident?.title)}`,
       userId: createdItem.addedByUserId || undefined,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -188,7 +208,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId,
       incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${episode?.title || "No title"}`,
+      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -277,7 +297,7 @@ export class Service extends DatabaseService<Model> {
               incidentEpisodeFeedEventType:
                 IncidentEpisodeFeedEventType.IncidentRemoved,
               displayColor: Green500,
-              feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** removed from episode: ${incident?.title || "No title"}`,
+              feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** removed from episode: ${getFeedTitle(incident?.title)}`,
               workspaceNotification: {
                 sendWorkspaceNotification: true,
               },
@@ -289,7 +309,7 @@ export class Service extends DatabaseService<Model> {
               projectId: member.projectId,
               incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${episode?.title || "No title"}`,
+              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
             });
           }
         }

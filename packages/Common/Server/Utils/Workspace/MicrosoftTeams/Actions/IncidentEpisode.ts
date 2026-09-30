@@ -23,6 +23,7 @@ import IncidentStateService from "../../../../Services/IncidentStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
+import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 
 export default class MicrosoftTeamsIncidentEpisodeActions {
@@ -338,7 +339,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      const message: string = `**Incident Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${episode.description || "No description"}\n**State:** ${episode.currentIncidentState?.name || "Unknown"}\n**Severity:** ${episode.incidentSeverity?.name || "Unknown"}\n**Incident Count:** ${episode.incidentCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
+      // The title is plain text, escaped as MarkdownEscape says a title must be.
+      const message: string = `**Incident Episode Details**\n\n**Title:** ${escapeMarkdownValue(episode.title)}\n**Description:** ${episode.description || "No description"}\n**State:** ${episode.currentIncidentState?.name || "Unknown"}\n**Severity:** ${episode.incidentSeverity?.name || "Unknown"}\n**Incident Count:** ${episode.incidentCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;

@@ -723,10 +723,19 @@ describe("Locales", () => {
     for (const [locale, phrase] of Object.entries(forbidden)) {
       const json: Record<string, unknown> = readLocale(locale);
 
-      // The three sentences that describe the rotated-out link, by their key.
+      /*
+       * The three sentences that describe the rotated-out link, by their key.
+       * Each says what the old link serves - an empty calendar - which is also
+       * what tells them apart from other features' sentences about an old
+       * link of their own (an incident form's Reset Link, whose old link
+       * stops working at once).
+       */
       const previousLinkKeys: Array<string> = Object.keys(json).filter(
         (key: string): boolean => {
-          return key.includes("previous link") || key.includes("old link");
+          return (
+            (key.includes("previous link") || key.includes("old link")) &&
+            key.includes("calendar")
+          );
         },
       );
 

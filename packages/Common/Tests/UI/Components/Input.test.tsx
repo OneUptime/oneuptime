@@ -357,6 +357,37 @@ describe("Input", () => {
     expect(screen.getByText(error)).toBeInTheDocument();
   });
 
+  /*
+   * Every Input's error message had the same fixed id, so on a form with
+   * several fields in error each field was described by the first one's
+   * message -- "Your Email" read out as "Title is required.".
+   */
+  test("describes each input by its own error message", () => {
+    render(
+      <>
+        <Input error="Title is required." dataTestId="title" />
+        <Input error="Your Email is required." dataTestId="email" />
+      </>,
+    );
+    const title: HTMLElement = screen.getByTestId("title");
+    const email: HTMLElement = screen.getByTestId("email");
+
+    expect(title).toHaveAccessibleDescription("Title is required.");
+    expect(email).toHaveAccessibleDescription("Your Email is required.");
+    expect(title.getAttribute("aria-describedby")).not.toBe(
+      email.getAttribute("aria-describedby"),
+    );
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
+  });
+
+  test("keeps the caller's own description when it has no error", () => {
+    render(<Input ariaDescribedby="picker-message" dataTestId="field" />);
+
+    expect(screen.getByTestId("field").getAttribute("aria-describedby")).toBe(
+      "picker-message",
+    );
+  });
+
   test("displays error icon", () => {
     const error: string = "error";
 

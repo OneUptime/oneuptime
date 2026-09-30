@@ -12,8 +12,10 @@ import MonitorStatusService from "./MonitorStatusService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import StatusPageService from "./StatusPageService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { validateCustomFieldCreateSettings } from "../../Types/CustomField/CustomFieldCreateSettings";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -54,6 +56,8 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
+
+    this.assertValidCustomFieldSettings(createBy.data.customFieldSettings);
 
     // Derived from the list, whatever the caller sent (see the column).
     createBy.data.isScopedToStatusPages =
@@ -108,6 +112,8 @@ export class Service extends DatabaseService<Model> {
           data["statusPages"],
         ).length > 0;
     }
+
+    this.assertValidCustomFieldSettings(data["customFieldSettings"]);
 
     const references: Array<ProjectScopedReference> =
       this.getProjectScopedReferences(updateBy.data);
@@ -173,6 +179,22 @@ export class Service extends DatabaseService<Model> {
     await this.assertCallerCanReadAddedStatusPages(updateBy);
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * customFieldSettings is only read by the dashboard's Declare Incident
+   * form, and leniently, so a malformed value would not break anything - it
+   * would silently do nothing, which is worse for whoever wrote it. It is
+   * refused where it comes in instead, root writes included (a workflow can
+   * send it too). A valid value is stored exactly as sent: see
+   * validateCustomFieldCreateSettings for why nothing is rewritten.
+   */
+  private assertValidCustomFieldSettings(value: unknown): void {
+    const problem: string | null = validateCustomFieldCreateSettings(value);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
   }
 
   /*

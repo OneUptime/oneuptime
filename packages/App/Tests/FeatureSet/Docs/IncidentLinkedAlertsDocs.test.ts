@@ -274,7 +274,9 @@ interface ExpectedPage {
 
 /*
  * Reading order: what an incident is, how one starts, how it moves, what gets
- * written on it, which alerts belong to it, then how to configure it all.
+ * written on it, which alerts belong to it, then how to configure it all, and
+ * last the forms that let people outside the team report one - a settings
+ * page built on the templates and custom fields the settings page explains.
  */
 const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
   { title: "Incidents Overview", page: OVERVIEW_PAGE },
@@ -286,6 +288,7 @@ const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
   { title: "Incident Notes, Owners & Feed", page: FEED_PAGE },
   { title: LINKED_ALERTS_TITLE, page: LINKED_ALERTS_PAGE },
   { title: "Incident Settings & Automation", page: SETTINGS_PAGE },
+  { title: "Incident Forms", page: "incidents/forms" },
 ];
 
 // The existing incident pages that must point readers at the new one.

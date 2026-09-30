@@ -14,6 +14,7 @@ import Model from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -468,9 +469,17 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    /*
+     * The title is plain text, often copied from the episode's first
+     * incident - whose title anyone holding an incident form's link may
+     * have typed - placed into Markdown the dashboard renders without its
+     * safe mode and posts to Slack and Teams. Escaped as MarkdownEscape
+     * says a title must be, so it cannot become an image, raw HTML or a
+     * link that hides where it goes. The description stays Markdown.
+     */
     let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
-**${episode.title || "No title provided."}**
+**${escapeMarkdownValue(episode.title || "No title provided.")}**
 
 `;
 
