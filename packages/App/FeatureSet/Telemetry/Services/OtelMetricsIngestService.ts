@@ -38,6 +38,7 @@ import OtelIngestBaseService, {
 import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
+import MessagingEntityKeyResolver from "./MessagingEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -821,6 +822,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
         new DatabaseCallEntityKeyResolver(projectId);
+
+      /*
+       * Broker-metric and messaging-client datapoints (and any datapoint
+       * carrying `messaging.system`) get their queue's key on their own
+       * row. Memoized for this request only — see MessagingEntityKeys.
+       */
+      const messagingEntityKeys: MessagingEntityKeyResolver =
+        new MessagingEntityKeyResolver(projectId);
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -1865,6 +1874,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           metricRow,
                           databaseCaller,
                         );
+
+                        /*
+                         * A broker or messaging-client datapoint belongs to
+                         * its queue — same rules, keyed off the FINAL name
+                         * and attributes (a rule's rename or redaction
+                         * decides), resource keys read `resource.`-prefixed
+                         * as stored.
+                         */
+                        messagingEntityKeys.appendToMetricRow(metricRow);
 
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
