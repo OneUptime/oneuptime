@@ -194,9 +194,9 @@ describe("attribute values follow the caller's read scope", () => {
     expect(boundLists(statement)).toEqual(
       expect.arrayContaining([[serviceA.toString()], [serviceC.toString()]]),
     );
-    // The scope narrows before ORDER BY / LIMIT pick the values to return.
+    // The scope narrows before LIMIT picks the values to return.
     expect(statement.query.indexOf("primaryEntityId IN (")).toBeLessThan(
-      statement.query.indexOf("ORDER BY"),
+      statement.query.indexOf("LIMIT"),
     );
   });
 

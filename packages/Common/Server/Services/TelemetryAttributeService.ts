@@ -570,11 +570,40 @@ export class TelemetryAttributeService {
         AND ${data.source.timeColumn} >= ${{
           type: TableColumnType.Date,
           value: lookbackStartDate,
-        }}
+        }}`;
+
+    /*
+     * Every writer stores the map's keys in attributeKeys, whose bloom index
+     * can skip each granule that never saw the key. indexHint() uses the
+     * array for that pruning only, without reading it per row, which would
+     * add about a quarter to a scan the index cannot shorten. A key absent
+     * from the window (each prefix of a key being typed after `@`, a typo)
+     * then costs an index probe instead of a day of attribute maps, and a
+     * rare key reads only the granules that hold it.
+     */
+    if (data.source.attributeKeysColumn) {
+      statement.append(
+        SQL`
+        AND indexHint(has(${data.source.attributeKeysColumn}, ${{
+          type: TableColumnType.Text,
+          value: data.attributeKey,
+        }}))`,
+      );
+    }
+
+    /*
+     * mapContains() rather than `[key] != ''`: queried through a Distributed
+     * table, the subscript form drops the map after PREWHERE and ClickHouse
+     * then sizes read blocks by the small value column alone, which took
+     * about ten times the memory for the same scan.
+     */
+    statement.append(
+      SQL`
         AND mapContains(${data.source.attributesColumn}, ${{
           type: TableColumnType.Text,
           value: data.attributeKey,
-        }})`;
+        }})`,
+    );
 
     if (data.metricName) {
       statement.append(
@@ -594,8 +623,8 @@ export class TelemetryAttributeService {
     /*
      * Case-insensitive substring filter so the value autocomplete keeps
      * narrowing server-side as the user types. Without it only the first
-     * ATTRIBUTE_VALUES_LIMIT values (alphabetically) are ever reachable,
-     * which hides matches on high-cardinality keys (host.name, url, ...).
+     * ATTRIBUTE_VALUES_LIMIT values found are ever reachable, which hides
+     * matches on high-cardinality keys (host.name, url, ...).
      * Mirrors the ILIKE idiom used for bodySearchText / nameSearchText.
      *
      * The typed text is escaped so `%` and `_` narrow rather than widen —
@@ -616,9 +645,17 @@ export class TelemetryAttributeService {
       );
     }
 
+    /*
+     * No ORDER BY: DISTINCT ... LIMIT stops reading once it has
+     * ATTRIBUTE_VALUES_LIMIT values, where sorting first means reading every
+     * row in the window to find the alphabetically first ones — a full day
+     * of attribute maps for a key like url.path, each time the picker opens.
+     * fetchAttributeValuesFromDatabase sorts what comes back. A key with
+     * more values than the limit offers whichever were found first; the
+     * search text narrows to the rest.
+     */
     statement.append(
       SQL`
-      ORDER BY attributeValue ASC
       LIMIT ${{
         type: TableColumnType.Number,
         value: TelemetryAttributeService.ATTRIBUTE_VALUES_LIMIT,
@@ -656,7 +693,7 @@ export class TelemetryAttributeService {
 
     const rows: Array<JSONObject> = response.data || [];
 
-    return rows
+    const values: Array<string> = rows
       .map((row: JSONObject) => {
         const val: unknown = row["attributeValue"];
         return typeof val === "string" ? val.trim() : null;
@@ -664,6 +701,14 @@ export class TelemetryAttributeService {
       .filter((val: string | null): val is string => {
         return Boolean(val);
       });
+
+    /*
+     * Sorted here rather than in the query (see
+     * buildAttributeValuesStatement); code-unit order matches the byte order
+     * ClickHouse sorted ASCII values by. Trimming can make two stored values
+     * equal, hence the Set.
+     */
+    return Array.from(new Set(values)).sort();
   }
 
   private static buildMutableMetricAttributesStatement(data: {
