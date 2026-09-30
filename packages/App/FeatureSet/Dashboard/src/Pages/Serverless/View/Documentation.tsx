@@ -14,8 +14,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getServerlessDocMarkdown } from "../../../Components/TelemetryResource/documentationMarkdown";
+import ServerlessDocumentationCard from "../../../Components/Serverless/ServerlessDocumentationCard";
 
 const ServerlessFunctionDocumentation: FunctionComponent<
   PageComponentProps
@@ -36,6 +35,7 @@ const ServerlessFunctionDocumentation: FunctionComponent<
         select: {
           name: true,
           functionIdentifier: true,
+          cloudPlatform: true,
         },
       });
       setServerlessFunction(item);
@@ -70,10 +70,11 @@ const ServerlessFunctionDocumentation: FunctionComponent<
 
   return (
     <Fragment>
-      <ResourceDocumentationCard
+      <ServerlessDocumentationCard
         title="Send telemetry to this serverless function"
         description={`Instrument your function with OpenTelemetry so ${label} reports to OneUptime.`}
-        buildMarkdown={getServerlessDocMarkdown}
+        functionName={serverlessFunction.functionIdentifier as string}
+        cloudPlatform={serverlessFunction.cloudPlatform as string}
       />
     </Fragment>
   );
