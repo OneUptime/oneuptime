@@ -669,6 +669,117 @@ test.describe("writing a note", () => {
       "- alpha\n- beta gamma",
     );
   });
+
+  /*
+   * A list pasted into a list item went in by hand and stayed inside the
+   * item, as a code block pasted there does: pasted into the bullet Enter
+   * starts, it was a list nested in an empty item, posted as
+   * "- first\n- - restart api" -- the double bullets of issue #4114.
+   */
+  test("a list pasted into a new bullet is posted as items of the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await composer.getByTitle("Bullet List").click();
+    await page.keyboard.type("first");
+    await page.keyboard.press("Enter");
+
+    // The paste event a real paste of that text delivers to the editor.
+    const pasted: boolean = await composer
+      .locator('[contenteditable="true"]')
+      .evaluate((editable: HTMLElement): boolean => {
+        const data: DataTransfer = new DataTransfer();
+        data.setData("text/plain", "- restart api\n- check logs");
+        const event: ClipboardEvent = new ClipboardEvent("paste", {
+          clipboardData: data,
+          bubbles: true,
+          cancelable: true,
+        });
+        editable.dispatchEvent(event);
+        return event.defaultPrevented;
+      });
+    expect(pasted).toBe(true);
+    await expect(
+      composer.locator('[contenteditable="true"] li li'),
+    ).toHaveCount(0);
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "check logs")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "- first\n- restart api\n- check logs",
+    );
+  });
+
+  /*
+   * The Code Block button puts its block in by hand, and the code typed into
+   * it is the browser's own edit. Ctrl+Z undid that typing, and the next
+   * Ctrl+Z went to the browser's next entry: the "Run:" typed before the
+   * block was deleted and the block stayed. Now the block goes, then "Run:".
+   */
+  test("Ctrl+Z takes back a code block after the code typed into it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    const editable: Locator = composer.locator('[contenteditable="true"]');
+    await page.keyboard.type("Run:");
+    await composer.getByTitle("Code Block").click();
+    await page.keyboard.type("npm ci");
+
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(editable.locator("pre")).toHaveText("code block");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(editable.locator("pre")).toHaveCount(0);
+    await expect(editable).toHaveText("Run:");
+
+    // The caret is back after "Run:": what is typed next goes on after it.
+    await page.keyboard.type(" now");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "Run: now")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe("Run: now");
+  });
+
+  /*
+   * The arrow keys leave the caret inside a bold word at its very end. The
+   * line split there for the code block copied the <b> into the second half
+   * with nothing in it, which nothing showed and the note posted as
+   * "**** then check".
+   */
+  test("a code block started right after a bold word posts no stray asterisks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run ");
+    await page.keyboard.press("ControlOrMeta+b");
+    await page.keyboard.type("this");
+    await page.keyboard.press("ControlOrMeta+b");
+    await page.keyboard.type(" then check");
+    for (let step: number = 0; step < " then check".length; step++) {
+      await page.keyboard.press("ArrowLeft");
+    }
+
+    await composer.getByTitle("Code Block").click();
+    await page.keyboard.type("npm ci");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "then check")).toHaveCount(1);
+    const note: string = String(
+      (await fixture(page)).creates[0]!.data!["note"],
+    );
+    expect(note).not.toContain("****");
+    expect(note).toMatch(
+      /^Run \*\*this\*\*\n```\nnpm ci\n```\n\n\s?then check$/,
+    );
+  });
 });
 
 /*
