@@ -457,7 +457,7 @@ describe("ChatAgentRunner.runTurn — run-scoped tools", () => {
       "ClickHouse uses the most memory [C1].",
     );
     expect(
-      (final?.["citations"] as Array<AIChatCitation>).map(
+      (final?.["citations"] as unknown as Array<AIChatCitation>).map(
         (citation: AIChatCitation) => {
           return citation.label;
         },
