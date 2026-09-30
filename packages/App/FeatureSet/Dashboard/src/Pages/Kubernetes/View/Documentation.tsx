@@ -61,15 +61,14 @@ const KubernetesClusterDocumentation: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const clusterName: string =
-    cluster.clusterIdentifier || cluster.name || "my-cluster";
+  const clusterName: string = cluster.clusterIdentifier || cluster.name || "";
 
   return (
     <Fragment>
       <KubernetesDocumentationCard
         clusterName={clusterName}
         title="Agent Installation Guide"
-        description="Follow these steps to install the OneUptime Kubernetes Agent on your cluster."
+        description="Install or reconfigure the OneUptime Kubernetes agent on this cluster. Pick where the cluster runs, then follow the steps."
       />
     </Fragment>
   );
