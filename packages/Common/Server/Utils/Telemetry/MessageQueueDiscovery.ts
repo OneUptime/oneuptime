@@ -12,12 +12,11 @@ import {
   MessageQueueMetricDescriptor,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
-  MESSAGING_SYSTEMS,
-  MessagingSystemDescriptor,
   getMessagingBrokerMetricsSource,
   getMoreSpecificMessagingSystem,
 } from "../../../Types/MessageQueue/MessagingSystem";
 import {
+  AZURE_MESSAGING_PROVIDER_NAMESPACES,
   AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
   AttributeGetter,
   MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
@@ -25,7 +24,6 @@ import {
   MESSAGING_TRIGGER_ATTRIBUTES,
   MessagingDirection,
   ResolvedMessagingDestination,
-  hasMessagingTrigger,
   resolveMessagingMetricDatapoint,
   resolveMessagingSpan,
 } from "../../../Types/MessageQueue/MessagingTelemetryResolver";
@@ -105,7 +103,10 @@ const METRIC_TABLE: string = `oneuptime.${AnalyticsTableName.Metric}`;
  * So the query leaves out this kind alone, and
  * resolveMessagingSpanDiscoveryRows runs the core's resolver again, which
  * refuses any other spelling of SERVER and reads a kind it does not know
- * as no kind — exactly as ingest did.
+ * as no kind — exactly as ingest did. That includes OTLP's number: a
+ * mapping saved through the API may write the NUMBER 2, which the stamper
+ * sees and the kind column keeps as the text "2", and the core reads both
+ * as SERVER.
  */
 export const MESSAGE_QUEUE_DISCOVERY_EXCLUDED_SPAN_KIND: SpanKind =
   SpanKind.Server;
@@ -154,30 +155,6 @@ export const MESSAGE_QUEUE_LATE_METRIC_NAMES: ReadonlyArray<string> =
       },
     ).map((descriptor: MessageQueueMetricDescriptor): string => {
       return descriptor.metricName;
-    }),
-  );
-
-/*
- * The Azure resource provider namespaces that make `az.namespace` /
- * `azure.resource_provider.namespace` a messaging trigger — Service Bus's
- * and Event Hubs'. The Azure SDKs stamp those keys on EVERY client span
- * (Storage, Key Vault and Cosmos DB as much as Service Bus), so the core's
- * trigger check admits them only for these values, and so must the span
- * query's prefilter, or every Azure SDK span of the window would compete for
- * the row cap. The core keeps the values private to that check, so they are
- * found by asking the check itself (hasMessagingTrigger) about every name
- * the messaging catalog knows: the query can admit no other set than ingest.
- */
-export const AZURE_MESSAGING_PROVIDER_NAMESPACES: ReadonlyArray<string> =
-  uniqueSorted(
-    MESSAGING_SYSTEMS.flatMap(
-      (descriptor: MessagingSystemDescriptor): Array<string> => {
-        return [descriptor.system, ...descriptor.aliases];
-      },
-    ).filter((name: string): boolean => {
-      return AZURE_RESOURCE_PROVIDER_ATTRIBUTES.some((key: string): boolean => {
-        return hasMessagingTrigger({ [key]: name });
-      });
     }),
   );
 
@@ -259,13 +236,18 @@ function rowCap(maxRows: number): number {
 /*
  * The span-side twin of hasMessagingTrigger, applied after the bloom-indexed
  * presence check on every trigger key: the presence of any other trigger
- * key, or an Azure provider key that names a messaging provider. A SUPERSET
- * of the core's check, so no span ingest keys a queue on is ever left out:
- * ClickHouse's trimBoth() trims spaces only, where the core trims every
- * whitespace character before comparing, so the value is searched for the
- * namespace case-insensitively instead of compared whole. Anything extra it
- * lets through (a value merely containing a namespace) resolves to no queue
- * in resolveMessagingSpanDiscoveryRows, which runs the core's check again.
+ * key, or an Azure provider key that names a messaging provider. The Azure
+ * SDKs stamp those keys on EVERY client span (Storage, Key Vault and Cosmos
+ * DB as much as Service Bus), so without the value condition every Azure SDK
+ * span of the window would compete for the row cap. The namespaces are the
+ * core's own list (AZURE_MESSAGING_PROVIDER_NAMESPACES, the values its
+ * trigger check admits), never a copy. A SUPERSET of the core's check, so no
+ * span ingest keys a queue on is ever left out: ClickHouse's trimBoth()
+ * trims spaces only, where the core trims every whitespace character before
+ * comparing, so the value is searched for the namespace case-insensitively
+ * instead of compared whole. Anything extra it lets through (a value merely
+ * containing a namespace) resolves to no queue in
+ * resolveMessagingSpanDiscoveryRows, which runs the core's check again.
  */
 function spanTriggerSql(): string {
   const providerChecks: Array<string> = AZURE_RESOURCE_PROVIDER_ATTRIBUTES.map(

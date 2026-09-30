@@ -109,6 +109,29 @@ export const AZURE_RESOURCE_PROVIDER_ATTRIBUTES: ReadonlyArray<string> = [
 ];
 
 /*
+ * The resource provider namespaces, among those keys' values, that name a
+ * messaging service — Service Bus's and Event Hubs' — and the system each
+ * one is. Compared trimmed and lowercased.
+ */
+const AZURE_PROVIDER_SYSTEMS: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>([
+  ["microsoft.servicebus", "servicebus"],
+  ["microsoft.eventhub", "eventhubs"],
+]);
+
+/**
+ * Those namespaces, lowercase and sorted: the only values that make an Azure
+ * resource provider key a messaging trigger (see isTriggerValue). The
+ * discovery cron's span query admits a span on those keys for exactly these
+ * values, so it reads the Azure SDK spans ingest keys, and not the Storage,
+ * Key Vault or Cosmos DB spans that carry the same keys.
+ */
+export const AZURE_MESSAGING_PROVIDER_NAMESPACES: ReadonlyArray<string> =
+  Array.from(AZURE_PROVIDER_SYSTEMS.keys()).sort();
+
+/*
  * The Azure SDKs' legacy DiagnosticSource mode names the service in
  * `component`, next to `message_bus.destination` and `peer.address`.
  */
@@ -418,7 +441,8 @@ function isNonBlankValue(value: unknown): boolean {
 }
 
 /*
- * The text a value is stored as in ClickHouse's Map(String, String): a
+ * The text a value is stored as in a ClickHouse String column — an
+ * attribute map's values (Map(String, String)) and the span kind alike: a
  * string as it is, a number or boolean as its String() form, an array as
  * its JSON text — so an ingest-time row (typed values) and the same row read
  * back from the table (strings) resolve alike. Anything else is absent.
@@ -475,7 +499,8 @@ function readFirstText(
  * resolve for a guaranteed "no queue": about 1 µs a row against 0.07 µs for
  * plain HTTP in the ingest benchmark. The comparison is resolveSystem's own
  * (stored text, trimmed, lowercased), so the gate never refuses a span the
- * resolver would place, and the discovery SQL applies the same condition.
+ * resolver would place, and the discovery SQL admits the same values
+ * (AZURE_MESSAGING_PROVIDER_NAMESPACES).
  */
 const AZURE_RESOURCE_PROVIDER_TRIGGERS: ReadonlySet<string> = new Set<string>(
   AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
@@ -560,7 +585,7 @@ type SpanKindName = "INTERNAL" | "SERVER" | "CLIENT" | "PRODUCER" | "CONSUMER";
 
 /*
  * The stored SpanKind strings ("SPAN_KIND_PRODUCER", …), the bare names,
- * and OTLP's integers (1 internal … 5 consumer). Compared as literals: the
+ * and OTLP's numbers (1 internal … 5 consumer). Compared as literals: the
  * SpanKind enum lives in the Span analytics model, which a Types module does
  * not pull in (the tests pin the two against each other).
  */
@@ -588,14 +613,46 @@ const SPAN_KIND_BY_OTLP_NUMBER: ReadonlyMap<number, SpanKindName> = new Map<
 
 const SPAN_KIND_PREFIX: string = "SPAN_KIND_";
 
-function normalizeSpanKind(kind: unknown): SpanKindName | null {
-  if (typeof kind === "number") {
-    return SPAN_KIND_BY_OTLP_NUMBER.get(kind) || null;
+// One or more ASCII digits, and nothing else.
+function isAsciiDigits(value: string): boolean {
+  if (value.length === 0) {
+    return false;
   }
-  if (typeof kind !== "string") {
+  for (let index: number = 0; index < value.length; index++) {
+    const code: number = value.charCodeAt(index);
+    if (code < 0x30 || code > 0x39) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+ * A span's kind, read from the text ClickHouse keeps for it (storedText),
+ * so that the stamper, which sees the value a row carries, and the
+ * discovery cron, which reads the kind column back, read every kind alike.
+ * The two can differ: ingest stores the SpanKind string, but a trace
+ * pipeline's Span Kind Remapper writes its mapping's kind as it is, and a
+ * configuration saved through the API may hold a NUMBER. The stamper then
+ * sees 2 while the column keeps the JSON text "2"; read as a name, "2"
+ * would be no kind, and the cron would create a queue for SERVER spans
+ * ingest never keyed. So a trimmed run of ASCII digits is the OTLP number
+ * it names, read as Number() reads it: leading zeros count for nothing
+ * ("02" is 2, SERVER, as OtelTracesIngestService.mapSpanKind's parseInt
+ * reads an OTLP kind). Any other text is a name ("SPAN_KIND_" optional, any
+ * case). A number OTLP does not define, and numeric text that is not plain
+ * digits ("-2", "2.5", "+2", "1e+21"), is no kind.
+ */
+function normalizeSpanKind(kind: unknown): SpanKindName | null {
+  const text: string | null = storedText(kind);
+  if (text === null) {
     return null;
   }
-  let name: string = kind.trim().toUpperCase();
+  const trimmed: string = text.trim();
+  if (isAsciiDigits(trimmed)) {
+    return SPAN_KIND_BY_OTLP_NUMBER.get(Number(trimmed)) || null;
+  }
+  let name: string = trimmed.toUpperCase();
   if (name.startsWith(SPAN_KIND_PREFIX)) {
     name = name.substring(SPAN_KIND_PREFIX.length);
   }
@@ -603,14 +660,6 @@ function normalizeSpanKind(kind: unknown): SpanKindName | null {
 }
 
 // ---- system ------------------------------------------------------------------
-
-const AZURE_PROVIDER_SYSTEMS: ReadonlyMap<string, string> = new Map<
-  string,
-  string
->([
-  ["microsoft.servicebus", "servicebus"],
-  ["microsoft.eventhub", "eventhubs"],
-]);
 
 const AZURE_LEGACY_COMPONENT_SYSTEMS: ReadonlyMap<string, string> = new Map<
   string,
@@ -1988,12 +2037,14 @@ function resolveFromAttributes(
  * on, or null. SERVER spans never resolve (a messaging operation is never
  * served), and neither does a span with no messaging trigger — checked
  * first, without allocating, so this is cheap on every span. `kind` is the
- * stored SpanKind string ("SPAN_KIND_PRODUCER"; the bare name and OTLP's
- * integer are accepted too); it only decides the direction.
+ * span's kind as stored: the SpanKind string ("SPAN_KIND_PRODUCER"), or
+ * whatever a Span Kind Remapper wrote — a bare name, or OTLP's number as a
+ * number or as its digits, read alike (see normalizeSpanKind). SERVER is
+ * refused in every spelling; any other kind only decides the direction.
  */
 export function resolveMessagingSpan(input: {
   getAttribute: AttributeGetter;
-  kind?: string | null | undefined;
+  kind?: string | number | null | undefined;
 }): ResolvedMessagingDestination | null {
   if (!input || typeof input.getAttribute !== "function") {
     return null;

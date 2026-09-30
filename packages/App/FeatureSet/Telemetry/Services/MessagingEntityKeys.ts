@@ -294,11 +294,14 @@ export default class MessagingEntityKeyResolver {
             return record[key];
           },
           /*
-           * The stored SpanKind string ("SPAN_KIND_PRODUCER"); the resolver
-           * reads it for the direction, which also decides how a RabbitMQ
-           * consumer's joined name splits — hence part of the memo key.
+           * The stored SpanKind string ("SPAN_KIND_PRODUCER"), or whatever a
+           * Span Kind Remapper wrote — a number too, which the resolver
+           * reads as the text ClickHouse will store for it, exactly as the
+           * discovery cron reads it back. The resolver reads it for the
+           * direction, which also decides how a RabbitMQ consumer's joined
+           * name splits — hence part of the memo key.
            */
-          kind: kind as string | null | undefined,
+          kind: kind as string | number | null | undefined,
         });
       });
     } catch (error) {

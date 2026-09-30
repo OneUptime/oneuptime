@@ -1,4 +1,5 @@
 import {
+  AZURE_MESSAGING_PROVIDER_NAMESPACES,
   AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
   hasMessagingTrigger,
   isTemporaryMessagingDestination,
@@ -21,6 +22,10 @@ import {
   SNS_TOPIC_ARN_ATTRIBUTES,
   SQS_QUEUE_URL_ATTRIBUTES,
 } from "../../../Types/MessageQueue/MessagingTelemetryResolver";
+import {
+  MESSAGING_SYSTEMS,
+  MessagingSystemDescriptor,
+} from "../../../Types/MessageQueue/MessagingSystem";
 import { SpanKind } from "../../../Models/AnalyticsModels/Span";
 import {
   CLIENT,
@@ -28,11 +33,14 @@ import {
   destinationOf,
   FixtureAttributes,
   INTERNAL,
+  NUMERIC_SPAN_KIND_CASES,
+  NumericSpanKindCase,
   PRODUCER,
   SERVER,
   SPAN_FIXTURES,
   SpanFixture,
   toStoredColumns,
+  toStoredKind,
 } from "./MessagingTelemetryFixtures";
 import { describe, expect, test } from "@jest/globals";
 
@@ -447,6 +455,155 @@ describe("span kind", () => {
         },
       }),
     ).toEqual(destinationOf({ system: "kafka", destination: "orders" }));
+  });
+
+  /*
+   * Spans on which the kind changes the answer: a plain Kafka span's
+   * direction; a RabbitMQ joined name, which a consumer splits to its queue
+   * and anything else to its exchange; and confluent-kafka's legacy
+   * "receive" on its producer spans, which only a PRODUCER kind outranks.
+   */
+  const KIND_SENSITIVE_SPANS: ReadonlyArray<FixtureAttributes> = [
+    KAFKA_SEND,
+    {
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "direct_logs:warning",
+      "messaging.rabbitmq.destination.routing_key": "warning",
+    },
+    {
+      "messaging.system": "kafka",
+      "messaging.destination.name": "orders",
+      "messaging.operation": "receive",
+    },
+  ];
+
+  // Any value as the kind: a remapper's configuration is any JSON.
+  function resolveKindSensitiveSpans(
+    kind: unknown,
+  ): Array<ResolvedMessagingDestination | null> {
+    return KIND_SENSITIVE_SPANS.map(
+      (attributes: FixtureAttributes): ResolvedMessagingDestination | null => {
+        return resolveMessagingSpan({
+          getAttribute: (key: string): unknown => {
+            return attributes[key];
+          },
+          kind: kind as string | number | null | undefined,
+        });
+      },
+    );
+  }
+
+  test("those spans tell SERVER, PRODUCER, CONSUMER and every other kind apart", () => {
+    const answers: (kind: string | null) => string = (
+      kind: string | null,
+    ): string => {
+      return JSON.stringify(resolveKindSensitiveSpans(kind));
+    };
+    expect(
+      new Set<string>([SERVER, PRODUCER, CONSUMER, INTERNAL].map(answers)).size,
+    ).toBe(4);
+    // The resolver reads INTERNAL, CLIENT and no kind alike.
+    expect(answers(CLIENT)).toBe(answers(INTERNAL));
+    expect(answers(null)).toBe(answers(INTERNAL));
+    expect(resolveKindSensitiveSpans(SERVER)).toEqual([null, null, null]);
+  });
+
+  test("the numeric kind cases are unique, and name every OTLP kind as a number and as its digits", () => {
+    const seen: Set<string> = new Set<string>();
+    for (const { kind } of NUMERIC_SPAN_KIND_CASES) {
+      const token: string = `${typeof kind}:${String(kind)}`;
+      expect(seen.has(token)).toBe(false);
+      seen.add(token);
+    }
+    for (let number: number = 1; number <= 5; number++) {
+      expect(seen.has(`number:${number}`)).toBe(true);
+      expect(seen.has(`string:${number}`)).toBe(true);
+    }
+  });
+
+  test.each(
+    NUMERIC_SPAN_KIND_CASES.map(
+      (entry: NumericSpanKindCase): [number | string, string | null] => {
+        return [entry.kind, entry.reads];
+      },
+    ),
+  )(
+    "a Span Kind Remapper's %j (a number, or a trimmed run of digits read as Number() reads it) resolves as %s does",
+    (kind: number | string, reads: string | null) => {
+      expect(resolveKindSensitiveSpans(kind)).toEqual(
+        resolveKindSensitiveSpans(reads),
+      );
+    },
+  );
+
+  test('"2", " 2 " and "02" are SERVER exactly like 2: no queue', () => {
+    for (const kind of [2, "2", " 2 ", "02", "0000002"]) {
+      expect({ kind, resolved: resolveKindSensitiveSpans(kind) }).toEqual({
+        kind,
+        resolved: [null, null, null],
+      });
+    }
+  });
+
+  test("a kind resolves alike as the value ingest hands over and as the text ClickHouse keeps for it", () => {
+    const values: Array<unknown> = [
+      ...NUMERIC_SPAN_KIND_CASES.map((entry: NumericSpanKindCase): unknown => {
+        return entry.kind;
+      }),
+      SERVER,
+      PRODUCER,
+      CONSUMER,
+      CLIENT,
+      INTERNAL,
+      "SPAN_KIND_UNSPECIFIED",
+      "server",
+      " Producer ",
+      "",
+      "   ",
+      null,
+      undefined,
+      // Numbers JSON cannot write are stored NULL.
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      -0,
+      0.5,
+      4.000000000000001,
+      Number.MIN_VALUE,
+      Number.MAX_SAFE_INTEGER,
+      2 ** 60,
+      true,
+      false,
+      [2],
+      ["SPAN_KIND_SERVER"],
+      {},
+      { kind: 2 },
+      // Whitespace trim() removes, around digits.
+      `2${String.fromCharCode(0xa0)}`,
+      `${String.fromCharCode(0xfeff)}4${String.fromCharCode(0x3000)}`,
+      "\t5\n",
+      // Digits of other scripts, and other numerals: names, and no kind's.
+      String.fromCharCode(0x662),
+      String.fromCharCode(0xff12),
+      "0x2",
+      "0b10",
+      "2n",
+      "2 2",
+      "Infinity",
+      "NaN",
+      `${"0".repeat(400)}2`,
+      "9".repeat(400),
+    ];
+
+    for (const value of values) {
+      expect({
+        value,
+        resolved: resolveKindSensitiveSpans(value),
+      }).toEqual({
+        value,
+        resolved: resolveKindSensitiveSpans(toStoredKind(value)),
+      });
+    }
   });
 });
 
@@ -2119,6 +2276,85 @@ describe("hasMessagingTrigger", () => {
       expect(hasMessagingTrigger({ [key]: value })).toBe(expected);
     },
   );
+
+  test("AZURE_MESSAGING_PROVIDER_NAMESPACES: Service Bus's and Event Hubs' namespaces, lowercase and sorted, each resolving to its system", () => {
+    expect(AZURE_MESSAGING_PROVIDER_NAMESPACES).toEqual([
+      "microsoft.eventhub",
+      "microsoft.servicebus",
+    ]);
+    const systems: Record<string, string> = {
+      "microsoft.eventhub": "eventhubs",
+      "microsoft.servicebus": "servicebus",
+    };
+
+    for (const namespace of AZURE_MESSAGING_PROVIDER_NAMESPACES) {
+      expect(namespace).toBe(namespace.trim().toLowerCase());
+      for (const key of AZURE_PROVIDER_KEYS) {
+        for (const spelling of [
+          namespace,
+          namespace.toUpperCase(),
+          ` ${namespace}\t`,
+        ]) {
+          expect(hasMessagingTrigger({ [key]: spelling })).toBe(true);
+          expect(
+            resolveSpan(
+              { [key]: spelling, "messaging.destination.name": "orders" },
+              PRODUCER,
+            )?.system,
+          ).toBe(systems[namespace]);
+        }
+      }
+    }
+  });
+
+  test("an Azure provider value is a trigger exactly when its trimmed, lowercased text is in AZURE_MESSAGING_PROVIDER_NAMESPACES", () => {
+    const padding: string = `${String.fromCharCode(0xa0)}${String.fromCharCode(
+      0xfeff,
+    )}${String.fromCharCode(0x3000)}`;
+    const names: Array<string> = [
+      // Every name the messaging catalog knows, aliases included.
+      ...MESSAGING_SYSTEMS.flatMap(
+        (descriptor: MessagingSystemDescriptor): Array<string> => {
+          return [descriptor.system, ...descriptor.aliases];
+        },
+      ),
+      "Microsoft.ServiceBus",
+      "Microsoft.EventHub",
+      // Other Azure SDK clients, and near misses.
+      "Microsoft.Storage",
+      "Microsoft.KeyVault",
+      "Microsoft.DocumentDB",
+      "Microsoft.EventGrid",
+      "Microsoft.EventHubs",
+      "Microsoft.ServiceBus/namespaces",
+      "Microsoft.Service Bus",
+      "xMicrosoft.EventHub",
+      "Microsoft",
+      "",
+    ];
+    const probes: Array<string> = names.flatMap(
+      (name: string): Array<string> => {
+        return [name, name.toUpperCase(), `${padding}${name}${padding}`];
+      },
+    );
+
+    let admitted: number = 0;
+    for (const key of AZURE_PROVIDER_KEYS) {
+      for (const probe of probes) {
+        const listed: boolean = AZURE_MESSAGING_PROVIDER_NAMESPACES.includes(
+          probe.trim().toLowerCase(),
+        );
+        admitted += listed ? 1 : 0;
+        expect({
+          key,
+          probe,
+          trigger: hasMessagingTrigger({ [key]: probe }),
+        }).toEqual({ key, probe, trigger: listed });
+      }
+    }
+    // The probe reaches both namespaces through both keys: not vacuous.
+    expect(admitted).toBeGreaterThanOrEqual(2 * AZURE_PROVIDER_KEYS.length * 3);
+  });
 
   test("an Azure SDK span of a non-messaging client never resolves, and the gate refuses it", () => {
     for (const provider of [

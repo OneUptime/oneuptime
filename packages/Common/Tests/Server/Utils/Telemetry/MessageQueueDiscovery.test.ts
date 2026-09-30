@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
-  AZURE_MESSAGING_PROVIDER_NAMESPACES,
   DEFAULT_MESSAGE_QUEUE_MIN_SPANS,
   DiscoveredMessageQueue,
   MESSAGE_QUEUE_DISCOVERY_EXCLUDED_SPAN_KIND,
@@ -32,6 +31,7 @@ import { DATABASE_ENDPOINT_SQL_MARKER } from "../../../../Server/Utils/Telemetry
 import { QUERY_SETTINGS } from "../../../../Server/Utils/Telemetry/ServiceDependencyDiscovery";
 import { SpanKind, SpanStatus } from "../../../../Models/AnalyticsModels/Span";
 import {
+  AZURE_MESSAGING_PROVIDER_NAMESPACES,
   AZURE_RESOURCE_PROVIDER_ATTRIBUTES,
   MESSAGE_QUEUE_METRIC_EXCLUDED_SERIES_ATTRIBUTES,
   MESSAGING_METRIC_RESOLVER_INPUT_ATTRIBUTES,
@@ -58,9 +58,11 @@ import {
   FixtureAttributes,
   METRIC_FIXTURES,
   MetricFixture,
+  NUMERIC_SPAN_KIND_CASES,
   SPAN_FIXTURES,
   SpanFixture,
   toStoredColumns,
+  toStoredKind,
 } from "../../../Types/MessageQueue/MessagingTelemetryFixtures";
 
 /*
@@ -377,6 +379,55 @@ describe("buildMessagingSpanDiscoverySql", () => {
     expect(atIngest?.direction).toBe("consume");
     expect(identifiers(queues)).toEqual([identifierOf(atIngest)]);
     expect(queues[0]!.spans?.directions.consume).toBe(5);
+  });
+
+  test('a numeric kind a Span Kind Remapper wrote: its stored text resolves as ingest resolved the value, so "2" and "02" are SERVER like 2', () => {
+    // ClickHouse's `ifNull(kind, '') != 'SPAN_KIND_SERVER'`, as TypeScript.
+    const read: (kind: string | null) => boolean = (
+      kind: string | null,
+    ): boolean => {
+      return (kind ?? "") !== MESSAGE_QUEUE_DISCOVERY_EXCLUDED_SPAN_KIND;
+    };
+    const spans: ReadonlyArray<FixtureAttributes> = [
+      KAFKA_ORDERS,
+      // A joined name: a consumer names the queue, anything else the exchange.
+      {
+        "messaging.system": "rabbitmq",
+        "messaging.destination.name": "direct_logs:warning",
+        "messaging.rabbitmq.destination.routing_key": "warning",
+      },
+    ];
+
+    for (const { kind, reads } of NUMERIC_SPAN_KIND_CASES) {
+      // What the kind column keeps: a number's JSON text, a string as is.
+      const stored: string | null = toStoredKind(kind);
+      expect(stored).toBe(typeof kind === "number" ? String(kind) : kind);
+      // The query reads every one of them: it leaves out SPAN_KIND_SERVER alone.
+      expect({ kind, read: read(stored) }).toEqual({ kind, read: true });
+
+      for (const attributes of spans) {
+        const atIngest: ResolvedMessagingDestination | null =
+          resolveMessagingSpan({
+            getAttribute: getterOf(attributes),
+            kind: kind,
+          });
+        const queues: Array<DiscoveredMessageQueue> =
+          resolveMessagingSpanDiscoveryRows([spanRow(stored, attributes)]);
+        const identifier: string | null = identifierOf(atIngest);
+
+        expect({ kind, keyed: atIngest !== null }).toEqual({
+          kind,
+          keyed: reads !== SpanKind.Server,
+        });
+        expect({ kind, queues: identifiers(queues) }).toEqual({
+          kind,
+          queues: identifier ? [identifier] : [],
+        });
+        if (atIngest) {
+          expect(queues[0]!.spans?.directions[atIngest.direction]).toBe(5);
+        }
+      }
+    }
   });
 
   test("selects exactly the attributes resolveMessagingSpan reads, one column each, in list order", () => {

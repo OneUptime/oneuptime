@@ -16,7 +16,10 @@ import OtelTracesIngestService from "../../FeatureSet/Telemetry/Services/OtelTra
 import OtelMetricsIngestService from "../../FeatureSet/Telemetry/Services/OtelMetricsIngestService";
 import TraceDropFilterService from "../../FeatureSet/Telemetry/Services/TraceDropFilterService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
-import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipelineService";
+import TracePipelineService, {
+  LoadedTracePipeline,
+} from "../../FeatureSet/Telemetry/Services/TracePipelineService";
+import { compileFilter } from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
 import LlmModelPriceService from "../../FeatureSet/Telemetry/Services/LlmModelPriceService";
 import MetricPipelineRuleService, {
   MetricRulesForProject,
@@ -26,6 +29,11 @@ import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIn
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
+import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
+import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
+import TracePipelineProcessorType, {
+  SpanKindRemapperConfig,
+} from "Common/Types/Trace/TracePipelineProcessorType";
 import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
 import {
   MetricPipelineRuleFilterCheckOn,
@@ -33,6 +41,17 @@ import {
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
 import { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import * as MessagingTelemetryResolverModule from "Common/Types/MessageQueue/MessagingTelemetryResolver";
+import { MESSAGING_RESOLVER_INPUT_ATTRIBUTES } from "Common/Types/MessageQueue/MessagingTelemetryResolver";
+import {
+  DiscoveredMessageQueue,
+  MessagingSpanDiscoveryRow,
+  getMessagingDiscoveryColumn,
+  resolveMessagingSpanDiscoveryRows,
+} from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
+import {
+  toStoredColumns,
+  toStoredKind,
+} from "Common/Tests/Types/MessageQueue/MessagingTelemetryFixtures";
 import {
   MessageQueueIdentity,
   toMessageQueueIdentity,
@@ -840,6 +859,130 @@ describe("traces: per-span queue keys", () => {
       ...RESOURCE_KEYS,
       queueKey("kafka", "orders-v2"),
     ]);
+  });
+
+  test('a Span Kind Remapper that writes a number: the stamper reads it as the cron will read the stored text, so 2, "2" and "02" key nothing', async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+
+    /*
+     * The real remapper, as a configuration saved through the API holds it:
+     * the mapping's kind is any JSON, and it is written to the row as it is.
+     * Each Kafka topic below is remapped to its own kind.
+     */
+    const cases: Array<{
+      topic: string;
+      kind: number | string;
+      keyed: boolean;
+    }> = [
+      { topic: "server-by-number", kind: 2, keyed: false },
+      { topic: "server-by-digits", kind: "2", keyed: false },
+      { topic: "server-by-zero-padded-digits", kind: "02", keyed: false },
+      { topic: "producer-by-number", kind: 4, keyed: true },
+      { topic: "consumer-by-digits", kind: "5", keyed: true },
+      { topic: "no-kind-by-number", kind: 9, keyed: true },
+    ];
+    const config: SpanKindRemapperConfig = {
+      sourceKey: "messaging.destination.name",
+      mappings: cases.map(
+        (entry: {
+          topic: string;
+          kind: number | string;
+        }): { matchValue: string; kind: string } => {
+          return { matchValue: entry.topic, kind: entry.kind as string };
+        },
+      ),
+    };
+    const processor: TracePipelineProcessor = new TracePipelineProcessor();
+    processor.name = "Remap the span kind";
+    processor.processorType = TracePipelineProcessorType.SpanKindRemapper;
+    processor.configuration = config as unknown as JSONObject;
+    processor.isEnabled = true;
+    const pipeline: TracePipeline = new TracePipeline();
+    pipeline.name = "Messaging spans";
+    pipeline.isEnabled = true;
+    const pipelines: Array<LoadedTracePipeline> = [
+      {
+        pipeline: pipeline,
+        compiledFilter: compileFilter(""),
+        processors: [processor],
+      },
+    ];
+    jest
+      .spyOn(TracePipelineService, "loadPipelines")
+      .mockResolvedValue(pipelines);
+
+    const spanIdOf: (index: number) => string = (index: number): string => {
+      return `e5f60718293a4b${String(index).padStart(2, "0")}`;
+    };
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest([
+        {
+          spans: cases.map(
+            (entry: { topic: string }, index: number): SpanInput => {
+              return {
+                spanId: spanIdOf(index),
+                name: `${entry.topic} publish`,
+                kind: PRODUCER_KIND,
+                attributes: [
+                  stringAttribute("messaging.system", "kafka"),
+                  stringAttribute("messaging.destination.name", entry.topic),
+                ],
+              };
+            },
+          ),
+        },
+      ]),
+    );
+
+    cases.forEach(
+      (
+        entry: { topic: string; kind: number | string; keyed: boolean },
+        index: number,
+      ): void => {
+        const row: JSONObject = spanById(captured.spans, spanIdOf(index));
+        const key: string = queueKey("kafka", entry.topic);
+
+        // The stamper saw — and the insert carries — the kind as written.
+        expect(row["kind"]).toBe(entry.kind);
+        expect({ topic: entry.topic, entityKeys: row["entityKeys"] }).toEqual({
+          topic: entry.topic,
+          entityKeys: entry.keyed ? [...RESOURCE_KEYS, key] : RESOURCE_KEYS,
+        });
+
+        /*
+         * The discovery cron reads the row back with the kind column's text
+         * (2 is stored "2") and lands on exactly the key ingest stamped.
+         */
+        const stored: Record<string, string> = toStoredColumns(
+          row["attributes"] as JSONObject,
+          MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+        );
+        const queryRow: MessagingSpanDiscoveryRow = {
+          kind: toStoredKind(row["kind"]),
+          spanCount: "1",
+          errorCount: "0",
+          lastSeenUnixMs: String(START_MS),
+        };
+        MESSAGING_RESOLVER_INPUT_ATTRIBUTES.forEach(
+          (attribute: string, column: number): void => {
+            queryRow[getMessagingDiscoveryColumn(column)] = stored[attribute];
+          },
+        );
+        expect({
+          topic: entry.topic,
+          discovered: resolveMessagingSpanDiscoveryRows([queryRow]).map(
+            (queue: DiscoveredMessageQueue): string => {
+              return keyForMessageQueue(PROJECT_ID.toString(), queue.identity);
+            },
+          ),
+        }).toEqual({
+          topic: entry.topic,
+          discovered: entry.keyed ? [key] : [],
+        });
+      },
+    );
+    expectEveryResourceArrayUntouched();
   });
 
   test("a dropped span is never resolved; its surviving siblings are keyed", async () => {

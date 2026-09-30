@@ -39,9 +39,19 @@ import {
   FixtureAttributes,
   METRIC_FIXTURES,
   MetricFixture,
+  NUMERIC_SPAN_KIND_CASES,
+  NumericSpanKindCase,
   SPAN_FIXTURES,
   SpanFixture,
+  toStoredColumns,
+  toStoredKind,
 } from "Common/Tests/Types/MessageQueue/MessagingTelemetryFixtures";
+import {
+  DiscoveredMessageQueue,
+  MessagingSpanDiscoveryRow,
+  getMessagingDiscoveryColumn,
+  resolveMessagingSpanDiscoveryRows,
+} from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -116,7 +126,8 @@ function expectedKeyOf(
 }
 
 function spanRow(
-  kind: string | null,
+  // A number too: what a trace pipeline's Span Kind Remapper may write.
+  kind: string | number | null,
   attributes: Attributes,
   entityKeys: Array<string> = [...RESOURCE_KEYS],
 ): JSONObject {
@@ -650,6 +661,151 @@ describe("appending the key", () => {
     const before: Array<string> = Object.keys(row);
     expect(newResolver().appendToSpanRow(row)).toBe(true);
     expect(Object.keys(row)).toEqual(before);
+  });
+});
+
+/*
+ * ---- Numeric span kinds: ingest and discovery read them alike ---------------
+ *
+ * A trace pipeline's Span Kind Remapper writes its mapping's kind as it is,
+ * and a configuration saved through the API may hold a NUMBER: the stamper
+ * sees the number, while ClickHouse keeps its text ("2") for the discovery
+ * cron. OTLP's 2 is SERVER, so 2, "2" and "02" must all get no key here AND
+ * name no queue there; every other number must be keyed on exactly the
+ * queue the cron finds for its stored text.
+ */
+
+describe("numeric span kinds: the key ingest stamps is the queue discovery reads back", () => {
+  const KIND_SENSITIVE_SPANS: ReadonlyArray<Attributes> = [
+    { "messaging.system": "kafka", "messaging.destination.name": "orders" },
+    // A joined name: a consumer names the queue, anything else the exchange.
+    {
+      "messaging.system": "rabbitmq",
+      "messaging.destination.name": "direct_logs:warning",
+      "messaging.rabbitmq.destination.routing_key": "warning",
+    },
+  ];
+
+  /*
+   * The queue keys the discovery cron lands on for one stored span: the
+   * row its span query returns (the kind column's text, every input
+   * attribute as the attribute map keeps it), resolved as the cron does.
+   */
+  function discoveredKeys(
+    storedKind: string | null,
+    attributes: Attributes,
+  ): Array<string> {
+    const stored: Record<string, string> = toStoredColumns(
+      attributes,
+      MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+    );
+    const row: MessagingSpanDiscoveryRow = {
+      kind: storedKind,
+      spanCount: "1",
+      errorCount: "0",
+      lastSeenUnixMs: "1790243100123",
+    };
+    MESSAGING_RESOLVER_INPUT_ATTRIBUTES.forEach(
+      (key: string, index: number): void => {
+        row[getMessagingDiscoveryColumn(index)] = stored[key];
+      },
+    );
+    return resolveMessagingSpanDiscoveryRows([row]).map(
+      (queue: DiscoveredMessageQueue): string => {
+        return keyForMessageQueue(PROJECT_ID.toString(), queue.identity);
+      },
+    );
+  }
+
+  test.each(
+    NUMERIC_SPAN_KIND_CASES.map(
+      (entry: NumericSpanKindCase): [number | string, string | null] => {
+        return [entry.kind, entry.reads];
+      },
+    ),
+  )(
+    "a remapper's %j is keyed as the SpanKind it names (%s) and exactly as the cron reads its stored text",
+    (kind: number | string, reads: string | null) => {
+      for (const attributes of KIND_SENSITIVE_SPANS) {
+        const key: string | null = newResolver().getSpanEntityKey(
+          { ...attributes },
+          kind,
+        );
+
+        expect({ kind, keyed: key !== null }).toEqual({
+          kind,
+          keyed: reads !== SpanKind.Server,
+        });
+        expect(newResolver().getSpanEntityKey({ ...attributes }, reads)).toBe(
+          key,
+        );
+        expect({ kind, keys: key ? [key] : [] }).toEqual({
+          kind,
+          keys: discoveredKeys(toStoredKind(kind), attributes),
+        });
+      }
+    },
+  );
+
+  test('appending: a remapper\'s 2, "2" or "02" adds nothing; any other number adds the queue\'s key', () => {
+    for (const kind of [2, "2", "02", " 2 "]) {
+      const row: JSONObject = spanRow(kind, {
+        ...KAFKA_ORDERS_PUBLISH,
+      });
+      const before: unknown = row["entityKeys"];
+      expect({ kind, added: newResolver().appendToSpanRow(row) }).toEqual({
+        kind,
+        added: false,
+      });
+      expect(row["entityKeys"]).toBe(before);
+    }
+
+    for (const kind of [1, "1", 3, "3", 4, "4", 5, "5", 0, 9, "9", "12"]) {
+      const row: JSONObject = spanRow(kind, {
+        ...KAFKA_ORDERS_PUBLISH,
+      });
+      expect({ kind, added: newResolver().appendToSpanRow(row) }).toEqual({
+        kind,
+        added: true,
+      });
+      expect(row["entityKeys"]).toEqual([
+        ...RESOURCE_KEYS,
+        queueKey("kafka", "orders"),
+      ]);
+    }
+  });
+
+  test('one request\'s memo answers 2 and "2" alike, whichever comes first', () => {
+    const attributes: Attributes = {
+      "messaging.system": "kafka",
+      "messaging.destination.name": "orders",
+    };
+    for (const order of [
+      [SpanKind.Producer, 2, "2", 4, "4"],
+      ["4", 4, "2", 2, SpanKind.Producer],
+    ]) {
+      const resolver: MessagingEntityKeyResolver = newResolver();
+      const keys: Array<string | null> = order.map(
+        (kind: string | number): string | null => {
+          return resolver.getSpanEntityKey({ ...attributes }, kind);
+        },
+      );
+      const expected: Record<string, string | null> = {
+        [SpanKind.Producer]: queueKey("kafka", "orders"),
+        "number:2": null,
+        "string:2": null,
+        "number:4": queueKey("kafka", "orders"),
+        "string:4": queueKey("kafka", "orders"),
+      };
+      order.forEach((kind: string | number, index: number): void => {
+        const token: string =
+          kind === SpanKind.Producer ? kind : `${typeof kind}:${kind}`;
+        expect({ kind, key: keys[index] }).toEqual({
+          kind,
+          key: expected[token],
+        });
+      });
+    }
   });
 });
 

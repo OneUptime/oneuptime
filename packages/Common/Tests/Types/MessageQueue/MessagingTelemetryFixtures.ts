@@ -20,6 +20,59 @@ export const CLIENT: string = "SPAN_KIND_CLIENT";
 export const INTERNAL: string = "SPAN_KIND_INTERNAL";
 export const SERVER: string = "SPAN_KIND_SERVER";
 
+/*
+ * Span kinds as a trace pipeline's Span Kind Remapper can store them. The
+ * ingest service stores the SpanKind string, but the remapper writes its
+ * mapping's kind as it is, and a configuration saved through the API is any
+ * JSON — a NUMBER included. The stamper sees that value; ClickHouse keeps
+ * its JSON text in the kind column (toStoredKind: 2 → "2"), which is what
+ * the discovery cron reads back. OTLP numbers the kinds 1 INTERNAL,
+ * 2 SERVER, 3 CLIENT, 4 PRODUCER and 5 CONSUMER. `reads` is the SpanKind
+ * the value must read as — the value itself at ingest, and its stored text
+ * in discovery, alike — or null for no kind at all.
+ */
+export interface NumericSpanKindCase {
+  kind: number | string;
+  reads: string | null;
+}
+
+export const NUMERIC_SPAN_KIND_CASES: ReadonlyArray<NumericSpanKindCase> = [
+  // OTLP's numbers, as a number and as its text.
+  { kind: 1, reads: INTERNAL },
+  { kind: "1", reads: INTERNAL },
+  { kind: 2, reads: SERVER },
+  { kind: "2", reads: SERVER },
+  { kind: 3, reads: CLIENT },
+  { kind: "3", reads: CLIENT },
+  { kind: 4, reads: PRODUCER },
+  { kind: "4", reads: PRODUCER },
+  { kind: 5, reads: CONSUMER },
+  { kind: "5", reads: CONSUMER },
+  /*
+   * Digits read as Number() reads them: leading zeros and surrounding
+   * whitespace count for nothing, so "02" is SERVER.
+   */
+  { kind: "02", reads: SERVER },
+  { kind: " 2 ", reads: SERVER },
+  { kind: "0005", reads: CONSUMER },
+  // Numbers OTLP gives no kind (0 is SPAN_KIND_UNSPECIFIED).
+  { kind: 0, reads: null },
+  { kind: "0", reads: null },
+  { kind: "00", reads: null },
+  { kind: 6, reads: null },
+  { kind: 9, reads: null },
+  { kind: "9", reads: null },
+  { kind: "12", reads: null },
+  // Numeric, but not a plain run of digits: a name, and no kind's.
+  { kind: -2, reads: null },
+  { kind: "-2", reads: null },
+  { kind: "+2", reads: null },
+  { kind: 2.5, reads: null },
+  { kind: "2.0", reads: null },
+  { kind: "2e0", reads: null },
+  { kind: 1e21, reads: null },
+];
+
 export interface SpanFixture {
   name: string;
   kind: string | null;
@@ -3015,4 +3068,23 @@ export function toStoredColumns(
     }
   }
   return row;
+}
+
+/*
+ * The text the span table's Nullable kind column keeps for the kind a row
+ * was inserted with (JSONEachRow, which writes a JSON value's text into a
+ * String column): a string as it is, anything else JSON can write as its
+ * JSON text (2 → "2", 1e21 → "1e+21", true → "true"), and NULL for no kind
+ * — null, undefined, and a number JSON writes as null (NaN, Infinity). The
+ * real-ClickHouse discovery suite checks it against the server.
+ */
+export function toStoredKind(kind: unknown): string | null {
+  if (kind === null || kind === undefined) {
+    return null;
+  }
+  if (typeof kind === "string") {
+    return kind;
+  }
+  const text: string | undefined = JSON.stringify(kind);
+  return text === undefined || text === "null" ? null : text;
 }

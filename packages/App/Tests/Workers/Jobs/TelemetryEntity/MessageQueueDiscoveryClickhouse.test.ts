@@ -28,6 +28,7 @@ import {
 import {
   MESSAGE_QUEUE_METRIC_EXCLUDED_SERIES_ATTRIBUTES,
   MESSAGING_RESOLVER_INPUT_ATTRIBUTES,
+  MessagingDirection,
   ResolvedMessagingDestination,
   resolveMessagingMetricDatapoint,
 } from "Common/Types/MessageQueue/MessagingTelemetryResolver";
@@ -42,7 +43,10 @@ import { keyForMessageQueue } from "Common/Utils/Telemetry/EntityKey";
 import {
   FixtureAttributes,
   METRIC_FIXTURES,
+  NUMERIC_SPAN_KIND_CASES,
+  NumericSpanKindCase,
   SPAN_FIXTURES,
+  toStoredKind,
 } from "Common/Tests/Types/MessageQueue/MessagingTelemetryFixtures";
 import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
 import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
@@ -80,7 +84,8 @@ import {
  *   1. every queue the cron finds is a queue whose entity key ingest
  *      stamped on those rows, and every stamped queue is found — spans
  *      whose kind a trace pipeline rewrote included (the real
- *      TracePipelineService runs before the stamper, as at ingest);
+ *      TracePipelineService runs before the stamper, as at ingest), to a
+ *      NUMBER too, which the stamper sees and ClickHouse stores as text;
  *   2. temporary, generated, SERVER and non-messaging telemetry names none;
  *   3. the spans and datapoints counted per queue are the ones stamped with
  *      its key;
@@ -180,10 +185,11 @@ interface QueueSpanFixture {
    * A trace pipeline's Span Kind Remapper rewriting that kind: the spans go
    * through the real TracePipelineService.processSpan with this one
    * mapping before the stamper runs, as OtelTracesIngestService orders
-   * them, and are stored with the kind it wrote. `to: undefined` is a
-   * mapping saved through the API without a kind: stored NULL.
+   * them, and are stored with the kind it wrote. A mapping saved through
+   * the API is any JSON: `to: undefined` is one without a kind (stored
+   * NULL), and a number is written as the number (stored as its text).
    */
-  remapKind?: { to: string | undefined };
+  remapKind?: { to: string | number | undefined };
   attributes: FixtureAttributes;
   // Spans to insert; `perCopy` adds what varies between them.
   count?: number;
@@ -206,6 +212,33 @@ function kafka(
     ...extra,
   };
 }
+
+/*
+ * Kafka producers a pipeline remapped to each numeric kind of the core's
+ * table (NUMERIC_SPAN_KIND_CASES: OTLP's numbers as numbers and as digits,
+ * zero-padded, out of range, not plain digits), each on a topic of its own.
+ * OTLP's SERVER in every form keys no queue at ingest and must name none
+ * here; every other kind names its topic.
+ */
+function numericKindTopic(index: number): string {
+  return `numeric-kind-${index}`;
+}
+
+const NUMERIC_KIND_SPANS: Array<QueueSpanFixture> = NUMERIC_SPAN_KIND_CASES.map(
+  (entry: NumericSpanKindCase, index: number): QueueSpanFixture => {
+    return {
+      label: `Kafka spans a pipeline remapped to the kind ${JSON.stringify(entry.kind)}`,
+      kind: SpanKind.Producer,
+      remapKind: { to: entry.kind },
+      attributes: kafka(numericKindTopic(index)),
+      count: 2,
+      queue:
+        entry.reads === SpanKind.Server
+          ? null
+          : `kafka||${numericKindTopic(index)}`,
+    };
+  },
+);
 
 const SCENARIO_SPANS: Array<QueueSpanFixture> = [
   {
@@ -475,6 +508,7 @@ const SCENARIO_SPANS: Array<QueueSpanFixture> = [
     count: 4,
     queue: null,
   },
+  ...NUMERIC_KIND_SPANS,
   {
     label: "HTTP client spans",
     kind: SpanKind.Client,
@@ -794,8 +828,12 @@ const SCENARIO_METRICS: Array<QueueMetricFixture> = [
 interface InsertedSpan {
   label: string;
   projectId: string;
-  // As stored: null when a pipeline left the span without a kind.
-  kind: string | null;
+  /*
+   * As the row carries it into the insert: the SpanKind string, or what a
+   * Span Kind Remapper wrote — a number included, whose text ClickHouse
+   * stores — or null when a mapping left the span without a kind.
+   */
+  kind: string | number | null;
   startMs: number;
   failed: boolean;
   attributes: FixtureAttributes;
@@ -837,12 +875,15 @@ function queueKeyOf(projectId: string, identifier: string): string {
  * Remapper that maps Kafka spans' kind — what the dashboard's pipeline
  * form saves, loaded as TracePipelineService.loadPipelines hands it over.
  */
-function kindRemapper(to: string | undefined): Array<LoadedTracePipeline> {
+function kindRemapper(
+  to: string | number | undefined,
+): Array<LoadedTracePipeline> {
   const config: SpanKindRemapperConfig = {
     sourceKey: "messaging.system",
     /*
      * The type says string; a configuration saved through the API is any
-     * JSON, and a mapping without a kind leaves the span without one.
+     * JSON: a mapping without a kind leaves the span without one, and a
+     * number is written to the row as the number.
      */
     mappings: [{ matchValue: "kafka", kind: to as string }],
   };
@@ -873,7 +914,7 @@ function buildSpans(): Array<InsertedSpan> {
     label: string;
     projectId: string;
     kind: string;
-    remapKind?: { to: string | undefined } | undefined;
+    remapKind?: { to: string | number | undefined } | undefined;
     minutesAgo: number;
     failed: boolean;
     attributes: FixtureAttributes;
@@ -882,7 +923,7 @@ function buildSpans(): Array<InsertedSpan> {
     label: string;
     projectId: string;
     kind: string;
-    remapKind?: { to: string | undefined } | undefined;
+    remapKind?: { to: string | number | undefined } | undefined;
     minutesAgo: number;
     failed: boolean;
     attributes: FixtureAttributes;
@@ -903,10 +944,11 @@ function buildSpans(): Array<InsertedSpan> {
     }
     // The real stamper, one resolver per ingest request.
     new MessagingEntityKeyResolver(data.projectId).appendToSpanRow(row);
+    const kind: unknown = row["kind"];
     spans.push({
       label: data.label,
       projectId: data.projectId,
-      kind: typeof row["kind"] === "string" ? row["kind"] : null,
+      kind: typeof kind === "string" || typeof kind === "number" ? kind : null,
       startMs: now - data.minutesAgo * 60 * 1000 - index * 10,
       failed: data.failed,
       attributes: data.attributes,
@@ -1042,7 +1084,11 @@ function spanInsertRows(spans: Array<InsertedSpan>): Array<JSONObject> {
       entityKeys: span.queueKey ? [span.queueKey] : [],
       statusCode: span.failed ? SpanStatus.Error : SpanStatus.Unset,
       name: "messaging",
-      // `kind` is Nullable: a span a pipeline left kindless is stored NULL.
+      /*
+       * As ingest inserts it: `kind` is Nullable (a span a pipeline left
+       * kindless is stored NULL), and a remapper's number is stored as its
+       * text.
+       */
       kind: span.kind,
       retentionDate: retentionDate,
     };
@@ -1585,6 +1631,154 @@ integration("Message queue discovery SQL against ClickHouse", () => {
       }
     }
     expect(found("kafka||server-remapped-topic")).toBeUndefined();
+  });
+
+  test('numeric kinds a remapper wrote: ClickHouse keeps their text, and the cron reads it as ingest read the value — 2, "2" and "02" as SERVER', async () => {
+    const topics: Array<string> = NUMERIC_SPAN_KIND_CASES.map(
+      (_entry: NumericSpanKindCase, index: number): string => {
+        return numericKindTopic(index);
+      },
+    );
+    const byDestination: (
+      a: { destination: string },
+      b: { destination: string },
+    ) => number = (
+      a: { destination: string },
+      b: { destination: string },
+    ): number => {
+      return a.destination.localeCompare(b.destination);
+    };
+
+    // The stamper saw the kind as the remapper wrote it, a number included…
+    NUMERIC_SPAN_KIND_CASES.forEach(
+      (entry: NumericSpanKindCase, index: number): void => {
+        const inserted: Array<InsertedSpan> = spans.filter(
+          (span: InsertedSpan): boolean => {
+            return (
+              span.attributes["messaging.destination.name"] === topics[index]
+            );
+          },
+        );
+        expect(inserted).toHaveLength(2);
+        for (const span of inserted) {
+          expect({ topic: topics[index], kind: span.kind }).toEqual({
+            topic: topics[index],
+            kind: entry.kind,
+          });
+        }
+      },
+    );
+
+    // …and ClickHouse keeps its JSON text: 2 is stored "2", " 2 " as it is.
+    expect(
+      (
+        await query<{ destination: string; kind: string | null }>(
+          `SELECT DISTINCT attributes['messaging.destination.name'] AS destination, kind FROM oneuptime.${spanTable} WHERE projectId = '${PROJECT_ID}' AND startsWith(attributes['messaging.destination.name'], 'numeric-kind-')`,
+        )
+      ).sort(byDestination),
+    ).toEqual(
+      NUMERIC_SPAN_KIND_CASES.map(
+        (
+          entry: NumericSpanKindCase,
+          index: number,
+        ): { destination: string; kind: string | null } => {
+          return {
+            destination: topics[index]!,
+            kind: toStoredKind(entry.kind),
+          };
+        },
+      ).sort(byDestination),
+    );
+
+    // The query reads every one of them: it leaves out SPAN_KIND_SERVER alone…
+    const destinationColumn: string = getMessagingDiscoveryColumn(
+      MESSAGING_RESOLVER_INPUT_ATTRIBUTES.indexOf("messaging.destination.name"),
+    );
+    expect(
+      spanRows
+        .get(PROJECT_ID)!
+        .filter((row: MessagingSpanDiscoveryRow): boolean => {
+          return topics.includes(String(row[destinationColumn]));
+        })
+        .map(
+          (
+            row: MessagingSpanDiscoveryRow,
+          ): { destination: string; kind: string | null; spans: number } => {
+            return {
+              destination: String(row[destinationColumn]),
+              kind: row.kind ?? null,
+              spans: Number(row.spanCount),
+            };
+          },
+        )
+        .sort(byDestination),
+    ).toEqual(
+      NUMERIC_SPAN_KIND_CASES.map(
+        (
+          entry: NumericSpanKindCase,
+          index: number,
+        ): { destination: string; kind: string | null; spans: number } => {
+          return {
+            destination: topics[index]!,
+            kind: toStoredKind(entry.kind),
+            spans: 2,
+          };
+        },
+      ).sort(byDestination),
+    );
+
+    /*
+     * …and resolves each exactly as ingest resolved the value: OTLP's
+     * SERVER (2, "2", "02", " 2 ") to nothing — no key was stamped on those
+     * spans — and every other kind to the queue whose key its spans carry,
+     * in the direction that kind gives.
+     */
+    NUMERIC_SPAN_KIND_CASES.forEach(
+      (entry: NumericSpanKindCase, index: number): void => {
+        const queue: DiscoveredMessageQueue | undefined = spanQueues(
+          PROJECT_ID,
+        ).find((candidate: DiscoveredMessageQueue): boolean => {
+          return candidate.identifier === `kafka||${topics[index]}`;
+        });
+        const stamped: Array<string | null> = spans
+          .filter((span: InsertedSpan): boolean => {
+            return (
+              span.attributes["messaging.destination.name"] === topics[index]
+            );
+          })
+          .map((span: InsertedSpan): string | null => {
+            return span.queueKey;
+          });
+
+        if (entry.reads === SpanKind.Server) {
+          expect({ kind: entry.kind, stamped, found: queue }).toEqual({
+            kind: entry.kind,
+            stamped: [null, null],
+            found: undefined,
+          });
+          return;
+        }
+
+        const direction: MessagingDirection =
+          entry.reads === SpanKind.Producer
+            ? "publish"
+            : entry.reads === SpanKind.Consumer
+              ? "consume"
+              : "unknown";
+        const key: string = queueKeyOf(PROJECT_ID, `kafka||${topics[index]}`);
+        expect({
+          kind: entry.kind,
+          stamped,
+          found: queue?.spans?.count,
+          direction: queue?.spans?.directions[direction],
+        }).toEqual({
+          kind: entry.kind,
+          stamped: [key, key],
+          found: 2,
+          direction: 2,
+        });
+      },
+    );
   });
 
   test("twelve pods' spans of one topic are ONE row: nothing per instance is grouped on", () => {
