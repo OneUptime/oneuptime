@@ -491,8 +491,18 @@ const insertListItemsAtCaret: (
 ): Range => {
   const list: Node = item.parentNode as Node;
   const tail: Range = item.ownerDocument.createRange();
+  /*
+   * The paragraph of a loose item the caret is in: the part of it after the
+   * caret is the item's own text, as inline text straight in the item is.
+   */
+  let caretLine: Node | null = null;
   if (item.contains(range.startContainer)) {
     tail.setStart(range.startContainer, range.startOffset);
+    let top: Node = range.startContainer;
+    while (top.parentNode && top.parentNode !== item) {
+      top = top.parentNode;
+    }
+    caretLine = SPLITTABLE_LINE_TAGS.has(tagOf(top)) ? top : null;
   } else {
     tail.setStart(item, 0);
   }
@@ -510,23 +520,43 @@ const insertListItemsAtCaret: (
         return !holdsNothing(node);
       },
     );
-    /*
-     * As when a line is split, into the editor first and then filled and
-     * tidied (MarkdownEditorHistory): the empty copies of formatting the
-     * caret was at the edge of go.
-     */
-    if (lead && isBlock(lead)) {
-      const first: ChildNode | null = rest.firstChild;
-      last.appendChild(rest);
-      tidySplitEdge(first, last, true);
-    } else {
+    const ownText: boolean =
+      lead !== undefined &&
+      (!isBlock(lead) ||
+        (caretLine !== null &&
+          lead === rest.firstChild &&
+          tagOf(lead) === tagOf(caretLine)));
+    if (ownText) {
+      /*
+       * As when a line is split, into the editor first and then filled and
+       * tidied (MarkdownEditorHistory): the space at the split, and the
+       * empty copies of formatting the caret was at the edge of, go.
+       */
       const half: Node = item.cloneNode(false);
       list.insertBefore(half, before);
       half.appendChild(rest);
       tidySplitEdge(half.firstChild, half, true);
+    } else {
+      /*
+       * What went before the block holds nothing -- the emptied end of the
+       * text the caret was at the end of -- and is left out. Nothing of it
+       * has been in the editor since the split took it out, so leaving it
+       * out needs no record.
+       */
+      while (rest.firstChild && rest.firstChild !== lead) {
+        rest.removeChild(rest.firstChild);
+      }
+      last.appendChild(rest);
     }
   }
-  tidySplitEdge(item.lastChild, item, false);
+  if (caretLine && caretLine.parentNode === item) {
+    tidySplitEdge(caretLine.lastChild, caretLine, false);
+    if (holdsNothing(caretLine)) {
+      item.removeChild(caretLine);
+    }
+  } else {
+    tidySplitEdge(item.lastChild, item, false);
+  }
   if (holdsNothing(item)) {
     item.remove();
   }

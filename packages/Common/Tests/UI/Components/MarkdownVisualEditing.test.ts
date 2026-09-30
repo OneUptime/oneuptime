@@ -514,6 +514,31 @@ describe("insertBlocksAtCaret, a list in a list item", () => {
     expect(caretText(caret as Range)).toBe("b");
   });
 
+  // In a loose item the item's own text is its first paragraph.
+  it("splits the paragraph of a loose item a list is inserted into the middle of", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li><p>one two</p><p>more</p></li></ul>",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "two", 0), fragmentOf(LIST));
+
+    expect(root.innerHTML).toBe(
+      "<ul><li><p>one</p></li><li>a</li><li>b</li><li><p>two</p><p>more</p></li></ul>",
+    );
+  });
+
+  it("puts the next paragraph of a loose item under the last item inserted at its end", () => {
+    const root: HTMLDivElement = mountHtml(
+      "<ul><li><p>one two</p><p>more</p></li></ul>",
+    );
+
+    insertBlocksAtCaret(root, caretAt(root, "one two", 7), fragmentOf(LIST));
+
+    expect(root.innerHTML).toBe(
+      "<ul><li><p>one two</p></li><li>a</li><li>b<p>more</p></li></ul>",
+    );
+  });
+
   it("puts a list inserted at the end of a nested item beside that item", () => {
     const root: HTMLDivElement = mountMarkdown("- parent\n  - child\n- next");
 
