@@ -21,32 +21,42 @@ export function getHeartbeatUrl(secretKey: ObjectID): URL {
     .addRoute(`/${secretKey.toString()}`);
 }
 
+/*
+ * The URL is the card's body, not its description: Card hides the
+ * description below md, so on a phone the Documentation tab showed this
+ * card's title and nothing else.
+ */
 const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const heartbeatUrl: URL = getHeartbeatUrl(props.secretKey);
 
   return (
-    <>
-      <Card
-        title={`Incoming Request URL / Heartbeat URL`}
-        description={
-          <span>
-            Please send inbound heartbeat GET or POST requests to this URL{" "}
-            <Link openInNewTab={true} to={heartbeatUrl}>
-              <span>{heartbeatUrl.toString()}</span>
-            </Link>
-            .{" "}
-            <CopyTextButton
-              textToBeCopied={heartbeatUrl.toString()}
-              size="sm"
-              variant="soft"
-              title="Copy heartbeat URL"
-            />
-          </span>
-        }
-      />
-    </>
+    <Card
+      title={`Incoming Request URL / Heartbeat URL`}
+      description="Please send inbound heartbeat GET or POST requests to this URL."
+    >
+      <div data-testid="incoming-request-setup">
+        <p className="text-xs font-medium text-gray-500">Heartbeat URL</p>
+        <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+          <Link
+            openInNewTab={true}
+            to={heartbeatUrl}
+            className="min-w-0 flex-1 break-all font-mono text-sm text-gray-900"
+          >
+            <span data-testid="incoming-request-url">
+              {heartbeatUrl.toString()}
+            </span>
+          </Link>
+          <CopyTextButton
+            textToBeCopied={heartbeatUrl.toString()}
+            size="sm"
+            variant="soft"
+            title="Copy heartbeat URL"
+          />
+        </div>
+      </div>
+    </Card>
   );
 };
 

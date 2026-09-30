@@ -98,8 +98,9 @@ another monitor lands on a plain, healthy one.
   the first check; the SSL certificate expiry fact; a day bar opening its dialog with the
   incident; a flapping history.
 - **Other families**: incoming request awaiting (owner: URL, copy, curl; viewer: the lock
-  state and no secret anywhere in the page) and after data (Connection card); incoming email;
-  server awaiting and after data; Kubernetes, and Kubernetes whose evaluations stopped
+  state and no secret anywhere in the page) and after data (Connection card); incoming email
+  awaiting (owner: the address, "Copy email address", the "How to verify the address" link;
+  viewer: the lock state, no secret) and after data; server awaiting and after data; Kubernetes, and Kubernetes whose evaluations stopped
   landing (overdue by the evaluation log, not the worker's stamp); network device (device
   link, no owners); manual (guide card, no Summary, no MonitorLog read).
 - **Roles**: MonitorViewer (Open now "—", the response-time fallback, no Incident, Alert or
@@ -114,7 +115,10 @@ another monitor lands on a plain, healthy one.
   timeline's limit and sort, the evaluation log limit, the open-work filters); moving to
   another monitor through a header link; a hero call to action.
 - **Responsive and theme**: 390px (no sideways scroll for every type, the strip starts at
-  today and its date labels scroll with the bars, facts and stat bar in one column), 768px
+  today and its date labels scroll with the bars, facts and stat bar in one column, and the
+  email address, heartbeat URL and server install commands of a monitor waiting for its first
+  signal visible and inside the screen: Card hides its description below md, so they belong
+  in the card's body), 768px
   (2 x 2 stat bar, one column, card titles not squeezed), 1280px (two thirds and one third),
   the Response time plot at least 150px tall at 390, 768 and 1440px, and dark mode.
 
