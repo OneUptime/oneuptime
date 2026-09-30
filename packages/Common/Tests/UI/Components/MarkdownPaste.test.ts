@@ -485,12 +485,16 @@ describe("pastedHtmlToMarkdown", () => {
       }
     });
 
-    it("takes a line copied with its line break as less than a line", () => {
+    /*
+     * A line triple-clicked in Chromium or Safari is copied with its line
+     * break: a line of the block, which stays a fenced block of its own.
+     */
+    it("keeps a line copied with its line break a fenced block", () => {
       expect(
         pastedHtmlToMarkdown(
           '<pre data-markdown-code-block="true" data-language="bash"><code>npm install\n</code></pre>',
         ),
-      ).toBe("`npm install`");
+      ).toBe("```bash\nnpm install\n```");
     });
 
     /*
