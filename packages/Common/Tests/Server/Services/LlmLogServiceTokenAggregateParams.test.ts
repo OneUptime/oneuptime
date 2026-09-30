@@ -560,7 +560,7 @@ describe("capped lanes report a real budget instead of throwing", () => {
     expect(calls).toHaveLength(1);
   });
 
-  test("a positive subjectless ceiling under budget is not exhausted", async () => {
+  test("a legacy subjectless ceiling is ignored and runs no aggregate", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(projectWithLimits({ subjectless: 250_000 }));
@@ -570,8 +570,8 @@ describe("capped lanes report a real budget instead of throwing", () => {
       await AIService.getAutonomousDailyBudgetStatus(ObjectID.generate());
 
     expect(status.exhausted).toBe(false);
-    expect(status.usedTokensToday).toBe(10);
-    expect(calls).toHaveLength(1);
+    expect(status.limitInTokens).toBeNull();
+    expect(calls).toHaveLength(0);
   });
 
   test("the incident lane's aggregate is bindable end to end", async () => {

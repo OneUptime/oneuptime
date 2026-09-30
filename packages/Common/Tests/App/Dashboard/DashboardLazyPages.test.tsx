@@ -218,7 +218,6 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/RunnerCredentials",
   "Settings/AIFeatures",
   "Settings/AICredits",
-  "Settings/AIGuardrails",
   "Settings/AILogs",
   "Settings/McpServer",
 ];
