@@ -6811,5 +6811,13 @@
   "Sites": "Standorte",
   "Start Anchor": "Startpunkt",
   "Subscriber Page": "Abonnentenseite",
-  "Value Source": "Wertquelle"
+  "Value Source": "Wertquelle",
+  "Are you sure you want to delete {{name}}?": "Möchten Sie {{name}} wirklich löschen?",
+  "Permanently delete {{name}}.": "{{name}} endgültig löschen.",
+  "and {{remaining}} more": "und {{remaining}} weitere",
+  "Type {{name}} to confirm.": "Geben Sie {{name}} zur Bestätigung ein.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Möchten Sie {{name}} wirklich aus diesem Vorfall entfernen? Dadurch werden alle SLA-Tracking-Daten für diese Regel gelöscht.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Möchten Sie Ihr Konto ({{email}}) wirklich löschen? Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden. Alle Ihre persönlichen Daten werden entfernt.",
+  "Delete View": "Ansicht löschen",
+  "Delete Saved View": "Gespeicherte Ansicht löschen"
 }

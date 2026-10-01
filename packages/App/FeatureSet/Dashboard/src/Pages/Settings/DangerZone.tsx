@@ -76,6 +76,17 @@ const Settings: FunctionComponent<ComponentProps> = (
         modelType={Project}
         modelId={projectId}
         onDelete={deleteProject}
+        /*
+         * Deleting the project removes every monitor, incident, status page
+         * and byte of telemetry in it, for every member, and nothing brings it
+         * back - yet its dialog looked like the one that deletes a label. So
+         * Delete stays locked until the project's name has been typed.
+         */
+        requireTypedName={true}
+        {...(props.currentProject?.name &&
+        props.currentProject.id?.toString() === projectId.toString()
+          ? { itemName: props.currentProject.name }
+          : {})}
         confirmationContent={
           BILLING_ENABLED ? (
             <div>

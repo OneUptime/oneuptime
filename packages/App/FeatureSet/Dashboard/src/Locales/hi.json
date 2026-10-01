@@ -6811,5 +6811,13 @@
   "Sites": "साइटें",
   "Start Anchor": "आरंभ बिंदु",
   "Subscriber Page": "सब्सक्राइबर पेज",
-  "Value Source": "मान का स्रोत"
+  "Value Source": "मान का स्रोत",
+  "Are you sure you want to delete {{name}}?": "क्या आप वाकई {{name}} को हटाना चाहते हैं?",
+  "Permanently delete {{name}}.": "{{name}} को स्थायी रूप से हटाएँ।",
+  "and {{remaining}} more": "और {{remaining}} अन्य",
+  "Type {{name}} to confirm.": "पुष्टि करने के लिए {{name}} टाइप करें।",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "क्या आप वाकई इस घटना से {{name}} को हटाना चाहते हैं? यह इस नियम के लिए सभी SLA ट्रैकिंग डेटा को हटा देगा।",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "क्या आप वाकई अपना खाता ({{email}}) हटाना चाहते हैं? यह क्रिया स्थायी है और इसे पूर्ववत नहीं किया जा सकता। आपका सभी व्यक्तिगत डेटा हटा दिया जाएगा।",
+  "Delete View": "दृश्य हटाएँ",
+  "Delete Saved View": "सहेजा गया दृश्य हटाएँ"
 }

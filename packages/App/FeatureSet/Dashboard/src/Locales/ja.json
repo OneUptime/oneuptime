@@ -6811,5 +6811,13 @@
   "Sites": "サイト",
   "Start Anchor": "開始点",
   "Subscriber Page": "購読ページ",
-  "Value Source": "値の取得元"
+  "Value Source": "値の取得元",
+  "Are you sure you want to delete {{name}}?": "{{name}} を削除してもよろしいですか？",
+  "Permanently delete {{name}}.": "{{name}} を完全に削除します。",
+  "and {{remaining}} more": "他 {{remaining}} 件",
+  "Type {{name}} to confirm.": "確認のため {{name}} と入力してください。",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "{{name}} をこのインシデントから削除してもよろしいですか？このルールのすべてのSLAトラッキングデータが削除されます。",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "アカウント（{{email}}）を削除してもよろしいですか？この操作は永続的で元に戻せません。すべての個人データが削除されます。",
+  "Delete View": "ビューを削除",
+  "Delete Saved View": "保存されたビューを削除"
 }

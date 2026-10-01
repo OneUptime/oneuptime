@@ -242,7 +242,11 @@ describe("per-row delete confirmation", () => {
     });
 
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      'Are you sure you want to delete "Billing Worker"?',
+      "Are you sure you want to delete Billing Worker?",
+    );
+    // The name is drawn apart from the sentence, so it reads as the thing.
+    expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+      /^Billing Worker$/,
     );
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
       "This action cannot be undone",
@@ -271,7 +275,10 @@ describe("per-row delete confirmation", () => {
     });
 
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      'Are you sure you want to delete "Checkout is down"?',
+      "Are you sure you want to delete Checkout is down?",
+    );
+    expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+      /^Checkout is down$/,
     );
   });
 

@@ -12,6 +12,11 @@ import React, {
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
+import {
+  readDisplayText,
+  shortenDisplayName,
+} from "Common/UI/Utils/ModelDisplayName";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import ArgumentsForm from "./ArgumentsForm";
@@ -24,6 +29,40 @@ import useTimeRangeZoom, {
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+
+/*
+ * The settings a widget is titled by, by kind of widget: most call it
+ * `title`, charts `chartTitle`, tables `tableTitle`, gauges `gaugeTitle` and
+ * the SLO widget `widgetTitle`.
+ */
+export const WIDGET_TITLE_ARGUMENTS: ReadonlyArray<string> = [
+  "title",
+  "chartTitle",
+  "widgetTitle",
+  "tableTitle",
+  "gaugeTitle",
+];
+
+/*
+ * What the widget is called on the dashboard, or "" when it has no title -
+ * the name the Delete Widget confirmation uses.
+ */
+export const getWidgetDisplayName: (
+  component: DashboardBaseComponent | undefined,
+) => string = (component: DashboardBaseComponent | undefined): string => {
+  const widgetArguments: Record<string, unknown> =
+    (component?.arguments as Record<string, unknown> | undefined) || {};
+
+  for (const key of WIDGET_TITLE_ARGUMENTS) {
+    const title: string = readDisplayText(widgetArguments[key]);
+
+    if (title) {
+      return shortenDisplayName(title);
+    }
+  }
+
+  return "";
+};
 
 export interface ComponentProps {
   title: string;
@@ -175,7 +214,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         {showDeleteConfirmation && (
           <ConfirmModal
             title={`Delete Widget?`}
-            description={`Are you sure you want to delete this widget? This action cannot be undone.`}
+            description={
+              <DeleteConfirmationMessage
+                kind="question"
+                name={getWidgetDisplayName(component)}
+                typeLabel="widget"
+              />
+            }
             onClose={() => {
               setShowDeleteConfirmation(false);
             }}

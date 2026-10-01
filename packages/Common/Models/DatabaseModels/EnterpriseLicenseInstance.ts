@@ -27,6 +27,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Lock,
   tableDescription:
     "Self-hosted OneUptime instances that report usage against an enterprise license. One license can be used across multiple instances (staging, production, etc.) and users are counted uniquely across all of them.",
+  displayNameColumn: "host",
 })
 @Entity({
   name: "EnterpriseLicenseInstance",

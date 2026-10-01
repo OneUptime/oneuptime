@@ -4,6 +4,7 @@ import Icon from "../Icon/Icon";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import ConfirmModal from "../Modal/ConfirmModal";
+import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import ArgumentsForm from "./ArgumentsForm";
 import { getComponentPrimaryPanel } from "./ComponentPrimaryPanel";
@@ -109,6 +110,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
   const componentTypeName: string =
     component.metadata.componentType.toLowerCase();
+
+  /*
+   * Which step a delete removes: its kind and the identifier the workflow
+   * knows it by - "Send Email (send-email-2)" - since a workflow can hold
+   * several steps of the same kind. Read from the step as it is on the
+   * canvas, not from this dialog's unsaved edits: an identifier typed here
+   * and not saved names no step at all.
+   */
+  const savedStepTitle: string = props.component.metadata.title?.trim() || "";
+  const savedStepId: string = props.component.id?.trim() || "";
+  const stepName: string =
+    savedStepTitle && savedStepId && savedStepId !== savedStepTitle
+      ? `${savedStepTitle} (${savedStepId})`
+      : savedStepTitle || savedStepId;
 
   /*
    * A section is only rendered when it has something to say. A step with no
@@ -412,13 +427,26 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         {showDeleteConfirmation && (
           <ConfirmModal
             title={`Delete ${component.metadata.componentType}`}
-            description={`Are you sure you want to delete this ${componentTypeName}? This action is not recoverable.`}
+            description={
+              <DeleteConfirmationMessage
+                kind="question"
+                name={stepName}
+                typeLabel={componentTypeName}
+              />
+            }
             onClose={() => {
               setShowDeleteConfirmation(false);
             }}
             submitButtonText="Delete"
             onSubmit={() => {
-              props.onDelete(component);
+              /*
+               * The step on the canvas, which the sentence named. This passed
+               * the dialog's working copy, so a step whose identifier had been
+               * edited here and not saved was looked up by the new identifier,
+               * matched nothing, and stayed on the canvas while the dialog
+               * closed as though it had gone.
+               */
+              props.onDelete(props.component);
               setShowDeleteConfirmation(false);
               props.onClose();
             }}

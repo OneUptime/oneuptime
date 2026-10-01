@@ -6811,5 +6811,13 @@
   "Sites": "Locaties",
   "Start Anchor": "Beginpunt",
   "Subscriber Page": "Abonneepagina",
-  "Value Source": "Bron van de waarde"
+  "Value Source": "Bron van de waarde",
+  "Are you sure you want to delete {{name}}?": "Weet u zeker dat u {{name}} wilt verwijderen?",
+  "Permanently delete {{name}}.": "{{name}} permanent verwijderen.",
+  "and {{remaining}} more": "en {{remaining}} meer",
+  "Type {{name}} to confirm.": "Typ {{name}} om te bevestigen.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Weet u zeker dat u {{name}} uit dit incident wilt verwijderen? Dit verwijdert alle SLA-trackinggegevens voor deze regel.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Weet u zeker dat u uw account ({{email}}) wilt verwijderen? Deze actie is permanent en kan niet ongedaan worden gemaakt. Al uw persoonlijke gegevens worden verwijderd.",
+  "Delete View": "Weergave verwijderen",
+  "Delete Saved View": "Opgeslagen weergave verwijderen"
 }

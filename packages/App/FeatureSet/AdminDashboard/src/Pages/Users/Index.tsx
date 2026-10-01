@@ -22,6 +22,8 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import DeleteItemNames from "Common/UI/Components/DeleteConfirmation/DeleteItemNames";
+import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -374,6 +376,20 @@ const Users: FunctionComponent = (): ReactElement => {
         },
         confirmMessage: (items: Array<User>): string => {
           return `Are you sure you want to permanently delete ${items.length} user(s)? This will remove the user(s) from every project and cannot be undone.`;
+        },
+        /*
+         * Which users, by email - what this dashboard knows a user by, and
+         * unlike a name, never shared by two of them.
+         */
+        confirmDetails: (items: Array<User>): ReactElement => {
+          return (
+            <DeleteItemNames
+              names={items.map((user: User) => {
+                return getRecordDisplayName(user, { column: "email" });
+              })}
+              totalCount={items.length}
+            />
+          );
         },
         onClick: async (
           onClickProps: BulkActionOnClickProps<User>,

@@ -55,6 +55,11 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
   shortcutKey?: undefined | ShortcutKey;
   confirmMessage?: ((items: Array<T>) => string) | undefined;
   confirmTitle?: ((items: Array<T>) => string) | undefined;
+  /*
+   * Drawn under confirmMessage: which records the action is about to touch,
+   * where the count alone does not say (DeleteItemNames lists them).
+   */
+  confirmDetails?: ((items: Array<T>) => ReactElement | undefined) | undefined;
   confirmButtonStyleType?: ButtonStyleType;
 }
 
@@ -173,6 +178,7 @@ const BulkUpdateForm: <T extends GenericObject>(
           ? button.confirmTitle(props.selectedItems)
           : "Confirm",
         description: button.confirmMessage(props.selectedItems),
+        children: button.confirmDetails?.(props.selectedItems),
         submitButtonType: button.confirmButtonStyleType,
         submitButtonText: button.title,
         onClose: () => {

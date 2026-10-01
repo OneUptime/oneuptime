@@ -6811,5 +6811,13 @@
   "Sites": "سایت‌ها",
   "Start Anchor": "نقطه شروع",
   "Subscriber Page": "صفحه اشتراک",
-  "Value Source": "منبع مقدار"
+  "Value Source": "منبع مقدار",
+  "Are you sure you want to delete {{name}}?": "مطمئنید می‌خواهید {{name}} را حذف کنید؟",
+  "Permanently delete {{name}}.": "{{name}} را برای همیشه حذف کنید.",
+  "and {{remaining}} more": "و {{remaining}} مورد دیگر",
+  "Type {{name}} to confirm.": "برای تأیید، {{name}} را تایپ کنید.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "مطمئنید می‌خواهید {{name}} را از این حادثه حذف کنید؟ این کار همه داده‌های پیگیری SLA این قاعده را حذف می‌کند.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "مطمئنید می‌خواهید حسابتان ({{email}}) را حذف کنید؟ این کار دائمی است و قابل بازگشت نیست. همه داده‌های شخصی شما حذف می‌شود.",
+  "Delete View": "حذف نما",
+  "Delete Saved View": "حذف نمای ذخیره‌شده"
 }

@@ -177,6 +177,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   public saveSlugToColumn!: string | null;
   public singularName!: string | null;
   public pluralName!: string | null;
+  // Set by @TableMetadata's displayNameColumn; see getDisplayNameColumn.
+  public displayNameColumn!: string | null;
 
   // realtime events.
   public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;
@@ -401,6 +403,15 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getSlugifyColumn(): string | null {
     return this.slugifyColumn;
+  }
+
+  /*
+   * The column the model declares names one of its records, or null when it
+   * declares none. Most models leave it to UI/Utils/ModelDisplayName to work
+   * out; read the name through that, not through this alone.
+   */
+  public getDisplayNameColumn(): string | null {
+    return this.displayNameColumn || null;
   }
 
   public getCrudApiPath(): Route | null {

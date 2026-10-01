@@ -6811,5 +6811,13 @@
   "Sites": "Площадки",
   "Start Anchor": "Точка начала",
   "Subscriber Page": "Страница подписки",
-  "Value Source": "Источник значения"
+  "Value Source": "Источник значения",
+  "Are you sure you want to delete {{name}}?": "Вы уверены, что хотите удалить {{name}}?",
+  "Permanently delete {{name}}.": "Безвозвратно удалить {{name}}.",
+  "and {{remaining}} more": "и ещё {{remaining}}",
+  "Type {{name}} to confirm.": "Введите {{name}} для подтверждения.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Вы уверены, что хотите удалить {{name}} из этого инцидента? Это удалит все данные отслеживания SLA для этого правила.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Вы уверены, что хотите удалить свою учётную запись ({{email}})? Это действие необратимо. Все ваши персональные данные будут удалены.",
+  "Delete View": "Удалить представление",
+  "Delete Saved View": "Удалить сохранённое представление"
 }
