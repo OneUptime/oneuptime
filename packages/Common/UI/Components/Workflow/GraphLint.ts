@@ -22,6 +22,7 @@ import {
   NodeDataProp,
   NodeType,
   ReturnValue,
+  isArgumentRequired,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import {
@@ -419,7 +420,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
     for (const argument of argumentMetadata) {
       const value: JSONValue | undefined = argumentValues[argument.id];
 
-      if (argument.required && isEmptyArgumentValue(value, argument.type)) {
+      /*
+       * Required as the step is set up now: If / Else's Compare with is not
+       * needed for "is empty".
+       */
+      if (
+        isArgumentRequired(argument, argumentValues) &&
+        isEmptyArgumentValue(value, argument.type)
+      ) {
         addNodeIssue({
           rule: WorkflowLintRule.MissingRequiredArgument,
           severity: WorkflowLintSeverity.Error,
