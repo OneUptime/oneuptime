@@ -116,7 +116,10 @@ describe("the trigger's advertised contract matches the server", () => {
     const router: ExpressRouter = new Proxy(
       {},
       {
-        get: (_target: object, property: string | symbol): unknown => {
+        get: (
+          _target: Record<string, unknown>,
+          property: string | symbol,
+        ): unknown => {
           return (path: string): void => {
             routes.push({
               method: String(property).toUpperCase(),

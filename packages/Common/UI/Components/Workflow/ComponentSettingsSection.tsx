@@ -1,6 +1,11 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement, ReactNode, useId } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useId,
+} from "react";
 
 /*
  * One section of a workflow step's settings dialog: a small uppercase label

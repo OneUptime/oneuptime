@@ -44,10 +44,7 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
         <ul className="space-y-2">
           {props.returnValues.map((returnValue: ReturnValue, i: number) => {
             const reference: string | null = props.componentId
-              ? componentReturnValueReference(
-                  props.componentId,
-                  returnValue.id,
-                )
+              ? componentReturnValueReference(props.componentId, returnValue.id)
               : null;
 
             return (

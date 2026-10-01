@@ -67,9 +67,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    */
   useEffect(() => {
     const body: HTMLDivElement | null = bodyRef.current;
-    const firstSection: Element | null = body
-      ? body.firstElementChild
-      : null;
+    const firstSection: Element | null = body ? body.firstElementChild : null;
     const focused: Element | null = document.activeElement;
 
     if (
@@ -236,10 +234,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   ) : null;
 
   /*
-   * The identifier and the connections are a line or two each. Each across the
-   * dialog's full width was a short strip of mostly empty card, so they share
-   * a row: split evenly however many there are (a trigger has no inputs), and
-   * wrapped onto rows of their own when the dialog is too narrow for them.
+   * The identifier and the connections are a line or two each. Given the
+   * dialog's full width apiece, each was a short strip of mostly empty card,
+   * so they share a row: split evenly however many there are (a trigger has
+   * no inputs), and wrapped onto rows of their own when the dialog is too
+   * narrow for them.
    */
   const compactRowSections: Array<ReactElement> = [
     idSection,
