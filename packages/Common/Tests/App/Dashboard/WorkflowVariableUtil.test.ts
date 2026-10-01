@@ -82,12 +82,16 @@ import {
   OAUTH_VARIABLE_FORM_STEPS,
   OAuthTokenRefreshResult,
   SECRET_TOGGLE_DESCRIPTION,
+  STATIC_VARIABLE_FORM_STEPS,
   TokenRefreshOutcome,
   fetchTokenRefreshOutcome,
   getClientAuthenticationLabel,
   getOAuthSettingsFormFields,
   getOAuthVariableCreateFormFields,
+  getSecretFormField,
   getStaticVariableCreateFormFields,
+  getVariableDescriptionFormField,
+  getVariableNameFormField,
   getTokenRefreshDescription,
   getTokenRefreshTitle,
   getVariableTypeLabel,
@@ -1153,12 +1157,74 @@ describe("getStaticVariableCreateFormFields", () => {
     );
   });
 
-  // A single-page form: a stepId here would hide the field behind a step that does not exist.
-  test("puts no field on a step", () => {
-    getStaticVariableCreateFormFields({ isGlobal: false }).forEach(
-      (field: ModelField<WorkflowVariable>) => {
-        expect(field.stepId).toBeUndefined();
+  /*
+   * The maintainer's ask: this form was one long scrolling page (name,
+   * description, content and the secret switch, each with a paragraph of
+   * help), and long forms are to be split into steps.
+   */
+  test.each([true, false])(
+    "puts the name and description on the Variable step, the content and secret switch on the Value step (isGlobal: %s)",
+    (isGlobal: boolean) => {
+      expect(
+        getStaticVariableCreateFormFields({ isGlobal }).map(
+          (field: ModelField<WorkflowVariable>): [string, unknown] => {
+            return [keyOf(field), field.stepId];
+          },
+        ),
+      ).toEqual([
+        ["name", "variable"],
+        ["description", "variable"],
+        ["content", "value"],
+        ["isSecret", "value"],
+      ]);
+    },
+  );
+
+  /*
+   * In a stepped form BasicForm shows a field only on the step its stepId
+   * names, so a field with no step, or with a step the form does not
+   * declare, would never be shown - and a required one could never be
+   * filled in.
+   */
+  test("puts every field on a step the form declares", () => {
+    const stepIds: Array<string> = STATIC_VARIABLE_FORM_STEPS.map(
+      (step: FormStep<WorkflowVariable>): string => {
+        return step.id;
       },
+    );
+
+    getStaticVariableCreateFormFields({ isGlobal: true }).forEach(
+      (field: ModelField<WorkflowVariable>) => {
+        expect(stepIds).toContain(field.stepId);
+      },
+    );
+  });
+
+  test("leaves no declared step empty", () => {
+    const fields: FieldList = getStaticVariableCreateFormFields({
+      isGlobal: false,
+    });
+
+    STATIC_VARIABLE_FORM_STEPS.forEach((step: FormStep<WorkflowVariable>) => {
+      expect(
+        fields.filter((field: ModelField<WorkflowVariable>): boolean => {
+          return field.stepId === step.id;
+        }).length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
+  // Each required field is on the step where it can be filled in.
+  test("asks for the required name on the first step and the required content on the last", () => {
+    const fields: FieldList = getStaticVariableCreateFormFields({
+      isGlobal: true,
+    });
+
+    expect(fieldFor(fields, "name").stepId).toBe(
+      STATIC_VARIABLE_FORM_STEPS[0]!.id,
+    );
+    expect(fieldFor(fields, "content").stepId).toBe(
+      STATIC_VARIABLE_FORM_STEPS[STATIC_VARIABLE_FORM_STEPS.length - 1]!.id,
     );
   });
 
@@ -1238,6 +1304,70 @@ describe("getStaticVariableCreateFormFields", () => {
     expect(SECRET_TOGGLE_DESCRIPTION.toLowerCase()).not.toContain("encrypt");
     expect(SECRET_TOGGLE_DESCRIPTION).toContain("[REDACTED]");
     expect(SECRET_TOGGLE_DESCRIPTION).toContain("cannot be turned off");
+  });
+});
+
+describe("STATIC_VARIABLE_FORM_STEPS", () => {
+  test("are the Variable step then the Value step", () => {
+    expect(
+      STATIC_VARIABLE_FORM_STEPS.map(
+        (step: FormStep<WorkflowVariable>): { id: string; title: string } => {
+          return { id: step.id, title: step.title };
+        },
+      ),
+    ).toEqual([
+      { id: "variable", title: "Variable" },
+      { id: "value", title: "Value" },
+    ]);
+  });
+
+  // Nothing on the form changes which steps exist.
+  test("always shows both steps", () => {
+    STATIC_VARIABLE_FORM_STEPS.forEach((step: FormStep<WorkflowVariable>) => {
+      expect(step.showIf).toBeUndefined();
+      expect(step.isSummaryStep).toBeFalsy();
+    });
+  });
+
+  // The OAuth 2.0 form starts with the same Variable step, so both read alike.
+  test("open with the same Variable step as the OAuth 2.0 form", () => {
+    expect(STATIC_VARIABLE_FORM_STEPS[0]).toEqual(OAUTH_VARIABLE_FORM_STEPS[0]);
+  });
+});
+
+describe("the shared field builders", () => {
+  /*
+   * The variable page's Edit Variable form reuses them as a flat form of
+   * three fields at most, where a stepId would hide the field behind a step
+   * that form does not have.
+   */
+  test("put a field on no step unless asked to", () => {
+    expect(getVariableNameFormField({ isGlobal: true }).stepId).toBeUndefined();
+    expect(getVariableDescriptionFormField().stepId).toBeUndefined();
+    expect(getSecretFormField().stepId).toBeUndefined();
+  });
+
+  test("put a field on the step they are given", () => {
+    expect(
+      getVariableNameFormField({ isGlobal: false, stepId: "first" }).stepId,
+    ).toBe("first");
+    expect(getVariableDescriptionFormField({ stepId: "first" }).stepId).toBe(
+      "first",
+    );
+    expect(getSecretFormField({ stepId: "second" }).stepId).toBe("second");
+  });
+
+  test("give the secret switch the same column, words and type on any step", () => {
+    const flat: ModelField<WorkflowVariable> = getSecretFormField();
+    const stepped: ModelField<WorkflowVariable> = getSecretFormField({
+      stepId: "value",
+    });
+
+    expect({ ...stepped, stepId: undefined }).toEqual({
+      ...flat,
+      stepId: undefined,
+    });
+    expect(keyOf(stepped)).toBe("isSecret");
   });
 });
 

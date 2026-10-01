@@ -8,12 +8,17 @@ There are two variable scopes, plus component outputs produced during a run.
 
 Project-wide values you save once and reuse anywhere. Think API keys, URLs, channel names — anything you don't want to copy into ten different workflows.
 
-Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable, which has:
+Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable in two steps. The **Variable** step asks:
 
 - **Name** — how you'll reference it. At least two characters, no spaces, and only letters, numbers, hyphens and underscores. `UPPER_SNAKE_CASE` is a good habit because it stands out in your blocks.
 - **Description** — optional, free text to remind you what it's for.
+
+Click **Next** for the **Value** step:
+
 - **Content** — the actual value. It's a long-text field, so multi-line values work.
 - **Secret** — when on, the value is scrubbed out of run logs and step traces.
+
+To change the name or description before you save, click **Variable** in the list of steps beside the form (shown on wider screens). What you typed in either step is kept.
 
 To create an **OAuth 2.0 access token** variable instead, open the **More** menu (**⋯**) next to **Create Workflow Variable** and choose **Create OAuth 2.0 Variable**. OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. A variable's type can't be changed after it's saved.
 
