@@ -169,6 +169,8 @@ namespace rules silently did nothing.
   discovery.exclude_instrument — one selector per excludeExePaths glob and
     per excluded namespace. OBI still appends its built-in exclusions (itself,
     OTel collectors, the system namespaces) after these.
+  attributes.select.traces.include — the span attributes OBI exports; see
+    kubernetes-agent.obiSpanAttributes.
 
 OBI decodes this file on top of its defaults, so anything not written here
 keeps OBI's default.
@@ -219,6 +221,15 @@ routes:
 {{- end }}
 {{- end }}
 {{- end }}
+# Span attributes. A list here replaces OBI's default set rather than adding
+# to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+attributes:
+  select:
+    traces:
+      include:
+{{- range (include "kubernetes-agent.obiSpanAttributes" . | fromJsonArray) }}
+        - {{ . | quote }}
+{{- end }}
 {{- if .Values.ebpf.logToTraceCorrelation }}
 # The log enricher's process selector has no env var equivalent either.
 ebpf:
@@ -232,6 +243,45 @@ ebpf:
     plain_text:
       enabled: false
 {{- end }}
+{{- end }}
+
+{{/*
+The span attributes OBI is told to export (attributes.select.traces.include in
+the OBI config file), as a JSON array: OBI's nine default span attributes,
+then service.peer.name, then ebpf.extraSpanAttributes, trimmed, with blanks,
+repeats and a bare "*" dropped.
+
+service.peer.name: OBI v0.14 made it opt-in, together with the HTTP body
+sizes and obi.http.response.observed (OBI #3559). OneUptime's service map
+names the service a client call went to from it (ServiceDependencyDiscovery);
+without it those calls fall back to server.address, which re-keys the remote
+services the map already shows and so duplicates their nodes.
+
+Why the defaults are repeated: a non-empty include list REPLACES OBI's
+default set instead of adding to it (AttrSelector.For in
+pkg/export/attributes/attr_selector.go falls back to the defaults only when
+the include list is empty). Asking for service.peer.name alone would drop
+error.type, network.peer.address and the rest. The nine are the `true`
+entries of Traces.Section in pkg/export/attributes/attr_defs.go of the pinned
+OBI; re-check them whenever ebpf.image.tag moves. A name OBI does not define
+matches nothing and is ignored, so an older OBI (v0.13: six defaults,
+service.peer.name always sent) gets the same spans as without this list.
+
+Why "*" is refused: OBI matches each entry as a glob, and a bare star opts in
+to every optional span attribute, among them db.query.text (the full SQL or
+Redis command, with whatever literal values it carries) and the gen_ai
+prompt, completion and system-instruction payloads. Those stay opt-in by
+name.
+*/}}
+{{- define "kubernetes-agent.obiSpanAttributes" -}}
+{{- $attrs := list "dns.question.name" "url.query" "error.type" "http.request.method_original" "db.query.summary" "user_agent.original" "network.peer.address" "network.peer.port" "network.protocol.version" "service.peer.name" -}}
+{{- range (.Values.ebpf.extraSpanAttributes | default list) -}}
+{{- $name := trim (toString .) -}}
+{{- if and $name (ne $name "*") (not (has $name $attrs)) -}}
+{{- $attrs = append $attrs $name -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $attrs -}}
 {{- end }}
 
 {{/*

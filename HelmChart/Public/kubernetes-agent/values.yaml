@@ -1016,9 +1016,9 @@ ebpf:
   # That agent is what makes a Node.js request's outgoing HTTP, SQL and Redis
   # calls children of the request instead of separate one-span traces — Node
   # runs every request on one thread, so the kernel alone cannot tell which
-  # request a call belongs to. It also harvests Express/Fastify/Nest route
-  # templates, so request spans are named "POST /api/items/:id" rather than a
-  # guessed pattern. Maps to `OTEL_EBPF_NODEJS_ENABLED`.
+  # request a call belongs to. Maps to `OTEL_EBPF_NODEJS_ENABLED`. (Route
+  # templates — "POST /api/items/:id" — do not come from this agent: OBI reads
+  # them from the app's files whether it is on or not; see `routes` below.)
   #
   # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
   # this off if your security policy forbids an inspector socket in your pods,
@@ -1038,8 +1038,12 @@ ebpf:
   excludeOtelInstrumentedServices: true
 
   # How OBI names HTTP spans. A span is named "<METHOD> <route>"; when the
-  # route template is not known (OBI harvests it for Node.js and Java apps),
-  # OBI derives one from the URL path. Maps to OBI's `routes` config.
+  # route template is not known, OBI derives one from the URL path. OBI v0.14
+  # knows the templates of Go (net/http, Gorilla mux, Gin), Java (Spring,
+  # JAX-RS), Node.js (Express, Fastify, Koa, NestJS, Next.js), Python (Django,
+  # FastAPI, Flask), Ruby (Rails), .NET (ASP.NET Core attribute routes) and PHP
+  # (Symfony, Laravel, Slim) apps, read from the running app or its files.
+  # Maps to OBI's `routes` config.
   routes:
     # Route templates to match URL paths against, e.g.
     # ["/api/items/{id}", "/otlp/v1/{signal}"]. A matching path gets that
@@ -1053,6 +1057,22 @@ ebpf:
     # unbounded cardinality, avoid), `unset` (no route; the span is named
     # after the method alone).
     unmatched: ""
+
+  # Span attributes to export beyond the ones the chart always asks OBI for.
+  # Those are OBI's own default span attributes plus `service.peer.name`,
+  # which OBI v0.14 made opt-in and which the service map uses to name the
+  # service a call went to. (Asking OBI for any attribute replaces its
+  # defaults, so the chart lists them too.) Add OBI's opt-in ones by name:
+  #   - http.request.body.size, http.response.body.size — sent by default
+  #     before OBI v0.14.
+  #   - obi.http.response.observed
+  #   - db.query.text — the full SQL or Redis command, including any literal
+  #     values in it (personal data, tokens). Think before turning it on.
+  # Entries are trimmed; blanks and repeats are dropped, and "*" is ignored:
+  # it would turn on every optional attribute, db.query.text and gen_ai
+  # prompt and completion payloads included. OBI matches entries as globs.
+  # Maps to OBI's `attributes.select.traces.include`.
+  extraSpanAttributes: []
 
   # Drop eBPF database spans that are not part of any trace.
   #
@@ -1243,6 +1263,12 @@ profiling:
   # context via the shared bpffs map (`traces_ctx_v1`) — so flame
   # graphs carry trace_id/span_id and individual spans get their own
   # flame graph in the OneUptime UI. Requires `ebpf.enabled: true`.
+  # With this and `profiling.enabled` on, the chart also sets
+  # OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true on the eBPF DaemonSet: since
+  # v0.14 OBI leaves that map empty unless asked, because keeping it
+  # current costs a refresh on every async context switch of the
+  # instrumented apps (on Node.js, a hook on every callback). Set false
+  # to skip both the correlation and that cost.
   obiProcessContext: true
 
 # Per-node OS-level metrics. The Kubernetes-aware `kubeletstats`

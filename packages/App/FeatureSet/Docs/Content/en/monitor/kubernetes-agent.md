@@ -275,7 +275,7 @@ A separate DaemonSet runs the [OpenTelemetry eBPF Profiler](https://github.com/o
 
 Profiling is **off by default** — it's heavier than the OBI auto-instrumentation (more CPU per node, larger memory footprint) and not every cluster wants always-on flame graphs. Enable it when you want richer telemetry: `--set profiling.enabled=true`.
 
-When eBPF auto-instrumentation is also on (`ebpf.enabled: true`, the default), each CPU sample is correlated with OBI's trace context via a shared bpffs map — so flame graphs carry trace_id/span_id and the OneUptime UI can show you a per-span flame graph.
+When eBPF auto-instrumentation is also on (`ebpf.enabled: true`, the default), each CPU sample is correlated with OBI's trace context via a shared bpffs map — so flame graphs carry trace_id/span_id and the OneUptime UI can show you a per-span flame graph. Since v0.14 OBI only keeps that map filled when asked, so the chart sets `OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true` on the eBPF DaemonSet whenever `profiling.enabled` and `profiling.obiProcessContext` are both on. Filling it costs instrumented apps a little on every async context switch (on Node.js, a hook on every callback); set `profiling.obiProcessContext=false` for flame graphs without the per-span link.
 
 Requirements:
 
@@ -291,7 +291,7 @@ Tuning:
 | `profiling.samplesPerSecond`  | `19`                  | Sampling frequency in Hz. Upstream default; avoids accidentally aliasing with common timer frequencies.                           |
 | `profiling.offCpuThreshold`   | `0`                   | (0–1] enables off-CPU profiling — diagnoses lock contention and blocking I/O. Off by default because it adds tracepoint overhead. |
 | `profiling.tracers`           | `""` _(all runtimes)_ | Comma-separated list of language tracers to load.                                                                                 |
-| `profiling.obiProcessContext` | `true`                | Correlate samples with OBI's trace context for trace ↔ profile linking.                                                          |
+| `profiling.obiProcessContext` | `true`                | Correlate samples with OBI's trace context; also has OBI keep that context filled (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT`).      |
 
 ## Other data collection (host metrics, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
 

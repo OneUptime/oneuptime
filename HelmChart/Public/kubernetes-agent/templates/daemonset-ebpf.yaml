@@ -55,8 +55,9 @@ spec:
           env:
             # The YAML config holds what OBI does not accept as env vars:
             # which processes to instrument and which to skip
-            # (discovery.instrument / exclude_instrument), route naming, and
-            # the log enricher's selector. See templates/configmap-ebpf.yaml.
+            # (discovery.instrument / exclude_instrument), route naming, the
+            # span attributes, and the log enricher's selector. See
+            # templates/configmap-ebpf.yaml.
             # Env vars on this container still win on conflict.
             - name: OTEL_EBPF_CONFIG_PATH
               value: "/etc/obi/obi-config.yaml"
@@ -90,13 +91,31 @@ spec:
             - name: OTEL_EBPF_METRICS_FEATURES
               value: {{ include "kubernetes-agent.ebpfMetricsFeatures" . | quote }}
             # OBI's Node.js agent: links a Node request's outgoing calls to
-            # it, and harvests route templates. See ebpf.nodejs.
+            # it. (Route templates are read from the app's files by OBI
+            # itself, with or without the agent.) See ebpf.nodejs.
             - name: OTEL_EBPF_NODEJS_ENABLED
               value: {{ ternary "false" "true" (eq (toString ((.Values.ebpf.nodejs | default dict).enabled)) "false") | quote }}
             # Stop exporting OBI telemetry for a process that exports OTLP
             # itself. See ebpf.excludeOtelInstrumentedServices.
             - name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
               value: {{ ternary "false" "true" (eq (toString .Values.ebpf.excludeOtelInstrumentedServices) "false") | quote }}
+            {{- $profiling := .Values.profiling | default dict }}
+            {{- if and $profiling.enabled (ne (toString $profiling.obiProcessContext) "false") }}
+            # The profiler (profiling.obiProcessContext) tags each CPU sample
+            # with the span its thread is serving, which it reads from OBI's
+            # pinned traces_ctx_v1 map. Since v0.14 OBI leaves that map empty
+            # unless asked: keeping it current costs a refresh on every async
+            # context switch of an instrumented app (on Node.js, a hook on
+            # every callback), and a reader outside OBI cannot announce
+            # itself. Without this no flame graph is linked to a span. Set
+            # only for the profiler; the log enricher
+            # (ebpf.logToTraceCorrelation) turns it on by itself. An env var
+            # rather than ebpf.populate_trace_context in the config file,
+            # whose `ebpf:` key the log enricher block already owns. A values
+            # file without obiProcessContext counts as true, its default.
+            - name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+              value: "true"
+            {{- end }}
             {{- if .Values.ebpf.contextPropagation }}
             # Inject a W3C `traceparent` into outbound traffic so traces link
             # across services. OFF unless explicitly opted into, because every

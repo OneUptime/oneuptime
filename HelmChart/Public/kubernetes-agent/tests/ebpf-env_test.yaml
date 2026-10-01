@@ -171,6 +171,72 @@ tests:
             name: OTEL_EBPF_METRICS_FEATURES
             value: application,application_span,application_service_graph,network,network_inter_zone,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
+  # The profiler (profiling.obiProcessContext) links CPU samples to spans by
+  # reading OBI's pinned traces_ctx_v1 map. Since v0.14 OBI fills that map
+  # only for its own log enricher or when OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+  # asks it to (pkg/obi/config.go, PopulateTraceContext), and filling it costs
+  # every instrumented app a refresh per async context switch. So: set for
+  # the profiler, and for nothing else.
+  - it: does not ask OBI to fill the trace-context map by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+          any: true
+
+  - it: asks OBI to fill the trace-context map for the profiler
+    set:
+      profiling.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+            value: "true"
+
+  # A values file from before profiling.obiProcessContext existed (an upgrade
+  # with --reuse-values) gets the key's default, true.
+  - it: treats a values file without obiProcessContext as correlating
+    set:
+      profiling.enabled: true
+      profiling.obiProcessContext: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+            value: "true"
+
+  - it: leaves the map empty when the profiler does not correlate with traces
+    set:
+      profiling.enabled: true
+      profiling.obiProcessContext: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+          any: true
+
+  - it: does not ask for it for log correlation alone, which makes OBI fill the map by itself
+    set:
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+          any: true
+
+  - it: renders no eBPF DaemonSet with eBPF off, even with the profiler on
+    set:
+      ebpf.enabled: false
+      profiling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
   # The tag decides which of OBI's behaviours the tests above are about:
   # v0.14.0 is the first release that identifies Node.js 26+ as Node.js (and
   # so links its requests to their calls); it also validates feature names

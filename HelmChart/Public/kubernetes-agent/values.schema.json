@@ -847,7 +847,7 @@
         },
         "nodejs": {
           "type": "object",
-          "description": "OBI's Node.js support: linking a request's outgoing calls to it, and route harvesting, through an agent injected via the Node inspector (SIGUSR1; loopback 127.0.0.1:9229).",
+          "description": "OBI's Node.js support: linking a request's outgoing calls to it, through an agent injected via the Node inspector (SIGUSR1; loopback 127.0.0.1:9229). Route templates do not depend on it: OBI reads them from the app's files.",
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -876,6 +876,11 @@
             }
           },
           "additionalProperties": false
+        },
+        "extraSpanAttributes": {
+          "type": ["array", "null"],
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Span attributes OBI exports in addition to the chart's fixed set (OBI's defaults plus service.peer.name), e.g. 'http.request.body.size', 'http.response.body.size', 'obi.http.response.observed', 'db.query.text' (raw query text, may carry personal data). Rendered into OBI's attributes.select.traces.include; entries are trimmed, blanks and repeats dropped, and '*' is ignored. null (a values file from before this key) means none."
         },
         "dropUnlinkedDatabaseSpans": {
           "type": "boolean",
