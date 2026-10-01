@@ -43,7 +43,12 @@ const DOWN: string = SOURCE.slice(SOURCE.indexOf("public async down"));
 
 const namingStrategy: DefaultNamingStrategy = new DefaultNamingStrategy();
 
-const TABLES: Array<{ table: string; modelType: unknown }> = [
+interface ArchivableTable {
+  table: string;
+  modelType: unknown;
+}
+
+const TABLES: Array<ArchivableTable> = [
   { table: "Workflow", modelType: Workflow },
   { table: "Monitor", modelType: Monitor },
   { table: "StatusPage", modelType: StatusPage },
@@ -97,7 +102,7 @@ describe("AddArchiveToMoreResources1797100000000", () => {
     );
   });
 
-  describe.each(TABLES)("$table", ({ table, modelType }) => {
+  describe.each(TABLES)("$table", ({ table, modelType }: ArchivableTable) => {
     test.each(COLUMNS)("%s is declared on the model", (column: string) => {
       expect(declaredColumns(modelType)).toContain(column);
     });
@@ -173,7 +178,7 @@ describe("AddArchiveToMoreResources1797100000000", () => {
     tablesTouched.delete("User");
 
     expect(Array.from(tablesTouched).sort()).toEqual(
-      TABLES.map(({ table }) => {
+      TABLES.map(({ table }: ArchivableTable): string => {
         return table;
       }).sort(),
     );

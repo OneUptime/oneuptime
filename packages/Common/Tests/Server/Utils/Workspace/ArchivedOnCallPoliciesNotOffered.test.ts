@@ -23,6 +23,8 @@ const WORKSPACE_DIR: string = path.resolve(
 
 const LIST_CALL: RegExp = /OnCallDutyPolicyService\.(findBy|countBy)\(/g;
 
+const LEAVES_ARCHIVED_OUT: RegExp = /isArchived:\s*false/;
+
 function walk(directory: string): Array<string> {
   return fs
     .readdirSync(directory, { withFileTypes: true })
@@ -120,7 +122,7 @@ describe("Slack and Microsoft Teams do not offer archived on-call policies", () 
   test("every list and count of on-call policies leaves archived ones out", () => {
     const missing: Array<string> = calls
       .filter((call: PolicyListCall): boolean => {
-        return !/isArchived:\s*false/.test(call.args);
+        return !LEAVES_ARCHIVED_OUT.test(call.args);
       })
       .map((call: PolicyListCall): string => {
         return `${call.file}:${call.line} (${call.method})`;

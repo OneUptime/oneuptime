@@ -89,39 +89,45 @@ function archiveCard(page: SettingsPage): string {
   return source.slice(start, end + 2);
 }
 
-describe.each(PAGES)("the $model Settings page's Archive card", (page: SettingsPage) => {
-  test("is for this resource, named in its words", () => {
-    const card: string = archiveCard(page);
+describe.each(PAGES)(
+  "the $model Settings page's Archive card",
+  (page: SettingsPage) => {
+    test("is for this resource, named in its words", () => {
+      const card: string = archiveCard(page);
 
-    expect(card).toContain(`modelType={${page.model}}`);
-    expect(card).toContain("modelId={modelId}");
-    expect(card).toContain(`singularName={${page.copy}.singularName}`);
-  });
+      expect(card).toContain(`modelType={${page.model}}`);
+      expect(card).toContain("modelId={modelId}");
+      expect(card).toContain(`singularName={${page.copy}.singularName}`);
+    });
 
-  test.each(COPY_PROPS)("passes the resource's %s, never the telemetry default", (prop: string) => {
-    expect(archiveCard(page)).toMatch(
-      new RegExp(`${prop}=\\{\\s*${page.copy}\\.${prop}\\s*\\}`),
-    );
-  });
-
-  test("goes back to the resource's list after archiving", () => {
-    expect(archiveCard(page)).toMatch(
-      new RegExp(
-        `listRoute=\\{RouteUtil\\.populateRouteParams\\(\\s*RouteMap\\[PageMap\\.${page.listPage}\\] as Route,?\\s*\\)\\s*\\}`,
-      ),
-    );
-  });
-
-  test("imports its words from ResourceArchiveCopy", () => {
-    const source: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, page.file),
-      "utf8",
+    test.each(COPY_PROPS)(
+      "passes the resource's %s, never the telemetry default",
+      (prop: string) => {
+        expect(archiveCard(page)).toMatch(
+          new RegExp(`${prop}=\\{\\s*${page.copy}\\.${prop}\\s*\\}`),
+        );
+      },
     );
 
-    expect(source).toMatch(
-      new RegExp(
-        `import \\{ ${page.copy} \\} from "[./]+Components/Archive/ResourceArchiveCopy";`,
-      ),
-    );
-  });
-});
+    test("goes back to the resource's list after archiving", () => {
+      expect(archiveCard(page)).toMatch(
+        new RegExp(
+          `listRoute=\\{RouteUtil\\.populateRouteParams\\(\\s*RouteMap\\[PageMap\\.${page.listPage}\\] as Route,?\\s*\\)\\s*\\}`,
+        ),
+      );
+    });
+
+    test("imports its words from ResourceArchiveCopy", () => {
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD_SRC, page.file),
+        "utf8",
+      );
+
+      expect(source).toMatch(
+        new RegExp(
+          `import \\{ ${page.copy} \\} from "[./]+Components/Archive/ResourceArchiveCopy";`,
+        ),
+      );
+    });
+  },
+);

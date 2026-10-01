@@ -162,7 +162,9 @@ jest.mock(
             // no-op
           },
           filterBar: <div data-testid="filter-bar" />,
-          mergeFiltersIntoQuery: (base: Record<string, unknown> | undefined) => {
+          mergeFiltersIntoQuery: (
+            base: Record<string, unknown> | undefined,
+          ) => {
             return { ...(base || {}), merged: true };
           },
           facetSaveState: undefined,
@@ -645,10 +647,7 @@ describe("the monitor tables", () => {
       <MonitorTable query={{}} />,
     );
 
-    const cell: HTMLElement = statusCell(
-      props,
-      monitor({ isArchived: false }),
-    );
+    const cell: HTMLElement = statusCell(props, monitor({ isArchived: false }));
 
     expect(cell).toHaveTextContent("Offline");
     expect(cell).not.toHaveTextContent("Archived");

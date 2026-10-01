@@ -266,7 +266,9 @@ describe.each(LAYOUTS)("the $name's pages", (layout: ViewLayout) => {
 
 describe("an on-call policy's Settings page", () => {
   async function renderSettings(): Promise<void> {
-    goTo(`/dashboard/${PROJECT_ID}/on-call-duty/policies/${RESOURCE_ID}/settings`);
+    goTo(
+      `/dashboard/${PROJECT_ID}/on-call-duty/policies/${RESOURCE_ID}/settings`,
+    );
 
     await act(async () => {
       render(<OnCallDutyPolicySettings {...PAGE_PROPS} />);

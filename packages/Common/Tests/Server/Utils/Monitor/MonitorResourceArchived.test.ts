@@ -74,7 +74,8 @@ const MONITOR_ID: ObjectID = new ObjectID(
   "3a000000-0000-4000-8000-000000000001",
 );
 
-const findOneById: jest.Mock = MonitorService.findOneById as unknown as jest.Mock;
+const findOneById: jest.Mock =
+  MonitorService.findOneById as unknown as jest.Mock;
 const lock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
 const processMonitorStep: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;

@@ -23,6 +23,11 @@ const STATUS_PAGE_API: string = path.resolve(
 
 const RESOURCE_READ: RegExp = /StatusPageResourceService\.findBy\(/g;
 
+const SELECTS_ARCHIVE_FLAG: RegExp = /isArchived:\s*true/;
+
+const FILTERED_READ: RegExp =
+  /ArchivedMonitorResources\.withoutArchivedMonitors\(/g;
+
 // The full argument list of the call that opens at `start` (its "(").
 function callArguments(source: string, start: number): string {
   let depth: number = 0;
@@ -93,7 +98,7 @@ describe("the status page public API leaves archived monitors out", () => {
   test("every read selects whether each resource's monitor is archived", () => {
     const missing: Array<number> = reads
       .filter((read: { args: string }): boolean => {
-        return !/isArchived:\s*true/.test(monitorSelect(read.args));
+        return !SELECTS_ARCHIVE_FLAG.test(monitorSelect(read.args));
       })
       .map((read: { line: number }): number => {
         return read.line;
@@ -103,10 +108,7 @@ describe("the status page public API leaves archived monitors out", () => {
   });
 
   test("every read is filtered through ArchivedMonitorResources", () => {
-    const filters: number = (
-      source.match(/ArchivedMonitorResources\.withoutArchivedMonitors\(/g) ||
-      []
-    ).length;
+    const filters: number = (source.match(FILTERED_READ) || []).length;
 
     expect(filters).toBeGreaterThanOrEqual(reads.length);
   });

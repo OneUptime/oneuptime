@@ -97,9 +97,7 @@ describe.each(ENTRIES)("archive copy for a $name", (entry: Entry) => {
   test("never borrows the telemetry wording, which promises the opposite", () => {
     for (const field of FIELDS) {
       expect(entry.copy[field].toLowerCase()).not.toContain("telemetry");
-      expect(entry.copy[field].toLowerCase()).not.toContain(
-        "keeps collecting",
-      );
+      expect(entry.copy[field].toLowerCase()).not.toContain("keeps collecting");
     }
   });
 

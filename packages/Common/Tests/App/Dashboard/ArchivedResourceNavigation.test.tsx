@@ -107,9 +107,12 @@ function mockLayout(name: string): {
   };
 }
 
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Layout", () => {
-  return mockLayout("workflows");
-});
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Layout",
+  () => {
+    return mockLayout("workflows");
+  },
+);
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/View/Layout",
   () => {
@@ -466,58 +469,61 @@ afterEach(() => {
   cleanup();
 });
 
-describe.each(PRODUCTS)("$name: the way to archived ones", (product: Product) => {
-  test("the menu has one Archived entry, leading to the Archived page", async () => {
-    goTo(product.archivedPath);
-    await renderMenu(product.renderMenu());
+describe.each(PRODUCTS)(
+  "$name: the way to archived ones",
+  (product: Product) => {
+    test("the menu has one Archived entry, leading to the Archived page", async () => {
+      goTo(product.archivedPath);
+      await renderMenu(product.renderMenu());
 
-    const archived: Array<MenuLink> = allLinks().filter(
-      (link: MenuLink): boolean => {
-        return link.title === "Archived";
-      },
-    );
+      const archived: Array<MenuLink> = allLinks().filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Archived";
+        },
+      );
 
-    expect(archived).toHaveLength(1);
-    expect(archived[0]!.href).toBe(routeFor(product.archivedPage));
-    expect(archived[0]!.href).toBe(product.archivedPath);
-  });
-
-  test("the Archived URL resolves to the Archived page, not to a resource called 'archived'", () => {
-    expect(resolve(product.archivedPath)).toBe(
-      RouteUtil.getRouteString(product.archivedPage),
-    );
-    expect(resolve(product.archivedPath)).not.toBe(
-      RouteUtil.getRouteString(product.viewPage),
-    );
-  });
-
-  test("a resource's own URL still resolves to its page", () => {
-    expect(resolve(product.viewPath)).toBe(
-      RouteUtil.getRouteString(product.viewPage),
-    );
-  });
-
-  test("the Archived page's breadcrumbs lead back through the product", () => {
-    expect(titlesOf(product.breadcrumbs(resolve(product.archivedPath)))).toEqual(
-      product.archivedBreadcrumbs,
-    );
-  });
-
-  test("the product's router opens the Archived page at its URL", () => {
-    renderRoutesAt(product, product.archivedPath);
-
-    expect(renderedPage()).toEqual({
-      name: product.archivedPageName,
-      route: (RouteMap[product.archivedPage] as Route).toString(),
+      expect(archived).toHaveLength(1);
+      expect(archived[0]!.href).toBe(routeFor(product.archivedPage));
+      expect(archived[0]!.href).toBe(product.archivedPath);
     });
-  });
 
-  test("the product's router still opens a resource at its own URL", () => {
-    renderRoutesAt(product, product.viewPath);
+    test("the Archived URL resolves to the Archived page, not to a resource called 'archived'", () => {
+      expect(resolve(product.archivedPath)).toBe(
+        RouteUtil.getRouteString(product.archivedPage),
+      );
+      expect(resolve(product.archivedPath)).not.toBe(
+        RouteUtil.getRouteString(product.viewPage),
+      );
+    });
 
-    expect(renderedPage().name).toBe(product.viewPageName);
-  });
-});
+    test("a resource's own URL still resolves to its page", () => {
+      expect(resolve(product.viewPath)).toBe(
+        RouteUtil.getRouteString(product.viewPage),
+      );
+    });
+
+    test("the Archived page's breadcrumbs lead back through the product", () => {
+      expect(
+        titlesOf(product.breadcrumbs(resolve(product.archivedPath))),
+      ).toEqual(product.archivedBreadcrumbs);
+    });
+
+    test("the product's router opens the Archived page at its URL", () => {
+      renderRoutesAt(product, product.archivedPath);
+
+      expect(renderedPage()).toEqual({
+        name: product.archivedPageName,
+        route: (RouteMap[product.archivedPage] as Route).toString(),
+      });
+    });
+
+    test("the product's router still opens a resource at its own URL", () => {
+      renderRoutesAt(product, product.viewPath);
+
+      expect(renderedPage().name).toBe(product.viewPageName);
+    });
+  },
+);
 
 describe("an on-call policy's Settings page", () => {
   test("is in the policy's menu, after its other pages and before Audit Logs", async () => {
@@ -577,9 +583,7 @@ describe("an on-call policy's Settings page", () => {
       ).toString(),
     });
     expect(
-      screen
-        .getByTestId("page")
-        .closest('[data-layout="on-call-policy-view"]'),
+      screen.getByTestId("page").closest('[data-layout="on-call-policy-view"]'),
     ).not.toBeNull();
   });
 });

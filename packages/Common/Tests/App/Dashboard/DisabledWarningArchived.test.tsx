@@ -128,7 +128,10 @@ describe("the disabled banner on an archived monitor's pages", () => {
 
   test("goes away when the monitor is archived on the page, and comes back when it is unarchived", async () => {
     getItemMock.mockResolvedValue(
-      monitorWith({ isArchived: false, disableActiveMonitoring: true }) as never,
+      monitorWith({
+        isArchived: false,
+        disableActiveMonitoring: true,
+      }) as never,
     );
 
     render(<DisabledWarning monitorId={MONITOR_ID} />);
@@ -149,7 +152,10 @@ describe("the disabled banner on an archived monitor's pages", () => {
     expect(bannerShown()).toBe(false);
 
     getItemMock.mockResolvedValue(
-      monitorWith({ isArchived: false, disableActiveMonitoring: true }) as never,
+      monitorWith({
+        isArchived: false,
+        disableActiveMonitoring: true,
+      }) as never,
     );
     act(() => {
       announceArchiveStateChange({
@@ -165,7 +171,10 @@ describe("the disabled banner on an archived monitor's pages", () => {
 
   test("does not re-read for another monitor's archive", async () => {
     getItemMock.mockResolvedValue(
-      monitorWith({ isArchived: false, disableActiveMonitoring: true }) as never,
+      monitorWith({
+        isArchived: false,
+        disableActiveMonitoring: true,
+      }) as never,
     );
 
     render(<DisabledWarning monitorId={MONITOR_ID} />);

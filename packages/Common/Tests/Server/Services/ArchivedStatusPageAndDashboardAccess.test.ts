@@ -301,14 +301,18 @@ describe("an archived status page takes no new subscribers", () => {
 
   beforeEach(() => {
     // Not subscribed yet, and the page is not one that notifies.
-    jest.spyOn(StatusPageSubscriberService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(StatusPageSubscriberService, "findOneBy")
+      .mockResolvedValue(null);
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
       .mockResolvedValue([]);
   });
 
   it("says the page is archived, rather than that it does not exist", async () => {
-    jest.spyOn(StatusPageService, "isStatusPageArchived").mockResolvedValue(true);
+    jest
+      .spyOn(StatusPageService, "isStatusPageArchived")
+      .mockResolvedValue(true);
 
     await expect(subscribe()).rejects.toThrow(
       new BadDataException(STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE),

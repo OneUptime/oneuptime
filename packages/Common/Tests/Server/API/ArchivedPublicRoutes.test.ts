@@ -139,7 +139,10 @@ const DASHBOARDS: Dictionary<Dashboard> = {
  * route that asks for `isArchived: false` really does not find an archived
  * page - and one that forgets to ask does.
  */
-function matches(row: object, query: Dictionary<unknown>): boolean {
+function matches(
+  row: Record<string, unknown>,
+  query: Dictionary<unknown>,
+): boolean {
   for (const key of Object.keys(query)) {
     const expected: unknown = query[key];
 
@@ -263,7 +266,10 @@ describe("archived status pages and dashboards on their public routes", () => {
       .mockImplementation(async (data: { query: Dictionary<unknown> }) => {
         const page: StatusPage | undefined = Object.values(PAGES).find(
           (candidate: StatusPage): boolean => {
-            return matches(candidate, data.query);
+            return matches(
+              candidate as unknown as Record<string, unknown>,
+              data.query,
+            );
           },
         );
         return page || null;

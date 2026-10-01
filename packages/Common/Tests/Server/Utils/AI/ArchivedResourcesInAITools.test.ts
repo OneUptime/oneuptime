@@ -78,7 +78,7 @@ const ctx: ToolContext = {
 
 type AnySpy = SpyInstance<(...args: Array<never>) => unknown>;
 
-function spy(target: object, method: string, value: unknown): AnySpy {
+function spy(target: unknown, method: string, value: unknown): AnySpy {
   return jest
     .spyOn(target as Record<string, () => unknown>, method)
     .mockResolvedValue(value as never) as unknown as AnySpy;

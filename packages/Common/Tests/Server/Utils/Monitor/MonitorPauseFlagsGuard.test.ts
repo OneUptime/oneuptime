@@ -45,6 +45,12 @@ const MAINTENANCE_SQL_FALSE: RegExp =
 // Reading the flag off a monitor (not writing it as an object key).
 const MAINTENANCE_FLAG_READ: RegExp =
   /\.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent\b/;
+// Inside an update's `data: { ... }` - a write-back, not a question.
+const INSIDE_DATA_BLOCK: RegExp = /data:\s*\{[^{}]*$/;
+// Any mention of the archive flag.
+const MENTIONS_ARCHIVED: RegExp = /\bisArchived\b/;
+// A select (or query) that reads the archive flag.
+const SELECTS_ARCHIVED: RegExp = /isArchived:\s*true/;
 
 function walk(directory: string): Array<string> {
   if (!fs.existsSync(directory)) {
@@ -115,7 +121,7 @@ describe("every place that asks whether a monitor is checked also asks whether i
       at: number,
     ): boolean => {
       const before: string = source.slice(Math.max(0, at - 200), at);
-      return !/data:\s*\{[^{}]*$/.test(before);
+      return !INSIDE_DATA_BLOCK.test(before);
     };
 
     const spelledOut: Array<string> = SOURCES.filter(
@@ -186,7 +192,7 @@ describe("every place that asks whether a monitor is checked also asks whether i
       .filter((file: string): boolean => {
         const source: string = code(file);
         return (
-          !/\bisArchived\b/.test(source) &&
+          !MENTIONS_ARCHIVED.test(source) &&
           !source.includes("MonitorPauseState")
         );
       })
@@ -216,7 +222,7 @@ describe("every place that asks whether a monitor is checked also asks whether i
           match.index + match[0].length + 400,
         );
 
-        if (!/isArchived:\s*true/.test(around)) {
+        if (!SELECTS_ARCHIVED.test(around)) {
           offenders.push(relative(file));
         }
 

@@ -239,9 +239,14 @@ describe("the archived banner", () => {
   test("renders nothing while it loads, and nothing when the read fails", async () => {
     let fail: (error: Error) => void = () => {};
     getItemMock.mockReturnValue(
-      new Promise<unknown>((_resolve, reject) => {
-        fail = reject;
-      }),
+      new Promise<unknown>(
+        (
+          _resolve: (value: unknown) => void,
+          reject: (error: Error) => void,
+        ) => {
+          fail = reject;
+        },
+      ),
     );
 
     renderBanner();
