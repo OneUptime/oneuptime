@@ -115,6 +115,7 @@ import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
+import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -541,6 +542,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Invitations of people who have not joined are left pending. Idempotent.
    */
   new AcceptPendingTeamInvitationsOfProjectMembers(),
+  /*
+   * OAuth sign-in for the MCP server: adds the two audit-log columns that
+   * say a change was made through a connected MCP client, and which one
+   * (AuditLogV2.mcpOAuthGrantId, mcpClientName). Metadata-only and
+   * idempotent; rows written before it read as "not through an MCP client".
+   */
+  new AddAuditLogMcpClientColumns(),
   /*
    * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
    * AddTtlOnlyDropPartsToTelemetryV3 set and the models no longer declare: a

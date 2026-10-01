@@ -185,6 +185,16 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     color: "text-violet-600",
     bgColor: "bg-violet-50 border-violet-100",
   },
+  /*
+   * A member connecting or revoking an MCP client (McpOAuthGrant). No view
+   * route: connected clients are a table on Settings -> MCP Server, not a
+   * page each.
+   */
+  "MCP Client Authorization": {
+    icon: IconProp.Terminal,
+    color: "text-violet-600",
+    bgColor: "bg-violet-50 border-violet-100",
+  },
   Label: {
     icon: IconProp.Label,
     color: "text-pink-600",
@@ -237,6 +247,39 @@ export const getActorInitials: (name: string | undefined) => string = (
       return p.charAt(0).toUpperCase();
     })
     .join("");
+};
+
+export interface ActorCredentialInput {
+  userType?: string | undefined;
+  apiKeyName?: string | undefined;
+  mcpClientName?: string | undefined;
+}
+
+/*
+ * What a PERSON's change was made through, when it was not their own hands at
+ * the dashboard: "via Claude Code" for an MCP client they connected with
+ * OAuth, "via Master API Key" for the instance master key (which acts as the
+ * master admin user). Null for an ordinary dashboard change.
+ *
+ * Also null for a project API key. That entry has no person behind it - the
+ * key IS the actor, and is shown as one - so there is no "via" to add.
+ */
+export const getActorCredentialLabel: (
+  entry: ActorCredentialInput,
+) => string | null = (entry: ActorCredentialInput): string | null => {
+  if (entry.userType === "API") {
+    return null;
+  }
+
+  if (entry.mcpClientName) {
+    return `via ${entry.mcpClientName} (MCP client)`;
+  }
+
+  if (entry.apiKeyName) {
+    return `via ${entry.apiKeyName}`;
+  }
+
+  return null;
 };
 
 export interface AuditLogsQueryOptions {

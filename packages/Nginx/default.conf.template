@@ -741,6 +741,36 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass $backend_home;
     }
 
+    # OAuth discovery documents for the MCP server (RFC 9728 protected resource
+    # metadata, RFC 8414 authorization server metadata). An MCP client that is
+    # told only https://<host>/mcp looks for these at the ORIGIN's well-known
+    # paths, with the resource path as a suffix:
+    #
+    #   /.well-known/oauth-protected-resource[/mcp]
+    #   /.well-known/oauth-authorization-server[/mcp]
+    #
+    # They are served by the app, which also serves /mcp. Without this location
+    # they fall to "location /", which with BILLING_ENABLED=true is the
+    # marketing Home service - a 404 page - and no client could ever discover
+    # where to sign in. A regular expression, so it wins over that prefix, and
+    # anchored on a segment boundary so it claims these two documents and
+    # nothing else under /.well-known.
+    location ~ ^/\.well-known/oauth-(authorization-server|protected-resource)(/|$) {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
     # PWA manifest and service worker with proper headers for home
     location ~* ^/(manifest\.json|service-worker\.js)$ {
         resolver ${NGINX_RESOLVER} valid=30s;

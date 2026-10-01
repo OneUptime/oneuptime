@@ -1471,3 +1471,443 @@ test("every add_header on a browser-facing SPA location uses the always flag", (
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// OAuth discovery documents for the MCP server
+// ---------------------------------------------------------------------------
+
+/*
+ * An MCP client is told one thing - https://<host>/mcp - and has to find out
+ * for itself where to sign its user in. It does that by fetching two JSON
+ * documents from the ORIGIN's well-known paths, with the resource path as a
+ * suffix (RFC 9728 section 3.1, RFC 8414 section 3.1):
+ *
+ *   /.well-known/oauth-protected-resource[/mcp]
+ *   /.well-known/oauth-authorization-server[/mcp]
+ *
+ * The app serves them (it also serves /mcp), but nothing under /.well-known
+ * was routed to the app on the primary ingress: those paths fell to
+ * `location /`, which with BILLING_ENABLED=true is the marketing Home
+ * service. A client would get Home's 404 page, conclude the server has no
+ * authorization server, and never show a sign-in. The failure is silent on
+ * both ends, so the routing is pinned here.
+ */
+const OAUTH_DISCOVERY_LOCATION_SPEC =
+  "~ ^/\\.well-known/oauth-(authorization-server|protected-resource)(/|$)";
+
+const OAUTH_DISCOVERY_PATHS = [
+  "/.well-known/oauth-protected-resource",
+  "/.well-known/oauth-protected-resource/mcp",
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-authorization-server/mcp",
+];
+
+function findOAuthDiscoveryLocations(serverBlock) {
+  return getLocationBlocks(serverBlock.body).filter((location) => {
+    return location.spec === OAUTH_DISCOVERY_LOCATION_SPEC;
+  });
+}
+
+function findLocation(serverBlock, spec) {
+  return getLocationBlocks(serverBlock.body).find((location) => {
+    return location.spec === spec;
+  });
+}
+
+test("the OAuth discovery location exists exactly once, in the primary ingress", () => {
+  assert.equal(
+    findOAuthDiscoveryLocations(primaryServerBlock).length,
+    1,
+    "the primary ingress must route the OAuth discovery documents exactly once",
+  );
+
+  // And nothing else in the whole template routes those paths by name.
+  assert.equal(
+    stripComments(template).split("well-known/oauth-").length - 1,
+    1,
+    "exactly one location may name the OAuth discovery documents",
+  );
+});
+
+test("the OAuth discovery documents are served wherever /mcp is served, and nowhere else", () => {
+  /*
+   * The documents describe the MCP endpoint, so a server block that does not
+   * serve /mcp has no business answering for it: on a customer's status-page
+   * domain there is no MCP server to discover. And a block that DOES serve
+   * /mcp without them is the bug this location exists to fix.
+   */
+  for (const serverBlock of serverBlocks) {
+    const servesMcp = Boolean(findLocation(serverBlock, "/mcp"));
+    const servesDiscovery = findOAuthDiscoveryLocations(serverBlock).length > 0;
+
+    assert.equal(
+      servesDiscovery,
+      servesMcp,
+      "a server block must serve the OAuth discovery documents if and only if it serves /mcp",
+    );
+  }
+
+  assert.ok(
+    findLocation(primaryServerBlock, "/mcp"),
+    "the primary ingress must still serve /mcp",
+  );
+});
+
+test("the OAuth discovery regex covers the two documents, with or without a resource path, and nothing else", () => {
+  const pattern = new RegExp(
+    locationRegexSource(OAUTH_DISCOVERY_LOCATION_SPEC),
+  );
+
+  for (const uri of [
+    ...OAUTH_DISCOVERY_PATHS,
+    // The suffix is the resource's path; a trailing slash is still the document.
+    "/.well-known/oauth-protected-resource/",
+    "/.well-known/oauth-authorization-server/",
+    "/.well-known/oauth-protected-resource/mcp/",
+  ]) {
+    assert.ok(pattern.test(uri), `should match ${uri}`);
+  }
+
+  for (const uri of [
+    // A segment boundary, not a string prefix.
+    "/.well-known/oauth-protected-resourceX",
+    "/.well-known/oauth-protected-resource.json",
+    "/.well-known/oauth-protected-resource-evil",
+    "/.well-known/oauth-authorization-serverX",
+    "/.well-known/oauth-authorization-servers",
+    // Other well-known documents keep going where they went before.
+    "/.well-known/openid-configuration",
+    "/.well-known/openid-configuration/mcp",
+    "/.well-known/mcp.json",
+    "/.well-known/assetlinks.json",
+    "/.well-known/apple-app-site-association",
+    "/.well-known/acme-challenge/token",
+    "/.well-known/security.txt",
+    "/.well-known/oauth-client",
+    "/.well-known/oauth-",
+    "/.well-known/",
+    "/.well-known",
+    // Anchored at the start of the path.
+    "/mcp/.well-known/oauth-protected-resource",
+    "/x/.well-known/oauth-authorization-server",
+    "/api/.well-known/oauth-protected-resource",
+    // The dot is a literal dot.
+    "/Xwell-known/oauth-protected-resource",
+    "/well-known/oauth-protected-resource",
+    // nginx's `~` is case-sensitive, and so are these well-known names.
+    "/.well-known/OAuth-Protected-Resource",
+    "/.WELL-KNOWN/oauth-protected-resource",
+  ]) {
+    assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
+  }
+});
+
+test("the OAuth discovery location is case-sensitive", () => {
+  // `~*` would also claim /.well-known/OAUTH-PROTECTED-RESOURCE, which the app
+  // does not serve; the well-known names are lower-case by registration.
+  const specsNamingTheDocuments = getLocationBlocks(primaryServerBlock.body)
+    .map((location) => {
+      return location.spec;
+    })
+    .filter((spec) => {
+      return spec.includes("oauth-");
+    });
+
+  assert.deepEqual(specsNamingTheDocuments, [OAUTH_DISCOVERY_LOCATION_SPEC]);
+  assert.ok(
+    specsNamingTheDocuments[0].startsWith("~ "),
+    "the OAuth discovery location must use the case-sensitive ~ operator",
+  );
+});
+
+test("nginx location precedence sends the OAuth discovery documents to their own block", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const uri of OAUTH_DISCOVERY_PATHS) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      OAUTH_DISCOVERY_LOCATION_SPEC,
+      `${uri} must land in the OAuth discovery location, not in "location /" (the marketing site when billing is on)`,
+    );
+  }
+});
+
+test("the OAuth discovery location does not shadow any other well-known path", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  // The two well-known locations that were already there keep their requests.
+  assert.equal(
+    resolveLocation(locations, "/.well-known/acme-challenge/some-token").spec,
+    "/.well-known/acme-challenge",
+  );
+  assert.equal(
+    resolveLocation(locations, "/.well-known/assetlinks.json").spec,
+    "/.well-known/assetlinks.json",
+  );
+
+  // Everything else under /.well-known is still the catch-all's, as before.
+  for (const uri of [
+    "/.well-known/mcp.json",
+    "/.well-known/apple-app-site-association",
+    "/.well-known/openid-configuration",
+    "/.well-known/security.txt",
+    "/.well-known/oauth-protected-resourceX",
+    "/.well-known/oauth-authorization-servers",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/",
+      `${uri} must keep landing in "location /"`,
+    );
+  }
+
+  // The copies of the documents under /mcp, and the authorization server
+  // itself, were always reachable through /mcp and still are.
+  for (const uri of [
+    "/mcp",
+    "/mcp/.well-known/oauth-protected-resource",
+    "/mcp/.well-known/oauth-authorization-server",
+    "/mcp/oauth/authorize",
+    "/mcp/oauth/token",
+    "/mcp/oauth/register",
+    "/mcp/oauth/revoke",
+    "/mcp/oauth/consent/details",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/mcp",
+      `${uri} must land in location /mcp`,
+    );
+  }
+
+  // The consent screen is the Accounts app.
+  assert.equal(
+    resolveLocation(locations, "/accounts/mcp-authorize").spec,
+    "/accounts",
+  );
+});
+
+test("no location that nginx consults first can take the OAuth discovery documents", () => {
+  /*
+   * nginx tries regex locations in file order and stops at the first match,
+   * and a `^~` prefix or an `=` location that matches is chosen without the
+   * regexes being tried at all. resolveLocation models the first rule only,
+   * so the other two are ruled out here directly.
+   */
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const discoveryIndex = locations.findIndex((location) => {
+    return location.spec === OAUTH_DISCOVERY_LOCATION_SPEC;
+  });
+
+  assert.ok(discoveryIndex >= 0);
+
+  for (const location of locations.slice(0, discoveryIndex)) {
+    if (!location.spec.startsWith("~")) {
+      continue;
+    }
+
+    const earlier = new RegExp(
+      locationRegexSource(location.spec),
+      location.spec.startsWith("~*") ? "i" : "",
+    );
+
+    for (const uri of OAUTH_DISCOVERY_PATHS) {
+      assert.ok(
+        !earlier.test(uri),
+        `the earlier regex location ${location.spec} would take ${uri}`,
+      );
+    }
+  }
+
+  for (const location of locations) {
+    const isExact = location.spec.startsWith("=");
+    const isNoRegexPrefix = location.spec.startsWith("^~");
+
+    if (!isExact && !isNoRegexPrefix) {
+      continue;
+    }
+
+    const target = location.spec.replace(/^(=|\^~)\s*/, "").trim();
+
+    for (const uri of OAUTH_DISCOVERY_PATHS) {
+      assert.ok(
+        isExact ? uri !== target : !uri.startsWith(target),
+        `location ${location.spec} pre-empts the OAuth discovery location for ${uri}`,
+      );
+    }
+  }
+});
+
+test("the OAuth discovery location proxies to the app whatever billing says", () => {
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  assert.ok(
+    /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body),
+    "the OAuth discovery location must proxy to the app backend",
+  );
+  assert.deepEqual(
+    getDirectives(location.body, "proxy_pass"),
+    ["proxy_pass ${BACKEND_APP_TARGET};"],
+    "exactly one proxy_pass: the app",
+  );
+
+  /*
+   * The catch-all it pre-empts splits on $billing_enabled and sends the hosted
+   * product's traffic to Home. Copying that split here would be the original
+   * bug again: Home has no such documents.
+   */
+  assert.ok(
+    !location.body.includes("$billing_enabled"),
+    "the OAuth discovery location must not branch on billing",
+  );
+  assert.ok(
+    !location.body.includes("$backend_home"),
+    "the OAuth discovery location must never proxy to Home",
+  );
+  assert.ok(
+    !/\bif\s*\(/.test(location.body),
+    "the OAuth discovery location must proxy unconditionally",
+  );
+});
+
+test("the OAuth discovery location hands the app the path it was asked for", () => {
+  /*
+   * The app registers these routes at the well-known paths themselves. The
+   * other well-known locations rewrite onto /api/...; a rewrite here would
+   * send the app a path it does not serve.
+   */
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  assert.deepEqual(getDirectives(location.body, "rewrite"), []);
+  assert.deepEqual(getDirectives(location.body, "return"), []);
+});
+
+test("the OAuth discovery location proxies exactly like /mcp, the block that serves the rest of the flow", () => {
+  /*
+   * A regex location wins outright over the prefix locations, so nothing is
+   * inherited from "location /": what the request needs has to be stated
+   * here. /mcp is the reference - the same app serves both, and a client goes
+   * from one to the other in consecutive requests.
+   */
+  const REQUIRED_PROXY_HEADERS = [
+    "proxy_set_header Host $host;",
+    "proxy_set_header X-Real-IP $remote_addr;",
+    "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+    "proxy_set_header X-Forwarded-Proto $scheme;",
+  ];
+
+  const discovery = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+  const mcp = findLocation(primaryServerBlock, "/mcp");
+
+  const discoveryHeaders = getDirectives(discovery.body, "proxy_set_header");
+  const mcpHeaders = getDirectives(mcp.body, "proxy_set_header");
+
+  for (const header of REQUIRED_PROXY_HEADERS) {
+    assert.ok(
+      discoveryHeaders.includes(header),
+      `the OAuth discovery location is missing "${header}"`,
+    );
+    assert.ok(mcpHeaders.includes(header), `/mcp is missing "${header}"`);
+  }
+
+  // The same upstream, named the same way.
+  assert.deepEqual(
+    getDirectives(discovery.body, "set"),
+    getDirectives(mcp.body, "set"),
+  );
+  assert.deepEqual(getDirectives(discovery.body, "set"), [
+    "set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};",
+  ]);
+  assert.deepEqual(
+    getDirectives(discovery.body, "proxy_pass"),
+    getDirectives(mcp.body, "proxy_pass"),
+  );
+  assert.deepEqual(
+    getDirectives(discovery.body, "resolver"),
+    getDirectives(mcp.body, "resolver"),
+  );
+  assert.ok(
+    /resolver\s+\$\{NGINX_RESOLVER\}/.test(discovery.body),
+    "the OAuth discovery location must carry the resolver like every other proxying location",
+  );
+  assert.deepEqual(getDirectives(discovery.body, "proxy_http_version"), [
+    "proxy_http_version 1.1;",
+  ]);
+});
+
+test("the OAuth discovery location takes none of /mcp's streaming settings", () => {
+  /*
+   * /mcp holds a connection open for a day and switches buffering off for
+   * Server-Sent Events. A discovery document is a few hundred bytes of JSON:
+   * it is buffered and it times out like any other request.
+   */
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  for (const directive of [
+    "proxy_read_timeout",
+    "proxy_send_timeout",
+    "proxy_buffering",
+    "proxy_cache",
+    "chunked_transfer_encoding",
+    "client_max_body_size",
+  ]) {
+    assert.deepEqual(
+      getDirectives(location.body, directive),
+      [],
+      `the OAuth discovery location should not set ${directive}`,
+    );
+  }
+});
+
+test("the OAuth discovery location is logged and cached like an ordinary request", () => {
+  /*
+   * Nothing in these URLs is a credential, so there is no reason to keep them
+   * out of the logs (that exception is the calendar feed's alone), and the
+   * app sets the documents' Cache-Control itself.
+   */
+  const location = findOAuthDiscoveryLocations(primaryServerBlock)[0];
+
+  assert.deepEqual(getDirectives(location.body, "access_log"), []);
+  assert.deepEqual(getDirectives(location.body, "error_log"), []);
+  assert.deepEqual(getDirectives(location.body, "add_header"), []);
+  assert.deepEqual(getDirectives(location.body, "proxy_hide_header"), []);
+});
+
+test("the well-known locations that were already there are unchanged", () => {
+  const acme = findLocation(primaryServerBlock, "/.well-known/acme-challenge");
+
+  assert.ok(acme, "the primary ingress lost its ACME challenge location");
+  assert.deepEqual(getDirectives(acme.body, "rewrite"), [
+    "rewrite ^/\\.well-known/acme-challenge(.*)$ /api/acme-challenge/.well-known$1 break;",
+  ]);
+  assert.ok(/proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(acme.body));
+
+  const assetLinks = findLocation(
+    primaryServerBlock,
+    "/.well-known/assetlinks.json",
+  );
+
+  assert.ok(
+    assetLinks,
+    "the primary ingress lost its assetlinks.json location",
+  );
+  assert.deepEqual(getDirectives(assetLinks.body, "proxy_pass"), [
+    "proxy_pass $backend_home;",
+  ]);
+
+  // Status-page domains answer ACME through the status-page API, and only
+  // the plaintext server does: that is where the challenge is fetched.
+  const statusPageWellKnown = serverBlocks
+    .filter((block) => {
+      return block !== primaryServerBlock;
+    })
+    .map((block) => {
+      return findLocation(block, "/.well-known");
+    })
+    .filter(Boolean);
+
+  assert.equal(statusPageWellKnown.length, 1);
+  assert.deepEqual(getDirectives(statusPageWellKnown[0].body, "rewrite"), [
+    "rewrite ^/\\.well-known(.*)$ /api/status-page/.well-known$1 break;",
+  ]);
+});

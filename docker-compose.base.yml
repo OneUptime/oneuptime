@@ -169,6 +169,12 @@ x-common-runtime-variables: &common-runtime-variables
   ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW:-}
   ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW:-}
 
+  # OAuth sign-in for the MCP server (/mcp). Defaulted so a config.env upgraded
+  # in place, which will not have these keys, neither warns nor hands the
+  # container an empty switch.
+  DISABLE_MCP_OAUTH: ${DISABLE_MCP_OAUTH:-false}
+  DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS: ${DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS:-false}
+
   # Browser source map upload / symbolication limits. Blank means "use the
   # built-in default", so a config.env upgraded in place keeps today's
   # behaviour. maxFilesPerRequest and maxFileSizeBytes can only be lowered --

@@ -957,6 +957,33 @@ export const OnCallCalendarFeedRateLimitPerIpPerWindow: number =
   );
 
 /*
+ * OAuth sign-in for the MCP server: the authorization server under
+ * /mcp/oauth, its discovery documents under /.well-known, and the consent
+ * screen at /accounts/mcp-authorize, which together let an MCP client connect
+ * by having a project member sign in instead of being handed an API key.
+ *
+ * Kill switch. When true none of that is served and an OAuth access token is
+ * refused wherever it is presented, so the MCP server behaves exactly as it
+ * did before OAuth existed: API keys only. Nothing is deleted - the grants
+ * people made are still there when it is flipped back.
+ */
+export const DisableMcpOAuth: boolean =
+  process.env["DISABLE_MCP_OAUTH"] === "true";
+
+/*
+ * A client may identify itself with a Client ID Metadata Document: its client
+ * id is an https URL, and this server fetches that URL to learn the client's
+ * name and redirect URIs. That is an outbound request to wherever the client
+ * says, so it only works on an instance that can reach the internet.
+ *
+ * Set this on an instance that cannot. The authorization server then stops
+ * advertising the feature and clients fall back to registering themselves
+ * (Dynamic Client Registration), which needs no outbound request at all.
+ */
+export const DisableMcpOAuthClientIdMetadataDocuments: boolean =
+  process.env["DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS"] === "true";
+
+/*
  * Source map ingestion and resolution limits.
  *
  * These were fixed constants, sized on the assumption that "a build rarely

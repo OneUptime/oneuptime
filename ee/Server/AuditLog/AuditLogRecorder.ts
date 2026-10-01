@@ -372,6 +372,29 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       auditLog.userType = actor.userType;
     }
 
+    /*
+     * WHICH credential made the change. The columns have been on the model
+     * from the start, and the audit table has always shown `apiKeyName` -
+     * but nothing put a key's identity on the request, so every key's changes
+     * read alike ("API Key"), and a project with several keys could not tell
+     * whose change it was looking at. The middleware now carries the id and
+     * name through (ProjectMiddleware), and so does the MCP server for a
+     * client that signed in with OAuth (McpDelegationAuthorization): that
+     * entry names the member as its actor, and the client it came through.
+     */
+    if (params.props.apiKeyId) {
+      auditLog.apiKeyId = params.props.apiKeyId;
+    }
+    if (params.props.apiKeyName) {
+      auditLog.apiKeyName = params.props.apiKeyName;
+    }
+    if (params.props.mcpOAuthGrantId) {
+      auditLog.mcpOAuthGrantId = params.props.mcpOAuthGrantId;
+    }
+    if (params.props.mcpClientName) {
+      auditLog.mcpClientName = params.props.mcpClientName;
+    }
+
     auditLog.changes = params.changes;
     auditLog.retentionDate = this.computeRetentionDate(params.retentionInDays);
 
