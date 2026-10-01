@@ -1,6 +1,13 @@
 # Authoring a Workflow
 
-To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from** — pick **Start from scratch** or one of the templates — then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from**, then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+
+On **Start from**, choose how to begin:
+
+- **Start from scratch**, beside the search box, gives you an empty canvas.
+- A template gives you a working workflow to change. The step opens on a few **Recommended** templates. The rest are under their categories, such as **Incidents**, **Monitors** and **Jira**, each with how many templates it holds, and **All templates** lists every one. A search looks through all of them: every word you type has to match, and each category shows how many of its templates did.
+
+Click a template to see what it does before you choose it: its trigger, the steps it is made of, and the settings it will ask for. **Use this template** takes it on to **Name**, and so do **Enter** and a double-click. The arrow keys move through the list, and `/` goes back to the search box.
 
 Once it's created, open **Builder** in the left menu. That's the canvas where you design the workflow.
 

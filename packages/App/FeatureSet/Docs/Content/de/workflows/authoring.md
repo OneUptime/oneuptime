@@ -1,6 +1,13 @@
 # Einen Workflow erstellen
 
-Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Ein Assistent namens **Create a workflow** führt Sie hindurch: zuerst **Start from** – wählen Sie **Start from scratch** oder eine der Vorlagen –, dann **Name**, und zum Schluss ein Schritt **Konfigurieren**, der nur auftaucht, wenn die gewählte Vorlage eigene Einstellungen verlangt.
+Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Ein Assistent namens **Create a workflow** führt Sie hindurch: zuerst **Start from**, dann **Name**, und zum Schluss ein Schritt **Konfigurieren**, der nur auftaucht, wenn die gewählte Vorlage eigene Einstellungen verlangt.
+
+Unter **Start from** wählen Sie, wie Sie beginnen:
+
+- **Ohne Vorlage beginnen**, neben dem Suchfeld, gibt Ihnen eine leere Arbeitsfläche.
+- Eine Vorlage gibt Ihnen einen funktionierenden Workflow, den Sie anpassen können. Der Schritt öffnet mit einigen Vorlagen unter **Empfohlen**. Die übrigen liegen in ihren Kategorien, etwa **Vorfälle**, **Monitore** und **Jira**, jeweils mit der Zahl ihrer Vorlagen, und **Alle Vorlagen** listet jede einzelne auf. Eine Suche durchsucht alle: Jedes eingegebene Wort muss passen, und jede Kategorie zeigt, wie viele ihrer Vorlagen passen.
+
+Klicken Sie auf eine Vorlage, um vor der Auswahl zu sehen, was sie tut: ihren Trigger, die Schritte, aus denen sie besteht, und die Einstellungen, nach denen sie fragt. **Diese Vorlage verwenden** bringt Sie mit ihr zu **Name**, ebenso **Enter** und ein Doppelklick. Mit den Pfeiltasten bewegen Sie sich durch die Liste, und `/` springt zurück ins Suchfeld.
 
 Sobald er angelegt ist, öffnen Sie **Builder** im linken Menü. Das ist die Arbeitsfläche, auf der Sie den Workflow entwerfen.
 

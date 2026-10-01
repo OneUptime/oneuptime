@@ -1,6 +1,13 @@
 # Skapa ett arbetsflöde
 
-För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. En guide som heter **Create a workflow** tar dig genom det: först **Start from** — välj **Start from scratch** eller en av mallarna — sedan **Namn**, och till sist ett **Konfigurera**-steg, som bara dyker upp när mallen du valde vill ha egna inställningar.
+För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. En guide som heter **Create a workflow** tar dig genom det: först **Start from**, sedan **Namn**, och till sist ett **Konfigurera**-steg, som bara dyker upp när mallen du valde vill ha egna inställningar.
+
+På **Start from** väljer du hur du vill börja:
+
+- **Börja från grunden**, bredvid sökrutan, ger dig en tom arbetsyta.
+- En mall ger dig ett arbetsflöde som redan fungerar, redo att ändras. Steget öppnas med några mallar under **Rekommenderade**. Resten ligger under sina kategorier, som **Incidenter**, **Monitorer** och **Jira**, var och en med hur många mallar den har, och **Alla mallar** visar varenda en. En sökning letar i alla: varje ord du skriver måste matcha, och varje kategori visar hur många av dess mallar som matchade.
+
+Klicka på en mall för att se vad den gör innan du väljer den: dess utlösare, stegen den består av och inställningarna den kommer att fråga efter. **Använd den här mallen** tar den vidare till **Namn**, och det gör **Enter** och ett dubbelklick också. Piltangenterna flyttar dig genom listan, och `/` tar dig tillbaka till sökrutan.
 
 När det är skapat, öppna **Byggare** i vänstermenyn. Det är arbetsytan där du designar arbetsflödet.
 
