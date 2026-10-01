@@ -122,6 +122,9 @@ export function getAiFixesModeCardTitle(data: {
 export const AI_ACCESS_PROTECTIONS_TITLE: string =
   "What stays protected in every mode";
 
+// A clause that already ends a sentence keeps its own punctuation.
+const SENTENCE_END_REGEX: RegExp = /[.!?]$/;
+
 /*
  * The every-mode protections, one clause each, as lines of a list:
  * capitalized and ending with a full stop.
@@ -138,7 +141,9 @@ export function formatAiAccessProtections(
     })
     .map((clause: string): string => {
       const capitalized: string = `${clause[0]!.toUpperCase()}${clause.slice(1)}`;
-      return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+      return SENTENCE_END_REGEX.test(capitalized)
+        ? capitalized
+        : `${capitalized}.`;
     });
 }
 

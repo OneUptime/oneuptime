@@ -72,7 +72,8 @@ export interface AiAccessRowProps {
 
 export function AiAccessRow(props: AiAccessRowProps): ReactElement {
   // Children left out with `cond ? <X /> : null` are not children.
-  const hasChildren: boolean = React.Children.toArray(props.children).length > 0;
+  const hasChildren: boolean =
+    React.Children.toArray(props.children).length > 0;
 
   return (
     <div
@@ -89,9 +90,7 @@ export function AiAccessRow(props: AiAccessRowProps): ReactElement {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h3 className="text-sm font-semibold text-gray-900">
-            {props.title}
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-900">{props.title}</h3>
           <AiAccessBadgeElement
             badge={props.badge}
             dataTestId={`${props.dataTestId}-badge`}
