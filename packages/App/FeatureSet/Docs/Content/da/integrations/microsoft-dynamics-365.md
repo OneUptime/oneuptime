@@ -230,13 +230,13 @@ Nu den anden retning: nogen lukker sagen i Dynamics, eller en medarbejder tilfø
 ### Byg det modtagende workflow først
 
 1. **Opret arbejdsgang**, navngiv det `Dynamics 365 → OneUptime`, og tilføj **Webhook**-triggeren.
-2. Åbn **Indstillinger** på det workflow og kopiér **Webhook Secret Key**. Din URL er:
+2. Åbn workflowets **Bygger**, klik på **Webhook**-triggeren, og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   På en selvhostet installation skifter du din egen vært ind. Behandl URL'en som en adgangskode — enhver, der har den, kan starte workflowet. Du kan nulstille nøglen fra den samme side.
+   Selvhostede installationer bruger deres egen vært. Behandl URL'en som en adgangskode — enhver, der har den, kan starte workflowet. Hvis den slipper ud, så klik på **Nulstil URL** samme sted; den gamle URL holder op med at virke med det samme.
 
 3. Tilføj en **If / Else**-blok, der tjekker en delt hemmelighed, før noget andet sker. **Input 1** er `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — en værdi, du finder på og gemmer som en hemmelig global variabel.
 4. Fra grenen **Yes** tilføjer du en **Update One Incident**-blok:

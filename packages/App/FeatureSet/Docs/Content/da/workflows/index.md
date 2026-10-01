@@ -46,7 +46,7 @@ Det hele bygger du visuelt på et lærred. De fleste workflows kræver ingen kod
 - **Bygger** — lærredet, hvor du designer workflowet.
 - **Arbejdsgangsvariabler** — værdier, der kun gælder dette ene workflow.
 - **Kørsler og logs** — hver kørsel af dette workflow, med detaljer.
-- **Indstillinger** — webhook-hemmelighed, dublering og eksport.
+- **Indstillinger** — dublering og eksport.
 
 ## Byg dit første workflow
 

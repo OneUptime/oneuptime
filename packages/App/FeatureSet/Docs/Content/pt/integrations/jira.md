@@ -227,13 +227,13 @@ Agora a outra direção: alguém move o issue para Done, e o incidente do OneUpt
 ### Construa primeiro o workflow que recebe
 
 1. **Criar fluxo de trabalho**, nomeie-o `Jira → OneUptime` e adicione o gatilho **Webhook**.
-2. Abra as **Configurações** desse workflow e copie a **Chave secreta do webhook**. Sua URL é:
+2. Abra o **Construtor** desse workflow, clique no gatilho **Webhook** e depois em **Copiar URL**, no topo das configurações dele. A URL tem este formato:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Instalações auto-hospedadas usam o próprio host. Trate a URL como uma senha — quem a tiver pode iniciar o workflow — e redefina a chave nessa mesma página se ela vazar.
+   Instalações auto-hospedadas usam o próprio host. Trate a URL como uma senha: quem a tiver pode iniciar o workflow. Se ela vazar, clique em **Redefinir URL** no mesmo lugar; a URL antiga para de funcionar na hora.
 
 3. Adicione um bloco **If / Else** que verifica um segredo compartilhado antes que qualquer outra coisa rode. **Input 1** é `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** é `{{global.variables.JIRA_WEBHOOK_SECRET}}` — um valor que você inventa e salva como variável global secreta.
 4. Da ramificação **Sim**, adicione um bloco **Update One Incident**:

@@ -46,7 +46,7 @@ Abra um workflow específico e o menu à esquerda dele traz:
 - **Construtor** — o canvas onde você desenha o workflow.
 - **Variáveis do fluxo** — valores restritos a este workflow.
 - **Execuções e registros** — cada execução deste workflow, com detalhes.
-- **Configurações** — segredo do webhook, duplicação e exportação.
+- **Configurações** — duplicação e exportação.
 
 ## Construindo seu primeiro workflow
 

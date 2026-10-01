@@ -230,13 +230,13 @@ case बंद करने से कम किसी भी काम के �
 ### पहले receiving वर्कफ़्लो बनाएँ
 
 1. **वर्कफ़्लो बनाएं**, इसे `Dynamics 365 → OneUptime` नाम दें, और **Webhook** trigger जोड़ें।
-2. उस वर्कफ़्लो पर **सेटिंग्स** खोलें और **Webhook Secret Key** कॉपी करें। आपका URL है:
+2. उस वर्कफ़्लो का **बिल्डर** खोलें, **Webhook** ट्रिगर पर क्लिक करें, और उसकी सेटिंग्स में सबसे ऊपर **URL कॉपी करें** पर क्लिक करें। URL ऐसा दिखता है:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   किसी self-hosted install पर, अपना खुद का host डाल दें। इस URL को password की तरह समझें — जिसके पास यह है वह वर्कफ़्लो शुरू कर सकता है। आप उसी पेज से key रीसेट कर सकते हैं।
+   Self-hosted installs अपना खुद का host इस्तेमाल करते हैं। इस URL को password की तरह समझें — जिसके पास यह है वह वर्कफ़्लो शुरू कर सकता है। लीक हो जाए तो उसी जगह **URL रीसेट करें** पर क्लिक करें; पुराना URL तुरंत काम करना बंद कर देता है।
 
 3. एक **If / Else** ब्लॉक जोड़ें जो बाकी कुछ भी होने से पहले एक shared secret जाँचे। **Input 1** है `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — एक मान जो आप खुद तय करते हैं और एक secret ग्लोबल वेरिएबल के रूप में सहेजते हैं।
 4. **Yes** शाखा से, एक **Update One Incident** ब्लॉक जोड़ें:

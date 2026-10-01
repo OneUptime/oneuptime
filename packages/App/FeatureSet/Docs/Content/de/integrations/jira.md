@@ -227,13 +227,13 @@ Nun die andere Richtung: Jemand zieht das Issue auf Done, und der OneUptime-Vorf
 ### Zuerst den empfangenden Workflow bauen
 
 1. **Workflow erstellen**, benennen Sie ihn `Jira → OneUptime`, und fügen Sie den Trigger **Webhook** hinzu.
-2. Öffnen Sie die **Einstellungen** dieses Workflows und kopieren Sie den **geheimen Webhook-Schlüssel**. Ihre URL lautet:
+2. Öffnen Sie den **Builder** dieses Workflows, klicken Sie auf den Trigger **Webhook** und dann oben in seinen Einstellungen auf **URL kopieren**. Die URL sieht so aus:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Selbst gehostete Installationen verwenden ihren eigenen Host. Behandeln Sie die URL wie ein Passwort – wer sie hat, kann den Workflow starten – und setzen Sie den Schlüssel auf derselben Seite zurück, falls er nach außen gelangt.
+   Selbst gehostete Installationen verwenden ihren eigenen Host. Behandeln Sie die URL wie ein Passwort – wer sie hat, kann den Workflow starten. Falls sie nach außen gelangt, klicken Sie an derselben Stelle auf **URL zurücksetzen**; die alte URL funktioniert dann sofort nicht mehr.
 
 3. Fügen Sie einen Baustein **If / Else** hinzu, der ein gemeinsames Geheimnis prüft, bevor irgendetwas anderes läuft. **Input 1** ist `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** ist `{{global.variables.JIRA_WEBHOOK_SECRET}}` – ein Wert, den Sie sich ausdenken und als geheime globale Variable speichern.
 4. Fügen Sie vom Zweig **Ja** aus einen Baustein **Update One Incident** hinzu:

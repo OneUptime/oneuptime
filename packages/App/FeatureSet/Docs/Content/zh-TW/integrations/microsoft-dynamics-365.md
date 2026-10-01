@@ -230,13 +230,13 @@ Dynamics 出廠的 `severitycode` 只有一個選項「Default Value」，所以
 ### 先建立接收端的工作流程
 
 1. **建立工作流程**，把它命名為 `Dynamics 365 → OneUptime`，並加入 **Webhook** 觸發器。
-2. 開啟該工作流程的 **設定**，複製 **Webhook Secret Key**。您的 URL 是：
+2. 開啟該工作流程的 **建構器**，點擊 **Webhook** 觸發器，再點擊其設定頂端的 **複製 URL**。URL 的形式如下：
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   在自架的安裝上，請換成您自己的主機。請把這個 URL 當成密碼看待——任何拿到它的人都能啟動這個工作流程。您可以從同一個頁面重設金鑰。
+   自架的安裝會使用自己的主機。請把這個 URL 當成密碼看待——任何拿到它的人都能啟動這個工作流程。如果外洩了，請在同一個地方點擊 **重設 URL**，舊的 URL 會立即失效。
 
 3. 加入一個 **If / Else** 區塊，在其他任何動作發生之前先檢查一組共用祕密。**Input 1** 是 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Operator** 為 `==`，**Input 2** 為 `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}`——一個由您自己想出來、並存成祕密全域變數的值。
 4. 從 **Yes** 分支加入一個 **Update One Incident** 區塊：

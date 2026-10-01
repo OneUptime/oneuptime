@@ -46,7 +46,7 @@ Open je één workflow, dan bevat het eigen linkermenu:
 - **Bouwer** — het canvas waarop je de workflow ontwerpt.
 - **Workflow-variabelen** — waarden die alleen voor deze ene workflow gelden.
 - **Runs & logboeken** — elke uitvoering van deze workflow, met details.
-- **Instellingen** — webhook-secret, dupliceren en exporteren.
+- **Instellingen** — dupliceren en exporteren.
 
 ## Je eerste workflow bouwen
 
