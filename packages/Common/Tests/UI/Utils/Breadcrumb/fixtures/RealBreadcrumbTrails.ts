@@ -3308,7 +3308,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getWorkflowsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/workflows/:id/logs",
-    titles: ["Project", "Workflows", "View Workflow", "Logs"],
+    titles: ["Project", "Workflows", "View Workflow", "Runs"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",
@@ -3328,7 +3328,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getWorkflowsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/workflows/logs",
-    titles: ["Project", "Workflows", "Logs"],
+    titles: ["Project", "Workflows", "Runs"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",

@@ -51,6 +51,25 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * Runs sit in a Logs section of their own, right under the Builder, the
+       * same as in the Workflows menu: checking that a change worked is the
+       * next thing people do after making it, so the run history must not be
+       * filed under Advanced, which is about settings and deletion.
+       */}
+      <SideMenuSection title="Logs">
+        <SideMenuItem
+          link={{
+            title: "Runs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.WORKFLOW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Owners">
         <SideMenuItem
           link={{
@@ -65,17 +84,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
-        <SideMenuItem
-          link={{
-            title: "Runs & Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOW_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Logs}
-        />
-
         <SideMenuItem
           link={{
             title: "Settings",
