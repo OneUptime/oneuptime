@@ -493,4 +493,32 @@ describe("getPillColors", () => {
       getPillColors("#fd625e"),
     );
   });
+
+  test("works each colour out once, however it is spelled", () => {
+    const colors: PillColors = getPillColors("#2ab57d");
+
+    expect(getPillColors("#2AB57D")).toBe(colors);
+    expect(getPillColors("2ab57d")).toBe(colors);
+    expect(getPillColors(new Color("#2ab57d"))).toBe(colors);
+    expect(getPillColors("rgb(42, 181, 125)")).toBe(colors);
+  });
+
+  test("shares colours no caller can change", () => {
+    const colors: PillColors = getPillColors("#2ab57d");
+
+    expect(Object.isFrozen(colors)).toBe(true);
+    expect(Object.isFrozen(colors.light)).toBe(true);
+    expect(Object.isFrozen(colors.dark)).toBe(true);
+  });
+
+  test("stays right after more colours than it keeps", () => {
+    const before: string = getPillColors("#2ab57d").light.textColor;
+
+    // Past the cache's bound, so it starts over at least once.
+    for (const hex of sampleColors(1200)) {
+      getPillColors(hex);
+    }
+
+    expect(getPillColors("#2ab57d").light.textColor).toBe(before);
+  });
 });

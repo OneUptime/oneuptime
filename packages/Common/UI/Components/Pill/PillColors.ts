@@ -394,15 +394,38 @@ function getTone(color: RGB, theme: ThemeSpec): PillTone {
   };
 }
 
+/*
+ * A page paints the same few colours over and over - every Enabled is the
+ * same green - and working one out is a few dozen search steps per theme, so
+ * each colour is worked out once. Bounded, because colours are user data.
+ */
+const PILL_COLORS_CACHE: Map<string, PillColors> = new Map();
+const PILL_COLORS_CACHE_LIMIT: number = 512;
+
 export function getPillColors(
   color: Color | string | null | undefined,
 ): PillColors {
   const rgb: RGB = parseColor(color) || FALLBACK_COLOR;
+  const key: string = toHex(rgb);
+  const cached: PillColors | undefined = PILL_COLORS_CACHE.get(key);
 
-  return {
-    light: getTone(rgb, LIGHT_THEME),
-    dark: getTone(rgb, DARK_THEME),
-  };
+  if (cached) {
+    return cached;
+  }
+
+  // Frozen, because every pill of this colour shares it.
+  const colors: PillColors = Object.freeze({
+    light: Object.freeze(getTone(rgb, LIGHT_THEME)),
+    dark: Object.freeze(getTone(rgb, DARK_THEME)),
+  });
+
+  if (PILL_COLORS_CACHE.size >= PILL_COLORS_CACHE_LIMIT) {
+    PILL_COLORS_CACHE.clear();
+  }
+
+  PILL_COLORS_CACHE.set(key, colors);
+
+  return colors;
 }
 
 /*
