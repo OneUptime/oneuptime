@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "모니터가 정상적으로 작동하고 있습니다.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "이 템플릿에서 생성되었거나 연결된 모니터입니다. 위의 카드에 있는 동기화 버튼을 사용하여 템플릿의 기준, 모니터링 간격 또는 레이블을 연결된 모든 모니터에 적용하세요.",
   "Monitors in Group": "그룹 내 모니터",
-  "Monitors which have access to this secret": "이 시크릿에 액세스할 수 있는 모니터",
   "Monitors with all probes disabled": "모든 프로브가 비활성화된 모니터",
   "Monitors with all probes disconnected": "모든 프로브가 연결 해제된 모니터",
   "Monitors with current operational status.": "현재 운영 상태가 있는 모니터입니다.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "이것이 트레이스의 최상위 스팬인지 여부",
   "Whether this rule is active.": "이 규칙이 활성 상태인지 여부입니다.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "이 필터가 적용되는 로그입니다. 심각도, 본문, 서비스 또는 사용자 지정 속성과 같은 필드로 규칙을 만드세요.",
-  "Which monitors should have access to this secret?": "어떤 모니터가 이 시크릿에 액세스할 수 있어야 합니까?",
   "Which OID configured on this monitor should this criteria evaluate?": "이 모니터에 구성된 어떤 OID를 이 기준이 평가해야 합니까?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "로그에서 마스킹할 부분: 로그 본문(메시지), 속성 값 또는 둘 다.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값, 이벤트 속성 값 또는 전체.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "로그를 복사하지 못했습니다. 대신 다운로드하세요.",
   "Download log": "로그 다운로드",
   "Download run as JSON": "실행을 JSON으로 다운로드",
-  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요."
+  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요.",
+  "Which monitors can use this secret?": "어떤 모니터가 이 시크릿을 사용할 수 있습니까?",
+  "These monitors can use this secret.": "이 모니터들은 이 시크릿을 사용할 수 있습니다.",
+  "Monitors with at least one of these labels can use this secret.": "이 레이블 중 하나 이상이 있는 모니터는 이 시크릿을 사용할 수 있습니다.",
+  "Select labels": "레이블 선택",
+  "All monitors": "모든 모니터",
+  "Specific monitors": "특정 모니터",
+  "Monitors with labels": "레이블이 있는 모니터",
+  "Every monitor in this project can use this secret, including monitors you create later.": "이 프로젝트의 모든 모니터가 이 시크릿을 사용할 수 있으며, 나중에 만드는 모니터도 포함됩니다.",
+  "Only the monitors you pick can use this secret.": "선택한 모니터만 이 시크릿을 사용할 수 있습니다.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "선택한 레이블 중 하나라도 있는 모니터는 이 시크릿을 사용할 수 있습니다. 모니터에 이 레이블 중 하나를 추가하면 접근 권한이 생깁니다."
 }

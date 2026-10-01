@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "مانیتورها در دسترس‌اند و عادی کار می‌کنند.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "مانیتورهایی که از این قالب ساخته یا به آن پیوند داده شده‌اند. با دکمه‌های همگام‌سازی روی کارت‌های بالا، معیارها، بازه پایش یا برچسب‌های قالب را روی همه مانیتورهای پیوندشده اعمال کنید.",
   "Monitors in Group": "مانیتورهای گروه",
-  "Monitors which have access to this secret": "مانیتورهایی که به این راز دسترسی دارند",
   "Monitors with all probes disabled": "مانیتورهایی که همه پراب‌هایشان غیرفعال است",
   "Monitors with all probes disconnected": "مانیتورهایی که همه پراب‌هایشان قطع شده‌اند",
   "Monitors with current operational status.": "مانیتورها به‌همراه وضعیت عملیاتی فعلی.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "اینکه این اسپن، اسپن سطح بالای یک ترِیس است یا نه",
   "Whether this rule is active.": "اینکه این قاعده فعال است یا نه.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "اینکه این فیلتر روی کدام لاگ‌ها اعمال می‌شود. قواعد را با فیلدهایی مانند شدت، بدنه، سرویس یا ویژگی‌های سفارشی بسازید.",
-  "Which monitors should have access to this secret?": "کدام مانیتورها باید به این راز دسترسی داشته باشند؟",
   "Which OID configured on this monitor should this criteria evaluate?": "این معیار کدام OID پیکربندی‌شده روی این مانیتور را ارزیابی کند؟",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "اینکه کدام بخش‌های لاگ پالایش شود: بدنه لاگ (پیام)، مقادیر ویژگی‌ها، یا هر دو.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "اینکه کدام بخش‌های اسپن پالایش شود: نام اسپن، مقادیر ویژگی‌ها، مقادیر ویژگی‌های رویداد، یا همه.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "لاگ کپی نشد. به‌جای آن، آن را دانلود کنید.",
   "Download log": "دانلود لاگ",
   "Download run as JSON": "دانلود اجرا به‌صورت JSON",
-  "This run could not be downloaded. Try again.": "این اجرا دانلود نشد. لطفاً دوباره تلاش کنید."
+  "This run could not be downloaded. Try again.": "این اجرا دانلود نشد. لطفاً دوباره تلاش کنید.",
+  "Which monitors can use this secret?": "کدام مانیتورها می‌توانند از این راز استفاده کنند؟",
+  "These monitors can use this secret.": "این مانیتورها می‌توانند از این راز استفاده کنند.",
+  "Monitors with at least one of these labels can use this secret.": "مانیتورهایی که دست‌کم یکی از این برچسب‌ها را دارند می‌توانند از این راز استفاده کنند.",
+  "Select labels": "انتخاب برچسب‌ها",
+  "All monitors": "همه مانیتورها",
+  "Specific monitors": "مانیتورهای مشخص",
+  "Monitors with labels": "مانیتورهای دارای برچسب",
+  "Every monitor in this project can use this secret, including monitors you create later.": "همه مانیتورهای این پروژه می‌توانند از این راز استفاده کنند، از جمله مانیتورهایی که بعداً ایجاد می‌کنید.",
+  "Only the monitors you pick can use this secret.": "فقط مانیتورهایی که انتخاب می‌کنید می‌توانند از این راز استفاده کنند.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "مانیتورهایی که هر یک از برچسب‌های انتخابی شما را دارند می‌توانند از این راز استفاده کنند. افزودن یکی از این برچسب‌ها به یک مانیتور به آن دسترسی می‌دهد."
 }

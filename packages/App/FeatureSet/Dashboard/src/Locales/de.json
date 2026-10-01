@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "Monitore sind aktiv und funktionieren normal.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "Monitore, die aus dieser Vorlage erstellt oder mit ihr verknüpft wurden. Verwenden Sie die Synchronisierungsschaltflächen auf den Karten oben, um die Kriterien, das Überwachungsintervall oder die Beschriftungen der Vorlage auf jeden verknüpften Monitor zu übertragen.",
   "Monitors in Group": "Monitore in der Gruppe",
-  "Monitors which have access to this secret": "Monitore, die Zugriff auf dieses Geheimnis haben",
   "Monitors with all probes disabled": "Monitore mit allen deaktivierten Sonden",
   "Monitors with all probes disconnected": "Monitore mit allen getrennten Sonden",
   "Monitors with current operational status.": "Monitore mit aktuellem Betriebsstatus.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "Ob dies der oberste Span eines Trace ist",
   "Whether this rule is active.": "Ob diese Regel aktiv ist.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Auf welche Protokolle dieser Filter angewendet wird. Erstellen Sie Regeln mit Feldern wie Schweregrad, Inhalt, Dienst oder benutzerdefinierten Attributen.",
-  "Which monitors should have access to this secret?": "Welche Monitore sollen Zugriff auf dieses Geheimnis haben?",
   "Which OID configured on this monitor should this criteria evaluate?": "Welche auf diesem Monitor konfigurierte OID soll dieses Kriterium auswerten?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Welche Teile des Protokolls bereinigt werden sollen: der Protokollinhalt (Nachricht), Attributwerte oder beide.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Welche Teile des Span bereinigt werden sollen: Span-Name, Attributwerte, Ereignis-Attributwerte oder alle.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "Das Protokoll konnte nicht kopiert werden. Laden Sie es stattdessen herunter.",
   "Download log": "Protokoll herunterladen",
   "Download run as JSON": "Ausführung als JSON herunterladen",
-  "This run could not be downloaded. Try again.": "Diese Ausführung konnte nicht heruntergeladen werden. Bitte versuchen Sie es erneut."
+  "This run could not be downloaded. Try again.": "Diese Ausführung konnte nicht heruntergeladen werden. Bitte versuchen Sie es erneut.",
+  "Which monitors can use this secret?": "Welche Monitore dürfen dieses Geheimnis verwenden?",
+  "These monitors can use this secret.": "Diese Monitore dürfen dieses Geheimnis verwenden.",
+  "Monitors with at least one of these labels can use this secret.": "Monitore mit mindestens einer dieser Beschriftungen dürfen dieses Geheimnis verwenden.",
+  "Select labels": "Beschriftungen auswählen",
+  "All monitors": "Alle Monitore",
+  "Specific monitors": "Bestimmte Monitore",
+  "Monitors with labels": "Monitore mit Beschriftungen",
+  "Every monitor in this project can use this secret, including monitors you create later.": "Jeder Monitor in diesem Projekt darf dieses Geheimnis verwenden, auch Monitore, die Sie später erstellen.",
+  "Only the monitors you pick can use this secret.": "Nur die Monitore, die Sie auswählen, dürfen dieses Geheimnis verwenden.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitore mit einer der Beschriftungen, die Sie auswählen, dürfen dieses Geheimnis verwenden. Wenn Sie einem Monitor eine dieser Beschriftungen hinzufügen, erhält er Zugriff."
 }

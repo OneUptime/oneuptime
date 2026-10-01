@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "Monitors are up and operating normally.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.",
   "Monitors in Group": "Monitors in Group",
-  "Monitors which have access to this secret": "Monitors which have access to this secret",
   "Monitors with all probes disabled": "Monitors with all probes disabled",
   "Monitors with all probes disconnected": "Monitors with all probes disconnected",
   "Monitors with current operational status.": "Monitors with current operational status.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "Whether this is the top-level span of a trace",
   "Whether this rule is active.": "Whether this rule is active.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.",
-  "Which monitors should have access to this secret?": "Which monitors should have access to this secret?",
   "Which OID configured on this monitor should this criteria evaluate?": "Which OID configured on this monitor should this criteria evaluate?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Which parts of the log to scrub: the log body (message), attribute values, or both.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "The log could not be copied. Download it instead.",
   "Download log": "Download log",
   "Download run as JSON": "Download run as JSON",
-  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again."
+  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again.",
+  "Which monitors can use this secret?": "Which monitors can use this secret?",
+  "These monitors can use this secret.": "These monitors can use this secret.",
+  "Monitors with at least one of these labels can use this secret.": "Monitors with at least one of these labels can use this secret.",
+  "Select labels": "Select labels",
+  "All monitors": "All monitors",
+  "Specific monitors": "Specific monitors",
+  "Monitors with labels": "Monitors with labels",
+  "Every monitor in this project can use this secret, including monitors you create later.": "Every monitor in this project can use this secret, including monitors you create later.",
+  "Only the monitors you pick can use this secret.": "Only the monitors you pick can use this secret.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access."
 }

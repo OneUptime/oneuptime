@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "Les moniteurs sont opérationnels et fonctionnent normalement.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "Moniteurs créés à partir de ce modèle ou liés à celui-ci. Utilisez les boutons de synchronisation sur les cartes ci-dessus pour appliquer les critères, l'intervalle de surveillance ou les étiquettes du modèle à chaque moniteur lié.",
   "Monitors in Group": "Moniteurs dans le groupe",
-  "Monitors which have access to this secret": "Moniteurs qui ont accès à ce secret",
   "Monitors with all probes disabled": "Moniteurs dont toutes les sondes sont désactivées",
   "Monitors with all probes disconnected": "Moniteurs dont toutes les sondes sont déconnectées",
   "Monitors with current operational status.": "Moniteurs avec leur statut opérationnel actuel.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "Indique s'il s'agit du span de premier niveau d'une trace",
   "Whether this rule is active.": "Indique si cette règle est active.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "À quels journaux ce filtre s'applique. Créez des règles avec des champs comme la gravité, le corps, le service ou des attributs personnalisés.",
-  "Which monitors should have access to this secret?": "Quels moniteurs doivent avoir accès à ce secret ?",
   "Which OID configured on this monitor should this criteria evaluate?": "Quel OID configuré sur ce moniteur ce critère doit-il évaluer ?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Quelles parties du journal masquer : le corps du journal (message), les valeurs d'attributs, ou les deux.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs, les valeurs d'attributs d'événement, ou toutes.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "Le journal n'a pas pu être copié. Téléchargez-le à la place.",
   "Download log": "Télécharger le journal",
   "Download run as JSON": "Télécharger l'exécution en JSON",
-  "This run could not be downloaded. Try again.": "Cette exécution n'a pas pu être téléchargée. Veuillez réessayer."
+  "This run could not be downloaded. Try again.": "Cette exécution n'a pas pu être téléchargée. Veuillez réessayer.",
+  "Which monitors can use this secret?": "Quels moniteurs peuvent utiliser ce secret ?",
+  "These monitors can use this secret.": "Ces moniteurs peuvent utiliser ce secret.",
+  "Monitors with at least one of these labels can use this secret.": "Les moniteurs portant au moins une de ces étiquettes peuvent utiliser ce secret.",
+  "Select labels": "Sélectionner les étiquettes",
+  "All monitors": "Tous les moniteurs",
+  "Specific monitors": "Moniteurs spécifiques",
+  "Monitors with labels": "Moniteurs avec des étiquettes",
+  "Every monitor in this project can use this secret, including monitors you create later.": "Tous les moniteurs de ce projet peuvent utiliser ce secret, y compris ceux que vous créerez plus tard.",
+  "Only the monitors you pick can use this secret.": "Seuls les moniteurs que vous choisissez peuvent utiliser ce secret.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Les moniteurs portant l'une des étiquettes que vous choisissez peuvent utiliser ce secret. Ajouter l'une de ces étiquettes à un moniteur lui en donne l'accès."
 }

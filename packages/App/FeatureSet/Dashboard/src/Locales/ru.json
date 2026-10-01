@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "Мониторы работают и функционируют нормально.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "Мониторы, созданные на основе этого шаблона или связанные с ним. Используйте кнопки синхронизации на карточках выше, чтобы применить критерии шаблона, интервал мониторинга или метки ко всем связанным мониторам.",
   "Monitors in Group": "Мониторы в группе",
-  "Monitors which have access to this secret": "Мониторы, имеющие доступ к этому секрету",
   "Monitors with all probes disabled": "Мониторы с отключёнными всеми зондами",
   "Monitors with all probes disconnected": "Мониторы с отключёнными всеми зондами",
   "Monitors with current operational status.": "Мониторы с текущим рабочим статусом.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "Является ли это спаном верхнего уровня трассировки",
   "Whether this rule is active.": "Активно ли это правило.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "К каким логам применяется этот фильтр. Создавайте правила с такими полями, как серьёзность, тело, сервис или пользовательские атрибуты.",
-  "Which monitors should have access to this secret?": "Какие мониторы должны иметь доступ к этому секрету?",
   "Which OID configured on this monitor should this criteria evaluate?": "Какой OID, настроенный на этом мониторе, должен оценивать этот критерий?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Какие части лога очищать: тело лога (сообщение), значения атрибутов или и то, и другое.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Какие части спана очищать: имя спана, значения атрибутов, значения атрибутов событий или всё.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "Не удалось скопировать журнал. Вместо этого скачайте его.",
   "Download log": "Скачать журнал",
   "Download run as JSON": "Скачать запуск в формате JSON",
-  "This run could not be downloaded. Try again.": "Не удалось скачать этот запуск. Попробуйте снова."
+  "This run could not be downloaded. Try again.": "Не удалось скачать этот запуск. Попробуйте снова.",
+  "Which monitors can use this secret?": "Какие мониторы могут использовать этот секрет?",
+  "These monitors can use this secret.": "Эти мониторы могут использовать этот секрет.",
+  "Monitors with at least one of these labels can use this secret.": "Мониторы хотя бы с одной из этих меток могут использовать этот секрет.",
+  "Select labels": "Выберите метки",
+  "All monitors": "Все мониторы",
+  "Specific monitors": "Определённые мониторы",
+  "Monitors with labels": "Мониторы с метками",
+  "Every monitor in this project can use this secret, including monitors you create later.": "Все мониторы этого проекта могут использовать этот секрет, включая мониторы, которые вы создадите позже.",
+  "Only the monitors you pick can use this secret.": "Только выбранные вами мониторы могут использовать этот секрет.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Мониторы с любой из выбранных вами меток могут использовать этот секрет. Если добавить одну из этих меток монитору, он получит доступ."
 }

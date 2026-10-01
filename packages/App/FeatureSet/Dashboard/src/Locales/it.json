@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "I monitor sono attivi e funzionano normalmente.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "Monitor creati da o collegati a questo modello. Usa i pulsanti di sincronizzazione sulle schede qui sopra per applicare i criteri, l'intervallo di monitoraggio o le etichette del modello a ogni monitor collegato.",
   "Monitors in Group": "Monitor nel gruppo",
-  "Monitors which have access to this secret": "Monitor che hanno accesso a questo segreto",
   "Monitors with all probes disabled": "Monitor con tutte le sonde disabilitate",
   "Monitors with all probes disconnected": "Monitor con tutte le sonde disconnesse",
   "Monitors with current operational status.": "Monitor con lo stato operativo attuale.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "Se questo è lo span di primo livello di una traccia",
   "Whether this rule is active.": "Se questa regola è attiva.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "A quali log si applica questo filtro. Crea regole con campi come gravità, corpo, servizio o attributi personalizzati.",
-  "Which monitors should have access to this secret?": "Quali monitor devono avere accesso a questo segreto?",
   "Which OID configured on this monitor should this criteria evaluate?": "Quale OID configurato su questo monitor deve valutare questo criterio?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Quali parti del log epurare: il corpo del log (messaggio), i valori degli attributi o entrambi.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Quali parti dello span epurare: nome dello span, valori degli attributi, valori degli attributi degli eventi o tutto.",
@@ -6825,5 +6823,15 @@
   "The log could not be copied. Download it instead.": "Impossibile copiare il log. Scaricalo invece.",
   "Download log": "Scarica log",
   "Download run as JSON": "Scarica l'esecuzione come JSON",
-  "This run could not be downloaded. Try again.": "Impossibile scaricare questa esecuzione. Riprova."
+  "This run could not be downloaded. Try again.": "Impossibile scaricare questa esecuzione. Riprova.",
+  "Which monitors can use this secret?": "Quali monitor possono usare questo segreto?",
+  "These monitors can use this secret.": "Questi monitor possono usare questo segreto.",
+  "Monitors with at least one of these labels can use this secret.": "I monitor con almeno una di queste etichette possono usare questo segreto.",
+  "Select labels": "Seleziona etichette",
+  "All monitors": "Tutti i monitor",
+  "Specific monitors": "Monitor specifici",
+  "Monitors with labels": "Monitor con etichette",
+  "Every monitor in this project can use this secret, including monitors you create later.": "Tutti i monitor di questo progetto possono usare questo segreto, compresi quelli che creerai in seguito.",
+  "Only the monitors you pick can use this secret.": "Solo i monitor che scegli possono usare questo segreto.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "I monitor con una qualsiasi delle etichette che scegli possono usare questo segreto. Aggiungere una di queste etichette a un monitor gli dà accesso."
 }
