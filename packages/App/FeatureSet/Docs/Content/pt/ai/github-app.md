@@ -56,7 +56,7 @@ Você também pode entregar um issue ao app **sem comentar nada**:
 | `@oneuptime status` | Diz no que ele está trabalhando neste momento nesta thread. |
 | `@oneuptime cancel` | Interrompe as execuções que ele tem em andamento nesta thread. O trabalho já enviado continua enviado. |
 
-`help`, `status` e `cancel` nunca iniciam uma execução do agente, então não custam nada e não entram no seu orçamento diário de tarefas de correção.
+`help`, `status` e `cancel` nunca iniciam uma execução do agente, então não custam nada.
 
 ## Como isso aparece na thread
 
@@ -87,10 +87,9 @@ Ele também ignora todo comentário escrito por um bot, inclusive os seus própr
 
 Todo comando que inicia trabalho é uma execução completa do agente — um clone, até 40 chamadas de LLM e 100.000 tokens de saída, mais os comandos de build e de teste do seu repositório, se você os tiver configurado.
 
-Dois limites se aplicam, e ambos são os mesmos que já governam as [Tarefas de Correção com IA](/docs/ai/ai-agent):
+Os comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de execuções de correção se aplica a eles. O único limite que pode se aplicar é o mesmo que já governa as [Tarefas de Correção com IA](/docs/ai/ai-agent):
 
-- **O limite diário de execuções de correção do projeto** (**Configurações do projeto → IA**, 25/dia por padrão). Os comandos do GitHub dividem esse orçamento com o resto das execuções de correção do seu projeto.
-- **O teto de pull requests abertos por repositório** (**Repositórios de código → o repositório → Configurações**, 5 por padrão). Revisões e ajustes estão isentos: nenhum dos dois adiciona um novo pull request à sua fila de revisão.
+- **O teto de pull requests abertos por repositório** (**Max Open Fix Pull Requests**, em **Repositórios de código → o repositório → Configurações**). Não há teto até você definir um, e 0 bloqueia os pull requests de correção com IA nesse repositório. Revisões e ajustes estão isentos: nenhum dos dois adiciona um novo pull request à sua fila de revisão.
 
 Só uma execução de cada tipo fica ativa por issue ou pull request de cada vez. Pedir duas vezes faz ele avisar que já está trabalhando; pedir uma revisão enquanto um ajuste está rodando inicia as duas, porque são pedidos diferentes.
 

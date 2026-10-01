@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Rotaciones que deciden quién está de guardia en cada momento. Añade un horario a las reglas de escalación de una política de guardia para avisar a quien esté de guardia.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "Las aplicaciones y microservicios que ejecutas. Cada servicio reúne sus registros, trazas, métricas, excepciones, incidentes y propietarios en un solo lugar.",
   "Create On-Call Schedule": "Crear horario de guardia",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Las sondas son las máquinas que ejecutan las comprobaciones de este monitor. Las sondas predeterminadas de tu proyecto ya vienen seleccionadas. Un monitor sin sondas nunca se comprueba."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Las sondas son las máquinas que ejecutan las comprobaciones de este monitor. Las sondas predeterminadas de tu proyecto ya vienen seleccionadas. Un monitor sin sondas nunca se comprueba.",
+  "Auto Remediation Rules": "Reglas de autorremediación"
 }

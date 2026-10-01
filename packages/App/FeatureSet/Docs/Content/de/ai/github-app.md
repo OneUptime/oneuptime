@@ -56,7 +56,7 @@ Sie können der App ein Issue auch **ganz ohne Kommentar** übergeben:
 | `@oneuptime status` | Sagt, woran sie in diesem Thread gerade arbeitet. |
 | `@oneuptime cancel` | Stoppt die Läufe, die sie in diesem Thread hat. Bereits gepushte Arbeit bleibt gepusht. |
 
-`help`, `status` und `cancel` starten nie einen Agent-Lauf. Sie kosten daher nichts und zählen nicht gegen Ihr tägliches Budget für Korrekturaufgaben.
+`help`, `status` und `cancel` starten nie einen Agent-Lauf. Sie kosten daher nichts.
 
 ## Wie es im Thread aussieht
 
@@ -87,10 +87,9 @@ Außerdem ignoriert sie jeden Kommentar, der von einem Bot geschrieben wurde —
 
 Jeder Befehl, der Arbeit auslöst, ist ein vollständiger Agent-Lauf — ein Clone, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens, dazu die Build- und Testbefehle Ihres Repositories, sofern Sie welche konfiguriert haben.
 
-Es greifen zwei Grenzen, und es sind dieselben, die schon für [KI-Korrekturaufgaben](/docs/ai/ai-agent) gelten:
+GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, deshalb gilt für sie kein tägliches Limit für Korrekturläufe. Die eine Grenze, die greifen kann, ist dieselbe, die schon für [KI-Korrekturaufgaben](/docs/ai/ai-agent) gilt:
 
-- **Das tägliche Limit des Projekts für Korrekturläufe** (**Projekteinstellungen → KI**, standardmäßig 25 pro Tag). GitHub-Befehle teilen sich dieses Budget mit allen übrigen Korrekturläufen Ihres Projekts.
-- **Die Obergrenze offener Pull Requests pro Repository** (**Code-Repositories → das Repository → Einstellungen**, standardmäßig 5). Reviews und Überarbeitungen sind davon ausgenommen: Keines von beiden legt einen neuen Pull Request in Ihre Review-Warteschlange.
+- **Die Obergrenze offener Pull Requests pro Repository** (**Max Open Fix Pull Requests** unter **Code-Repositories → das Repository → Einstellungen**). Solange Sie keine setzen, gibt es keine Obergrenze, und 0 sperrt KI-Korrektur-Pull-Requests für dieses Repository. Reviews und Überarbeitungen sind davon ausgenommen: Keines von beiden legt einen neuen Pull Request in Ihre Review-Warteschlange.
 
 Je Issue oder Pull Request ist immer nur ein Lauf derselben Art gleichzeitig aktiv. Fragen Sie zweimal, erfahren Sie, dass bereits gearbeitet wird; fragen Sie nach einem Review, während eine Überarbeitung läuft, starten beide, denn es sind unterschiedliche Anfragen.
 

@@ -114,10 +114,9 @@ Abre **Incidentes** en la navegación lateral. Su menú lateral está organizado
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Vista General**          | **Todos los Incidentes** e **Incidentes Activos**; esta última lleva una insignia roja con el recuento de incidentes que no están en el estado resuelto.           |
 | **Episodios**              | Los episodios de incidente, una funcionalidad de agrupación aparte con sus propias páginas.                                                                        |
-| **IA**                     | **Investigación** y **Remediación**: los ajustes de investigación automática y de remediación automática.                                                          |
 | **Espacio de trabajo**     | Las conexiones de **Slack** y **Microsoft Teams** para incidentes.                                                                                                |
-| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
-| **Ajustes**                | **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Más Ajustes**. |
+| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
+| **Ajustes**                | **IA**, **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Más Ajustes**. |
 
 **Reglas** y **Ajustes** aparecen contraídos de forma predeterminada: despliégalos para encontrar las páginas a las que se refiere el resto de esta documentación. La configuración de incidentes no está bajo Ajustes del proyecto; vive toda aquí.
 

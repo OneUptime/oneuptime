@@ -12,6 +12,7 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 
 | Écran                        | Ce que vous y faites                                                                                                 |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **IA**                       | Activer ou désactiver l'investigation automatique, les corrections de code automatiques et les brouillons de post-mortem, et fixer les limites facultatives dans lesquelles l'IA travaille — aucune ne s'applique tant que vous ne l'avez pas fixée. Voir [AI SRE](/docs/ai/ai-sre). |
 | **État de l'incident**       | Ajouter, renommer, recolorer et réordonner les états que traverse un incident.                                       |
 | **Gravité de l'incident**    | Ajouter, renommer, recolorer et réordonner les niveaux de gravité.                                                   |
 | **Modèles d'incident**       | Préremplir un incident entier — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes.   |
@@ -23,7 +24,7 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir des **Modèles d'incident**.
 
-Dépliez **Règles** et vous obtenez huit écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
+Dépliez **Règles** et vous obtenez neuf écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
 
 ## Modèles d'incident
 
@@ -113,20 +114,21 @@ Laissez l'un ou l'autre vide pour conserver le préfixe `#` par défaut ; le cha
 
 ## Les règles qui s'exécutent à la création d'un incident
 
-**Incidents → Règles** regroupe huit moteurs de règles. Ils font tous le même travail — regarder un incident à l'instant où il est créé, et agir s'il correspond — mais ils diffèrent par ce qu'ils font et par la façon dont plusieurs règles correspondantes se résolvent.
+**Incidents → Règles** regroupe neuf moteurs de règles. Ils font tous le même travail — regarder un incident à l'instant où il est créé, et agir s'il correspond — mais ils diffèrent par ce qu'ils font et par la façon dont plusieurs règles correspondantes se résolvent.
 
 - **Règles de regroupement** — regrouper des incidents liés en épisodes. Les règles sont évaluées par ordre de priorité ; les numéros de priorité les plus bas passent en premier.
 - **Règles d'astreinte** — exécuter des politiques d'astreinte pour les incidents correspondants. Détaillées plus bas.
 - **Règles de propriétaire** — attribuer des propriétaires automatiquement.
 - **Règles de runbook** — lancer un [runbook](/docs/runbooks/index) quand un incident correspond.
+- **Règles d'auto-remédiation** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
 - **Règles de confidentialité** — décider si un incident correspondant est privé.
 - **Règles d'étiquettes** — appliquer des étiquettes automatiquement.
 - **Règles SLA** — suivre les délais de réponse et de résolution. Les règles sont évaluées dans l'ordre ; les numéros d'ordre les plus bas passent en premier.
 - **Reminder Rules** — relancer périodiquement les propriétaires d'un incident tant qu'il reste ouvert. Les règles sont évaluées dans l'ordre et la première qui correspond l'emporte.
 
-**La sémantique de l'ordre n'est pas uniforme.** Les **Règles de regroupement**, les **Règles SLA** et les **Reminder Rules** sont évaluées dans l'ordre. Les **Règles d'astreinte**, non — chaque règle correspondante se déclenche. Ne supposez pas qu'un seul modèle vaut pour les huit.
+**La sémantique de l'ordre n'est pas uniforme.** Les **Règles de regroupement**, les **Règles SLA** et les **Reminder Rules** sont évaluées dans l'ordre. Les **Règles d'astreinte**, non — chaque règle correspondante se déclenche. Ne supposez pas qu'un seul modèle vaut pour les neuf.
 
-Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Incident Rules** et un onglet **Episode Rules**, chacun avec sa propre table. Configurez l'onglet **Incident Rules**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
+Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Incident Rules** et un onglet **Episode Rules**, chacun avec sa propre table. Configurez l'onglet **Incident Rules**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
 
 ## Règles d'astreinte des incidents
 

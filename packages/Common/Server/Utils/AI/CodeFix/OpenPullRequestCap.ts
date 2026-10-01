@@ -4,11 +4,12 @@ import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequ
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
- * Per-repository open-PR cap (Preventive-lane X guardrail, G11).
+ * Per-repository open-PR cap (Preventive-lane X guardrail, G11), opt-in.
  *
  * A repository may have at most `CodeRepository.maxOpenFixPullRequests`
- * OPEN AI-authored fix pull requests at a time (null/unset = the default
- * below, 0 = no AI fix PRs for this repository). Open-PR counts come from
+ * OPEN AI-authored fix pull requests at a time (null/unset = no cap, 0 = no
+ * AI fix PRs for this repository; see AIWorkloadLimits for why every AI
+ * limit is off until someone sets it). Open-PR counts come from
  * AIAgentTaskPullRequest rows, whose states the AIAgent:SyncPullRequestStates
  * worker keeps current — merging or closing an AI PR frees a slot within
  * its 30-minute sync window.
@@ -20,32 +21,37 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * worker surfaces the rejection message as the run's failure guidance.
  */
 
-// Open AI fix PRs allowed per repository when no explicit cap is set.
-export const DEFAULT_MAX_OPEN_FIX_PULL_REQUESTS: number = 5;
-
 export interface OpenPullRequestCapDecision {
   allowed: boolean;
-  // The effective cap after defaulting (<= 0 means AI fix PRs are blocked).
-  limit: number;
+  // The configured cap: null means no cap, <= 0 means AI fix PRs are blocked.
+  limit: number | null;
   // True when the configured cap blocks AI fix PRs outright (0 or less).
   paused: boolean;
+  // Open AI fix PRs on the repository (0 when the count is skipped).
   openCount: number;
 }
 
 export default class OpenPullRequestCap {
   /*
    * The pure cap decision, separated from IO so it can be tested directly.
-   * At/over the cap rejects: `openCount >= limit` means the repository
-   * already carries a full review queue of unreviewed AI PRs.
+   * Unset means no cap. At/over a set cap rejects: `openCount >= limit`
+   * means the repository already carries a full review queue of unreviewed
+   * AI PRs.
    */
   public static evaluate(data: {
     configuredLimit: number | null | undefined;
     openCount: number;
   }): OpenPullRequestCapDecision {
-    const limit: number =
-      data.configuredLimit === null || data.configuredLimit === undefined
-        ? DEFAULT_MAX_OPEN_FIX_PULL_REQUESTS
-        : data.configuredLimit;
+    if (data.configuredLimit === null || data.configuredLimit === undefined) {
+      return {
+        allowed: true,
+        limit: null,
+        paused: false,
+        openCount: data.openCount,
+      };
+    }
+
+    const limit: number = data.configuredLimit;
 
     if (limit <= 0) {
       return {
@@ -74,14 +80,14 @@ export default class OpenPullRequestCap {
     codeRepositoryId: ObjectID;
     configuredLimit: number | null | undefined;
   }): Promise<OpenPullRequestCapDecision> {
-    // A blocked repo (cap 0) never needs the count query.
-    const pausedCheck: OpenPullRequestCapDecision = this.evaluate({
+    // A blocked repo (cap 0) or one with no cap never needs the count query.
+    const uncountedCheck: OpenPullRequestCapDecision = this.evaluate({
       configuredLimit: data.configuredLimit,
       openCount: 0,
     });
 
-    if (pausedCheck.paused) {
-      return pausedCheck;
+    if (uncountedCheck.paused || uncountedCheck.limit === null) {
+      return uncountedCheck;
     }
 
     const openCount: number = (
@@ -112,6 +118,6 @@ export default class OpenPullRequestCap {
       return `AI fix pull requests are blocked for repository ${data.repositoryName} — its "Max Open Fix Pull Requests" setting is 0. Raise or unset the setting on the repository's Settings page to allow AI fix pull requests again.`;
     }
 
-    return `Repository ${data.repositoryName} is at its open AI fix pull request cap (${data.decision.openCount} open of a maximum ${data.decision.limit}). Review and merge or close the open AI pull requests to free a slot, or raise the "Max Open Fix Pull Requests" setting on the repository's Settings page (unset means the default of ${DEFAULT_MAX_OPEN_FIX_PULL_REQUESTS}).`;
+    return `Repository ${data.repositoryName} is at its open AI fix pull request cap (${data.decision.openCount} open of a maximum ${data.decision.limit}). Review and merge or close the open AI pull requests to free a slot, or raise the "Max Open Fix Pull Requests" setting on the repository's Settings page, or clear it for no cap.`;
   }
 }

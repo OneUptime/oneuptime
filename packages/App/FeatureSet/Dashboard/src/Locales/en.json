@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
   "Create On-Call Schedule": "Create On-Call Schedule",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
+  "Auto Remediation Rules": "Auto Remediation Rules"
 }

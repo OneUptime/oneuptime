@@ -12,6 +12,7 @@ Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni*
 
 | Pagina                     | Che cosa ci fate                                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **IA**                   | Attivate o disattivate l'indagine automatica, le correzioni automatiche del codice e le bozze di post-mortem, e impostate i limiti facoltativi entro cui lavora l'IA: nessuno si applica finché non lo impostate. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Stato incidente**       | Aggiungete, rinominate, ricolorate e riordinate gli stati che un incidente attraversa.                       |
 | **Gravità incidente**    | Aggiungete, rinominate, ricolorate e riordinate i livelli di gravità.                                            |
 | **Modelli di incidenti**   | Precompilate un incidente intero — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
@@ -23,7 +24,7 @@ Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni*
 
 **Stato incidente** e **Gravità incidente** sono trattati a fondo in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte dai **Modelli di incidenti**.
 
-Espandete **Regole** e ottenete altre otto schermate: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Reminder Rules**. Le trovate più avanti.
+Espandete **Regole** e ottenete altre nove schermate: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Reminder Rules**. Le trovate più avanti.
 
 ## Modelli di incidenti
 
@@ -113,20 +114,21 @@ Lasciate vuoto uno dei due per mantenere il prefisso predefinito `#`; il campo n
 
 ## Le regole che scattano alla creazione di un incidente
 
-**Incidenti → Regole** contiene otto motori di regole. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
+**Incidenti → Regole** contiene nove motori di regole. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
 
 - **Regole di raggruppamento** — raggruppano incidenti correlati in episodi. Le regole vengono valutate in ordine di priorità; i numeri di priorità più bassi vanno per primi.
 - **Regole di reperibilità** — eseguono le policy di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più sotto.
 - **Regole del proprietario** — assegnano i proprietari automaticamente.
 - **Regole di runbook** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
+- **Regole di rimedio automatico** — propongono o avviano runbook di rimedio quando un incidente corrisponde. Se per l'incidente è in coda un'indagine IA, partono quando questa termina, con la sua analisi in mano. Vedete [AI SRE](/docs/ai/ai-sre).
 - **Regole di privacy** — decidono se un incidente corrispondente è privato.
 - **Regole etichette** — applicano le etichette automaticamente.
 - **Regole SLA** — tracciano i tempi di risposta e di risoluzione. Le regole vengono valutate in ordine; i numeri d'ordine più bassi vanno per primi.
 - **Reminder Rules** — ricordano periodicamente ai proprietari dell'incidente che l'incidente è ancora aperto. Le regole vengono valutate in ordine e vince la prima che corrisponde.
 
-**La semantica dell'ordine non è uniforme.** Regole di raggruppamento, Regole SLA e Reminder Rules sono valutate in ordine. Le Regole di reperibilità no — scattano tutte le regole che corrispondono. Non date per scontato che un solo modello valga per tutte e otto.
+**La semantica dell'ordine non è uniforme.** Regole di raggruppamento, Regole SLA e Reminder Rules sono valutate in ordine. Le Regole di reperibilità no — scattano tutte le regole che corrispondono. Non date per scontato che un solo modello valga per tutte e nove.
 
-Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules**, a meno che non intendiate proprio gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole SLA** e **Reminder Rules** sono tabelle singole.
+Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules**, a meno che non intendiate proprio gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole SLA** e **Reminder Rules** sono tabelle singole.
 
 ## Regole di reperibilità degli incidenti
 

@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "रोटेशन जो तय करते हैं कि किसी भी समय कौन ऑन-कॉल है। जो भी ऑन-कॉल है उसे पेज करने के लिए किसी ऑन-कॉल नीति के एस्केलेशन नियमों में अनुसूची जोड़ें।",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "वे एप्लिकेशन और माइक्रोसर्विस जिन्हें आप चलाते हैं। हर सेवा अपने लॉग, ट्रेस, मेट्रिक्स, अपवाद, घटनाएं और मालिक एक ही जगह पर लाती है।",
   "Create On-Call Schedule": "ऑन-कॉल अनुसूची बनाएं",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "प्रोब वे मशीनें हैं जो इस मॉनिटर की जाँच चलाती हैं। आपके प्रोजेक्ट के डिफ़ॉल्ट प्रोब पहले से चुने होते हैं। बिना प्रोब वाले मॉनिटर की कभी जाँच नहीं होती।"
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "प्रोब वे मशीनें हैं जो इस मॉनिटर की जाँच चलाती हैं। आपके प्रोजेक्ट के डिफ़ॉल्ट प्रोब पहले से चुने होते हैं। बिना प्रोब वाले मॉनिटर की कभी जाँच नहीं होती।",
+  "Auto Remediation Rules": "स्वचालित सुधार नियम"
 }

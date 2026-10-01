@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Ротации, которые определяют, кто дежурит в каждый момент времени. Добавьте расписание в правила эскалации политики дежурства, чтобы вызывать того, кто дежурит.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "Приложения и микросервисы, которые вы запускаете. Каждая служба собирает в одном месте свои журналы, трассировки, метрики, исключения, инциденты и владельцев.",
   "Create On-Call Schedule": "Создать расписание дежурств",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Зонды — это машины, которые выполняют проверки этого монитора. Зонды проекта по умолчанию уже выбраны. Монитор без зондов никогда не проверяется."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Зонды — это машины, которые выполняют проверки этого монитора. Зонды проекта по умолчанию уже выбраны. Монитор без зондов никогда не проверяется.",
+  "Auto Remediation Rules": "Правила автоисправления"
 }
