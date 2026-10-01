@@ -300,13 +300,13 @@ const SINGLE_LINE_ARGUMENTS: Array<
   ],
   ["API Get → URL", ComponentID.ApiGet, "url", FormFieldSchemaType.URL],
   [
-    "If / Else → Input 1",
+    "If / Else → Value to check",
     ComponentID.IfElse,
     "input-1",
     FormFieldSchemaType.Text,
   ],
   [
-    "If / Else → Input 2",
+    "If / Else → Compare with",
     ComponentID.IfElse,
     "input-2",
     FormFieldSchemaType.Text,

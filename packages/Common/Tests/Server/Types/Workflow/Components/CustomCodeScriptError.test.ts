@@ -81,34 +81,32 @@ describe("Custom JavaScript component scriptError routing", () => {
   });
 });
 
-describe("If/Else component scriptError handling", () => {
-  test("fails the run instead of silently taking a branch when the expression errors", async () => {
-    const sandboxResult: ReturnResult = {
-      returnValue: undefined,
-      logMessages: [],
-      capturedMetrics: [],
-      scriptError: new Error("expression exploded"),
-    };
-    jest.spyOn(VMUtil, "runCodeInSandbox").mockResolvedValue(sandboxResult);
+/*
+ * If / Else used to build a line of JavaScript from its settings and run it
+ * in this sandbox, so the sandbox's script errors were how a bad comparison
+ * failed the run. It compares in TypeScript now (ConditionEvaluation): it
+ * never reaches the sandbox, and a comparison it does not know still fails
+ * the run rather than quietly taking a branch.
+ */
+describe("If/Else component error handling", () => {
+  test("fails the run instead of silently taking a branch when the comparison is unknown", async () => {
+    const sandbox: jest.SpyInstance = jest.spyOn(VMUtil, "runCodeInSandbox");
 
-    const { options, onError }: OptionsFixture = makeOptions();
+    const { options, onError, log }: OptionsFixture = makeOptions();
 
     await expect(
       new IfElse().run(
-        { "input-1": "a", "input-2": "b", operator: "==" },
+        { "input-1": "a", "input-2": "b", operator: "is roughly" },
         options,
       ),
-    ).rejects.toThrow("expression exploded");
+    ).rejects.toThrow('If / Else cannot compare with "is roughly"');
     expect(onError).toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith("Could not check the condition.");
+    expect(sandbox).not.toHaveBeenCalled();
   });
 
-  test("takes the Yes branch when the expression evaluates truthy", async () => {
-    const sandboxResult: ReturnResult = {
-      returnValue: true,
-      logMessages: [],
-      capturedMetrics: [],
-    };
-    jest.spyOn(VMUtil, "runCodeInSandbox").mockResolvedValue(sandboxResult);
+  test("takes the Yes branch when the condition is met, without the sandbox", async () => {
+    const sandbox: jest.SpyInstance = jest.spyOn(VMUtil, "runCodeInSandbox");
 
     const { options }: OptionsFixture = makeOptions();
     const result: RunReturnType = await new IfElse().run(
@@ -117,5 +115,6 @@ describe("If/Else component scriptError handling", () => {
     );
 
     expect(result.executePort?.id).toBe("yes");
+    expect(sandbox).not.toHaveBeenCalled();
   });
 });

@@ -465,15 +465,22 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
     ArgumentControl.HTMLCode,
   ];
 
-  const settings: Array<[string, string, Argument]> = Components.flatMap(
+  /*
+   * If / Else is drawn as the sentence its settings make, not as a field per
+   * setting: Condition/ConditionEditor.test.tsx covers it, and the test at
+   * the end of this block checks its pickers.
+   */
+  const settings: Array<[string, string, Argument]> = Components.filter(
     (component: ComponentMetadata) => {
-      return (component.arguments || []).map(
-        (arg: Argument): [string, string, Argument] => {
-          return [component.id, arg.name, arg];
-        },
-      );
+      return component.id !== ComponentID.IfElse;
     },
-  );
+  ).flatMap((component: ComponentMetadata) => {
+    return (component.arguments || []).map(
+      (arg: Argument): [string, string, Argument] => {
+        return [component.id, arg.name, arg];
+      },
+    );
+  });
 
   test.each(settings)(
     "%s → %s",
@@ -545,7 +552,7 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
     ).toBeInTheDocument();
   });
 
-  test("a choice from a list gets none: the If/Else operator", () => {
+  test("a choice from a list gets none: the If/Else comparison; both its values do", () => {
     renderStep(step(ComponentID.IfElse));
 
     expect(
@@ -554,6 +561,16 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
     expect(
       screen.getByTestId("workflow-argument-input-1-insert-value"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("workflow-argument-input-2-insert-value"),
+    ).toBeInTheDocument();
+    // How the values are compared is a choice too.
+    expect(
+      screen.queryByTestId("workflow-argument-input-1-type-insert-value"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("workflow-argument-input-2-type-insert-value"),
+    ).toBeNull();
   });
 });
 
@@ -863,7 +880,8 @@ describe("ArgumentsForm — short values stay on one line", () => {
     [ComponentID.SendEmail, "Subject"],
     [ComponentID.TelegramSendMessageToChat, "Chat ID"],
     [ComponentID.TelegramSendMessageToChat, "Telegram Bot Token"],
-    [ComponentID.IfElse, "Input 1"],
+    [ComponentID.IfElse, "Value to check"],
+    [ComponentID.IfElse, "Compare with"],
     [ComponentID.ApiPost, "URL"],
   ])("%s → %s", (componentId: ComponentID, field: string) => {
     renderStep(step(componentId));

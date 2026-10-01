@@ -73,7 +73,7 @@ Webhook triggers give you a unique URL. Anyone who knows the URL can hit it. To 
 - Treat the URL like a password. Don't share it publicly or commit it to a public repo. The Webhook trigger masks the URL's secret key until you click **Show**, and **Copy URL** copies the URL without showing it.
 - If the URL leaks, click the Webhook trigger in the **Builder** and click **Reset URL**. The workflow gets a new URL and the old one stops working at once.
 - If the trigger says its URL ends in the workflow's ID, reset it. Workflows created before webhook URLs had a secret key of their own use the workflow's ID instead, and anyone who can open the workflow can see that.
-- For sensitive workflows, ask the calling system to send a shared token as a header (like `X-Webhook-Token`) and check it with a **Conditions** block before doing anything important. Save the expected token as a secret variable.
+- For sensitive workflows, ask the calling system to send a shared token as a header (like `X-Webhook-Token`) and check it with an **If / Else** block before doing anything important. Save the expected token as a secret variable.
 - For very sensitive workflows, prefer a OneUptime event trigger and a manual import step instead of a public webhook.
 
 Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow, which read-only roles can't do by hand, so they see a note saying who to ask instead.

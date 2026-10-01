@@ -1009,7 +1009,14 @@ describe("Identifier, saving and the footer", () => {
   test("an action can still be run on its own from the footer", () => {
     const onRunStep: MockFunction = getJestMockFunction();
 
-    renderModal(makeNode(ComponentID.Log, "log-1"), { onRunStep: onRunStep });
+    /*
+     * Set up: a step whose required settings are empty cannot be run or
+     * saved, and the footer says why instead (ComponentSettingsModalValidity).
+     */
+    const log: NodeDataProp = makeNode(ComponentID.Log, "log-1");
+    log.arguments = { value: "Hello" };
+
+    renderModal(log, { onRunStep: onRunStep });
 
     fireEvent.click(screen.getByRole("button", { name: "Run just this step" }));
 

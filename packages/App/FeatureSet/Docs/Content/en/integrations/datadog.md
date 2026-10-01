@@ -17,10 +17,10 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. Open **Workflows → Create Workflow**, name it `Datadog → Incidents`, and open the **Builder**.
 2. Add a **Webhook** trigger and **copy its URL**. Rename the block to `Datadog`.
-3. Add a **Conditions** block connected to the trigger:
-   - **Left**: `{{Datadog.Request Body.transition}}`
-   - **Operator**: `==`
-   - **Right**: `Triggered`
+3. Add an **If / Else** block (Conditions category) connected to the trigger:
+   - **Value to check**: `{{Datadog.Request Body.transition}}`
+   - **Comparison**: **is equal to**
+   - **Compare with**: `Triggered`
 4. From **Yes**, add a **Create Incident** block:
    - **Title**: `{{Datadog.Request Body.title}}`
    - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`

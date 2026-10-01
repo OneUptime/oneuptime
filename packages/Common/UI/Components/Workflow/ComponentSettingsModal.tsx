@@ -18,6 +18,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
+import ComponentID from "../../../Types/Workflow/ComponentID";
 import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
 import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
 import React, {
@@ -152,11 +153,17 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     onResetWebhookSecretKey: props.onResetWebhookSecretKey,
   });
 
+  /*
+   * An If / Else step's settings are one thing, its condition, and are
+   * called that (see Condition/ConditionEditor).
+   */
+  const isCondition: boolean = component.metadata.id === ComponentID.IfElse;
+
   const settingsSection: ReactElement | null = hasSettings ? (
     <ComponentSettingsSection
       id="settings"
-      icon={IconProp.Settings}
-      title="Settings"
+      icon={isCondition ? IconProp.Condition : IconProp.Settings}
+      title={isCondition ? "Condition" : "Settings"}
     >
       <ArgumentsForm
         graphComponents={props.graphComponents}
@@ -167,9 +174,17 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           setComponent({ ...c });
         }}
         onHasFormValidationErrors={(value: Dictionary<boolean>) => {
-          setHasFormValidationErrors({
-            ...hasFormValidationErrors,
-            ...value,
+          /*
+           * From the latest state, not this render's: the identifier's form
+           * reports in the same moment as the settings do when the dialog
+           * opens, and merging into a stale copy dropped the other's report.
+           * A new If / Else could then be saved with nothing set.
+           */
+          setHasFormValidationErrors((current: Dictionary<boolean>) => {
+            return {
+              ...current,
+              ...value,
+            };
           });
         }}
       />
@@ -191,9 +206,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           setComponent({ ...component, ...values });
         }}
         onFormValidationErrorChanged={(hasError: boolean) => {
-          setHasFormValidationErrors({
-            ...hasFormValidationErrors,
-            id: hasError,
+          setHasFormValidationErrors((current: Dictionary<boolean>) => {
+            return {
+              ...current,
+              id: hasError,
+            };
           });
         }}
         fields={[
