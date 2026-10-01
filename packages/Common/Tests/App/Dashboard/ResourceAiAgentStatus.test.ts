@@ -847,6 +847,10 @@ describe("Needs attention", () => {
   test.each([
     ["investigation_disabled", "turn_on_investigation"],
     ["ai_disabled_for_project", "open_ai_features"],
+    /*
+     * Retired: "Enable auto-remediation" was folded into Enable AI, but an
+     * older server may still send it mid-rollout.
+     */
     ["auto_remediation_disabled_for_project", "open_ai_features"],
     ["llm_provider_missing", "open_llm_providers"],
     ["ai_balance_insufficient", "open_ai_credits"],
@@ -911,6 +915,7 @@ const SERVER_FLAGS: Record<
   remediation_disabled: { investigation: false, fixes: true },
   remediation_write_access_missing: { investigation: false, fixes: true },
   ai_disabled_for_project: { investigation: true, fixes: true },
+  // Retired (Enable AI covers it): only an older server sends it, like this.
   auto_remediation_disabled_for_project: { investigation: false, fixes: true },
   llm_provider_missing: { investigation: true, fixes: true },
   ai_balance_insufficient: { investigation: true, fixes: true },
@@ -1104,6 +1109,7 @@ describe("Needs attention's headline", () => {
   });
 
   test("a gap that blocks only fixes still says fixes when they are off", () => {
+    // An older server's retired gap is the one that arrives beside fixes-off.
     expect(
       getResourceAiAttentionTitle(
         makeStatus({
@@ -1216,10 +1222,8 @@ describe("Needs attention's steps", () => {
       "ai_balance_insufficient",
       "Add AI credits to this project, or turn on auto-recharge.",
     ],
-    [
-      "auto_remediation_disabled_for_project",
-      "Turn on auto-remediation for this project.",
-    ],
+    // Retired: Enable AI covers it, so it asks for the same thing.
+    ["auto_remediation_disabled_for_project", "Turn on AI for this project."],
   ])("%s: %s", (code: string, text: string) => {
     expect(
       getResourceAiAttentionStepText(

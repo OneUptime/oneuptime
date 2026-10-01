@@ -23,8 +23,10 @@ import {
   KubernetesAiAccessSavedSettings,
   KubernetesAiCredentialDirectoryEntry,
   KubernetesAiRunnerDirectoryEntry,
+  INVESTIGATION_ON_SENTENCE,
+  KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
   REMEDIATION_MODES_BY_AUTONOMY,
-  REMEDIATION_MODE_LABELS,
+  REMEDIATION_MODE_OPTION_DESCRIPTIONS,
   REMEDIATION_MODE_SHORT_NAMES,
   REMEDIATION_MODE_SUMMARIES,
   SavedKubectlAllowlist,
@@ -34,6 +36,7 @@ import {
   buildKubernetesAiRunnerOptions,
   capitalizeFirst,
   getAllowlistInEffect,
+  getEveryModeProtections,
   getEveryModeProtectionsSentence,
   getKubectlAllowlistRemovalOnlyError,
   getKubernetesAiAccessAdminPermissionTitles,
@@ -48,7 +51,6 @@ import {
   getKubernetesAiCredentialAssignmentError,
   getKubernetesAiCredentialFieldDescription,
   getPermissionTitles,
-  getRemediationModeFieldDescription,
   isAllowlistFieldShown,
   isRemediationModeOpenToEveryEditor,
   normalizeSavedKubectlAllowlist,
@@ -59,6 +61,10 @@ import {
   readStoredKubectlAllowlist,
   validateKubectlAllowlistText,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSettings";
+import {
+  formatAiAccessProtections,
+  joinAiAccessProtections,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import {
   PROJECT_AI_SETTINGS_PERMISSIONS,
   canChangeProjectAiSettings,
@@ -2664,25 +2670,93 @@ describe("the mode copy follows the canonical description", () => {
     }
   });
 
-  test("the mode field names the riskier changes, the one-click proposal and Bypass's exceptions", () => {
-    const description: string = getRemediationModeFieldDescription();
-    expect(description).toContain(
-      "A riskier change (patch, set image, drain, taint, scale to zero,",
+  test("the list the modal shows is the sentence the confirmations say, clause for clause", () => {
+    const clauses: Array<string> = getEveryModeProtections();
+
+    expect(clauses).toHaveLength(4);
+    expect(getEveryModeProtectionsSentence()).toBe(
+      joinAiAccessProtections(clauses),
     );
-    expect(description).toMatch(
-      /when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval/,
+    // A clause may hold a ";" of its own: the list is built, never split.
+    expect(clauses[0]).toBe(
+      "destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run",
     );
-    expect(description).toContain("delete a named pod");
-    expect(description).not.toMatch(/delete a named pod or job/);
-    expect(description).toContain(
-      "follow-up rounds included, except for what always asks. In every mode, Bypass approval included:",
+    expect(formatAiAccessProtections(clauses)[0]).toBe(
+      "Destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run.",
     );
-    expect(description).toContain(getEveryModeProtectionsSentence());
   });
 
-  test("every mode has its own label, short name and one-line summary", () => {
+  test("the mode cards name the safe and riskier changes, the one-click approval and Bypass's exceptions", () => {
+    const automatic: string =
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS[
+        KubernetesAiRemediationMode.Automatic
+      ];
+    expect(automatic).toContain(
+      "Riskier ones (patch, set image, drain, taint, scale to zero, …) wait for one-click approval unless the kubectl allowlist names them.",
+    );
+    expect(automatic).toContain("delete a named pod");
+    expect(automatic).not.toMatch(/delete a named pod or job/);
+
+    const bypass: string =
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS[
+        KubernetesAiRemediationMode.BypassApproval
+      ];
+    expect(bypass).toMatch(/^AI does not ask: /);
+    expect(bypass).toContain("follow-up rounds included");
+    expect(bypass).toContain(
+      "Writes in protected namespaces and node drains, taints and patches still ask a person.",
+    );
+
+    expect(
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS[
+        KubernetesAiRemediationMode.RequireApproval
+      ],
+    ).toContain("AI proposes the exact kubectl fix");
+    expect(
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS[
+        KubernetesAiRemediationMode.Disabled
+      ],
+    ).toBe("AI never proposes or runs a fix. It can still investigate.");
+  });
+
+  test("Off speaks of fixes only, never of investigating", () => {
+    expect(
+      REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.Disabled],
+    ).toBe("AI never proposes or runs a fix.");
+    for (const summary of Object.values(REMEDIATION_MODE_SUMMARIES)) {
+      expect(summary).not.toMatch(/only investigates/);
+    }
+  });
+
+  test("investigation on says what AI may run, and that it changes nothing", () => {
+    expect(INVESTIGATION_ON_SENTENCE).toBe(
+      "AI may run read-only kubectl on this cluster: get, describe, logs, events, top. It never changes anything.",
+    );
+  });
+
+  test("the kubectl allowlist help gives an example and the matcher's rules, and stays short", () => {
+    expect(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION).toContain(
+      "for example: kubectl set image deployment/web * -n web",
+    );
+    expect(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION).toContain(
+      "* matches exactly one word",
+    );
+    expect(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION).toContain(
+      'a leading "kubectl" is optional',
+    );
+    expect(
+      KUBECTL_ALLOWLIST_FIELD_DESCRIPTION.split(/\s+/).length,
+    ).toBeLessThan(60);
+    expect(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION).not.toMatch(/permission/);
+    // What the help promises is what the policy accepts.
+    expect(
+      validateKubectlAllowlistText("kubectl set image deployment/web * -n web"),
+    ).toBeNull();
+  });
+
+  test("every mode has its own short name, one-line summary and card description", () => {
     for (const record of [
-      REMEDIATION_MODE_LABELS,
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS,
       REMEDIATION_MODE_SHORT_NAMES,
       REMEDIATION_MODE_SUMMARIES,
     ]) {
@@ -2704,19 +2778,13 @@ describe("the mode copy follows the canonical description", () => {
       [KubernetesAiRemediationMode.Automatic]: "Automatic",
       [KubernetesAiRemediationMode.BypassApproval]: "Bypass approval",
     });
-    // Each label starts with its short name, so the dropdown and card agree.
-    for (const mode of Object.values(KubernetesAiRemediationMode)) {
-      expect(
-        REMEDIATION_MODE_LABELS[mode].startsWith(
-          REMEDIATION_MODE_SHORT_NAMES[mode],
-        ),
-      ).toBe(true);
-    }
   });
 
   test("Automatic says a riskier fix waits for one-click approval", () => {
     for (const text of [
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic],
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS[
+        KubernetesAiRemediationMode.Automatic
+      ],
       REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.Automatic],
     ]) {
       expect(text).toMatch(/one-click approval/);
@@ -2724,22 +2792,30 @@ describe("the mode copy follows the canonical description", () => {
     }
   });
 
-  test("the Bypass approval label names every exception, another unattended round included", () => {
-    const label: string =
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval];
+  /*
+   * Bypass approval's card, with the every-mode protections listed right
+   * under the cards, names every exception — another unattended round
+   * included.
+   */
+  test("Bypass approval's card and the protections under it name every exception", () => {
+    const card: string =
+      REMEDIATION_MODE_OPTION_DESCRIPTIONS[
+        KubernetesAiRemediationMode.BypassApproval
+      ];
+    const said: string = [card, ...getEveryModeProtections()].join(" ");
     for (const exception of [
       "protected namespaces",
       "node drains, taints and patches",
       "circuit breaker",
       "another unattended round",
     ]) {
-      expect({ exception, named: label.includes(exception) }).toEqual({
+      expect({ exception, named: said.includes(exception) }).toEqual({
         exception,
         named: true,
       });
     }
-    expect(label).not.toMatch(/\bonly\b/);
-    expect(label).not.toMatch(/nobody is asked/);
+    expect(card).not.toMatch(/\bonly\b/);
+    expect(card).not.toMatch(/nobody is asked/);
     expect(
       REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.BypassApproval],
     ).toContain("still ask a person");

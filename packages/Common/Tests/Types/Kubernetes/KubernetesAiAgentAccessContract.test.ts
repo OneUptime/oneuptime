@@ -445,6 +445,29 @@ describe("the status contract", () => {
   });
 
   /*
+   * Enable AI is the project's only AI switch. The gaps of the two switches
+   * it replaced stay in the union, retired like no_runner_bound: the server
+   * no longer produces them, but a status from an older server (and the
+   * agent's byte-identical copy of this file) still type-checks, and the
+   * union says why they are there.
+   */
+  it("keeps the gaps of the switches Enable AI replaced, marked retired", () => {
+    // Compile-time: both are still members of the union.
+    const retired: Array<KubernetesAiAccessGapCode> = [
+      "project_auto_remediation_disabled",
+      "project_ai_command_execution_disabled",
+    ];
+
+    expect(new Set(retired).size).toBe(2);
+
+    const source: string = fs.readFileSync(SOURCE_PATH, "utf8");
+
+    expect(source).toMatch(
+      /Retired:[^|]*Enable AI[^|]*\|\s*"project_auto_remediation_disabled"\s*\|\s*"project_ai_command_execution_disabled"/,
+    );
+  });
+
+  /*
    * Every status carries aiAgent (the agent row, or null when none ever
    * registered) and the project's automaticInvestigation opt-ins. The type
    * keeps both optional only until the producer sets them (see the comment

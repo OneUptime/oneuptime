@@ -369,7 +369,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Compose Commands",
     description:
-      "When enabled, the AI investigates the incident/alert and composes Bash/SSH commands for opted-in Runners instead of picking a runbook. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. Requires the project's Enable AI Command Execution setting.",
+      "When enabled, the AI investigates the incident/alert and composes Bash/SSH commands for opted-in Runners instead of picking a runbook. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. Requires AI to be enabled for the project.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

@@ -1160,20 +1160,20 @@ class AutoRemediationRuleEngineServiceClass {
     alert?: Alert | undefined;
   }): Promise<void> {
     /*
-     * Project-level kill switch. === false so a missing column (older rows,
-     * self-hosted defaults) counts as enabled — same semantics as enableAi.
+     * Project-level kill switch: Enable AI, the project's only AI switch,
+     * stops every lane below — cluster and resource rounds, AI rules and
+     * deterministic runbook rules alike. === false because the column is
+     * NOT NULL DEFAULT true: undefined means "not selected", never "off".
      */
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: {
         enableAi: true,
-        enableAutoRemediation: true,
-        enableAiCommandExecution: true,
       },
       props: { isRoot: true },
     });
 
-    if (!project || project.enableAutoRemediation === false) {
+    if (!project || project.enableAi === false) {
       return;
     }
 
@@ -1326,7 +1326,10 @@ class AutoRemediationRuleEngineServiceClass {
         }),
     );
 
-    // Lazily evaluated once: AI rules need AI enabled and a provider.
+    /*
+     * Lazily evaluated once: AI rules need a provider. AI itself is on —
+     * the kill switch above already returned otherwise.
+     */
     let aiAvailable: boolean | null = null;
 
     for (const rule of matchedRules) {
@@ -1345,7 +1348,6 @@ class AutoRemediationRuleEngineServiceClass {
       if (rule.aiComposesCommands) {
         if (aiAvailable === null) {
           aiAvailable =
-            project.enableAi !== false &&
             (await LlmProviderService.getLLMProviderForProject(
               data.projectId,
             )) !== null;
@@ -1353,20 +1355,7 @@ class AutoRemediationRuleEngineServiceClass {
 
         if (!aiAvailable) {
           logger.debug(
-            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — AI disabled or no LLM provider configured.`,
-            { projectId: data.projectId.toString() } as LogAttributes,
-          );
-          continue;
-        }
-
-        /*
-         * Opt-in semantics (=== true): the project must have explicitly
-         * enabled AI command execution, on top of the AI/auto-remediation
-         * kill switches.
-         */
-        if (project.enableAiCommandExecution !== true) {
-          logger.debug(
-            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — the project has not enabled AI command execution.`,
+            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — no LLM provider configured.`,
             { projectId: data.projectId.toString() } as LogAttributes,
           );
           continue;
@@ -1384,7 +1373,6 @@ class AutoRemediationRuleEngineServiceClass {
       if (rule.aiSelectsRunbook) {
         if (aiAvailable === null) {
           aiAvailable =
-            project.enableAi !== false &&
             (await LlmProviderService.getLLMProviderForProject(
               data.projectId,
             )) !== null;
@@ -1392,7 +1380,7 @@ class AutoRemediationRuleEngineServiceClass {
 
         if (!aiAvailable) {
           logger.debug(
-            `AutoRemediationRuleEngine: skipping AI rule ${rule.id?.toString()} — AI disabled or no LLM provider configured.`,
+            `AutoRemediationRuleEngine: skipping AI rule ${rule.id?.toString()} — no LLM provider configured.`,
             { projectId: data.projectId.toString() } as LogAttributes,
           );
           continue;
@@ -1673,11 +1661,11 @@ class AutoRemediationRuleEngineServiceClass {
     try {
       const project: Project | null = await ProjectService.findOneById({
         id: data.projectId,
-        select: { enableAutoRemediation: true },
+        select: { enableAi: true },
         props: { isRoot: true },
       });
 
-      if (!project || project.enableAutoRemediation === false) {
+      if (!project || project.enableAi === false) {
         return false;
       }
 
@@ -2061,11 +2049,11 @@ class AutoRemediationRuleEngineServiceClass {
 
       const project: Project | null = await ProjectService.findOneById({
         id: data.projectId,
-        select: { enableAutoRemediation: true },
+        select: { enableAi: true },
         props: { isRoot: true },
       });
 
-      if (!project || project.enableAutoRemediation === false) {
+      if (!project || project.enableAi === false) {
         return false;
       }
 

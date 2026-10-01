@@ -52,16 +52,12 @@ const AGENT_ID: ObjectID = new ObjectID("88888888-8888-4888-8888-888888888888");
 
 const READY_GATES: ResourceAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: false,
   hasLlmProvider: true,
   aiBalanceBlocker: null,
 };
 
 const CLOSED_GATES: ResourceAiAccessProjectGates = {
   isAiEnabled: false,
-  isAutoRemediationEnabled: false,
-  isAiCommandExecutionEnabled: false,
   hasLlmProvider: false,
   aiBalanceBlocker: "The project is out of AI credits.",
 };
@@ -394,7 +390,11 @@ describe("Needs attention, from the server's own statuses", () => {
         }
       }
 
-      // Every gap but the fixes-off choice was seen, so none fell through.
+      /*
+       * Every gap but the fixes-off choice was seen, so none fell through.
+       * auto_remediation_disabled_for_project is retired - Enable AI covers
+       * it - so the server never sends it.
+       */
       expect(Array.from(seen).sort()).toEqual(
         [
           "ai_agent_not_connected",
@@ -403,7 +403,6 @@ describe("Needs attention, from the server's own statuses", () => {
           "investigation_disabled",
           "remediation_write_access_missing",
           "ai_disabled_for_project",
-          "auto_remediation_disabled_for_project",
           "llm_provider_missing",
           "ai_balance_insufficient",
         ].sort(),
@@ -523,11 +522,6 @@ describe("Needs attention, from the server's own statuses", () => {
         "ai_balance_insufficient",
         "Add AI credits to this project, or turn on auto-recharge.",
         "open_ai_credits",
-      ],
-      [
-        "auto_remediation_disabled_for_project",
-        "Turn on auto-remediation for this project.",
-        "open_ai_features",
       ],
     ]);
   });

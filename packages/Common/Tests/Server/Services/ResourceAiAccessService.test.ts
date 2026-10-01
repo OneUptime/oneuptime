@@ -73,8 +73,6 @@ const MONITOR_ID: ObjectID = new ObjectID(
 
 const READY_GATES: ResourceAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: false,
   hasLlmProvider: true,
   aiBalanceBlocker: null,
 };
@@ -347,12 +345,6 @@ describe("ResourceAiAccessService.buildStatus", () => {
       "ai_balance_insufficient",
       true,
     ],
-    [
-      "auto-remediation off",
-      { isAutoRemediationEnabled: false },
-      "auto_remediation_disabled_for_project",
-      false,
-    ],
   ])(
     "folds in the project gate: %s",
     (
@@ -373,13 +365,35 @@ describe("ResourceAiAccessService.buildStatus", () => {
     },
   );
 
-  it("never needs the project's Runner command-execution opt-in", () => {
-    const status: ResourceAiAccessStatus = build(row(), agentRow(), {
-      ...READY_GATES,
-      isAiCommandExecutionEnabled: false,
-    });
+  /*
+   * Enable AI is the project's only AI switch. The "Enable auto-remediation"
+   * switch it replaced had a gap of its own
+   * (auto_remediation_disabled_for_project), retired with it: with AI on a
+   * resource's fixes need no other project switch, and with AI off the one
+   * project gap is ai_disabled_for_project, blocking both.
+   */
+  it("needs no project switch but Enable AI, and never the retired auto-remediation gap", () => {
+    const ready: ResourceAiAccessStatus = build(
+      row({ aiRemediationMode: ResourceAiRemediationMode.BypassApproval }),
+      agentRow(),
+    );
 
-    expect(status.isRemediationReady).toBe(true);
+    expect(ready.gaps).toEqual([]);
+    expect(ready.isRemediationReady).toBe(true);
+
+    const off: ResourceAiAccessStatus = build(
+      row({ aiRemediationMode: ResourceAiRemediationMode.BypassApproval }),
+      agentRow(),
+      { ...READY_GATES, isAiEnabled: false },
+    );
+
+    expect(codes(off)).toEqual(["ai_disabled_for_project"]);
+    expect(gap(off, "ai_disabled_for_project").nextStep).toBe(
+      "Enable AI under Project Settings → AI Features.",
+    );
+    expect(codes(off)).not.toContain("auto_remediation_disabled_for_project");
+    expect(off.isInvestigationReady).toBe(false);
+    expect(off.isRemediationReady).toBe(false);
   });
 
   it("carries the resource's settings and bookkeeping", () => {

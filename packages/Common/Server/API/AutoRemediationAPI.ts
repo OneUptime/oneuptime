@@ -54,10 +54,6 @@ import RunnerService from "../Services/RunnerService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import CommandPlanExecutor from "../Utils/AutoRemediation/CommandPlanExecutor";
 import RemediationCommandToolkit from "../Utils/AI/Remediation/RemediationCommandTools";
-import {
-  isClusterRemediationRound,
-  isResourceRemediationRound,
-} from "../Utils/AI/Remediation/RemediationExecutionRunner";
 import ResourceAiAccessService, {
   describeResourceNoun,
   getResourceAiAgentPage,
@@ -757,16 +753,6 @@ async function loadSuggestionAsRoot(
         verificationWindowMinutes: true,
         suggestionType: true,
         commandPlan: true,
-        /*
-         * Which lane composed a command plan: a cluster round (a cluster,
-         * no rule) does not need the project's AI command execution opt-in,
-         * a rule round does (isClusterRemediationRound).
-         */
-        kubernetesClusterId: true,
-        autoRemediationRuleId: true,
-        // A resource round (a resource, no rule) needs no opt-in either.
-        resourceType: true,
-        resourceId: true,
       },
       props: { isRoot: true },
     });
@@ -854,44 +840,26 @@ router.post(
         assertCanExecuteRunbooks(props, suggestion.projectId);
 
         /*
-         * Re-check the project switches at approval time. The plan may have
-         * been composed hours ago; an operator who has since turned AI,
-         * auto-remediation or AI command execution off expects that switch
-         * to stop pending plans too, not just new ones. The command
-         * execution opt-in covers rule rounds only — the same line
-         * RemediationExecutionRunner.checkProjectGates draws — and is keyed
-         * on the round, never on the plan's step types: a rule's
-         * all-kubectl plan still needs it. A cluster round's consent is the
-         * cluster's own, re-checked per kubectl command below.
+         * Re-check the project's AI switch at approval time. The plan may
+         * have been composed hours ago; an operator who has since turned
+         * Enable AI off expects it to stop pending plans too, not just new
+         * ones — the same check RemediationExecutionRunner.checkProjectGates
+         * makes before a round runs. Every round passes the same gate: a
+         * rule's plan, and a cluster's or a resource's, whose own consent is
+         * re-checked per command below.
          */
         const project: Project | null = await ProjectService.findOneById({
           id: suggestion.projectId,
           select: {
             _id: true,
             enableAi: true,
-            enableAutoRemediation: true,
-            enableAiCommandExecution: true,
           },
           props: { isRoot: true },
         });
 
-        if (
-          !project ||
-          project.enableAi === false ||
-          project.enableAutoRemediation === false
-        ) {
+        if (!project || project.enableAi === false) {
           throw new BadDataException(
-            "AI or auto-remediation is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
-          );
-        }
-
-        if (
-          !isClusterRemediationRound(suggestion) &&
-          !isResourceRemediationRound(suggestion) &&
-          project.enableAiCommandExecution !== true
-        ) {
-          throw new BadDataException(
-            "AI command execution is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
+            "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
           );
         }
 
