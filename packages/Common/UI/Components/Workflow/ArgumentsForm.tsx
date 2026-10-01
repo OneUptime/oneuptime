@@ -12,6 +12,7 @@ import ModelColumnEditor, {
 } from "./ModelColumnEditor";
 import ModelFieldPicker from "./ModelFieldPicker";
 import {
+  ArgumentFormFieldType,
   componentInputTypeToFormFieldType,
   parseStringDictionaryValue,
 } from "./Utils";
@@ -471,9 +472,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           ? ModelColumnEditorMode.Record
                           : undefined;
 
-                  let baseField: {
-                    fieldType: import("../Forms/Types/FormFieldSchemaType").default;
-                    dropdownOptions?: Array<DropdownOption> | undefined;
+                  /*
+                   * Everything else - free text, code, JSON, toggles,
+                   * dropdowns - is chosen by type in
+                   * componentInputTypeToFormFieldType, the last branch below.
+                   */
+                  let baseField: ArgumentFormFieldType & {
                     getCustomElement?: (
                       values: FormValues<JSONObject>,
                       customProps: CustomElementProps,

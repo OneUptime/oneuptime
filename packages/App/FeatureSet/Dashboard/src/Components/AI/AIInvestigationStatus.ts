@@ -23,10 +23,55 @@ export const getAIInvestigationVerdict: (
   return null;
 };
 
+/*
+ * Where the automatic investigation stands, as the card's conversation
+ * needs to know it:
+ *  - "checking": the card is still asking whether a run exists;
+ *  - "underway": a run is queued, investigating or writing its report;
+ *  - "reported": a root-cause report is on screen;
+ *  - "none": there is no report to read and none is coming (nothing ran, the
+ *    run stopped, or it finished without one).
+ */
+export type AIInvestigationStage =
+  | "checking"
+  | "underway"
+  | "reported"
+  | "none";
+
 export const isActiveAIInvestigationStatus: (
   status: AIRunStatus | null | undefined,
 ) => boolean = (status: AIRunStatus | null | undefined): boolean => {
   return status === AIRunStatus.Queued || status === AIRunStatus.Running;
+};
+
+export const getAIInvestigationStage: (data: {
+  isChecking: boolean;
+  runStatus: AIRunStatus | null | undefined;
+  hasReport: boolean;
+  isReportPending: boolean;
+}) => AIInvestigationStage = (data: {
+  isChecking: boolean;
+  runStatus: AIRunStatus | null | undefined;
+  hasReport: boolean;
+  isReportPending: boolean;
+}): AIInvestigationStage => {
+  if (data.isChecking) {
+    return "checking";
+  }
+
+  if (isActiveAIInvestigationStatus(data.runStatus)) {
+    return "underway";
+  }
+
+  if (data.runStatus === AIRunStatus.Completed) {
+    if (data.hasReport) {
+      return "reported";
+    }
+
+    return data.isReportPending ? "underway" : "none";
+  }
+
+  return "none";
 };
 
 /*
