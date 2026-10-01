@@ -18,6 +18,12 @@ export interface ComponentProps {
   actions: Array<ConfirmAction>;
 }
 
+const DESTRUCTIVE_ACTION_STYLES: Array<ButtonStyleType> = [
+  ButtonStyleType.DANGER,
+  ButtonStyleType.DANGER_OUTLINE,
+  ButtonStyleType.HOVER_DANGER_OUTLINE,
+];
+
 const ActionCard: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
@@ -33,7 +39,11 @@ const ActionCard: (props: ComponentProps) => ReactElement = (
         buttons={props.actions.map((action: ConfirmAction) => {
           return {
             title: action.actionName,
-            buttonStyle: action.actionButtonStyle || ButtonStyleType.NORMAL,
+            /*
+             * `??`: ButtonStyleType.PRIMARY is 0, and `||` turned an action
+             * its author marked PRIMARY into a plain button.
+             */
+            buttonStyle: action.actionButtonStyle ?? ButtonStyleType.NORMAL,
             onClick: () => {
               setCurrentAction(action);
             },
@@ -51,7 +61,17 @@ const ActionCard: (props: ComponentProps) => ReactElement = (
             currentAction.onConfirmAction();
             setCurrentAction(undefined);
           }}
-          submitButtonText={`Confirm`}
+          /*
+           * The button says what it does, and is the dialog's one primary
+           * action - red when the action it confirms destroys something.
+           */
+          submitButtonText={currentAction.actionName}
+          submitButtonType={
+            currentAction.actionButtonStyle !== undefined &&
+            DESTRUCTIVE_ACTION_STYLES.includes(currentAction.actionButtonStyle)
+              ? ButtonStyleType.DANGER
+              : ButtonStyleType.PRIMARY
+          }
           onClose={() => {
             setCurrentAction(undefined);
           }}

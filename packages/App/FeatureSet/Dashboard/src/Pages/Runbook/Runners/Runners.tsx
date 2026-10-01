@@ -278,15 +278,10 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <Modal
           title="Runner setup"
           modalWidth={ModalWidth.Medium}
-          submitButtonText="Done"
-          submitButtonStyleType={ButtonStyleType.PRIMARY}
-          onSubmit={() => {
-            setShowSetupAgent(null);
-          }}
           onClose={() => {
             setShowSetupAgent(null);
           }}
-          closeButtonText="Close"
+          closeButtonText="Done"
         >
           <RunnerInstallInstructions
             runnerId={new ObjectID(showSetupAgent._id!.toString())}

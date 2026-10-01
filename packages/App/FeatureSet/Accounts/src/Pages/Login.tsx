@@ -1017,7 +1017,14 @@ const LoginPage: () => JSX.Element = () => {
                             ? "login.passkey.tryAgain"
                             : "login.passkey.signIn",
                   )}
-                  buttonStyle={ButtonStyleType.PRIMARY}
+                  /*
+                   * Plain: the page's one primary button is the password
+                   * form's "Sign in", the way most people still get in. The
+                   * passkey option keeps its own tinted panel at the top,
+                   * which is what makes it stand out; two filled buttons
+                   * made the page ask for two things at once.
+                   */
+                  buttonStyle={ButtonStyleType.NORMAL}
                   className="w-full justify-center"
                   style={{ width: "100%", marginLeft: 0 }}
                   dataTestId="passkey-login"

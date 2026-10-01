@@ -366,7 +366,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       {
         title: `Uninstall OneUptime from Slack`,
         isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
+        /*
+         * Red, but outlined: "Connect my account with Slack" beside it is the
+         * card's one primary button, and a filled red one would compete with
+         * it for a step almost nobody on this card has come to take.
+         */
+        buttonStyle: ButtonStyleType.DANGER_OUTLINE,
         onClick: async () => {
           try {
             setIsButtonLoading(true);

@@ -835,7 +835,14 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
                 ? `Create ${selectedRecommendations.length} Selected`
                 : "Create Monitors",
             icon: IconProp.Add,
-            buttonStyle: ButtonStyleType.PRIMARY,
+            /*
+             * Plain. Once anything is selected the bar pinned under the list
+             * carries the same action as the page's one primary button, and
+             * two filled "Create" buttons on one screen read as two different
+             * things to do. With nothing selected the next step is to pick,
+             * not to press.
+             */
+            buttonStyle: ButtonStyleType.NORMAL,
             disabled: selectedRecommendations.length === 0,
             tooltip:
               selectedRecommendations.length === 0

@@ -619,9 +619,14 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                         <></>
                       )}
                     </div>
+                    {/*
+                     * Plain, like any action repeated on every row of a
+                     * list; the confirmation it opens carries the one
+                     * primary button.
+                     */}
                     <Button
                       title={isAlreadyAttached ? "Attached" : "Select"}
-                      buttonStyle={ButtonStyleType.SUCCESS}
+                      buttonStyle={ButtonStyleType.NORMAL}
                       icon={IconProp.Check}
                       disabled={isAlreadyAttached}
                       onClick={() => {
@@ -709,7 +714,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                         </div>
                         <Button
                           title="Reserve"
-                          buttonStyle={ButtonStyleType.SUCCESS}
+                          buttonStyle={ButtonStyleType.NORMAL}
                           icon={IconProp.Add}
                           onClick={() => {
                             setSelectedNumber(number);
@@ -734,9 +739,18 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   const renderButtons: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex space-x-2">
+        {/*
+         * The primary step only while the policy has no number. After that
+         * the next step on the policy page is its escalation rules, whose
+         * button takes the highlight; adding another number is secondary.
+         */}
         <Button
           title="Add Phone Number"
-          buttonStyle={ButtonStyleType.PRIMARY}
+          buttonStyle={
+            props.phoneNumbers.length === 0
+              ? ButtonStyleType.PRIMARY
+              : ButtonStyleType.NORMAL
+          }
           icon={IconProp.Add}
           disabled={!props.projectCallSMSConfigId}
           tooltip={
@@ -867,7 +881,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             description={`Are you sure you want to reserve ${selectedNumber.friendlyName}? This will be charged to your Twilio account.`}
             error={error}
             submitButtonText="Reserve"
-            submitButtonType={ButtonStyleType.SUCCESS}
+            submitButtonType={ButtonStyleType.PRIMARY}
             onClose={() => {
               setShowPurchaseConfirmModal(false);
               setSelectedNumber(null);
@@ -887,7 +901,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             description={`Are you sure you want to use ${selectedOwnedNumber.friendlyName} for this policy? ${selectedOwnedNumber.voiceUrl ? "This number currently has a webhook configured which will be updated to point to OneUptime." : "The webhook will be configured automatically."}`}
             error={error}
             submitButtonText="Assign Number"
-            submitButtonType={ButtonStyleType.SUCCESS}
+            submitButtonType={ButtonStyleType.PRIMARY}
             onClose={() => {
               setShowAssignConfirmModal(false);
               setSelectedOwnedNumber(null);

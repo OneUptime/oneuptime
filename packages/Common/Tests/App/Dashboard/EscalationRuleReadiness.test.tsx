@@ -2745,3 +2745,50 @@ describe("the quiet default", () => {
     expect(idle.state).toBe("idle");
   });
 });
+
+/*
+ * A policy with no rules yet shows "Add Escalation Rule" twice: in the card's
+ * header and again under "No escalation rules yet", where the empty list leaves
+ * the eye. Both used to be filled indigo buttons - two primary buttons for one
+ * action. The header's is the page's primary button; the empty state repeats
+ * it drawn plain, the way an empty table repeats its Create button.
+ */
+describe("an escalation policy with no rules yet", () => {
+  test("offers Add Escalation Rule twice, and only the header's is the primary button", async () => {
+    mockPolicy({ users: [] });
+    getListMock.mockImplementation((): Promise<any> => {
+      return Promise.resolve({ data: [], count: 0, skip: 0, limit: 50 });
+    });
+
+    render(
+      <EscalationRules onCallDutyPolicyId={POLICY_ID} projectId={PROJECT_ID} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("No escalation rules yet")).toBeInTheDocument();
+    });
+
+    const addButtons: Array<HTMLElement> = screen.getAllByRole("button", {
+      name: "Add Escalation Rule",
+    });
+
+    expect(addButtons).toHaveLength(2);
+
+    const filled: Array<HTMLElement> = addButtons.filter(
+      (button: HTMLElement) => {
+        return button.classList.contains("bg-indigo-600");
+      },
+    );
+    const emptyStateButton: HTMLElement = addButtons.find(
+      (button: HTMLElement) => {
+        return Boolean(button.closest("#no-escalation-rules"));
+      },
+    )!;
+
+    expect(filled).toHaveLength(1);
+    expect(emptyStateButton).toBeDefined();
+    expect(emptyStateButton).toHaveClass("bg-white");
+    expect(emptyStateButton).not.toHaveClass("bg-indigo-600");
+    expect(filled[0]).not.toBe(emptyStateButton);
+  });
+});

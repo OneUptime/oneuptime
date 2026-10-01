@@ -1016,6 +1016,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             setBulkActionProps(null);
           }}
           submitButtonText="Remove Probe"
+          submitButtonStyleType={ButtonStyleType.DANGER}
           onSubmit={async (formData: { probeId: ObjectID }) => {
             await handleBulkRemoveProbes(formData.probeId);
           }}

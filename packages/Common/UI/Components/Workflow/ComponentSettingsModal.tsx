@@ -327,7 +327,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               setShowRunStepConfirmation(false);
               props.onRunStep?.(component);
             }}
-            submitButtonType={ButtonStyleType.NORMAL}
+            /*
+             * Running the step is what the user opened this dialog to do, so it
+             * is the one primary button; Cancel is the plain way out.
+             */
+            submitButtonType={ButtonStyleType.PRIMARY}
           />
         )}
 

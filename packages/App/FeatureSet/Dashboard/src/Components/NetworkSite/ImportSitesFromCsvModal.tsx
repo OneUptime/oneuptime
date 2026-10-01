@@ -363,11 +363,12 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
   /*
    * Once a run has finished the footer stops offering "Import" — re-pressing
    * it would replay the whole file against a project that now contains half
-   * of it. Editing the CSV or previewing again re-arms it.
+   * of it. Editing the CSV or previewing again re-arms it. What is left is
+   * one plain "Done": it used to be a primary "Done" beside a "Close", two
+   * buttons that both just closed the dialog.
    */
-  const submitButtonText: string = hasImported
-    ? "Done"
-    : rows.length > 0
+  const submitButtonText: string =
+    rows.length > 0
       ? `Import ${rows.length} Site${rows.length === 1 ? "" : "s"}`
       : "Import";
 
@@ -384,23 +385,22 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
         }
         props.onClose();
       }}
-      closeButtonText={hasImported ? "Close" : "Cancel"}
+      closeButtonText={hasImported ? "Done" : "Cancel"}
       submitButtonText={submitButtonText}
       isLoading={isImporting}
       disableSubmitButton={
         Boolean(siteTypesError) || isImporting || (!hasImported && !canImport)
       }
-      onSubmit={() => {
-        if (hasImported) {
-          props.onClose();
-          return;
-        }
-
-        importSites().catch((err: Error) => {
-          setImportError(API.getFriendlyMessage(err));
-          setIsImporting(false);
-        });
-      }}
+      onSubmit={
+        hasImported
+          ? undefined
+          : () => {
+              importSites().catch((err: Error) => {
+                setImportError(API.getFriendlyMessage(err));
+                setIsImporting(false);
+              });
+            }
+      }
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
