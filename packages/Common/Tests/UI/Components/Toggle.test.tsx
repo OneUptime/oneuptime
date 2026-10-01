@@ -21,6 +21,7 @@ import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import React, { ReactElement, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
@@ -272,6 +273,29 @@ describe("Toggle", () => {
     const toggle: HTMLElement = getByRole("switch");
 
     expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  /*
+   * Static markup runs no effects, so it is the first paint exactly. The
+   * switch used to take `value` only from an effect: a form field that
+   * started on was drawn off for a frame, then slid across.
+   */
+  test("shows its value from the first paint, without sliding in", () => {
+    const onMarkup: string = renderToStaticMarkup(
+      <Toggle onChange={() => {}} value={true} title="Enabled" />,
+    );
+    const offMarkup: string = renderToStaticMarkup(
+      <Toggle onChange={() => {}} value={false} initialValue={true} />,
+    );
+
+    expect(onMarkup).toContain('aria-checked="true"');
+    expect(onMarkup).toContain("translate-x-5");
+    expect(onMarkup).toContain("data-ou-toggle-check");
+    // `value` is what the switch shows; initialValue is for when there is none.
+    expect(offMarkup).toContain('aria-checked="false"');
+    expect(
+      renderToStaticMarkup(<Toggle onChange={() => {}} initialValue={true} />),
+    ).toContain('aria-checked="true"');
   });
 
   test("follows a value its parent changes", () => {

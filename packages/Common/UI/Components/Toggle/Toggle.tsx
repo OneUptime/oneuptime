@@ -155,8 +155,16 @@ const Toggle: FunctionComponent<ComponentProps> = (
   const descriptionId: string = `toggle-description-${uniqueId}`;
   const tooltipId: string = `toggle-tooltip-${uniqueId}`;
   const errorId: string = `toggle-error-${uniqueId}`;
+  /*
+   * From `value` when there is one, as the effect below would set it. Read
+   * from initialValue alone, a switch whose value starts on painted "off"
+   * for its first frame and then slid across - on every form that opened
+   * with one switched on.
+   */
   const [isChecked, setIsChecked] = useState<boolean>(
-    props.initialValue || false,
+    props.value !== undefined
+      ? Boolean(props.value)
+      : Boolean(props.initialValue),
   );
 
   useEffect(() => {
