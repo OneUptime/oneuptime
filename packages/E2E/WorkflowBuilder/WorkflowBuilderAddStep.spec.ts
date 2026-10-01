@@ -27,7 +27,9 @@ async function openBuilder(page: Page, scenario: string): Promise<void> {
 
 /*
  * Through the Add Component (or Add Trigger) panel, the way a person does
- * it. The panel is the only part of this file that knows its markup.
+ * it: search, and click the result, which adds it. The panel is the only
+ * part of this file that knows its markup (ComponentPicker.spec.ts covers
+ * the panel itself).
  */
 async function chooseInPicker(page: Page, title: string): Promise<void> {
   // The panel's own box is empty: what it draws is fixed to the window.
@@ -35,17 +37,13 @@ async function chooseInPicker(page: Page, title: string): Promise<void> {
   const search: Locator = panel.locator("#workflow-component-search");
   await expect(search).toBeVisible();
   await search.fill(title);
-  await panel.getByRole("button", { name: title, exact: true }).click();
+  await panel.getByRole("option", { name: title, exact: true }).click();
+  await expect(panel).toHaveCount(0);
 }
 
 async function addComponent(page: Page, title: string): Promise<void> {
   await page.getByTestId("add-component").click();
   await chooseInPicker(page, title);
-  await page
-    .getByTestId("side-over")
-    .getByRole("button", { name: "Add to Workflow" })
-    .click();
-  await expect(page.getByTestId("side-over")).toHaveCount(0);
 }
 
 function stepCard(page: Page, componentId: string): Locator {
@@ -196,12 +194,13 @@ test.describe("Workflow builder: adding a step", () => {
   }) => {
     await openBuilder(page, "graph");
     await page.getByTestId("add-component").click();
-    await chooseInPicker(page, "Log");
-    await page
-      .getByTestId("side-over")
-      .getByRole("button", { name: "Add to Workflow" })
-      .focus();
+    // Search and add with the keyboard alone: type, then Enter on the best match.
+    const panel: Locator = page.getByTestId("side-over");
+    await panel.locator("#workflow-component-search").focus();
+    await page.keyboard.type("Log");
+    await expect(panel.getByRole("option").first()).toHaveAccessibleName("Log");
     await page.keyboard.press("Enter");
+    await expect(panel).toHaveCount(0);
 
     const added: Locator = stepCard(page, "log-2");
     await expect(added).toBeFocused();
@@ -311,10 +310,6 @@ test.describe("Workflow builder: adding a step", () => {
       })
       .click();
     await chooseInPicker(page, "Manual");
-    await page
-      .getByTestId("side-over")
-      .getByRole("button", { name: "Add to Workflow" })
-      .click();
 
     const trigger: Locator = stepCard(page, "manual-1");
     await expect(trigger).toBeFocused();
