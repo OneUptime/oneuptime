@@ -42,11 +42,11 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         {props.onClose ? (
           <Button
-            buttonStyle={
-              props.closeButtonStyleType
-                ? props.closeButtonStyleType
-                : ButtonStyleType.NORMAL
-            }
+            /*
+             * `??`, not a truthiness test: ButtonStyleType.PRIMARY is the
+             * enum's 0, which a truthiness test reads as "not given".
+             */
+            buttonStyle={props.closeButtonStyleType ?? ButtonStyleType.NORMAL}
             title={props.closeButtonText ? props.closeButtonText : "Cancel"}
             data-dismiss="modal"
             onClick={() => {
@@ -61,11 +61,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
 
         {props.onSubmit ? (
           <Button
-            buttonStyle={
-              props.submitButtonStyleType
-                ? props.submitButtonStyleType
-                : ButtonStyleType.PRIMARY
-            }
+            buttonStyle={props.submitButtonStyleType ?? ButtonStyleType.PRIMARY}
             title={
               props.submitButtonText ? props.submitButtonText : "Save Changes"
             }

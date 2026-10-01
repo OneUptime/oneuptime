@@ -1,6 +1,7 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ConfirmModal, {
   ComponentProps,
+  getDefaultConfirmSubmitButtonType,
 } from "../../../UI/Components/Modal/ConfirmModal";
 import { describe, expect, it, jest, beforeEach } from "@jest/globals";
 /*
@@ -94,5 +95,195 @@ describe("ConfirmModal", () => {
       "This is a error message.".trim(),
     );
     expect(errorMessage.textContent?.trim()).toBe("This is a error message.");
+  });
+});
+
+/*
+ * A dialog has exactly one primary button, and it is the thing the dialog is
+ * for. A confirmation's submit is that thing and is PRIMARY by default; a
+ * notice - a ConfirmModal with no way to cancel - only has a button that
+ * closes it, which is no more an action than Cancel is, so it is plain.
+ */
+describe("ConfirmModal button styles", () => {
+  type FooterButtonsFunction = () => {
+    submit: HTMLElement;
+    cancel: HTMLElement | null;
+  };
+
+  const footerButtons: FooterButtonsFunction = (): {
+    submit: HTMLElement;
+    cancel: HTMLElement | null;
+  } => {
+    return {
+      submit: screen.getByTestId("modal-footer-submit-button"),
+      cancel: screen.queryByTestId("modal-footer-close-button"),
+    };
+  };
+
+  it("draws a confirmation's action PRIMARY and its Cancel plain when no style is given", () => {
+    render(
+      <ConfirmModal
+        title="Run this step now?"
+        description="This runs the step for real."
+        submitButtonText="Run this step"
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    const { submit, cancel } = footerButtons();
+
+    expect(submit).toHaveClass("bg-indigo-600");
+    expect(cancel).toHaveClass("bg-white");
+    expect(cancel).not.toHaveClass("bg-indigo-600");
+  });
+
+  it("draws a notice's only button plain when no style is given", () => {
+    render(
+      <ConfirmModal
+        title="Code sent"
+        description="Check your inbox."
+        submitButtonText="Close"
+        onSubmit={jest.fn()}
+      />,
+    );
+
+    const { submit, cancel } = footerButtons();
+
+    expect(cancel).toBeNull();
+    expect(submit).toHaveClass("bg-white");
+    expect(submit).not.toHaveClass("bg-indigo-600");
+  });
+
+  /*
+   * ButtonStyleType.PRIMARY is the enum's first member, 0. ConfirmModal used
+   * to test submitButtonType for truthiness, which read an explicit PRIMARY as
+   * "not given" - harmless while the default was PRIMARY too, wrong now that a
+   * notice defaults to NORMAL.
+   */
+  it("honours an explicit PRIMARY (enum value 0) on a dialog with no Cancel", () => {
+    render(
+      <ConfirmModal
+        title="Something went wrong"
+        description="Reload to try again."
+        submitButtonText="Reload Page"
+        submitButtonType={ButtonStyleType.PRIMARY}
+        onSubmit={jest.fn()}
+      />,
+    );
+
+    expect(footerButtons().submit).toHaveClass("bg-indigo-600");
+  });
+
+  it("honours an explicit DANGER and an explicit NORMAL", () => {
+    const { unmount } = render(
+      <ConfirmModal
+        title="Delete step"
+        description="This cannot be undone."
+        submitButtonText="Delete"
+        submitButtonType={ButtonStyleType.DANGER}
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(footerButtons().submit).toHaveClass("bg-red-600");
+    unmount();
+
+    render(
+      <ConfirmModal
+        title="Error"
+        description="It failed."
+        submitButtonText="Close"
+        submitButtonType={ButtonStyleType.NORMAL}
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(footerButtons().submit).toHaveClass("bg-white");
+  });
+
+  it("never draws more than one filled button in the footer", () => {
+    render(
+      <ConfirmModal
+        title="Archive this?"
+        description="It moves out of the list."
+        submitButtonText="Archive"
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    const filled: Array<HTMLElement> = Array.from(
+      screen
+        .getByTestId("modal-footer")
+        .querySelectorAll<HTMLElement>("button"),
+    ).filter((button: HTMLElement) => {
+      return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+    });
+
+    expect(filled).toHaveLength(1);
+    expect(filled[0]).toHaveTextContent("Archive");
+  });
+
+  it("works out the default from whether there is a way to cancel", () => {
+    expect(getDefaultConfirmSubmitButtonType(true)).toBe(
+      ButtonStyleType.PRIMARY,
+    );
+    expect(getDefaultConfirmSubmitButtonType(false)).toBe(
+      ButtonStyleType.NORMAL,
+    );
+  });
+});
+
+describe("ConfirmModal initial focus", () => {
+  it("opens with focus on the action, so the ring is never on Cancel", () => {
+    render(
+      <ConfirmModal
+        title="Run this step now?"
+        description="This runs the step for real."
+        submitButtonText="Run this step"
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveFocus();
+  });
+
+  it("opens a destructive confirmation with focus on Cancel", () => {
+    render(
+      <ConfirmModal
+        title="Delete step"
+        description="This cannot be undone."
+        submitButtonText="Delete"
+        submitButtonType={ButtonStyleType.DANGER}
+        onSubmit={jest.fn()}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveFocus();
+  });
+
+  it("presses the focused action with the keyboard", () => {
+    const onSubmit: jest.Mock = jest.fn();
+
+    render(
+      <ConfirmModal
+        title="Run this step now?"
+        description="This runs the step for real."
+        submitButtonText="Run this step"
+        onSubmit={onSubmit}
+        onClose={jest.fn()}
+      />,
+    );
+
+    const focused: Element | null = document.activeElement;
+
+    expect(focused).toBe(screen.getByTestId("modal-footer-submit-button"));
+    fireEvent.click(focused as HTMLElement);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });

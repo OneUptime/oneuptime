@@ -1,6 +1,9 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ButtonType from "../../../UI/Components/Button/ButtonTypes";
-import Modal, { ModalWidth } from "../../../UI/Components/Modal/Modal";
+import Modal, {
+  ModalWidth,
+  pickInitialFocusElement,
+} from "../../../UI/Components/Modal/Modal";
 import { describe, expect, it, test } from "@jest/globals";
 /*
  * The main entry, not "/extend-expect": the latter no longer ships type
@@ -732,5 +735,370 @@ describe("Modal", () => {
     expect(closeButton).not.toHaveClass("absolute");
     expect(closeButton.parentElement).toBe(getHeader(title));
     expect(title.parentElement).not.toHaveClass("pr-9");
+  });
+});
+
+/*
+ * Where focus lands when a dialog opens. A confirmation used to open with its
+ * focus ring on Cancel - the first button in the footer - so the one thing the
+ * user came to do sat beside a highlighted Cancel ("Run this step now?" in the
+ * workflow builder). A dialog with nothing to fill in now starts on the action
+ * it is for, except a destructive one, which starts on Cancel so a stray Enter
+ * never deletes anything.
+ */
+describe("Modal initial focus", () => {
+  it("starts a confirmation on its affirmative action, not on Cancel", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Run this step now?"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Run this step"
+      >
+        <p>This runs the step for real.</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-submit-button")).toHaveFocus();
+    expect(getByTestId("modal-footer-close-button")).not.toHaveFocus();
+  });
+
+  it("starts a destructive confirmation on Cancel", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Delete this step?"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Delete"
+        submitButtonStyleType={ButtonStyleType.DANGER}
+      >
+        <p>This cannot be undone.</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-close-button")).toHaveFocus();
+    expect(getByTestId("modal-footer-submit-button")).not.toHaveFocus();
+  });
+
+  it("starts a DANGER_OUTLINE confirmation on Cancel too", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Remove this?"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Remove"
+        submitButtonStyleType={ButtonStyleType.DANGER_OUTLINE}
+      >
+        <p>It goes away.</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-close-button")).toHaveFocus();
+  });
+
+  it("starts a form on its first field, whatever the footer says", () => {
+    const { getByLabelText } = render(
+      <Modal
+        title="Delete with a reason"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonStyleType={ButtonStyleType.DANGER}
+      >
+        <input aria-label="Reason" />
+      </Modal>,
+    );
+
+    expect(getByLabelText("Reason")).toHaveFocus();
+  });
+
+  it("starts a notice on its only button, never on the header's X", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Code sent"
+        onClose={getJestMockFunction()}
+        closeButtonText="Close"
+      >
+        <p>Check your inbox.</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-close-button")).toHaveFocus();
+    expect(getByTestId("close-button")).not.toHaveFocus();
+  });
+
+  it("falls back to Cancel while the action is disabled", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Run this step now?"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        disableSubmitButton={true}
+      >
+        <p>Waiting.</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-close-button")).toHaveFocus();
+  });
+
+  it("puts a nested confirmation's focus on its own action, not on its parent's", () => {
+    const NestedConfirmationFixture: React.FunctionComponent =
+      (): React.ReactElement => {
+        const [isConfirmOpen, setIsConfirmOpen] =
+          React.useState<boolean>(false);
+
+        return (
+          <Modal
+            title="Step settings"
+            onClose={getJestMockFunction()}
+            onSubmit={getJestMockFunction()}
+            submitButtonText="Save"
+            leftFooterElement={
+              <button
+                type="button"
+                onClick={() => {
+                  setIsConfirmOpen(true);
+                }}
+              >
+                Run just this step
+              </button>
+            }
+          >
+            <>
+              <input aria-label="Message" />
+              {isConfirmOpen ? (
+                <Modal
+                  title="Run this step now?"
+                  onClose={() => {
+                    setIsConfirmOpen(false);
+                  }}
+                  onSubmit={getJestMockFunction()}
+                  submitButtonText="Run this step"
+                >
+                  <p>This runs the step for real.</p>
+                </Modal>
+              ) : (
+                <></>
+              )}
+            </>
+          </Modal>
+        );
+      };
+
+    const { getByLabelText, getByRole, getAllByTestId } = render(
+      <NestedConfirmationFixture />,
+    );
+
+    // The parent is a form: it starts on its field.
+    expect(getByLabelText("Message")).toHaveFocus();
+
+    fireEvent.click(getByRole("button", { name: "Run just this step" }));
+
+    expect(getByRole("button", { name: "Run this step" })).toHaveFocus();
+    // Both dialogs' footers are on the page; the child picked its own.
+    expect(getAllByTestId("modal-footer-submit-button")).toHaveLength(2);
+  });
+});
+
+describe("Modal footer styles", () => {
+  it("draws the submit as the one PRIMARY button and Cancel plain by default", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Save"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-submit-button")).toHaveClass(
+      "bg-indigo-600",
+    );
+    expect(getByTestId("modal-footer-close-button")).toHaveClass("bg-white");
+    expect(getByTestId("modal-footer-close-button")).not.toHaveClass(
+      "bg-indigo-600",
+    );
+  });
+
+  /*
+   * ButtonStyleType.PRIMARY is the enum's first member, 0. The footer used to
+   * test its style props for truthiness, so an explicit PRIMARY was read as
+   * "not given" and quietly replaced by the default.
+   */
+  it("honours an explicit PRIMARY (enum value 0) on the close button", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Pick one"
+        onClose={getJestMockFunction()}
+        closeButtonText="Done"
+        closeButtonStyleType={ButtonStyleType.PRIMARY}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-close-button")).toHaveClass(
+      "bg-indigo-600",
+    );
+  });
+
+  it("honours an explicit NORMAL submit", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Viewer"
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Close"
+        submitButtonStyleType={ButtonStyleType.NORMAL}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-submit-button")).toHaveClass("bg-white");
+    expect(getByTestId("modal-footer-submit-button")).not.toHaveClass(
+      "bg-indigo-600",
+    );
+  });
+});
+
+describe("pickInitialFocusElement", () => {
+  type MakeButtonFunction = (testId?: string) => HTMLElement;
+
+  const makeButton: MakeButtonFunction = (testId?: string): HTMLElement => {
+    const button: HTMLButtonElement = document.createElement("button");
+
+    if (testId) {
+      button.setAttribute("data-testid", testId);
+    }
+
+    return button;
+  };
+
+  interface DialogParts {
+    headerClose: HTMLElement;
+    bodyLink: HTMLElement;
+    footer: HTMLElement;
+    leftFooterButton: HTMLElement;
+    cancel: HTMLElement;
+    submit: HTMLElement;
+  }
+
+  type MakeDialogFunction = () => DialogParts;
+
+  const makeDialog: MakeDialogFunction = (): DialogParts => {
+    const footer: HTMLElement = document.createElement("div");
+    const leftFooterButton: HTMLElement = makeButton();
+    const cancel: HTMLElement = makeButton("modal-footer-close-button");
+    const submit: HTMLElement = makeButton("modal-footer-submit-button");
+
+    footer.append(leftFooterButton, cancel, submit);
+
+    return {
+      headerClose: makeButton("close-button"),
+      bodyLink: document.createElement("a"),
+      footer,
+      leftFooterButton,
+      cancel,
+      submit,
+    };
+  };
+
+  it("prefers anything outside the footer, the header's X aside", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [
+          parts.headerClose,
+          parts.bodyLink,
+          parts.cancel,
+          parts.submit,
+        ],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+      }),
+    ).toBe(parts.bodyLink);
+  });
+
+  it("picks the submit over Cancel and over left-footer extras", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [
+          parts.headerClose,
+          parts.leftFooterButton,
+          parts.cancel,
+          parts.submit,
+        ],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+      }),
+    ).toBe(parts.submit);
+  });
+
+  it("picks Cancel when the submit destroys something", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerClose, parts.cancel, parts.submit],
+        footer: parts.footer,
+        isSubmitDestructive: true,
+      }),
+    ).toBe(parts.cancel);
+  });
+
+  it("falls back to whichever footer button is there", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerClose, parts.submit],
+        footer: parts.footer,
+        isSubmitDestructive: true,
+      }),
+    ).toBe(parts.submit);
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerClose, parts.leftFooterButton],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+      }),
+    ).toBe(parts.leftFooterButton);
+  });
+
+  it("never picks the header's X, and picks nothing when that is all there is", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerClose],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+      }),
+    ).toBeUndefined();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerClose],
+        footer: null,
+        isSubmitDestructive: false,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("takes the first element when there is no footer at all", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerClose, parts.bodyLink],
+        footer: null,
+        isSubmitDestructive: false,
+      }),
+    ).toBe(parts.bodyLink);
   });
 });
