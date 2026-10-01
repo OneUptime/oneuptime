@@ -140,6 +140,8 @@ Add this to your MCP configuration (see [VS Code with GitHub Copilot](#vs-code-w
 
 Any other client that supports MCP authorization works the same way: give it the URL and it discovers everything else. See [Signing In (OAuth 2.1)](#signing-in-oauth-21) for the protocol details.
 
+You will also find these steps in the dashboard, with your instance's URL already filled in: open any resource (a monitor, an incident, a status page, and so on), expand **Developer** in its side menu and choose **AI Assistants**. The page also suggests prompts that name the resource and its ID, so the assistant finds it straight away. For a resource the MCP server has no tools for yet, such as a workflow, the page shows how an assistant that can run commands can work with it through the REST API instead.
+
 The rest of this section shows the same clients configured with an API key instead.
 
 ### Claude Desktop Configuration
