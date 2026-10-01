@@ -543,7 +543,6 @@ All on by default. Turn any off with `--set ebpf.features.<name>=false`:
 | `httpMetrics`             | on      | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
 | `spanMetrics`             | on      | Per-span request/response size and duration                       |
 | `serviceGraph`            | on      | Caller → callee edge metrics; drives the service map              |
-| `hostMetrics`             | on      | CPU and memory per instrumented process                           |
 | `networkMetrics`          | on      | Pod-to-pod TCP/UDP flow counters                                  |
 | `networkInterZoneMetrics` | off     | Inter-zone variant of network metrics (doubles cardinality)       |
 | `tcpStats`                | on      | Node-level TCP RTT, failed-connection, retransmit counters        |

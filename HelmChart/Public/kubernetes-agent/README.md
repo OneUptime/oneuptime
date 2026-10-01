@@ -529,7 +529,7 @@ Useful knobs:
 | Key | Default | Description |
 | --- | --- | --- |
 | `ebpf.enabled` | `true` | Master switch. |
-| `ebpf.image.tag` | `v0.13.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes (v0.13 refuses to start on an unknown metrics feature name). Node.js 25+ request linking needs OBI v0.14 — see [Every trace is a single span](#every-trace-is-a-single-span). |
+| `ebpf.image.tag` | `v0.14.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes (since v0.13 it refuses to start on an unknown metrics feature name). Older than v0.14 cannot link Node.js 26+ requests to their calls — see [Every trace is a single span](#every-trace-is-a-single-span). |
 | `ebpf.autoTargetExe` | `*` | Comma-separated globs of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself, browsers, ClickHouse — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
 | `ebpf.dropUnlinkedDatabaseSpans` | `true` | Drop eBPF database spans that belong to no trace — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
@@ -548,7 +548,6 @@ Useful knobs:
 | `ebpf.features.httpMetrics` | `true` | HTTP/gRPC RED metrics (request rate, latency, errors) per service. |
 | `ebpf.features.spanMetrics` | `true` | Per-span request/response size and duration histograms. |
 | `ebpf.features.serviceGraph` | `true` | Caller → callee request edges; drives the service map view. |
-| `ebpf.features.hostMetrics` | `true` | CPU and memory per instrumented process. |
 | `ebpf.features.networkMetrics` | `true` | Pod-to-pod TCP/UDP byte and packet counters. |
 | `ebpf.features.networkInterZoneMetrics` | `false` | Inter-zone variant of `networkMetrics` (doubles cardinality). |
 | `ebpf.features.tcpStats` | `true` | Node-level TCP RTT, failed-connection, and retransmit counters. |
@@ -848,7 +847,7 @@ Check what kind of span it is before anything else:
       | grep -E 'instrumenting process.*cmd=[^ ]*node|NodeJS'
     ```
 
-    `type=rust` on a `node` executable means the OBI version cannot identify that Node.js build: Node.js 25 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. Upgrade the agent so it runs an OBI that identifies Node correctly. `skipping agent injection` means the process handles `SIGUSR1` itself, which OBI will not interfere with, and `ebpf.nodejs.enabled: false` turns the agent off entirely.
+    `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. This chart runs v0.14; check that `ebpf.image.tag` is not pinned to something older (`helm get values <release> -n oneuptime-kubernetes-agent -a | grep -A3 'image:'`). `skipping agent injection` means the process handles `SIGUSR1` itself, which OBI will not interfere with, and `ebpf.nodejs.enabled: false` turns the agent off entirely.
 - **A request whose caller is in another service** — expected: cross-service links need trace context on the wire. See *Cross-service trace linking* above.
 
 ### `kubectl exec` into an agent pod fails — no shell, curl, or bash

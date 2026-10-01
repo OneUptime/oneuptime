@@ -126,7 +126,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,application_host,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   - it: drops the TCP stats families together
     set:
@@ -136,13 +136,27 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,application_host,network
+            value: application,application_span,application_service_graph,network
+
+  # OBI v0.14 removed `application_host`, and since v0.13 an unknown feature
+  # stops OBI starting: every eBPF pod would crash-loop. Values files written
+  # for older charts say hostMetrics: true, so it must be a no-op, not an error.
+  - it: never passes the removed application_host feature, even when an old values file asks for it
+    set:
+      ebpf.features.hostMetrics: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   # The tag decides which of OBI's behaviours the tests above are about:
-  # v0.13.0 is the first release that both validates feature tokens and stops
-  # misreading Redis replies to blocking commands as new requests.
+  # v0.14.0 is the first release that identifies Node.js 26+ as Node.js (and
+  # so links its requests to their calls); it also validates feature names
+  # and no longer misreads Redis replies to blocking commands as requests.
   - it: runs the pinned OBI release
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: otel/ebpf-instrument:v0.13.0
+          value: otel/ebpf-instrument:v0.14.0

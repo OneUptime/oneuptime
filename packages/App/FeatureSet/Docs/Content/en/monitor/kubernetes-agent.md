@@ -168,7 +168,6 @@ OBI extracts several signal families from the captured traffic. All are on by de
 | `ebpf.features.httpMetrics`             | on      | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service.                                                                        |
 | `ebpf.features.spanMetrics`             | on      | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation.                                                         |
 | `ebpf.features.serviceGraph`            | on      | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map.                                                            |
-| `ebpf.features.hostMetrics`             | on      | CPU and memory per instrumented process — saves running a separate profiler for basic capacity questions.                                                    |
 | `ebpf.features.networkMetrics`          | on      | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
 | `ebpf.features.networkInterZoneMetrics` | off     | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling.                                   |
 | `ebpf.features.tcpStats`                | on      | Node-level TCP statistics: RTT histograms, failed-connection counts, retransmits.                                                                            |

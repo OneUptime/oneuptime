@@ -815,7 +815,7 @@
             },
             "hostMetrics": {
               "type": "boolean",
-              "description": "Per-host / per-process CPU and memory (OBI `application_host`)."
+              "description": "Deprecated, no effect. Mapped to OBI's `application_host` (a host-info gauge), which OBI v0.14 removed; OBI refuses to start on an unknown feature, so the chart no longer passes it. Kept so values files that set it still install."
             },
             "networkMetrics": {
               "type": "boolean",

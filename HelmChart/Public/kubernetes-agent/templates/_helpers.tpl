@@ -115,7 +115,8 @@ not know, so every token here must exist in the pinned version.
 {{- if .Values.ebpf.features.httpMetrics -}}{{- $features = append $features "application" -}}{{- end -}}
 {{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span" -}}{{- end -}}
 {{- if .Values.ebpf.features.serviceGraph -}}{{- $features = append $features "application_service_graph" -}}{{- end -}}
-{{- if .Values.ebpf.features.hostMetrics -}}{{- $features = append $features "application_host" -}}{{- end -}}
+{{- /* ebpf.features.hostMetrics is ignored on purpose: its `application_host`
+     feature is gone in OBI v0.14, and an unknown token stops OBI starting. */ -}}
 {{- if .Values.ebpf.features.networkMetrics -}}{{- $features = append $features "network" -}}{{- end -}}
 {{- if .Values.ebpf.features.networkInterZoneMetrics -}}{{- $features = append $features "network_inter_zone" -}}{{- end -}}
 {{- /* Not `stats`: since OBI v0.13 that also turns on stats_tcp_io, a probe on
