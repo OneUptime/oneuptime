@@ -215,7 +215,7 @@ const describeValue: DescribeFunction = (value: unknown): string => {
 
 describe("every workflow that already runs takes the branch it took before", () => {
   test.each(
-    LEGACY_OPERATORS.map((operator: unknown) => {
+    LEGACY_OPERATORS.map((operator: unknown): [string, unknown] => {
       return [describeValue(operator), operator];
     }),
   )(

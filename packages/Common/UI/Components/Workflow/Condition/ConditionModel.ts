@@ -228,6 +228,14 @@ export const patchForComparison: PatchForComparisonFunction = (data: {
     }
   }
 
+  /*
+   * True or false is part of is true and is false, not a choice the person
+   * made: leaving them, the values are compared as text again.
+   */
+  const leavesTrueOrFalse: boolean =
+    previous?.kind === ConditionComparisonKind.TrueOrFalse &&
+    next.kind !== ConditionComparisonKind.TrueOrFalse;
+
   if (next.kind === ConditionComparisonKind.TrueOrFalse) {
     return {
       ...change,
@@ -241,6 +249,11 @@ export const patchForComparison: PatchForComparisonFunction = (data: {
 
   if (next.kind === ConditionComparisonKind.Presence) {
     patch[IDS.compareWith] = "";
+
+    if (leavesTrueOrFalse) {
+      Object.assign(patch, typesPatch(ConditionValueType.Text));
+    }
+
     return change;
   }
 
@@ -251,9 +264,6 @@ export const patchForComparison: PatchForComparisonFunction = (data: {
         ? (data.hiddenCompareWith as JSONValue)
         : "";
   }
-
-  const leavesTrueOrFalse: boolean =
-    previous?.kind === ConditionComparisonKind.TrueOrFalse;
 
   if (next.kind === ConditionComparisonKind.Order) {
     if (
@@ -278,7 +288,7 @@ export const patchForComparison: PatchForComparisonFunction = (data: {
     return change;
   }
 
-  // Equality: true or false was part of is true / is false, not a choice.
+  // Equality keeps how the values are compared.
   if (leavesTrueOrFalse) {
     Object.assign(patch, typesPatch(ConditionValueType.Text));
   }

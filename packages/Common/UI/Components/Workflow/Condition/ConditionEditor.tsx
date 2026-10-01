@@ -150,6 +150,15 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
 
   const [touched, setTouched] = useState<Touched>({});
 
+  type MarkTouchedFunction = (field: keyof Touched) => void;
+
+  // An error shows under a field once it has been left, as in every form.
+  const markTouched: MarkTouchedFunction = (field: keyof Touched): void => {
+    setTouched((current: Touched) => {
+      return current[field] ? current : { ...current, [field]: true };
+    });
+  };
+
   // A Compare with that the chosen comparison hides, to put back.
   const hiddenCompareWithRef: React.MutableRefObject<unknown> =
     useRef<unknown>(undefined);
@@ -180,7 +189,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
   const chooseComparison: ChooseComparisonFunction = (
     value: DropdownValue | null,
   ): void => {
-    setTouched({ ...touched, comparison: true });
+    markTouched("comparison");
 
     if (typeof value !== "string") {
       return;
@@ -261,7 +270,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
         dataTestId={CONDITION_TEST_IDS.comparison}
         error={touched.comparison ? errors.comparison : undefined}
         onBlur={() => {
-          setTouched({ ...touched, comparison: true });
+          markTouched("comparison");
         }}
       />
       <button
@@ -291,7 +300,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
       dataTestId={CONDITION_TEST_IDS.comparison}
       error={touched.comparison ? errors.comparison : undefined}
       onBlur={() => {
-        setTouched({ ...touched, comparison: true });
+        markTouched("comparison");
       }}
     />
   );
@@ -324,7 +333,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
             dataTestId={CONDITION_TEST_IDS.valueToCheck}
             error={touched.valueToCheck ? errors.valueToCheck : undefined}
             onBlur={() => {
-              setTouched({ ...touched, valueToCheck: true });
+              markTouched("valueToCheck");
             }}
           />
         </div>
@@ -351,7 +360,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
                 dataTestId={CONDITION_TEST_IDS.compareWith}
                 error={touched.compareWith ? errors.compareWith : undefined}
                 onBlur={() => {
-                  setTouched({ ...touched, compareWith: true });
+                  markTouched("compareWith");
                 }}
               />
             </div>
