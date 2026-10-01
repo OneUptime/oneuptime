@@ -1,15 +1,13 @@
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import {
   DEVELOPER_DOCS_PAGES,
   DEVELOPER_DOCS_SECTION_TITLE,
   DeveloperDocsPageDefinition,
-  DeveloperDocsResource,
+  DeveloperDocsParentPage,
   DeveloperDocsScope,
   getDeveloperDocsPageKey,
-  getDeveloperDocsParentPageKey,
-  getDeveloperDocsResource,
-} from "./DeveloperDocsResources";
+  getDeveloperDocsParentPage,
+} from "./DeveloperDocsPages";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -35,26 +33,23 @@ import React, { ReactElement } from "react";
  */
 
 export interface DeveloperSideMenuSectionOptions {
+  // The resource's model, which the menu already imports.
   modelType: DatabaseBaseModelType;
   scope: DeveloperDocsScope;
-  // The resource on a view menu.
+  // The resource, on a view menu.
   modelId?: ObjectID | undefined;
 }
 
 export function getDeveloperSideMenuItems(
   options: DeveloperSideMenuSectionOptions,
 ): Array<SideMenuItemProps> {
-  const resource: DeveloperDocsResource = getDeveloperDocsResource(
-    options.modelType,
-  );
-  const parentPageKey: PageMap | undefined = getDeveloperDocsParentPageKey(
-    resource,
-    options.scope,
-  );
+  const tableName: string = new options.modelType().tableName || "";
+  const parent: DeveloperDocsParentPage | undefined =
+    getDeveloperDocsParentPage(tableName, options.scope);
 
-  if (!parentPageKey) {
+  if (!parent) {
     throw new Error(
-      `${options.modelType.name} has no ${options.scope} page with Developer pages: set it in DEVELOPER_DOCS_RESOURCES.`,
+      `${tableName} has no ${options.scope} page with Developer pages: add it to DEVELOPER_DOCS_PARENT_PAGES.`,
     );
   }
 
@@ -64,7 +59,7 @@ export function getDeveloperSideMenuItems(
         link: {
           title: page.title,
           to: RouteUtil.populateRouteParams(
-            RouteMap[getDeveloperDocsPageKey(parentPageKey, page.type)] as Route,
+            RouteMap[getDeveloperDocsPageKey(parent.pageKey, page.type)] as Route,
             options.modelId ? { modelId: options.modelId } : undefined,
           ),
         },
@@ -82,6 +77,45 @@ export function getDeveloperSideMenuSectionProps(
     title: DEVELOPER_DOCS_SECTION_TITLE,
     items: getDeveloperSideMenuItems(options),
   };
+}
+
+/*
+ * The sections a resource's view menu closes with: settings, owners and the
+ * Delete page. The Developer section goes just before one, so Delete stays
+ * the last entry of the menu.
+ */
+export const CLOSING_SECTION_TITLES: ReadonlyArray<string> = [
+  "Advanced",
+  "Manage",
+  "Management",
+  "Settings",
+  "Danger Zone",
+];
+
+/*
+ * Adds the Developer section to a menu built from a `sections` array, in
+ * place: on a view menu just before the closing section (see
+ * CLOSING_SECTION_TITLES), on a list menu at the end.
+ */
+export function addDeveloperSideMenuSection(
+  sections: Array<SideMenuSectionProps>,
+  options: DeveloperSideMenuSectionOptions,
+): Array<SideMenuSectionProps> {
+  const section: SideMenuSectionProps =
+    getDeveloperSideMenuSectionProps(options);
+  const last: SideMenuSectionProps | undefined = sections[sections.length - 1];
+
+  if (
+    options.scope === DeveloperDocsScope.View &&
+    last &&
+    CLOSING_SECTION_TITLES.includes(last.title)
+  ) {
+    sections.splice(sections.length - 1, 0, section);
+  } else {
+    sections.push(section);
+  }
+
+  return sections;
 }
 
 // For a menu written in JSX: `{getDeveloperSideMenuSection({...})}`.

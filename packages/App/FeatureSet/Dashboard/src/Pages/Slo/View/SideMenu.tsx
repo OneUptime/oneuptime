@@ -26,6 +26,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -203,6 +206,12 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Fire}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ServiceLevelObjective,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Management">
         <SideMenuItem

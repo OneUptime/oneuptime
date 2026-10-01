@@ -8,8 +8,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsGuides";
 import {
   DeveloperDocsPageType,
-  DeveloperDocsResource,
   DeveloperDocsScope,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  DeveloperDocsResource,
   getDeveloperDocsResource,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsResources";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";

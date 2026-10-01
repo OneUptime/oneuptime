@@ -18,6 +18,9 @@ import RouteMap, { RouteUtil, TeamsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
+import TeamModel from "Common/Models/DatabaseModels/Team";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const TeamsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -105,6 +108,12 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: TeamModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       {/* Teams list - wrapped in Teams layout */}
@@ -127,6 +136,13 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: TeamModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.TEAMS_ROOT,
+        })}
       </PageRoute>
     </Routes>
   );

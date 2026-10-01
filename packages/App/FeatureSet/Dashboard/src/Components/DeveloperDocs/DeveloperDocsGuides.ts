@@ -1,7 +1,6 @@
+import { DeveloperDocsPageType, DeveloperDocsScope } from "./DeveloperDocsPages";
 import {
-  DeveloperDocsPageType,
   DeveloperDocsResource,
-  DeveloperDocsScope,
   getDeveloperDocsPluralName,
   getDeveloperDocsSingularName,
 } from "./DeveloperDocsResources";

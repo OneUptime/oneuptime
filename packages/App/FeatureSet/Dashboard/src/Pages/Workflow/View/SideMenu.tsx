@@ -8,8 +8,8 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { FunctionComponent, ReactElement } from "react";
-import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsSideMenu";
-import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsResources";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;

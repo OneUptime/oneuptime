@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   devices?: number | undefined;
@@ -257,6 +260,12 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: IoTFleet,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

@@ -7,8 +7,8 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { ReactElement } from "react";
-import { getDeveloperSideMenuSectionProps } from "../../Components/DeveloperDocs/DeveloperDocsSideMenu";
-import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsResources";
+import { getDeveloperSideMenuSectionProps } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [

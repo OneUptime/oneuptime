@@ -27,6 +27,9 @@ import InventoryItemCustomFields from "../Pages/Inventory/View/CustomFields";
 import InventoryItemAuditLogs from "../Pages/Inventory/View/AuditLogs";
 import InventoryArchived from "../Pages/Inventory/Archived";
 import InventoryCustomFields from "../Pages/Inventory/Settings/CustomFields";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const InventoryRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -96,6 +99,13 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: InventoryItem,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.INVENTORY_ROOT,
+        })}
       </PageRoute>
 
       {/*
@@ -266,6 +276,12 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: InventoryItem,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

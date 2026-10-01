@@ -27,9 +27,9 @@ import {
   DEVELOPER_DOCS_PAGES,
   DeveloperDocsPageDefinition,
   DeveloperDocsPageType,
-  DeveloperDocsResource,
   DeveloperDocsScope,
-} from "./DeveloperDocsResources";
+} from "./DeveloperDocsPages";
+import { DeveloperDocsResource } from "./DeveloperDocsResources";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";

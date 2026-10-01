@@ -7,6 +7,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import { addDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -103,6 +106,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: MonitorGroup,
+    scope: DeveloperDocsScope.View,
+    modelId: props.modelId,
+  });
 
   return <SideMenu sections={sections} />;
 };

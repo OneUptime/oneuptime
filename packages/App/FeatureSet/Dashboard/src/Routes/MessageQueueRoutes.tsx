@@ -21,6 +21,9 @@ import MessageQueueDocumentation from "../Pages/MessageQueue/View/Documentation"
 import MessageQueueDelete from "../Pages/MessageQueue/View/Delete";
 import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
+import MessageQueueModel from "Common/Models/DatabaseModels/MessageQueue";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -125,6 +128,13 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: MessageQueueModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.MESSAGE_QUEUE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -206,6 +216,12 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: MessageQueueModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

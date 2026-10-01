@@ -27,7 +27,7 @@ import WorkflowLabelRule from "Common/Models/DatabaseModels/WorkflowLabelRule";
 import WorkflowOwnerRule from "Common/Models/DatabaseModels/WorkflowOwnerRule";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
-import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsResources";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const WorkflowRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -131,6 +131,7 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           modelType: Workflow,
           scope: DeveloperDocsScope.List,
           props,
+          mountPageKey: PageMap.WORKFLOWS_ROOT,
         })}
       </PageRoute>
 

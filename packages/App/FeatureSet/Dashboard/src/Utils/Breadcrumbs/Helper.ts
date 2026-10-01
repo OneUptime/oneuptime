@@ -9,7 +9,7 @@ import {
   normalizeRoutePath,
   resolveBreadcrumbTarget,
 } from "Common/UI/Utils/Breadcrumb/BreadcrumbTrailResolver";
-import { getDeveloperDocsChildPages } from "../../Components/DeveloperDocs/DeveloperDocsResources";
+import { getDeveloperDocsChildPages } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export function BuildBreadcrumbLinks(
   key: string,
@@ -125,7 +125,7 @@ export function BuildBreadcrumbLinksByTitles(
   /*
    * A page with Developer pages under it (Workflows, View Workflow) gives
    * them its own trail plus their title: Project > Workflows > View Workflow
-   * > Terraform. They are generated (see DeveloperDocsResources.ts), so their
+   * > Terraform. They are generated (see DeveloperDocsPages.ts), so their
    * breadcrumbs are too, from the parent's.
    */
   for (const child of getDeveloperDocsChildPages(key)) {

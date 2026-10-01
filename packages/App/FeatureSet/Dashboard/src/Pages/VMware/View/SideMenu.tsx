@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   hosts?: number | undefined;
@@ -335,6 +338,12 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: VMwareVCenter,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

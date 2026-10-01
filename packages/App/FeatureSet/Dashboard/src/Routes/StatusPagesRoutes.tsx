@@ -79,6 +79,10 @@ import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusP
 import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
 import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -266,6 +270,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPage,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.STATUS_PAGES_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -313,6 +324,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPageAnnouncement,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -748,6 +765,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPage,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

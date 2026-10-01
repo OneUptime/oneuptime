@@ -141,6 +141,10 @@ import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
+import IncidentModel from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -688,6 +692,13 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IncidentModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.INCIDENTS_ROOT,
+        })}
       </PageRoute>
 
       {/* Incident Episode View Layout */}
@@ -886,6 +897,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IncidentEpisode,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -1108,6 +1125,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: IncidentModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

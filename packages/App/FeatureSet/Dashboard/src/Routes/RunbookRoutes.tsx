@@ -25,6 +25,9 @@ import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
 import RunbookSettingsLabelRules from "../Pages/Runbook/Settings/LabelRules";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
+import RunbookModel from "Common/Models/DatabaseModels/Runbook";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const RunbookRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -136,6 +139,13 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RunbookModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.RUNBOOKS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -214,6 +224,12 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RunbookModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

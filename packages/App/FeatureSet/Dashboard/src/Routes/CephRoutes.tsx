@@ -37,6 +37,9 @@ import CephClusterDelete from "../Pages/Ceph/View/Delete";
 import CephClusterDocumentation from "../Pages/Ceph/View/Documentation";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CephRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -113,6 +116,13 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CephCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.CEPH_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -398,6 +408,12 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CephCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

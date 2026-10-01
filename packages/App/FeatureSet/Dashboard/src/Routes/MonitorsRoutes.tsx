@@ -67,6 +67,9 @@ import MonitorSettingsProbes from "../Pages/Monitor/Settings/MonitorProbes";
 import MonitorSettingsProbeView from "../Pages/Monitor/Settings/MonitorProbeView";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
+import MonitorModel from "Common/Models/DatabaseModels/Monitor";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -287,6 +290,13 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
         }
       />
 
+      {getDeveloperDocsRoutes({
+        modelType: MonitorModel,
+        scope: DeveloperDocsScope.List,
+        props,
+        mountPageKey: PageMap.MONITORS_ROOT,
+      })}
+
       <PageRoute
         path={MonitorsRoutePath[PageMap.MONITOR_VIEW] || ""}
         element={<MonitorViewLayout />}
@@ -475,6 +485,12 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: MonitorModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

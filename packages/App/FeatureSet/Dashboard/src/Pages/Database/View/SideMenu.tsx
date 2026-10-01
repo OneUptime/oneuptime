@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DatabaseServerModel from "Common/Models/DatabaseModels/DatabaseServer";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -287,6 +290,12 @@ const DatabaseServerSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Settings}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: DatabaseServerModel,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem
