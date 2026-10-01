@@ -231,6 +231,21 @@ const searchFields: SearchFieldsFunction = (
 /** Extra points when the name itself starts with the word: "jira" finds "Jira…" first. */
 const NAME_PREFIX_BONUS: number = 30;
 
+/*
+ * Extra points when the name holds the whole search as it was typed, words
+ * in order. Word by word, "Create a Jira issue when an alert is created" and
+ * "Create an alert when a Jira issue is created" are the same search; only
+ * the phrase tells them apart, so typing a template's name puts it first.
+ */
+const NAME_PHRASE_BONUS: number = 500;
+
+type SearchPhraseFunction = (search: string) => string;
+
+// The search as one phrase: lower case, trimmed, any run of spaces one space.
+const searchPhraseOf: SearchPhraseFunction = (search: string): string => {
+  return search.trim().toLowerCase().replace(/\s+/g, " ");
+};
+
 type TokenScoreFunction = (template: WorkflowTemplate, token: string) => number;
 
 const tokenScore: TokenScoreFunction = (
@@ -292,14 +307,33 @@ export const workflowTemplateMatchesSearch: WorkflowTemplateMatchesSearchFunctio
 export type GetWorkflowTemplateSearchScoreFunction = (
   template: WorkflowTemplate,
   tokens: Array<string>,
+  phrase?: string | undefined,
 ) => number;
 
-/** How well a template matches, summed over the words typed. Higher is better. */
+/**
+ * How well a template matches, summed over the words typed, plus a large
+ * bonus when its name holds the phrase typed (by default, the words in the
+ * order given). Higher is better.
+ */
 export const getWorkflowTemplateSearchScore: GetWorkflowTemplateSearchScoreFunction =
-  (template: WorkflowTemplate, tokens: Array<string>): number => {
-    return tokens.reduce((total: number, token: string): number => {
-      return total + tokenScore(template, token);
-    }, 0);
+  (
+    template: WorkflowTemplate,
+    tokens: Array<string>,
+    phrase?: string | undefined,
+  ): number => {
+    const wordScore: number = tokens.reduce(
+      (total: number, token: string): number => {
+        return total + tokenScore(template, token);
+      },
+      0,
+    );
+    const wholePhrase: string = phrase ?? tokens.join(" ");
+    const hasPhrase: boolean =
+      tokens.length > 1 &&
+      wholePhrase.length > 0 &&
+      template.name.toLowerCase().includes(wholePhrase);
+
+    return wordScore + (hasPhrase ? NAME_PHRASE_BONUS : 0);
   };
 
 export type SearchWorkflowTemplatesFunction = (
@@ -323,12 +357,14 @@ export const searchWorkflowTemplates: SearchWorkflowTemplatesFunction = (
     return [...templates];
   }
 
+  const phrase: string = searchPhraseOf(search);
+
   return templates
     .map((template: WorkflowTemplate, index: number) => {
       return {
         template: template,
         index: index,
-        score: getWorkflowTemplateSearchScore(template, tokens),
+        score: getWorkflowTemplateSearchScore(template, tokens, phrase),
       };
     })
     .filter((entry: { template: WorkflowTemplate }) => {
@@ -713,8 +749,17 @@ export const getMovedWorkflowTemplateId: GetMovedWorkflowTemplateIdFunction = (
     return templates[templates.length - 1]!.id;
   }
 
+  /*
+   * By id: every list is built from fresh template objects, so the highlighted
+   * one is never the same object as its row in another list.
+   */
   const active: WorkflowTemplate | null = getActiveWorkflowTemplate(state);
-  const index: number = active ? templates.indexOf(active) : 0;
+  const index: number = Math.max(
+    0,
+    templates.findIndex((candidate: WorkflowTemplate) => {
+      return candidate.id === active?.id;
+    }),
+  );
   const nextIndex: number =
     move === WorkflowTemplateMove.Next
       ? Math.min(index + 1, templates.length - 1)
