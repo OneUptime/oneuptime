@@ -13,6 +13,7 @@ import {
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
 } from "Common/Types/Workflow/WorkflowArchive";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { WORKFLOW_TURNED_OFF_MESSAGE } from "Common/Types/Workflow/WorkflowEnabled";
 import QueueWorkflow from "../../../FeatureSet/Workflow/Services/QueueWorkflow";
 import RunWorkflow from "../../../FeatureSet/Workflow/Services/RunWorkflow";
 import {
@@ -157,7 +158,7 @@ describe("QueueWorkflow refuses to start a run of an archived workflow", () => {
     expect(addJob.mock.calls).toHaveLength(0);
   });
 
-  test("a live workflow that is off still gets the old answer", async () => {
+  test("a live workflow that is off is still refused as turned off", async () => {
     prepare(workflowRow({ isEnabled: false, isArchived: false }));
 
     await expect(
@@ -165,7 +166,7 @@ describe("QueueWorkflow refuses to start a run of an archived workflow", () => {
         workflowId: WORKFLOW_ID,
         returnValues: {},
       }),
-    ).rejects.toThrow("This workflow is not enabled");
+    ).rejects.toThrow(new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE));
   });
 
   test("an unarchived, enabled workflow is queued again", async () => {

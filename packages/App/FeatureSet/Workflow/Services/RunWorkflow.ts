@@ -39,7 +39,9 @@ import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import {
   WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE,
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
+  getChildWorkflowArchivedMessage,
 } from "Common/Types/Workflow/WorkflowArchive";
+import { getChildWorkflowTurnedOffMessage } from "Common/Types/Workflow/WorkflowEnabled";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -1776,6 +1778,9 @@ export default class RunWorkflow {
               id: child.workflowId,
               select: {
                 projectId: true,
+                isEnabled: true,
+                isArchived: true,
+                name: true,
               },
               props: {
                 isRoot: true,
@@ -1794,6 +1799,34 @@ export default class RunWorkflow {
           ) {
             throw new BadDataException(
               "Target workflow does not belong to this project.",
+            );
+          }
+
+          /*
+           * QueueWorkflow refuses a workflow that is archived or turned off
+           * too, but in words written for the workflow being run: "This
+           * workflow is archived" / "turned off". In this run's log that
+           * reads as the workflow doing the calling, which is plainly
+           * running. Name the one it called instead. Checked after the
+           * project, so a workflow in another project is never named.
+           * Archived first, as QueueWorkflow does: turning an archived
+           * workflow on would not make it run.
+           */
+          if (targetWorkflow.isArchived) {
+            throw new BadDataException(
+              getChildWorkflowArchivedMessage({
+                workflowId: child.workflowId.toString(),
+                workflowName: targetWorkflow.name,
+              }),
+            );
+          }
+
+          if (!targetWorkflow.isEnabled) {
+            throw new BadDataException(
+              getChildWorkflowTurnedOffMessage({
+                workflowId: child.workflowId.toString(),
+                workflowName: targetWorkflow.name,
+              }),
             );
           }
 

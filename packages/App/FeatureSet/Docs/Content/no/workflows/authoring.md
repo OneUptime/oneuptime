@@ -74,7 +74,7 @@ Den raskeste måten å bli kjent med lerretet på:
 1. Klikk på den stiplede plassholderblokken, og klikk deretter **Manual** i **Add Trigger**-panelet.
 2. Klikk **Legg til komponent**, og klikk deretter **Log** under **Popular**. Den nye blokken havner under triggeren. Koble triggerens **Execute**-prikk ned til inndataprikken på Log-blokken.
 3. Klikk på Log-blokken, der det står **Click to set up**, og sett **Verdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på triggerblokken — sjekk at den stemmer.
-4. Gå til **Oversikt**, klikk **Rediger arbeidsflyt** på kortet **Arbeidsflytdetaljer**, og slå på **Aktivert**. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd.
+4. Slå på **Aktivert** øverst i Bygger. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd; hopper du over dette trinnet, spør **Kjør arbeidsflyt** først om den skal slås på.
 5. Tilbake i **Bygger** klikker du **Kjør arbeidsflyt**, legger `{ "name": "Ada" }` i **JSON**-feltet, klikker **Run Workflow Manually** og bekrefter med **Run**.
 6. Et **Workflow Run**-panel åpner seg av seg selv og følger kjøringen. Loggen viser `Value:` etterfulgt av `Hello from Ada`.
 
@@ -82,11 +82,13 @@ Den runden — legg til, koble, konfigurer, kjør, les loggen — er slik du byg
 
 ## Å slå den på
 
-Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer.
+Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer. Så lenge en arbeidsflyt er slått av, sier Bygger fra over lerretet, med en knapp **Slå på arbeidsflyt**.
 
-Bryteren **Aktivert** ligger på arbeidsflytens **Oversikt**-side, i kortet **Arbeidsflytdetaljer** — ikke på innstillingssiden. Det samme kortet viser gjeldende tilstand som en grønn **Aktivert**- eller rød **Deaktivert**-pille.
+Bryteren **Aktivert** ligger øverst i **Bygger**, ved siden av **Legg til komponent** og **Kjør arbeidsflyt**. Den finnes også på arbeidsflytens **Oversikt**-side: klikk **Rediger arbeidsflyt** på kortet **Arbeidsflytdetaljer**, som viser gjeldende tilstand som en grønn **Aktivert**- eller rød **Deaktivert**-pille. Bare de som kan redigere arbeidsflyten, kan slå den på eller av; alle andre ser bryteren nedtonet.
 
-En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt. Manuelle kjøringer avvises med «This workflow is not enabled» akkurat som utløste kjøringer, så rekkefølgen er: slå den på, test den med **Kjør arbeidsflyt**, les kjøreloggen, og slå **Aktivert** av igjen hvis du ikke er klar for at triggeren skal fyre. Vil du teste én enkelt blokk uten å kjøre hele greia, bruker du **Run just this step** i innstillingene til den blokken.
+En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt: triggeren ignoreres, og det samme gjør **Kjør arbeidsflyt** og **Run just this step**. Kjører du den, eller en av blokkene, mens den er slått av, spør Bygger i stedet **Slå på denne arbeidsflyten?**. **Slå på og kjør** (eller **Slå på og kjør trinn**) slår på arbeidsflyten og kjører deretter det du ba om, med verdiene du oppga. Så rekkefølgen er: bygg den, test den med **Kjør arbeidsflyt**, les kjøreloggen, og slå **Aktivert** av igjen hvis du ikke er klar for at triggeren skal fyre. Vil du teste én enkelt blokk uten å kjøre hele greia, bruker du **Run just this step** i innstillingene til den blokken.
+
+Alt annet som starter en deaktivert arbeidsflyt, avvises med det samme rådet. Et kall til webhook-URL-en får HTTP 400 og «This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.» En **Execute Workflow**-blokk som kaller den, tar **Error**-veien sin, og feilen nevner arbeidsflyten den kalte.
 
 Vil du sette en arbeidsflyt på pause uten å slette den, slår du av **Aktivert**. Ingen nye kjøringer starter. En kjøring som er midt i utførelsen, blir ferdig, men en som står parkert på en **Sleep**-blokk, avbrytes når den våkner og føres opp som en feil.
 

@@ -47,7 +47,7 @@ Starten Sie eine Ausführung aus dem **Builder** heraus, öffnet sich genau dies
 
 ### „Mein Workflow ist nicht gelaufen.“
 
-1. Stellen Sie sicher, dass der Workflow auf seiner Seite **Übersicht** auf **Aktiviert** steht. Neue Workflows starten deaktiviert, und ein deaktivierter Workflow lehnt jede Ausführung ab – auch manuelle.
+1. Stellen Sie sicher, dass der Workflow auf **Aktiviert** steht: Der Schalter sitzt oben in seinem **Builder**, der über der Arbeitsfläche Bescheid gibt, wenn der Workflow ausgeschaltet ist. Neue Workflows starten deaktiviert, und ein deaktivierter Workflow lehnt jede Ausführung ab – auch manuelle. Ein Aufruf seines Webhooks erhält HTTP 400 mit einer Meldung, wie er eingeschaltet wird.
 2. Bei einem OneUptime-Ereignis-Trigger: Prüfen Sie, ob das Ereignis wirklich stattgefunden hat. Öffnen Sie den Datensatz und sehen Sie sich seine Historie an.
 3. Bei einem Webhook-Trigger: Prüfen Sie, ob das andere System an die richtige URL sendet. Die meisten Tools protokollieren, wenn sie einen Webhook schicken – schauen Sie dort nach.
 4. Bei einem Zeitplan-Trigger: Prüfen Sie, ob der Cron-Ausdruck zu der Zeit passt, die Sie erwarten.

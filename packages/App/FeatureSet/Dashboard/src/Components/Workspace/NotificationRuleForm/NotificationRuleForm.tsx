@@ -30,7 +30,26 @@ import {
   MicrosoftTeamsTeam,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 
+/*
+ * Which half of a rule this form edits. The rule wizard asks the two on
+ * separate steps: Conditions (when the rule fires) and Destination (where
+ * it posts). They were one step that could show a dozen fields.
+ */
+export enum NotificationRuleFormPart {
+  Conditions = "Conditions",
+  Destination = "Destination",
+}
+
+/*
+ * The form key the Destination step is registered under. It edits the
+ * rule's notificationRule column, which the Conditions step already holds,
+ * so it needs a key of its own; it is form-only and never sent.
+ */
+export const NOTIFICATION_RULE_DESTINATION_FIELD_KEY: string =
+  "notificationRuleDestination";
+
 export interface ComponentProps {
+  part: NotificationRuleFormPart;
   value?: undefined | IncidentNotificationRule;
   onChange?: undefined | ((value: IncidentNotificationRule) => void);
   eventType: NotificationRuleEventType;
@@ -63,9 +82,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     | AlertNotificationRule
     | ScheduledMaintenanceNotificationRule;
 
-  let formFields: Array<Field<NotificationRulesType>> = [];
-
-  formFields = [
+  // When the rule fires.
+  const conditionFields: Array<Field<NotificationRulesType>> = [
     {
       field: {
         filterCondition: true,
@@ -117,12 +135,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         );
       },
     },
+  ];
+
+  // Where it posts.
+  let destinationFields: Array<Field<NotificationRulesType>> = [
     {
       field: {
         shouldPostToExistingChannel: true,
       },
       title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
-      description: `When above conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
+      description: `When the conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },
@@ -173,13 +195,13 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     const hasConnectedChats: boolean =
       (props.microsoftTeamsChats || []).length > 0;
 
-    formFields = formFields.concat([
+    destinationFields = destinationFields.concat([
       {
         field: {
           shouldPostToExistingChat: true,
         },
         title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Chat`,
-        description: `When above conditions are met, post to a group chat or one-on-one chat where the OneUptime app has been added.`,
+        description: `When the conditions are met, post to a group chat or one-on-one chat where the OneUptime app has been added.`,
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },
@@ -212,7 +234,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   }
 
   let archiveTitle: string = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`;
-  let archiveDescription: string = `When above conditions are met, archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`;
+  let archiveDescription: string = `When the conditions are met, archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`;
 
   if (props.eventType === NotificationRuleEventType.Monitor) {
     archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
@@ -241,13 +263,13 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the alert is resolved.`;
   }
 
-  formFields = formFields.concat([
+  destinationFields = destinationFields.concat([
     {
       field: {
         shouldCreateNewChannel: true,
       },
       title: `Create ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
-      description: `When above conditions are met, create a new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
+      description: `When the conditions are met, create a new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FormFieldSchemaType.Toggle,
       showHorizontalRuleAbove: true,
       required: false,
@@ -374,7 +396,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     props.eventType === NotificationRuleEventType.Alert ||
     props.eventType === NotificationRuleEventType.Incident
   ) {
-    formFields = formFields.concat([
+    destinationFields = destinationFields.concat([
       {
         field: {
           shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
@@ -397,9 +419,21 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     <div>
       <BasicForm
         error={props.error}
+        /*
+         * Seeded with the rule as well as handed it. BasicForm starts from its
+         * initialValues, so without them the form opened empty - a saved
+         * rule's switches drawn off - and the first change sent back only
+         * what this half holds, dropping the other half: a Destination
+         * change made after the Conditions step lost the conditions.
+         */
+        initialValues={props.value}
         values={props.value}
         onChange={props.onChange}
-        fields={formFields}
+        fields={
+          props.part === NotificationRuleFormPart.Conditions
+            ? conditionFields
+            : destinationFields
+        }
         hideSubmitButton={true}
       />
     </div>

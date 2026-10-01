@@ -9,7 +9,7 @@ import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddArchiveToMoreResources1797100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797100000000-AddArchiveToMoreResources";
+import { AddArchiveToMoreResources1797200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797200000000-AddArchiveToMoreResources";
 
 /*
  * The migration that makes workflows, monitors, status pages, dashboards and
@@ -31,7 +31,7 @@ const MIGRATION_PATH: string = path.join(
   "Infrastructure",
   "Postgres",
   "SchemaMigrations",
-  "1797100000000-AddArchiveToMoreResources.ts",
+  "1797200000000-AddArchiveToMoreResources.ts",
 );
 
 const SOURCE: string = fs.readFileSync(MIGRATION_PATH, "utf8");
@@ -68,7 +68,7 @@ function declaredColumns(modelType: unknown): Array<string> {
     });
 }
 
-describe("AddArchiveToMoreResources1797100000000", () => {
+describe("AddArchiveToMoreResources1797200000000", () => {
   test("is registered, after the migration it was generated on top of", () => {
     /*
      * Only order relative to what came before is pinned: later migrations
@@ -80,25 +80,25 @@ describe("AddArchiveToMoreResources1797100000000", () => {
       },
     );
     const ours: number = names.indexOf(
-      "AddArchiveToMoreResources1797100000000",
+      "AddArchiveToMoreResources1797200000000",
     );
 
     expect(ours).toBeGreaterThan(-1);
-    expect(Migrations[ours]).toBe(AddArchiveToMoreResources1797100000000);
+    expect(Migrations[ours]).toBe(AddArchiveToMoreResources1797200000000);
     expect(ours).toBeGreaterThan(
-      names.indexOf("AddWorkflowIncomingEmailSecretKey1797000000000"),
+      names.indexOf("AddMonitorSecretAccess1797100000000"),
     );
     expect(
-      names.indexOf("AddWorkflowIncomingEmailSecretKey1797000000000"),
+      names.indexOf("AddMonitorSecretAccess1797100000000"),
     ).toBeGreaterThan(-1);
   });
 
   test("its name matches its class and its file's timestamp", () => {
-    expect(new AddArchiveToMoreResources1797100000000().name).toBe(
-      "AddArchiveToMoreResources1797100000000",
+    expect(new AddArchiveToMoreResources1797200000000().name).toBe(
+      "AddArchiveToMoreResources1797200000000",
     );
     expect(path.basename(MIGRATION_PATH)).toBe(
-      "1797100000000-AddArchiveToMoreResources.ts",
+      "1797200000000-AddArchiveToMoreResources.ts",
     );
   });
 

@@ -94,7 +94,7 @@ The quickest way to feel out the canvas:
 1. Click the dashed placeholder block, then click **Manual** in the **Add Trigger** panel.
 2. Click **Add Component**, then click **Log** under **Popular**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
 3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, click the arrow beside **JSON** under **Manual**, type `name` and click **Insert**. The setting shows **Manual › JSON › name**, and saves `{{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block.
-4. Go to **Overview**, click **Edit Workflow** on the **Workflow Details** card, and switch **Enabled** on. A disabled workflow can't be run at all, not even by hand.
+4. Switch **Enabled** on, at the top of the Builder. A disabled workflow can't be run at all, not even by hand; if you skip this, **Run Workflow** asks to turn it on first.
 5. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**.
 6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from Ada`.
 
@@ -102,11 +102,13 @@ That cycle — add, connect, configure, run, read the log — is how you'll buil
 
 ## Turning it on
 
-New workflows start disabled, and so does any workflow you duplicate or import.
+New workflows start disabled, and so does any workflow you duplicate or import. While a workflow is off, the Builder says so above the canvas, with a **Turn on workflow** button.
 
-The **Enabled** switch is on the workflow's **Overview** page, in the **Workflow Details** card — not on the Settings page. The same card shows the current state as a green **Enabled** or red **Disabled** pill.
+The **Enabled** switch is at the top of the **Builder**, next to **Add Component** and **Run Workflow**. It is also on the workflow's **Overview** page: click **Edit Workflow** on the **Workflow Details** card, which shows the current state as a green **Enabled** or red **Disabled** pill. Only people who can edit the workflow can turn it on or off; anyone else sees the switch greyed out.
 
-A disabled workflow can't run at all. Manual runs are rejected with "This workflow is not enabled" exactly like triggered ones, so the order is: enable it, test it with **Run Workflow**, read the run log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
+A disabled workflow can't run at all: its trigger is ignored, and so are **Run Workflow** and **Run just this step**. Run it, or one of its blocks, while it's off and the Builder asks **Turn on this workflow?** instead. **Turn on and run** (or **Turn on and run step**) turns the workflow on and then runs what you asked for, with the values you gave. So the order is: build it, test it with **Run Workflow**, read the run log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
+
+Anything else that starts a disabled workflow is turned away with the same advice. A call to its webhook URL gets HTTP 400 and "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." An **Execute Workflow** block that calls it takes its **Error** path, and the error names the workflow it called.
 
 To pause a workflow without deleting it, switch **Enabled** off. No new runs start. A run that is mid-execution finishes, but one parked on a **Sleep** block is cancelled when it wakes and recorded as an error.
 

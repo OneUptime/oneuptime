@@ -37,6 +37,30 @@ import {
   matchWordWithTypo,
 } from "Common/UI/Components/Workflow/ComponentPicker/ComponentSearch";
 
+type TranslateFunction = (value: string) => string;
+
+export type WorkflowTemplateCountTextFunction = (
+  tx: TranslateFunction,
+  count: number,
+  one: string,
+  many: string,
+) => string;
+
+/*
+ * A count and its noun, translated as one phrase - "1 result", "{count}
+ * results" - so each language can put the number where its grammar wants it
+ * (Russian "Результатов: 12"), rather than a number glued to a word
+ * translated on its own. "{count}" has single braces so i18next leaves it be.
+ */
+export const workflowTemplateCountText: WorkflowTemplateCountTextFunction = (
+  tx: TranslateFunction,
+  count: number,
+  one: string,
+  many: string,
+): string => {
+  return count === 1 ? tx(one) : tx(many).replace("{count}", String(count));
+};
+
 /** The two lists that are not a category: the starting handful, and everything. */
 export enum WorkflowTemplateCollection {
   Recommended = "recommended",

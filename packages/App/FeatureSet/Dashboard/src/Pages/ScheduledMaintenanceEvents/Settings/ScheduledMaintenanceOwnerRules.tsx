@@ -120,6 +120,11 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },
           { title: "Owners", id: "owners", columns: 2 },
+          /*
+           * Who to assign, then which resources to inherit owners from:
+           * two questions that were one step of eight fields.
+           */
+          { title: "Inherit Owners", id: "inherit-owners", columns: 2 },
         ]}
         formFields={[
           {
@@ -264,7 +269,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           {
             field: { inheritOwnersFromMonitors: true },
             title: "Inherit Owners From Monitors",
-            stepId: "owners",
+            stepId: "inherit-owners",
             sectionTitle: "Inherit Owners",
             sectionDescription:
               "Optionally assign owners from related entities to the event.",
@@ -276,7 +281,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           {
             field: { inheritOwnersFromHosts: true },
             title: "Inherit Owners From Hosts",
-            stepId: "owners",
+            stepId: "inherit-owners",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -285,7 +290,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           {
             field: { inheritOwnersFromKubernetesClusters: true },
             title: "Inherit Owners From Kubernetes Clusters",
-            stepId: "owners",
+            stepId: "inherit-owners",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -294,7 +299,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           {
             field: { inheritOwnersFromDockerHosts: true },
             title: "Inherit Owners From Docker Hosts",
-            stepId: "owners",
+            stepId: "inherit-owners",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -303,7 +308,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           {
             field: { inheritOwnersFromPodmanHosts: true },
             title: "Inherit Owners From Podman Hosts",
-            stepId: "owners",
+            stepId: "inherit-owners",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -312,7 +317,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           {
             field: { inheritOwnersFromServices: true },
             title: "Inherit Owners From Services",
-            stepId: "owners",
+            stepId: "inherit-owners",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:

@@ -31,7 +31,8 @@ import { AddMessageQueueTables1796700000000 } from "./1796700000000-AddMessageQu
 import { FoldAiSwitchesIntoEnableAi1796800000000 } from "./1796800000000-FoldAiSwitchesIntoEnableAi";
 import { AddMcpOAuthTables1796900000000 } from "./1796900000000-AddMcpOAuthTables";
 import { AddWorkflowIncomingEmailSecretKey1797000000000 } from "./1797000000000-AddWorkflowIncomingEmailSecretKey";
-import { AddArchiveToMoreResources1797100000000 } from "./1797100000000-AddArchiveToMoreResources";
+import { AddMonitorSecretAccess1797100000000 } from "./1797100000000-AddMonitorSecretAccess";
+import { AddArchiveToMoreResources1797200000000 } from "./1797200000000-AddArchiveToMoreResources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1263,5 +1264,6 @@ export default [
   FoldAiSwitchesIntoEnableAi1796800000000,
   AddMcpOAuthTables1796900000000,
   AddWorkflowIncomingEmailSecretKey1797000000000,
-  AddArchiveToMoreResources1797100000000,
+  AddMonitorSecretAccess1797100000000,
+  AddArchiveToMoreResources1797200000000,
 ];

@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Adding a NOT NULL column with a constant default does not rewrite the table
  * on Postgres 11+, so this is cheap even on a large Monitor table.
  */
-export class AddArchiveToMoreResources1797100000000
+export class AddArchiveToMoreResources1797200000000
   implements MigrationInterface
 {
-  public name: string = "AddArchiveToMoreResources1797100000000";
+  public name: string = "AddArchiveToMoreResources1797200000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

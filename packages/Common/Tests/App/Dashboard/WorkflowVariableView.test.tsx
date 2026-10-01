@@ -231,6 +231,7 @@ type FormFieldEntry = {
   description?: string | undefined;
   fieldType?: string | undefined;
   required?: unknown;
+  stepId?: string | undefined;
 };
 
 type CapturedDetailProps = {
@@ -240,6 +241,7 @@ type CapturedDetailProps = {
   editButtonText?: string | undefined;
   onSaveSuccess?: ((item: unknown) => void) | undefined;
   formFields?: Array<FormFieldEntry> | undefined;
+  formSteps?: Array<{ id: string; title: string }> | undefined;
   modelDetailProps: {
     modelType: unknown;
     modelId: { toString: () => string };
@@ -1830,6 +1832,53 @@ describe("an OAuth 2.0 variable", () => {
     expect(settings.modelDetailProps.modelId.toString()).toBe(
       VARIABLE_ID.toString(),
     );
+  });
+
+  /*
+   * Five settings with a paragraph of help each made one long Edit Settings
+   * page. It walks the create form's Provider, Credentials and Advanced
+   * steps, so each setting is under the step it was entered on.
+   */
+  test("its settings form walks the create form's Provider, Credentials and Advanced steps", async () => {
+    await renderLoaded(oauthVariable());
+
+    const settings: CapturedDetailProps = detail(OAUTH_SETTINGS_CARD);
+
+    expect(
+      (settings.formSteps || []).map(
+        (step: {
+          id: string;
+          title: string;
+        }): { id: string; title: string } => {
+          return { id: step.id, title: step.title };
+        },
+      ),
+    ).toEqual([
+      { id: "provider", title: "Provider" },
+      { id: "credentials", title: "Credentials" },
+      { id: "advanced", title: "Advanced" },
+    ]);
+
+    const stepOf: Record<string, string | undefined> = {};
+
+    for (const field of settings.formFields || []) {
+      stepOf[Object.keys(field.field || {})[0] || ""] = field.stepId;
+    }
+
+    expect(stepOf).toEqual({
+      oauthTokenUrl: "provider",
+      oauthClientId: "credentials",
+      oauthScope: "advanced",
+      oauthAdditionalParameters: "advanced",
+      oauthClientAuthenticationMethod: "advanced",
+    });
+  });
+
+  // The details card stays one short page: name and description.
+  test("its details form has no steps", async () => {
+    await renderLoaded(oauthVariable());
+
+    expect(detail(DETAILS_CARD).formSteps).toBeUndefined();
   });
 
   test("its settings form is exactly the readable settings", async () => {

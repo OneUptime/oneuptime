@@ -43,7 +43,7 @@ Allt det här bygger du visuellt på en arbetsyta. Ingen kodning krävs för de 
 Öppnar du ett enskilt arbetsflöde rymmer dess egen vänstermeny:
 
 - **Översikt** — namn, beskrivning, etiketter och växeln **Aktiverad**.
-- **Byggare** — arbetsytan där du designar arbetsflödet.
+- **Byggare** — arbetsytan där du designar arbetsflödet, med växeln **Aktiverad** högst upp.
 - **Arbetsflödesvariabler** — värden som bara gäller det här enda arbetsflödet.
 - **Loggar → Körningar** — varje körning av det här arbetsflödet, med detaljer.
 - **Inställningar** — duplicering och export.
@@ -53,7 +53,7 @@ Allt det här bygger du visuellt på en arbetsyta. Ingen kodning krävs för de 
 1. **Skapa** — välj en startpunkt och ge sedan arbetsflödet ett namn.
 2. **Välj en utlösare** — manuell, schemalagd, webhook eller en händelse från OneUptime.
 3. **Lägg till komponenter** — lägg åtgärder på arbetsytan och koppla ihop dem.
-4. **Slå på det** — slå på **Aktiverad** från sidan **Översikt**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
+4. **Slå på det** — slå på **Aktiverad** högst upp i **Byggare**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
 5. **Testa** — klicka på **Kör arbetsflöde** i Byggaren och följ körloggen.
 
 ## Ett snabbt exempel

@@ -47,7 +47,7 @@ Iniciar uma execução pelo **Construtor** abre essa mesma visão já acompanhan
 
 ### "Meu workflow não rodou."
 
-1. Confirme que o workflow está **Habilitado** na página **Visão geral** dele. Workflows novos nascem desabilitados, e um workflow desabilitado recusa toda execução — inclusive as manuais.
+1. Confirme que o workflow está **Habilitado**: a chave fica no topo do **Construtor** dele, que avisa acima do canvas quando o workflow está desligado. Workflows novos nascem desabilitados, e um workflow desabilitado recusa toda execução — inclusive as manuais. Uma chamada ao webhook dele recebe HTTP 400 com uma mensagem explicando como ligá-lo.
 2. Para um trigger de evento do OneUptime: confirme que o evento realmente aconteceu. Abra o registro e olhe seu histórico.
 3. Para um trigger de webhook: confirme que o outro sistema está enviando para a URL certa. A maioria das ferramentas registra quando envia um webhook — confira lá.
 4. Para um trigger de agendamento: confirme que a expressão cron corresponde ao horário que você espera.

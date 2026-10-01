@@ -47,7 +47,7 @@ Si arrancas una ejecución desde el **Constructor**, se abre esta misma vista si
 
 ### «Mi flujo de trabajo no se ejecutó.»
 
-1. Asegúrate de que el flujo de trabajo está **Habilitado** en su página **Vista General**. Los flujos nuevos nacen deshabilitados, y un flujo deshabilitado rechaza cualquier ejecución, incluidas las manuales.
+1. Asegúrate de que el flujo de trabajo está **Habilitado**: el interruptor está en la parte superior de su **Constructor**, que lo avisa encima del lienzo cuando el flujo está apagado. Los flujos nuevos nacen deshabilitados, y un flujo deshabilitado rechaza cualquier ejecución, incluidas las manuales. Una llamada a su webhook recibe un HTTP 400 con un mensaje que explica cómo encenderlo.
 2. Si es un disparador de evento de OneUptime: confirma que el evento ocurrió de verdad. Abre el registro y revisa su historial.
 3. Si es un disparador de webhook: confirma que el otro sistema está llamando a la URL correcta. Casi todas las herramientas dejan constancia de los webhooks que envían — míralo ahí.
 4. Si es un disparador de programación: confirma que la expresión cron coincide con la hora que esperas.

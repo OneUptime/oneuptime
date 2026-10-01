@@ -43,7 +43,7 @@ Det hele bygger du visuelt på et lærred. De fleste workflows kræver ingen kod
 Åbner du et enkelt workflow, rummer dets egen venstremenu:
 
 - **Oversigt** — navn, beskrivelse, etiketter og kontakten **Aktiveret**.
-- **Bygger** — lærredet, hvor du designer workflowet.
+- **Bygger** — lærredet, hvor du designer workflowet, med kontakten **Aktiveret** øverst.
 - **Arbejdsgangsvariabler** — værdier, der kun gælder dette ene workflow.
 - **Protokoller → Kørsler** — hver kørsel af dette workflow, med detaljer.
 - **Indstillinger** — dublering og eksport.
@@ -53,7 +53,7 @@ Det hele bygger du visuelt på et lærred. De fleste workflows kræver ingen kod
 1. **Opret** — vælg et udgangspunkt, og giv så dit workflow et navn.
 2. **Vælg en trigger** — manuel, planlagt, webhook eller en begivenhed fra OneUptime.
 3. **Tilføj komponenter** — sæt handlinger på lærredet, og forbind dem.
-4. **Tænd for det** — slå **Aktiveret** til på siden **Oversigt**. Et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
+4. **Tænd for det** — slå **Aktiveret** til øverst i **Bygger**. Et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
 5. **Test** — klik **Kør arbejdsgang** i byggeren, og hold øje med kørselsloggen.
 
 ## Et hurtigt eksempel

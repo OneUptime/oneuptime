@@ -116,6 +116,11 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },
           { title: "Labels", id: "labels" },
+          /*
+           * The labels to attach, then which resources to inherit labels
+           * from: two questions that were one step of seven fields.
+           */
+          { title: "Inherit Labels", id: "inherit-labels", columns: 2 },
         ]}
         formFields={[
           {
@@ -238,7 +243,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           {
             field: { inheritLabelsFromMonitors: true },
             title: "Inherit Labels From Monitors",
-            stepId: "labels",
+            stepId: "inherit-labels",
             sectionTitle: "Inherit Labels",
             sectionDescription:
               "Optionally copy labels from related entities onto the event.",
@@ -250,7 +255,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           {
             field: { inheritLabelsFromHosts: true },
             title: "Inherit Labels From Hosts",
-            stepId: "labels",
+            stepId: "inherit-labels",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -259,7 +264,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           {
             field: { inheritLabelsFromKubernetesClusters: true },
             title: "Inherit Labels From Kubernetes Clusters",
-            stepId: "labels",
+            stepId: "inherit-labels",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -268,7 +273,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           {
             field: { inheritLabelsFromDockerHosts: true },
             title: "Inherit Labels From Docker Hosts",
-            stepId: "labels",
+            stepId: "inherit-labels",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -277,7 +282,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           {
             field: { inheritLabelsFromPodmanHosts: true },
             title: "Inherit Labels From Podman Hosts",
-            stepId: "labels",
+            stepId: "inherit-labels",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -286,7 +291,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
           {
             field: { inheritLabelsFromServices: true },
             title: "Inherit Labels From Services",
-            stepId: "labels",
+            stepId: "inherit-labels",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:

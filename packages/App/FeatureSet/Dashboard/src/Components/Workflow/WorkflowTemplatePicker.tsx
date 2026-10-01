@@ -66,6 +66,7 @@ import {
   getWorkflowTemplateSearchTokens,
   withWorkflowTemplateSearch,
   withWorkflowTemplateView,
+  workflowTemplateCountText,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 
 export interface ComponentProps {
@@ -115,27 +116,14 @@ export const workflowTemplateViewDomId: ViewDomIdFunction = (
 
 type TranslateFunction = (value: string) => string;
 
-type CountTextFunction = (
-  tx: TranslateFunction,
-  count: number,
-  one: string,
-  many: string,
-) => string;
-
 /*
- * A count and its noun, translated as one phrase - "1 result", "{count}
- * results" - so each language can put the number where its grammar wants it
- * (Russian "Результатов: 12"), rather than a number glued to a word
- * translated on its own. "{count}" has single braces so i18next leaves it be.
+ * workflowTemplateCountText lives in the picker's React-free half: App has no
+ * react, and a node test that wants it must be able to import it without
+ * pulling this component - and the whole component graph - into App's
+ * program. Re-exported here so importers of the component are unchanged.
+ * See Utils/Workflow/WorkflowTemplatePickerUtil.
  */
-export const workflowTemplateCountText: CountTextFunction = (
-  tx: TranslateFunction,
-  count: number,
-  one: string,
-  many: string,
-): string => {
-  return count === 1 ? tx(one) : tx(many).replace("{count}", String(count));
-};
+export { workflowTemplateCountText } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 
 interface HighlightedTextProps {
   text: string;

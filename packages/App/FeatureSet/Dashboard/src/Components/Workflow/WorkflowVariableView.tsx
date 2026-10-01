@@ -52,6 +52,7 @@ import UpdateWorkflowVariableCredentialsModal from "./UpdateWorkflowVariableCred
 import WorkflowVariableTokenRefreshModal from "./WorkflowVariableTokenRefreshModal";
 import WorkflowVariableTokenStatus from "./WorkflowVariableTokenStatus";
 import {
+  OAUTH_SETTINGS_FORM_STEPS,
   TokenRefreshOutcome,
   fetchTokenRefreshOutcome,
   getClientAuthenticationLabel,
@@ -545,6 +546,12 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
             // A settings change discards the cached token.
             void loadVariable({ isBackground: true });
           }}
+          /*
+           * The create form's Provider, Credentials and Advanced steps, so a
+           * setting is found under the same step it was entered on. Save
+           * Changes is on every step, as on every stepped edit form.
+           */
+          formSteps={OAUTH_SETTINGS_FORM_STEPS}
           formFields={getOAuthSettingsFormFields()}
           modelDetailProps={{
             modelType: WorkflowVariable,

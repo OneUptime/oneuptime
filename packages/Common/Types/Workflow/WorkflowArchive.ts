@@ -9,7 +9,7 @@
  * the API error, the run log and the tests all say the same thing.
  */
 
-// The error a manual run, a webhook call or a Run Workflow step gets back.
+// The error a manual run or a webhook call gets back.
 export const WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE: string =
   "This workflow is archived, so it does not run. Unarchive it to run it again.";
 
@@ -20,3 +20,26 @@ export const WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE: string =
 // Written into the log of a run that was sleeping when the workflow was archived.
 export const WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE: string =
   "Workflow was archived while it was waiting. Cancelling the run.";
+
+export type GetChildWorkflowArchivedMessageFunction = (data: {
+  workflowId: string;
+  workflowName?: string | null | undefined;
+}) => string;
+
+/*
+ * The same refusal as an Execute Workflow step reports it, in the run of the
+ * workflow that called the archived one. "This workflow is archived" would
+ * read there as the calling workflow, which is plainly running, so the
+ * message names the workflow it called: by name, or by ID when it has none.
+ * (The same reasoning, and shape, as getChildWorkflowTurnedOffMessage.)
+ */
+export const getChildWorkflowArchivedMessage: GetChildWorkflowArchivedMessageFunction =
+  (data: {
+    workflowId: string;
+    workflowName?: string | null | undefined;
+  }): string => {
+    const name: string = (data.workflowName || "").trim();
+    const workflow: string = name ? `"${name}"` : data.workflowId;
+
+    return `The workflow ${workflow} is archived, so this step could not start it. Unarchive it to run it again.`;
+  };

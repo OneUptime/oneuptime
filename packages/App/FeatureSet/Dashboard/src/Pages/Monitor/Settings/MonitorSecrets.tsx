@@ -1,10 +1,18 @@
-import MonitorsElement from "../../../Components/Monitor/Monitors";
+import MonitorSecretAccessElement from "../../../Components/MonitorSecret/MonitorSecretAccessElement";
+import {
+  MONITOR_SECRET_ACCESS_STEP_ID,
+  MONITOR_SECRET_ACCESS_TITLES,
+  getMonitorSecretAccessFormFields,
+} from "./MonitorSecretAccessFormFields";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ErrorFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
+import MonitorSecretAccess, {
+  MonitorSecretAccessUtil,
+} from "Common/Types/Monitor/MonitorSecretAccess";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,6 +20,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslateValue from "Common/UI/Utils/Translation";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import React, {
@@ -28,6 +38,12 @@ const MonitorSecrets: FunctionComponent<
     useState<MonitorSecret | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const { translateString } = useTranslateValue();
+
+  const translate: (text: string) => string = (text: string): string => {
+    return translateString(text) || text;
+  };
 
   return (
     <Fragment>
@@ -76,7 +92,7 @@ const MonitorSecrets: FunctionComponent<
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Secret", id: "secret" },
-          { title: "Access", id: "access" },
+          { title: "Access", id: MONITOR_SECRET_ACCESS_STEP_ID },
         ]}
         formFields={[
           {
@@ -118,22 +134,7 @@ const MonitorSecrets: FunctionComponent<
             required: true,
             placeholder: "Secret Value (eg: API Key, Password, etc.)",
           },
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Monitors which have access to this secret",
-            stepId: "access",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            description: "Which monitors should have access to this secret?",
-            placeholder: "Select monitors",
-          },
+          ...getMonitorSecretAccessFormFields(translate),
         ]}
         sortBy="name"
         sortOrder={SortOrder.Ascending}
@@ -149,12 +150,43 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              monitorAccess: true,
+            },
+            title: "Access",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: MonitorSecretAccessUtil.ALL_ACCESS_MODES.map(
+              (access: MonitorSecretAccess) => {
+                return {
+                  label: translate(MONITOR_SECRET_ACCESS_TITLES[access]),
+                  value: access,
+                };
+              },
+            ),
+          },
+          {
+            field: {
               monitors: true,
             },
-            title: "Monitors which have access to this secret",
+            title: "Monitors",
             type: FieldType.EntityArray,
 
             filterEntityType: Monitor,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              labels: true,
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+
+            filterEntityType: Label,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
             },
@@ -181,17 +213,23 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              monitorAccess: true,
               monitors: {
                 name: true,
                 _id: true,
                 projectId: true,
               },
+              labels: {
+                name: true,
+                color: true,
+                _id: true,
+              },
             },
-            title: "Monitors which have access to this secret",
-            type: FieldType.EntityArray,
+            title: "Access",
+            type: FieldType.Element,
 
             getElement: (item: MonitorSecret): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              return <MonitorSecretAccessElement secret={item} />;
             },
           },
         ]}

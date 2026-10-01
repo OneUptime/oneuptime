@@ -43,7 +43,7 @@ Abra **Fluxos de trabalho** na navegação à esquerda. Essa seção guarda:
 Abra um workflow específico e o menu à esquerda dele traz:
 
 - **Visão geral** — nome, descrição, rótulos e a chave **Habilitado**.
-- **Construtor** — o canvas onde você desenha o workflow.
+- **Construtor** — o canvas onde você desenha o workflow, com a chave **Habilitado** no topo.
 - **Variáveis do fluxo** — valores restritos a este workflow.
 - **Registros → Execuções** — cada execução deste workflow, com detalhes.
 - **Configurações** — duplicação e exportação.
@@ -53,7 +53,7 @@ Abra um workflow específico e o menu à esquerda dele traz:
 1. **Crie** — escolha um ponto de partida e dê um nome ao workflow.
 2. **Escolha um trigger** — manual, agendado, webhook ou um evento do OneUptime.
 3. **Adicione componentes** — coloque as ações no canvas e ligue-as.
-4. **Ligue** — ative **Habilitado** na página **Visão geral**. Um workflow desabilitado não roda de jeito nenhum, nem à mão.
+4. **Ligue** — ative **Habilitado** no topo do **Construtor**. Um workflow desabilitado não roda de jeito nenhum, nem à mão.
 5. **Teste** — clique em **Executar fluxo de trabalho** no Construtor e acompanhe o registro da execução.
 
 ## Um exemplo rápido

@@ -74,7 +74,7 @@ Snabbaste sättet att få känsla för arbetsytan:
 1. Klicka på det streckade platshållarblocket och sedan på **Manual** i panelen **Add Trigger**.
 2. Klicka på **Lägg till komponent** och sedan på **Log** under **Popular**. Det nya blocket landar under utlösaren. Koppla utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
 3. Klicka på Log-blocket, där det står **Click to set up**, och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
-4. Gå till **Översikt**, klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer** och slå på **Aktiverad**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
+4. Slå på **Aktiverad** högst upp i Byggare. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand; hoppar du över det här steget frågar **Kör arbetsflöde** först om det ska slås på.
 5. Tillbaka i **Byggare**, klicka på **Kör arbetsflöde**, lägg `{ "name": "Ada" }` i fältet **JSON**, klicka på **Run Workflow Manually** och bekräfta med **Run**.
 6. En panel med **Workflow Run** öppnas av sig själv och följer körningen. Loggen visar `Value:` följt av `Hello from Ada`.
 
@@ -82,11 +82,13 @@ Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är så du
 
 ## Slå på det
 
-Nya arbetsflöden startar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar.
+Nya arbetsflöden startar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar. Så länge ett arbetsflöde är avstängt säger Byggare det ovanför arbetsytan, med knappen **Slå på arbetsflödet**.
 
-Växeln **Aktiverad** sitter på arbetsflödets sida **Översikt**, i kortet **Arbetsflödesdetaljer** — inte på inställningssidan. Samma kort visar aktuellt tillstånd som en grön **Aktiverad**- eller röd **Inaktiverad**-etikett.
+Växeln **Aktiverad** sitter högst upp i **Byggare**, bredvid **Lägg till komponent** och **Kör arbetsflöde**. Den finns också på arbetsflödets sida **Översikt**: klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer**, som visar aktuellt tillstånd som en grön **Aktiverad**- eller röd **Inaktiverad**-etikett. Bara den som får redigera arbetsflödet kan slå på eller av det; alla andra ser växeln nedtonad.
 
-Ett inaktiverat arbetsflöde kan inte köras alls. Manuella körningar avvisas med "This workflow is not enabled" precis som utlösta, så ordningen är: aktivera det, testa det med **Kör arbetsflöde**, läs körloggen och slå av **Aktiverad** igen om du inte är redo för att dess utlösare ska smälla. För att testa ett enskilt block utan att köra hela saken, använd **Run just this step** i det blockets inställningar.
+Ett inaktiverat arbetsflöde kan inte köras alls: dess utlösare ignoreras, och det gör även **Kör arbetsflöde** och **Run just this step**. Kör du det, eller ett av dess block, medan det är avstängt frågar Byggare i stället **Slå på det här arbetsflödet?**. **Slå på och kör** (eller **Slå på och kör steget**) slår på arbetsflödet och kör sedan det du bad om, med de värden du angav. Så ordningen är: bygg det, testa det med **Kör arbetsflöde**, läs körloggen och slå av **Aktiverad** igen om du inte är redo för att dess utlösare ska smälla. För att testa ett enskilt block utan att köra hela saken, använd **Run just this step** i det blockets inställningar.
+
+Allt annat som startar ett inaktiverat arbetsflöde avvisas med samma råd. Ett anrop till dess webhook-URL får HTTP 400 och "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." Ett **Execute Workflow**-block som anropar det tar sin **Error**-väg, och felet namnger arbetsflödet det anropade.
 
 För att pausa ett arbetsflöde utan att ta bort det, slå av **Aktiverad**. Inga nya körningar startar. En körning som är mitt i exekveringen slutförs, men en som står parkerad på ett **Sleep**-block avbryts när den vaknar och registreras som ett fel.
 

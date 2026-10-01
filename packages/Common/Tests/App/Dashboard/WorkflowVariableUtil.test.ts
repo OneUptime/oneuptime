@@ -78,7 +78,8 @@ jest.mock("../../../UI/Utils/API/API", () => {
 
 import {
   CLIENT_AUTHENTICATION_DROPDOWN_OPTIONS,
-  GRANT_TYPE_DROPDOWN_OPTIONS,
+  GRANT_TYPE_OPTIONS,
+  OAUTH_SETTINGS_FORM_STEPS,
   OAUTH_VARIABLE_FORM_STEPS,
   OAuthTokenRefreshResult,
   SECRET_TOGGLE_DESCRIPTION,
@@ -116,6 +117,7 @@ import {
   WorkflowVariableType,
 } from "../../../Types/Workflow/WorkflowVariableOAuth";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import { RadioButton } from "../../../UI/Components/RadioButtons/GroupRadioButtons";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
@@ -139,9 +141,12 @@ type CapturedPost = {
 
 type FieldList = Array<ModelField<WorkflowVariable>>;
 
-// The one column a form field writes, e.g. "oauthClientSecret".
+/*
+ * The key a form field holds its value under: the one column it writes, e.g.
+ * "oauthClientSecret", or the form-only key of a field that writes none.
+ */
 function keyOf(field: ModelField<WorkflowVariable>): string {
-  return Object.keys(field.field || {})[0] || "";
+  return field.overrideFieldKey || Object.keys(field.field || {})[0] || "";
 }
 
 function keysOf(fields: FieldList): Array<string> {
@@ -1094,12 +1099,24 @@ describe("getClientAuthenticationLabel", () => {
 describe("dropdown options", () => {
   test("offer both grant types, client credentials first", () => {
     expect(
-      GRANT_TYPE_DROPDOWN_OPTIONS.map((option: DropdownOption): unknown => {
+      GRANT_TYPE_OPTIONS.map((option: RadioButton): unknown => {
         return option.value;
       }),
     ).toEqual([
       OAuth2GrantType.ClientCredentials,
       OAuth2GrantType.RefreshToken,
+    ]);
+  });
+
+  // Each label says what its grant is for, so no paragraph has to.
+  test("say what each grant is for", () => {
+    expect(
+      GRANT_TYPE_OPTIONS.map((option: RadioButton): string => {
+        return option.title;
+      }),
+    ).toEqual([
+      "Client Credentials (machine-to-machine)",
+      "Refresh Token (delegated access for a user)",
     ]);
   });
 
@@ -1371,23 +1388,56 @@ describe("the shared field builders", () => {
   });
 });
 
+function stepsOf(
+  steps: Array<FormStep<WorkflowVariable>>,
+): Array<{ id: string; title: string }> {
+  return steps.map(
+    (step: FormStep<WorkflowVariable>): { id: string; title: string } => {
+      return { id: step.id, title: step.title };
+    },
+  );
+}
+
+function fieldsOnStep(fields: FieldList, stepId: string): Array<string> {
+  return keysOf(
+    fields.filter((field: ModelField<WorkflowVariable>): boolean => {
+      return field.stepId === stepId;
+    }),
+  );
+}
+
 describe("OAUTH_VARIABLE_FORM_STEPS", () => {
-  test("are the Variable step then the OAuth 2.0 step", () => {
-    expect(
-      OAUTH_VARIABLE_FORM_STEPS.map(
-        (step: FormStep<WorkflowVariable>): { id: string; title: string } => {
-          return { id: step.id, title: step.title };
-        },
-      ),
-    ).toEqual([
+  test("are Variable, Provider, Credentials and Advanced", () => {
+    expect(stepsOf(OAUTH_VARIABLE_FORM_STEPS)).toEqual([
       { id: "variable", title: "Variable" },
-      { id: "oauth", title: "OAuth 2.0" },
+      { id: "provider", title: "Provider" },
+      { id: "credentials", title: "Credentials" },
+      { id: "advanced", title: "Advanced" },
     ]);
   });
 
   // The form only ever creates OAuth 2.0 variables, so no step is conditional.
-  test("always shows both steps", () => {
+  test("always shows every step", () => {
     OAUTH_VARIABLE_FORM_STEPS.forEach((step: FormStep<WorkflowVariable>) => {
+      expect(step.showIf).toBeUndefined();
+      expect(step.isSummaryStep).toBeFalsy();
+    });
+  });
+});
+
+describe("OAUTH_SETTINGS_FORM_STEPS", () => {
+  /*
+   * The variable page's Edit Settings form: the create form's steps without
+   * Variable, whose details have their own card.
+   */
+  test("are the create form's steps after Variable, alike in id and title", () => {
+    expect(stepsOf(OAUTH_SETTINGS_FORM_STEPS)).toEqual(
+      stepsOf(OAUTH_VARIABLE_FORM_STEPS).slice(1),
+    );
+  });
+
+  test("always shows every step", () => {
+    OAUTH_SETTINGS_FORM_STEPS.forEach((step: FormStep<WorkflowVariable>) => {
       expect(step.showIf).toBeUndefined();
     });
   });
@@ -1397,8 +1447,9 @@ describe("getOAuthVariableCreateFormFields", () => {
   const OAUTH_CREATE_ORDER: Array<string> = [
     "name",
     "description",
-    "oauthGrantType",
+    "oauthIdentityProvider",
     "oauthTokenUrl",
+    "oauthGrantType",
     "oauthClientId",
     "oauthClientSecret",
     "oauthRefreshToken",
@@ -1432,13 +1483,53 @@ describe("getOAuthVariableCreateFormFields", () => {
     expect(fieldFor(fields, "description").stepId).toBe("variable");
   });
 
-  test("puts every OAuth setting on the OAuth 2.0 step", () => {
-    getOAuthVariableCreateFormFields({ isGlobal: false })
+  test.each([true, false])(
+    "asks one question per step (isGlobal: %s)",
+    (isGlobal: boolean) => {
+      const fields: FieldList = getOAuthVariableCreateFormFields({ isGlobal });
+
+      expect(fieldsOnStep(fields, "variable")).toEqual(["name", "description"]);
+      expect(fieldsOnStep(fields, "provider")).toEqual([
+        "oauthIdentityProvider",
+        "oauthTokenUrl",
+        "oauthGrantType",
+      ]);
+      expect(fieldsOnStep(fields, "credentials")).toEqual([
+        "oauthClientId",
+        "oauthClientSecret",
+        "oauthRefreshToken",
+      ]);
+      expect(fieldsOnStep(fields, "advanced")).toEqual([
+        "oauthScope",
+        "oauthAdditionalParameters",
+        "oauthClientAuthenticationMethod",
+      ]);
+    },
+  );
+
+  // The step that held eight settings is what the maintainer asked to split.
+  test("puts no more than three fields on any step", () => {
+    const fields: FieldList = getOAuthVariableCreateFormFields({
+      isGlobal: true,
+    });
+
+    OAUTH_VARIABLE_FORM_STEPS.forEach((step: FormStep<WorkflowVariable>) => {
+      expect(fieldsOnStep(fields, step.id).length).toBeGreaterThan(0);
+      expect(fieldsOnStep(fields, step.id).length).toBeLessThanOrEqual(3);
+    });
+  });
+
+  // Everything on the last step can be left as it is.
+  test("leaves nothing required on the Advanced step", () => {
+    getOAuthVariableCreateFormFields({ isGlobal: true })
       .filter((field: ModelField<WorkflowVariable>): boolean => {
-        return keyOf(field).startsWith("oauth");
+        return field.stepId === "advanced";
       })
       .forEach((field: ModelField<WorkflowVariable>) => {
-        expect(field.stepId).toBe("oauth");
+        expect(isRequired(field, {})).toBe(false);
+        expect(
+          isRequired(field, { oauthGrantType: OAuth2GrantType.RefreshToken }),
+        ).toBe(false);
       });
   });
 
@@ -1468,16 +1559,83 @@ describe("getOAuthVariableCreateFormFields", () => {
     ).toContain("{{local.variables.THIS_NAME}}");
   });
 
-  test("defaults the grant type to client credentials", () => {
+  test("defaults the grant type to client credentials, as two radio buttons", () => {
     const grantType: ModelField<WorkflowVariable> = fieldFor(
       getOAuthVariableCreateFormFields({ isGlobal: true }),
       "oauthGrantType",
     );
 
-    expect(grantType.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(grantType.fieldType).toBe(FormFieldSchemaType.RadioButton);
     expect(grantType.required).toBe(true);
     expect(grantType.defaultValue).toBe(OAuth2GrantType.ClientCredentials);
-    expect(grantType.dropdownOptions).toBe(GRANT_TYPE_DROPDOWN_OPTIONS);
+    expect(grantType.radioButtonOptions).toBe(GRANT_TYPE_OPTIONS);
+    expect(grantType.description).toContain("Fixed once saved.");
+  });
+
+  test("asks for the identity provider, which fills in the token URL", () => {
+    const provider: ModelField<WorkflowVariable> = fieldFor(
+      getOAuthVariableCreateFormFields({ isGlobal: true }),
+      "oauthIdentityProvider",
+    );
+
+    expect(provider.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(provider.required).toBe(true);
+    expect(provider.field).toBeUndefined();
+    expect(provider.overrideField).toEqual({ oauthTokenUrl: true });
+
+    let filledIn: JSONObject = {};
+
+    provider.onChange?.(
+      "Google",
+      formValues({}),
+      (values: FormValues<WorkflowVariable>) => {
+        filledIn = values as unknown as JSONObject;
+      },
+    );
+
+    expect(filledIn["oauthTokenUrl"]).toBe(
+      "https://oauth2.googleapis.com/token",
+    );
+    expect(filledIn["oauthGrantType"]).toBe(OAuth2GrantType.RefreshToken);
+  });
+
+  /*
+   * The token URL's help no longer lists four providers' URL templates; the
+   * provider picker fills in the right one.
+   */
+  test("describes the token URL in one sentence, with no URL templates", () => {
+    const tokenUrl: ModelField<WorkflowVariable> = fieldFor(
+      getOAuthVariableCreateFormFields({ isGlobal: true }),
+      "oauthTokenUrl",
+    );
+
+    expect(tokenUrl.description).toBe(
+      "Where OneUptime asks your identity provider for access tokens.",
+    );
+  });
+
+  test("refuses a token URL that still holds a preset's placeholder", () => {
+    const tokenUrl: ModelField<WorkflowVariable> = fieldFor(
+      getOAuthVariableCreateFormFields({ isGlobal: true }),
+      "oauthTokenUrl",
+    );
+
+    expect(
+      tokenUrl.customValidation?.(
+        formValues({
+          oauthTokenUrl:
+            "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+        }),
+      ),
+    ).toBe("Replace {tenant-id} in the token URL with your own value.");
+    expect(
+      tokenUrl.customValidation?.(
+        formValues({
+          oauthTokenUrl: "https://dev-1.okta.com/oauth2/default/v1/token",
+        }),
+      ),
+    ).toBeNull();
+    expect(tokenUrl.customValidation?.(formValues({}))).toBeNull();
   });
 
   test("requires the token URL and client ID", () => {
@@ -1609,6 +1767,9 @@ describe("getOAuthVariableCreateFormFields", () => {
         expect(onCreate.fieldType).toBe(setting.fieldType);
         expect(onCreate.required).toBe(setting.required);
         expect(onCreate.description).toBe(setting.description);
+        expect(onCreate.placeholder).toBe(setting.placeholder);
+        // And under the same step name in both forms.
+        expect(onCreate.stepId).toBe(setting.stepId);
       },
     );
   });
@@ -1648,20 +1809,56 @@ describe("getOAuthSettingsFormFields", () => {
     expect(keys).not.toContain("variableType");
   });
 
-  test("puts no field on a step by default", () => {
-    getOAuthSettingsFormFields().forEach(
-      (field: ModelField<WorkflowVariable>) => {
-        expect(field.stepId).toBeUndefined();
+  /*
+   * The edit form walks OAUTH_SETTINGS_FORM_STEPS: five settings used to sit
+   * on one page.
+   */
+  test("puts each setting on the step the create form asks it on", () => {
+    const fields: FieldList = getOAuthSettingsFormFields();
+
+    expect(fieldsOnStep(fields, "provider")).toEqual(["oauthTokenUrl"]);
+    expect(fieldsOnStep(fields, "credentials")).toEqual(["oauthClientId"]);
+    expect(fieldsOnStep(fields, "advanced")).toEqual([
+      "oauthScope",
+      "oauthAdditionalParameters",
+      "oauthClientAuthenticationMethod",
+    ]);
+  });
+
+  test("uses only the edit form's steps, and leaves none of them empty", () => {
+    const stepIds: Array<string> = OAUTH_SETTINGS_FORM_STEPS.map(
+      (step: FormStep<WorkflowVariable>): string => {
+        return step.id;
       },
+    );
+    const fields: FieldList = getOAuthSettingsFormFields();
+
+    fields.forEach((field: ModelField<WorkflowVariable>) => {
+      expect(stepIds).toContain(field.stepId);
+    });
+
+    stepIds.forEach((stepId: string) => {
+      expect(fieldsOnStep(fields, stepId).length).toBeGreaterThan(0);
+    });
+  });
+
+  // The provider is not saved, so there is nothing for the edit form to show.
+  test("does not offer the identity provider", () => {
+    expect(keysOf(getOAuthSettingsFormFields())).not.toContain(
+      "oauthIdentityProvider",
     );
   });
 
-  test("puts every field on the step it is given", () => {
-    getOAuthSettingsFormFields({ stepId: "oauth" }).forEach(
-      (field: ModelField<WorkflowVariable>) => {
-        expect(field.stepId).toBe("oauth");
-      },
-    );
+  // A saved URL is checked the same way as a new one.
+  test("refuses a token URL that still holds a placeholder", () => {
+    expect(
+      fieldFor(
+        getOAuthSettingsFormFields(),
+        "oauthTokenUrl",
+      ).customValidation?.(
+        formValues({ oauthTokenUrl: "https://{your-domain}/oauth/token" }),
+      ),
+    ).toBe("Replace {your-domain} in the token URL with your own value.");
   });
 
   test("warns that additional parameters are readable", () => {

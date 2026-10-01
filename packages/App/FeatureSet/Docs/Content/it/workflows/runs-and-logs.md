@@ -47,7 +47,7 @@ Se avvii un'esecuzione dal **Costruttore**, si apre questa stessa vista già agg
 
 ### "Il mio workflow non è partito."
 
-1. Verifica che il workflow sia **Abilitato** nella sua pagina **Panoramica**. I workflow nuovi nascono disabilitati, e un workflow disabilitato rifiuta ogni esecuzione, comprese quelle manuali.
+1. Verifica che il workflow sia **Abilitato**: l'interruttore sta in cima al suo **Costruttore**, che lo segnala sopra la tela quando il workflow è spento. I workflow nuovi nascono disabilitati, e un workflow disabilitato rifiuta ogni esecuzione, comprese quelle manuali. Una chiamata al suo webhook riceve un HTTP 400 con un messaggio che spiega come accenderlo.
 2. Se il trigger è un evento di OneUptime: controlla che l'evento sia davvero avvenuto. Apri il record e guarda la sua cronologia.
 3. Se il trigger è un webhook: controlla che l'altro sistema stia chiamando l'URL giusto. Quasi tutti gli strumenti registrano l'invio di un webhook — guarda lì.
 4. Se il trigger è una pianificazione: controlla che l'espressione cron corrisponda all'orario che ti aspetti.
