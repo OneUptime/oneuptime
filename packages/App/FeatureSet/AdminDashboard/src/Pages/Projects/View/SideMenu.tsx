@@ -106,7 +106,12 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <></>
       )}
 
-      <SideMenuSection title={t("sideMenu.advanced")}>
+      {/*
+       * Advanced starts collapsed, as it does in every menu. The shared
+       * SideMenuSection does that by itself only for the English title, and
+       * this one is already translated, so it is said here.
+       */}
+      <SideMenuSection title={t("sideMenu.advanced")} defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.delete"),

@@ -10,7 +10,15 @@ import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
 import SideMenuItem from "./SideMenuItem";
-import SideMenuSection from "./SideMenuSection";
+import SideMenuSection, {
+  ComponentProps as SideMenuSectionElementProps,
+} from "./SideMenuSection";
+import {
+  MenuRoute,
+  routesInMenuChildren,
+  routesOfMenuEntry,
+  sectionsHoldingCurrentPage,
+} from "./SideMenuSectionState";
 import CountModelSideMenuItem from "./CountModelSideMenuItem";
 import Link from "../../../Types/Link";
 import { BadgeType } from "../Badge/Badge";
@@ -55,6 +63,95 @@ export interface ComponentProps {
   children?: ReactElement | Array<ReactElement>;
 }
 
+type MapSectionFunction = (
+  section: ReactElement<SideMenuSectionElementProps>,
+) => ReactElement;
+
+/*
+ * Rebuilds a menu's hand-written children with every <SideMenuSection> passed
+ * through `mapSection`, in menu order. It looks inside fragments, because a
+ * section shown only in some editions is written as
+ * `{cond ? <SideMenuSection .../> : <></>}`, and leaves everything else as
+ * it is.
+ */
+function mapSectionElements(
+  children: ReactElement | Array<ReactElement>,
+  mapSection: MapSectionFunction,
+): Array<ReactElement> {
+  const elements: Array<ReactElement> = Array.isArray(children)
+    ? children
+    : [children];
+
+  return elements.map((child: ReactElement): ReactElement => {
+    if (!React.isValidElement(child)) {
+      return child;
+    }
+
+    if (child.type === SideMenuSection) {
+      return mapSection(child as ReactElement<SideMenuSectionElementProps>);
+    }
+
+    if (child.type === React.Fragment) {
+      const fragmentChildren: ReactElement | Array<ReactElement> | undefined = (
+        child.props as { children?: ReactElement | Array<ReactElement> }
+      ).children;
+
+      if (!fragmentChildren) {
+        return child;
+      }
+
+      return React.cloneElement(
+        child,
+        {},
+        ...mapSectionElements(fragmentChildren, mapSection),
+      );
+    }
+
+    return child;
+  });
+}
+
+/*
+ * The hand-written form gets the same "this section holds the page you are
+ * on" answer the `sections` array gets, so a section that starts collapsed
+ * (an Advanced section, say) still opens on its own pages. Before, only the
+ * array form computed it; written as JSX, which is how every resource's own
+ * menu is written, a collapsed section stayed shut on its own pages.
+ *
+ * A section that is given `isActive` explicitly keeps it.
+ */
+function withActiveSections(
+  children: ReactElement | Array<ReactElement>,
+): Array<ReactElement> {
+  const sectionRoutes: Array<Array<MenuRoute>> = [];
+
+  mapSectionElements(
+    children,
+    (section: ReactElement<SideMenuSectionElementProps>): ReactElement => {
+      sectionRoutes.push(routesInMenuChildren(section.props.children));
+      return section;
+    },
+  );
+
+  const holdsCurrentPage: Array<boolean> =
+    sectionsHoldingCurrentPage(sectionRoutes);
+  let sectionIndex: number = 0;
+
+  return mapSectionElements(
+    children,
+    (section: ReactElement<SideMenuSectionElementProps>): ReactElement => {
+      const isActive: boolean = Boolean(holdsCurrentPage[sectionIndex]);
+      sectionIndex++;
+
+      if (section.props.isActive !== undefined) {
+        return section;
+      }
+
+      return React.cloneElement(section, { isActive });
+    },
+  );
+}
+
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const { translateString } = useTranslateValue();
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -88,7 +185,22 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }, []);
 
   // Close mobile menu when clicking on a menu item
-  const handleMenuItemClick: () => void = (): void => {
+  /*
+   * Following a link closes the phone menu; opening or closing a section
+   * must not. The handler sits on the whole <nav>, so a tap on a section's
+   * header used to close the menu too: a folded section (Advanced, or a
+   * product's Settings) could never be opened on a phone, and its pages were
+   * out of reach from the menu.
+   */
+  const handleMenuItemClick: (event: React.MouseEvent<HTMLElement>) => void = (
+    event: React.MouseEvent<HTMLElement>,
+  ): void => {
+    const target: EventTarget | null = event.target;
+
+    if (!(target instanceof Element) || !target.closest("a")) {
+      return;
+    }
+
     if (isMobile && isMobileMenuVisible) {
       setIsMobileMenuOpen(false);
     }
@@ -281,6 +393,20 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Render sections
     if (props.sections) {
+      /*
+       * Which sections hold the current page: the one with the entry for it,
+       * or, on a page the menu does not list (one API key, a timeline), the
+       * one with its nearest ancestor. A section that starts collapsed opens
+       * on those pages.
+       */
+      const holdsCurrentPage: Array<boolean> = sectionsHoldingCurrentPage(
+        props.sections.map(
+          (section: SideMenuSectionProps): Array<MenuRoute> => {
+            return section.items.flatMap(routesOfMenuEntry);
+          },
+        ),
+      );
+
       props.sections.forEach(
         (section: SideMenuSectionProps, sectionIndex: number) => {
           // Build section props conditionally to avoid undefined values
@@ -294,9 +420,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           } = {
             key: `section-${sectionIndex}`,
             title: section.title,
-            isActive: section.items.some((item: SideMenuItemProps): boolean => {
-              return Navigation.isOnThisPage(item.activeRoute || item.link.to);
-            }),
+            isActive: Boolean(holdsCurrentPage[sectionIndex]),
           };
 
           if (section.icon) {
@@ -397,13 +521,13 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Support legacy children prop for backward compatibility
     if (props.children) {
-      const children: Array<ReactElement> = Array.isArray(props.children)
-        ? props.children
-        : [props.children];
-
-      children.forEach((child: ReactElement, index: number) => {
-        content.push(React.cloneElement(child, { key: `child-${index}` }));
-      });
+      withActiveSections(props.children).forEach(
+        (child: ReactElement, index: number) => {
+          if (React.isValidElement(child)) {
+            content.push(React.cloneElement(child, { key: `child-${index}` }));
+          }
+        },
+      );
     }
 
     return content;
