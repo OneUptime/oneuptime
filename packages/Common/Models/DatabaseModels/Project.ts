@@ -1875,7 +1875,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Insight Fix Tasks",
     description:
-      "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
+      "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Honors any open-PR cap set on the repository. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })

@@ -52,34 +52,31 @@ import InvestigationSubjectLock from "./InvestigationSubjectLock";
 export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
 
 /*
- * G4 cost guardrail, opt-in: a project may cap how many investigations run at
- * once in its incident lane and in its alert lane (Incidents or Alerts →
- * Settings → AI). Unset means no cap — a run is claimed as soon as it passes
- * the budget gate, however many are already Running — and subjectless work
- * (insight triage) has no setting and no cap (see AIWorkloadLimits). Where a
- * cap is set it is enforced at CLAIM time, so a storm queues (bounded by
+ * G4 cost guardrail, opt-in: a project may cap how many runs go at once in
+ * its incident lane and in its alert lane (Incidents or Alerts → Settings →
+ * AI). Unset means no cap — a run is claimed as soon as it passes the budget
+ * gate, however many are already Running — and subjectless work (insight
+ * triage) has no setting and no cap (see AIWorkloadLimits). Where a cap is
+ * set it is enforced at CLAIM time, so a storm queues (bounded by
  * QUEUE_TTL_MINUTES) and drains at cap rate instead of being dropped.
- */
-
-/*
- * Lane priority, when a lane has a cap. Two kinds of run share this queue and
- * each subject lane's concurrency cap:
- *   - the INTERACTIVE lane (incident/alert RCA) — a human is waiting;
- *   - the PREVENTIVE lane (AI-insight triage, identified by
- *     triggeredByAiInsightId) — nobody is waiting, and one scan tick
- *     can file up to MAX_NEW_INSIGHTS_PER_PROJECT_PER_SCAN (10) of them.
  *
- * Without a sub-cap the preventive lane can hold every slot, and since the
- * poller drains oldest-first, an incident that fires after a scan queues
+ * Lane priority inside a capped lane. Two kinds of run share its slots:
+ *   - INTERACTIVE work (the incident/alert RCA) — a human is waiting;
+ *   - BACKGROUND work (remediation plans and executions; insight triage is
+ *     counted the same way, though its own lane has no cap) — nobody is
+ *     waiting, and it is storm-shaped.
+ *
+ * Without a sub-cap background work can hold every slot, and since the
+ * poller drains oldest-first, an incident that fires after a burst queues
  * BEHIND that backlog — the exact RCA latency the product promises.
  *
- * So the preventive lane may hold at most (cap - RESERVED) slots: at least
- * one slot is always unreachable by triage. Combined with the inline kick
- * that enqueue() fires for every run, that reserved slot is enough on its
- * own — an incident/alert enqueue calls processRun immediately, passes the
- * gates against a cap that triage cannot have saturated, and dispatches
+ * So background work may hold at most (cap - RESERVED) slots: at least one
+ * slot is always unreachable by it. Combined with the inline kick that
+ * enqueue() fires for every run, that reserved slot is enough on its own —
+ * an incident/alert enqueue calls processRun immediately, passes the gates
+ * against a cap that background work cannot have saturated, and dispatches
  * without ever touching the poller (so it can also never be TTL-expired
- * behind triage). Splitting the poller's oldest-first query into two lane
+ * behind it). Splitting the poller's oldest-first query into two lane
  * queries would therefore only re-order runs that are ALREADY late, at the
  * cost of an extra query every tick — deliberately not done.
  */
