@@ -14,7 +14,7 @@ Menzionala su una issue e apre una pull request. Menzionala su una pull request 
 
 ## Prima di iniziare
 
-- Il repository deve essere **collegato a un progetto OneUptime** tramite la GitHub App. Vedi [Integrazione GitHub (self-hosted)](/docs/self-hosted/github-integration) per la configurazione, oppure collegalo da **Impostazioni del progetto → Repository di codice** su OneUptime Cloud.
+- Il repository deve essere **collegato a un progetto OneUptime** tramite la GitHub App. Vedi [Integrazione GitHub (self-hosted)](/docs/self-hosted/github-integration) per la configurazione, oppure collegalo da **Attività → Repository di codice** su OneUptime Cloud.
 - Deve essere online un **Runner con la capacità "Esegue le correzioni di codice AI"** — lo stesso Runner che porta a termine gli [AI Fix Tasks](/docs/ai/ai-agent). Senza, i comandi vengono accettati e poi falliscono dopo 30 minuti con un messaggio che dice che nessun agente li ha presi in carico.
 - La GitHub App deve avere il permesso **Issues: Lettura e Scrittura** ed essere iscritta agli eventi webhook elencati in [A cosa iscriversi](#a-cosa-iscriversi).
 
@@ -129,7 +129,7 @@ Tratta una pull request scritta dall'AI come tratteresti quella di un nuovo coll
 
 ## Risoluzione dei problemi
 
-**Non succede nulla quando la menziono.** Controlla prima di tutto l'handle — è lo slug dell'app, non il suo nome visualizzato. Poi verifica che il repository sia collegato a un progetto (**Impostazioni del progetto → Repository di codice**), che **Respond to GitHub Commands** sia attivo e che la tua GitHub App sia iscritta agli eventi elencati sopra.
+**Non succede nulla quando la menziono.** Controlla prima di tutto l'handle — è lo slug dell'app, non il suo nome visualizzato. Poi verifica che il repository sia collegato a un progetto (**Attività → Repository di codice**), che **Respond to GitHub Commands** sia attivo e che la tua GitHub App sia iscritta agli eventi elencati sopra.
 
 **Reagisce con 😕 e non dice nulla.** Non hai accesso in scrittura al repository.
 

@@ -5,11 +5,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { RouteUtil } from "../../Utils/RouteMap";
 import { Outlet } from "react-router-dom";
 import { getAIAgentTasksBreadcrumbs } from "../../Utils/Breadcrumbs";
+import CodeSideMenu from "../../Components/Code/CodeSideMenu";
 
 /*
- * No side menu: this route has a single page, so a menu here would be one
- * item linking to the page you are already on. The sibling AI pages (Llm,
- * Traces, Metrics) drop it for the same reason and give the table the width.
+ * The Code product's side menu: Tasks shares it with Code Repositories, the
+ * repositories its tasks open pull requests in. See CodeSideMenu.
  */
 const AIAgentTasksLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -17,7 +17,11 @@ const AIAgentTasksLayout: FunctionComponent<LayoutPageComponentProps> = (
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 
   return (
-    <Page title={"AI Tasks"} breadcrumbLinks={getAIAgentTasksBreadcrumbs(path)}>
+    <Page
+      title={"AI Tasks"}
+      sideMenu={<CodeSideMenu />}
+      breadcrumbLinks={getAIAgentTasksBreadcrumbs(path)}
+    >
       <Outlet />
     </Page>
   );

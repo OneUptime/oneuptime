@@ -14,7 +14,7 @@ Mention it on an issue and it opens a pull request. Mention it on a pull request
 
 ## Before you start
 
-- The repository must be **connected to a OneUptime project** through the GitHub App. See [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) for the setup, or connect it from **Project Settings → Code Repositories** on OneUptime Cloud.
+- The repository must be **connected to a OneUptime project** through the GitHub App. See [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) for the setup, or connect it from **Tasks → Code Repositories** on OneUptime Cloud.
 - A **Runner with the "Runs AI Code Fixes" capability** must be online — the same Runner that carries out [AI Fix Tasks](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes with a message saying no agent picked them up.
 - The GitHub App must have the **Issues: Read & write** permission and be subscribed to the webhook events listed under [What to subscribe to](#what-to-subscribe-to).
 
@@ -129,7 +129,7 @@ Treat an AI-authored pull request the way you would treat one from a new contrib
 
 ## Troubleshooting
 
-**Nothing happens when I mention it.** Check the handle first — it is the app's slug, not its display name. Then check that the repository is connected to a project (**Project Settings → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
+**Nothing happens when I mention it.** Check the handle first — it is the app's slug, not its display name. Then check that the repository is connected to a project (**Tasks → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
 
 **It reacts 😕 and says nothing.** You do not have write access to the repository.
 
